@@ -15,13 +15,15 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
+print(repr(long_description))
+
 setup(
     name='asammdf',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.0.0',
+    version='1.0.1',
 
     description='measurement file parsers',
     long_description=long_description,
@@ -34,7 +36,7 @@ setup(
     author_email='daniel.hrisca@gmail.com',
 
     # Choose your license
-    license='GNU GENERAL PUBLIC LICENSE Version 3',
+    license='GPL3',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -46,10 +48,11 @@ setup(
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
-        'Topic :: File parsers :: Measurement parsers',
+        'Topic :: Software Development',
+        'Topic :: Scientific/Engineering',
 
         # Pick your license as you wish (should match "license" above)
-        'License :: OSI Approved :: ',
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
