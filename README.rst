@@ -37,7 +37,7 @@ Features
 
 Benchmarks
 ==========
-using a more complex file of 170MB with 180 data groups and 36000 channels the file 
+using a more complex file of 170MB with 180 data groups and 36000 channels with Python 3.6.1 32bit 
 
 * file load:
     * asammdf 1.0.0 : 1040ms
