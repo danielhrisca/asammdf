@@ -12,7 +12,7 @@ Dependencies
 asammdf uses the following libraries
     
 * numpy : the heart that makes all tick
-* numexpr : for fromula based channel conversions
+* numexpr : for formula based channel conversions
 * blosc : optionally used for in memmory raw channel data compression
 
 Usage
@@ -27,16 +27,20 @@ Usage
 
 Benchmarks
 ==========
-using a more complex file of 170MB with 180 data groups and 36000 channels the file 
+using a more complex file of 170MB with 180 data groups and 36000 channels:
 
 * file load:
     * asammdf 1.0.0 : 1040ms
     * mdfreader 0.2.2 : 3986ms
-        
 * file save:
     * asammdf 1.0.0 : 722ms
     * mdfreader 0.2.2 : 18800ms
-        
 * get channel data (10000 calls):
     * asammdf 1.0.0 : 918ms
     * mdfreader 0.2.2 : 11ms
+* RAM usage with loaded raw channel data:
+    * asammdf 1.0.0 : 280MB
+    * mdfreader 0.2.2 : 441MB
+* RAM usage without loaded raw channel data:
+    * asammdf 1.0.0 : 118MB
+    * mdfreader 0.2.2 : 300MB

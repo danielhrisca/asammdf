@@ -17,6 +17,7 @@ import os
 import os.path
 
 import itertools
+from functools import lru_cache
 
 try:
     from blosc import compress, decompress
@@ -1768,10 +1769,11 @@ class DataBlock(dict):
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
 
-            self['data'] = stream.read(size)
             self.compression = kargs.get('compression', False)
+            self['data'] = stream.read(size)
 
-        except KeyError:
+
+        except KeyError as err:
             self.address = 0
             self.compression = kargs.get('compression', False)
             self['data'] = kargs.get('data', bytes())
