@@ -24,6 +24,16 @@ Usage
     mdf = MDF3('sample.mdf')
     speed = mdf.get_signal_by_name('WheelSpeed')
 
+Features
+========
+
+* read sorted and unsorted MDF v3 files
+* files are loaded in RAM for fast operations
+    * for low memory computers or for large data files there is the option to load only the metadata and leave the raw channel data (the samples) unread; this of course will mean slower channel data access speed
+* extract channel data, master channel and extra channel information (unit, conversion rule)
+* remove channel by name
+* remove data group by specifing a channel name inside the target data group
+* append new channels
 
 Benchmarks
 ==========
@@ -31,12 +41,12 @@ using a more complex file of 170MB with 180 data groups and 36000 channels the f
 
 * file load:
     * asammdf 1.0.0 : 1040ms
-    * mdfreader 0.2.2 : 3986ms
+    * mdfreader 0.2.4 : 3986ms
         
 * file save:
     * asammdf 1.0.0 : 722ms
-    * mdfreader 0.2.2 : 18800ms
+    * mdfreader 0.2.4 : 18800ms
         
 * get channel data (10000 calls):
     * asammdf 1.0.0 : 918ms
-    * mdfreader 0.2.2 : 11ms
+    * mdfreader 0.2.4 : 11ms
