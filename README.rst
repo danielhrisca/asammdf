@@ -50,7 +50,7 @@ using a more complex file of 170MB with 180 data groups and 36000 channels with 
     * mdfreader 0.2.4 : 11ms
 * RAM usage with loaded raw channel data:
     * asammdf 1.0.0 : 280MB
-    * mdfreader 0.2.2 : 441MB
+    * mdfreader 0.2.4 : 441MB
 * RAM usage without loaded raw channel data:
     * asammdf 1.0.0 : 118MB
-    * mdfreader 0.2.2 : 300MB
+    * mdfreader 0.2.4 : 300MB
