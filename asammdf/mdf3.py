@@ -770,10 +770,10 @@ class MDF3(object):
     def get_master_channel(self, gp_nr):
         gp = self.groups[gp_nr]
 
-        for ch, conv in zip(gp['channels'], gp['channel_conversions']):
-            if ch['channel_type'] == CHANNEL_TYPE_MASTER:
-                time_ch, time_conv = ch, conv
-                break
+        time_idx = self.masters_db[gp_nr]
+        time_ch = gp['channels'][time_idx]
+        time_conv = gp['channel_conversions'][time_idx]
+        t_byte_offset, bit_offset = divmod(time_ch['start_offset'], 8)
 
         time_size = time_ch['bit_count'] // 8
         t_fmt = fmt(time_ch['data_type'], time_size)
@@ -781,8 +781,9 @@ class MDF3(object):
 
         data = gp['data_block']['data']
 
-        types = dtype([('t', t_fmt),
-                   ('res1', 'a{}'.format(block_size - time_size))])
+        types = dtype([('res1', 'a{}'.format(t_byte_offset)),
+                       ('t', t_fmt),
+                       ('res2', 'a{}'.format(block_size - time_size - t_byte_offset))])
 
         values = fromstring(data, types)
 
