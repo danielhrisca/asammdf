@@ -25,7 +25,7 @@ setup(
     # https://packaging.python.org/en/latest/single_source_version.html
     version='1.0.0',
 
-    description='measurement file parsers',
+    description='ASAM MDF measurement data file parser',
     long_description=long_description,
 
     # The project's main homepage.
