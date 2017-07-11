@@ -11,13 +11,12 @@ from numpy import array, searchsorted, log, exp, clip
 from numexpr import evaluate
 from numpy.core.records import fromstring, fromarrays
 
-from struct import unpack, pack
+from struct import unpack, pack, iter_unpack
 from collections import OrderedDict, defaultdict
 import os
 import os.path
 
 import itertools
-from functools import lru_cache
 
 try:
     from blosc import compress, decompress
@@ -249,6 +248,9 @@ KEYS_CONVESION_EXPO_LOGH = ('id',
                             'P5',
                             'P6',
                             'P7')
+
+FMT_PROGRAM_BLOCK = '<2sH{}s'
+KEYS_PROGRAM_BLOCK = ('id', 'block_len', 'data')
 
 
 def fmt(data_type, size):
@@ -1538,15 +1540,14 @@ class ChannelConversion(dict):
             if conv_type == CONVERSION_TYPE_NONE:
                 pass
             elif conv_type == CONVERSION_TYPE_FORMULA:
-                print(hex(address))
                 self['formula'] = unpack('<{}s'.format(size - 46), block[CC_COMMON_BLOCK_SIZE:])[0]
 
             elif conv_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
                 nr = self['ref_param_nr']
 
-                for i in range(nr):
+                for i, (raw, phys) in enumerate(iter_unpack('<2d', block[CC_COMMON_BLOCK_SIZE:])):
                     (self['raw_{}'.format(i)],
-                    self['phys_{}'.format(i)]) = unpack('<2d', block[CC_COMMON_BLOCK_SIZE + i*16: CC_COMMON_BLOCK_SIZE + (i+1)*16])
+                     self['phys_{}'.format(i)]) = raw, phys
 
             elif conv_type == CONVERSION_TYPE_LINEAR:
                 (self['b'],
@@ -1574,17 +1575,17 @@ class ChannelConversion(dict):
             elif conv_type == CONVERSION_TYPE_VTAB:
                 nr = self['ref_param_nr']
 
-                for i in range(nr):
+                for i, (val, text) in enumerate(iter_unpack('<d32s', block[CC_COMMON_BLOCK_SIZE:])):
                     (self['param_val_{}'.format(i)],
-                    self['text_{}'.format(i)]) = unpack('<d32s', block[CC_COMMON_BLOCK_SIZE + i*40: CC_COMMON_BLOCK_SIZE + (i + 1)*40])
+                     self['text_{}'.format(i)]) = val, text
 
             elif conv_type == CONVERSION_TYPE_VTABR:
                 nr = self['ref_param_nr']
 
-                for i in range(nr):
+                for i, (lower, upper, text) in enumerate(iter_unpack('<2dI', block[CC_COMMON_BLOCK_SIZE:])):
                     (self['lower_{}'.format(i)],
-                    self['upper_{}'.format(i)],
-                    self['text_{}'.format(i)]) = unpack('<2dI', block[CC_COMMON_BLOCK_SIZE + i*20: CC_COMMON_BLOCK_SIZE + (i + 1)*20])
+                     self['upper_{}'.format(i)],
+                     self['text_{}'.format(i)]) = lower, upper, text
         except KeyError:
 
             self.address = 0
@@ -1844,45 +1845,26 @@ class DataGroup(dict):
         return pack(fmt, *[self[key] for key in keys])
 
 
-class ProgramBlock(OrderedDict):
+class ProgramBlock(dict):
     def __init__(self, *args, **kargs):
         super().__init__()
 
-        self.address = 0
-        self['id'] = kargs.get('id', 'PR'.encode('latin-1'))
-        self['block_len'] = kargs.get('block_len', 8)
-        self['data'] = kargs.get('data',b'\x00\x00\x00\x00')
-        self.size = self['block_len']
+        try:
+            stream = kargs['file_stream']
+            self.address = address = kargs['address']
+            stream.seek(address, SEEK_START)
 
-    @classmethod
-    def from_address(cls, address, stream):
-        """
-        Creates a *Program specific* object from a block loaded from a measurement file
+            (self['id'],
+             self['block_len']) = unpack('<2sH', stream.read(4))
+            self['data'] = stream.read(self['block_len'] - 4)
 
-        Parameters
-        ----------
-        address : int
-            block address inside the measurement file
-        stream : file.io.handle
-            binary file stream
-
-        """
-        stream.seek(address + 2, SEEK_START)
-        size = unpack('<H', stream.read(2))[0]
-        stream.seek(address, SEEK_START)
-        block = stream.read(size)
-
-        kargs = {}
-
-        (kargs['id'],
-         kargs['block_len'],
-         kargs['data']) = unpack('<2sH{}s'.format(size - 4), block)
-
-        return cls(**kargs)
+            self.size = self['block_len']
+        except:
+            pass
 
     def __bytes__(self):
-        fmt = '<2sH{}s'.format(self.size)
-        return pack(fmt, *self.values())
+        fmt = FMT_PROGRAM_BLOCK.format(self.size)
+        return pack(fmt, *[self[key] for key in KEYS_PROGRAM_BLOCK])
 
 
 class SourceInformation(dict):
@@ -2001,55 +1983,31 @@ class TriggerBlock(OrderedDict):
     def __init__(self, *args, **kargs):
         super().__init__()
 
-        self.address = 0
-        self['id'] = kargs.get('id', 'TR'.encode('latin-1'))
-        self['block_len'] = kargs.get('block_len', 10)
-        self['text_addr'] = kargs.get('text_addr', 0)
-        self['trigger_events_nr'] = kargs.get('trigger_events_nr', 0)
+        try:
+            self.address = address = kargs['address']
+            stream = kargs['stream']
 
-        for i in range(self['trigger_events_nr']):
-            self['trigger_{}_time'.format(i)] = kargs['trigger_{}_time'.format(i)]
-            self['trigger_{}_pretime'.format(i)] = kargs['trigger_{}_pretime'.format(i)]
-            self['trigger_{}_posttime'.format(i)] = kargs['trigger_{}_posttime'.format(i)]
-        self.size = self['block_len']
+            stream.seek(address + 2, SEEK_START)
+            size = unpack('<H', stream.read(2))[0]
+            stream.seek(address, SEEK_START)
+            block = stream.read(size)
 
-    @classmethod
-    def from_address(cls, address, stream):
-        """
-        Creates a *Program specific* object from a block loaded from a measurement file
+            (self['id'],
+             self['block_len'],
+             self['text_addr'],
+             self['trigger_events_nr']) = unpack('<2sHIH', block[:10])
 
-        Parameters
-        ----------
-        address : int
-            block address inside the measurement file
-        stream : file.io.handle
-            binary file stream
+            for i, (t, pre, post) in enumerate(iter_unpack('<3d', block[10:])):
+                (self['trigger_{}_time'.format(i)],
+                 self['trigger_{}_pretime'.format(i)],
+                 self['trigger_{}_posttime'.format(i)]) = t, pre, post
 
-        """
-        stream.seek(address + 2, SEEK_START)
-        size = unpack('<H', stream.read(2))[0]
-        stream.seek(address, SEEK_START)
-        block = stream.read(size)
-
-        kargs = {}
-
-        (kargs['id'],
-         kargs['block_len'],
-         kargs['text_addr'],
-         kargs['trigger_events_nr']) = unpack('<2sHIH', block[:10])
-
-        trigger_nr = kargs['trigger_events_nr']
-
-        for i in range(trigger_nr):
-            (kargs['trigger_{}_time'.format(i)],
-            kargs['trigger_{}_pretime'.format(i)],
-            kargs['trigger_{}_posttime'.format(i)]) = unpack('<3d', block[10 + i*24: 10 + (i + 1)* 24])
-
-        return cls(**kargs)
+            self.size = self['block_len']
+        except KeyError:
+            pass
 
     def __bytes__(self):
-        nr = self['trigger_events_nr']
-        fmt = '<2sHIH{}d'.format(nr*3)
+        fmt = '<2sHIH{}d'.format(self['trigger_events_nr'] * 3)
         return pack(fmt, *self.values())
 
 
