@@ -9,6 +9,8 @@ Welcome to asammdf's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+   
+   mdf
 
 
 

@@ -92,6 +92,7 @@ DG32_BLOCK_SIZE = 28
 HD_BLOCK_SIZE = 104
 CN_BLOCK_SIZE = 228
 CG_BLOCK_SIZE = 26
+CG33_BLOCK_SIZE = 30
 DT_BLOCK_SIZE = 24
 CC_COMMON_BLOCK_SIZE = 46
 CC_ALG_BLOCK_SIZE = 88
@@ -444,9 +445,20 @@ class MDF3(object):
             acquisition information; the 'conv' key contains a dict of conversions, each key being
             the signal name for which the conversion is specified
 
+        Examples
+        --------
+        >>> s1 = np.array([1, 2, 3, 4, 5])
+        >>> s2 = np.array([-1, -2, -3, -4, -5])
+        >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
+        >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
+        >>> names = ['Positive', 'Negative', 'Float']
+        >>> units = ['+', '-', '.f']
+        >>> info = {}
+        >>> mdf = MDF3('new.mdf')
+        >>> mdf.append([s1, s2, s3], t, names, units, info)
+
 
         """
-
         self.groups.append({})
         dg_cntr = len(self.groups) - 1
         gp = self.groups[-1]
@@ -456,7 +468,6 @@ class MDF3(object):
 
         t_type, t_size = fmt_to_datatype(t.dtype)
 
-        gp['defined_channels'] = signal_names
         gp['channels'] = gp_channels = []
         gp['channel_conversions'] = gp_conv = []
         gp['channel_sources'] = gp_source = []
@@ -538,7 +549,7 @@ class MDF3(object):
                      'module_address': 0,
                      'type': SOURCE_ECU,
                      'description': 'Channel inserted by Python Script'.encode('latin-1')}
-            gp_source.append(SourceInformation(**kargs))
+            gp_source.append(ChannelExtension(**kargs))
 
         #time channel
         kargs = {'short_name': 't'.encode('latin-1'),
@@ -596,6 +607,12 @@ class MDF3(object):
         """
         Displays a complete channel list table to stdout
 
+        Examples
+        --------
+        >>> mdf = MDF3('test.mdf')
+        >>> mdf.display_channel_list()
+
+
         """
         print('{:<60}|{:>10}|{:<20}'.format('Channel name',
                                             'Samples',
@@ -604,7 +621,7 @@ class MDF3(object):
         for gp in self.groups:
             samples = gp['channel_group']['cycles_nr']
             print('+'.join(('-'*60, '-'*10, '-'*20)))
-            for source, channel_name in zip(gp['channel_sources'][1:], gp['defined_channels'][1:]):
+            for source, channel_name in zip(gp['channel_sources'][1:], [ch.name for ch in gp['channels']][1:]):
                 if source:
                     if source['type'] == SOURCE_ECU:
                         source_info = source['ECU_identification'].decode('latin-1').strip()
@@ -689,7 +706,7 @@ class MDF3(object):
                 if source:
                     source.address = address
                     address += source.size
-                    # SourceInformation are 8byte aligned
+                    # ChannelExtension are 8byte aligned
                     additional_bytes.append(0)
                     blocks.append(source)
 
@@ -719,9 +736,14 @@ class MDF3(object):
             # ChannelGroup
             cg = gp['channel_group']
             cg.address = address
-            # ChannelGroup needs 6 extra bytes for 8byte alignment
-            address += cg.size + 6
-            additional_bytes.append(6)
+            address += cg.size
+            align = address % 8
+            if align:
+                add = 8 - align
+                address += add
+            else:
+                add = 0
+            additional_bytes.append(add)
             blocks.append(cg)
             cg['first_ch_addr'] = gp['channels'][0].address
             cg['next_cg_addr'] = 0
@@ -1066,7 +1088,6 @@ class MDF3(object):
 
                     new_groups.append({})
                     grp = new_groups[-1]
-                    grp['defined_channels'] = []
                     grp['channels'] = []
                     grp['channel_conversions'] = []
                     grp['channel_sources'] = []
@@ -1097,7 +1118,6 @@ class MDF3(object):
                     ch_cntr = 0
                     grp_chs = grp['channels']
                     grp_conv = grp['channel_conversions']
-                    defined_channels = grp['defined_channels']
                     grp_ch_texts = grp['texts']['channels']
                     while ch_addr:
                         # read channel block and create channel object
@@ -1124,7 +1144,7 @@ class MDF3(object):
                         # read source block and create source infromation object
                         address = new_ch['source_depend_addr']
                         if address:
-                            grp['channel_sources'].append(SourceInformation(address=address, file_stream=file_stream))
+                            grp['channel_sources'].append(ChannelExtension(address=address, file_stream=file_stream))
                         else:
                             grp['channel_sources'].append(None)
 
@@ -1141,9 +1161,6 @@ class MDF3(object):
                             new_ch.name = ch_texts['long_name_addr'].text_str
                         else:
                             new_ch.name = new_ch['short_name'].decode('latin-1').strip('\x00')
-                        #if 'display_name_addr' in grp['texts']['channels'][-1]:
-                       #     grp['channels'][-1].display_name = grp['texts']['channels'][-1]['display_name_addr']['text'].decode('latin-1').strip('\x00')
-                        defined_channels.append(new_ch.name)
 
                         self.channel_db[new_ch.name] = (dg_cntr, ch_cntr)
                         if new_ch['channel_type'] == CHANNEL_TYPE_MASTER:
@@ -1218,10 +1235,10 @@ class MDF3(object):
             #print('remove', channel_name, len(self.groups))
             for i, gp in enumerate(self.groups):
                 #print(i)
-                if channel_name in gp['defined_channels']:
+                if channel_name in [ch.name for ch in gp['channels']]:
                     # if this is the only channel in the channel group
                     print('remove', channel_name, i)
-                    if len(gp['defined_channels']) == 2:
+                    if len(gp['channels']) == 2:
                         self.groups.pop(i)
                         # if this is the first data group update header information
                         if i == 0:
@@ -1233,8 +1250,7 @@ class MDF3(object):
 
                     # else there are other channels in the channel group
                     else:
-                        j = gp['defined_channels'].index(channel_name)
-                        gp['defined_channels'].pop(j)
+                        j = [ch.name for ch in gp['channels']].index(channel_name)
                         # remove all text blocks associated with the channel
                         for key in ('channels', 'conversion_vtabr'):
                             gp['texts'][key].pop(j)
@@ -1382,7 +1398,7 @@ class MDF3(object):
 
         """
         for group in self.groups:
-            if channel_name in group['defined_channels']:
+            if channel_name in [ch.name for ch in group['channels']]:
                 block_size = group['channel_group']['samples_byte_nr'] -\
                              group['data_group']['record_id_nr']
                 time_ch = group['channels'][0]
@@ -1416,7 +1432,67 @@ class MDF3(object):
 
 
 class Channel(dict):
+    ''' CNBLOCK class derived from *dict*
 
+    The Channel object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using any of the following presented keys - when creating a new Channel
+
+    The keys have the following meaning:
+
+    * id - Block type identifier, always "CN"
+    * block_len - Block size of this block in bytes (entire CNBLOCK)
+    * next_ch_addr - Pointer to next channel block (CNBLOCK) of this channel group (NIL allowed)
+    * conversion_addr - Pointer to the conversion formula (CCBLOCK) of this signal (NIL allowed)
+    * source_depend_addr - Pointer to the source-depending extensions (CEBLOCK) of this signal (NIL allowed)
+    * ch_depend_addr - Pointer to the dependency block (CDBLOCK) of this signal (NIL allowed)
+    * comment_addr - Pointer to the channel comment (TXBLOCK) of this signal (NIL allowed)
+    * channel_type - Channel type
+
+        * 0 = data channel
+        * 1 = time channel for all signals of this group (in each channel group, exactly one channel must be defined as time channel) The time stamps recording in a time channel are always relative to the start time of the measurement defined in HDBLOCK.
+
+    * short_name - Short signal name, i.e. the first 31 characters of the ASAM-MCD name of the signal (end of text should be indicated by 0)
+    * description - Signal description (end of text should be indicated by 0)
+    * start_offset - Start offset in bits to determine the first bit of the signal in the data record. The start offset N is divided into two parts: a "Byte offset" (= N div 8) and a "Bit offset" (= N mod 8). The channel block can define an "additional Byte offset" (see below) which must be added to the Byte offset.
+    * bit_count - Number of bits used to encode the value of this signal in a data record
+    * data_type - Signal data type
+    * range_flag - Value range valid flag
+    * min_raw_value - Minimum signal value that occurred for this signal (raw value)
+    * max_raw_value - Maximum signal value that occurred for this signal (raw value)
+    * sampling_rate - Sampling rate for a virtual time channel. Unit [s]
+    * long_name_addr - Pointer to TXBLOCK that contains the ASAM-MCD long signal name
+    * display_name_addr - Pointer to TXBLOCK that contains the signal's display name (NIL allowed)
+    * aditional_byte_offset - Additional Byte offset of the signal in the data record (default value: 0).
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+
+    Attributes
+    ----------
+    name : str
+        full channel name
+    size : int
+        size of bytes reprezentation of CNBLOCK
+    address : int
+        block address inside mdf file
+
+    Examples
+    --------
+    >>> with open('test.mdf', 'rb') as mdf:
+    ...     ch1 = Channel(file_stream=mdf, address=0xBA52)
+    >>> ch2 = Channel()
+    >>> ch1.name
+    'VehicleSpeed'
+    >>> ch1['id']
+    b'CN'
+
+    '''
     def __init__(self, *args, **kargs):
         super().__init__()
 
@@ -1480,6 +1556,51 @@ class Channel(dict):
 
 
 class ChannelGroup(dict):
+    ''' CGBLOCK class derived from *dict*
+
+    The ChannelGroup object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using any of the following presented keys - when creating a new ChannelGroup
+
+    The keys have the following meaning:
+
+    * id - Block type identifier, always "CG"
+    * block_len - Block size of this block in bytes (entire CGBLOCK)
+    * next_cg_addr - Pointer to next channel group block (CGBLOCK) (NIL allowed)
+    * first_ch_addr - Pointer to first channel block (CNBLOCK) (NIL allowed)
+    * comment_addr - Pointer to channel group comment text (TXBLOCK) (NIL allowed)
+    * record_id - Record ID, i.e. value of the identifier for a record if the DGBLOCK defines a number of record IDs > 0
+    * ch_nr - Number of channels (redundant information)
+    * samples_byte_nr - Size of data record in Bytes (without record ID), i.e. size of plain data for a each recorded sample of this channel group
+    * cycles_nr - Number of records of this type in the data block i.e. number of samples for this channel group
+    * sample_reduction_addr - only since version 3.3. Pointer to first sample reduction block (SRBLOCK) (NIL allowed) Default value: NIL.
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+
+    Attributes
+    ----------
+    size : int
+        size of bytes reprezentation of CGBLOCK
+    address : int
+        block address inside mdf file
+
+    Examples
+    --------
+    >>> with open('test.mdf', 'rb') as mdf:
+    ...     cg1 = ChannelGroup(file_stream=mdf, address=0xBA52)
+    >>> cg2 = ChannelGroup(sample_bytes_nr=32)
+    >>> hex(cg1.address)
+    0xBA52
+    >>> cg1['id']
+    b'CG'
+
+    '''
     def __init__(self, *args, **kargs):
         super().__init__()
 
@@ -1498,6 +1619,8 @@ class ChannelGroup(dict):
              self['ch_nr'],
              self['samples_byte_nr'],
              self['cycles_nr']) = unpack(FMT_CHANNEL_GROUP, block)
+            if self['block_len'] == CG33_BLOCK_SIZE:
+                self['sample_reduction_addr'] = unpack('<I', stream.read(4))[0]
         except KeyError:
             self.address = 0
             self['id'] = kargs.get('id', 'CG'.encode('latin-1'))
@@ -1509,13 +1632,100 @@ class ChannelGroup(dict):
             self['ch_nr'] = kargs.get('ch_nr', 0)
             self['samples_byte_nr'] = kargs.get('samples_byte_nr', 0)
             self['cycles_nr'] = kargs.get('cycles_nr', 0)
+            if self['block_len'] == CG33_BLOCK_SIZE:
+                self['sample_reduction_addr'] = 0
         self.size = self['block_len']
 
     def __bytes__(self):
-        return pack(FMT_CHANNEL_GROUP, *[self[key] for key in KEYS_CHANNEL_GROUP])
+        fmt = FMT_CHANNEL_GROUP
+        keys = KEYS_CHANNEL_GROUP
+        if self['block_size'] == CG33_BLOCK_SIZE:
+            fmt += 'I'
+            keys += ('sample_reduction_addr',)
+
+        return pack(fmt, *[self[key] for key in keys])
 
 
 class ChannelConversion(dict):
+    ''' CCBLOCK class derived from *dict*
+
+    The ChannelConversion object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using any of the following presented keys - when creating a new ChannelConversion
+
+    The first keys are common for all conversion types, and are followed by conversion specific keys. The keys have the following meaning:
+
+    * common keys
+
+        * id - Block type identifier, always "CC"
+        * block_len - Block size of this block in bytes (entire CCBLOCK)
+        * range_flag - Physical value range valid flag:
+        * min_phy_value - Minimum physical signal value that occurred for this signal
+        * max_phy_value - Maximum physical signal value that occurred for this signal
+        * unit - Physical unit (string should be terminated with 0)
+        * conversion_type - Conversion type (formula identifier)
+        * ref_param_nr - Size information about additional conversion data
+
+    * specific keys
+
+        * linear conversion
+
+            * b - offset
+            * a - factor
+            * CANapeHiddenExtra - sometimes CANape appends extra information; not compliant with MDF specs
+
+        * ASAM formula conversion
+
+            * formula - ecuation as string
+
+        * polynomial or rational conversion
+
+            * P1 .. P6 - factors
+
+        * exponential or logarithmic conversion
+
+            * P1 .. P7 - factors
+
+        * tabular with or without interpolation (grouped by *n*)
+
+            * raw_{n} - n-th raw integer value (X axis)
+            * phys_{n} - n-th physical value (Y axis)
+
+        * text table conversion
+
+            * param_val_{n} - n-th integers value (X axis)
+            * text_{n} - n-th text value (Y axis)
+
+        * text range table conversion
+
+            * lower_{n} - n-th lower raw value
+            * upper_{n} - n-th upper raw value
+            * text_{n} - n-th text value
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+
+    Attributes
+    ----------
+    size : int
+        size of bytes reprezentation of CCBLOCK
+    address : int
+        block address inside mdf file
+
+    Examples
+    --------
+    >>> with open('test.mdf', 'rb') as mdf:
+    ...     cc1 = ChannelConversion(file_stream=mdf, address=0xBA52)
+    >>> cc2 = ChannelConversion(conversion_type=0)
+    >>> cc1['b'], cc1['a']
+    0, 100.0
+
+    '''
     def __init__(self, *args, **kargs):
         super().__init__()
 
@@ -1801,6 +2011,40 @@ class DataBlock(dict):
 
 
 class DataGroup(dict):
+    ''' DGBLOCK class derived from *dict*
+
+    The DataGroup object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using any of the following presented keys - when creating a new DataGroup
+
+    The keys have the following meaning:
+
+    * id - Block type identifier, always "DG"
+    * block_len - Block size of this block in bytes (entire DGBLOCK)
+    * next_dg_addr - Pointer to next data group block (DGBLOCK) (NIL allowed)
+    * first_cg_addr - Pointer to first channel group block (CGBLOCK) (NIL allowed)
+    * trigger_addr - Pointer to trigger block (TRBLOCK) (NIL allowed)
+    * data_block_addr - Pointer to the data block (see separate chapter on data storage)
+    * cg_nr - Number of channel groups (redundant information)
+    * record_id_nr - Number of record IDs in the data block
+    * reserved0 - since version 3.2; Reserved
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+
+    Attributes
+    ----------
+    size : int
+        size of bytes reprezentation of DGBLOCK
+    address : int
+        block address inside mdf file
+
+    '''
     def __init__(self, *args, **kargs):
         super().__init__()
 
@@ -1847,6 +2091,34 @@ class DataGroup(dict):
 
 
 class ProgramBlock(dict):
+    ''' PRBLOCK class derived from *dict*
+
+    The ProgramBlock object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using any of the following presented keys - when creating a new ProgramBlock
+
+    The keys have the following meaning:
+
+    * id - Block type identifier, always "PR"
+    * block_len - Block size of this block in bytes (entire PRBLOCK)
+    * data - Program-specific data
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+
+    Attributes
+    ----------
+    size : int
+        size of bytes reprezentation of PRBLOCK
+    address : int
+        block address inside mdf file
+
+    '''
     def __init__(self, *args, **kargs):
         super().__init__()
 
@@ -1868,7 +2140,55 @@ class ProgramBlock(dict):
         return pack(fmt, *[self[key] for key in KEYS_PROGRAM_BLOCK])
 
 
-class SourceInformation(dict):
+class ChannelExtension(dict):
+    ''' CEBLOCK class derived from *dict*
+
+    The ChannelExtension object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using any of the following presented keys - when creating a new ChannelExtension
+
+    The first keys are common for all conversion types, and are followed by conversion specific keys. The keys have the following meaning:
+
+    * common keys
+
+        * id - Block type identifier, always "CE"
+        * block_len - Block size of this block in bytes (entire CEBLOCK)
+        * type - Extension type identifier
+
+    * specific keys
+
+        * for DIM block
+
+            * module_nr - Number of module
+            * module_address - Address
+            * description - Description
+            * ECU_identification - Identification of ECU
+            * reserved0' - reserved
+
+        * for Vector CAN block
+
+            * CAN_id - Identifier of CAN message
+            * CAN_ch_index - Index of CAN channel
+            * message_name - Name of message (string should be terminated by 0)
+            * sender_name - Name of sender (string should be terminated by 0)
+            * reserved0 - reserved
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+
+    Attributes
+    ----------
+    size : int
+        size of bytes reprezentation of CEBLOCK
+    address : int
+        block address inside mdf file
+
+    '''
     def __init__(self, *args, **kargs):
         super().__init__()
 
@@ -1925,6 +2245,46 @@ class SourceInformation(dict):
 
 
 class TextBlock(dict):
+    ''' TXBLOCK class derived from *dict*
+
+    The ProgramBlock object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the classmethod *from_text*
+
+    The keys have the following meaning:
+
+    * id - Block type identifier, always "TX"
+    * block_len - Block size of this block in bytes (entire TXBLOCK)
+    * text - Text (new line indicated by CR and LF; end of text indicated by 0)
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+    text : bytes
+        bytes for creating a new TextBlock
+
+    Attributes
+    ----------
+    size : int
+        size of bytes reprezentation of TXBLOCK
+    address : int
+        block address inside mdf file
+    text_str : str
+        text data as unicode string
+
+    Examples
+    --------
+    >>> tx1 = TextBlock.from_text('VehicleSpeed')
+    >>> tx1.text_str
+    'VehicleSpeed'
+    >>> tx1['text']
+    b'VehicleSpeed'
+
+    '''
     def __init__(self, *args, **kargs):
         super().__init__()
         try:
@@ -1958,11 +2318,11 @@ class TextBlock(dict):
     @classmethod
     def from_text(cls, text):
         """
-        Creates a *Text Block* object from a string
+        Creates a *TextBlock* object from a string or bytes
 
         Parameters
         ----------
-        text : str
+        text : str | bytes
             input string
 
         """
@@ -1980,7 +2340,39 @@ class TextBlock(dict):
         # for performance reasons:
         return pack('<2sH' + str(self.size-4) + 's', *[self[key] for key in KEYS_TEXT_BLOCK])
 
-class TriggerBlock(OrderedDict):
+class TriggerBlock(dict):
+    ''' TRBLOCK class derived from *dict*
+
+    The TriggerBlock object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the classmethod *from_text*
+
+    The keys have the following meaning:
+
+    * id - Block type identifier, always "TX"
+    * block_len - Block size of this block in bytes (entire TRBLOCK)
+    * text_addr - Pointer to trigger comment text (TXBLOCK) (NIL allowed)
+    * trigger_events_nr - Number of trigger events n (0 allowed)
+    * trigger_{n}_time - Trigger time [s] of trigger event *n*
+    * trigger_{n}_pretime - Pre trigger time [s] of trigger event *n*
+    * trigger_{n}_posttime - Post trigger time [s] of trigger event *n*
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+
+    Attributes
+    ----------
+    size : int
+        size of bytes reprezentation of TRBLOCK
+    address : int
+        block address inside mdf file
+
+    '''
     def __init__(self, *args, **kargs):
         super().__init__()
 
@@ -2008,8 +2400,12 @@ class TriggerBlock(OrderedDict):
             pass
 
     def __bytes__(self):
-        fmt = '<2sHIH{}d'.format(self['trigger_events_nr'] * 3)
-        return pack(fmt, *self.values())
+        triggers_nr = self['trigger_events_nr']
+        fmt = '<2sHIH{}d'.format(triggers_nr * 3)
+        keys = ('id', 'block_len', 'text_addr', 'trigger_events_nr')
+        for i in range(triggers_nr):
+            keys += ('trigger_{}_time'.format(i), 'trigger_{}_pretime'.format(i), 'trigger_{}_posttime'.format(i))
+        return pack(fmt, *[self[key] for key in keys])
 
 
 if __name__ == '__main__':
