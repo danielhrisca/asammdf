@@ -36,6 +36,8 @@ conversions = {'CONVERSION_TYPE_NONE' : 65535,
                'CONVERSION_TYPE_VTAB' : 11,
                'CONVERSION_TYPE_VTABR' : 12}
 
+BYTE_ORDER_INTEL = 0
+BYTE_ORDER_MOTOROLA = 1
 
 DATA_TYPE_UNSIGNED = 0
 DATA_TYPE_SIGNED = 1
@@ -78,10 +80,42 @@ SEEK_START = 0
 SEEK_REL = 1
 SEEK_END = 2
 
-HEADER_300_SIZE = 228
-HEADER_320_EXTRA_SIZE = 44
-HEADER_FMT = '<8s8s8s4H2s30s2sH3IH10s8s32s32s32s32s'
-HEADER_320_EXTRA_FMT = 'Q2H32s'
+HEADER_COMMON_FMT = '<2sH3IH10s8s32s32s32s32s'
+HEADER_COMMON_SIZE = 164
+HEADER_POST_320_EXTRA_FMT = 'Q2H32s'
+HEADER_POST_320_EXTRA_SIZE = 44
+
+HEADER_COMMON_KEYS = ('id',
+                      'block_len',
+                      'first_dg_addr',
+                      'comment_addr',
+                      'program_addr',
+                      'dg_nr',
+                      'date',
+                      'time',
+                      'author',
+                      'organization',
+                      'project',
+                      'subject')
+
+HEADER_POST_320_EXTRA_KEYS = ('abs_time',
+                              'tz_offset',
+                              'time_quality',
+                              'timer_identification')
+
+ID_FMT = '<8s8s8s4H2s26s2H'
+ID_KEYS = ('file_identification',
+           'version_str',
+           'program_identification',
+           'byte_order',
+           'float_format',
+           'mdf_version',
+           'code_page',
+           'reserved0',
+           'reserved1',
+           'unfinalized_standard_flags',
+           'unfinalized_custom_flags')
+ID_BLOCK_SIZE = 64
 
 TIME_FAC = 10 ** -9
 TIME_CH_SIZE = 8
@@ -104,6 +138,8 @@ CC_FORMULA_BLOCK_SIZE = 304
 FLAG_PRECISION = 1
 FLAG_PHY_RANGE_OK = 2
 FLAG_VAL_RANGE_OK = 8
+
+
 
 FMT_CHANNEL = '<2sH5IH32s128s4H3d2IH'
 KEYS_CHANNEL = ('id',
@@ -369,7 +405,8 @@ class MDF3(object):
     """
     def __init__(self, file_name, empty=False, load_measured_data=True,  compression=False, version='3.20'):
         self.groups = []
-        self.header = OrderedDict()
+        self.header = None
+        self.identification = None
         self.file_history = None
         self.name = file_name
         self.load_measured_data = load_measured_data
@@ -377,49 +414,16 @@ class MDF3(object):
         self.channel_db = {}
         self.masters_db = {}
 
-        if not empty:
+        if os.path.isfile(file_name):
             self._read()
-            self.is_new = False
         else:
-            self.load_measured_data = True
-            self.is_new = True
-
             self.groups = []
 
-            self.header['file_identification'] = 'MDF     '.encode('latin-1')
-            self.header['version_str'] = version.encode('latin-1')
-            self.header['program_identification'] = 'Python  '.encode('latin-1')
-            # default to Intel byteorder
-            self.header['byte_order'] = 0
+            self.identification = IdentificationBlock(version=version.encode('ascii'))
+            self.header = HeaderBlock(version=int(float(version) * 100))
 
             self.byteorder = '<'
 
-            self.header['float_format'] = 0
-            self.header['mdf_version'] = int(float(version) * 100)
-            self.version = self.header['mdf_version']
-            self.header['reserved0'] = 0
-            self.header['reserved1'] = b'\x00' * 2
-            self.header['reserved2'] = b'\x00' * 30
-            # Header block
-            self.header['id'] = 'HD'.encode('latin-1')
-            self.header['block_len'] = 208 if version == '3.20' else 164
-            self.header['first_dg_addr'] = 0
-            self.header['comment_addr'] = 0
-            self.header['program_addr'] = 0
-            self.header['dg_nr'] = 0
-            t1 = time.time() * 10**9
-            t2 = time.gmtime()
-            self.header['date'] = '{:\x00<10}'.format(time.strftime('%d:%m:%Y', t2))
-            self.header['time'] = '{:\x00<8}'.format(time.strftime('%X', t2))
-            self.header['author'] = '{:\x00<32}'.format(os.getlogin())
-            self.header['organization'] = '{:\x00<32}'.format('ST')
-            self.header['project'] = '{:\x00<32}'.format('')
-            self.header['subject'] = '{:\x00<32}'.format('')
-            if self.version == 320:
-                self.header['abs_time'] = int(t1)
-                self.header['tz_offset'] = 2
-                self.header['time_quality'] = 0
-                self.header['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time')
             self.file_history = TextBlock.from_text('''<FHcomment>
 <TX>created</TX>
 <tool_id>PythonMDFEditor</tool_id>
@@ -648,9 +652,9 @@ class MDF3(object):
 
         additional_bytes = []
 
-        address = HEADER_300_SIZE
+        address = HEADER_COMMON_SIZE + ID_BLOCK_SIZE
         if self.version == 320:
-            address += HEADER_320_EXTRA_SIZE
+            address += HEADER_POST_320_EXTRA_SIZE
             additional_bytes.append(0)
         else:
             # Pre 3.20 MDF header needs 4 extra bytes for 8byte alignment
@@ -1041,37 +1045,12 @@ class MDF3(object):
             dg_cntr = 0
             seek(0, SEEK_START)
 
-            # ID and Header blocks
-            (self.header['file_identification'],
-            self.header['version_str'],
-            self.header['program_identification'],
-            self.header['byte_order'],
-            self.header['float_format'],
-            self.header['mdf_version'],
-            self.header['reserved0'],
-            self.header['reserved1'],
-            self.header['reserved2'],
-            self.header['id'],
-            self.header['block_len'],
-            self.header['first_dg_addr'],
-            self.header['comment_addr'],
-            self.header['program_addr'],
-            self.header['dg_nr'],
-            self.header['date'],
-            self.header['time'],
-            self.header['author'],
-            self.header['organization'],
-            self.header['project'],
-            self.header['subject']) = (unpack(HEADER_FMT, read(HEADER_300_SIZE)))
+            self.identification = IdentificationBlock(file_stream=file_stream)
+            self.header = HeaderBlock(file_stream=file_stream)
 
-            self.byteorder = '<' if self.header['byte_order'] == 0 else '>'
+            self.byteorder = '<' if self.identification['byte_order'] == 0 else '>'
 
-            self.version = self.header['mdf_version']
-            if self.version == 320:
-                (self.header['abs_time'],
-                self.header['tz_offset'],
-                self.header['time_quality'],
-                self.header['timer_identification']) = unpack(HEADER_320_EXTRA_FMT, read(HEADER_320_EXTRA_SIZE))
+            self.version = self.identification['mdf_version']
 
             self.file_history = TextBlock(address=self.header['comment_addr'], file_stream=file_stream)
 
@@ -1364,17 +1343,9 @@ class MDF3(object):
 
         with open(out_file_name, 'wb') as new_file:
             blocks, additional_bytes = self._update_addresses()
-            # update header information
-            header_fmt = HEADER_FMT
-            if self.version == 320:
-                header_fmt += HEADER_320_EXTRA_FMT
-
-            header_items = [val for k, val in self.header.items()]
-            for i, val in enumerate(header_items):
-                if isinstance(val, str):
-                    header_items[i] = val.encode('latin-1')
-
-            new_file.write(pack(header_fmt, *header_items))
+            # write identification block and header block
+            new_file.write(bytes(self.identification))
+            new_file.write(bytes(self.header))
             add_bytes = additional_bytes[0]
             if add_bytes:
                 new_file.write(b'\x00' * add_bytes)
@@ -1639,7 +1610,7 @@ class ChannelGroup(dict):
     def __bytes__(self):
         fmt = FMT_CHANNEL_GROUP
         keys = KEYS_CHANNEL_GROUP
-        if self['block_size'] == CG33_BLOCK_SIZE:
+        if self['block_len'] == CG33_BLOCK_SIZE:
             fmt += 'I'
             keys += ('sample_reduction_addr',)
 
@@ -2090,6 +2061,172 @@ class DataGroup(dict):
         return pack(fmt, *[self[key] for key in keys])
 
 
+class IdentificationBlock(dict):
+    ''' IDBLOCK class derived from *dict*
+
+    The TriggerBlock object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the classmethod *from_text*
+
+    The keys have the following meaning:
+
+    * file_identification -  file identifier
+    * version_str - format identifier
+    * program_identification - program identifier
+    * byte_order - default byte order
+    * float_format - default floating-point format
+    * mdf_version - version number of MDF format
+    * code_page - code page number
+    * reserved0 - reserved
+    * reserved1 - reserved
+    * unfinalized_standard_flags - Standard Flags for unfinalized MDF
+    * unfinalized_custom_flags - Custom Flags for unfinalized MDF
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+
+    version : int
+        mdf version in case of new file
+
+    '''
+    def __init__(self, *args, **kargs):
+        super().__init__()
+
+        self.address = 0
+        try:
+
+            stream = kargs['file_stream']
+            stream.seek(0, SEEK_START)
+
+            (self['file_identification'],
+             self['version_str'],
+             self['program_identification'],
+             self['byte_order'],
+             self['float_format'],
+             self['mdf_version'],
+             self['code_page'],
+             self['reserved0'],
+             self['reserved1'],
+             self['unfinalized_standard_flags'],
+             self['unfinalized_custom_flags']) = unpack(ID_FMT, stream.read(ID_BLOCK_SIZE))
+        except KeyError:
+            self['file_identification'] = 'MDF     '.encode('latin-1')
+            self['version_str'] = kargs.get('version', b'330' + b'\x00' * 5)
+            self['program_identification'] = 'Python  '.encode('latin-1')
+            self['byte_order'] = BYTE_ORDER_INTEL
+            self['float_format'] = 0
+            self['mdf_version'] = int(float(self['version_str']) * 100)
+            self['code_page'] = 0
+            self['reserved0'] = b'\x00' * 2
+            self['reserved1'] = b'\x00' * 26
+            self['unfinalized_standard_flags'] = 0
+            self['unfinalized_custom_flags'] = 0
+
+    def __bytes__(self):
+        return pack(ID_FMT, *[self[key] for key in ID_KEYS])
+
+
+class HeaderBlock(dict):
+    ''' HDBLOCK class derived from *dict*
+
+    The TriggerBlock object can be created in two modes:
+
+    * using the *file_stream* - when reading from file
+    * using the classmethod *from_text*
+
+    The keys have the following meaning:
+
+    * id - Block type identifier, always "HD"
+    * block_len - Block size of this block in bytes (entire HDBLOCK)
+    * first_dg_addr - Pointer to the first data group block (DGBLOCK)
+    * comment_addr - Pointer to the measurement file comment text (TXBLOCK) (NIL allowed)
+    * program_addr - Pointer to program block (PRBLOCK) (NIL allowed)
+    * dg_nr - Number of data groups (redundant information)
+    * date - Date at which the recording was started in "DD:MM:YYYY" format
+    * time - Time at which the recording was started in "HH:MM:SS" format
+    * author - author name
+    * organization - organization
+    * project - project name
+    * subject - subject
+
+    Since version 3.2 the following extra keys were added:
+
+    * abs_time - Time stamp at which recording was started in nanoseconds.
+    * tz_offset - UTC time offset in hours (= GMT time zone)
+    * time_quality - Time quality class
+    * timer_identification - Timer identification (time source),
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+
+    '''
+    def __init__(self, *args, **kargs):
+        super().__init__()
+
+        self.address = 64
+        try:
+
+            stream = kargs['file_stream']
+            stream.seek(64, SEEK_START)
+
+            (self['id'],
+             self['block_len'],
+             self['first_dg_addr'],
+             self['comment_addr'],
+             self['program_addr'],
+             self['dg_nr'],
+             self['date'],
+             self['time'],
+             self['author'],
+             self['organization'],
+             self['project'],
+             self['subject']) = unpack(HEADER_COMMON_FMT, stream.read(HEADER_COMMON_SIZE))
+
+            self.size = self['block_len']
+            if self.size > HEADER_COMMON_SIZE:
+                (self['abs_time'],
+                 self['tz_offset'],
+                 self['time_quality'],
+                 self['timer_identification']) = unpack(HEADER_POST_320_EXTRA_FMT, stream.read(HEADER_POST_320_EXTRA_SIZE))
+
+        except KeyError:
+            version = kargs.get('version', 320)
+            self['id'] = 'HD'.encode('latin-1')
+            self['block_len'] = 208 if version >= 320 else 164
+            self['first_dg_addr'] = 0
+            self['comment_addr'] = 0
+            self['program_addr'] = 0
+            self['dg_nr'] = 0
+            t1 = time.time() * 10**9
+            t2 = time.gmtime()
+            self['date'] = '{:\x00<10}'.format(time.strftime('%d:%m:%Y', t2))
+            self['time'] = '{:\x00<8}'.format(time.strftime('%X', t2))
+            self['author'] = '{:\x00<32}'.format(os.getlogin())
+            self['organization'] = '{:\x00<32}'.format('')
+            self['project'] = '{:\x00<32}'.format('')
+            self['subject'] = '{:\x00<32}'.format('')
+
+            if version >= 320:
+                self['abs_time'] = int(t1)
+                self['tz_offset'] = 2
+                self['time_quality'] = 0
+                self['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time')
+
+    def __bytes__(self):
+        fmt = HEADER_COMMON_FMT
+        keys = HEADER_COMMON_KEYS
+        if self.size > HEADER_COMMON_SIZE:
+            fmt += HEADER_POST_320_EXTRA_FMT
+            keys += HEADER_POST_320_EXTRA_KEYS
+        return pack(fmt, *[self[key] for key in keys])
+
+
+
 class ProgramBlock(dict):
     ''' PRBLOCK class derived from *dict*
 
@@ -2378,7 +2515,7 @@ class TriggerBlock(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['stream']
+            stream = kargs['file_stream']
 
             stream.seek(address + 2, SEEK_START)
             size = unpack('<H', stream.read(2))[0]
