@@ -37,7 +37,7 @@ Features
 
 Documentation
 =============
-http://asammdf.readthedocs.io/en/latest/
+http://asammdf.readthedocs.io/en/stable
 
 Benchmarks
 ==========
