@@ -80,6 +80,11 @@ ChannelConversion Class
 .. autoclass:: asammdf.mdf3.ChannelConversion
     :members:
     
+ChannelDependency Class
+-----------------------
+.. autoclass:: asammdf.mdf3.ChannelDependency
+    :members:
+    
 ChannelExtension Class
 -----------------------
 .. autoclass:: asammdf.mdf3.ChannelExtension
@@ -95,37 +100,32 @@ DataGroup Class
 .. autoclass:: asammdf.mdf3.DataGroup
     :members:
     
-TextBlock Class
+FileIdentificationBlock Class
 ---------------
-.. autoclass:: asammdf.mdf3.TextBlock
+.. autoclass:: asammdf.mdf3.FileIdentificationBlock
+    :members:
+
+HeaderBlock Class
+---------------
+.. autoclass:: asammdf.mdf3.HeaderBlock
     :members:
     
 ProgramBlock Class
 ------------------
 .. autoclass:: asammdf.mdf3.ProgramBlock
     :members:
+
+SampleReduction Class
+---------------
+.. autoclass:: asammdf.mdf3.SampleReduction
+    :members:    
+    
+TextBlock Class
+---------------
+.. autoclass:: asammdf.mdf3.TextBlock
+    :members:
     
 TriggerBlock Class
 ---------------
 .. autoclass:: asammdf.mdf3.TriggerBlock
     :members:
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    

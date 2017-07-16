@@ -3,20 +3,18 @@ ASAM MDF version 3 file format module
 
 """
 
-from __future__ import absolute_import, division, print_function
 import time
-
-from numpy import interp, linspace, dtype, amin, amax
-from numpy import array, searchsorted, log, exp, clip
-from numexpr import evaluate
-from numpy.core.records import fromstring, fromarrays
+import os
+import itertools
 
 from struct import unpack, pack, iter_unpack
-from collections import OrderedDict, defaultdict
-import os
-import os.path
+from collections import defaultdict
 
-import itertools
+
+from numpy import (interp, linspace, dtype, amin, amax,
+                   array, searchsorted, log, exp, clip)
+from numpy.core.records import fromstring, fromarrays
+from numexpr import evaluate
 
 try:
     from blosc import compress, decompress
@@ -119,7 +117,7 @@ ID_BLOCK_SIZE = 64
 
 TIME_FAC = 10 ** -9
 TIME_CH_SIZE = 8
-SI_BLOCK_SIZE = 128
+CE_BLOCK_SIZE = 128
 FH_BLOCK_SIZE = 56
 DG31_BLOCK_SIZE = 24
 DG32_BLOCK_SIZE = 28
@@ -134,11 +132,11 @@ CC_LIN_BLOCK_SIZE = 62
 CC_POLY_BLOCK_SIZE = 94
 CC_EXPO_BLOCK_SIZE = 102
 CC_FORMULA_BLOCK_SIZE = 304
+SR_BLOCK_SIZE = 156
 
 FLAG_PRECISION = 1
 FLAG_PHY_RANGE_OK = 2
 FLAG_VAL_RANGE_OK = 8
-
 
 
 FMT_CHANNEL = '<2sH5IH32s128s4H3d2IH'
@@ -289,8 +287,16 @@ KEYS_CONVESION_EXPO_LOGH = ('id',
 FMT_PROGRAM_BLOCK = '<2sH{}s'
 KEYS_PROGRAM_BLOCK = ('id', 'block_len', 'data')
 
+FMT_SAMPLE_REDUCTION_BLOCK = '<2sH3Id'
+KEYS_SAMPLE_REDUCTION_BLOCK = ('id',
+                               'block_len',
+                               'next_sr_addr',
+                               'data_block_addr',
+                               'cycles_nr',
+                               'time_interval')
 
-def fmt(data_type, size):
+
+def get_fmt(data_type, size):
     """"Summary line.
 
     Extended description of function.
@@ -311,21 +317,22 @@ def fmt(data_type, size):
 
     """
     if size == 0:
-        return 'b'
+        fmt = 'b'
     if data_type in (DATA_TYPE_UNSIGNED_INTEL, DATA_TYPE_UNSIGNED):
-        return '<u{}'.format(size)
+        fmt = '<u{}'.format(size)
     elif data_type == DATA_TYPE_UNSIGNED_MOTOROLA:
-        return '>u{}'.format(size)
+        fmt = '>u{}'.format(size)
     elif data_type in (DATA_TYPE_SIGNED_INTEL, DATA_TYPE_SIGNED):
-        return '<i{}'.format(size)
+        fmt = '<i{}'.format(size)
     elif data_type == DATA_TYPE_SIGNED_MOTOROLA:
-        return '>i{}'.format(size)
+        fmt = '>i{}'.format(size)
     elif data_type in (DATA_TYPE_FLOAT, DATA_TYPE_DOUBLE, DATA_TYPE_FLOAT_INTEL, DATA_TYPE_DOUBLE_INTEL):
-        return '<f{}'.format(size)
+        fmt = '<f{}'.format(size)
     elif data_type in (DATA_TYPE_FLOAT_MOTOROLA, DATA_TYPE_DOUBLE_MOTOROLA):
-        return '>f{}'.format(size)
+        fmt = '>f{}'.format(size)
     elif data_type == DATA_TYPE_STRING:
-        return 'a{}'.format(size)
+        fmt = 'a{}'.format(size)
+    return fmt
 
 
 def fmt_to_datatype(fmt):
@@ -367,20 +374,22 @@ def pair(iterable):
     return zip(a, b)
 
 
+class MdfException(Exception):
+    pass
+
+
 class MDF3(object):
-    """
+    """If the *file_name* exist it will be loaded otherwise an empty file will be created that can be later saved to disk
 
     Parameters
     ----------
-    file_name : string
+    name : string
         mdf file name
-    empty : bool
-        set to *True* if creating a new file from scratch; default *False*
     load_measured_data : bool
-        load data option; default *True* ::
+        load data option; default *True*
 
-            * if *True* the data group binary data block will be loaded in RAM
-            * if *False* the channel data is read from disk on request
+        * if *True* the data group binary data block will be loaded in RAM
+        * if *False* the channel data is read from disk on request
 
     compression : bool
         compression option for data group binary data block; default *False*
@@ -403,23 +412,24 @@ class MDF3(object):
         measured data compression option
 
     """
-    def __init__(self, file_name, empty=False, load_measured_data=True,  compression=False, version='3.20'):
+    def __init__(self, name, load_measured_data=True, compression=False, version='3.20'):
         self.groups = []
         self.header = None
         self.identification = None
         self.file_history = None
-        self.name = file_name
+        self.name = name
         self.load_measured_data = load_measured_data
         self.compression = compression
         self.channel_db = {}
         self.masters_db = {}
 
-        if os.path.isfile(file_name):
+        if os.path.isfile(name):
             self._read()
         else:
             self.groups = []
+            self.version = version
 
-            self.identification = IdentificationBlock(version=version.encode('ascii'))
+            self.identification = FileIdentificationBlock(version=version.encode('ascii'))
             self.header = HeaderBlock(version=int(float(version) * 100))
 
             self.byteorder = '<'
@@ -431,7 +441,7 @@ class MDF3(object):
 <tool_version>1.0</tool_version>
 </FHcomment>''')
 
-    def append(self, signals, t, signal_names, signal_units, info):
+    def append(self, signals, t, names, units, info):
         """
         Appends a new data group.
 
@@ -441,16 +451,17 @@ class MDF3(object):
             list on numpy.array signals
         t : numpy.array
             time channel
-        signal_names : list
+        names : list
             list of signal name strings
-        signal_units : list
+        units : list
             list of signal unit strings
         info : dict
-            acquisition information; the 'conv' key contains a dict of conversions, each key being
-            the signal name for which the conversion is specified
+            acquisition information; the 'conversions' key contains a dict of conversions, each key being
+            the signal name for which the conversion is specified. See *get* method for the dict description
 
         Examples
         --------
+        >>> # case 1 conversion type None
         >>> s1 = np.array([1, 2, 3, 4, 5])
         >>> s2 = np.array([-1, -2, -3, -4, -5])
         >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
@@ -460,6 +471,17 @@ class MDF3(object):
         >>> info = {}
         >>> mdf = MDF3('new.mdf')
         >>> mdf.append([s1, s2, s3], t, names, units, info)
+        >>> # case 2: VTAB conversions from channels inside another file
+        >>> mdf1 = MDF3('in.mdf')
+        >>> ch1 = mdf1.get("Channel1_VTAB")
+        >>> ch2 = mdf1.get("Channel2_VTABR")
+        >>> sigs = [ch1[0], ch2[0]]
+        >>> t = ch1[1]
+        >>> names = ['NewCh_VTAB', 'NewCh_VTABR']
+        >>> units = [ch1[2], ch2[2]]
+        >>> info = {'conversions': {'NewCh_VTAB': ch1[3], 'NewCh_VTABR': ch2[3]}
+        >>> mdf2 = MDF3('out.mdf')
+        >>> mdf2.append(sigs, t, names, units, info)
 
 
         """
@@ -474,25 +496,24 @@ class MDF3(object):
 
         gp['channels'] = gp_channels = []
         gp['channel_conversions'] = gp_conv = []
-        gp['channel_sources'] = gp_source = []
+        gp['channel_extensions'] = gp_source = []
         gp['texts'] = gp_texts = {'channels': [],
-                       'conversion_vtabr': [],
-                       'channel_group': []}
+                                  'conversion_vtabr': [],
+                                  'channel_group': []}
 
         #time channel texts
         for _, item in gp_texts.items():
             item.append({})
 
         gp_texts['channel_group'][-1]['comment_addr'] = TextBlock.from_text(
-            info.get('acq_comment_addr', 'Python').encode('latin-1'))
+            info.get('acq_comment_addr', 'Python'))
 
         #channels texts
-        for name in signal_names:
+        for name in names:
             for _, item in gp['texts'].items():
                 item.append({})
             if len(name) >= 32:
-                gp_texts['channels'][-1]['long_name_addr'] = TextBlock.from_text(
-                    name.encode('latin-1'))
+                gp_texts['channels'][-1]['long_name_addr'] = TextBlock.from_text(name)
 
         #conversion for time channel
         kargs = {'conversion_type': CONVERSION_TYPE_NONE,
@@ -503,28 +524,27 @@ class MDF3(object):
 
         min_max = [(amin(signal), amax(signal)) for signal in signals]
         #conversion for channels
-        for idx, (sig, unit) in enumerate(zip(signals, signal_units)):
-            #print(sig.dtype.char,signal_names[idx],info['conv'][signal_names[idx]])
-            try:
-                descriptors = info['conv'][signal_names[idx]]
-                dim = len(descriptors)
-                if dim == 2:
+        for idx, (sig, unit) in enumerate(zip(signals, units)):
+            conv = info.get('conversions', {}).get(names[idx], None)
+            if conv:
+                conv_type = conv['type']
+                if conv_type == CONVERSION_TYPE_VTAB:
                     kargs = {}
                     kargs['conversion_type'] = CONVERSION_TYPE_VTAB
-                    raw = descriptors[0]
-                    phys = descriptors[1]
+                    raw = conv['raw']
+                    phys = conv['phys']
                     for i, (r_, p_) in enumerate(zip(raw, phys)):
                         kargs['text_{}'.format(i)] = p_[:31] + b'\x00'
                         kargs['param_val_{}'.format(i)] = r_
                     kargs['ref_param_nr'] = len(raw)
                     kargs['unit'] = unit.encode('latin-1')
                     signals[idx] = sig
-                elif dim == 3:
+                elif conv_type == CONVERSION_TYPE_VTABR:
                     kargs = {}
                     kargs['conversion_type'] = CONVERSION_TYPE_VTABR
-                    lower = descriptors[0]
-                    upper = descriptors[1]
-                    texts = descriptors[2]
+                    lower = conv['lower']
+                    upper = conv['upper']
+                    texts = conv['phys']
                     kargs['unit'] = unit.encode('latin-1')
                     kargs['ref_param_nr'] = len(upper)
 
@@ -536,16 +556,17 @@ class MDF3(object):
 
                     signals[idx] = sig
                 else:
-                    raise ValueError('{} arrays were given for conversion; must be 2 for VTAB or 3 for VTABR'.format(dim))
+                     kargs = {'conversion_type': CONVERSION_TYPE_NONE,
+                              'unit': units[idx].encode('latin-1') if units[idx] else b'',
+                              'min_phy_value': min_max[idx][0],
+                              'max_phy_value': min_max[idx][1]}
                 gp_conv.append(ChannelConversion(**kargs))
-            except KeyError:
+            else:
                 kargs = {'conversion_type': CONVERSION_TYPE_NONE,
-                 'unit': signal_units[idx].encode('latin-1') if signal_units[idx] else b'',
-                 'min_phy_value': min_max[idx][0],
-                 'max_phy_value': min_max[idx][1]}
+                         'unit': units[idx].encode('latin-1') if units[idx] else b'',
+                         'min_phy_value': min_max[idx][0],
+                         'max_phy_value': min_max[idx][1]}
                 gp_conv.append(ChannelConversion(**kargs))
-            except TypeError:
-                gp_conv.append(None)
 
         #source for channels and time
         for i in range(channel_nr + 1):
@@ -563,6 +584,7 @@ class MDF3(object):
                  'start_offset': 0,
                  'bit_count': t_size}
         gp_channels.append(Channel(**kargs))
+        self.masters_db[dg_cntr] = 0
 
         sig_dtypes = [sig.dtype for sig in signals]
         sig_formats = [fmt_to_datatype(typ) for typ in sig_dtypes]
@@ -571,7 +593,7 @@ class MDF3(object):
         #channels
         offset = t_size
         ch_cntr = 1
-        for (sigmin, sigmax), (sig_type, sig_size), name in zip(min_max, sig_formats, signal_names):
+        for (sigmin, sigmax), (sig_type, sig_size), name in zip(min_max, sig_formats, names):
             kargs = {'short_name': (name[:31] + '\00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
                      'channel_type': CHANNEL_TYPE_VALUE,
                      'data_type': sig_type,
@@ -607,257 +629,222 @@ class MDF3(object):
         kargs = {'block_len': DG32_BLOCK_SIZE if self.version == 320 else DG31_BLOCK_SIZE}
         gp['data_group'] = DataGroup(**kargs)
 
-    def display_channel_list(self):
-        """
-        Displays a complete channel list table to stdout
+    def info(self):
+        """get MDF information as a dict
 
         Examples
         --------
         >>> mdf = MDF3('test.mdf')
-        >>> mdf.display_channel_list()
+        >>> mdf.info()
 
 
         """
-        print('{:<60}|{:>10}|{:<20}'.format('Channel name',
-                                            'Samples',
-                                            'Source'))
+        info = {}
+        info['version'] = self.identification['version_str'].strip(b'\x00').decode('latin-1')
+        info['author'] = self.header['author'].strip(b'\x00').decode('latin-1')
+        info['organization'] = self.header['organization'].strip(b'\x00').decode('latin-1')
+        info['project'] = self.header['project'].strip(b'\x00').decode('latin-1')
+        info['subject'] = self.header['subject'].strip(b'\x00').decode('latin-1')
+        info['groups'] = len(self.groups)
+        for i, gp in enumerate(self.groups):
+            inf = {}
+            info['group {}'.format(i)] = inf
+            inf['cycles'] = gp['channel_group']['cycles_nr']
+            inf['channels count'] = len(gp['channels'])
+            for j, ch in enumerate(gp['channels']):
+                inf['channel {}'.format(j)] = (ch.name, ch['channel_type'])
 
-        for gp in self.groups:
-            samples = gp['channel_group']['cycles_nr']
-            print('+'.join(('-'*60, '-'*10, '-'*20)))
-            for source, channel_name in zip(gp['channel_sources'][1:], [ch.name for ch in gp['channels']][1:]):
-                if source:
-                    if source['type'] == SOURCE_ECU:
-                        source_info = source['ECU_identification'].decode('latin-1').strip()
-                    else:
-                        source_info = 'CAN: {} {}'.format(hex(source['CAN_id']), source['message_name'].decode('latin-1').strip())
-                else:
-                    source_info = r'N/A'
-                print('{:<60}|{:>10}|{:<20}'.format(channel_name, samples, source_info))
+        return info
 
-    def _update_addresses(self):
-        """
-        Update internal block addresses based on added/removed items
-
-        Returns
-        -------
-        blocks : list
-            list of blocks
+    def save(self, dst=None):
+        """Save MDF to *dst*. If *dst* is *None* the original file is overwritten
 
         """
-        #store unique texts and their addresses
-        defined_texts = {}
+        dst = dst if dst else self.name
 
-        blocks = []
+        with open(dst, 'wb') as dst:
 
-        additional_bytes = []
+            #store unique texts and their addresses
+            defined_texts = {}
+            address = 0
 
-        address = HEADER_COMMON_SIZE + ID_BLOCK_SIZE
-        if self.version == 320:
-            address += HEADER_POST_320_EXTRA_SIZE
-            additional_bytes.append(0)
-        else:
-            # Pre 3.20 MDF header needs 4 extra bytes for 8byte alignment
-            address += 4
-            additional_bytes.append(4)
+            address += dst.write(bytes(self.identification))
+            address += dst.write(bytes(self.header))
 
-        self.file_history.address = address
-        address += self.file_history.size
-        # TextBlocks are 8byte aligned
-        additional_bytes.append(0)
-        blocks.append(self.file_history)
+            self.file_history.address = address
+            address += dst.write(bytes(self.file_history))
 
-        for gp in self.groups:
-            gp_texts = gp['texts']
+            for gp in self.groups:
+                gp_texts = gp['texts']
 
-            # Texts
-            for _, item_list in gp_texts.items():
-                for my_dict in item_list:
-                    for key in my_dict:
-                        #text blocks can be shared
-                        if my_dict[key].text_str in defined_texts:
-                            my_dict[key].address = defined_texts[my_dict[key].text_str]
-                        else:
-                            defined_texts[my_dict[key].text_str] = address
-                            my_dict[key].address = address
-                            address += my_dict[key].size
-                            # TextBlocks are 8byte aligned
-                            additional_bytes.append(0)
-                            blocks.append(my_dict[key])
+                # Texts
+                for _, item_list in gp_texts.items():
+                    for my_dict in item_list:
+                        for key in my_dict:
+                            #text blocks can be shared
+                            if my_dict[key].text_str in defined_texts:
+                                my_dict[key].address = defined_texts[my_dict[key].text_str]
+                            else:
+                                defined_texts[my_dict[key].text_str] = address
+                                my_dict[key].address = address
+                                address += dst.write(bytes(my_dict[key]))
 
-            # ChannelConversions
-            cc = gp['channel_conversions']
-            for i, conv in enumerate(cc):
-                if conv:
-                    conv.address = address
-                    address += conv.size
-                    align = address % 8
-                    if align:
-                        add = 8 - align
-                        address += add
-                    else:
-                        add = 0
-                    additional_bytes.append(add)
-                    blocks.append(conv)
+                # ChannelConversions
+                cc = gp['channel_conversions']
+                for i, conv in enumerate(cc):
+                    if conv:
+                        conv.address = address
+                        if conv['conversion_type'] == CONVERSION_TYPE_VTABR:
+                            for key, item in gp_texts['conversion_vtabr'][i].items():
+                                conv[key] = item.address
 
-                    if conv['conversion_type'] == CONVERSION_TYPE_VTABR:
-                        for key, item in gp_texts['conversion_vtabr'][i].items():
-                            conv[key] = item.address
+                        address += dst.write(bytes(conv))
 
-            # ChannelSources
-            cs = gp['channel_sources']
-            for source in cs:
-                if source:
-                    source.address = address
-                    address += source.size
-                    # ChannelExtension are 8byte aligned
-                    additional_bytes.append(0)
-                    blocks.append(source)
+                # Channel Extension
+                cs = gp['channel_extensions']
+                for source in cs:
+                    if source:
+                        source.address = address
+                        address += dst.write(bytes(source))
 
-            # Channels
-            ch_texts = gp_texts['channels']
-            for i, channel in enumerate(gp['channels']):
-                channel.address = address
+                # Channels
                 # Channels need 4 extra bytes for 8byte alignment
-                channel_align_bytes = 4
-                address += channel.size + channel_align_bytes
-                additional_bytes.append(channel_align_bytes)
-                blocks.append(channel)
 
-                for key in ('long_name_addr', 'comment_addr', 'display_name_addr'):
-                    channel_texts = ch_texts[i]
-                    if key in channel_texts:
-                        channel[key] = channel_texts[key].address
-                    else:
-                        channel[key] = 0
-                channel['conversion_addr'] = cc[i].address if cc[i] else 0
-                channel['source_depend_addr'] = cs[i].address if cs[i] else 0
+                ch_texts = gp_texts['channels']
+                for i, channel in enumerate(gp['channels']):
+                    channel.address = address
+                    address += CN_BLOCK_SIZE
 
-            for channel, next_channel in pair(gp['channels']):
-                channel['next_ch_addr'] = next_channel.address
-            next_channel['next_ch_addr'] = 0
+                    for key in ('long_name_addr', 'comment_addr', 'display_name_addr'):
+                        channel_texts = ch_texts[i]
+                        if key in channel_texts:
+                            channel[key] = channel_texts[key].address
+                        else:
+                            channel[key] = 0
+                    channel['conversion_addr'] = cc[i].address if cc[i] else 0
+                    channel['source_depend_addr'] = cs[i].address if cs[i] else 0
 
-            # ChannelGroup
-            cg = gp['channel_group']
-            cg.address = address
-            address += cg.size
-            align = address % 8
-            if align:
-                add = 8 - align
-                address += add
-            else:
-                add = 0
-            additional_bytes.append(add)
-            blocks.append(cg)
-            cg['first_ch_addr'] = gp['channels'][0].address
-            cg['next_cg_addr'] = 0
-            if 'comment_addr' in gp['texts']['channel_group'][0]:
-                cg['comment_addr'] = gp_texts['channel_group'][0]['comment_addr'].address
+                for channel, next_channel in pair(gp['channels']):
+                    channel['next_ch_addr'] = next_channel.address
+                    dst.write(bytes(channel))
+                next_channel['next_ch_addr'] = 0
+                dst.write(bytes(next_channel))
 
-            # DataBlock
-            db = gp['data_block']
-            db.address = address
-            address += db.size
-            align = address % 8
-            if align:
-                add = 8 - align
-                address += add
-            else:
-                add = 0
-            additional_bytes.append(add)
-            blocks.append(db)
+                # ChannelGroup
+                cg = gp['channel_group']
+                cg.address = address
+
+                cg['first_ch_addr'] = gp['channels'][0].address
+                cg['next_cg_addr'] = 0
+                if 'comment_addr' in gp['texts']['channel_group'][0]:
+                    cg['comment_addr'] = gp_texts['channel_group'][0]['comment_addr'].address
+                address += dst.write(bytes(cg))
+
+
+                # DataBlock
+                db = gp['data_block']
+                db.address = address
+                address += dst.write(bytes(db))
 
             # DataGroup
-            dg = gp['data_group']
-            dg.address = address
-            address += dg.size
-            align = address % 8
-            if align:
-                add = 8 - align
-                address += add
-            else:
-                add = 0
-            additional_bytes.append(add)
-            blocks.append(dg)
-            dg['first_cg_addr'] = cg.address
-            dg['data_block_addr'] = db.address
+            for gp in self.groups:
 
-        for dg, next_dg in pair(self.groups):
-            dg['data_group']['next_dg_addr'] = next_dg['data_group'].address
+                dg = gp['data_group']
+                dg.address = address
+                address += dg['block_len']
+                dg['first_cg_addr'] = gp['channel_group'].address
+                dg['data_block_addr'] = gp['data_block'].address
 
-        if self.groups:
-            self.header['first_dg_addr'] = self.groups[0]['data_group'].address
-            self.header['dg_nr'] = len(self.groups)
-            self.header['comment_addr'] = self.file_history.address
-            self.header['program_addr'] = 0
 
-        return blocks, additional_bytes
+            for i, dg in enumerate(self.groups[:-1]):
+                dg['data_group']['next_dg_addr'] = self.groups[i+1]['data_group'].address
+            self.groups[-1]['data_group']['next_dg_addr'] = 0
 
-    def get_master_channel(self, gp_nr):
-        gp = self.groups[gp_nr]
+            for dg in self.groups:
+                dst.write(bytes(dg['data_group']))
 
-        time_idx = self.masters_db[gp_nr]
-        time_ch = gp['channels'][time_idx]
-        time_conv = gp['channel_conversions'][time_idx]
-        t_byte_offset, bit_offset = divmod(time_ch['start_offset'], 8)
+            if self.groups:
+                self.header['first_dg_addr'] = self.groups[0]['data_group'].address
+                self.header['dg_nr'] = len(self.groups)
+                self.header['comment_addr'] = self.file_history.address
+                self.header['program_addr'] = 0
+            dst.seek(0, SEEK_START)
+            dst.write(bytes(self.identification))
+            dst.write(bytes(self.header))
 
-        time_size = time_ch['bit_count'] // 8
-        t_fmt = fmt(time_ch['data_type'], time_size)
-        block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
+    def get(self, name=None, *, group=None, index=None, raster=None):
+        """Gets channel samples.
+        Channel can be specified in two ways:
 
-        data = gp['data_block']['data']
+        * using the first positional argument *name*
+        * using the group number (keyword argument *group*) and the channel number (keyword argument *index*). Use *info* method for group and channel numbers
 
-        types = dtype([('res1', 'a{}'.format(t_byte_offset)),
-                       ('t', t_fmt),
-                       ('res2', 'a{}'.format(block_size - time_size - t_byte_offset))])
 
-        values = fromstring(data, types)
 
-        # get timestamps
-        time_conv_type = CONVERSION_TYPE_NONE if time_conv is None else time_conv['conversion_type']
-        if time_conv_type == CONVERSION_TYPE_LINEAR:
-            time_a = time_conv['a']
-            time_b = time_conv['b']
-            t = values['t'] * time_a
-            if time_b:
-                t += time_b
-        elif time_conv_type == CONVERSION_TYPE_NONE:
-            t = values['t']
-
-        return t
-
-    def get_signal_by_name(self, channel_name, raster=None):
-        """
-        Gets a channel by name. If the raster is not *None* the output is interpolated accordingly
+        If the *raster* keyword argument is not *None* the output is interpolated accordingly
 
         Parameters
         ----------
-        channel_name : string
+        name : string
             name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
         raster : float
-            time raster
+            time raster in seconds
 
         Returns
         -------
-        vals, t, unit, conversion : (numpy.array, numpy.array, string, tuple)
-            The conversion is *None* exept for the VTAB and VTABR conversions
+        vals, t, unit, conversion : (numpy.array, numpy.array, string, dict | None)
+            The conversion is *None* exept for the VTAB and VTABR conversions. The conversion keys are:
+
+            * for VTAB conversion:
+
+                * raw - numpy.array for X-axis
+                * phys - numpy.array of strings for Y-axis
+                * type - conversion type = CONVERSION_TYPE_VTAB
+
+            * for VTABR conversion:
+
+                * lower - numpy.array for lower range
+                * upper - numpy.array for upper range
+                * phys - numpy.array of strings for Y-axis
+                * type - conversion type = COONVERSION_TYPE_VTABR
+
+            The conversion information can be used by the *append* method for the *info* argument
 
         Raises
         ------
-        NameError : if the channel name is not found or if the name if 't'
+        MdfError :
+
+        * if the channel name is not found
+        * if the group index is out of range
+        * if the channel index is out of range
 
         """
-        if channel_name == 't':
-            raise NameError("Can't return the time channel")
-
-        try:
-            gp_nr, ch_nr = self.channel_db[channel_name]
-        except KeyError:
-            raise NameError('Channel "{}" not found'.format(channel_name))
+        if name is None:
+            if group is None or index is None:
+                raise MdfException('Invalid arguments for "get" methos: must give "name" or, "group" and "index"')
+            else:
+                gp_nr, ch_nr = group, index
+                if gp_nr > len(self.groups) - 1:
+                    raise MdfException('Group index out of range')
+                if index > len(self.groups[gp_nr]['channels']) - 1:
+                    raise MdfException('Channel index out of range')
+        else:
+            if not name in self.channel_db:
+                raise MdfException('Channel "{}" not found'.format(name))
+            else:
+                gp_nr, ch_nr = self.channel_db[name]
 
         gp = self.groups[gp_nr]
         channel = gp['channels'][ch_nr]
         conversion = gp['channel_conversions'][ch_nr]
+        if conversion:
+            unit = conversion['unit'].decode('latin-1').strip('\x00')
+        else:
+            unit = ''
 
         time_idx = self.masters_db[gp_nr]
         time_ch = gp['channels'][time_idx]
@@ -866,7 +853,7 @@ class MDF3(object):
         group = gp
 
         time_size = time_ch['bit_count'] // 8
-        t_fmt = fmt(time_ch['data_type'], time_size)
+        t_fmt = get_fmt(time_ch['data_type'], time_size)
         t_byte_offset, bit_offset = divmod(time_ch['start_offset'], 8)
 
         bits = time_ch['bit_count']
@@ -882,7 +869,7 @@ class MDF3(object):
             size = bits // 8
         block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
         byte_offset, bit_offset = divmod(channel['start_offset'], 8)
-        ch_fmt = fmt(channel['data_type'], size)
+        ch_fmt = get_fmt(channel['data_type'], size)
 
         if not self.load_measured_data:
             with open(self.name, 'rb') as file_stream:
@@ -893,6 +880,10 @@ class MDF3(object):
         else:
             data = group['data_block']['data']
 
+        if time_idx == ch_nr:
+            types = dtype( [('res1', 'a{}'.format(t_byte_offset)),
+                            ('t', t_fmt),
+                            ('res2', 'a{}'.format(block_size - byte_offset - size))] )
         if t_byte_offset < byte_offset:
             types = dtype( [('res1', 'a{}'.format(t_byte_offset)),
                             ('t', t_fmt),
@@ -918,6 +909,9 @@ class MDF3(object):
                 t += time_b
         elif time_conv_type == CONVERSION_TYPE_NONE:
             t = values['t']
+
+        if time_idx == ch_nr:
+            return t, t, unit, None
 
         # get channel values
         conversion_type = CONVERSION_TYPE_NONE if conversion is None else conversion['conversion_type']
@@ -957,10 +951,7 @@ class MDF3(object):
             raw = array([conversion['param_val_{}'.format(i)] for i in range(nr)])
             phys = array([conversion['text_{}'.format(i)] for i in range(nr)])
             vals = values['vals']
-            ''' if texts are needed
-            idx = searchsorted(raw, vals)
-            vals = phys[idx]
-            '''
+            info = {'raw': raw, 'phys': phys, 'type': CONVERSION_TYPE_VTAB}
 
         elif conversion_type == CONVERSION_TYPE_VTABR:
             nr = conversion['ref_param_nr']
@@ -969,13 +960,7 @@ class MDF3(object):
             lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
             upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
             vals = values['vals']
-            ''' if texts are needed
-            if 'f' in ch_fmt:
-                idx = fromiter((searchsorted(lower, e) for e in vals), uint16)
-            else:
-                idx = fromiter((searchsorted(lower, e) for e in vals), uint16)
-            vals = texts[idx]
-            '''
+            info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': CONVERSION_TYPE_VTABR}
 
         elif conversion_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
             func = log if conversion_type == CONVERSION_TYPE_EXPO else exp
@@ -1023,15 +1008,8 @@ class MDF3(object):
             vals = interp(tx, t, vals)
             t = tx
 
-        if conversion:
-            unit = conversion['unit'].decode('latin-1').strip('\x00')
-        else:
-            unit = ''
-
-        if conversion_type == CONVERSION_TYPE_VTAB:
-            return vals, t, unit, (raw, phys)
-        elif conversion_type == CONVERSION_TYPE_VTABR:
-            return vals, t, unit, (lower, upper, texts)
+        if conversion_type in (CONVERSION_TYPE_VTAB, CONVERSION_TYPE_VTABR):
+            return vals, t, unit, info
         else:
             return vals, t, unit, None
 
@@ -1045,7 +1023,7 @@ class MDF3(object):
             dg_cntr = 0
             seek(0, SEEK_START)
 
-            self.identification = IdentificationBlock(file_stream=file_stream)
+            self.identification = FileIdentificationBlock(file_stream=file_stream)
             self.header = HeaderBlock(file_stream=file_stream)
 
             self.byteorder = '<' if self.identification['byte_order'] == 0 else '>'
@@ -1069,7 +1047,7 @@ class MDF3(object):
                     grp = new_groups[-1]
                     grp['channels'] = []
                     grp['channel_conversions'] = []
-                    grp['channel_sources'] = []
+                    grp['channel_extensions'] = []
                     grp['data_block'] = []
                     grp['texts'] = {'channels': [], 'conversion_vtabr': [], 'channel_group': []}
 
@@ -1113,19 +1091,19 @@ class MDF3(object):
 
                         vtab_texts = {}
                         if new_conv and new_conv['conversion_type'] == CONVERSION_TYPE_VTABR:
-                            for i in range(new_conv['ref_param_nr']):
-                                address = new_conv['text_{}'.format(i)]
+                            for idx in range(new_conv['ref_param_nr']):
+                                address = new_conv['text_{}'.format(idx)]
                                 if address:
-                                    vtab_texts['text_{}'.format(i)] = TextBlock(address=address, file_stream=file_stream)
+                                    vtab_texts['text_{}'.format(idx)] = TextBlock(address=address, file_stream=file_stream)
                         grp['texts']['conversion_vtabr'].append(vtab_texts)
 
 
                         # read source block and create source infromation object
                         address = new_ch['source_depend_addr']
                         if address:
-                            grp['channel_sources'].append(ChannelExtension(address=address, file_stream=file_stream))
+                            grp['channel_extensions'].append(ChannelExtension(address=address, file_stream=file_stream))
                         else:
-                            grp['channel_sources'].append(None)
+                            grp['channel_extensions'].append(None)
 
                         # read text fields for channel
                         ch_texts = {}
@@ -1194,7 +1172,7 @@ class MDF3(object):
                 # go to next data group
                 dg_addr = gp['next_dg_addr']
 
-    def remove_channel(self, channel_name):
+    def remove(self, channel_name):
         """
         Remove the channel from the measurement
 
@@ -1239,8 +1217,8 @@ class MDF3(object):
                         channel = gp['channels'].pop(j)
                         start_offset = channel['start_offset']
                         bit_count = channel['bit_count']
-                        byte_offset, bit_offset = divmod(channel['start_offset'], 8)
-                        byte_size = channel['bit_count'] // 8
+                        byte_offset = start_offset // 8
+                        byte_size = bit_count // 8
 
                         # update the other channels informations
                         # especially the addresses and the byte offsets
@@ -1259,7 +1237,7 @@ class MDF3(object):
                         gp['channel_group']['samples_byte_nr'] -= byte_size
 
                         gp['channel_conversions'].pop(j)
-                        gp['channel_sources'].pop(j)
+                        gp['channel_extensions'].pop(j)
 
                         gp['channel_group']['ch_nr'] -= 1
 
@@ -1298,7 +1276,7 @@ class MDF3(object):
             index -= 1
         elif channel_name:
             try:
-                gp_nr, ch_nr = self.channel_db[channel_name]
+                gp_nr, _ = self.channel_db[channel_name]
             except KeyError:
                 raise NameError('Channel "{}" not found in the measurement'.format(channel_name))
             index = gp_nr
@@ -1320,86 +1298,6 @@ class MDF3(object):
             self.groups[-1]['data_group']['next_dg_addr'] = 0
         else:
             self.groups[index - 1]['data_group']['next_dg_addr'] = self.groups[index]['data_group'].address
-
-    def save_to_file(self, new_file_name=None):
-        """
-        Saves the measurement to disk
-
-        Parameters
-        ----------
-        new_file_name : string
-            the file name used for saving the measurement; if not supplied the original measurement is overwritten
-
-        """
-        if not self.load_measured_data:
-            print('Not implemented')
-            return
-
-        if new_file_name:
-            out_file_name = new_file_name.replace('.mdf', '')
-            out_file_name = os.path.join(os.path.dirname(self.name), out_file_name + '.mdf')
-        else:
-            out_file_name = self.name
-
-        with open(out_file_name, 'wb') as new_file:
-            blocks, additional_bytes = self._update_addresses()
-            # write identification block and header block
-            new_file.write(bytes(self.identification))
-            new_file.write(bytes(self.header))
-            add_bytes = additional_bytes[0]
-            if add_bytes:
-                new_file.write(b'\x00' * add_bytes)
-
-            for block, add_bytes in zip(blocks, additional_bytes[1:]):
-                new_file.write(bytes(block))
-                if add_bytes:
-                    new_file.write(b'\x00' * add_bytes)
-
-
-    def time_shift_group(self, channel_name, offset):
-        """
-        Shift a data group's time channel.
-
-        Parameters
-        ----------
-        channel_name : string
-            a channel name inside the data group used to identify the data group
-        offset : float
-            time shift offset
-
-        """
-        for group in self.groups:
-            if channel_name in [ch.name for ch in group['channels']]:
-                block_size = group['channel_group']['samples_byte_nr'] -\
-                             group['data_group']['record_id_nr']
-                time_ch = group['channels'][0]
-                time_conv = group['channel_conversions'][0]
-                time_size = time_ch['bit_count'] // 8
-                time_data_type = time_ch['data_type']
-                time_conv_type = CONVERSION_TYPE_NONE if time_conv is None else time_conv['conversion_type']
-                if time_conv_type == CONVERSION_TYPE_LINEAR:
-                    time_a = time_conv['a']
-                    time_b = time_conv['b']
-                t_fmt = fmt(time_data_type, time_size)
-
-                types = dtype([('t', t_fmt),
-                   ('res1', 'a{}'.format(block_size - time_size))])
-
-                data = group['data_block']['data']
-                values = fromstring(data, types)
-
-                if time_conv_type == CONVERSION_TYPE_LINEAR:
-                    t = values['t'] * time_a + time_b
-                    t = (t + offset - time_b ) / time_a
-                else:
-                    t = values['t']
-                    t = t + offset
-                vals = values['res1']
-
-                group['data_block']['data'] = fromarrays((t, vals), dtype=types).tostring()
-                break
-        else:
-            print('{} not found in {}'.format(channel_name, self.name))
 
 
 class Channel(dict):
@@ -1464,7 +1362,7 @@ class Channel(dict):
     b'CN'
 
     '''
-    def __init__(self, *args, **kargs):
+    def __init__(self, **kargs):
         super().__init__()
 
         self.name = ''
@@ -1520,101 +1418,8 @@ class Channel(dict):
             self['display_name_addr'] = kargs.get('display_name_addr', 0)
             self['aditional_byte_offset'] = kargs.get('aditional_byte_offset', 0)
 
-        self.size = self['block_len']
-
     def __bytes__(self):
         return pack(FMT_CHANNEL, *[self[key] for key in KEYS_CHANNEL])
-
-
-class ChannelGroup(dict):
-    ''' CGBLOCK class derived from *dict*
-
-    The ChannelGroup object can be created in two modes:
-
-    * using the *file_stream* and *address* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ChannelGroup
-
-    The keys have the following meaning:
-
-    * id - Block type identifier, always "CG"
-    * block_len - Block size of this block in bytes (entire CGBLOCK)
-    * next_cg_addr - Pointer to next channel group block (CGBLOCK) (NIL allowed)
-    * first_ch_addr - Pointer to first channel block (CNBLOCK) (NIL allowed)
-    * comment_addr - Pointer to channel group comment text (TXBLOCK) (NIL allowed)
-    * record_id - Record ID, i.e. value of the identifier for a record if the DGBLOCK defines a number of record IDs > 0
-    * ch_nr - Number of channels (redundant information)
-    * samples_byte_nr - Size of data record in Bytes (without record ID), i.e. size of plain data for a each recorded sample of this channel group
-    * cycles_nr - Number of records of this type in the data block i.e. number of samples for this channel group
-    * sample_reduction_addr - only since version 3.3. Pointer to first sample reduction block (SRBLOCK) (NIL allowed) Default value: NIL.
-
-    Parameters
-    ----------
-    file_stream : file handle
-        mdf file handle
-    address : int
-        block address inside mdf file
-
-    Attributes
-    ----------
-    size : int
-        size of bytes reprezentation of CGBLOCK
-    address : int
-        block address inside mdf file
-
-    Examples
-    --------
-    >>> with open('test.mdf', 'rb') as mdf:
-    ...     cg1 = ChannelGroup(file_stream=mdf, address=0xBA52)
-    >>> cg2 = ChannelGroup(sample_bytes_nr=32)
-    >>> hex(cg1.address)
-    0xBA52
-    >>> cg1['id']
-    b'CG'
-
-    '''
-    def __init__(self, *args, **kargs):
-        super().__init__()
-
-        try:
-            stream = kargs['file_stream']
-            self.address = address = kargs['address']
-            stream.seek(address, SEEK_START)
-            block = stream.read(CG_BLOCK_SIZE)
-
-            (self['id'],
-             self['block_len'],
-             self['next_cg_addr'],
-             self['first_ch_addr'],
-             self['comment_addr'],
-             self['record_id'],
-             self['ch_nr'],
-             self['samples_byte_nr'],
-             self['cycles_nr']) = unpack(FMT_CHANNEL_GROUP, block)
-            if self['block_len'] == CG33_BLOCK_SIZE:
-                self['sample_reduction_addr'] = unpack('<I', stream.read(4))[0]
-        except KeyError:
-            self.address = 0
-            self['id'] = kargs.get('id', 'CG'.encode('latin-1'))
-            self['block_len'] = kargs.get('block_len', CG_BLOCK_SIZE)
-            self['next_cg_addr'] = kargs.get('next_cg_addr', 0)
-            self['first_ch_addr'] = kargs.get('first_ch_addr', 0)
-            self['comment_addr'] = kargs.get('comment_addr', 0)
-            self['record_id'] = kargs.get('record_id', 1)
-            self['ch_nr'] = kargs.get('ch_nr', 0)
-            self['samples_byte_nr'] = kargs.get('samples_byte_nr', 0)
-            self['cycles_nr'] = kargs.get('cycles_nr', 0)
-            if self['block_len'] == CG33_BLOCK_SIZE:
-                self['sample_reduction_addr'] = 0
-        self.size = self['block_len']
-
-    def __bytes__(self):
-        fmt = FMT_CHANNEL_GROUP
-        keys = KEYS_CHANNEL_GROUP
-        if self['block_len'] == CG33_BLOCK_SIZE:
-            fmt += 'I'
-            keys += ('sample_reduction_addr',)
-
-        return pack(fmt, *[self[key] for key in keys])
 
 
 class ChannelConversion(dict):
@@ -1697,7 +1502,7 @@ class ChannelConversion(dict):
     0, 100.0
 
     '''
-    def __init__(self, *args, **kargs):
+    def __init__(self, **kargs):
         super().__init__()
 
         try:
@@ -1725,8 +1530,6 @@ class ChannelConversion(dict):
                 self['formula'] = unpack('<{}s'.format(size - 46), block[CC_COMMON_BLOCK_SIZE:])[0]
 
             elif conv_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
-                nr = self['ref_param_nr']
-
                 for i, (raw, phys) in enumerate(iter_unpack('<2d', block[CC_COMMON_BLOCK_SIZE:])):
                     (self['raw_{}'.format(i)],
                      self['phys_{}'.format(i)]) = raw, phys
@@ -1878,7 +1681,6 @@ class ChannelConversion(dict):
                     self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
             else:
                 raise Exception('Conversion type "{}" not implemented'.format(kargs['conversion_type']))
-        self.size = self['block_len']
 
     def __bytes__(self):
         conv = self['conversion_type']
@@ -1891,8 +1693,8 @@ class ChannelConversion(dict):
         elif conv == CONVERSION_TYPE_LINEAR:
             fmt = FMT_CONVERSION_LINEAR
             keys = KEYS_CONVESION_LINEAR
-            if not self.size == CC_LIN_BLOCK_SIZE:
-                fmt += '{}s'.format(self.size - CC_LIN_BLOCK_SIZE)
+            if not self['block_len'] == CC_LIN_BLOCK_SIZE:
+                fmt += '{}s'.format(self['block_len'] - CC_LIN_BLOCK_SIZE)
                 keys += ('CANapeHiddenExtra',)
         elif conv in (CONVERSION_TYPE_POLY, CONVERSION_TYPE_RAT):
             fmt = FMT_CONVERSION_POLY_RAT
@@ -1926,26 +1728,316 @@ class ChannelConversion(dict):
         return pack(fmt, *[self[key] for key in keys])
 
 
-class DataBlock(dict):
-    def __init__(self, *args, **kargs):
-        """
-        Creates a *Data Block* object from a block loaded from a measurement file
+class ChannelDependency(dict):
+    ''' CDBLOCK class derived from *dict*
 
-        Parameters
-        ----------
-        address : int
-            block address inside the measurement file
-        stream : file.io.handle
-            binary file stream
-        size : int
-            block size
-        compression : bool
-            option flag for data compression; default *False*
+    Currently the ChannelDependency object can only be created using the *file_stream* and *address* keyword parameters when reading from file
 
-        """
+    The keys have the following meaning:
+
+    * id - Block type identifier, always "CD"
+    * block_len - Block size of this block in bytes (entire CDBLOCK)
+    * data - Dependency type
+    * sd_nr - Total number of signals dependencies (m)
+    * for each dependency there is a group of three keys:
+
+        * dg_{n} - Pointer to the data group block (DGBLOCK) of signal dependency *n*
+        * cg_{n} - Pointer to the channel group block (DGBLOCK) of signal dependency *n*
+        * ch_{n} - Pointer to the channel block (DGBLOCK) of signal dependency *n*
+
+    * there can also be optional keys which decribe dimensions for the N-dimensional dependencies:
+
+        * dim_{n} - Optional: size of dimension *n* for N-dimensional dependency
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+
+    Attributes
+    ----------
+    size : int
+        size of bytes reprezentation of PRBLOCK
+    address : int
+        block address inside mdf file
+
+    '''
+    def __init__(self, **kargs):
         super().__init__()
 
-        self.size = 0
+        try:
+            stream = kargs['file_stream']
+            self.address = address = kargs['address']
+            stream.seek(address, SEEK_START)
+
+            (self['id'],
+             self['block_len'],
+             self['dependency_type'],
+             self['sd_nr']) = unpack('<2s3H', stream.read(50))
+
+            links_size = 3 * 4 * self['sd_nr']
+            links = unpack('<{}I'.format(3 * self['sd_nr']), stream.read(links_size))
+
+            for i in range(self['sd_nr']):
+                self['dg_{}'.format(i)] = links[i]
+                self['cg_{}'.format(i)] = links[i+1]
+                self['ch_{}'.format(i)] = links[i+2]
+
+            optional_dims_nr = (self['block_len'] - 50 - links_size) // 2
+            self['optional_dims_nr'] = optional_dims_nr
+            if optional_dims_nr:
+                dims = unpack('<{}H'.format(optional_dims_nr), stream.read(optional_dims_nr * 2))
+                for i, dim in enumerate(dims):
+                    self['dim_{}'.format(i)] = dim
+
+        except KeyError:
+            print('CDBLOCK can only be loaded from a mdf file')
+
+    def __bytes__(self):
+        fmt = '<2s3H{}I'.format(self['sd_nr'] * 3)
+        keys = ('id', 'block_len', 'dependency_type', 'sd_nr')
+        for i in range(self['sd_nr']):
+            keys += ('dg_{}'.format(i), 'cg_{}'.format(i), 'ch_{}'.format(i))
+        if self['optional_dims_nr']:
+            fmt += '{}H'.format(self['optional_dims_nr'])
+            keys += tuple('dim_{}'.format(i) for i in range(self['optional_dims_nr']))
+        return pack(fmt, *[self[key] for key in keys])
+
+
+class ChannelExtension(dict):
+    ''' CEBLOCK class derived from *dict*
+
+    The ChannelExtension object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using any of the following presented keys - when creating a new ChannelExtension
+
+    The first keys are common for all conversion types, and are followed by conversion specific keys. The keys have the following meaning:
+
+    * common keys
+
+        * id - Block type identifier, always "CE"
+        * block_len - Block size of this block in bytes (entire CEBLOCK)
+        * type - Extension type identifier
+
+    * specific keys
+
+        * for DIM block
+
+            * module_nr - Number of module
+            * module_address - Address
+            * description - Description
+            * ECU_identification - Identification of ECU
+            * reserved0' - reserved
+
+        * for Vector CAN block
+
+            * CAN_id - Identifier of CAN message
+            * CAN_ch_index - Index of CAN channel
+            * message_name - Name of message (string should be terminated by 0)
+            * sender_name - Name of sender (string should be terminated by 0)
+            * reserved0 - reserved
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+
+    Attributes
+    ----------
+    size : int
+        size of bytes reprezentation of CEBLOCK
+    address : int
+        block address inside mdf file
+
+    '''
+    def __init__(self, **kargs):
+        super().__init__()
+
+        try:
+            stream = kargs['file_stream']
+            self.address = address = kargs['address']
+            stream.seek(address, SEEK_START)
+            (self['id'],
+             self['block_len'],
+             self['type']) = unpack(FMT_SOURCE_COMMON, stream.read(6))
+            block = stream.read(self['block_len'] - 6)
+
+            if self['type'] == SOURCE_ECU:
+                (self['module_nr'],
+                 self['module_address'],
+                 self['description'],
+                 self['ECU_identification'],
+                 self['reserved0']) = unpack(FMT_SOURCE_EXTRA_ECU, block)
+            elif self['type'] == SOURCE_VECTOR:
+                (self['CAN_id'],
+                 self['CAN_ch_index'],
+                 self['message_name'],
+                 self['sender_name'],
+                 self['reserved0']) = unpack(FMT_SOURCE_EXTRA_VECTOR, block)
+        except KeyError:
+
+            self.address = 0
+            self['id'] = kargs.get('id', 'CE'.encode('latin-1'))
+            self['block_len'] = kargs.get('block_len', CE_BLOCK_SIZE)
+            self['type'] = kargs.get('type', 2)
+            if self['type'] == SOURCE_ECU:
+                self['module_nr'] = kargs.get('module_nr', 0)
+                self['module_address'] = kargs.get('module_address', 0)
+                self['description'] = kargs.get('description', '\x00'.encode('latin-1'))
+                self['ECU_identification'] = kargs.get('ECU_identification', '\x00'.encode('latin-1'))
+                self['reserved0'] = kargs.get('reserved0', '\x00'.encode('latin-1'))
+            elif self['type'] == SOURCE_VECTOR:
+                self['CAN_id'] = kargs.get('CAN_id', 0)
+                self['CAN_ch_index'] = kargs.get('CAN_ch_index', 0)
+                self['message_name'] = kargs.get('message_name', '\x00'.encode('latin-1'))
+                self['sender_name'] = kargs.get('sender_name', '\x00'.encode('latin-1'))
+                self['reserved0'] = kargs.get('reserved0', '\x00'.encode('latin-1'))
+
+    def __bytes__(self):
+        typ = self['type']
+        if typ == SOURCE_ECU:
+            fmt = FMT_SOURCE_ECU
+            keys = KEYS_SOURCE_ECU
+        else:
+            fmt = FMT_SOURCE_VECTOR
+            keys = KEYS_SOURCE_VECTOR
+        return pack(fmt, *[self[key] for key in keys])
+
+
+class ChannelGroup(dict):
+    ''' CGBLOCK class derived from *dict*
+
+    The ChannelGroup object can be created in two modes:
+
+    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using any of the following presented keys - when creating a new ChannelGroup
+
+    The keys have the following meaning:
+
+    * id - Block type identifier, always "CG"
+    * block_len - Block size of this block in bytes (entire CGBLOCK)
+    * next_cg_addr - Pointer to next channel group block (CGBLOCK) (NIL allowed)
+    * first_ch_addr - Pointer to first channel block (CNBLOCK) (NIL allowed)
+    * comment_addr - Pointer to channel group comment text (TXBLOCK) (NIL allowed)
+    * record_id - Record ID, i.e. value of the identifier for a record if the DGBLOCK defines a number of record IDs > 0
+    * ch_nr - Number of channels (redundant information)
+    * samples_byte_nr - Size of data record in Bytes (without record ID), i.e. size of plain data for a each recorded sample of this channel group
+    * cycles_nr - Number of records of this type in the data block i.e. number of samples for this channel group
+    * sample_reduction_addr - only since version 3.3. Pointer to first sample reduction block (SRBLOCK) (NIL allowed) Default value: NIL.
+
+    Parameters
+    ----------
+    file_stream : file handle
+        mdf file handle
+    address : int
+        block address inside mdf file
+
+    Attributes
+    ----------
+    size : int
+        size of bytes reprezentation of CGBLOCK
+    address : int
+        block address inside mdf file
+
+    Examples
+    --------
+    >>> with open('test.mdf', 'rb') as mdf:
+    ...     cg1 = ChannelGroup(file_stream=mdf, address=0xBA52)
+    >>> cg2 = ChannelGroup(sample_bytes_nr=32)
+    >>> hex(cg1.address)
+    0xBA52
+    >>> cg1['id']
+    b'CG'
+
+    '''
+    def __init__(self, **kargs):
+        super().__init__()
+
+        try:
+            stream = kargs['file_stream']
+            self.address = address = kargs['address']
+            stream.seek(address, SEEK_START)
+            block = stream.read(CG_BLOCK_SIZE)
+
+            (self['id'],
+             self['block_len'],
+             self['next_cg_addr'],
+             self['first_ch_addr'],
+             self['comment_addr'],
+             self['record_id'],
+             self['ch_nr'],
+             self['samples_byte_nr'],
+             self['cycles_nr']) = unpack(FMT_CHANNEL_GROUP, block)
+            if self['block_len'] == CG33_BLOCK_SIZE:
+                self['sample_reduction_addr'] = unpack('<I', stream.read(4))[0]
+        except KeyError:
+            self.address = 0
+            self['id'] = kargs.get('id', 'CG'.encode('latin-1'))
+            self['block_len'] = kargs.get('block_len', CG_BLOCK_SIZE)
+            self['next_cg_addr'] = kargs.get('next_cg_addr', 0)
+            self['first_ch_addr'] = kargs.get('first_ch_addr', 0)
+            self['comment_addr'] = kargs.get('comment_addr', 0)
+            self['record_id'] = kargs.get('record_id', 1)
+            self['ch_nr'] = kargs.get('ch_nr', 0)
+            self['samples_byte_nr'] = kargs.get('samples_byte_nr', 0)
+            self['cycles_nr'] = kargs.get('cycles_nr', 0)
+            if self['block_len'] == CG33_BLOCK_SIZE:
+                self['sample_reduction_addr'] = 0
+
+    def __bytes__(self):
+        fmt = FMT_CHANNEL_GROUP
+        keys = KEYS_CHANNEL_GROUP
+        if self['block_len'] == CG33_BLOCK_SIZE:
+            fmt += 'I'
+            keys += ('sample_reduction_addr',)
+
+        return pack(fmt, *[self[key] for key in keys])
+
+
+class DataBlock(dict):
+    """Data Block class derived from *dict*
+
+    Data can be compressed to lower RAM usage if the *compression* keyword if set to True.
+
+    The DataBlock object can be created in two modes:
+
+    * using the *file_stream*, *address* and *size* keyword parameters - when reading from file
+    * using any of the following presented keys - when creating a new ChannelGroup
+
+    The keys have the following meaning:
+
+    * data - bytes block
+
+    Attributes
+    ----------
+    size : int
+        length of uncompressed samples
+    address : int
+        block address
+    compression : bool
+        compression flag
+
+    Parameters
+    ----------
+    address : int
+        block address inside the measurement file
+    stream : file.io.handle
+        binary file stream
+    size : int
+        block size
+    compression : bool
+        option flag for data compression; default *False*
+
+    """
+
+    def __init__(self, **kargs):
+        super().__init__()
+
         try:
             stream = kargs['file_stream']
             size = kargs['size']
@@ -1956,14 +2048,13 @@ class DataBlock(dict):
             self['data'] = stream.read(size)
 
 
-        except KeyError as err:
+        except KeyError:
             self.address = 0
             self.compression = kargs.get('compression', False)
-            self['data'] = kargs.get('data', bytes())
+            self['data'] = kargs.get('data', b'')
 
     def __setitem__(self, item, value):
         if item == 'data':
-            self.size = len(value)
             if self.compression:
                 super().__setitem__(item, compress(value, 8))
             else:
@@ -2016,7 +2107,7 @@ class DataGroup(dict):
         block address inside mdf file
 
     '''
-    def __init__(self, *args, **kargs):
+    def __init__(self, **kargs):
         super().__init__()
 
         try:
@@ -2040,19 +2131,17 @@ class DataGroup(dict):
             self.address = 0
             self['id'] = kargs.get('id', 'DG'.encode('latin-1'))
             self['block_len'] = kargs.get('block_len', DG32_BLOCK_SIZE)
-            self.size = self['block_len']
             self['next_dg_addr'] = kargs.get('next_dg_addr', 0)
             self['first_cg_addr'] = kargs.get('first_cg_addr', 0)
             self['trigger_addr'] = kargs.get('comment_addr', 0)
             self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['cg_nr'] = kargs.get('cg_nr', 1)
             self['record_id_nr'] = kargs.get('record_id_nr', 0)
-            if self.size == DG32_BLOCK_SIZE:
+            if self['block_len'] == DG32_BLOCK_SIZE:
                 self['reserved0'] = b'\x00\x00\x00\x00'
-        self.size = self['block_len']
 
     def __bytes__(self):
-        if self.size == DG32_BLOCK_SIZE:
+        if self['block_len'] == DG32_BLOCK_SIZE:
             fmt = FMT_DATA_GROUP_32
             keys = KEYS_DATA_GROUP_32
         else:
@@ -2061,7 +2150,7 @@ class DataGroup(dict):
         return pack(fmt, *[self[key] for key in keys])
 
 
-class IdentificationBlock(dict):
+class FileIdentificationBlock(dict):
     ''' IDBLOCK class derived from *dict*
 
     The TriggerBlock object can be created in two modes:
@@ -2092,7 +2181,7 @@ class IdentificationBlock(dict):
         mdf version in case of new file
 
     '''
-    def __init__(self, *args, **kargs):
+    def __init__(self, **kargs):
         super().__init__()
 
         self.address = 0
@@ -2165,7 +2254,7 @@ class HeaderBlock(dict):
         mdf file handle
 
     '''
-    def __init__(self, *args, **kargs):
+    def __init__(self, **kargs):
         super().__init__()
 
         self.address = 64
@@ -2187,8 +2276,7 @@ class HeaderBlock(dict):
              self['project'],
              self['subject']) = unpack(HEADER_COMMON_FMT, stream.read(HEADER_COMMON_SIZE))
 
-            self.size = self['block_len']
-            if self.size > HEADER_COMMON_SIZE:
+            if self['block_len'] > HEADER_COMMON_SIZE:
                 (self['abs_time'],
                  self['tz_offset'],
                  self['time_quality'],
@@ -2204,27 +2292,26 @@ class HeaderBlock(dict):
             self['dg_nr'] = 0
             t1 = time.time() * 10**9
             t2 = time.gmtime()
-            self['date'] = '{:\x00<10}'.format(time.strftime('%d:%m:%Y', t2))
-            self['time'] = '{:\x00<8}'.format(time.strftime('%X', t2))
-            self['author'] = '{:\x00<32}'.format(os.getlogin())
-            self['organization'] = '{:\x00<32}'.format('')
-            self['project'] = '{:\x00<32}'.format('')
-            self['subject'] = '{:\x00<32}'.format('')
+            self['date'] = '{:\x00<10}'.format(time.strftime('%d:%m:%Y', t2)).encode('latin-1')
+            self['time'] = '{:\x00<8}'.format(time.strftime('%X', t2)).encode('latin-1')
+            self['author'] = '{:\x00<32}'.format(os.getlogin()).encode('latin-1')
+            self['organization'] = '{:\x00<32}'.format('').encode('latin-1')
+            self['project'] = '{:\x00<32}'.format('').encode('latin-1')
+            self['subject'] = '{:\x00<32}'.format('').encode('latin-1')
 
             if version >= 320:
                 self['abs_time'] = int(t1)
                 self['tz_offset'] = 2
                 self['time_quality'] = 0
-                self['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time')
+                self['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time').encode('latin-1')
 
     def __bytes__(self):
         fmt = HEADER_COMMON_FMT
         keys = HEADER_COMMON_KEYS
-        if self.size > HEADER_COMMON_SIZE:
+        if self['block_len'] > HEADER_COMMON_SIZE:
             fmt += HEADER_POST_320_EXTRA_FMT
             keys += HEADER_POST_320_EXTRA_KEYS
         return pack(fmt, *[self[key] for key in keys])
-
 
 
 class ProgramBlock(dict):
@@ -2256,7 +2343,7 @@ class ProgramBlock(dict):
         block address inside mdf file
 
     '''
-    def __init__(self, *args, **kargs):
+    def __init__(self, **kargs):
         super().__init__()
 
         try:
@@ -2268,48 +2355,27 @@ class ProgramBlock(dict):
              self['block_len']) = unpack('<2sH', stream.read(4))
             self['data'] = stream.read(self['block_len'] - 4)
 
-            self.size = self['block_len']
-        except:
+        except KeyError:
             pass
 
     def __bytes__(self):
-        fmt = FMT_PROGRAM_BLOCK.format(self.size)
+        fmt = FMT_PROGRAM_BLOCK.format(self['block_len'])
         return pack(fmt, *[self[key] for key in KEYS_PROGRAM_BLOCK])
 
 
-class ChannelExtension(dict):
-    ''' CEBLOCK class derived from *dict*
+class SampleReduction(dict):
+    ''' SRBLOCK class derived from *dict*
 
-    The ChannelExtension object can be created in two modes:
+    Currently the SampleReduction object can only be created by using the *file_stream* and *address* keyword parameters - when reading from file
 
-    * using the *file_stream* and *address* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ChannelExtension
+    The keys have the following meaning:
 
-    The first keys are common for all conversion types, and are followed by conversion specific keys. The keys have the following meaning:
-
-    * common keys
-
-        * id - Block type identifier, always "CE"
-        * block_len - Block size of this block in bytes (entire CEBLOCK)
-        * type - Extension type identifier
-
-    * specific keys
-
-        * for DIM block
-
-            * module_nr - Number of module
-            * module_address - Address
-            * description - Description
-            * ECU_identification - Identification of ECU
-            * reserved0' - reserved
-
-        * for Vector CAN block
-
-            * CAN_id - Identifier of CAN message
-            * CAN_ch_index - Index of CAN channel
-            * message_name - Name of message (string should be terminated by 0)
-            * sender_name - Name of sender (string should be terminated by 0)
-            * reserved0 - reserved
+    * id - Block type identifier, always "SR"
+    * block_len - Block size of this block in bytes (entire SRBLOCK)
+    * next_sr_addr - Pointer to next sample reduction block (SRBLOCK) (NIL allowed)
+    * data_block_addr - Pointer to the data block for this sample reduction
+    * cycles_nr - Number of reduced samples in the data block.
+    * time_interval - Length of time interval [s] used to calculate the reduced samples.
 
     Parameters
     ----------
@@ -2321,64 +2387,31 @@ class ChannelExtension(dict):
     Attributes
     ----------
     size : int
-        size of bytes reprezentation of CEBLOCK
+        size of bytes reprezentation of SRBLOCK
     address : int
         block address inside mdf file
 
     '''
-    def __init__(self, *args, **kargs):
+    def __init__(self, **kargs):
         super().__init__()
 
         try:
             stream = kargs['file_stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
+
             (self['id'],
              self['block_len'],
-             self['type']) = unpack(FMT_SOURCE_COMMON, stream.read(6))
-            block = stream.read(self['block_len'] - 6)
+             self['next_sr_addr'],
+             self['data_block_addr'],
+             self['cycles_nr'],
+             self['time_interval']) = unpack(FMT_SAMPLE_REDUCTION_BLOCK, stream.read(SR_BLOCK_SIZE))
 
-            if self['type'] == SOURCE_ECU:
-                (self['module_nr'],
-                 self['module_address'],
-                 self['description'],
-                 self['ECU_identification'],
-                 self['reserved0']) = unpack(FMT_SOURCE_EXTRA_ECU, block)
-            elif self['type'] == SOURCE_VECTOR:
-                (self['CAN_id'],
-                 self['CAN_ch_index'],
-                 self['message_name'],
-                 self['sender_name'],
-                 self['reserved0']) = unpack(FMT_SOURCE_EXTRA_VECTOR, block)
         except KeyError:
-
-            self.address = 0
-            self['id'] = kargs.get('id', 'CE'.encode('latin-1'))
-            self['block_len'] = kargs.get('block_len', SI_BLOCK_SIZE)
-            self['type'] = kargs.get('type', 2)
-            if self['type'] == SOURCE_ECU:
-                self['module_nr'] = kargs.get('module_nr', 0)
-                self['module_address'] = kargs.get('module_address', 0)
-                self['description'] = kargs.get('description', '\x00'.encode('latin-1'))
-                self['ECU_identification'] = kargs.get('ECU_identification', '\x00'.encode('latin-1'))
-                self['reserved0'] = kargs.get('reserved0', '\x00'.encode('latin-1'))
-            elif self['type'] == SOURCE_VECTOR:
-                self['CAN_id'] = kargs.get('CAN_id', 0)
-                self['CAN_ch_index'] = kargs.get('CAN_ch_index', 0)
-                self['message_name'] = kargs.get('message_name', '\x00'.encode('latin-1'))
-                self['sender_name'] = kargs.get('sender_name', '\x00'.encode('latin-1'))
-                self['reserved0'] = kargs.get('reserved0', '\x00'.encode('latin-1'))
-        self.size = self['block_len']
+            pass
 
     def __bytes__(self):
-        typ = self['type']
-        if typ == SOURCE_ECU:
-            fmt = FMT_SOURCE_ECU
-            keys = KEYS_SOURCE_ECU
-        else:
-            fmt = FMT_SOURCE_VECTOR
-            keys = KEYS_SOURCE_VECTOR
-        return pack(fmt, *[self[key] for key in keys])
+        return pack(FMT_SAMPLE_REDUCTION_BLOCK, *[self[key] for key in KEYS_SAMPLE_REDUCTION_BLOCK])
 
 
 class TextBlock(dict):
@@ -2422,7 +2455,7 @@ class TextBlock(dict):
     b'VehicleSpeed'
 
     '''
-    def __init__(self, *args, **kargs):
+    def __init__(self, **kargs):
         super().__init__()
         try:
             stream = kargs['file_stream']
@@ -2450,7 +2483,6 @@ class TextBlock(dict):
 
             self.text_str = text.decode('latin-1').replace('\0', '')
             self['text'] = text + b'\00' * padding
-        self.size = self['block_len']
 
     @classmethod
     def from_text(cls, text):
@@ -2475,7 +2507,8 @@ class TextBlock(dict):
     def __bytes__(self):
         #return pack('<2sH{}s'.format(self.size - 4), *[self[key] for key in KEYS_TEXT_BLOCK])
         # for performance reasons:
-        return pack('<2sH' + str(self.size-4) + 's', *[self[key] for key in KEYS_TEXT_BLOCK])
+        return pack('<2sH' + str(self['block_len']-4) + 's', *[self[key] for key in KEYS_TEXT_BLOCK])
+
 
 class TriggerBlock(dict):
     ''' TRBLOCK class derived from *dict*
@@ -2510,7 +2543,7 @@ class TriggerBlock(dict):
         block address inside mdf file
 
     '''
-    def __init__(self, *args, **kargs):
+    def __init__(self, **kargs):
         super().__init__()
 
         try:
@@ -2532,7 +2565,6 @@ class TriggerBlock(dict):
                  self['trigger_{}_pretime'.format(i)],
                  self['trigger_{}_posttime'.format(i)]) = t, pre, post
 
-            self.size = self['block_len']
         except KeyError:
             pass
 
