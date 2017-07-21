@@ -16,10 +16,7 @@
 .. role:: orange
 .. role:: brown
 
-.. _api:
-
-Data structures
-===============
+.. _mdf3:
 
 asammdf tries to emulate the mdf structure using Python builtin data types.
 
@@ -49,27 +46,23 @@ The *groups* attribute is a dictionary list with the following keys:
     
         * text_{n} : n-th text of the VTABR conversion
         
-* file_history : FileHistory object
+* file_history : TextBlock object
 
 The *channel_db* attibute is a dictionary that holds the *(data group index, channel index)* pair for all signals. This is used to speed up the *get_signal_by_name* method.
 
 The *master_db* attibute is a dictionary that holds the *channel index*  of the master channel for all data groups. This is used to speed up the *get_signal_by_name* method.
 
-API
-===
 
-Rational
---------
-All classes that implement mdf blocks are derived from *dict*. There are two main reasons for this:
-
-* fast performance
-* meaningful access to block fields, thus obtaining readable code
-
-
+MDF3 Class
+----------
+.. autoclass:: asammdf.mdf3.MDF3
+    :members:
+    
+MDF version 3 blocks
+--------------------
     
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
    
-   mdf3
-   mdf4
+   v3blocks

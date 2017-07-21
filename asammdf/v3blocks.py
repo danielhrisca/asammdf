@@ -2,13 +2,33 @@ import time
 import os
 from struct import unpack, pack, iter_unpack
 
+from functools import partial
+
 try:
     from blosc import compress, decompress
+    compress = partial(compress, clevel=7)
+
 except ImportError:
     from zlib import compress, decompress
+    compress = partial(compress, level=6)
 
 from .v3constants import *
-from .utils import *
+
+
+__all__ = ['Channel',
+           'ChannelConversion',
+           'ChannelDependency',
+           'ChannelExtension',
+           'ChannelGroup',
+           'DataBlock',
+           'DataGroup',
+           'FileIdentificationBlock',
+           'HeaderBlock',
+           'ProgramBlock',
+           'SampleReduction',
+           'TextBlock',
+           'TriggerBlock']
+
 
 class Channel(dict):
     ''' CNBLOCK class derived from *dict*
@@ -56,8 +76,6 @@ class Channel(dict):
     ----------
     name : str
         full channel name
-    size : int
-        size of bytes reprezentation of CNBLOCK
     address : int
         block address inside mdf file
 
@@ -198,8 +216,6 @@ class ChannelConversion(dict):
 
     Attributes
     ----------
-    size : int
-        size of bytes reprezentation of CCBLOCK
     address : int
         block address inside mdf file
 
@@ -468,8 +484,6 @@ class ChannelDependency(dict):
 
     Attributes
     ----------
-    size : int
-        size of bytes reprezentation of PRBLOCK
     address : int
         block address inside mdf file
 
@@ -559,8 +573,6 @@ class ChannelExtension(dict):
 
     Attributes
     ----------
-    size : int
-        size of bytes reprezentation of CEBLOCK
     address : int
         block address inside mdf file
 
@@ -649,8 +661,6 @@ class ChannelGroup(dict):
 
     Attributes
     ----------
-    size : int
-        size of bytes reprezentation of CGBLOCK
     address : int
         block address inside mdf file
 
@@ -685,6 +695,8 @@ class ChannelGroup(dict):
              self['cycles_nr']) = unpack(FMT_CHANNEL_GROUP, block)
             if self['block_len'] == CG33_BLOCK_SIZE:
                 self['sample_reduction_addr'] = unpack('<I', stream.read(4))[0]
+            else:
+                self['sample_reduction_addr'] = 0
         except KeyError:
             self.address = 0
             self['id'] = kargs.get('id', 'CG'.encode('latin-1'))
@@ -696,8 +708,7 @@ class ChannelGroup(dict):
             self['ch_nr'] = kargs.get('ch_nr', 0)
             self['samples_byte_nr'] = kargs.get('samples_byte_nr', 0)
             self['cycles_nr'] = kargs.get('cycles_nr', 0)
-            if self['block_len'] == CG33_BLOCK_SIZE:
-                self['sample_reduction_addr'] = 0
+            self['sample_reduction_addr'] = 0
 
     def __bytes__(self):
         fmt = FMT_CHANNEL_GROUP
@@ -725,8 +736,6 @@ class DataBlock(dict):
 
     Attributes
     ----------
-    size : int
-        length of uncompressed samples
     address : int
         block address
     compression : bool
@@ -738,8 +747,6 @@ class DataBlock(dict):
         block address inside the measurement file
     stream : file.io.handle
         binary file stream
-    size : int
-        block size
     compression : bool
         option flag for data compression; default *False*
 
@@ -748,25 +755,24 @@ class DataBlock(dict):
     def __init__(self, **kargs):
         super().__init__()
 
+        self.compression = kargs.get('compression', False)
+
         try:
             stream = kargs['file_stream']
             size = kargs['size']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
 
-            self.compression = kargs.get('compression', False)
             self['data'] = stream.read(size)
-
 
         except KeyError:
             self.address = 0
-            self.compression = kargs.get('compression', False)
             self['data'] = kargs.get('data', b'')
 
     def __setitem__(self, item, value):
         if item == 'data':
             if self.compression:
-                super().__setitem__(item, compress(value, 8))
+                super().__setitem__(item, compress(value))
             else:
                 super().__setitem__(item, value)
         else:
@@ -811,8 +817,6 @@ class DataGroup(dict):
 
     Attributes
     ----------
-    size : int
-        size of bytes reprezentation of DGBLOCK
     address : int
         block address inside mdf file
 
@@ -837,6 +841,8 @@ class DataGroup(dict):
 
             if self['block_len'] == DG32_BLOCK_SIZE:
                 self['reserved0'] = stream.read(4)
+            else:
+                self['reserved0'] = b'\x00\x00\x00\x00'
         except KeyError:
             self.address = 0
             self['id'] = kargs.get('id', 'DG'.encode('latin-1'))
@@ -847,8 +853,7 @@ class DataGroup(dict):
             self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['cg_nr'] = kargs.get('cg_nr', 1)
             self['record_id_nr'] = kargs.get('record_id_nr', 0)
-            if self['block_len'] == DG32_BLOCK_SIZE:
-                self['reserved0'] = b'\x00\x00\x00\x00'
+            self['reserved0'] = b'\x00\x00\x00\x00'
 
     def __bytes__(self):
         if self['block_len'] == DG32_BLOCK_SIZE:
@@ -886,9 +891,13 @@ class FileIdentificationBlock(dict):
     ----------
     file_stream : file handle
         mdf file handle
-
     version : int
         mdf version in case of new file
+
+    Attributes
+    ----------
+    address : int
+        block address inside mdf file; should be 0 always
 
     '''
     def __init__(self, **kargs):
@@ -912,12 +921,13 @@ class FileIdentificationBlock(dict):
              self['unfinalized_standard_flags'],
              self['unfinalized_custom_flags']) = unpack(ID_FMT, stream.read(ID_BLOCK_SIZE))
         except KeyError:
+            version = kargs['version']
             self['file_identification'] = 'MDF     '.encode('latin-1')
-            self['version_str'] = kargs.get('version', b'3.30') + b'\x00' * 4
+            self['version_str'] = version.encode('latin-1') + b'\x00' * 4
             self['program_identification'] = 'Python  '.encode('latin-1')
             self['byte_order'] = BYTE_ORDER_INTEL
             self['float_format'] = 0
-            self['mdf_version'] = int(float(kargs.get('version', b'3.30') ) * 100)
+            self['mdf_version'] = int(version.replace('.', ''))
             self['code_page'] = 0
             self['reserved0'] = b'\x00' * 2
             self['reserved1'] = b'\x00' * 26
@@ -963,6 +973,11 @@ class HeaderBlock(dict):
     file_stream : file handle
         mdf file handle
 
+    Attributes
+    ----------
+    address : int
+        block address inside mdf file; should be 64 always
+
     '''
     def __init__(self, **kargs):
         super().__init__()
@@ -991,11 +1006,16 @@ class HeaderBlock(dict):
                  self['tz_offset'],
                  self['time_quality'],
                  self['timer_identification']) = unpack(HEADER_POST_320_EXTRA_FMT, stream.read(HEADER_POST_320_EXTRA_SIZE))
+            else:
+                self['abs_time'] = int(time.time() * 10**9)
+                self['tz_offset'] = 2
+                self['time_quality'] = 0
+                self['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time').encode('latin-1')
 
         except KeyError:
-            version = kargs.get('version', 320)
+            version = kargs.get('version', '3.20')
             self['id'] = 'HD'.encode('latin-1')
-            self['block_len'] = 208 if version >= 320 else 164
+            self['block_len'] = 208 if version in ('3.20', '3.30') else 164
             self['first_dg_addr'] = 0
             self['comment_addr'] = 0
             self['program_addr'] = 0
@@ -1009,11 +1029,10 @@ class HeaderBlock(dict):
             self['project'] = '{:\x00<32}'.format('').encode('latin-1')
             self['subject'] = '{:\x00<32}'.format('').encode('latin-1')
 
-            if version >= 320:
-                self['abs_time'] = int(t1)
-                self['tz_offset'] = 2
-                self['time_quality'] = 0
-                self['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time').encode('latin-1')
+            self['abs_time'] = int(t1)
+            self['tz_offset'] = 2
+            self['time_quality'] = 0
+            self['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time').encode('latin-1')
 
     def __bytes__(self):
         fmt = HEADER_COMMON_FMT
@@ -1047,8 +1066,6 @@ class ProgramBlock(dict):
 
     Attributes
     ----------
-    size : int
-        size of bytes reprezentation of PRBLOCK
     address : int
         block address inside mdf file
 
@@ -1096,8 +1113,6 @@ class SampleReduction(dict):
 
     Attributes
     ----------
-    size : int
-        size of bytes reprezentation of SRBLOCK
     address : int
         block address inside mdf file
 
@@ -1149,8 +1164,6 @@ class TextBlock(dict):
 
     Attributes
     ----------
-    size : int
-        size of bytes reprezentation of TXBLOCK
     address : int
         block address inside mdf file
     text_str : str
@@ -1185,17 +1198,11 @@ class TextBlock(dict):
                 self.text_str = text
                 text = text.encode('latin-1')
             elif isinstance(text, bytes):
-                self.text_str = text.encode('latin-1')
-            text_length = len(text)
-            align = text_length % 8
-            if align == 0 and text[-1] == b'\x00':
-                padding = 0
-            else:
-                padding = 8 - align
+                self.text_str = text.decode('latin-1')
 
             self['id'] = b'TX'
-            self['block_len'] = text_length + padding + 4
-            self['text'] = text + b'\00' * padding
+            self['block_len'] = len(text) + 4 + 1
+            self['text'] = text + b'\x00'
 
     @classmethod
     def from_text(cls, text):
@@ -1208,7 +1215,6 @@ class TextBlock(dict):
             input string
 
         """
-
         return cls(text=text)
 
     def __bytes__(self):
@@ -1244,8 +1250,6 @@ class TriggerBlock(dict):
 
     Attributes
     ----------
-    size : int
-        size of bytes reprezentation of TRBLOCK
     address : int
         block address inside mdf file
 

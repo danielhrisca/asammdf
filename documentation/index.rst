@@ -7,11 +7,11 @@ Welcome to asammdf's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
    
    mdf
-
+   signal
 
 
 Indices and tables

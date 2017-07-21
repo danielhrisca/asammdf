@@ -3,6 +3,16 @@ import time
 from .v4constants import *
 from struct import unpack, pack, iter_unpack, unpack_from
 
+from functools import partial
+
+try:
+    from blosc import compress, decompress
+    compress = partial(compress, clevel=7)
+
+except ImportError:
+    from zlib import compress, decompress
+    compress = partial(compress, level=6)
+
 
 __all__ = ['Channel',
            'ChannelGroup',
@@ -556,6 +566,8 @@ class DataBlock(dict):
     def __init__(self, **kargs):
         super().__init__()
 
+        self.compression = kargs.get('compression', False)
+
         try:
             self.address = address = kargs['address']
             stream = kargs['file_stream']
@@ -574,6 +586,21 @@ class DataBlock(dict):
             self['block_len'] = kargs['block_len']
             self['links_nr'] = 0
             self['data'] = kargs['data']
+
+    def __setitem__(self, item, value):
+        if item == 'data':
+            if self.compression:
+                super().__setitem__(item, compress(value))
+            else:
+                super().__setitem__(item, value)
+        else:
+            super().__setitem__(item, value)
+
+    def __getitem__(self, item):
+        if item == 'data' and self.compression:
+            return decompress(super().__getitem__(item))
+        else:
+            return super().__getitem__(item)
 
     def __bytes__(self):
         return pack(FMT_DATA_BLOCK.format(self['block_len'] - COMMON_SIZE), *[self[key] for key in KEYS_DATA_BLOCK])
@@ -607,11 +634,11 @@ class FileIdentificationBlock(dict):
 
             version = kargs.get('version', 400)
             self['file_identification'] = 'MDF     '.encode('utf-8')
-            self['version_str'] = '{:.2f}    '.format(version/100).encode('utf-8')
+            self['version_str'] = '{}    '.format(version).encode('utf-8')
             self['program_identification'] = 'Python  '.encode('utf-8')
             self['reserved0'] = 0
             self['reserved1'] = 0
-            self['mdf_version'] = version
+            self['mdf_version'] = int(version.replace('.', ''))
             self['reserved2'] = 0
             self['check_block'] = 0
             self['fill'] = b'\x00' * 26
