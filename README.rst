@@ -30,6 +30,7 @@ Features
 
 * read sorted and unsorted MDF v3 files
 * files are loaded in RAM for fast operations
+
     * for low memory computers or for large data files there is the option to load only the metadata and leave the raw channel data (the samples) unread; this of course will mean slower channel data access speed
 * extract channel data, master channel and extra channel information (unit, conversion rule)
 * remove data group by index or by specifing a channel name inside the target data group
