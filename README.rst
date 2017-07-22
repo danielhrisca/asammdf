@@ -4,17 +4,17 @@ Project goals
 =============
 The main goals for this library are:
 
-	* to be faster than the other Python based mdf libraries
-	* clean and simple data types
+    * to be faster than the other Python based mdf libraries
+    * clean and simple data types
     
 Dependencies
 ============
 asammdf uses the following libraries
-    
-	* numpy : the heart that makes all tick
-	* numexpr : for formula based channel conversions
-	* blosc : optionally used for in memmory raw channel data compression
-	* matplotlib : for Signal plotting
+
+    * numpy : the heart that makes all tick
+    * numexpr : for formula based channel conversions
+    * blosc : optionally used for in memmory raw channel data compression
+    * matplotlib : for Signal plotting
 
 Usage
 =====
@@ -28,28 +28,28 @@ Usage
 Features
 ========
 
-	* read sorted and unsorted MDF v3 files
-	* files are loaded in RAM for fast operations
+    * read sorted and unsorted MDF v3 files
+    * files are loaded in RAM for fast operations
 
-	    * for low memory computers or for large data files there is the option to load only the metadata and leave the raw channel data (the samples) unread; this of course will mean slower channel data access speed
+        * for low memory computers or for large data files there is the option to load only the metadata and leave the raw channel data (the samples) unread; this of course will mean slower channel data access speed
 
-	* extract channel data, master channel and extra channel information (unit, conversion rule)
-	* remove data group by index or by specifing a channel name inside the target data group
-	* append new channels
-	* convert to different mdf version
+    * extract channel data, master channel and extra channel information (unit, conversion rule)
+    * remove data group by index or by specifing a channel name inside the target data group
+    * append new channels
+    * convert to different mdf version
 
 Major features still not implemented
 ====================================
 
-	* functionality related to sample reduction block (but the class is defined)
-	* mdf 3 channel dependency functionality
-	* functionality related to trigger blocks (but the class is defined)
-	* handling of unfinnished measurements (mdf 4)
-	* compressed data blocks for mdf >= 4.10
-	* mdf 4 attachment blocks
-	* mdf 4 channel arrays
-	* mdf 4 VLSD channels and SDBLOCKs
-	* xml schema for TXBLOCK and MDBLOCK
+    * functionality related to sample reduction block (but the class is defined)
+    * mdf 3 channel dependency functionality
+    * functionality related to trigger blocks (but the class is defined)
+    * handling of unfinnished measurements (mdf 4)
+    * compressed data blocks for mdf >= 4.10
+    * mdf 4 attachment blocks
+    * mdf 4 channel arrays
+    * mdf 4 VLSD channels and SDBLOCKs
+    * xml schema for TXBLOCK and MDBLOCK
 
 Documentation
 =============
@@ -59,9 +59,9 @@ Installation
 ============
 *asammdf* is available on 
 
-	* github: https://github.com/danielhrisca/asammdf/
-	* PyPI: https://pypi.org/project/asammdf/
-	
+    * github: https://github.com/danielhrisca/asammdf/
+    * PyPI: https://pypi.org/project/asammdf/
+    
 .. code-block:: python
 
     pip install asammdf
@@ -70,28 +70,28 @@ Benchmarks
 ==========
 using a more complex file of 170MB with 180 data groups and 36000 channels with Python 3.6.1 32bit 
 
-	* file load:
+    * file load:
 
-	    * asammdf 1.1.0 : 950ms
-	    * asammdf 1.1.0 with compression : 1600s
-	    * asammdf 1.1.0 without loading raw channel data: 750ms
-	    * mdfreader 0.2.4 : 3600ms
-	    * mdfreader 0.2.4 without channel conversion : 3330ms
+        * asammdf 1.1.0 : 950ms
+        * asammdf 1.1.0 with compression : 1600s
+        * asammdf 1.1.0 without loading raw channel data: 750ms
+        * mdfreader 0.2.4 : 3600ms
+        * mdfreader 0.2.4 without channel conversion : 3330ms
 
-	* file save:
+    * file save:
 
-	    * asammdf 1.1.0 : 722ms
-	    * mdfreader 0.2.4 : 18800ms
+        * asammdf 1.1.0 : 722ms
+        * mdfreader 0.2.4 : 18800ms
 
-	* get channel data (10000 calls):
+    * get channel data (10000 calls):
 
-	    * asammdf 1.1.0 : 918ms
-	    * mdfreader 0.2.4 : 11ms
+        * asammdf 1.1.0 : 918ms
+        * mdfreader 0.2.4 : 11ms
 
-	* RAM usage:
+    * RAM usage:
 
-	    * asammdf 1.1.0 : 345MB
-	    * asammdf 1.1.0 with compression : 280MB
-	    * asammdf 1.1.0 without loading raw channel data: 150MB
-	    * mdfreader 0.2.4 : 480MB
-	    * mdfreader 0.2.4 without channel conversion: 365MB
+        * asammdf 1.1.0 : 345MB
+        * asammdf 1.1.0 with compression : 280MB
+        * asammdf 1.1.0 without loading raw channel data: 150MB
+        * mdfreader 0.2.4 : 480MB
+        * mdfreader 0.2.4 without channel conversion: 365MB
