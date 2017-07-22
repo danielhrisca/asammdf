@@ -58,5 +58,8 @@ The *master_db* attibute is a dictionary that holds the *channel index*  of the 
 
 MDF Class
 ---------
+This class acts as a proxy for the MDF3 and MDF4 classes. All attribute access is delegated to the underling *file* attribute (MDF3 or MDF4 object). 
+See MDF3 and MDF4 for available extra methods.
+
 .. autoclass:: asammdf.mdf.MDF
     :members:

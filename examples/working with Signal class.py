@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-*asammdf* MDF usage example
+*asammdf* Signal usage example
 """
 from asammdf import Signal
 import numpy as np
@@ -17,7 +17,7 @@ s_uint8 = Signal(samples=np.array([t for t in range(5)], dtype=np.uint8),
 
 # int32 with 50ms time raster
 timestamps = np.array([0.05 * t for t in range(10)], dtype=np.float32)
-s_int32 = Signal(samples=np.array(list(range(-500, 500, 50)), dtype=np.int32),
+s_int32 = Signal(samples=np.array(list(range(-500, 500, 100)), dtype=np.int32),
                  timestamps=timestamps,
                  name='Int32_Signal',
                  unit='i4')

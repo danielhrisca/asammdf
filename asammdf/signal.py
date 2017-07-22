@@ -33,6 +33,8 @@ class Signal(object):
     def __init__(self, samples=None, timestamps=None, unit='', name='', conversion=None):
         if samples is None or timestamps is None or name == '':
             raise MdfException('"samples", "timestamps" and "name" are mandatory arguments for Signal class instance')
+        elif len(samples) != len(timestamps):
+            raise MdfException('samples and timestamps lenght do not match ({} vs {})'.format(len(samples), len(timestamps)))
         else:
             self.samples = samples
             self.timestamps = timestamps
@@ -48,7 +50,8 @@ class Signal(object):
 
     def plot(self):
         """plot Signal samples"""
-        plt.figure()
+        fig = plt.figure()
+        fig.canvas.set_window_title(self.name)
         plt.title(self.name)
         plt.xlabel('Time [s]')
         plt.ylabel('[{}]'.format(self.unit))
@@ -87,6 +90,7 @@ class Signal(object):
         return Signal(self.samples[start: stop], self.timestamps[start:stop], self.unit, self.name, self.conversion)
 
     def interp(self, new_timestamps):
+        """ returns a new *Signal* interpolated using the *new_timestamps*"""
         if self.samples.dtype in ('float64', 'float32'):
             s = np.interp(new_timestamps, self.timestamps, self.samples)
         else:
@@ -220,6 +224,7 @@ class Signal(object):
         self.samples[idx] = val
 
     def astype(self, np_type):
+        """ returns new *Signal* with samples of dtype *np_type*"""
         return Signal(self.samples.astype(np_type), self.timestamps, self.unit, self.name, self.conversion)
 
 
