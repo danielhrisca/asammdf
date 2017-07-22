@@ -63,6 +63,5 @@ MDF version 4 blocks
     
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
    
    v4blocks

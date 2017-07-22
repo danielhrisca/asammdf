@@ -18,8 +18,9 @@
 
 .. _api:
 
+
 Data structures
-===============
+---------------
 
 asammdf tries to emulate the mdf structure using Python builtin data types.
 
@@ -55,21 +56,7 @@ The *channel_db* attibute is a dictionary that holds the *(data group index, cha
 
 The *master_db* attibute is a dictionary that holds the *channel index*  of the master channel for all data groups. This is used to speed up the *get_signal_by_name* method.
 
-API
-===
-
-Rational
---------
-All classes that implement mdf blocks are derived from *dict*. There are two main reasons for this:
-
-* fast performance
-* meaningful access to block fields, thus obtaining readable code
-
-
-    
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-   
-   mdf3
-   mdf4
+MDF Class
+---------
+.. autoclass:: asammdf.mdf.MDF
+    :members:

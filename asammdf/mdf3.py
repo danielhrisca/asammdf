@@ -287,9 +287,9 @@ class MDF3(object):
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
 
         """
-        self.groups.append({})
         dg_cntr = len(self.groups)
-        gp = self.groups[-1]
+        gp = {}
+        self.groups.append(gp)
 
         channel_nr = len(signals)
         if not channel_nr:

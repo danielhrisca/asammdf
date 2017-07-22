@@ -64,13 +64,15 @@ class MDF(object):
         else:
             return getattr(self.file, attr)
 
-    def convert(self, to):
+    def convert(self, to, compression=False):
         """convert MDF to other versions
 
         Parameters
         ----------
         to : str
             new mdf version from ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10', '4.11')
+        compression : bool
+            enable raw channel data compression for out MDF; default *False*
 
         Returns
         -------
@@ -82,7 +84,7 @@ class MDF(object):
             print('Unknown output mdf version "{}". Available versions are {}'.format(to, MDF4_VERSIONS + MDF3_VERSIONS))
             return
         else:
-            out = MDF(version=to)
+            out = MDF(version=to, compression=compression)
             if self.version in MDF3_VERSIONS:
                 master_type = (V3_MASTER,)
             else:
@@ -90,7 +92,6 @@ class MDF(object):
             for i, gp in enumerate(self.groups):
                 sigs = []
                 for j, ch in enumerate(gp['channels']):
-                    print(i+1, ch.name)
                     if not ch['channel_type'] in master_type:
                         sigs.append(self.get(group=i, index=j))
                 out.append(sigs, 'Converted from {} to {}'.format(self.version, to))

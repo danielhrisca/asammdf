@@ -3,6 +3,7 @@
 
 """
 import numpy as np
+import matplotlib.pyplot as plt
 
 from .utils import MdfException
 
@@ -44,6 +45,17 @@ class Signal(object):
 
     def __repr__(self):
         return 'Signal {{ {}:\ts={}\tt={} }}'.format(self.name, repr(self.samples), repr(self.timestamps))
+
+    def plot(self):
+        """plot Signal samples"""
+        plt.figure()
+        plt.title(self.name)
+        plt.xlabel('Time [s]')
+        plt.ylabel('[{}]'.format(self.unit))
+        plt.plot(self.timestamps, self.samples, 'b')
+        plt.plot(self.timestamps, self.samples, 'b.')
+        plt.grid(True)
+        plt.show()
 
     def cut(self, start, stop):
         """

@@ -14,6 +14,7 @@ asammdf uses the following libraries
 * numpy : the heart that makes all tick
 * numexpr : for formula based channel conversions
 * blosc : optionally used for in memmory raw channel data compression
+* matplotlib : for Signal plotting
 
 Usage
 =====
@@ -31,13 +32,37 @@ Features
 * files are loaded in RAM for fast operations
     * for low memory computers or for large data files there is the option to load only the metadata and leave the raw channel data (the samples) unread; this of course will mean slower channel data access speed
 * extract channel data, master channel and extra channel information (unit, conversion rule)
-* remove channel by name
-* remove data group by specifing a channel name inside the target data group
+* remove data group by index or by specifing a channel name inside the target data group
 * append new channels
+* convert to different mdf version
+
+Major features still not implemented
+====================================
+
+* functionality related to sample reduction block (but the class is defined)
+* mdf 3 channel dependency functionality
+* functionality related to trigger blocks (but the class is defined)
+* handling of unfinnished measurements (mdf 4)
+* compressed data blocks for mdf >= 4.10
+* mdf 4 attachment blocks
+* mdf 4 channel arrays
+* mdf 4 VLSD channels and SDBLOCKs
+* xml schema for TXBLOCK and MDBLOCK
 
 Documentation
 =============
 http://asammdf.readthedocs.io/en/stable
+
+Installation
+============
+*asammdf* is available on 
+
+	* github: https://github.com/danielhrisca/asammdf/
+	* PyPI: https://pypi.org/project/asammdf/
+	
+.. code-block:: python
+
+    pip install asammdf
 
 Benchmarks
 ==========

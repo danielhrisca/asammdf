@@ -28,6 +28,7 @@ __all__ = ['Channel',
 
 
 class Channel(dict):
+    """ CNBLOCK class"""
     def __init__(self, **kargs):
         super().__init__()
 
@@ -105,6 +106,7 @@ class Channel(dict):
 
 
 class ChannelGroup(dict):
+    """CGBLOCK class"""
     def __init__(self, **kargs):
         super().__init__()
 
@@ -156,7 +158,7 @@ class ChannelGroup(dict):
 
 
 class ChannelConversion(dict):
-
+    """CCBLOCK class"""
     def __init__(self, **kargs):
         super().__init__()
 
@@ -563,6 +565,19 @@ class ChannelConversion(dict):
 
 
 class DataBlock(dict):
+    """DTBLOCK class
+    Raw channel dta can be compressed to save RAM; set the *compression* keyword argument to True when instantiating the object
+
+    Parameters
+    ----------
+    compression : bool
+        enable raw channel data compression in RAM
+    address : int
+        DTBLOCK address inside the file
+    file_stream : int
+        file handle
+
+    """
     def __init__(self, **kargs):
         super().__init__()
 
@@ -607,6 +622,7 @@ class DataBlock(dict):
 
 
 class FileIdentificationBlock(dict):
+    """IDBLOCK class"""
     def __init__(self, **kargs):
 
         super().__init__()
@@ -633,6 +649,7 @@ class FileIdentificationBlock(dict):
         except KeyError:
 
             version = kargs.get('version', 400)
+            print(version)
             self['file_identification'] = 'MDF     '.encode('utf-8')
             self['version_str'] = '{}    '.format(version).encode('utf-8')
             self['program_identification'] = 'Python  '.encode('utf-8')
@@ -650,6 +667,7 @@ class FileIdentificationBlock(dict):
 
 
 class HeaderBlock(dict):
+    """HDBLOCK class"""
     def __init__(self, **kargs):
         super().__init__()
 
@@ -705,6 +723,7 @@ class HeaderBlock(dict):
 
 
 class DataList(dict):
+    """DLBLOCK class"""
     def __init__(self, **kargs):
         super().__init__()
 
@@ -755,6 +774,7 @@ class DataList(dict):
 
 
 class DataGroup(dict):
+    """DGBLOCK class"""
     def __init__(self, **kargs):
         super().__init__()
 
@@ -793,6 +813,7 @@ class DataGroup(dict):
 
 
 class FileHistory(dict):
+    """FHBLOCK class"""
     def __init__(self, **kargs):
         super().__init__()
 
@@ -831,6 +852,7 @@ class FileHistory(dict):
 
 
 class SourceInformation(dict):
+    """SIBLOCK class"""
     def __init__(self, **kargs):
         super().__init__()
 
@@ -870,6 +892,7 @@ class SourceInformation(dict):
 
 
 class TextBlock(dict):
+    """common TXBLOCK and MDBLOCK class"""
     def __init__(self, **kargs):
         super().__init__()
 
@@ -914,25 +937,28 @@ class TextBlock(dict):
 
     @classmethod
     def from_text(cls, text, meta=False):
-        """"Summary line.
-
-        Extended description of function.
+        """Create a TextBlock from a str or bytes
 
         Parameters
         ----------
-        cls : Type of cls
-            Description of cls default None
-        text : Type of text
-            Description of text default None
-        meta : Type of meta
-            Description of meta default False
+        text : str | bytes
+            input text
+        meta : bool
+            enable meta text block
 
         Returns
         -------
 
         Examples
         --------
-        >>>>
+        >>> t = TextBlock.from_text(b'speed')
+        >>> t['id']
+        b'##TX'
+        >>> t.text_str
+        speed
+        >>> t = TextBlock.from_text('mass', meta=True)
+        >>> t['id']
+        b'##MD'
 
         """
         kargs = {}
