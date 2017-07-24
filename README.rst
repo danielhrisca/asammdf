@@ -21,13 +21,12 @@ asammdf uses the following libraries
 Usage
 =====
 
-```python
+.. code-block:: python
 
-   from asammdf import MDF3
-   mdf = MDF3('sample.mdf')
-   speed = mdf.get_signal_by_name('WheelSpeed')
+   from asammdf import MDF
+   mdf = MDF('sample.mdf')
+   speed = mdf.get('WheelSpeed')
    
-```
 
 Check the *examples* folder for extended usage demo.
 
