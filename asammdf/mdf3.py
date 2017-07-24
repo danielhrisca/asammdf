@@ -217,18 +217,21 @@ class MDF3(object):
                     cg_size = {}
                     cg_data = defaultdict(list)
                     for grp in new_groups:
-                        size += (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
                         cg_size[grp['channel_group']['record_id']] = grp['channel_group']['samples_byte_nr']
 
                     # read data block of the current data group
                     dat_addr = gp['data_block_addr']
-                    seek(dat_addr, SEEK_START)
-                    data = read(size)
+                    if dat_addr:
+                        seek(dat_addr, SEEK_START)
+                        data = read(size)
+                    else:
+                        data = b''
                     if cg_nr == 1:
                         kargs = {'data': data, 'compression': self.compression}
                         new_groups[0]['data_block'] = DataBlock(**kargs)
                     else:
                         i = 0
+                        size = len(data)
                         while i < size:
                             rec_id = data[i]
                             # skip redord id
