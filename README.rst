@@ -1,4 +1,6 @@
-*asammdf* is a fast parser/editor for ASAM (Associtation for Standardisation of Automation and Measuring Systems) MDF (Measurement Data Format) files. Currently only version 3 is supported.
+*asammdf* is a fast parser/editor for ASAM (Associtation for Standardisation of Automation and Measuring Systems) MDF (Measurement Data Format) files. 
+
+*asammdf* supports both MDF version 3 and 4 formats. 
 
 Project goals
 =============
