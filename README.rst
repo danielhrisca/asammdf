@@ -9,27 +9,6 @@ The main goals for this library are:
 * to be faster than the other Python based mdf libraries
 * clean and simple data types
 
-Dependencies
-============
-asammdf uses the following libraries
-
-* numpy : the heart that makes all tick
-* numexpr : for formula based channel conversions
-* blosc : optionally used for in memmory raw channel data compression
-* matplotlib : for Signal plotting
-
-Usage
-=====
-
-.. code-block:: python
-
-   from asammdf import MDF
-   mdf = MDF('sample.mdf')
-   speed = mdf.get('WheelSpeed')
-   
-
-Check the *examples* folder for extended usage demo.
-
 Features
 ========
 
@@ -62,6 +41,17 @@ Major features still not implemented
 * mdf 4 VLSD channels and SDBLOCKs
 * xml schema for TXBLOCK and MDBLOCK
 
+Usage
+=====
+
+.. code-block:: python
+
+   from asammdf import MDF
+   mdf = MDF('sample.mdf')
+   speed = mdf.get('WheelSpeed')
+   
+Check the *examples* folder for extended usage demo.
+
 Documentation
 =============
 http://asammdf.readthedocs.io/en/stable
@@ -76,6 +66,15 @@ Installation
 .. code-block:: python
 
     pip install asammdf
+    
+Dependencies
+============
+asammdf uses the following libraries
+
+* numpy : the heart that makes all tick
+* numexpr : for formula based channel conversions
+* blosc : optionally used for in memmory raw channel data compression
+* matplotlib : for Signal plotting
 
 Benchmarks
 ==========
