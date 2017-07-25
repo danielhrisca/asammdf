@@ -44,12 +44,12 @@ Major features still not implemented
 Usage
 =====
 
-.. code-block:: python
-
+```python
    from asammdf import MDF
    mdf = MDF('sample.mdf')
    speed = mdf.get('WheelSpeed')
-   
+ ```  
+ 
 Check the *examples* folder for extended usage demo.
 
 Documentation
@@ -63,9 +63,9 @@ Installation
     * github: https://github.com/danielhrisca/asammdf/
     * PyPI: https://pypi.org/project/asammdf/
     
-.. code-block:: python
-
-    pip install asammdf
+```
+   pip install asammdf
+```
     
 Dependencies
 ============
@@ -78,66 +78,17 @@ asammdf uses the following libraries
 
 Benchmarks
 ==========
-![Using Python 3.6.1 x64](benchmarks/asam 2.0.0 vs reader 0.2.5 Pyhton3.6.1x64 SSD i7-6820.txt)
 
-![Open MDF file](https://raw.githubusercontent.com/danielhrisca/asammdf/master/benchmarks/open.png)
+![Using Python 3.6.1 x64](benchmarks/asam%202.0.0%20vs%20reader%200.2.5%20Pyhton3.6.1x64%20SSD%20i7-6820.txt)
 
-using a more complex file of 170MB with 180 data groups and 36000 channels with Python 3.6.1 64bit 
+![](benchmarks/open.png)
 
-    * mdf version 3
-    
-        * file load:
+![](benchmarks/open%20-%20ram%20usage.png)
 
-            * asammdf 2.0.0 : 800ms
-            * asammdf 2.0.0 with compression : 1050s
-            * asammdf 2.0.0 without loading raw channel data: 600ms
-            * mdfreader 0.2.5 : 3200ms
-            * mdfreader 0.2.5 without channel conversion : 2850ms
+![](benchmarks/save.png)
 
-        * file save:
+![](benchmarks/save%20-%20ram%20usage.png)
 
-            * asammdf 2.0.0 : 520ms
-            * asammdf 2.0.0 with compression : 610s
-            * mdfreader 0.2.5 : 19600ms
+![](benchmarks/get%20all%20channels.png)
 
-        * get channel data (10000 calls):
-
-            * asammdf 2.0.0 : 918ms
-            * mdfreader 0.2.5 : 11ms
-
-        * RAM usage:
-
-            * asammdf 2.0.0 : 334MB
-            * asammdf 2.0.0 with compression : 262MB
-            * asammdf 2.0.0 without loading raw channel data: 76MB
-            * mdfreader 0.2.5 : 510MB
-            * mdfreader 0.2.5 without channel conversion: 887MB
-            
-    * mdf version 4
-    
-        * file load:
-
-            * asammdf 2.0.0 : 2280ms
-            * asammdf 2.0.0 with compression : 3130s
-            * asammdf 2.0.0 without loading raw channel data: 2540ms
-            * mdfreader 0.2.5 : 30426ms
-            * mdfreader 0.2.5 without channel conversion : 30000ms
-
-        * file save:
-
-            * asammdf 2.0.0 : 980ms
-            * asammdf 2.0.0 with compression : 1150s
-            * mdfreader 0.2.5 : 17100ms
-
-        * get channel data (10000 calls):
-
-            * asammdf 2.0.0 : 918ms
-            * mdfreader 0.2.5 : 11ms
-
-        * RAM usage:
-
-            * asammdf 2.0.0 : 1123MB
-            * asammdf 2.0.0 with compression : 480MB
-            * asammdf 2.0.0 without loading raw channel data: 455MB
-            * mdfreader 0.2.5 : 577MB
-            * mdfreader 0.2.5 without channel conversion: 2891MB
+![](benchmarks/get%20all%20channels%20-%20ram%20usage.png)
