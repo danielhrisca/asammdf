@@ -3,6 +3,7 @@ ASAM MDF version 4 file format module
 """
 
 import time
+import warnings
 from functools import reduce
 from collections import defaultdict
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
@@ -136,7 +137,7 @@ class MDF4(object):
                 channel_group_texts = {}
                 grp['texts']['channel_group'].append(channel_group_texts)
 
-                grp['data_group'] = DataGroup()
+                grp['data_group'] = DataGroup(address=dg_addr, file_stream=file_stream)
 
                 for key in ('acq_name_addr', 'comment_addr'):
                     address = channel_group[key]
@@ -234,6 +235,9 @@ class MDF4(object):
                     ch_cntr += 1
 
                 cg_addr = channel_group['next_cg_addr']
+
+                if cg_addr and self.load_measured_data == False:
+                    raise MdfException('Reading unsorted file with load_measured_data option set to False is not supported')
 
             if self.load_measured_data:
                 size = 0
@@ -355,6 +359,10 @@ class MDF4(object):
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
 
         """
+        if self.load_measured_data == False:
+            warnings.warn("Can't append if load_measurement_data option is False")
+            return
+
         signals_nr = len(signals)
         dg_cntr = len(self.groups)
         self.groups.append({})
@@ -639,8 +647,11 @@ class MDF4(object):
             with open(self.name, 'rb') as file_stream:
                 # go to the first data block of the current data group
                 dat_addr = group['data_group']['data_block_addr']
-                read_size = group['channel_group']['samples_byte_nr'] * group['channel_group']['cycles_nr']
-                data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                if dat_addr:
+                    data = DataBlock(file_stream=file_stream, address=dat_addr)['data']
+                else:
+                    data = b''
         else:
             try:
                 data = group['data_block']['data']
@@ -724,8 +735,7 @@ class MDF4(object):
                 else:
                     vals = vals * a
                     if b:
-                        vals.setflags(write=True)
-                        vals += b
+                        vals = vals + b
 
             elif conversion_type == CONVERSION_TYPE_RAT:
                 P1 = conversion['P1']
@@ -872,6 +882,10 @@ class MDF4(object):
         >>> mdf.remove(name='VehicleSpeed')
 
         """
+        if self.load_measured_data == False:
+            warnings.warn("Can't remove group if load_measurement_data option is False")
+            return
+
         if group:
             if 0 <= group <= len(self.groups):
                 idx = group
@@ -893,9 +907,14 @@ class MDF4(object):
         """Save MDF to *dst*. If *dst* is *None* the original file is overwritten
 
         """
-        if self.name is None and dst is None:
-            print('New MDF created without a name and no destination file name specified for save')
+        if self.load_measured_data == False:
+            warnings.warn("Can't save if load_measurement_data option is False")
             return
+
+        if self.name is None and dst is None:
+            warnings.warn('New MDF created without a name and no destination file name specified for save')
+            return
+
         dst = dst if dst else self.name
 
         if not self.file_history:

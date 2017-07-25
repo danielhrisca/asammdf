@@ -1,0 +1,6 @@
+numpy
+matplotlib
+asammdf
+mdfreader
+blocs
+numpexpr

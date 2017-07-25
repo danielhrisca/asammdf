@@ -5,6 +5,7 @@ ASAM MDF version 3 file format module
 
 import os
 import time
+import warnings
 
 from collections import defaultdict
 from functools import reduce
@@ -210,6 +211,9 @@ class MDF3(object):
                     cg_addr = grp['channel_group']['next_cg_addr']
                     dg_cntr += 1
 
+                    if cg_addr and self.load_measured_data == False:
+                        raise MdfException('Reading unsorted file with load_measured_data option set to False is not supported')
+
                 if self.load_measured_data:
                     size = 0
                     record_id_nr = gp['record_id_nr'] if gp['record_id_nr'] <= 2 else 0
@@ -217,6 +221,7 @@ class MDF3(object):
                     cg_size = {}
                     cg_data = defaultdict(list)
                     for grp in new_groups:
+                        size += (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
                         cg_size[grp['channel_group']['record_id']] = grp['channel_group']['samples_byte_nr']
 
                     # read data block of the current data group
@@ -250,7 +255,7 @@ class MDF3(object):
                             kargs['compression'] = self.compression
                             grp['channel_group']['record_id'] = 1
                             grp['data_block'] = DataBlock(**kargs)
-                    self.groups.extend(new_groups)
+                self.groups.extend(new_groups)
 
                 # go to next data group
                 dg_addr = gp['next_dg_addr']
@@ -290,6 +295,10 @@ class MDF3(object):
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
 
         """
+        if self.load_measured_data == False:
+            warnings.warn("Can't append if load_measurement_data option is False")
+            return
+
         dg_cntr = len(self.groups)
         gp = {}
         self.groups.append(gp)
@@ -620,7 +629,11 @@ class MDF3(object):
             if bits % 8:
                 vals = vals & (2**bits - 1)
 
-            if conversion_type == CONVERSION_TYPE_LINEAR:
+            if conversion_type == CONVERSION_TYPE_NONE:
+                pass
+
+
+            elif conversion_type == CONVERSION_TYPE_LINEAR:
                 a = conversion['a']
                 b = conversion['b']
                 if (a, b) == (1, 0):
@@ -759,6 +772,10 @@ class MDF3(object):
         >>> mdf.remove(name='VehicleSpeed')
 
         """
+        if self.load_measured_data == False:
+            warnings.warn("Can't remove group if load_measurement_data option is False")
+            return
+
         if group:
             if 0 <= group <= len(self.groups):
                 idx = group
@@ -780,6 +797,10 @@ class MDF3(object):
         """Save MDF to *dst*. If *dst* is *None* the original file is overwritten
 
         """
+        if self.load_measured_data == False:
+            warnings.warn("Can't append if load_measurement_data option is False")
+            return
+
         if self.file_history is None:
             self.file_history = TextBlock.from_text('''<FHcomment>
 <TX>created</TX>
