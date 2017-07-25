@@ -222,8 +222,11 @@ class MDF3(object):
 
                     # read data block of the current data group
                     dat_addr = gp['data_block_addr']
-                    seek(dat_addr, SEEK_START)
-                    data = read(size)
+                    if dat_addr:
+                        seek(dat_addr, SEEK_START)
+                        data = read(size)
+                    else:
+                        data = b''
                     if cg_nr == 1:
                         kargs = {'data': data, 'compression': self.compression}
                         new_groups[0]['data_block'] = DataBlock(**kargs)

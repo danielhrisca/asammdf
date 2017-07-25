@@ -598,7 +598,7 @@ class DataBlock(dict):
 
             self['id'] = b'##DT'
             self['reserved0'] = 0
-            self['block_len'] = kargs['block_len']
+            self['block_len'] = len(kargs['data'])
             self['links_nr'] = 0
             self['data'] = kargs['data']
 
