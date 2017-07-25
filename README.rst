@@ -78,6 +78,10 @@ asammdf uses the following libraries
 
 Benchmarks
 ==========
+![Using Python 3.6.1 x64](benchmarks/asam 2.0.0 vs reader 0.2.5 Pyhton3.6.1x64 SSD i7-6820.txt)
+
+![Open MDF file](benchmarks/open.png)
+
 using a more complex file of 170MB with 180 data groups and 36000 channels with Python 3.6.1 64bit 
 
     * mdf version 3
