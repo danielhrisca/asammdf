@@ -60,8 +60,8 @@ Installation
 ============
 *asammdf* is available on 
 
-    * github: https://github.com/danielhrisca/asammdf/
-    * PyPI: https://pypi.org/project/asammdf/
+* github: https://github.com/danielhrisca/asammdf/
+* PyPI: https://pypi.org/project/asammdf/
     
 ```
    pip install asammdf
