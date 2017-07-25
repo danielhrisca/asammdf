@@ -466,7 +466,7 @@ class MDF3(object):
         kargs = {'block_len': DG32_BLOCK_SIZE if self.version in ('3.20', '3.30') else DG31_BLOCK_SIZE}
         gp['data_group'] = DataGroup(**kargs)
 
-    def get(self, name=None, *, group=None, index=None, raster=None):
+    def get(self, name=None, group=None, index=None, raster=None):
         """Gets channel samples.
         Channel can be specified in two ways:
 
@@ -755,7 +755,7 @@ class MDF3(object):
 
         return info
 
-    def remove(self, *, group=None, name=None):
+    def remove(self, group=None, name=None):
         """Remove data group. Use *group* or *name* keyword arguments to identify the group's index. *group* has priority
 
         Parameters
