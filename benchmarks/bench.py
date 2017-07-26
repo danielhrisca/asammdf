@@ -22,7 +22,7 @@ class Timer():
     def __exit__(self, type, value, traceback):
         elapsed_time = (perf_counter() - self.start) * 1000
         process = psutil.Process(os.getpid())
-        print('{:<40}\t{:>15}\t{:>15}'.format(self.message, int(elapsed_time), int(process.memory_info().peak_wset / 1024 / 1024)))
+        print('{:<50} {:>9} {:>8}'.format(self.message, int(elapsed_time), int(process.memory_info().peak_wset / 1024 / 1024)))
 
 path = r'E:\TMP'
 
@@ -183,17 +183,22 @@ def open_reader3_nodata():
 
 
 def main():
-    print(sys.version)
-    print(platform.platform())
-    print(platform.processor())
-    print('{} installed RAM'.format(round(psutil.virtual_memory().total / 1024 / 1024 / 1024)))
-    print('\n* nodata = MDF object created with load_measured_data=False (raw channel data no loaded into RAM)')
+    print('Benchmark environment\n')
+    print('* {}'.format(sys.version))
+    print('* {}'.format(platform.platform()))
+    print('* {}'.format(platform.processor()))
+    print('* {}GB installed RAM\n'.format(round(psutil.virtual_memory().total / 1024 / 1024 / 1024)))
+    print('Notations used in the results\n')
+    print('* nodata = MDF object created with load_measured_data=False (raw channel data no loaded into RAM)')
     print('* compression = MDF object created with compression=True (raw channel data loaded into RAM and compressed)')
     print('* noconvert = MDF object created with convertAfterRead=False')
     print('\nFiles used for benchmark:')
-    print('\t183 groups')
-    print('\t36424 channels')
-    print('\n{}\n{:<40}\t{:>15}\t{:>15}\n'.format('$'*77, 'Open file', 'Time [ms]', 'RAM [MB]'))
+    print('* 183 groups')
+    print('* 36424 channels\n')
+
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
+    print('{:<50} {:>9} {:>8}'.format('Open file', 'Time [ms]', 'RAM [MB]'))
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (open_mdf3,
                  open_mdf3_compressed,
                  open_mdf3_nodata,
@@ -207,8 +212,11 @@ def main():
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
         thr.join()
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
 
-    print('\n{}\n{:<40}\t{:>15}\t{:>15}\n'.format('$'*77, 'Save file', 'Time [ms]', 'RAM [MB]'))
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
+    print('{:<50} {:>9} {:>8}'.format('Save file', 'Time [ms]', 'RAM [MB]'))
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (save_mdf3,
                  save_mdf3_compressed,
                  save_reader3,
@@ -218,8 +226,11 @@ def main():
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
         thr.join()
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
 
-    print('\n{}\n{:<40}\t{:>15}\t{:>15}\n'.format('$'*77, 'Get all channels', 'Time [ms]', 'RAM [MB]'))
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
+    print('{:<50} {:>9} {:>8}'.format('Get all channels (36424 calls)', 'Time [ms]', 'RAM [MB]'))
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (get_all_mdf3,
                  get_all_mdf3_compressed,
                  get_all_mdf3_nodata,
@@ -231,6 +242,7 @@ def main():
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
         thr.join()
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
 
 
 if __name__ == '__main__':
