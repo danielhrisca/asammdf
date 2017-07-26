@@ -329,8 +329,8 @@ class MDF4(object):
 
                 if channel['channel_type'] in (CHANNEL_TYPE_MASTER, CHANNEL_TYPE_VIRTUAL_MASTER):
                     self.masters_db[dg_cntr] = ch_cntr
-                
-                ch_cntr += 1    
+
+                ch_cntr += 1
 
             # go to next channel of the current channel group
             ch_addr = channel['next_ch_addr']
@@ -674,29 +674,29 @@ class MDF4(object):
 
         if time_idx == ch_nr:
             if time_ch['channel_type'] == CHANNEL_TYPE_MASTER:
-                types = dtype( [('res1', 'a{}'.format(t_byte_offset)),
+                types = dtype( [('', 'a{}'.format(t_byte_offset)),
                                 ('t', t_fmt),
-                                ('res2', 'a{}'.format(block_size - byte_offset - size))] )
+                                ('', 'a{}'.format(block_size - byte_offset - size))] )
                 values = fromstring(data, types)
         else:
 
             if time_ch['channel_type'] == CHANNEL_TYPE_MASTER:
                 if t_byte_offset < byte_offset:
-                    types = dtype( [('res1', 'a{}'.format(t_byte_offset)),
+                    types = dtype( [('', 'a{}'.format(t_byte_offset)),
                                     ('t', t_fmt),
-                                    ('res2', 'a{}'.format(byte_offset - time_size - t_byte_offset)),
+                                    ('', 'a{}'.format(byte_offset - time_size - t_byte_offset)),
                                     ('vals', ch_fmt),
-                                    ('res3', 'a{}'.format(block_size - byte_offset - size))] )
+                                    ('', 'a{}'.format(block_size - byte_offset - size))] )
                 else:
-                    types = dtype( [('res1', 'a{}'.format(byte_offset)),
+                    types = dtype( [('', 'a{}'.format(byte_offset)),
                                     ('vals', ch_fmt),
-                                    ('res2', 'a{}'.format(t_byte_offset - size - byte_offset)),
+                                    ('', 'a{}'.format(t_byte_offset - size - byte_offset)),
                                     ('t', t_fmt),
-                                    ('res3', 'a{}'.format(block_size - t_byte_offset - t_size))] )
+                                    ('', 'a{}'.format(block_size - t_byte_offset - t_size))] )
             elif time_ch['channel_type'] == CHANNEL_TYPE_VIRTUAL_MASTER:
-                types = dtype( [('res1', 'a{}'.format(byte_offset)),
+                types = dtype( [('', 'a{}'.format(byte_offset)),
                                 ('vals', ch_fmt),
-                                ('res3', 'a{}'.format(block_size - byte_offset - size))] )
+                                ('', 'a{}'.format(block_size - byte_offset - size))] )
 #            print(channel.name, types, hex(2**bits - 1), bit_offset)
             values = fromstring(data, types)
 

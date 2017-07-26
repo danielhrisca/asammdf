@@ -213,6 +213,8 @@ def main():
         thr.start()
         thr.join()
     print('{} {} {}'.format('='*50, '='*9, '='*8))
+    
+    print('\n')
 
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     print('{:<50} {:>9} {:>8}'.format('Save file', 'Time [ms]', 'RAM [MB]'))
@@ -227,6 +229,8 @@ def main():
         thr.start()
         thr.join()
     print('{} {} {}'.format('='*50, '='*9, '='*8))
+    
+    print('\n')
 
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     print('{:<50} {:>9} {:>8}'.format('Get all channels (36424 calls)', 'Time [ms]', 'RAM [MB]'))

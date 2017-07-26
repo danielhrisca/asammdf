@@ -582,23 +582,23 @@ class MDF3(object):
                               conversion=None)
 
         if time_idx == ch_nr:
-            types = dtype( [('res1', 'a{}'.format(t_byte_offset)),
+            types = dtype( [('', 'a{}'.format(t_byte_offset)),
                             ('t', t_fmt),
-                            ('res2', 'a{}'.format(block_size - byte_offset - size))] )
+                            ('', 'a{}'.format(block_size - byte_offset - size))] )
         else:
 
             if t_byte_offset < byte_offset:
-                types = dtype( [('res1', 'a{}'.format(t_byte_offset)),
+                types = dtype( [('', 'a{}'.format(t_byte_offset)),
                                 ('t', t_fmt),
-                                ('res2', 'a{}'.format(byte_offset - time_size - t_byte_offset)),
+                                ('', 'a{}'.format(byte_offset - time_size - t_byte_offset)),
                                 ('vals', ch_fmt),
-                                ('res3', 'a{}'.format(block_size - byte_offset - size))] )
+                                ('', 'a{}'.format(block_size - byte_offset - size))] )
             else:
-                types = dtype( [('res1', 'a{}'.format(byte_offset)),
+                types = dtype( [('', 'a{}'.format(byte_offset)),
                                 ('vals', ch_fmt),
-                                ('res2', 'a{}'.format(t_byte_offset - size - byte_offset)),
+                                ('', 'a{}'.format(t_byte_offset - size - byte_offset)),
                                 ('t', t_fmt),
-                                ('res3', 'a{}'.format(block_size - t_byte_offset - t_size))] )
+                                ('', 'a{}'.format(block_size - t_byte_offset - t_size))] )
 
         values = fromstring(data, types)
 
