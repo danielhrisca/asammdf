@@ -1,7 +1,10 @@
+from __future__ import print_function, division
+import sys
+PYVERSION = sys.version_info[0]
 
 import time
 from .v4constants import *
-from struct import unpack, pack, iter_unpack, unpack_from
+from struct import unpack, pack, unpack_from
 
 from functools import partial
 
@@ -11,7 +14,6 @@ try:
 
 except ImportError:
     from zlib import compress, decompress
-    compress = partial(compress, level=6)
 
 
 __all__ = ['Channel',
@@ -30,7 +32,7 @@ __all__ = ['Channel',
 class Channel(dict):
     """ CNBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(Channel, self).__init__()
 
         self.name = ''
 
@@ -108,7 +110,7 @@ class Channel(dict):
 class ChannelGroup(dict):
     """CGBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(ChannelGroup, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -160,7 +162,7 @@ class ChannelGroup(dict):
 class ChannelConversion(dict):
     """CCBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(ChannelConversion, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -247,9 +249,12 @@ class ChannelConversion(dict):
                  self['val_param_nr'],
                  self['min_phy_value'],
                  self['max_phy_value']) = unpack_from('<4Q2B3H2d', block)
-                for i, (raw, phys) in enumerate(iter_unpack('<2d', block[56:])):
+
+                nr = self['val_param_nr']
+                values = unpack('<{}d'.format(nr), block[56:])
+                for i in range(nr // 2):
                     (self['raw_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = raw, phys
+                     self['phys_{}'.format(i)]) = values[i*2], values[2*i+1]
 
             elif conv == CONVERSION_TYPE_RTAB:
                 (self['name_addr'],
@@ -263,10 +268,12 @@ class ChannelConversion(dict):
                  self['val_param_nr'],
                  self['min_phy_value'],
                  self['max_phy_value']) = unpack_from('<4Q2B3H2d', block)
-                for i, (lower, upper, phys) in enumerate(iter_unpack('<3d', block[56:-8])):
+                nr = self['val_param_nr']
+                values = unpack('<{}d'.format(nr), block[56:])
+                for i in range((nr - 1) // 3):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = lower, upper, phys
+                     self['phys_{}'.format(i)]) = values[i*3], values[3*i+1], values[3*i+2]
                 self['default'] = unpack('<d', block[-8:])[0]
 
             elif conv == CONVERSION_TYPE_TABX:
@@ -579,7 +586,7 @@ class DataBlock(dict):
 
     """
     def __init__(self, **kargs):
-        super().__init__()
+        super(DataBlock, self).__init__()
 
         self.compression = kargs.get('compression', False)
 
@@ -598,24 +605,24 @@ class DataBlock(dict):
 
             self['id'] = b'##DT'
             self['reserved0'] = 0
-            self['block_len'] = len(kargs['data'])
+            self['block_len'] = len(kargs['data']) + COMMON_SIZE
             self['links_nr'] = 0
             self['data'] = kargs['data']
 
     def __setitem__(self, item, value):
         if item == 'data':
             if self.compression:
-                super().__setitem__(item, compress(value))
+                super(DataBlock, self).__setitem__(item, compress(value))
             else:
-                super().__setitem__(item, value)
+                super(DataBlock, self).__setitem__(item, value)
         else:
-            super().__setitem__(item, value)
+            super(DataBlock, self).__setitem__(item, value)
 
     def __getitem__(self, item):
         if item == 'data' and self.compression:
-            return decompress(super().__getitem__(item))
+            return decompress(super(DataBlock, self).__getitem__(item))
         else:
-            return super().__getitem__(item)
+            return super(DataBlock, self).__getitem__(item)
 
     def __bytes__(self):
         return pack(FMT_DATA_BLOCK.format(self['block_len'] - COMMON_SIZE), *[self[key] for key in KEYS_DATA_BLOCK])
@@ -625,7 +632,7 @@ class FileIdentificationBlock(dict):
     """IDBLOCK class"""
     def __init__(self, **kargs):
 
-        super().__init__()
+        super(FileIdentificationBlock, self).__init__()
 
         self.address = 0
 
@@ -649,7 +656,6 @@ class FileIdentificationBlock(dict):
         except KeyError:
 
             version = kargs.get('version', 400)
-            print(version)
             self['file_identification'] = 'MDF     '.encode('utf-8')
             self['version_str'] = '{}    '.format(version).encode('utf-8')
             self['program_identification'] = 'Python  '.encode('utf-8')
@@ -669,7 +675,7 @@ class FileIdentificationBlock(dict):
 class HeaderBlock(dict):
     """HDBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(HeaderBlock, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -725,7 +731,7 @@ class HeaderBlock(dict):
 class DataList(dict):
     """DLBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(DataList, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -776,7 +782,7 @@ class DataList(dict):
 class DataGroup(dict):
     """DGBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(DataGroup, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -815,7 +821,7 @@ class DataGroup(dict):
 class FileHistory(dict):
     """FHBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(FileHistory, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -854,7 +860,7 @@ class FileHistory(dict):
 class SourceInformation(dict):
     """SIBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(SourceInformation, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -894,7 +900,7 @@ class SourceInformation(dict):
 class TextBlock(dict):
     """common TXBLOCK and MDBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(TextBlock, self).__init__()
 
         try:
             stream = kargs['file_stream']
@@ -921,6 +927,9 @@ class TextBlock(dict):
                 text = text.encode('utf-8')
             elif isinstance(text, bytes):
                 self.text_str = text.decode('utf-8')
+            elif isinstance(text, unicode):
+                self.text_str = text
+                text = text.encode('utf-8')
             text_length = len(text)
             align = text_length % 8
             if align == 0 and text[-1] == b'\x00':

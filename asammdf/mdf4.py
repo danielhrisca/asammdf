@@ -1,6 +1,9 @@
 """
 ASAM MDF version 4 file format module
 """
+from __future__ import print_function, division
+import sys
+PYVERSION = sys.version_info[0]
 
 import time
 import warnings
@@ -21,7 +24,10 @@ from .v4constants import *
 from .utils import MdfException, get_fmt, fmt_to_datatype, pair
 from .signal import Signal
 
-
+if PYVERSION == 2:
+    def bytes(obj):
+        return obj.__bytes__()
+        
 __all__ = ['MDF4', ]
 
 
@@ -329,8 +335,8 @@ class MDF4(object):
 
                 if channel['channel_type'] in (CHANNEL_TYPE_MASTER, CHANNEL_TYPE_VIRTUAL_MASTER):
                     self.masters_db[dg_cntr] = ch_cntr
-
-                ch_cntr += 1
+                
+                ch_cntr += 1    
 
             # go to next channel of the current channel group
             ch_addr = channel['next_ch_addr']
@@ -550,7 +556,7 @@ class MDF4(object):
         #data group
         gp['data_group'] = DataGroup(**{})
 
-    def get(self, name=None, *, group=None, index=None, raster=None):
+    def get(self, name=None, group=None, index=None, raster=None):
         """Gets channel samples.
         Channel can be specified in two ways:
 
@@ -875,7 +881,7 @@ class MDF4(object):
 
         return info
 
-    def remove(self, *, group=None, name=None):
+    def remove(self, group=None, name=None):
         """Remove data group. Use *group* or *name* keyword arguments to identify the group's index. *group* has priority
 
         Parameters
@@ -936,12 +942,16 @@ class MDF4(object):
 
         with open(dst, 'wb') as dst:
             defined_texts = {}
+            
+            write = dst.write
+            tell = dst.tell
 
             address = IDENTIFICATION_BLOCK_SIZE + HEADER_BLOCK_SIZE
-            dst.write(b'\x00' * address)
+            write(b'\x00' * address)
             for i, (fh, fh_text) in enumerate(self.file_history):
                 fh_text.address = address
-                address += dst.write(bytes(fh_text))
+                write(bytes(fh_text))
+                address = tell()
 
                 fh['comment_addr'] = fh_text.address
 
@@ -953,7 +963,8 @@ class MDF4(object):
                 fh['next_fh_addr'] = self.file_history[i+1][0].address
             self.file_history[-1][0]['next_fh_addr'] = 0
             for fh, _ in self.file_history:
-                dst.write(bytes(fh))
+                write(bytes(fh))
+            address = tell()
 
             for i, gp in enumerate(self.groups):
                 for _, item_list in gp['texts'].items():
@@ -965,7 +976,8 @@ class MDF4(object):
                             else:
                                 defined_texts[dict_[key].text_str] = address
                                 dict_[key].address = address
-                                address += dst.write(bytes(dict_[key]))
+                                write(bytes(dict_[key]))
+                                address = tell()
 
                 for j, conv in enumerate(gp['channel_conversions']):
                     if conv:
@@ -985,7 +997,8 @@ class MDF4(object):
                             for key in gp['texts']['conversion_tab'][j]:
                                 conv[key] = gp['texts']['conversion_tab'][j][key].address
 
-                        address += dst.write(bytes(conv))
+                        write(bytes(conv))
+                        address = tell()
 
                 for j, source in enumerate(gp['channel_sources']):
                     if source:
@@ -997,7 +1010,8 @@ class MDF4(object):
                             else:
                                 source[key] = 0
 
-                        address += dst.write(bytes(source))
+                        write(bytes(source))
+                        address = tell()
 
                 for j, channel in enumerate(gp['channels']):
                     channel.address = address
@@ -1016,9 +1030,10 @@ class MDF4(object):
 
                 for channel, next_channel in pair(gp['channels']):
                     channel['next_ch_addr'] = next_channel.address
-                    dst.write(bytes(channel))
+                    write(bytes(channel))
                 next_channel['next_ch_addr'] = 0
-                dst.write(bytes(next_channel))
+                write(bytes(next_channel))
+                address = tell()
 
                 gp['channel_group'].address = address
                 gp['channel_group']['first_ch_addr'] = gp['channels'][0].address
@@ -1027,7 +1042,8 @@ class MDF4(object):
                     if key in gp['texts']['channel_group'][0]:
                         gp['channel_group'][key] = gp['texts']['channel_group'][0][key].address
                 gp['channel_group']['acq_source_addr'] = 0
-                address += dst.write(bytes(gp['channel_group']))
+                write(bytes(gp['channel_group']))
+                address = tell()
 
                 #print(len(self.groups), self.groups.index(gp))
 
@@ -1042,7 +1058,8 @@ class MDF4(object):
                         address += add
                     else:
                         add = 0
-                    dst.write(bytes(block) + b'\x00' * add)
+                    write(bytes(block) + b'\x00' * add)
+                    address = tell()
 
             for gp in self.groups:
                 gp['data_group'].address = address
@@ -1060,7 +1077,7 @@ class MDF4(object):
             self.groups[-1]['data_group']['next_dg_addr'] = 0
 
             for dg in (dg_['data_group'] for dg_ in self.groups):
-                dst.write(bytes(dg))
+                write(bytes(dg))
 
             if self.groups:
                 self.header['first_dg_addr'] = self.groups[0]['data_group'].address
@@ -1068,8 +1085,8 @@ class MDF4(object):
                 self.header['first_dg_addr'] = 0
             self.header['file_history_addr'] = self.file_history[0][0].address
             dst.seek(0, SEEK_START)
-            dst.write(bytes(self.identification))
-            dst.write(bytes(self.header))
+            write(bytes(self.identification))
+            write(bytes(self.header))
 
 
 if __name__ == '__main__':

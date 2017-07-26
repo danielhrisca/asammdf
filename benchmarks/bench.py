@@ -1,8 +1,15 @@
 """
 bnachmark asammdf vs mdfreader
 """
+from __future__ import print_function, division
+import sys
+PYVERSION = sys.version_info[0]
 
-from time import perf_counter
+if PYVERSION > 2:
+    from time import perf_counter
+else:
+    from time import clock as perf_counter
+ 
 from asammdf import MDF
 from mdfreader import mdf as MDFreader
 import os

@@ -2,6 +2,9 @@
 ASAM MDF version 3 file format module
 
 """
+from __future__ import print_function, division
+import sys
+PYVERSION = sys.version_info[0]
 
 import os
 import time
@@ -15,11 +18,6 @@ from numpy import (interp, linspace, dtype, amin, amax, array_equal,
 from numpy.core.records import fromstring, fromarrays
 from numexpr import evaluate
 
-try:
-    from blosc import compress, decompress
-except ImportError:
-    from zlib import compress, decompress
-
 from .utils import MdfException, get_fmt, pair, fmt_to_datatype
 from .signal import Signal
 from .v3constants import *
@@ -27,6 +25,10 @@ from .v3blocks import (Channel, ChannelConversion, ChannelDependency,
                        ChannelExtension, ChannelGroup, DataBlock, DataGroup,
                        FileIdentificationBlock, HeaderBlock, ProgramBlock,
                        SampleReduction, TextBlock, TriggerBlock)
+
+if PYVERSION == 2:
+    def bytes(obj):
+        return obj.__bytes__()
 
 
 __all__ = ['MDF3', ]
@@ -466,7 +468,7 @@ class MDF3(object):
         kargs = {'block_len': DG32_BLOCK_SIZE if self.version in ('3.20', '3.30') else DG31_BLOCK_SIZE}
         gp['data_group'] = DataGroup(**kargs)
 
-    def get(self, name=None, *, group=None, index=None, raster=None):
+    def get(self, name=None, group=None, index=None, raster=None):
         """Gets channel samples.
         Channel can be specified in two ways:
 
@@ -755,7 +757,7 @@ class MDF3(object):
 
         return info
 
-    def remove(self, *, group=None, name=None):
+    def remove(self, group=None, name=None):
         """Remove data group. Use *group* or *name* keyword arguments to identify the group's index. *group* has priority
 
         Parameters
@@ -809,8 +811,10 @@ class MDF3(object):
 <tool_version>1.0</tool_version>
 </FHcomment>''')
         else:
-            text = self.file_history.text_str + '\n{}: updated byt Python script'.format(time)
+            text = self.file_history['text'] + '\n{}: updated byt Python script'.format(time.asctime()).encode('latin-1')
             self.file_history = TextBlock.from_text(text)
+            
+            
 
         if self.name is None and dst is None:
             print('New MDF created without a name and no destination file name specified for save')
@@ -818,15 +822,21 @@ class MDF3(object):
         dst = dst if dst else self.name
 
         with open(dst, 'wb') as dst:
-            #store unique texts and their addresses
+            #store unique texts and their addresses     
             defined_texts = {}
             address = 0
-
-            address += dst.write(bytes(self.identification))
-            address += dst.write(bytes(self.header))
+            
+            write = dst.write
+            tell = dst.tell
+            
+            write(bytes(self.identification))
+            address = tell()
+            write(bytes(self.header))
+            address = tell()
 
             self.file_history.address = address
-            address += dst.write(bytes(self.file_history))
+            write(bytes(self.file_history))
+            address = tell()
 
             for gp in self.groups:
                 gp_texts = gp['texts']
@@ -841,7 +851,8 @@ class MDF3(object):
                             else:
                                 defined_texts[my_dict[key].text_str] = address
                                 my_dict[key].address = address
-                                address += dst.write(bytes(my_dict[key]))
+                                write(bytes(my_dict[key]))
+                                address = tell()
 
                 # ChannelConversions
                 cc = gp['channel_conversions']
@@ -852,14 +863,16 @@ class MDF3(object):
                             for key, item in gp_texts['conversion_vtabr'][i].items():
                                 conv[key] = item.address
 
-                        address += dst.write(bytes(conv))
+                        write(bytes(conv))
+                        address = tell()
 
                 # Channel Extension
                 cs = gp['channel_extensions']
                 for source in cs:
                     if source:
                         source.address = address
-                        address += dst.write(bytes(source))
+                        write(bytes(source))
+                        address = tell()
 
                 # Channels
                 # Channels need 4 extra bytes for 8byte alignment
@@ -880,9 +893,10 @@ class MDF3(object):
 
                 for channel, next_channel in pair(gp['channels']):
                     channel['next_ch_addr'] = next_channel.address
-                    dst.write(bytes(channel))
+                    write(bytes(channel))
                 next_channel['next_ch_addr'] = 0
-                dst.write(bytes(next_channel))
+                write(bytes(next_channel))
+                address = tell()
 
                 # ChannelGroup
                 cg = gp['channel_group']
@@ -892,13 +906,15 @@ class MDF3(object):
                 cg['next_cg_addr'] = 0
                 if 'comment_addr' in gp['texts']['channel_group'][0]:
                     cg['comment_addr'] = gp_texts['channel_group'][0]['comment_addr'].address
-                address += dst.write(bytes(cg))
+                write(bytes(cg))
+                address = tell()
 
 
                 # DataBlock
                 db = gp['data_block']
                 db.address = address
-                address += dst.write(bytes(db))
+                write(bytes(db))
+                address = tell()
 
             # DataGroup
             for gp in self.groups:
@@ -915,7 +931,7 @@ class MDF3(object):
             self.groups[-1]['data_group']['next_dg_addr'] = 0
 
             for dg in self.groups:
-                dst.write(bytes(dg['data_group']))
+                write(bytes(dg['data_group']))
 
             if self.groups:
                 self.header['first_dg_addr'] = self.groups[0]['data_group'].address
@@ -923,8 +939,8 @@ class MDF3(object):
                 self.header['comment_addr'] = self.file_history.address
                 self.header['program_addr'] = 0
             dst.seek(0, SEEK_START)
-            dst.write(bytes(self.identification))
-            dst.write(bytes(self.header))
+            write(bytes(self.identification))
+            write(bytes(self.header))
 
 
 if __name__ == '__main__':
