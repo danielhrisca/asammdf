@@ -1,6 +1,6 @@
 import time
 import os
-from struct import unpack, pack, iter_unpack
+from struct import unpack, pack
 
 from functools import partial
 
@@ -91,7 +91,7 @@ class Channel(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(Channel, self).__init__()
 
         self.name = ''
 
@@ -229,7 +229,7 @@ class ChannelConversion(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(ChannelConversion, self).__init__()
 
         try:
             stream = kargs['file_stream']
@@ -256,7 +256,12 @@ class ChannelConversion(dict):
                 self['formula'] = unpack('<{}s'.format(size - 46), block[CC_COMMON_BLOCK_SIZE:])[0]
 
             elif conv_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
-                for i, (raw, phys) in enumerate(iter_unpack('<2d', block[CC_COMMON_BLOCK_SIZE:])):
+                # iter_unpack('<2d', block[CC_COMMON_BLOCK_SIZE:])
+                blocks = []
+                for i in range(CC_COMMON_BLOCK_SIZE, len(block)):
+                    blocks.append(unpack('<2d', block[i:]))
+                # blocks = iter(blocks)
+                for i, (raw, phys) in enumerate(blocks):
                     (self['raw_{}'.format(i)],
                      self['phys_{}'.format(i)]) = raw, phys
 
@@ -286,14 +291,24 @@ class ChannelConversion(dict):
             elif conv_type == CONVERSION_TYPE_VTAB:
                 nr = self['ref_param_nr']
 
-                for i, (val, text) in enumerate(iter_unpack('<d32s', block[CC_COMMON_BLOCK_SIZE:])):
+                # iter_unpack('<d32s', block[CC_COMMON_BLOCK_SIZE:])
+                blocks = []
+                for i in range(CC_COMMON_BLOCK_SIZE, len(block)):
+                    blocks.append(unpack('<d32s', block[i:]))
+                # blocks = iter(blocks)
+                for i, (val, text) in enumerate(blocks):
                     (self['param_val_{}'.format(i)],
                      self['text_{}'.format(i)]) = val, text
 
             elif conv_type == CONVERSION_TYPE_VTABR:
                 nr = self['ref_param_nr']
 
-                for i, (lower, upper, text) in enumerate(iter_unpack('<2dI', block[CC_COMMON_BLOCK_SIZE:])):
+                # iter_unpack('<2dI', block[CC_COMMON_BLOCK_SIZE:])
+                blocks = []
+                for i in range(CC_COMMON_BLOCK_SIZE, len(block)):
+                    blocks.append(unpack('<2dI', block[i:]))
+                # blocks = iter(blocks)
+                for i, (lower, upper, text) in enumerate(blocks):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
                      self['text_{}'.format(i)]) = lower, upper, text
@@ -489,7 +504,7 @@ class ChannelDependency(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(ChannelDependency, self).__init__()
 
         try:
             stream = kargs['file_stream']
@@ -578,7 +593,7 @@ class ChannelExtension(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(ChannelExtension, self).__init__()
 
         try:
             stream = kargs['file_stream']
@@ -676,7 +691,7 @@ class ChannelGroup(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(ChannelGroup, self).__init__()
 
         try:
             stream = kargs['file_stream']
@@ -753,7 +768,7 @@ class DataBlock(dict):
     """
 
     def __init__(self, **kargs):
-        super().__init__()
+        super(DataBlock, self).__init__()
 
         self.compression = kargs.get('compression', False)
 
@@ -772,17 +787,17 @@ class DataBlock(dict):
     def __setitem__(self, item, value):
         if item == 'data':
             if self.compression:
-                super().__setitem__(item, compress(value))
+                super(DataBlock, self).__setitem__(item, compress(value))
             else:
-                super().__setitem__(item, value)
+                super(DataBlock, self).__setitem__(item, value)
         else:
-            super().__setitem__(item, value)
+            super(DataBlock, self).__setitem__(item, value)
 
     def __getitem__(self, item):
         if item == 'data' and self.compression:
-            return decompress(super().__getitem__(item))
+            return decompress(super(DataBlock, self).__getitem__(item))
         else:
-            return super().__getitem__(item)
+            return super(DataBlock, self).__getitem__(item)
 
     def __bytes__(self):
         return self['data']
@@ -822,7 +837,7 @@ class DataGroup(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(DataGroup, self).__init__()
 
         try:
             stream = kargs['file_stream']
@@ -901,7 +916,7 @@ class FileIdentificationBlock(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(FileIdentificationBlock, self).__init__()
 
         self.address = 0
         try:
@@ -980,7 +995,7 @@ class HeaderBlock(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(HeaderBlock, self).__init__()
 
         self.address = 64
         try:
@@ -1071,7 +1086,7 @@ class ProgramBlock(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(ProgramBlock, self).__init__()
 
         try:
             stream = kargs['file_stream']
@@ -1118,7 +1133,7 @@ class SampleReduction(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(SampleReduction, self).__init__()
 
         try:
             stream = kargs['file_stream']
@@ -1179,7 +1194,7 @@ class TextBlock(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(TextBlock, self).__init__()
         try:
             stream = kargs['file_stream']
             self.address = address = kargs['address']
@@ -1255,7 +1270,7 @@ class TriggerBlock(dict):
 
     '''
     def __init__(self, **kargs):
-        super().__init__()
+        super(TriggerBlock, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -1271,7 +1286,12 @@ class TriggerBlock(dict):
              self['text_addr'],
              self['trigger_events_nr']) = unpack('<2sHIH', block[:10])
 
-            for i, (t, pre, post) in enumerate(iter_unpack('<3d', block[10:])):
+            # iter_unpack('<3d', block[10:])
+            blocks = []
+            for i in range(10, len(block)):
+                blocks.append(unpack('<3d', block[i:]))
+            # blocks = iter(blocks)
+            for i, (t, pre, post) in enumerate(blocks):
                 (self['trigger_{}_time'.format(i)],
                  self['trigger_{}_pretime'.format(i)],
                  self['trigger_{}_posttime'.format(i)]) = t, pre, post

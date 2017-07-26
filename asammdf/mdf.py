@@ -54,13 +54,13 @@ class MDF(object):
 
     def __setattr__(self, attr, value):
         if attr == 'file':
-            super().__setattr__(attr, value)
+            super(MDF, self).__setattr__(attr, value)
         else:
             setattr(self.file, attr, value)
 
     def __getattr__(self, attr):
         if attr == 'file':
-            return super().__getattr__(attr)
+            return super(MDF, self).__getattr__(attr)
         else:
             return getattr(self.file, attr)
 

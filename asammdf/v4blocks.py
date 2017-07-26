@@ -1,7 +1,7 @@
 
 import time
 from .v4constants import *
-from struct import unpack, pack, iter_unpack, unpack_from
+from struct import unpack, pack, unpack_from
 
 from functools import partial
 
@@ -30,7 +30,7 @@ __all__ = ['Channel',
 class Channel(dict):
     """ CNBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(Channel, self).__init__()
 
         self.name = ''
 
@@ -108,7 +108,7 @@ class Channel(dict):
 class ChannelGroup(dict):
     """CGBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(ChannelGroup, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -160,7 +160,7 @@ class ChannelGroup(dict):
 class ChannelConversion(dict):
     """CCBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(ChannelConversion, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -247,7 +247,12 @@ class ChannelConversion(dict):
                  self['val_param_nr'],
                  self['min_phy_value'],
                  self['max_phy_value']) = unpack_from('<4Q2B3H2d', block)
-                for i, (raw, phys) in enumerate(iter_unpack('<2d', block[56:])):
+                # blocks = iter_unpack('<2d', block[56:])
+                blocks = []
+                for i in range(56, len(block)):
+                    blocks.append(unpack('<2d', block[i:]))
+                # blocks = iter(blocks)
+                for i, (raw, phys) in enumerate(blocks):
                     (self['raw_{}'.format(i)],
                      self['phys_{}'.format(i)]) = raw, phys
 
@@ -263,7 +268,12 @@ class ChannelConversion(dict):
                  self['val_param_nr'],
                  self['min_phy_value'],
                  self['max_phy_value']) = unpack_from('<4Q2B3H2d', block)
-                for i, (lower, upper, phys) in enumerate(iter_unpack('<3d', block[56:-8])):
+                # blocks = iter_unpack('<3d', block[56:-8])
+                blocks = []
+                for i in range(56, len(block), -8):
+                    blocks.append(unpack('<3d', block[i:-8]))
+                # blocks = iter(blocks)
+                for i, (lower, upper, phys) in enumerate(blocks):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
                      self['phys_{}'.format(i)]) = lower, upper, phys
@@ -579,7 +589,7 @@ class DataBlock(dict):
 
     """
     def __init__(self, **kargs):
-        super().__init__()
+        super(DataBlock, self).__init__()
 
         self.compression = kargs.get('compression', False)
 
@@ -605,17 +615,17 @@ class DataBlock(dict):
     def __setitem__(self, item, value):
         if item == 'data':
             if self.compression:
-                super().__setitem__(item, compress(value))
+                super(DataBlock, self).__setitem__(item, compress(value))
             else:
-                super().__setitem__(item, value)
+                super(DataBlock, self).__setitem__(item, value)
         else:
-            super().__setitem__(item, value)
+            super(DataBlock, self).__setitem__(item, value)
 
     def __getitem__(self, item):
         if item == 'data' and self.compression:
-            return decompress(super().__getitem__(item))
+            return decompress(super(DataBlock, self).__getitem__(item))
         else:
-            return super().__getitem__(item)
+            return super(DataBlock, self).__getitem__(item)
 
     def __bytes__(self):
         return pack(FMT_DATA_BLOCK.format(self['block_len'] - COMMON_SIZE), *[self[key] for key in KEYS_DATA_BLOCK])
@@ -625,7 +635,7 @@ class FileIdentificationBlock(dict):
     """IDBLOCK class"""
     def __init__(self, **kargs):
 
-        super().__init__()
+        super(FileIdentificationBlock, self).__init__()
 
         self.address = 0
 
@@ -669,7 +679,7 @@ class FileIdentificationBlock(dict):
 class HeaderBlock(dict):
     """HDBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(HeaderBlock, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -725,7 +735,7 @@ class HeaderBlock(dict):
 class DataList(dict):
     """DLBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(DataList, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -776,7 +786,7 @@ class DataList(dict):
 class DataGroup(dict):
     """DGBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(DataGroup, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -815,7 +825,7 @@ class DataGroup(dict):
 class FileHistory(dict):
     """FHBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(FileHistory, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -854,7 +864,7 @@ class FileHistory(dict):
 class SourceInformation(dict):
     """SIBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(SourceInformation, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -894,7 +904,7 @@ class SourceInformation(dict):
 class TextBlock(dict):
     """common TXBLOCK and MDBLOCK class"""
     def __init__(self, **kargs):
-        super().__init__()
+        super(TextBlock, self).__init__()
 
         try:
             stream = kargs['file_stream']
