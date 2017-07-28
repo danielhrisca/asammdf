@@ -2,7 +2,7 @@
 
 *asammdf* supports both MDF version 3 and 4 formats. 
 
-*asammdf* support Python 2.7, and Python > 3.4
+*asammdf* support Python 2.7, and Python >= 3.4
 
 Project goals
 =============
