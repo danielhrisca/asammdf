@@ -7,19 +7,21 @@ PYVERSION = sys.version_info[0]
 
 import time
 import warnings
+import os
+from struct import unpack, unpack_from
 from functools import reduce
 from collections import defaultdict
+
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
-                   array, searchsorted, clip, union1d, float64)
+                   array, searchsorted, clip, union1d, float64, frombuffer,
+                   issubdtype, flexible)
 from numexpr import evaluate
 from numpy.core.records import fromstring, fromarrays
 
-import os
-from struct import unpack
-
 from .v4blocks import (Channel, ChannelGroup, ChannelConversion, DataBlock,
                        FileIdentificationBlock, HeaderBlock, DataList,
-                       DataGroup, FileHistory, SourceInformation, TextBlock)
+                       DataGroup, FileHistory, SourceInformation, TextBlock,
+                       SignalDataBlock)
 
 from .v4constants import *
 from .utils import MdfException, get_fmt, fmt_to_datatype, pair
@@ -135,6 +137,7 @@ class MDF4(object):
                 grp['channels'] = []
                 grp['channel_conversions'] = []
                 grp['channel_sources'] = []
+                grp['signal_data'] = []
                 # channel_group is lsit to allow uniform handling of all texts in save method
                 grp['texts'] = {'channels': [], 'sources': [], 'conversions': [], 'conversion_tab': [], 'channel_group': []}
 
@@ -212,11 +215,11 @@ class MDF4(object):
                             cg_data[rec_id].append(rec_data)
                         else:
                             # as shown bby mdfvalidator rec size is first byte after rec id + 3
-                            rec_size = data[i] + 3
-                            i += 1
+                            rec_size = unpack('<I', data[i: i+3])[0]
+                            i += 4
                             rec_data = data[i: i + rec_size]
                             cg_data[rec_id].append(rec_data)
-                        # if 2 record id's are sued skip also the second one
+                        # if 2 record id's are used skip also the second one
                         if record_id_nr == 2:
                             i += 1
                         # go to next record
@@ -232,24 +235,6 @@ class MDF4(object):
             dg_addr = group['next_dg_addr']
             dg_cntr += 1
 
-        # save measurement comment information
-        for gp in self.groups:
-            if 'Comment' in [ch.name for ch in gp['channels']]:
-                if not gp['channels'][-1]['data_block_addr'] == 0:
-                    file_stream.seek(gp['channels'][-1]['data_block_addr'] + 8, SEEK_START)
-                    size = unpack('<Q', file_stream.read(8))[0]
-                    file_stream.seek(8, SEEK_REL)
-                    comment = file_stream.read(size - COMMON_SIZE)
-                    comment = comment[4:]
-                    gp['channels'][-1]['data_block_addr'] = 0
-                    gp['channels'][-1]['channel_type'] = CHANNEL_TYPE_VALUE
-                    gp['channels'][-1]['bit_count'] = 8 * len(comment)
-                    gp['channel_group']['samples_byte_nr'] = 8 + len(comment)
-                    ba = bytearray(gp['data_block']['data'][:8])
-                    ba += bytearray(comment)
-                    gp['data_block']['data'] = bytes(ba)
-                    gp['data_block']['block_len'] = len(ba) + COMMON_SIZE
-
     def _read_channels(self, ch_addr, grp, file_stream, dg_cntr, ch_cntr):
         channels = grp['channels']
         while ch_addr:
@@ -259,6 +244,34 @@ class MDF4(object):
                 self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr)
             else:
                 channels.append(channel)
+
+                # append channel signal data if load_measured_data allows it
+                if self.load_measured_data:
+                    ch_data_addr = channel['data_block_addr']
+                    if ch_data_addr:
+                        file_stream.seek(ch_data_addr, SEEK_START)
+                        blk_id = file_stream.read(4)
+                        if blk_id == b'##SD':
+                            grp['signal_data'].append(SignalDataBlock(address=ch_data_addr, file_stream=file_stream))
+                        elif blk_id == b'##DL':
+                            # the data list will contain only links to SDBLOCK's
+                            data_list = DataList(address=ch_data_addr, file_stream=file_stream)
+                            nr = data_list['links_nr']
+                            data = b''
+                            # aggregate data from all SDBLOCK
+                            for i in range(nr):
+                                sd_block = SignalDataBlock(address=data_list['data_block_addr{}'.format(i)], file_stream=file_stream)
+                                data += sd_block['data']
+                            # create single SDBLOCK for this channel
+                            sd_block = SignalDataBlock(data=data)
+                            grp['signal_data'].append(sd_block)
+                        else:
+                            warnings.warn('Expected SD or Dl block at {} but found id="{}"'.format(hex(ch_data_addr), blk_id))
+                            grp['signal_data'].append(None)
+                    else:
+                        grp['signal_data'].append(None)
+                else:
+                    grp['signal_data'].append(None)
 
                 # read conversion block and create channel conversion object
                 address = channel['conversion_addr']
@@ -325,7 +338,7 @@ class MDF4(object):
                 # read text fields for channel
                 channel_texts = {}
                 grp['texts']['channels'].append(channel_texts)
-                for key in ('name_addr', 'comment_addr'):
+                for key in ('name_addr', 'comment_addr', 'unit_addr'):
                     address = channel[key]
                     if address:
                         channel_texts[key] = TextBlock(address=address, file_stream=file_stream)
@@ -380,6 +393,10 @@ class MDF4(object):
             warnings.warn("Can't append if load_measurement_data option is False")
             return
 
+        if not signals:
+            warnings.warn("Must provide at least one Signal object in the input list for append")
+            return
+
         signals_nr = len(signals)
         dg_cntr = len(self.groups)
         self.groups.append({})
@@ -408,9 +425,10 @@ class MDF4(object):
         gp['channels'] = gp_channels = []
         gp['channel_conversions'] = gp_conv = []
         gp['channel_sources'] = gp_source = []
+        gp['signal_data'] = [None,] * (signals_nr + 1)
         gp['texts'] = gp_texts = {'channels': [], 'sources': [], 'conversions': [], 'conversion_tab': [], 'channel_group': []}
 
-        #time channel texts
+        # time channel texts
         for key, item in gp['texts'].items():
             item.append({})
         gp_texts['channels'][-1]['name_addr'] = TextBlock.from_text('t')
@@ -421,7 +439,7 @@ class MDF4(object):
         gp_texts['channel_group'][-1]['acq_name_addr'] = TextBlock.from_text(source_info)
         gp_texts['channel_group'][-1]['comment_addr'] = TextBlock.from_text(source_info)
 
-        #channels texts
+        # channels texts
         for s in signals:
             for key, item in gp['texts'].items():
                 item.append({})
@@ -431,16 +449,21 @@ class MDF4(object):
             gp_texts['sources'][-1]['name_addr'] = TextBlock.from_text(source_info)
             gp_texts['sources'][-1]['path_addr'] = TextBlock.from_text(source_info)
 
-        #conversion for time channel
+        # conversion for time channel
         kargs = {'conversion_type': CONVERSION_TYPE_NON,
                  'min_phy_value': t[0] if cycles_nr else 0,
                  'max_phy_value': t[-1] if cycles_nr else 0}
         gp_conv.append(ChannelConversion(**kargs))
         gp_texts['conversion_tab'].append({})
 
-        #conversions for channels
+        # conversions for channels
         if cycles_nr:
-            min_max = [(amin(s.samples), amax(s.samples)) for s in signals]
+            min_max = []
+            for s in signals:
+                if issubdtype(s.samples.dtype, flexible):
+                    min_max.append((1,0))
+                else:
+                    min_max.append((amin(s.samples), amax(s.samples)))
         else:
             min_max = [(0, 0) for s in signals]
 
@@ -524,10 +547,10 @@ class MDF4(object):
                      'byte_offset': offset,
                      'bit_offset' : 0,
                      'data_type': sig_type,
-                     'min_raw_value': sigmin,
-                     'max_raw_value' : sigmax,
-                     'lower_limit' : sigmin,
-                     'upper_limit' : sigmax}
+                     'min_raw_value': sigmin if sigmin<=sigmax else 0,
+                     'max_raw_value' : sigmax if sigmin<=sigmax else 0,
+                     'lower_limit' : sigmin if sigmin<=sigmax else 0,
+                     'upper_limit' : sigmax if sigmin<=sigmax else 255}
             ch = Channel(**kargs)
             ch.name = name
             gp_channels.append(ch)
@@ -630,11 +653,23 @@ class MDF4(object):
 
         conversion = gp['channel_conversions'][ch_nr]
 
+        signal_data = gp['signal_data'][ch_nr]
+        if signal_data:
+            signal_data = signal_data['data']
+        else:
+            signal_data = b''
+
+        # search for unit in conversion texts
         unit = gp['texts']['conversions'][ch_nr].get('unit_addr', None)
         if unit:
             unit = unit.text_str
         else:
-            unit = ''
+            # search for physical unit in channel texts
+            unit = gp['texts']['channels'][ch_nr].get('unit_addr', None)
+            if unit:
+                unit = unit.text_str
+            else:
+                unit = ''
 
         time_idx = self.masters_db[gp_nr]
         time_ch = gp['channels'][time_idx]
@@ -671,6 +706,24 @@ class MDF4(object):
                     data = DataBlock(file_stream=file_stream, address=dat_addr)['data']
                 else:
                     data = b''
+
+                # check if it is a VLDS channel with signal data
+                signal_data = b''
+                ch_data_addr = channel['data_block_addr']
+                if ch_data_addr:
+                    file_stream.seek(ch_data_addr, SEEK_START)
+                    blk_id = file_stream.read(4)
+                    if blk_id == b'##SD':
+                        signal_data = SignalDataBlock(address=ch_data_addr, file_stream=file_stream)['data']
+                    elif blk_id == b'##DL':
+                        # the data list will contain only links to SDBLOCK's
+                        data_list = DataList(address=ch_data_addr, file_stream=file_stream)
+                        nr = data_list['links_nr']
+                        # aggregate data from all SDBLOCK
+                        for i in range(nr):
+                            signal_data += SignalDataBlock(address=data_list['data_block_addr{}'.format(i)], file_stream=file_stream)['data']
+                    else:
+                        warnings.warn('Expected SD or Dl block at {} but found id="{}"'.format(hex(ch_data_addr), blk_id))
         else:
             try:
                 data = group['data_block']['data']
@@ -680,6 +733,9 @@ class MDF4(object):
                               unit=unit,
                               name=channel.name,
                               conversion=None)
+
+        if signal_data:
+            ch_fmt = ch_fmt.replace('S', 'V')
 
         if time_idx == ch_nr:
             if time_ch['channel_type'] == CHANNEL_TYPE_MASTER:
@@ -706,7 +762,9 @@ class MDF4(object):
                 types = dtype( [('', 'a{}'.format(byte_offset)),
                                 ('vals', ch_fmt),
                                 ('', 'a{}'.format(block_size - byte_offset - size))] )
-#            print(channel.name, types, hex(2**bits - 1), bit_offset)
+
+
+#            print(channel.name, types, data)
             values = fromstring(data, types)
 
         if time_ch['channel_type'] == CHANNEL_TYPE_MASTER:
@@ -743,7 +801,21 @@ class MDF4(object):
                 vals = vals & (2**bits - 1)
 
             if conversion_type == CONVERSION_TYPE_NON:
-                pass
+                # check if it is VLDS channel type with SDBLOCK
+                if signal_data:
+                    values = []
+                    vals = vals.tobytes()
+                    if size == 4:
+                        fmt = '<u4'
+                    else:
+                        fmt = '<u8'
+                    vals = frombuffer(vals, dtype=fmt)
+
+                    for offset in vals:
+                        offset = int(offset)
+                        size = unpack_from('<I', signal_data, offset)[0]
+                        values.append(signal_data[offset+4: offset+4+size])
+                    vals = array(values)
 
             elif conversion_type == CONVERSION_TYPE_LIN:
                 a = conversion['a']
@@ -1016,20 +1088,25 @@ class MDF4(object):
                         write(bytes(source))
                         address = tell()
 
-                for j, channel in enumerate(gp['channels']):
+                for j, signal_data in enumerate(gp['signal_data']):
+                    if signal_data:
+                        signal_data.address = address
+                        write(bytes(signal_data))
+                        address = tell()
+
+                print(len(gp['channels']), len(gp['signal_data']))
+                for j, (channel, signal_data) in enumerate(zip(gp['channels'], gp['signal_data'])):
                     channel.address = address
                     address += CN_BLOCK_SIZE
 
-                    for key in ('name_addr', 'comment_addr'):
+                    for key in ('name_addr', 'comment_addr', 'unit_addr'):
                         if key in gp['texts']['channels'][j]:
                             channel[key] = gp['texts']['channels'][j][key].address
                         else:
                             channel[key] = 0
                     channel['conversion_addr'] = 0 if not gp['channel_conversions'][j] else gp['channel_conversions'][j].address
                     channel['source_addr'] = gp['channel_sources'][j].address if gp['channel_sources'][j] else 0
-                    channel['component_addr'] = 0
-                    channel['data_block_addr'] = 0
-                    channel['unit_addr'] = 0
+                    channel['data_block_addr'] = signal_data.address if signal_data else 0
 
                 for channel, next_channel in pair(gp['channels']):
                     channel['next_ch_addr'] = next_channel.address

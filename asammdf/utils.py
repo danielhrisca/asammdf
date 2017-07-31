@@ -2,7 +2,7 @@
 asammdf utility functions and classes
 '''
 import itertools
-from numpy import issubdtype, signedinteger, unsignedinteger, floating, character
+from numpy import issubdtype, signedinteger, unsignedinteger, floating, flexible
 from . import v3constants as v3c
 from . import v4constants as v4c
 
@@ -165,7 +165,7 @@ def fmt_to_datatype(fmt, version=3):
             data_type = v4c.DATA_TYPE_SIGNED_INTEL
         elif issubdtype(fmt, floating):
             data_type = v4c.DATA_TYPE_REAL_INTEL
-        elif issubdtype(fmt, character):
+        elif issubdtype(fmt, flexible):
             data_type = v4c.DATA_TYPE_STRING_UTF_8
     return data_type, size
 

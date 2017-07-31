@@ -25,6 +25,7 @@ __all__ = ['Channel',
            'DataList',
            'DataGroup',
            'FileHistory',
+           'SignalDataBlock',
            'SourceInformation',
            'TextBlock']
 
@@ -72,6 +73,8 @@ class Channel(dict):
              self['upper_ext_limit']) = unpack(FMT_CHANNEL, stream.read(CN_BLOCK_SIZE))
 
         except KeyError:
+
+            self.address = 0
 
             self['id'] = b'##CN'
             self['reserved0'] = 0
@@ -895,6 +898,42 @@ class SourceInformation(dict):
 
     def __bytes__(self):
         return pack(FMT_SOURCE_INFORMATION, *[self[key] for key in KEYS_SOURCE_INFORMATION])
+
+
+class SignalDataBlock(dict):
+    """SDBLOCK class"""
+    def __init__(self, **kargs):
+        super(SignalDataBlock, self).__init__()
+
+        try:
+            self.address = address = kargs['address']
+            stream = kargs['file_stream']
+            stream.seek(address, SEEK_START)
+
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr']) = unpack(FMT_COMMON, stream.read(COMMON_SIZE))
+            self['data'] = stream.read(self['block_len'] - COMMON_SIZE)
+
+        except KeyError:
+            self.address = 0
+            self['id'] = b'##SD'
+            self['reserved0'] = 0
+            data = kargs['data']
+            self['block_len'] = len(data) + COMMON_SIZE
+            self['links_nr'] = 0
+            self['data'] = data
+
+    def __bytes__(self):
+        fmt = FMT_DATA_BLOCK.format(self['block_len'] - COMMON_SIZE)
+        keys = KEYS_DATA_BLOCK
+        res = pack(fmt, *[self[key] for key in keys])
+        size = len(res)
+        if size % 8:
+            res += b'\x00' * (8 - size%8)
+        return res
+
 
 
 class TextBlock(dict):
