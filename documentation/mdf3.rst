@@ -18,6 +18,9 @@
 
 .. _mdf3:
 
+MDF3
+====
+
 asammdf tries to emulate the mdf structure using Python builtin data types.
 
 The *header* attibute is an OrderedDict that holds the file metadata.
@@ -42,19 +45,19 @@ The *groups* attribute is a dictionary list with the following keys:
     
         * comment_addr : channel group comment
         
-    * conversion_vtabr : list of dictionaries that contain TextBlock objects ralated to VTABR channel conversions
+    * conversion_tab : list of dictionaries that contain TextBlock objects ralated to VATB and VTABR channel conversions
     
         * text_{n} : n-th text of the VTABR conversion
         
-* file_history : TextBlock object
+The *file_history* attribute is a TextBlock object.
 
 The *channel_db* attibute is a dictionary that holds the *(data group index, channel index)* pair for all signals. This is used to speed up the *get_signal_by_name* method.
 
 The *master_db* attibute is a dictionary that holds the *channel index*  of the master channel for all data groups. This is used to speed up the *get_signal_by_name* method.
 
+API
+---
 
-MDF3 Class
-----------
 .. autoclass:: asammdf.mdf3.MDF3
     :members:
     

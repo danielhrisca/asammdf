@@ -5,9 +5,10 @@
 
 Welcome to asammdf's documentation!
 ===================================
+
 *asammdf* is a fast parser/editor for ASAM (Associtation for Standardisation of Automation and Measuring Systems) MDF (Measurement Data Format) files. 
 
-*asammdf* supports mdf versions 3 and 4. The main mdf specs features are implemented, but there are also some missing features. Mdf version 4 is complex, so here there are more missing features compared to mdf version 3.
+*asammdf* supports mdf versions 3 and 4 and can be used with Python 2.7 and Python >= 3.4
 
 
 Project goals
@@ -99,15 +100,13 @@ API
 --------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
    
    mdf
-   mdf3
-   mdf4
    signal
    examples
 
-Bnechmarks
+Benchmarks
 ----------
 .. toctree::
    :maxdepth: 2

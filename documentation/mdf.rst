@@ -16,50 +16,87 @@
 .. role:: orange
 .. role:: brown
 
-.. _api:
+.. _mdf:
 
+MDF
+===
 
-Data structures
----------------
-
-asammdf tries to emulate the mdf structure using Python builtin data types.
-
-The *header* attibute is an OrderedDict that holds the file metadata.
-
-The *groups* attribute is a dictionary list with the following keys:
-
-* data_group : DataGroup object
-* channel_group : ChannelGroup object
-* channels : list of Channel objects with the same order as found in the mdf file
-* channel_conversions : list of ChannelConversion objects in 1-to-1 relation with the channel list
-* channel_sources : list of SourceInformation objects in 1-to-1 relation with the channels list
-* data_block : DataBlock object
-* texts : dictionay containing TextBlock objects used throughout the mdf
-
-    * channels : list of dictionaries that contain TextBlock objects ralated to each channel
-    
-        * long_name_addr : channel long name
-        * comment_addr : channel comment
-        * display_name_addr : channel display name
-        
-    * channel group : list of dictionaries that contain TextBlock objects ralated to each channel group
-    
-        * comment_addr : channel group comment
-        
-    * conversion_vtabr : list of dictionaries that contain TextBlock objects ralated to VTABR channel conversions
-    
-        * text_{n} : n-th text of the VTABR conversion
-        
-* file_history : FileHistory object
-
-The *channel_db* attibute is a dictionary that holds the *(data group index, channel index)* pair for all signals. This is used to speed up the *get_signal_by_name* method.
-
-The *master_db* attibute is a dictionary that holds the *channel index*  of the master channel for all data groups. This is used to speed up the *get_signal_by_name* method.
-
-MDF Class
----------
 This class acts as a proxy for the MDF3 and MDF4 classes. All attribute access is delegated to the underling *file* attribute (MDF3 or MDF4 object). 
 See MDF3 and MDF4 for available extra methods.
 
 .. autoclass:: asammdf.mdf.MDF
     :members:
+    
+MDF3 and MDF4 classes
+---------------------
+
+.. toctree::
+   :maxdepth: 1
+   
+   mdf3
+   mdf4
+
+Notes about *compression* and *load_measured_data* arguments
+------------------------------------------------------------
+
+By default *MDF* object use no compression and the raw channel data is loaded into RAM. This will give you the best performance from *asammdf*. 
+
+However if you reach the physical memmory limit *asammdf* gives you two options
+
+1. use the *compression* flag: raw channel data is loaded into RAM but it is compressed. The default compression library is *blosc* and as a fallback *zlib* is used (slower). The advange is that you save RAM, but in return you will pay the compression/decompression time penalty in all operations (file open, getting channel data, saving to disk, converting).
+
+2. use the *load_measured_data* flag: raw channel data is not read. 
+
+
+*MDF* defaults 
+^^^^^^^^^^^^^^
+
+Advantages
+
+* best performance
+    
+Disadvantages
+
+* highest RAM usage
+    
+Use case 
+
+* when data fits inside the system RAM
+    
+    
+*MDF* with *compression*
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Advantages
+
+* lower RAM usage than *default*
+* alows saving to disk and appending new data
+    
+Disadvantages
+
+* slowest
+ 
+Use case 
+
+* when *default* data exceeds RAM and you need to append and save 
+  
+  
+*MDF* with *load_measured_data*
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Advantages
+
+* lowest RAM usage  
+* faster than *compression*
+    
+Disadvantages
+
+* ReadOnly mode: appending and saving is not possible
+ 
+Use case 
+
+* when *default* data exceeds RAM and you only want to extract information from the file
+
+.. note::
+
+    See benchmarks for the effects of using the flags.

@@ -16,10 +16,11 @@
 .. role:: orange
 .. role:: brown
 
-.. _bench:
+.. _benchmarks:
 
-Benchmarks
-==========
+Intro
+-----
+
 The benchmarks were done using two test files (for mdf version 3 and 4) of around 170MB. 
 The files contain 183 data groups and a total of 36424 channels.
 
@@ -28,6 +29,13 @@ The files contain 183 data groups and a total of 36424 channels.
 
 The three benchmark cathegories are file open, file save and extracting the data for all channels inside the file(36424 calls).
 For each cathegory two aspect were noted: elapsed time and peak RAM usage.
+
+Dependencies
+------------
+You will need the following packages to be able to run the benchmark script
+
+* psutil
+* mdfreader
 
 x64 Python results
 ------------------
@@ -43,6 +51,9 @@ The notations used in the results have the following meaning:
 * nodata = MDF object created with load_measured_data=False (raw channel data no loaded into RAM)
 * compression = MDF object created with compression=True (raw channel data loaded into RAM and compressed)
 * noconvert = MDF object created with convertAfterRead=False
+
+Raw data
+^^^^^^^^
 
 ========================================          =========       ========
 Open file                                         Time [ms]       RAM [MB]
@@ -85,6 +96,28 @@ asammdf 2.0.0 nodata mdfv4                            12364            292
 mdfreader 0.2.5 mdfv4                                    39            739
 ========================================          =========       ========
 
+Graphical results
+^^^^^^^^^^^^^^^^^
+
+.. figure:: ../benchmarks/open.png
+   :align: center
+
+.. figure:: ../benchmarks/open_ram_usage.png
+   :align: center
+   
+.. figure:: ../benchmarks/save.png
+   :align: center
+
+.. figure:: ../benchmarks/save_ram_usage.png
+   :align: center
+   
+.. figure:: ../benchmarks/get_all_channels.png
+   :align: center
+
+.. figure:: ../benchmarks/get_all_channels_ram_usage.png
+   :align: center
+   
+   
 x86 Python results
 ------------------
 The test environment used for 32 bit tests had:
@@ -100,6 +133,8 @@ The notations used in the results have the following meaning:
 * compression = MDF object created with compression=True (raw channel data loaded into RAM and compressed)
 * noconvert = MDF object created with convertAfterRead=False
 
+Raw data
+^^^^^^^^
 
 ========================================          =========       ========
 Open file                                         Time [ms]       RAM [MB]

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-
+asammdf *Signal* class module for time correct signal processing
 """
 import numpy as np
 import matplotlib.pyplot as plt

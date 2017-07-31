@@ -2,14 +2,15 @@
 
 *asammdf* supports both MDF version 3 and 4 formats. 
 
-*asammdf* support Python 2.7, and Python >= 3.4
+*asammdf* works on Python 2.7, and Python >= 3.4
+
 
 Project goals
 =============
 The main goals for this library are:
 
 * to be faster than the other Python based mdf libraries
-* clean and simple data types
+* to have clean and eays to understand code base
 
 Features
 ========
@@ -81,16 +82,16 @@ asammdf uses the following libraries
 Benchmarks
 ==========
 
-![Using Python 3.6.1 x64](benchmarks/asam%202.0.0%20vs%20reader%200.2.5%20Pyhton3.6.1x64%20SSD%20i7-6820.txt)
+![Using Python 3.6.1 x64](benchmarks/asam_2.0.0_vs_reader_0.2.5_Pyhton3.6.1x64_SSD_i7-6820.txt)
 
 ![](benchmarks/open.png)
 
-![](benchmarks/open%20-%20ram%20usage.png)
+![](benchmarks/open_ram_usage.png)
 
 ![](benchmarks/save.png)
 
-![](benchmarks/save%20-%20ram%20usage.png)
+![](benchmarks/save_ram_usage.png)
 
-![](benchmarks/get%20all%20channels.png)
+![](benchmarks/get_all_channels.png)
 
-![](benchmarks/get%20all%20channels%20-%20ram%20usage.png)
+![](benchmarks/get_all_channels_ram_usage.png)

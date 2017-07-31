@@ -18,7 +18,8 @@
 
 .. _signal:
 
-Signal Class
-------------
+Signal
+======
+
 .. autoclass:: asammdf.signal.Signal
     :members:

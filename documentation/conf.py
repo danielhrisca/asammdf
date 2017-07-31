@@ -32,7 +32,7 @@
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['sphinx.ext.autodoc',
-    'sphinx.ext.intersphinx',
+    'sphinx.ext.autosummary',
     'sphinx.ext.imgmath',
     'sphinx.ext.githubpages',
 	'numpydoc']

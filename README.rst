@@ -2,14 +2,14 @@
 
 *asammdf* supports both MDF version 3 and 4 formats. 
 
-*asammdf* support Python 2.7, and Python > 3.4
+*asammdf* works on Python 2.7, and Python >= 3.4
 
 Project goals
 =============
 The main goals for this library are:
 
 * to be faster than the other Python based mdf libraries
-* clean and simple data types
+* to have clean and eays to understand code base
 
 Features
 ========

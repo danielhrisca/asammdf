@@ -4,3 +4,4 @@ asammdf
 mdfreader
 blocs
 numpexpr
+psutil

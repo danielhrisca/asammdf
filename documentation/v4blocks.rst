@@ -35,37 +35,37 @@ ChannelGroup Class
     :members:
     
 DataGroup Class
-------------------
+---------------
 .. autoclass:: asammdf.mdf4.DataGroup
     :members:
     
 DataList Class
-------------------
+--------------
 .. autoclass:: asammdf.mdf4.DataList
     :members:
     
 DataBlock Class
-------------------
+---------------
 .. autoclass:: asammdf.mdf4.DataBlock
     :members:
     
 FileIdentificationBlock Class
----------------
+-----------------------------
 .. autoclass:: asammdf.mdf4.FileIdentificationBlock
     :members:
 
 HeaderBlock Class
----------------
+-----------------
 .. autoclass:: asammdf.mdf4.HeaderBlock
     :members:
     
 SourceInformation Class
-------------------
+-----------------------
 .. autoclass:: asammdf.mdf4.SourceInformation
     :members:
 
 FileHistory Class
----------------
+-----------------
 .. autoclass:: asammdf.mdf4.FileHistory
     :members:    
     

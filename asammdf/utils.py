@@ -1,5 +1,5 @@
 '''
-utility functions and classes
+asammdf utility functions and classes
 '''
 import itertools
 from numpy import issubdtype, signedinteger, unsignedinteger, floating, character
@@ -66,25 +66,21 @@ def dtype_mapping(invalue, outversion=3):
 
 
 def get_fmt(data_type, size, version=3):
-    """"Summary line.
-
-    Extended description of function.
+    """convert mdf channel data type to numpy dtype format string
 
     Parameters
     ----------
-    data_type : Type of data_type
-        Description of data_type default None
-    size : Type of size
-        Description of size default None
+    data_type : int
+        mdf channel data type
+    size : int
+        data byte size
     version : int
         mdf version; default 3
 
     Returns
     -------
-
-    Examples
-    --------
-    >>>>
+    fmt : str
+        numpy compatible data type format string
 
     """
     if version == 3:
@@ -137,9 +133,7 @@ def get_fmt(data_type, size, version=3):
 
 
 def fmt_to_datatype(fmt, version=3):
-    """"Summary line.
-
-    Extended description of function.
+    """convert numpy dtype format string to mdf channel data type and size
 
     Parameters
     ----------

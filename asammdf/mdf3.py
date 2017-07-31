@@ -132,7 +132,7 @@ class MDF3(object):
                     grp['channel_conversions'] = []
                     grp['channel_extensions'] = []
                     grp['data_block'] = []
-                    grp['texts'] = {'channels': [], 'conversion_vtabr': [], 'channel_group': []}
+                    grp['texts'] = {'channels': [], 'conversion_tab': [], 'channel_group': []}
 
                     kargs = {'first_cg_addr': cg_addr,
                              'data_block_addr': data_addr}
@@ -178,7 +178,7 @@ class MDF3(object):
                                 address = new_conv['text_{}'.format(idx)]
                                 if address:
                                     vtab_texts['text_{}'.format(idx)] = TextBlock(address=address, file_stream=file_stream)
-                        grp['texts']['conversion_vtabr'].append(vtab_texts)
+                        grp['texts']['conversion_tab'].append(vtab_texts)
 
 
                         # read source block and create source infromation object
@@ -334,7 +334,7 @@ class MDF3(object):
         gp['channel_conversions'] = gp_conv = []
         gp['channel_extensions'] = gp_source = []
         gp['texts'] = gp_texts = {'channels': [],
-                                  'conversion_vtabr': [],
+                                  'conversion_tab': [],
                                   'channel_group': []}
 
         #time channel texts
@@ -389,7 +389,7 @@ class MDF3(object):
                         kargs['lower_{}'.format(i)] = l_
                         kargs['upper_{}'.format(i)] = u_
                         kargs['text_{}'.format(i)] = 0
-                        gp_texts['conversion_vtabr'][-1]['text_{}'.format(i)] = TextBlock.from_text(t_)
+                        gp_texts['conversion_tab'][-1]['text_{}'.format(i)] = TextBlock.from_text(t_)
 
                 else:
                      kargs = {'conversion_type': CONVERSION_TYPE_NONE,
@@ -667,7 +667,7 @@ class MDF3(object):
             elif conversion_type == CONVERSION_TYPE_VTABR:
                 nr = conversion['ref_param_nr']
 
-                texts = array([gp['texts']['conversion_vtabr'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
+                texts = array([gp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
                 lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
                 vals = values['vals']
@@ -813,8 +813,8 @@ class MDF3(object):
         else:
             text = self.file_history['text'] + '\n{}: updated byt Python script'.format(time.asctime()).encode('latin-1')
             self.file_history = TextBlock.from_text(text)
-            
-            
+
+
 
         if self.name is None and dst is None:
             print('New MDF created without a name and no destination file name specified for save')
@@ -822,13 +822,13 @@ class MDF3(object):
         dst = dst if dst else self.name
 
         with open(dst, 'wb') as dst:
-            #store unique texts and their addresses     
+            #store unique texts and their addresses
             defined_texts = {}
             address = 0
-            
+
             write = dst.write
             tell = dst.tell
-            
+
             write(bytes(self.identification))
             address = tell()
             write(bytes(self.header))
@@ -860,7 +860,7 @@ class MDF3(object):
                     if conv:
                         conv.address = address
                         if conv['conversion_type'] == CONVERSION_TYPE_VTABR:
-                            for key, item in gp_texts['conversion_vtabr'][i].items():
+                            for key, item in gp_texts['conversion_tab'][i].items():
                                 conv[key] = item.address
 
                         write(bytes(conv))

@@ -20,6 +20,7 @@ from struct import unpack
 from .v4blocks import (Channel, ChannelGroup, ChannelConversion, DataBlock,
                        FileIdentificationBlock, HeaderBlock, DataList,
                        DataGroup, FileHistory, SourceInformation, TextBlock)
+
 from .v4constants import *
 from .utils import MdfException, get_fmt, fmt_to_datatype, pair
 from .signal import Signal
@@ -27,7 +28,7 @@ from .signal import Signal
 if PYVERSION == 2:
     def bytes(obj):
         return obj.__bytes__()
-        
+
 __all__ = ['MDF4', ]
 
 
@@ -335,8 +336,8 @@ class MDF4(object):
 
                 if channel['channel_type'] in (CHANNEL_TYPE_MASTER, CHANNEL_TYPE_VIRTUAL_MASTER):
                     self.masters_db[dg_cntr] = ch_cntr
-                
-                ch_cntr += 1    
+
+                ch_cntr += 1
 
             # go to next channel of the current channel group
             ch_addr = channel['next_ch_addr']
@@ -583,18 +584,20 @@ class MDF4(object):
         vals, t, unit, conversion : (numpy.array, numpy.array, string, dict | None)
             The conversion is *None* exept for the VTAB and VTABR conversions. The conversion keys are:
 
-            * for VTAB conversion:
+            * for TABX conversion:
 
                 * raw - numpy.array for X-axis
                 * phys - numpy.array of strings for Y-axis
                 * type - conversion type = CONVERSION_TYPE_TABX
+                * default - default bytes value
 
-            * for VTABR conversion:
+            * for RTABX conversion:
 
                 * lower - numpy.array for lower range
                 * upper - numpy.array for upper range
                 * phys - numpy.array of strings for Y-axis
-                * type - conversion type = COONVERSION_TYPE_VTABR
+                * type - conversion type =
+                * default - default bytes value
 
             The conversion information can be used by the *append* method for the *info* argument
 
@@ -813,7 +816,7 @@ class MDF4(object):
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
                 default = gp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
                 vals = values['vals']
-                info = {'lower': lower, 'upper': upper, 'phys': phys, 'type': CONVERSION_TYPE_RTABX}
+                info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': CONVERSION_TYPE_RTABX}
 
             elif conversion == CONVERSION_TYPE_TTAB:
                 nr = conversion['val_param_nr'] - 1
@@ -822,7 +825,7 @@ class MDF4(object):
                 phys = array([conversion['val_{}'.format(i)] for i in range(nr)])
                 default = conversion['val_default']
                 vals = values['vals']
-                info = {'lower': lower, 'upper': upper, 'phys': phys, 'type': CONVERSION_TYPE_TTAB}
+                info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': CONVERSION_TYPE_TTAB}
 
             elif conversion == CONVERSION_TYPE_TRANS:
                 nr = (conversion['ref_param_nr'] - 1 ) // 2
@@ -942,7 +945,7 @@ class MDF4(object):
 
         with open(dst, 'wb') as dst:
             defined_texts = {}
-            
+
             write = dst.write
             tell = dst.tell
 
