@@ -62,6 +62,8 @@ class MDF4(object):
         mdf file header
     file_history : list
         list of (FileHistory, TextBlock) pairs
+    comment : TextBlock
+        mdf file comment
     identification : FileIdentificationBlock
         mdf file start block
     load_measured_data : bool
@@ -80,6 +82,7 @@ class MDF4(object):
         self.groups = []
         self.header = None
         self.identification = None
+        self.comment = None
         self.file_history = []
         self.name = name
         self.load_measured_data = load_measured_data
@@ -104,6 +107,9 @@ class MDF4(object):
         self.version = self.identification['version_str'].decode('utf-8').strip(' ').strip('\x00')
         self.header = HeaderBlock(address=0x40, file_stream=file_stream)
 
+        if self.header['comment_addr']:
+            self.comment = TextBlock(address=self.header['comment_addr'], file_stream=file_stream)
+
         fh_addr = self.header['file_history_addr']
         while fh_addr:
             fh = FileHistory(address=fh_addr, file_stream=file_stream)
@@ -117,7 +123,6 @@ class MDF4(object):
 
         # go to first date group and read each data group sequentially
         dg_addr = self.header['first_dg_addr']
-
 
         while dg_addr:
             new_groups = []
@@ -402,6 +407,7 @@ class MDF4(object):
         self.groups.append({})
         gp = self.groups[-1]
 
+        # check if all signals have the same time base
         t_ = signals[0].timestamps
         for s in signals[1:]:
             if not array_equal(s.timestamps, t_):
@@ -410,6 +416,7 @@ class MDF4(object):
         else:
             different = False
 
+        # computed union of all time bases
         if different:
             times = [s.timestamps for s in signals]
             t = reduce(union1d, times).flatten().astype(float64)
@@ -425,6 +432,8 @@ class MDF4(object):
         gp['channels'] = gp_channels = []
         gp['channel_conversions'] = gp_conv = []
         gp['channel_sources'] = gp_source = []
+        # SDBLOCKS are not used when appending
+        # so we get None for each signal, +1 for the master channel
         gp['signal_data'] = [None,] * (signals_nr + 1)
         gp['texts'] = gp_texts = {'channels': [], 'sources': [], 'conversions': [], 'conversion_tab': [], 'channel_group': []}
 
@@ -459,6 +468,8 @@ class MDF4(object):
         # conversions for channels
         if cycles_nr:
             min_max = []
+            # compute min and max valkues for all channels
+            # for string channels we append (1,0) and use this as a marker (if min>max then channel is string)
             for s in signals:
                 if issubdtype(s.samples.dtype, flexible):
                     min_max.append((1,0))
@@ -467,6 +478,7 @@ class MDF4(object):
         else:
             min_max = [(0, 0) for s in signals]
 
+        # create channel conversions from the Signal's conversion attribute
         for idx, s in enumerate(signals):
             conv = s.conversion
             conv_texts_tab = gp_texts['conversion_tab'][idx+1]
@@ -510,9 +522,10 @@ class MDF4(object):
                               'max_phy_value': min_max[idx][1]}
                 gp_conv.append(ChannelConversion(**kargs))
             else:
+                sigmin, sigmax = min_max[idx]
                 kargs = {'conversion_type': CONVERSION_TYPE_NON,
-                         'min_phy_value': min_max[idx][0],
-                         'max_phy_value': min_max[idx][1]}
+                         'min_phy_value': sigmin if sigmin<=sigmax else 0,
+                         'max_phy_value': sigmax if sigmin<=sigmax else 0,}
                 gp_conv.append(ChannelConversion(**kargs))
 
 
@@ -981,16 +994,16 @@ class MDF4(object):
             if 0 <= group <= len(self.groups):
                 idx = group
             else:
-                print('Group index "{}" not in valid range[0..{}]'.format(group, len(self.groups)))
+                warnings.warn('Group index "{}" not in valid range[0..{}]'.format(group, len(self.groups)))
                 return
         elif name:
             if name in self.channels_db:
                 idx = self.channels_db[name][1]
             else:
-                print('Channel name "{}" not found in the measurement'.format(name))
+                warnings.warn('Channel name "{}" not found in the measurement'.format(name))
                 return
         else:
-            print('Must specify a valid group or name argument')
+            warnings.warn('Must specify a valid group or name argument')
             return
         self.groups.pop(idx)
 
@@ -1023,6 +1036,11 @@ class MDF4(object):
 
             address = IDENTIFICATION_BLOCK_SIZE + HEADER_BLOCK_SIZE
             write(b'\x00' * address)
+
+            if self.comment:
+                write(bytes(self.comment))
+                address = tell()
+
             for i, (fh, fh_text) in enumerate(self.file_history):
                 fh_text.address = address
                 write(bytes(fh_text))
@@ -1094,7 +1112,6 @@ class MDF4(object):
                         write(bytes(signal_data))
                         address = tell()
 
-                print(len(gp['channels']), len(gp['signal_data']))
                 for j, (channel, signal_data) in enumerate(zip(gp['channels'], gp['signal_data'])):
                     channel.address = address
                     address += CN_BLOCK_SIZE
