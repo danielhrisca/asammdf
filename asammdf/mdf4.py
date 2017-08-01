@@ -733,7 +733,7 @@ class MDF4(object):
                         data_list = DataList(address=ch_data_addr, file_stream=file_stream)
                         nr = data_list['links_nr']
                         # aggregate data from all SDBLOCK
-                        for i in range(nr):
+                        for i in range(nr-1):
                             signal_data += SignalDataBlock(address=data_list['data_block_addr{}'.format(i)], file_stream=file_stream)['data']
                     else:
                         warnings.warn('Expected SD or Dl block at {} but found id="{}"'.format(hex(ch_data_addr), blk_id))
