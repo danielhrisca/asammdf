@@ -6,6 +6,7 @@ import os
 
 from .mdf3 import MDF3
 from .mdf4 import MDF4
+from .signal import Signal
 from .v3constants import CHANNEL_TYPE_MASTER as V3_MASTER
 from .v4constants import CHANNEL_TYPE_MASTER as V4_MASTER
 from .v4constants import CHANNEL_TYPE_VIRTUAL_MASTER as V4_VIRTUAL_MASTER
@@ -91,9 +92,15 @@ class MDF(object):
                 master_type = (V4_MASTER, V4_VIRTUAL_MASTER)
             for i, gp in enumerate(self.groups):
                 sigs = []
+                t = self.get_master_data(group=i)
                 for j, ch in enumerate(gp['channels']):
                     if not ch['channel_type'] in master_type:
-                        sigs.append(self.get(group=i, index=j))
+                        vals, name, conversion, unit = self.get_channel_data(group=i, index=j, return_info=True)
+                        sigs.append(Signal(samples=vals,
+                                           timestamps=t,
+                                           unit=unit,
+                                           name=name,
+                                           conversion=conversion))
                 out.append(sigs, 'Converted from {} to {}'.format(self.version, to))
             return out
 
