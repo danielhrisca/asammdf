@@ -468,6 +468,274 @@ class MDF3(object):
         kargs = {'block_len': DG32_BLOCK_SIZE if self.version in ('3.20', '3.30') else DG31_BLOCK_SIZE}
         gp['data_group'] = DataGroup(**kargs)
 
+
+    def get_master_data(self, name=None, group=None, data=None):
+        """get master channel values only. The group is identified by a channel name (*name* argument) or by the index (*group* argument).
+        *data* argument is used internally by the *get* method to avoid double work.
+
+        Parameters
+        ----------
+        name : str
+            channel name in target group
+        group : int
+            group index
+        data : bytes
+            data groups's raw channel data
+
+        Returns
+        -------
+        t : numpy.array
+            master channel values
+        """
+
+
+        if name is None:
+            if group is None:
+                raise MdfException('Invalid arguments for "get_master_data" method: must give "name" or "group"')
+            else:
+                gp_nr = group
+                if gp_nr > len(self.groups) - 1 or gp_nr < 0:
+                    raise MdfException('Group index out of range')
+        else:
+            if not name in self.channels_db:
+                raise MdfException('Channel "{}" not found'.format(name))
+            else:
+                gp_nr, _= self.channels_db[name]
+
+        gp = self.groups[gp_nr]
+
+        time_idx = self.masters_db[gp_nr]
+        time_ch = gp['channels'][time_idx]
+        time_conv = gp['channel_conversions'][time_idx]
+
+        time_size = time_ch['bit_count'] // 8
+        t_fmt = get_fmt(time_ch['data_type'], time_size)
+        t_byte_offset, bit_offset = divmod(time_ch['start_offset'], 8)
+
+        bits = time_ch['bit_count']
+        if bits % 8:
+            size = bits // 8 + 1
+        else:
+            size = bits // 8
+
+        block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
+
+
+        if data is None:
+            if not self.load_measured_data:
+                with open(self.name, 'rb') as file_stream:
+                    # go to the first data block of the current data group
+                    dat_addr = gp['data_group']['data_block_addr']
+                    read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+            else:
+                if gp['data_block']:
+                    data = gp['data_block']['data']
+                else:
+                    data = b''
+
+        types = dtype( [('', 'a{}'.format(t_byte_offset)),
+                        ('t', t_fmt),
+                        ('', 'a{}'.format(block_size - t_byte_offset - size))] )
+
+        values = fromstring(data, types)
+
+        # get timestamps
+        time_conv_type = CONVERSION_TYPE_NONE if time_conv is None else time_conv['conversion_type']
+        if time_conv_type == CONVERSION_TYPE_LINEAR:
+            time_a = time_conv['a']
+            time_b = time_conv['b']
+            t = values['t'] * time_a
+            if time_b:
+                t += time_b
+        elif time_conv_type == CONVERSION_TYPE_NONE:
+            t = values['t']
+
+        return t
+
+    def get_channel_data(self, name=None, group=None, index=None, data=None, return_info=False):
+        """get channel values. The channel is identified by name (*name* argument) or by the group and channel indexes (*group* and *index* arguments).
+        *data* argument is used internally by the *get* method to avoid double work.
+        By defaulkt only the channel values are returned. If the *return_info* argument is set then name, unit and conversion info is returned as well
+
+        Parameters
+        ----------
+        name : str
+            channel name in target group
+        group : int
+            group index
+        index : int
+            channel index
+        data : bytes
+            data groups's raw channel data
+        return_info : bool
+            enables returning extra information (name, unit, conversion)
+
+        Returns
+        -------
+        vals : numpy.array
+            channel values; if *return_info* is False
+        vals, name, conversion, unit : numpy.array, str, dict, str
+            channel values, channel name, channel conversion, channel unit: if *return_info* is True
+
+        """
+
+        if name is None:
+            if group is None or index is None:
+                raise MdfException('Invalid arguments for "get" methos: must give "name" or, "group" and "index"')
+            else:
+                gp_nr, ch_nr = group, index
+                if gp_nr > len(self.groups) - 1:
+                    raise MdfException('Group index out of range')
+                if index > len(self.groups[gp_nr]['channels']) - 1:
+                    raise MdfException('Channel index out of range')
+        else:
+            if not name in self.channels_db:
+                raise MdfException('Channel "{}" not found'.format(name))
+            else:
+                gp_nr, ch_nr = self.channels_db[name]
+
+        gp_nr = group
+        ch_nr = index
+        gp = self.groups[gp_nr]
+        channel = gp['channels'][ch_nr]
+        conversion = gp['channel_conversions'][ch_nr]
+        if conversion:
+            unit = conversion['unit'].decode('latin-1').strip('\x00')
+        else:
+            unit = ''
+
+        group = gp
+
+        bits = channel['bit_count']
+        if bits % 8:
+            size = bits // 8 + 1
+        else:
+            size = bits // 8
+        block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
+        byte_offset, bit_offset = divmod(channel['start_offset'], 8)
+        ch_fmt = get_fmt(channel['data_type'], size)
+
+        if data is None:
+            if not self.load_measured_data:
+                with open(self.name, 'rb') as file_stream:
+                    # go to the first data block of the current data group
+                    dat_addr = gp['data_group']['data_block_addr']
+                    read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+            else:
+                if gp['data_block']:
+                    data = gp['data_block']['data']
+                else:
+                    data = b''
+
+
+        types = dtype( [('', 'a{}'.format(byte_offset)),
+                        ('vals', ch_fmt),
+                        ('', 'a{}'.format(block_size - size - byte_offset))] )
+
+        values = fromstring(data, types)
+
+        # get channel values
+        conversion_type = CONVERSION_TYPE_NONE if conversion is None else conversion['conversion_type']
+        vals = values['vals']
+        if bit_offset:
+            vals = vals >> bit_offset
+        if bits % 8:
+            vals = vals & (2**bits - 1)
+
+        info = None
+
+        if conversion_type == CONVERSION_TYPE_NONE:
+            pass
+
+
+        elif conversion_type == CONVERSION_TYPE_LINEAR:
+            a = conversion['a']
+            b = conversion['b']
+            if (a, b) == (1, 0):
+                if not vals.dtype == ch_fmt:
+                    vals = vals.astype(ch_fmt)
+            else:
+                vals = vals * a
+                if b:
+                    vals = vals + b
+
+        elif conversion_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
+            nr = conversion['ref_param_nr']
+            raw = array([conversion['raw_{}'.format(i)] for i in range(nr)])
+            phys = array([conversion['phys_{}'.format(i)] for i in range(nr)])
+            if conversion_type == CONVERSION_TYPE_TABI:
+                vals = interp(values['vals'], raw, phys)
+            else:
+                idx = searchsorted(raw, values['vals'])
+                idx = clip(idx, 0, len(raw) - 1)
+                vals = phys[idx]
+
+        elif conversion_type == CONVERSION_TYPE_VTAB:
+            nr = conversion['ref_param_nr']
+            raw = array([conversion['param_val_{}'.format(i)] for i in range(nr)])
+            phys = array([conversion['text_{}'.format(i)] for i in range(nr)])
+            vals = values['vals']
+            info = {'raw': raw, 'phys': phys, 'type': CONVERSION_TYPE_VTAB}
+
+        elif conversion_type == CONVERSION_TYPE_VTABR:
+            nr = conversion['ref_param_nr']
+
+            texts = array([gp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
+            lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
+            upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
+            vals = values['vals']
+            info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': CONVERSION_TYPE_VTABR}
+
+        elif conversion_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
+            func = log if conversion_type == CONVERSION_TYPE_EXPO else exp
+            P1 = conversion['P1']
+            P2 = conversion['P2']
+            P3 = conversion['P3']
+            P4 = conversion['P4']
+            P5 = conversion['P5']
+            P6 = conversion['P6']
+            P7 = conversion['P7']
+            if P4 == 0:
+                vals = func(((values['vals'] - P7) * P6 - P3) / P1) / P2
+            elif P1 == 0:
+                vals = func((P3 / (values['vals'] - P7) - P6) / P4) / P5
+            else:
+                raise ValueError('wrong conversion type {}'.format(conversion_type))
+
+        elif conversion_type == CONVERSION_TYPE_RAT:
+            P1 = conversion['P1']
+            P2 = conversion['P2']
+            P3 = conversion['P3']
+            P4 = conversion['P4']
+            P5 = conversion['P5']
+            P6 = conversion['P6']
+            X = values['vals']
+            vals = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
+
+        elif conversion_type == CONVERSION_TYPE_POLY:
+            P1 = conversion['P1']
+            P2 = conversion['P2']
+            P3 = conversion['P3']
+            P4 = conversion['P4']
+            P5 = conversion['P5']
+            P6 = conversion['P6']
+            X = values['vals']
+            vals = (P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)
+
+        elif conversion_type == CONVERSION_TYPE_FORMULA:
+            formula = conversion['formula'].decode('latin-1').strip('\x00')
+            X1 = values['vals']
+            vals = evaluate(formula)
+
+        conversion = info
+
+        if return_info:
+            return vals, channel.name, conversion, unit
+        else:
+            return vals
+
     def get(self, name=None, group=None, index=None, raster=None):
         """Gets channel samples.
         Channel can be specified in two ways:
@@ -536,196 +804,35 @@ class MDF3(object):
 
         gp = self.groups[gp_nr]
         channel = gp['channels'][ch_nr]
-        conversion = gp['channel_conversions'][ch_nr]
-        if conversion:
-            unit = conversion['unit'].decode('latin-1').strip('\x00')
-        else:
-            unit = ''
-
-        time_idx = self.masters_db[gp_nr]
-        time_ch = gp['channels'][time_idx]
-        time_conv = gp['channel_conversions'][time_idx]
-
-        group = gp
-
-        time_size = time_ch['bit_count'] // 8
-        t_fmt = get_fmt(time_ch['data_type'], time_size)
-        t_byte_offset, bit_offset = divmod(time_ch['start_offset'], 8)
-
-        bits = time_ch['bit_count']
-        if bits % 8:
-            t_size = bits // 8 + 1
-        else:
-            t_size = bits // 8
-
-        bits = channel['bit_count']
-        if bits % 8:
-            size = bits // 8 + 1
-        else:
-            size = bits // 8
-        block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
-        byte_offset, bit_offset = divmod(channel['start_offset'], 8)
-        ch_fmt = get_fmt(channel['data_type'], size)
 
         if not self.load_measured_data:
             with open(self.name, 'rb') as file_stream:
                 # go to the first data block of the current data group
-                dat_addr = group['data_group']['data_block_addr']
-                read_size = group['channel_group']['samples_byte_nr'] * group['channel_group']['cycles_nr']
+                dat_addr = gp['data_group']['data_block_addr']
+                read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
                 data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
         else:
-            try:
-                data = group['data_block']['data']
-            except KeyError:
-                return Signal(samples=array([]),
-                              timestamps=array([]),
-                              unit=unit,
-                              name=channel.name,
-                              conversion=None)
-
-        if time_idx == ch_nr:
-            types = dtype( [('', 'a{}'.format(t_byte_offset)),
-                            ('t', t_fmt),
-                            ('', 'a{}'.format(block_size - byte_offset - size))] )
-        else:
-
-            if t_byte_offset < byte_offset:
-                types = dtype( [('', 'a{}'.format(t_byte_offset)),
-                                ('t', t_fmt),
-                                ('', 'a{}'.format(byte_offset - time_size - t_byte_offset)),
-                                ('vals', ch_fmt),
-                                ('', 'a{}'.format(block_size - byte_offset - size))] )
+            if gp['data_block']:
+                data = gp['data_block']['data']
             else:
-                types = dtype( [('', 'a{}'.format(byte_offset)),
-                                ('vals', ch_fmt),
-                                ('', 'a{}'.format(t_byte_offset - size - byte_offset)),
-                                ('t', t_fmt),
-                                ('', 'a{}'.format(block_size - t_byte_offset - t_size))] )
+                data = b''
 
-        values = fromstring(data, types)
+        t = self.get_master_data(group=gp_nr, data=data)
 
-        # get timestamps
-        time_conv_type = CONVERSION_TYPE_NONE if time_conv is None else time_conv['conversion_type']
-        if time_conv_type == CONVERSION_TYPE_LINEAR:
-            time_a = time_conv['a']
-            time_b = time_conv['b']
-            t = values['t'] * time_a
-            if time_b:
-                t += time_b
-        elif time_conv_type == CONVERSION_TYPE_NONE:
-            t = values['t']
-
-        if time_idx == ch_nr:
+        if ch_nr == self.masters_db[gp_nr]:
             res = Signal(samples=t,
                          timestamps=t[:],
-                         unit=unit,
-                         name=time_ch.name,
+                         unit='s',
+                         name=channel.name,
                          conversion=None)
         else:
+            vals, name, conversion, unit = self.get_channel_data(group=gp_nr, index=ch_nr, data=data, return_info=True)
 
-            # get channel values
-            conversion_type = CONVERSION_TYPE_NONE if conversion is None else conversion['conversion_type']
-            vals = values['vals']
-            if bit_offset:
-                vals = vals >> bit_offset
-            if bits % 8:
-                vals = vals & (2**bits - 1)
-
-            if conversion_type == CONVERSION_TYPE_NONE:
-                pass
-
-
-            elif conversion_type == CONVERSION_TYPE_LINEAR:
-                a = conversion['a']
-                b = conversion['b']
-                if (a, b) == (1, 0):
-                    if not vals.dtype == ch_fmt:
-                        vals = vals.astype(ch_fmt)
-                else:
-                    vals = vals * a
-                    if b:
-                        vals = vals + b
-
-            elif conversion_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
-                nr = conversion['ref_param_nr']
-                raw = array([conversion['raw_{}'.format(i)] for i in range(nr)])
-                phys = array([conversion['phys_{}'.format(i)] for i in range(nr)])
-                if conversion_type == CONVERSION_TYPE_TABI:
-                    vals = interp(values['vals'], raw, phys)
-                else:
-                    idx = searchsorted(raw, values['vals'])
-                    idx = clip(idx, 0, len(raw) - 1)
-                    vals = phys[idx]
-
-            elif conversion_type == CONVERSION_TYPE_VTAB:
-                nr = conversion['ref_param_nr']
-                raw = array([conversion['param_val_{}'.format(i)] for i in range(nr)])
-                phys = array([conversion['text_{}'.format(i)] for i in range(nr)])
-                vals = values['vals']
-                info = {'raw': raw, 'phys': phys, 'type': CONVERSION_TYPE_VTAB}
-
-            elif conversion_type == CONVERSION_TYPE_VTABR:
-                nr = conversion['ref_param_nr']
-
-                texts = array([gp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
-                lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
-                upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
-                vals = values['vals']
-                info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': CONVERSION_TYPE_VTABR}
-
-            elif conversion_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
-                func = log if conversion_type == CONVERSION_TYPE_EXPO else exp
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                P7 = conversion['P7']
-                if P4 == 0:
-                    vals = func(((values['vals'] - P7) * P6 - P3) / P1) / P2
-                elif P1 == 0:
-                    vals = func((P3 / (values['vals'] - P7) - P6) / P4) / P5
-                else:
-                    raise ValueError('wrong conversion type {}'.format(conversion_type))
-
-            elif conversion_type == CONVERSION_TYPE_RAT:
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                X = values['vals']
-                vals = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
-
-            elif conversion_type == CONVERSION_TYPE_POLY:
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                X = values['vals']
-                vals = (P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)
-
-            elif conversion_type == CONVERSION_TYPE_FORMULA:
-                formula = conversion['formula'].decode('latin-1').strip('\x00')
-                X1 = values['vals']
-                vals = evaluate(formula)
-
-            if conversion_type in (CONVERSION_TYPE_VTAB, CONVERSION_TYPE_VTABR):
-                res = Signal(samples=vals,
-                             timestamps=t,
-                             unit=unit,
-                             name=channel.name,
-                             conversion=info)
-            else:
-                res = Signal(samples=vals,
-                             timestamps=t,
-                             unit=unit,
-                             name=channel.name,
-                             conversion=None)
+            res = Signal(samples=vals,
+                         timestamps=t,
+                         unit=unit,
+                         name=name,
+                         conversion=conversion)
         if raster:
             tx = linspace(0, t[-1], int(t[-1] / raster))
             res = res.interp(tx)
