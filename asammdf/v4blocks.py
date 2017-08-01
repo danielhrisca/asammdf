@@ -929,11 +929,11 @@ class SignalDataBlock(dict):
         fmt = FMT_DATA_BLOCK.format(self['block_len'] - COMMON_SIZE)
         keys = KEYS_DATA_BLOCK
         res = pack(fmt, *[self[key] for key in keys])
+        # 8 byte alignment
         size = len(res)
         if size % 8:
             res += b'\x00' * (8 - size%8)
         return res
-
 
 
 class TextBlock(dict):

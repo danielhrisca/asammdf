@@ -315,7 +315,7 @@ class MDF4(object):
                     if address:
                         conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
 
-                # read source block and create source infromation object
+                # read source block and create source information object
                 source_texts = {}
                 address = channel['source_addr']
                 if address:
@@ -540,9 +540,9 @@ class MDF4(object):
                  'byte_offset': 0,
                  'bit_count': t_size,
                  'min_raw_value': t[0] if cycles_nr else 0,
-                 'max_raw_value' : t[-1]if cycles_nr else 0,
-                 'lower_limit' : t[0]if cycles_nr else 0,
-                 'upper_limit' : t[-1]if cycles_nr else 0}
+                 'max_raw_value' : t[-1] if cycles_nr else 0,
+                 'lower_limit' : t[0] if cycles_nr else 0,
+                 'upper_limit' : t[-1] if cycles_nr else 0}
         ch = Channel(**kargs)
         ch.name = 't'
         gp_channels.append(ch)
@@ -579,11 +579,12 @@ class MDF4(object):
         #data block
         types = [('t', t.dtype),]
         types.extend([('sig{}'.format(i), typ) for i, typ in enumerate(sig_dtypes)])
+        
         arrays = [t, ]
         arrays.extend([sig.samples for sig in signals])
-
-        samples = fromarrays(arrays, dtype=types)
-        block = samples.tostring()
+        
+        arrays = fromarrays(arrays, dtype=types)
+        block = arrays.tostring()
 
         kargs = {'data': block,
                  'block_len': 24 + len(block),
@@ -591,7 +592,7 @@ class MDF4(object):
         gp['data_block'] = DataBlock(**kargs)
 
         #data group
-        gp['data_group'] = DataGroup(**{})
+        gp['data_group'] = DataGroup()
 
     def get_master_data(self, name=None, group=None, data=None):
         """get master channel values only. The group is identified by a channel name (*name* argument) or by the index (*group* argument).
@@ -643,6 +644,7 @@ class MDF4(object):
 
         block_size = gp['channel_group']['samples_byte_nr']
 
+        # get the raw data if it's not provided
         if data is None:
             if not self.load_measured_data:
                 with open(self.name, 'rb') as file_stream:
@@ -778,6 +780,7 @@ class MDF4(object):
 #        print(channel, gp_nr, ch_nr, size)
         ch_fmt = get_fmt(channel['data_type'], size, version=4)
 
+        # for VLSD channel with signal data block change the dtype from string to void
         if signal_data:
             ch_fmt = ch_fmt.replace('S', 'V')
 
