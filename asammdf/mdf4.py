@@ -264,7 +264,7 @@ class MDF4(object):
                             nr = data_list['links_nr']
                             data = b''
                             # aggregate data from all SDBLOCK
-                            for i in range(nr):
+                            for i in range(nr-1):
                                 sd_block = SignalDataBlock(address=data_list['data_block_addr{}'.format(i)], file_stream=file_stream)
                                 data += sd_block['data']
                             # create single SDBLOCK for this channel
