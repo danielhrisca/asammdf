@@ -657,7 +657,7 @@ class MDF4(object):
         self.attachments.append((at_block, texts))
 
     def extract_attachment(self, index):
-        """ extract attachemnt *index* data
+        """ extract attachemnt *index* data. If it is an embedded attachment, then this method creates the new file according to the attachemnt file name information
 
         Parameters
         ----------
@@ -666,17 +666,30 @@ class MDF4(object):
 
         Returns
         -------
-        data : bytes
+        data : bytes | str
             attachment data
 
         """
         try:
+            current_path = os.getcwd()
+            os.chdir(os.path.dirname(self.name))
+
             attachment, texts = self.attachments[index]
             flags = attachment['flags']
+
             if flags & FLAG_AT_EMBEDDED:
-                return attachment.extract()
+                data = attachment.extract()
+
+                out_path = os.path.dirname(texts['file_name_addr'].text_str)
+                if out_path:
+                    if not os.path.exists(out_path):
+                        os.makedirs(out_path)
+
+                with open(texts['file_name_addr'].text_str, 'wb') as f:
+                    f.write(data)
+
+                return data
             else:
-                os.chdir(os.path.dirname(self.name))
                 if flags & FLAG_AT_MD5_VALID:
                     data = open(texts['file_name_addr'].text_str, 'rb').read()
                     md5_worker = md5()
@@ -698,6 +711,7 @@ class MDF4(object):
                         data = f.read()
                     return data
         except Exception as err:
+            os.chdir(current_path)
             warnings.warn('Exception during attachment extraction: ' + repr(err))
 
     def get_master_data(self, name=None, group=None, data=None):
