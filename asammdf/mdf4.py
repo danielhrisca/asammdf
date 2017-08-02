@@ -649,7 +649,7 @@ class MDF4(object):
             if not self.load_measured_data:
                 with open(self.name, 'rb') as file_stream:
                     # go to the first data block of the current data group
-                    dat_addr = group['data_block_addr']
+                    dat_addr = gp['data_block_addr']
                     if dat_addr:
                         file_stream.seek(dat_addr, SEEK_START)
                         id_string = file_stream.read(4)
@@ -788,7 +788,7 @@ class MDF4(object):
             if not self.load_measured_data:
                 with open(self.name, 'rb') as file_stream:
                     # go to the first data block of the current data group
-                    dat_addr = group['data_block_addr']
+                    dat_addr = gp['data_block_addr']
                     if dat_addr:
                         file_stream.seek(dat_addr, SEEK_START)
                         id_string = file_stream.read(4)
