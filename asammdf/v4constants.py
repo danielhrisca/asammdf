@@ -238,7 +238,7 @@ KEYS_IDENTIFICATION_BLOCK = ('file_identification',
                              'unfinalized_standard_flags',
                              'unfinalized_custom_flags')
 
-FMT_AT_COMMON = '<4s6Q2H4s16s2Q'
+FMT_AT_COMMON = '<4sI6Q2HI16s2Q'
 KEYS_AT_BLOCK = ('id',
                  'reserved0',
                  'block_len',
@@ -249,8 +249,12 @@ KEYS_AT_BLOCK = ('id',
                  'comment_addr',
                  'flags',
                  'creator_index',
-                 'reserved0',
+                 'reserved1',
                  'md5_sum',
                  'original_size',
                  'embedded_size',
                  'embedded_data')
+
+FLAG_AT_EMBEDDED = 1
+FLAG_AT_COMPRESSED_EMBEDDED = 2
+FLAG_AT_MD5_VALID = 4

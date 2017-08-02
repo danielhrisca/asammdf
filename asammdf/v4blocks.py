@@ -3,9 +3,11 @@ import sys
 PYVERSION = sys.version_info[0]
 
 import time
-from .v4constants import *
-from struct import unpack, pack, unpack_from
+import warnings
+import zlib
 
+from hashlib import md5
+from struct import unpack, pack, unpack_from
 from functools import partial
 
 try:
@@ -14,6 +16,8 @@ try:
 
 except ImportError:
     from zlib import compress, decompress
+
+from .v4constants import *
 
 
 __all__ = ['AttachmentBlock',
@@ -32,9 +36,11 @@ __all__ = ['AttachmentBlock',
 
 
 class AttachmentBlock(dict):
-    """ ATBLOCK class"""
+    """ ATBLOCK class
+
+    When adding new attachments only embedded attachemnts are allowed, with keyword argument *data* of type bytes"""
     def __init__(self, **kargs):
-        super(Channel, self).__init__()
+        super(AttachmentBlock, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -51,16 +57,75 @@ class AttachmentBlock(dict):
              self['comment_addr'],
              self['flags'],
              self['creator_index'],
-             self['reserved0'],
+             self['reserved1'],
              self['md5_sum'],
              self['original_size'],
              self['embedded_size']) = unpack(FMT_AT_COMMON, stream.read(AT_COMMON_SIZE))
 
-            self['embedded_data'] = read(self['embedded_size'])
+            self['embedded_data'] = stream.read(self['embedded_size'])
 
         except KeyError:
 
-            self.address = 0
+            data = kargs['data']
+            size = len(data)
+            compression = kargs.get('compression', False)
+
+            if compression:
+                data = zlib.compress(data)
+                original_size = size
+                size = len(data)
+                self['id'] = b'##AT'
+                self['reserved0'] = 0
+                self['block_len'] = AT_COMMON_SIZE + size
+                self['links_nr'] = 4
+                self['next_at_addr'] = 0
+                self['file_name_addr'] = 0
+                self['mime_addr'] = 0
+                self['comment_addr'] = 0
+                self['flags'] = FLAG_AT_EMBEDDED | FLAG_AT_MD5_VALID | FLAG_AT_COMPRESSED_EMBEDDED
+                self['creator_index'] = 0
+                self['reserved1'] = 0
+                md5_worker = md5()
+                md5_worker.update(data)
+                self['md5_sum'] = md5_worker.digest()
+                self['original_size'] = original_size
+                self['embedded_size'] = size
+                self['embedded_data'] = data
+            else:
+                self['id'] = b'##AT'
+                self['reserved0'] = 0
+                self['block_len'] = AT_COMMON_SIZE + size
+                self['links_nr'] = 4
+                self['next_at_addr'] = 0
+                self['file_name_addr'] = 0
+                self['mime_addr'] = 0
+                self['comment_addr'] = 0
+                self['flags'] = FLAG_AT_EMBEDDED | FLAG_AT_MD5_VALID
+                self['creator_index'] = 0
+                self['reserved1'] = 0
+                md5_worker = md5()
+                md5_worker.update(data)
+                self['md5_sum'] = md5_worker.digest()
+                self['original_size'] = size
+                self['embedded_size'] = size
+                self['embedded_data'] = data
+
+    def extract(self):
+        if self['flags'] & FLAG_AT_EMBEDDED:
+            if self['flags'] & FLAG_AT_COMPRESSED_EMBEDDED:
+                data = zlib.decompress(self['embedded_data'])
+            else:
+                data = self['embedded_data']
+            if self['flags'] & FLAG_AT_MD5_VALID:
+                md5_worker = md5()
+                md5_worker.update(data)
+                md5_sum = md5_worker.digest()
+                if self['md5_sum'] == md5_sum:
+                    return data
+                else:
+                    warnings.warn('ATBLOCK md5sum="{}" and embedded data md5sum="{}"'.format(self['md5_sum'], md5_sum))
+        else:
+            warnings.warn('extarnal attachments not supported')
 
     def __bytes__(self):
         fmt = FMT_AT_COMMON + '{}s'.format(self['embedded_size'])

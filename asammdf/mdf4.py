@@ -11,6 +11,7 @@ import os
 from struct import unpack, unpack_from
 from functools import reduce
 from collections import defaultdict
+from hashlib import md5
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
@@ -91,8 +92,8 @@ class MDF4(object):
         self.groups = []
         self.header = None
         self.identification = None
-        self.comment = None
         self.file_history = []
+        self.file_comment = None
         self.name = name
         self.load_measured_data = load_measured_data
         self.channels_db = {}
@@ -117,9 +118,11 @@ class MDF4(object):
         self.version = self.identification['version_str'].decode('utf-8').strip(' ').strip('\x00')
         self.header = HeaderBlock(address=0x40, file_stream=file_stream)
 
+        # read file comment
         if self.header['comment_addr']:
-            self.comment = TextBlock(address=self.header['comment_addr'], file_stream=file_stream)
+            self.file_comment = TextBlock(address=self.header['comment_addr'], file_stream=file_stream)
 
+        # read file history
         fh_addr = self.header['file_history_addr']
         while fh_addr:
             fh = FileHistory(address=fh_addr, file_stream=file_stream)
@@ -617,6 +620,85 @@ class MDF4(object):
 
         #data group
         gp['data_group'] = DataGroup()
+
+    def attach(self, data, file_name=None, comment=None, compression=True, mime=r'application/octet-stream'):
+        """ attach embedded attachment as application/octet-stream
+
+        Parameters
+        ----------
+        data : bytes
+            data to be attached
+        file_name : str
+            string file name
+        comment : str
+            attachment comment
+        mime : str
+            mime type string
+
+        """
+        creator_index = len(self.file_history)
+        fh = FileHistory()
+        fh_text = TextBlock.from_text("""<FHcomment>
+	<TX>Added new embedded attachment from {}</TX>
+	<tool_id>asammdf</tool_id>
+	<tool_vendor>asammdf</tool_vendor>
+	<tool_version>2.0.0</tool_version>
+</FHcomment>""".format(file_name if file_name else 'bin.bin'), meta=True)
+
+        self.file_history.append((fh, fh_text))
+
+        texts = {}
+        texts['mime_addr'] = TextBlock.from_text(mime)
+        if comment:
+            texts['comment_addr'] = TextBlock.from_text(comment)
+        texts['file_name_addr'] = TextBlock.from_text(file_name if file_name else 'bin.bin')
+        at_block = AttachmentBlock(data=data, compression=compression)
+        at_block['creator_index'] = creator_index
+        self.attachments.append((at_block, texts))
+
+    def extract_attachment(self, index):
+        """ extract attachemnt *index* data
+
+        Parameters
+        ----------
+        index : int
+            attachment index
+
+        Returns
+        -------
+        data : bytes
+            attachment data
+
+        """
+        try:
+            attachment, texts = self.attachments[index]
+            flags = attachment['flags']
+            if flags & FLAG_AT_EMBEDDED:
+                return attachment.extract()
+            else:
+                os.chdir(os.path.dirname(self.name))
+                if flags & FLAG_AT_MD5_VALID:
+                    data = open(texts['file_name_addr'].text_str, 'rb').read()
+                    md5_worker = md5()
+                    md5_worker.update(data)
+                    md5_sum = md5_worker.digest()
+                    if attachment['md5_sum'] == md5_sum:
+                        if texts['mime_addr'].text_str.startswith('text'):
+                            with open(texts['file_name_addr'].text_str, 'r') as f:
+                                data = f.read()
+                        return data
+                    else:
+                        warnings.warn('ATBLOCK md5sum="{}" and external attachment data ({}) md5sum="{}"'.format(self['md5_sum'], texts['file_name_addr'].text_str, md5_sum))
+                else:
+                    if texts['mime_addr'].text_str.startswith('text'):
+                        mode = 'r'
+                    else:
+                        mode = 'rb'
+                    with open(texts['file_name_addr'].text_str, mode) as f:
+                        data = f.read()
+                    return data
+        except Exception as err:
+            warnings.warn('Exception during attachment extraction: ' + repr(err))
 
     def get_master_data(self, name=None, group=None, data=None):
         """get master channel values only. The group is identified by a channel name (*name* argument) or by the index (*group* argument).
@@ -1222,8 +1304,9 @@ class MDF4(object):
             address = IDENTIFICATION_BLOCK_SIZE + HEADER_BLOCK_SIZE
             write(b'\x00' * address)
 
-            if self.comment:
-                write(bytes(self.comment))
+            if self.file_comment:
+                self.file_comment.address = address
+                write(bytes(self.file_comment))
                 address = tell()
 
             # write attachemnts
@@ -1232,6 +1315,8 @@ class MDF4(object):
                     at_block[key] = text.address = address
                     write(bytes(text))
                     address = tell()
+
+            for at_block, texts in self.attachments:
                 at_block.address = address
                 address += at_block['block_len']
                 align = address % 8
@@ -1240,7 +1325,7 @@ class MDF4(object):
 
             for i, (at_block, text) in enumerate(self.attachments[:-1]):
                 at_block['next_at_addr'] = self.attachments[i+1][0].address
-            self.attachemnts[-1][0]['next_at_addr'] = 0
+            self.attachments[-1][0]['next_at_addr'] = 0
 
             for at_block, texts in self.attachments:
                 write(bytes(at_block))
@@ -1394,6 +1479,8 @@ class MDF4(object):
             else:
                 self.header['first_dg_addr'] = 0
             self.header['file_history_addr'] = self.file_history[0][0].address
+            self.header['first_attachment_addr'] = self.attachments[0][0].address if self.attachments else 0
+            self.header['comment_addr'] = self.file_comment.address if self.file_comment else 0
             dst.seek(0, SEEK_START)
             write(bytes(self.identification))
             write(bytes(self.header))
