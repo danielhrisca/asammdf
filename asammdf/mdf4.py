@@ -632,6 +632,8 @@ class MDF4(object):
             string file name
         comment : str
             attachment comment
+        compression : bool
+            use compression for embedded attachment data
         mime : str
             mime type string
 
@@ -677,6 +679,7 @@ class MDF4(object):
             attachment, texts = self.attachments[index]
             flags = attachment['flags']
 
+            # for embedded attachments extrat data and create new files
             if flags & FLAG_AT_EMBEDDED:
                 data = attachment.extract()
 
@@ -690,6 +693,7 @@ class MDF4(object):
 
                 return data
             else:
+                # for external attachemnts read the files and return the content
                 if flags & FLAG_AT_MD5_VALID:
                     data = open(texts['file_name_addr'].text_str, 'rb').read()
                     md5_worker = md5()

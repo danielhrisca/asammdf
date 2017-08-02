@@ -18,7 +18,12 @@
 
 .. _v4blocks:
 The following classes implement different MDF version3 blocks.
-  
+
+AttachmentBlock Class
+---------------------
+.. autoclass:: asammdf.mdf4.AttachmentBlock
+    :members:
+    
 Channel Class
 -------------
 .. autoclass:: asammdf.mdf4.Channel

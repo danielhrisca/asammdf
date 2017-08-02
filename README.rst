@@ -38,9 +38,7 @@ Major features still not implemented
 * functionality related to trigger blocks (but the class is defined)
 * handling of unfinnished measurements (mdf 4)
 * compressed data blocks for mdf >= 4.10
-* mdf 4 attachment blocks
 * mdf 4 channel arrays
-* mdf 4 VLSD channels and SDBLOCKs
 * xml schema for TXBLOCK and MDBLOCK
 
 Usage
