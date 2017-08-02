@@ -16,7 +16,8 @@ except ImportError:
     from zlib import compress, decompress
 
 
-__all__ = ['Channel',
+__all__ = ['AttachmentBlock',
+           'Channel',
            'ChannelGroup',
            'ChannelConversion',
            'DataBlock',
@@ -29,6 +30,41 @@ __all__ = ['Channel',
            'SourceInformation',
            'TextBlock']
 
+
+class AttachmentBlock(dict):
+    """ ATBLOCK class"""
+    def __init__(self, **kargs):
+        super(Channel, self).__init__()
+
+        try:
+            self.address = address = kargs['address']
+            stream = kargs['file_stream']
+            stream.seek(address, SEEK_START)
+
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr'],
+             self['next_at_addr'],
+             self['file_name_addr'],
+             self['mime_addr'],
+             self['comment_addr'],
+             self['flags'],
+             self['creator_index'],
+             self['reserved0'],
+             self['md5_sum'],
+             self['original_size'],
+             self['embedded_size']) = unpack(FMT_AT_COMMON, stream.read(AT_COMMON_SIZE))
+
+            self['embedded_data'] = read(self['embedded_size'])
+
+        except KeyError:
+
+            self.address = 0
+
+    def __bytes__(self):
+        fmt = FMT_AT_COMMON + '{}s'.format(self['embedded_size'])
+        return pack(fmt, *[self[key] for key in KEYS_AT_BLOCK])
 
 class Channel(dict):
     """ CNBLOCK class"""

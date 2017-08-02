@@ -18,10 +18,19 @@ from numpy import (interp, linspace, dtype, amin, amax, array_equal,
 from numexpr import evaluate
 from numpy.core.records import fromstring, fromarrays
 
-from .v4blocks import (Channel, ChannelGroup, ChannelConversion, DataBlock,
-                       FileIdentificationBlock, HeaderBlock, DataList,
-                       DataGroup, FileHistory, SourceInformation, TextBlock,
-                       SignalDataBlock)
+from .v4blocks import (AttachmentBlock,
+                       Channel,
+                       ChannelGroup,
+                       ChannelConversion,
+                       DataBlock,
+                       DataGroup,
+                       DataList,
+                       FileHistory,
+                       FileIdentificationBlock,
+                       HeaderBlock,
+                       SignalDataBlock,
+                       SourceInformation,
+                       TextBlock)
 
 from .v4constants import *
 from .utils import MdfException, get_fmt, fmt_to_datatype, pair
@@ -89,6 +98,7 @@ class MDF4(object):
         self.channels_db = {}
         self.masters_db = {}
         self.compression = compression
+        self.attachments = []
 
         if name and os.path.isfile(name):
             with open(self.name, 'rb') as file_stream:
@@ -120,6 +130,20 @@ class MDF4(object):
                 raise
             self.file_history.append((fh, fh_text))
             fh_addr = fh['next_fh_addr']
+
+        # read attachments
+        at_addr = self.header['first_attachment_addr']
+        while at_addr:
+            texts = {}
+            at_block = AttachmentBlock(address=at_addr, file_stream=file_stream)
+            for key in ('file_name_addr', 'mime_addr', 'comment_addr'):
+                addr = at_block[key]
+                if addr:
+                    texts[key] = TextBlock(address=addr, file_stream=file_stream)
+
+            self.attachments.append((at_block, texts))
+            at_addr = at_block['next_at_addr']
+
 
         # go to first date group and read each data group sequentially
         dg_addr = self.header['first_dg_addr']
@@ -579,10 +603,10 @@ class MDF4(object):
         #data block
         types = [('t', t.dtype),]
         types.extend([('sig{}'.format(i), typ) for i, typ in enumerate(sig_dtypes)])
-        
+
         arrays = [t, ]
         arrays.extend([sig.samples for sig in signals])
-        
+
         arrays = fromarrays(arrays, dtype=types)
         block = arrays.tostring()
 
@@ -1202,6 +1226,32 @@ class MDF4(object):
                 write(bytes(self.comment))
                 address = tell()
 
+            # write attachemnts
+            for at_block, texts in self.attachments:
+                for key, text in texts.items():
+                    at_block[key] = text.address = address
+                    write(bytes(text))
+                    address = tell()
+                at_block.address = address
+                address += at_block['block_len']
+                align = address % 8
+                if align:
+                    address += 8 - align
+
+            for i, (at_block, text) in enumerate(self.attachments[:-1]):
+                at_block['next_at_addr'] = self.attachments[i+1][0].address
+            self.attachemnts[-1][0]['next_at_addr'] = 0
+
+            for at_block, texts in self.attachments:
+                write(bytes(at_block))
+                address = tell()
+                align = address % 8
+                if align:
+                    write(b'\x00' * (8 - align))
+                    address += 8 - align
+
+
+            # write file history blocks
             for i, (fh, fh_text) in enumerate(self.file_history):
                 fh_text.address = address
                 write(bytes(fh_text))
@@ -1221,6 +1271,7 @@ class MDF4(object):
             address = tell()
 
             for i, gp in enumerate(self.groups):
+                # write TXBLOCK's
                 for _, item_list in gp['texts'].items():
                     for dict_ in item_list:
                         for key in dict_:
@@ -1233,6 +1284,7 @@ class MDF4(object):
                                 write(bytes(dict_[key]))
                                 address = tell()
 
+                # write channel conversions
                 for j, conv in enumerate(gp['channel_conversions']):
                     if conv:
                         conv.address = address

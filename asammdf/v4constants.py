@@ -63,6 +63,7 @@ COMMON_SIZE = 24
 CC_NONE_BLOCK_SIZE = 80
 CC_ALG_BLOCK_SIZE = 88
 CC_LIN_BLOCK_SIZE = 96
+AT_COMMON_SIZE = 96
 
 CC_COMMON_BLOCK_SIZE = 80
 
@@ -236,3 +237,20 @@ KEYS_IDENTIFICATION_BLOCK = ('file_identification',
                              'fill',
                              'unfinalized_standard_flags',
                              'unfinalized_custom_flags')
+
+FMT_AT_COMMON = '<4s6Q2H4s16s2Q'
+KEYS_AT_BLOCK = ('id',
+                 'reserved0',
+                 'block_len',
+                 'links_nr',
+                 'next_at_addr',
+                 'file_name_addr',
+                 'mime_addr',
+                 'comment_addr',
+                 'flags',
+                 'creator_index',
+                 'reserved0',
+                 'md5_sum',
+                 'original_size',
+                 'embedded_size',
+                 'embedded_data')
