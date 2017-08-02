@@ -38,7 +38,6 @@ Major features still not implemented
 * mdf 3 channel dependency functionality
 * functionality related to trigger blocks (but the class is defined)
 * handling of unfinnished measurements (mdf 4)
-* compressed data blocks for mdf >= 4.10
 * mdf 4 channel arrays
 * xml schema for TXBLOCK and MDBLOCK
 

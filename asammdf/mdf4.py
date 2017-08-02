@@ -24,11 +24,13 @@ from .v4blocks import (AttachmentBlock,
                        ChannelGroup,
                        ChannelConversion,
                        DataBlock,
+                       DataZippedBlock,
                        DataGroup,
                        DataList,
                        FileHistory,
                        FileIdentificationBlock,
                        HeaderBlock,
+                       HeaderList,
                        SignalDataBlock,
                        SourceInformation,
                        TextBlock)
@@ -214,22 +216,7 @@ class MDF4(object):
 
                 # go to the first data block of the current data group
                 dat_addr = group['data_block_addr']
-                if dat_addr:
-                    file_stream.seek(dat_addr, SEEK_START)
-                    id_string = file_stream.read(4)
-                    if id_string == b'##DT':
-                        data = DataBlock(address=dat_addr, file_stream=file_stream)['data']
-                    elif id_string == b'##DL':
-                        data = bytearray()
-                        next_dl_addr = dat_addr
-                        while next_dl_addr:
-                            dl = DataList(address=next_dl_addr, file_stream=file_stream)
-                            for i in range(dl['links_nr'] - 1):
-                                addr = dl['data_block_addr{}'.format(i)]
-                                data.extend(DataBlock(file_stream=file_stream, address=addr)['data'])
-                            next_dl_addr = dl['next_dl_addr']
-                else:
-                    data = b''
+                data = self._read_data_block(address=dat_addr, file_stream=file_stream)
 
                 if cg_nr == 1:
                     kargs = {'data': data, 'compression': self.compression}
@@ -273,33 +260,16 @@ class MDF4(object):
             # read channel block and create channel object
             channel = Channel(address=ch_addr, file_stream=file_stream)
             if channel['component_addr'] != 0:
-                self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr)
+                ch_cntr = self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr)
             else:
                 channels.append(channel)
 
                 # append channel signal data if load_measured_data allows it
                 if self.load_measured_data:
                     ch_data_addr = channel['data_block_addr']
-                    if ch_data_addr:
-                        file_stream.seek(ch_data_addr, SEEK_START)
-                        blk_id = file_stream.read(4)
-                        if blk_id == b'##SD':
-                            grp['signal_data'].append(SignalDataBlock(address=ch_data_addr, file_stream=file_stream))
-                        elif blk_id == b'##DL':
-                            # the data list will contain only links to SDBLOCK's
-                            data_list = DataList(address=ch_data_addr, file_stream=file_stream)
-                            nr = data_list['links_nr']
-                            data = b''
-                            # aggregate data from all SDBLOCK
-                            for i in range(nr-1):
-                                sd_block = SignalDataBlock(address=data_list['data_block_addr{}'.format(i)], file_stream=file_stream)
-                                data += sd_block['data']
-                            # create single SDBLOCK for this channel
-                            sd_block = SignalDataBlock(data=data)
-                            grp['signal_data'].append(sd_block)
-                        else:
-                            warnings.warn('Expected SD or Dl block at {} but found id="{}"'.format(hex(ch_data_addr), blk_id))
-                            grp['signal_data'].append(None)
+                    signal_data = self._read_agregated_signal_data(address=ch_data_addr, file_stream=file_stream)
+                    if signal_data:
+                        grp['signal_data'].append(SignalDataBlock(data=signal_data))
                     else:
                         grp['signal_data'].append(None)
                 else:
@@ -386,6 +356,78 @@ class MDF4(object):
 
             # go to next channel of the current channel group
             ch_addr = channel['next_ch_addr']
+
+        return ch_cntr
+
+    def _read_data_block(self, address, file_stream):
+        """read and agregate data blocks for a given data group
+
+        Returns
+        -------
+        data : bytes
+            agregated raw data
+        """
+        if address:
+            file_stream.seek(address, SEEK_START)
+            id_string = file_stream.read(4)
+            if id_string == b'##DT':
+                data = DataBlock(address=address, file_stream=file_stream)['data']
+            elif id_string == b'##DZ':
+                data = DataZippedBlock(address=address, file_stream=file_stream)['data']
+            elif id_string == b'##DL':
+                data = b''
+                while address:
+                    dl = DataList(address=address, file_stream=file_stream)
+                    for i in range(dl['links_nr'] - 1):
+                        addr = dl['data_block_addr{}'.format(i)]
+                        file_stream.seek(addr, SEEK_START)
+                        id_string = file_stream.read(4)
+                        if id_string == b'##DT':
+                            data += DataBlock(file_stream=file_stream, address=addr)['data']
+                        elif id_string == b'##DZ':
+                            data += DataZippedBlock(address=addr, file_stream=file_stream)['data']
+                        elif id_string == b'##DL':
+                            data += self._read_data_block(address=addr, file_stream=file_stream)
+                    address = dl['next_dl_addr']
+            elif id_string == b'##HL':
+                hl = HeaderList(address=address, file_stream=file_stream)
+                return self._read_data_block(address=hl['first_dl_addr'], file_stream=file_stream)
+        else:
+            data = b''
+        return data
+
+    def _read_agregated_signal_data(self, address, file_stream):
+        data = b''
+        if address:
+            file_stream.seek(address, SEEK_START)
+            blk_id = file_stream.read(4)
+            if blk_id == b'##SD':
+                data = SignalDataBlock(address=address, file_stream=file_stream)['data']
+            elif blk_id == b'##DZ':
+                data = DataZippedBlock(address=address, file_stream=file_stream)['data']
+            elif blk_id == b'##DL':
+                # the data list will contain only links to SDBLOCK's
+                data_list = DataList(address=address, file_stream=file_stream)
+                nr = data_list['links_nr']
+                # aggregate data from all SDBLOCK
+                for i in range(nr-1):
+                    addr = data_list['data_block_addr{}'.format(i)]
+                    file_stream.seek(addr, SEEK_START)
+                    blk_id = file_stream.read(4)
+                    if blk_id == b'##SD':
+                        data += SignalDataBlock(address=addr, file_stream=file_stream)['data']
+                    elif blk_id == b'##DZ':
+                        data += DataZippedBlock(address=addr, file_stream=file_stream)['data']
+                    elif blk_id == b'##DL':
+                        data += self._read_agregated_signal_data(address=addr, file_stream=file_stream)
+                    else:
+                        warnings.warn('Expected SD, DZ or DL block at {} but found id="{}"'.format(hex(address), blk_id))
+                        return
+            else:
+                warnings.warn('Expected SD, DL or DZ block at {} but found id="{}"'.format(hex(address), blk_id))
+                return
+
+        return data
 
     def append(self, signals, source_info='Python'):
         """Appends a new data group.
@@ -774,22 +816,7 @@ class MDF4(object):
                 with open(self.name, 'rb') as file_stream:
                     # go to the first data block of the current data group
                     dat_addr = gp['data_group']['data_block_addr']
-                    if dat_addr:
-                        file_stream.seek(dat_addr, SEEK_START)
-                        id_string = file_stream.read(4)
-                        if id_string == b'##DT':
-                            data = DataBlock(address=dat_addr, file_stream=file_stream)['data']
-                        elif id_string == b'##DL':
-                            data = b''
-                            next_dl_addr = dat_addr
-                            while next_dl_addr:
-                                dl = DataList(address=next_dl_addr, file_stream=file_stream)
-                                for i in range(dl['links_nr'] - 1):
-                                    addr = dl['data_block_addr{}'.format(i)]
-                                    data += DataBlock(file_stream=file_stream, address=addr)['data']
-                                next_dl_addr = dl['next_dl_addr']
-                    else:
-                        data = b''
+                    data = self._read_data_block(address=dat_addr, file_stream=file_stream)
             else:
                 if gp['data_block']:
                     data = gp['data_block']['data']
@@ -821,7 +848,7 @@ class MDF4(object):
 
         return t
 
-    def get_channel_data(self, name=None, group=None, index=None, data=None, return_info=False):
+    def get_channel_data(self, name=None, group=None, index=None, data=None, signal_data=None, return_info=False):
         """get channel values. The channel is identified by name (*name* argument) or by the group and channel indexes (*group* and *index* arguments).
         *data* argument is used internally by the *get* method to avoid double work.
         By defaulkt only the channel values are returned. If the *return_info* argument is set then name, unit and conversion info is returned as well
@@ -835,7 +862,9 @@ class MDF4(object):
         index : int
             channel index
         data : bytes
-            data groups's raw channel data
+            data groups's raw channels data
+        signal_data : bytes
+            data from SDBLOCKs of VLDS channels
         return_info : bool
             enables returning extra information (name, unit, conversion)
 
@@ -902,56 +931,32 @@ class MDF4(object):
         block_size = gp['channel_group']['samples_byte_nr']
 
 #        print(channel, gp_nr, ch_nr, size)
-        ch_fmt = get_fmt(channel['data_type'], size, version=4)
-
-        # for VLSD channel with signal data block change the dtype from string to void
-        if signal_data:
-            ch_fmt = ch_fmt.replace('S', 'V')
 
         if data is None:
             if not self.load_measured_data:
                 with open(self.name, 'rb') as file_stream:
                     # go to the first data block of the current data group
                     dat_addr = gp['data_group']['data_block_addr']
-                    if dat_addr:
-                        file_stream.seek(dat_addr, SEEK_START)
-                        id_string = file_stream.read(4)
-                        if id_string == b'##DT':
-                            data = DataBlock(address=dat_addr, file_stream=file_stream)['data']
-                        elif id_string == b'##DL':
-                            data = b''
-                            next_dl_addr = dat_addr
-                            while next_dl_addr:
-                                dl = DataList(address=next_dl_addr, file_stream=file_stream)
-                                for i in range(dl['links_nr'] - 1):
-                                    addr = dl['data_block_addr{}'.format(i)]
-                                    data += DataBlock(file_stream=file_stream, address=addr)['data']
-                                next_dl_addr = dl['next_dl_addr']
-                    else:
-                        data = b''
-
-                    # check if it is a VLDS channel with signal data
-                    signal_data = b''
-                    ch_data_addr = channel['data_block_addr']
-                    if ch_data_addr:
-                        file_stream.seek(ch_data_addr, SEEK_START)
-                        blk_id = file_stream.read(4)
-                        if blk_id == b'##SD':
-                            signal_data = SignalDataBlock(address=ch_data_addr, file_stream=file_stream)['data']
-                        elif blk_id == b'##DL':
-                            # the data list will contain only links to SDBLOCK's
-                            data_list = DataList(address=ch_data_addr, file_stream=file_stream)
-                            nr = data_list['links_nr']
-                            # aggregate data from all SDBLOCK
-                            for i in range(nr-1):
-                                signal_data += SignalDataBlock(address=data_list['data_block_addr{}'.format(i)], file_stream=file_stream)['data']
-                        else:
-                            warnings.warn('Expected SD or DL block at {} but found id="{}"'.format(hex(ch_data_addr), blk_id))
+                    data = self._read_data_block(address=dat_addr, file_stream=file_stream)
             else:
                 if gp['data_block']:
                     data = gp['data_block']['data']
                 else:
                     data = b''
+                signal_data = gp['signal_data'][ch_nr]
+
+        if signal_data is None:
+            if not self.load_measured_data:
+                ch_data_addr = channel['data_block_addr']
+                signal_data = self._read_agregated_signal_data(address=ch_data_addr, file_stream=file_stream)
+            else:
+                signal_data = gp['signal_data'][ch_nr]
+
+        ch_fmt = get_fmt(channel['data_type'], size, version=4)
+
+        # for VLSD channel with signal data block change the dtype from string to void
+        if signal_data:
+            ch_fmt = ch_fmt.replace('S', 'V')
 
         types = dtype( [('', 'a{}'.format(byte_offset)),
                         ('vals', ch_fmt),
@@ -1169,45 +1174,17 @@ class MDF4(object):
             with open(self.name, 'rb') as file_stream:
                 # go to the first data block of the current data group
                 dat_addr = gp['data_group']['data_block_addr']
-                if dat_addr:
-                    file_stream.seek(dat_addr, SEEK_START)
-                    id_string = file_stream.read(4)
-                    if id_string == b'##DT':
-                        data = DataBlock(address=dat_addr, file_stream=file_stream)['data']
-                    elif id_string == b'##DL':
-                        data = b''
-                        next_dl_addr = dat_addr
-                        while next_dl_addr:
-                            dl = DataList(address=next_dl_addr, file_stream=file_stream)
-                            for i in range(dl['links_nr'] - 1):
-                                addr = dl['data_block_addr{}'.format(i)]
-                                data += DataBlock(file_stream=file_stream, address=addr)['data']
-                            next_dl_addr = dl['next_dl_addr']
-                else:
-                    data = b''
+                data = self._read_data_block(address=dat_addr, file_stream=file_stream)
 
                 # check if it is a VLDS channel with signal data
-                signal_data = b''
                 ch_data_addr = channel['data_block_addr']
-                if ch_data_addr:
-                    file_stream.seek(ch_data_addr, SEEK_START)
-                    blk_id = file_stream.read(4)
-                    if blk_id == b'##SD':
-                        signal_data = SignalDataBlock(address=ch_data_addr, file_stream=file_stream)['data']
-                    elif blk_id == b'##DL':
-                        # the data list will contain only links to SDBLOCK's
-                        data_list = DataList(address=ch_data_addr, file_stream=file_stream)
-                        nr = data_list['links_nr']
-                        # aggregate data from all SDBLOCK
-                        for i in range(nr-1):
-                            signal_data += SignalDataBlock(address=data_list['data_block_addr{}'.format(i)], file_stream=file_stream)['data']
-                    else:
-                        warnings.warn('Expected SD or DL block at {} but found id="{}"'.format(hex(ch_data_addr), blk_id))
+                signal_data = self._read_agregated_signal_data(address=ch_data_addr, file_stream=file_stream)
         else:
             if gp['data_block']:
                 data = gp['data_block']['data']
             else:
                 data = b''
+            signal_data = gp['signal_data'][ch_nr]
 
         t = self.get_master_data(group=gp_nr, data=data)
 
@@ -1218,7 +1195,7 @@ class MDF4(object):
                          name=channel.name,
                          conversion=None)
         else:
-            vals, name, conversion, unit = self.get_channel_data(group=gp_nr, index=ch_nr, data=data, return_info=True)
+            vals, name, conversion, unit = self.get_channel_data(group=gp_nr, index=ch_nr, data=data, signal_data=signal_data, return_info=True)
 
             res = Signal(samples=vals,
                          timestamps=t,
@@ -1328,31 +1305,31 @@ class MDF4(object):
                 address = tell()
 
             # write attachemnts
-            for at_block, texts in self.attachments:
-                for key, text in texts.items():
-                    at_block[key] = text.address = address
-                    write(bytes(text))
+            if self.attachments:
+                for at_block, texts in self.attachments:
+                    for key, text in texts.items():
+                        at_block[key] = text.address = address
+                        write(bytes(text))
+                        address = tell()
+
+                for at_block, texts in self.attachments:
+                    at_block.address = address
+                    address += at_block['block_len']
+                    align = address % 8
+                    if align:
+                        address += 8 - align
+
+                for i, (at_block, text) in enumerate(self.attachments[:-1]):
+                    at_block['next_at_addr'] = self.attachments[i+1][0].address
+                self.attachments[-1][0]['next_at_addr'] = 0
+
+                for at_block, texts in self.attachments:
+                    write(bytes(at_block))
                     address = tell()
-
-            for at_block, texts in self.attachments:
-                at_block.address = address
-                address += at_block['block_len']
-                align = address % 8
-                if align:
-                    address += 8 - align
-
-            for i, (at_block, text) in enumerate(self.attachments[:-1]):
-                at_block['next_at_addr'] = self.attachments[i+1][0].address
-            self.attachments[-1][0]['next_at_addr'] = 0
-
-            for at_block, texts in self.attachments:
-                write(bytes(at_block))
-                address = tell()
-                align = address % 8
-                if align:
-                    write(b'\x00' * (8 - align))
-                    address += 8 - align
-
+                    align = address % 8
+                    if align:
+                        write(b'\x00' * (8 - align))
+                        address += 8 - align
 
             # write file history blocks
             for i, (fh, fh_text) in enumerate(self.file_history):

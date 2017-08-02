@@ -17,6 +17,8 @@ try:
 except ImportError:
     from zlib import compress, decompress
 
+import numpy as np
+
 from .v4constants import *
 
 
@@ -25,8 +27,10 @@ __all__ = ['AttachmentBlock',
            'ChannelGroup',
            'ChannelConversion',
            'DataBlock',
+           'DataZippedBlock',
            'FileIdentificationBlock',
            'HeaderBlock',
+           'HeaderList',
            'DataList',
            'DataGroup',
            'FileHistory',
@@ -732,6 +736,203 @@ class DataBlock(dict):
         return pack(FMT_DATA_BLOCK.format(self['block_len'] - COMMON_SIZE), *[self[key] for key in KEYS_DATA_BLOCK])
 
 
+
+class DataZippedBlock(dict):
+    """DZBLOCK class
+    Raw channel dta can be compressed to save RAM; set the *compression* keyword argument to True when instantiating the object
+
+    Parameters
+    ----------
+    compression : bool
+        enable raw channel data compression in RAM
+    address : int
+        DTBLOCK address inside the file
+    file_stream : int
+        file handle
+
+    """
+    def __init__(self, **kargs):
+        super(DataZippedBlock, self).__init__()
+
+        self.prevent_data_setitem = True
+        try:
+            self.address = address = kargs['address']
+            stream = kargs['file_stream']
+            stream.seek(address, SEEK_START)
+
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr'],
+             self['original_type'],
+             self['zip_type'],
+             self['reserved1'],
+             self['param'],
+             self['original_size'],
+             self['zip_size'],) = unpack(FMT_DZ_COMMON, stream.read(DZ_COMMON_SIZE))
+
+            self['data'] = stream.read(self['zip_size'])
+
+        except KeyError:
+            self.prevent_data_setitem = False
+
+            data = kargs['data']
+
+            self['id'] = b'##DZ'
+            self['reserved0'] = 0
+
+            self['links_nr'] = 0
+            self['original_type'] = kargs.get('original_type', 'DT')
+            self['zip_type'] = karg.get('zip_type', FLAG_DZ_DEFLATE)
+            self['reserved1'] = 0
+            self['param'] = 0 if self['zip_type'] == FLAG_DZ_DEFLATE else kargs['param']
+
+            # since prevent_data_setitem is False the rest of the keys will be handled by __setitem__
+            self['data'] = data
+
+        self.prevent_data_setitem = False
+        self.return_unzipped = True
+
+    def __setitem__(self, item, value):
+        if item == 'data' and self.prevent_data_setitem == False:
+            data = value
+            self['original_size'] = len(data)
+
+            if self['zip_type'] == FLAG_DZ_DEFLATE:
+                data = zlib.compress(data)
+            else:
+                cols = self['param']
+                lines = self['original_size'] // cols
+
+                nd = np.fromstring(data[:lines*cols], dtype=np.uint8).reshape((lines, cols))
+                data = nd.transpose().tostring() + data[lines*cols:]
+
+                data = zlib.compress(data)
+
+            self['zip_size'] = len(data)
+            self['block_len'] = self['zip_size'] + DZ_COMMON_SIZE
+            super(DataZippedBlock, self).__setitem__(item, data)
+        else:
+            super(DataZippedBlock, self).__setitem__(item, value)
+
+    def __getitem__(self, item):
+        if item == 'data':
+            if self.return_unzipped:
+                data = super(DataZippedBlock, self).__getitem__(item)
+                data = zlib.decompress(data)
+                if self['zip_type'] == FLAG_DZ_DEFLATE:
+                    return data
+                else:
+                    cols = self['param']
+                    lines = self['original_size'] // cols
+
+                    nd = np.fromstring(data[:lines*cols], dtype=np.uint8).reshape((cols, lines))
+                    data = nd.transpose().tostring() + data[lines*cols:]
+
+                    return data
+            else:
+                return super(DataZippedBlock, self).__getitem__(item)
+        else:
+            return super(DataZippedBlock, self).__getitem__(item)
+
+    def __bytes__(self):
+        fmt = FMT_DZ_COMMON + '{}s'.format(self['zip_size'])
+        self.return_unzipped = False
+        data = pack(fmt, *[self[key] for key in KEYS_DZ_BLOCK])
+        self.return_unzipped = True
+        return data
+
+
+class DataGroup(dict):
+    """DGBLOCK class"""
+    def __init__(self, **kargs):
+        super(DataGroup, self).__init__()
+
+        try:
+            self.address = address = kargs['address']
+            stream = kargs['file_stream']
+            stream.seek(address, SEEK_START)
+
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr'],
+             self['next_dg_addr'],
+             self['first_cg_addr'],
+             self['data_block_addr'],
+             self['comment_addr'],
+             self['record_id_len'],
+             self['reserved1']) = unpack(FMT_DATA_GROUP, stream.read(DG_BLOCK_SIZE))
+
+        except KeyError:
+
+            self.address = 0
+            self['id'] = kargs.get('id', '##DG'.encode('utf-8'))
+            self['reserved0'] = kargs.get('reserved0', 0)
+            self['block_len'] = kargs.get('block_len', DG_BLOCK_SIZE)
+            self['links_nr'] = kargs.get('links_nr', 4)
+            self['next_dg_addr'] = kargs.get('next_dg_addr', 0)
+            self['first_cg_addr'] = kargs.get('first_cg_addr', 0)
+            self['data_block_addr'] = kargs.get('data_block_addr', 0)
+            self['comment_addr'] = kargs.get('comment_addr', 0)
+            self['record_id_len'] = kargs.get('record_id_len', 0)
+            self['reserved1'] = kargs.get('reserved1', b'\00'*7)
+
+    def __bytes__(self):
+        return pack(FMT_DATA_GROUP, *[self[key] for key in KEYS_DATA_GROUP])
+
+
+class DataList(dict):
+    """DLBLOCK class"""
+    def __init__(self, **kargs):
+        super(DataList, self).__init__()
+
+        try:
+            self.address = address = kargs['address']
+            stream = kargs['file_stream']
+            stream.seek(address, SEEK_START)
+
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr']) = unpack(FMT_COMMON, stream.read(COMMON_SIZE))
+
+            self['next_dl_addr'] = unpack('<Q', stream.read(8))[0]
+
+            links = unpack('<{}Q'.format(self['links_nr'] - 1), stream.read( (self['links_nr'] - 1) * 8 ))
+
+            for i, addr in enumerate(links):
+                self['data_block_addr{}'.format(i)] = addr
+
+            (self['flags'],
+             self['reserved1'],
+             self['data_block_nr'],
+             self['data_block_len']) = unpack('<B3sIQ', stream.read(16))
+
+        except KeyError:
+
+            self.address = 0
+            self['id'] = kargs.get('id', '##DL'.encode('utf-8'))
+            self['reserved0'] = kargs.get('reserved0', 0)
+            self['block_len'] = kargs.get('block_len', CN_BLOCK_SIZE)
+            self['links_nr'] = kargs.get('links_nr', 8)
+            self['next_dl_addr'] = kargs.get('next_dl_addr', 0)
+
+            for i in range(self['links_nr'] - 1):
+                self['data_block_addr{}'.format(i)] = kargs.get('data_block_addr{}'.format(i), 0)
+
+            self['flags'] = kargs.get('flags', 1)
+            self['reserved1'] = kargs.get('reserved1', b'\00'*3)
+            self['data_block_nr'] = kargs.get('data_block_nr', 1)
+            self['data_block_len'] = kargs.get('data_block_len', 1)
+
+    def __bytes__(self):
+        keys = ('id', 'reserved0', 'block_len', 'links_nr', 'next_dl_addr')
+        keys += tuple('data_block_addr{}'.format(i) for i in range(self['links_nr'] - 1))
+        keys += ('flags', 'reserved1', 'data_block_nr', 'data_block_len')
+        return pack(FMT_DATA_LIST.format(self['links_nr']), *[self[key] for key in keys])
+
+
 class FileIdentificationBlock(dict):
     """IDBLOCK class"""
     def __init__(self, **kargs):
@@ -774,6 +975,45 @@ class FileIdentificationBlock(dict):
 
     def __bytes__(self):
         return pack(FMT_IDENTIFICATION_BLOCK, *[self[key] for key in KEYS_IDENTIFICATION_BLOCK])
+
+
+class FileHistory(dict):
+    """FHBLOCK class"""
+    def __init__(self, **kargs):
+        super(FileHistory, self).__init__()
+
+        try:
+            self.address = address = kargs['address']
+            stream = kargs['file_stream']
+            stream.seek(address, SEEK_START)
+
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr'],
+             self['next_fh_addr'],
+             self['comment_addr'],
+             self['abs_time'],
+             self['tz_offset'],
+             self['daylight_save_time'],
+             self['time_flags'],
+             self['reserved1']) = unpack(FMT_FILE_HISTORY, stream.read(FH_BLOCK_SIZE))
+
+        except KeyError:
+            self['id'] = kargs.get('id', '##FH'.encode('utf-8'))
+            self['reserved0'] = kargs.get('reserved0', 0)
+            self['block_len'] = kargs.get('block_len', FH_BLOCK_SIZE)
+            self['links_nr'] = kargs.get('links_nr', 2)
+            self['next_fh_addr'] = kargs.get('next_fh_addr', 0)
+            self['comment_addr'] = kargs.get('comment_addr', 0)
+            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10**9)
+            self['tz_offset'] = kargs.get('tz_offset', 120)
+            self['daylight_save_time'] = kargs.get('daylight_save_time', 60)
+            self['time_flags'] = kargs.get('time_flags', 2)
+            self['reserved1'] = kargs.get('reserved1', b'\x00'*3)
+
+    def __bytes__(self):
+        return pack(FMT_FILE_HISTORY, *[self[key] for key in KEYS_FILE_HISTORY])
 
 
 class HeaderBlock(dict):
@@ -832,61 +1072,10 @@ class HeaderBlock(dict):
         return pack(FMT_HEADER_BLOCK, *[self[key] for key in KEYS_HEADER_BLOCK])
 
 
-class DataList(dict):
-    """DLBLOCK class"""
+class HeaderList(dict):
+    """HLBLOCK class"""
     def __init__(self, **kargs):
-        super(DataList, self).__init__()
-
-        try:
-            self.address = address = kargs['address']
-            stream = kargs['file_stream']
-            stream.seek(address, SEEK_START)
-
-            (self['id'],
-             self['reserved0'],
-             self['block_len'],
-             self['links_nr']) = unpack(FMT_COMMON, stream.read(COMMON_SIZE))
-
-            self['next_dl_addr'] = unpack('<Q', stream.read(8))[0]
-
-            links = unpack('<{}Q'.format(self['links_nr'] - 1), stream.read( (self['links_nr'] - 1) * 8 ))
-
-            for i, addr in enumerate(links):
-                self['data_block_addr{}'.format(i)] = addr
-
-            (self['flags'],
-             self['reserved1'],
-             self['data_block_nr'],
-             self['data_block_len']) = unpack('<B3sIQ', stream.read(16))
-
-        except KeyError:
-
-            self.address = 0
-            self['id'] = kargs.get('id', '##DL'.encode('utf-8'))
-            self['reserved0'] = kargs.get('reserved0', 0)
-            self['block_len'] = kargs.get('block_len', CN_BLOCK_SIZE)
-            self['links_nr'] = kargs.get('links_nr', 8)
-            self['next_dl_addr'] = kargs.get('next_dl_addr', 0)
-
-            for i in range(self['links_nr'] - 1):
-                self['data_block_addr{}'.format(i)] = kargs.get('data_block_addr{}'.format(i), 0)
-
-            self['flags'] = kargs.get('flags', 1)
-            self['reserved1'] = kargs.get('reserved1', b'\00'*3)
-            self['data_block_nr'] = kargs.get('data_block_nr', 1)
-            self['data_block_len'] = kargs.get('data_block_len', 1)
-
-    def __bytes__(self):
-        keys = ('id', 'reserved0', 'block_len', 'links_nr', 'next_dl_addr')
-        keys += tuple('data_block_addr{}'.format(i) for i in range(self['links_nr'] - 1))
-        keys += ('flags', 'reserved1', 'data_block_nr', 'data_block_len')
-        return pack(FMT_DATA_LIST.format(self['links_nr']), *[self[key] for key in keys])
-
-
-class DataGroup(dict):
-    """DGBLOCK class"""
-    def __init__(self, **kargs):
-        super(DataGroup, self).__init__()
+        super(HeaderList, self).__init__()
 
         try:
             self.address = address = kargs['address']
@@ -897,68 +1086,25 @@ class DataGroup(dict):
              self['reserved0'],
              self['block_len'],
              self['links_nr'],
-             self['next_dg_addr'],
-             self['first_cg_addr'],
-             self['data_block_addr'],
-             self['comment_addr'],
-             self['record_id_len'],
-             self['reserved1']) = unpack(FMT_DATA_GROUP, stream.read(DG_BLOCK_SIZE))
+             self['first_dl_addr'],
+             self['flags'],
+             self['zip_type'],
+             self['reserved1']) = unpack(FMT_HL_BLOCK, stream.read(HL_BLOCK_SIZE))
 
         except KeyError:
 
             self.address = 0
-            self['id'] = kargs.get('id', '##DG'.encode('utf-8'))
-            self['reserved0'] = kargs.get('reserved0', 0)
-            self['block_len'] = kargs.get('block_len', DG_BLOCK_SIZE)
-            self['links_nr'] = kargs.get('links_nr', 4)
-            self['next_dg_addr'] = kargs.get('next_dg_addr', 0)
-            self['first_cg_addr'] = kargs.get('first_cg_addr', 0)
-            self['data_block_addr'] = kargs.get('data_block_addr', 0)
-            self['comment_addr'] = kargs.get('comment_addr', 0)
-            self['record_id_len'] = kargs.get('record_id_len', 0)
-            self['reserved1'] = kargs.get('reserved1', b'\00'*7)
+            self['id'] = b'##HL'
+            self['reserved0'] = 0
+            self['block_len'] = HL_BLOCK_SIZE
+            self['links_nr'] = 1
+            self['first_dl_addr'] = 0
+            self['flags'] = 1
+            self['zip_type'] = 0
+            self['reserved1'] = b'\x00' * 5
 
     def __bytes__(self):
-        return pack(FMT_DATA_GROUP, *[self[key] for key in KEYS_DATA_GROUP])
-
-
-class FileHistory(dict):
-    """FHBLOCK class"""
-    def __init__(self, **kargs):
-        super(FileHistory, self).__init__()
-
-        try:
-            self.address = address = kargs['address']
-            stream = kargs['file_stream']
-            stream.seek(address, SEEK_START)
-
-            (self['id'],
-             self['reserved0'],
-             self['block_len'],
-             self['links_nr'],
-             self['next_fh_addr'],
-             self['comment_addr'],
-             self['abs_time'],
-             self['tz_offset'],
-             self['daylight_save_time'],
-             self['time_flags'],
-             self['reserved1']) = unpack(FMT_FILE_HISTORY, stream.read(FH_BLOCK_SIZE))
-
-        except KeyError:
-            self['id'] = kargs.get('id', '##FH'.encode('utf-8'))
-            self['reserved0'] = kargs.get('reserved0', 0)
-            self['block_len'] = kargs.get('block_len', FH_BLOCK_SIZE)
-            self['links_nr'] = kargs.get('links_nr', 2)
-            self['next_fh_addr'] = kargs.get('next_fh_addr', 0)
-            self['comment_addr'] = kargs.get('comment_addr', 0)
-            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10**9)
-            self['tz_offset'] = kargs.get('tz_offset', 120)
-            self['daylight_save_time'] = kargs.get('daylight_save_time', 60)
-            self['time_flags'] = kargs.get('time_flags', 2)
-            self['reserved1'] = kargs.get('reserved1', b'\x00'*3)
-
-    def __bytes__(self):
-        return pack(FMT_FILE_HISTORY, *[self[key] for key in KEYS_FILE_HISTORY])
+        return pack(FMT_HL_BLOCK, *[self[key] for key in KEYS_HL_BLOCK])
 
 
 class SourceInformation(dict):

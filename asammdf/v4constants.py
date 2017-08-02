@@ -64,12 +64,18 @@ CC_NONE_BLOCK_SIZE = 80
 CC_ALG_BLOCK_SIZE = 88
 CC_LIN_BLOCK_SIZE = 96
 AT_COMMON_SIZE = 96
-
+DZ_COMMON_SIZE = 48
 CC_COMMON_BLOCK_SIZE = 80
+HL_BLOCK_SIZE = 40
 
 FLAG_PRECISION = 1
 FLAG_PHY_RANGE_OK = 2
 FLAG_VAL_RANGE_OK = 8
+FLAG_AT_EMBEDDED = 1
+FLAG_AT_COMPRESSED_EMBEDDED = 2
+FLAG_AT_MD5_VALID = 4
+FLAG_DZ_DEFLATE = 0
+FLAG_DZ_TRANPOSED_DEFLATE = 1
 
 FMT_CHANNEL = '<4sI10Q4B4I2BH6d'
 KEYS_CHANNEL = ('id',
@@ -255,6 +261,26 @@ KEYS_AT_BLOCK = ('id',
                  'embedded_size',
                  'embedded_data')
 
-FLAG_AT_EMBEDDED = 1
-FLAG_AT_COMPRESSED_EMBEDDED = 2
-FLAG_AT_MD5_VALID = 4
+FMT_DZ_COMMON = '<4sI2Q2s2BI2Q'
+KEYS_DZ_BLOCK = ('id',
+                 'reserved0',
+                 'block_len',
+                 'links_nr',
+                 'original_type',
+                 'zip_type',
+                 'reserved1',
+                 'param',
+                 'original_size',
+                 'zip_size',
+                 'data')
+
+FMT_HL_BLOCK = '<4sI3QHB5s'
+KEYS_HL_BLOCK = ('id',
+                 'reserved0',
+                 'block_len',
+                 'links_nr',
+                 'first_dl_addr',
+                 'flags',
+                 'zip_type',
+                 'reserved1')
+
