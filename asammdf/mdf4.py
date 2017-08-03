@@ -313,21 +313,22 @@ class MDF4(object):
                     if address:
                         conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
 
-                # read source block and create source information object
-                source_texts = {}
-                address = channel['source_addr']
-                if address:
-                    source = SourceInformation(address=address, file_stream=file_stream)
-                    grp['channel_sources'].append(source)
-                    grp['texts']['sources'].append(source_texts)
-                    # read text fields for channel sources
-                    for key in ('name_addr', 'path_addr', 'comment_addr'):
-                        address = source[key]
-                        if address:
-                            source_texts[key] = TextBlock(address=address, file_stream=file_stream)
-                else:
-                    grp['channel_sources'].append(None)
-                    grp['texts']['sources'].append(source_texts)
+                if 0:
+                    # read source block and create source information object
+                    source_texts = {}
+                    address = channel['source_addr']
+                    if address:
+                        source = SourceInformation(address=address, file_stream=file_stream)
+                        grp['channel_sources'].append(source)
+                        grp['texts']['sources'].append(source_texts)
+                        # read text fields for channel sources
+                        for key in ('name_addr', 'path_addr', 'comment_addr'):
+                            address = source[key]
+                            if address:
+                                source_texts[key] = TextBlock(address=address, file_stream=file_stream)
+                    else:
+                        grp['channel_sources'].append(None)
+                        grp['texts']['sources'].append(source_texts)
 
                 # read text fields for channel conversions
                 conv_texts = {}

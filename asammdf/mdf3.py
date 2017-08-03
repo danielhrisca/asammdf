@@ -14,7 +14,8 @@ from collections import defaultdict
 from functools import reduce
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
-                   array, searchsorted, log, exp, clip, union1d, float64)
+                   array, searchsorted, log, exp, clip, union1d, float64,
+                   uint8, frombuffer)
 from numpy.core.records import fromstring, fromarrays
 from numexpr import evaluate
 
@@ -645,8 +646,13 @@ class MDF3(object):
         info = None
 
         if conversion_type == CONVERSION_TYPE_NONE:
-            pass
+            # is it a Byte Array?
+            if channel['data_type'] == DATA_TYPE_BYTEARRAY:
+                vals = vals.tostring()
+                cols = size
+                lines = len(vals) // cols
 
+                vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
 
         elif conversion_type == CONVERSION_TYPE_LINEAR:
             a = conversion['a']
