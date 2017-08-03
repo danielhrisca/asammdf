@@ -595,8 +595,6 @@ class MDF3(object):
             else:
                 gp_nr, ch_nr = self.channels_db[name]
 
-        gp_nr = group
-        ch_nr = index
         gp = self.groups[gp_nr]
         channel = gp['channels'][ch_nr]
         conversion = gp['channel_conversions'][ch_nr]

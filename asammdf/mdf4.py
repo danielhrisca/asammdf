@@ -375,7 +375,7 @@ class MDF4(object):
             elif id_string == b'##DZ':
                 data = DataZippedBlock(address=address, file_stream=file_stream)['data']
             elif id_string == b'##DL':
-                data = b''
+                data = []
                 while address:
                     dl = DataList(address=address, file_stream=file_stream)
                     for i in range(dl['links_nr'] - 1):
@@ -383,12 +383,13 @@ class MDF4(object):
                         file_stream.seek(addr, SEEK_START)
                         id_string = file_stream.read(4)
                         if id_string == b'##DT':
-                            data += DataBlock(file_stream=file_stream, address=addr)['data']
+                            data.append(DataBlock(file_stream=file_stream, address=addr)['data'])
                         elif id_string == b'##DZ':
-                            data += DataZippedBlock(address=addr, file_stream=file_stream)['data']
+                            data.append(DataZippedBlock(address=addr, file_stream=file_stream)['data'])
                         elif id_string == b'##DL':
-                            data += self._read_data_block(address=addr, file_stream=file_stream)
+                            data.append(self._read_data_block(address=addr, file_stream=file_stream))
                     address = dl['next_dl_addr']
+                data = b''.join(data)
             elif id_string == b'##HL':
                 hl = HeaderList(address=address, file_stream=file_stream)
                 return self._read_data_block(address=hl['first_dl_addr'], file_stream=file_stream)
@@ -397,8 +398,8 @@ class MDF4(object):
         return data
 
     def _read_agregated_signal_data(self, address, file_stream):
-        data = b''
         if address:
+
             file_stream.seek(address, SEEK_START)
             blk_id = file_stream.read(4)
             if blk_id == b'##SD':
@@ -406,26 +407,30 @@ class MDF4(object):
             elif blk_id == b'##DZ':
                 data = DataZippedBlock(address=address, file_stream=file_stream)['data']
             elif blk_id == b'##DL':
-                # the data list will contain only links to SDBLOCK's
-                data_list = DataList(address=address, file_stream=file_stream)
-                nr = data_list['links_nr']
-                # aggregate data from all SDBLOCK
-                for i in range(nr-1):
-                    addr = data_list['data_block_addr{}'.format(i)]
-                    file_stream.seek(addr, SEEK_START)
-                    blk_id = file_stream.read(4)
-                    if blk_id == b'##SD':
-                        data += SignalDataBlock(address=addr, file_stream=file_stream)['data']
-                    elif blk_id == b'##DZ':
-                        data += DataZippedBlock(address=addr, file_stream=file_stream)['data']
-                    elif blk_id == b'##DL':
-                        data += self._read_agregated_signal_data(address=addr, file_stream=file_stream)
-                    else:
-                        warnings.warn('Expected SD, DZ or DL block at {} but found id="{}"'.format(hex(address), blk_id))
-                        return
+                data = []
+                while address:
+                    # the data list will contain only links to SDBLOCK's
+                    data_list = DataList(address=address, file_stream=file_stream)
+                    nr = data_list['links_nr']
+                    # aggregate data from all SDBLOCK
+                    for i in range(nr-1):
+                        addr = data_list['data_block_addr{}'.format(i)]
+                        file_stream.seek(addr, SEEK_START)
+                        blk_id = file_stream.read(4)
+                        if blk_id == b'##SD':
+                            data.append(SignalDataBlock(address=addr, file_stream=file_stream)['data'])
+                        elif blk_id == b'##DZ':
+                            data.append(DataZippedBlock(address=addr, file_stream=file_stream)['data'])
+                        else:
+                            warnings.warn('Expected SD, DZ or DL block at {} but found id="{}"'.format(hex(address), blk_id))
+                            return
+                    address = data_list['next_dl_addr']
+                data = b''.join(data)
             else:
                 warnings.warn('Expected SD, DL or DZ block at {} but found id="{}"'.format(hex(address), blk_id))
                 return
+        else:
+            data = b''
 
         return data
 
@@ -892,8 +897,6 @@ class MDF4(object):
             else:
                 gp_nr, ch_nr = self.channels_db[name]
 
-        gp_nr = group
-        ch_nr = index
         gp = self.groups[gp_nr]
         channel = gp['channels'][ch_nr]
 
