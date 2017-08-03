@@ -156,7 +156,7 @@ def fmt_to_datatype(fmt, version=3):
             data_type = v3c.DATA_TYPE_SIGNED
         elif issubdtype(fmt, floating):
             data_type = v3c.DATA_TYPE_FLOAT if size == 32 else v3c.DATA_TYPE_DOUBLE
-        elif issubdtype(fmt, character):
+        elif issubdtype(fmt, flexible):
             data_type = v3c.DATA_TYPE_STRING
     elif version == 4:
         if issubdtype(fmt, unsignedinteger):

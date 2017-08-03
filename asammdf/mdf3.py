@@ -15,7 +15,7 @@ from functools import reduce
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, log, exp, clip, union1d, float64,
-                   uint8, frombuffer)
+                   uint8, frombuffer, issubdtype, flexible)
 from numpy.core.records import fromstring, fromarrays
 from numexpr import evaluate
 
@@ -366,10 +366,19 @@ class MDF3(object):
                  'max_phy_value': t[-1] if cycles_nr else 0}
         gp_conv.append(ChannelConversion(**kargs))
 
+        # conversions for channels
         if cycles_nr:
-            min_max = [(amin(s.samples), amax(s.samples)) for s in signals]
+            min_max = []
+            # compute min and max valkues for all channels
+            # for string channels we append (1,0) and use this as a marker (if min>max then channel is string)
+            for s in signals:
+                if issubdtype(s.samples.dtype, flexible):
+                    min_max.append((1,0))
+                else:
+                    min_max.append((amin(s.samples), amax(s.samples)))
         else:
             min_max = [(0, 0) for s in signals]
+
         #conversion for channels
         for idx, s in enumerate(signals):
             conv = s.conversion
@@ -409,8 +418,8 @@ class MDF3(object):
             else:
                 kargs = {'conversion_type': CONVERSION_TYPE_NONE,
                          'unit': s.unit.encode('latin-1') ,
-                         'min_phy_value': min_max[idx][0],
-                         'max_phy_value': min_max[idx][1]}
+                         'min_phy_value': min_max[idx][0] if min_max[idx][0]<=min_max[idx][1] else 0,
+                         'max_phy_value': min_max[idx][1] if min_max[idx][0]<=min_max[idx][1] else 0}
                 gp_conv.append(ChannelConversion(**kargs))
 
         #source for channels and time
@@ -443,8 +452,8 @@ class MDF3(object):
             kargs = {'short_name': (s.name[:31] + '\x00').encode('latin-1') if len(s.name) >= 32 else s.name.encode('latin-1'),
                      'channel_type': CHANNEL_TYPE_VALUE,
                      'data_type': sig_type,
-                     'lower_limit': sigmin,
-                     'upper_limit': sigmax,
+                     'lower_limit': sigmin if sigmin<=sigmax else 0,
+                     'upper_limit': sigmax if sigmin<=sigmax else 0,
                      'start_offset': offset,
                      'bit_count': sig_size}
             ch = Channel(**kargs)
