@@ -77,6 +77,7 @@ asammdf uses the following libraries
 * numexpr : for formula based channel conversions
 * blosc : optionally used for in memmory raw channel data compression
 * matplotlib : for Signal plotting
+* pandas : for DataFrame export
 
 Benchmarks
 ==========
