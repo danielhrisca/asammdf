@@ -30,6 +30,8 @@ Features
 * remove data group by index or by specifing a channel name inside the target data group
 * append new channels
 * convert to different mdf version
+* add and extract attachments
+* mdf 4.10 zipped blocks
 
 Major features still not implemented
 ====================================
@@ -54,7 +56,7 @@ Check the *examples* folder for extended usage demo.
 
 Documentation
 =============
-http://asammdf.readthedocs.io/en/2.0.0/
+http://asammdf.readthedocs.io/en/2.1.0/
 
 Installation
 ============
@@ -79,16 +81,32 @@ asammdf uses the following libraries
 Benchmarks
 ==========
 
-![Using Python 3.6.1 x64](benchmarks/asam_2.0.0_vs_reader_0.2.5_Pyhton3.6.1x64_SSD_i7-6820.txt)
+Python 3 x64
+------------
 
-![](benchmarks/open.png)
+![](benchmarks/x64_open.png)
 
-![](benchmarks/open_ram_usage.png)
+![](benchmarks/x64_open_ram_usage.png)
 
-![](benchmarks/save.png)
+![](benchmarks/x64_save.png)
 
-![](benchmarks/save_ram_usage.png)
+![](benchmarks/x64_save_ram_usage.png)
 
-![](benchmarks/get_all_channels.png)
+![](benchmarks/x64_get_all_channels.png)
 
-![](benchmarks/get_all_channels_ram_usage.png)
+![](benchmarks/x64_get_all_channels_ram_usage.png)
+
+Python 3 x86
+------------
+
+![](benchmarks/x86_open.png)
+
+![](benchmarks/x86_open_ram_usage.png)
+
+![](benchmarks/x86_save.png)
+
+![](benchmarks/x86_save_ram_usage.png)
+
+![](benchmarks/x86_get_all_channels.png)
+
+![](benchmarks/x86_get_all_channels_ram_usage.png)

@@ -38,6 +38,8 @@ Features
 * remove data group by index or by specifing a channel name inside the target data group
 * append new channels
 * convert to different mdf version
+* add and extract attachments
+* mdf 4.10 zipped blocks
 
 Major features still not implemented
 ------------------------------------
@@ -46,7 +48,6 @@ Major features still not implemented
 * mdf 3 channel dependency functionality
 * functionality related to trigger blocks (but the class is defined)
 * handling of unfinnished measurements (mdf 4)
-* compressed data blocks for mdf >= 4.10
 * mdf 4 channel arrays
 * xml schema for TXBLOCK and MDBLOCK
     

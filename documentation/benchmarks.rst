@@ -24,7 +24,7 @@ Intro
 The benchmarks were done using two test files (for mdf version 3 and 4) of around 170MB. 
 The files contain 183 data groups and a total of 36424 channels.
 
-*asamdf 2.0.0* was compared against *mdfreader 0.2.5*. 
+*asamdf 2.1.0* was compared against *mdfreader 0.2.5*. 
 *mdfreader* seems to be the most used Python package to handle MDF files, and it also supports both version 3 and 4 of the standard.
 
 The three benchmark cathegories are file open, file save and extracting the data for all channels inside the file(36424 calls).
@@ -55,69 +55,227 @@ The notations used in the results have the following meaning:
 Raw data
 ^^^^^^^^
 
-========================================          =========       ========
-Open file                                         Time [ms]       RAM [MB]
-========================================          =========       ========
-asammdf 2.0.0 mdfv3                                     721            352
-asammdf 2.0.0 compression mdfv3                        1008            275
-asammdf 2.0.0 nodata mdfv3                              641            199
-mdfreader 0.2.5 mdfv3                                  2996            526
-mdfreader 0.2.5 no convert mdfv3                       2846            393
-asammdf 2.0.0 mdfv4                                    1634            439
-asammdf 2.0.0 compression mdfv4                        1917            343
-asammdf 2.0.0 nodata mdfv4                             1594            274
-mdfreader 0.2.5 mdfv4                                 31023            739
-mdfreader 0.2.5 noconvert mdfv4                       30693            609
-========================================          =========       ========
+================================================== ========= ========
+Open file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.1.0 mdfv3                                      801      352
+asammdf 2.1.0 compression mdfv3                          946      278
+asammdf 2.1.0 nodata mdfv3                               490      172
+mdfreader 0.2.5 mdfv3                                   2962      525
+mdfreader 0.2.5 no convert mdfv3                        2740      392
+asammdf 2.1.0 mdfv4                                     1674      440
+asammdf 2.1.0 compression mdfv4                         1916      343
+asammdf 2.1.0 nodata mdfv4                              1360      245
+mdfreader 0.2.5 mdfv4                                  31915      737
+mdfreader 0.2.5 noconvert mdfv4                        31425      607
+================================================== ========= ========
 
 
-========================================          =========       ========
-Save file                                         Time [ms]       RAM [MB]
-========================================          =========       ========
-asammdf 2.0.0 mdfv3                                     472            353
-asammdf 2.0.0 compression mdfv3                         667            275
-mdfreader 0.2.5 mdfv3                                 18910           2003
-asammdf 2.0.0 mdfv4                                     686            447
-asammdf 2.0.0 compression mdfv4                         836            352
-mdfreader 0.2.5 mdfv4                                 16631           2802
-========================================          =========       ========
+================================================== ========= ========
+Save file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.1.0 mdfv3                                      575      353
+asammdf 2.1.0 compression mdfv3                          705      276
+mdfreader 0.2.5 mdfv3                                  21591     1985
+asammdf 2.1.0 mdfv4                                      913      447
+asammdf 2.1.0 compression mdfv4                         1160      352
+mdfreader 0.2.5 mdfv4                                  18666     2782
+================================================== ========= ========
 
 
-========================================          =========       ========
-Get all channels                                  Time [ms]       RAM [MB]
-========================================          =========       ========
-asammdf 2.0.0 mdfv3                                    2492            362
-asammdf 2.0.0 compression mdfv3                       14474            285
-asammdf 2.0.0 nodata mdfv3                             9621            215
-mdfreader 0.2.5 mdfv3                                    31            526
-asammdf 2.0.0 mdfv4                                    2066            450
-asammdf 2.0.0 compression mdfv4                       16944            359
-asammdf 2.0.0 nodata mdfv4                            12364            292
-mdfreader 0.2.5 mdfv4                                    39            739
-========================================          =========       ========
+================================================== ========= ========
+Get all channels (36424 calls)                     Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.1.0 mdfv3                                     2835      363
+asammdf 2.1.0 compression mdfv3                        18188      287
+asammdf 2.1.0 nodata mdfv3                             11926      188
+mdfreader 0.2.5 mdfv3                                     29      525
+asammdf 2.1.0 mdfv4                                     2338      450
+asammdf 2.1.0 compression mdfv4                        15566      355
+asammdf 2.1.0 nodata mdfv4                             12598      260
+mdfreader 0.2.5 mdfv4                                     39      737
+================================================== ========= ========
 
 Graphical results
 ^^^^^^^^^^^^^^^^^
 
-.. figure:: ../benchmarks/open.png
-   :align: center
+.. plot::
 
-.. figure:: ../benchmarks/open_ram_usage.png
-   :align: center
-   
-.. figure:: ../benchmarks/save.png
-   :align: center
+    import matplotlib.pyplot as plt
+    import numpy as np
 
-.. figure:: ../benchmarks/save_ram_usage.png
-   :align: center
-   
-.. figure:: ../benchmarks/get_all_channels.png
-   :align: center
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'mdfreader 0.2.5 no convert mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4', 'mdfreader 0.2.5 noconvert mdfv4']
+    time = np.array([801, 946, 490, 2962, 2740, 1674, 1916, 1360, 31915, 31425])
+    ram =  np.array([352, 278, 172, 525, 392, 440, 343, 245, 737, 607])
 
-.. figure:: ../benchmarks/get_all_channels_ram_usage.png
-   :align: center
+    y_pos = list(range(len(cat)))
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+
+    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time [ms]')
+    ax.set_title('Open test file - time')
+    ax.xaxis.grid() 
+
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+    plt.show()
+    
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'mdfreader 0.2.5 no convert mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4', 'mdfreader 0.2.5 noconvert mdfv4']
+    time = np.array([801, 946, 490, 2962, 2740, 1674, 1916, 1360, 31915, 31425])
+    ram =  np.array([352, 278, 172, 525, 392, 440, 343, 245, 737, 607])
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('RAM [MB]')
+    ax.set_title('Open test file - RAM usage')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
    
-   
+    plt.show()
+    
+.. plot::
+
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'mdfreader 0.2.5 mdfv4']
+    time = np.array( [575, 705, 21591, 913, 1160, 18666] )
+    ram = np.array( [353, 276, 1985, 447, 352, 2782] )
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time [ms]')
+    ax.set_title('Save test file - time')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+    
+    plt.show()
+    
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'mdfreader 0.2.5 mdfv4']
+    time = np.array( [575, 705, 21591, 913, 1160, 18666] )
+    ram = np.array( [353, 276, 1985, 447, 352, 2782] )
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('RAM [MB]')
+    ax.set_title('Save test file - RAM usage')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+
+    plt.show()
+    
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4']
+    time = np.array( [2835, 18188, 11926, 29, 2338, 15566, 12598, 39] )
+    ram = np.array( [363, 287, 188, 525, 450, 355, 260, 737] )
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time [ms]')
+    ax.set_title('Get all channels (36424 calls) - time')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+
+    plt.show()
+    
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4']
+    time = np.array( [2835, 18188, 11926, 29, 2338, 15566, 12598, 39] )
+    ram = np.array( [363, 287, 188, 525, 450, 355, 260, 737] )
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('RAm [MB]')
+    ax.set_title('Get all channels (36424 calls) - RAM usage')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+
+    plt.show()
+    
+
 x86 Python results
 ------------------
 The test environment used for 32 bit tests had:
@@ -136,43 +294,229 @@ The notations used in the results have the following meaning:
 Raw data
 ^^^^^^^^
 
-========================================          =========       ========
-Open file                                         Time [ms]       RAM [MB]
-========================================          =========       ========
-asammdf 2.0.0 mdfv3                                     851            283
-asammdf 2.0.0 compression mdfv3                        1149            190
-asammdf 2.0.0 nodata mdfv3                              765            129
-mdfreader 0.2.5 mdfv3                                  3633            453
-mdfreader 0.2.5 no convert mdfv3                       3309            319
-asammdf 2.0.0 mdfv4                                    1854            339
-asammdf 2.0.0 compression mdfv4                        2191            236
-asammdf 2.0.0 nodata mdfv4                             1772            173
-mdfreader 0.2.5 mdfv4                                 42177            576
-mdfreader 0.2.5 noconvert mdfv4                       41799            447
-========================================          =========       ========
+================================================== ========= ========
+Open file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.1.0 mdfv3                                     1031      284
+asammdf 2.1.0 compression mdfv3                         1259      192
+asammdf 2.1.0 nodata mdfv3                               584      114
+mdfreader 0.2.5 mdfv3                                   3809      455
+mdfreader 0.2.5 no convert mdfv3                        3498      321
+asammdf 2.1.0 mdfv4                                     2109      341
+asammdf 2.1.0 compression mdfv4                         2405      239
+asammdf 2.1.0 nodata mdfv4                              1686      159
+mdfreader 0.2.5 mdfv4                                  44400      578
+mdfreader 0.2.5 noconvert mdfv4                        43867      449
+================================================== ========= ========
 
 
-========================================          =========       ========
-Save file                                         Time [ms]       RAM [MB]
-========================================          =========       ========
-asammdf 2.0.0 mdfv3                                     564            286
-asammdf 2.0.0 compression mdfv3                         756            194
-mdfreader 0.2.5 mdfv3                                 17499           1236
-asammdf 2.0.0 mdfv4                                     906            347
-asammdf 2.0.0 compression mdfv4                        1112            244
-mdfreader 0.2.5 mdfv4                                 15027           1698
-========================================          =========       ========
+================================================== ========= ========
+Save file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.1.0 mdfv3                                      713      286
+asammdf 2.1.0 compression mdfv3                          926      194
+mdfreader 0.2.5 mdfv3                                  19862     1226
+asammdf 2.1.0 mdfv4                                     1109      347
+asammdf 2.1.0 compression mdfv4                         1267      246
+mdfreader 0.2.5 mdfv4                                  17518     1656
+================================================== ========= ========
 
 
-========================================          =========       ========
-Get all channels                                  Time [ms]       RAM [MB]
-========================================          =========       ========
-asammdf 2.0.0 mdfv3                                    3224            293
-asammdf 2.0.0 compression mdfv3                       25019            201
-asammdf 2.0.0 nodata mdfv3                            18824            144
-mdfreader 0.2.5 mdfv3                                    35            454
-asammdf 2.0.0 mdfv4                                    2513            349
-asammdf 2.0.0 compression mdfv4                       25140            250
-asammdf 2.0.0 nodata mdfv4                            19862            188
-mdfreader 0.2.5 mdfv4                                    50            576
-========================================          =========       ========
+================================================== ========= ========
+Get all channels (36424 calls)                     Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.1.0 mdfv3                                     3943      295
+asammdf 2.1.0 compression mdfv3                        29682      203
+asammdf 2.1.0 nodata mdfv3                             23215      129
+mdfreader 0.2.5 mdfv3                                     38      455
+asammdf 2.1.0 mdfv4                                     3227      351
+asammdf 2.1.0 compression mdfv4                        26070      250
+asammdf 2.1.0 nodata mdfv4                             21619      171
+mdfreader 0.2.5 mdfv4                                     51      578
+================================================== ========= ========
+
+
+Graphical results
+^^^^^^^^^^^^^^^^^
+
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'mdfreader 0.2.5 no convert mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4', 'mdfreader 0.2.5 noconvert mdfv4']
+    time = np.array( [1031, 1259, 584, 3809, 3498, 2109, 2405, 1686, 44400, 43867] )
+    ram = np.array( [284, 192, 114, 455, 321, 341, 239, 159, 578, 449] )
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time [ms]')
+    ax.set_title('Open test file - time')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+    
+    plt.show()
+
+.. plot::   
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'mdfreader 0.2.5 no convert mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4', 'mdfreader 0.2.5 noconvert mdfv4']
+    time = np.array( [1031, 1259, 584, 3809, 3498, 2109, 2405, 1686, 44400, 43867] )
+    ram = np.array( [284, 192, 114, 455, 321, 341, 239, 159, 578, 449] )
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('RAM [MB]')
+    ax.set_title('Open test file - RAM usage')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+    
+    plt.show()
+
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'mdfreader 0.2.5 mdfv4']
+    time = np.array( [713, 926, 19862, 1109, 1267, 17518] )
+    ram = np.array( [286, 194, 1226, 347, 246, 1656] )
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time [ms]')
+    ax.set_title('Save test file - time')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+
+    plt.show()
+    
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'mdfreader 0.2.5 mdfv4']
+    time = np.array( [713, 926, 19862, 1109, 1267, 17518] )
+    ram = np.array( [286, 194, 1226, 347, 246, 1656] )
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('RAM [MB]')
+    ax.set_title('Save test file - RAM usage')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+    
+    plt.savefig('x86_save.png', dpi=300)
+    
+    plt.show()
+
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4']
+    time = np.array( [3943, 29682, 23215, 38, 3227, 26070, 21619, 51] )
+    ram = np.array( [295, 203, 129, 455, 351, 250, 171, 578] )
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time [ms]')
+    ax.set_title('Get all channels (36424 calls) - time')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+    
+    plt.show()
+    
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4']
+    time = np.array( [3943, 29682, 23215, 38, 3227, 26070, 21619, 51] )
+    ram = np.array( [295, 203, 129, 455, 351, 250, 171, 578] )
+    
+    y_pos = list(range(len(cat)))
+    
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+    
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+    
+    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('RAM [MB]')
+    ax.set_title('Get all channels (36424 calls) - RAM usage')
+    ax.xaxis.grid() 
+    
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+    
+    plt.show()

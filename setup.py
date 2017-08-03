@@ -14,6 +14,12 @@ here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file
 long_description = open('README.rst').read()
 
+with open(path.join('asammdf', '__init__.py'), 'r') as f:
+    for line in f:
+        if line.startswith('__version__'):
+            version = line.split('=')[-1].strip().strip("'")
+            break
+
 print(repr(long_description))
 
 setup(
@@ -22,7 +28,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='2.0.0.post1',
+    version=version,
 
     description='ASAM MDF measurement data file parser',
     long_description=long_description,

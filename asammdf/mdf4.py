@@ -287,7 +287,8 @@ class MDF4(object):
                 conv_tabx_texts = {}
                 grp['texts']['conversion_tab'].append(conv_tabx_texts)
                 if conv and conv['conversion_type'] in (CONVERSION_TYPE_TABX, CONVERSION_TYPE_RTABX, CONVERSION_TYPE_TTAB):
-                    for i in range(conv['links_nr'] - 5):
+                    # link_nr - common links (4) - default text link (1)
+                    for i in range(conv['links_nr'] - 4 - 1):
                         address = conv['text_{}'.format(i)]
                         if address:
                             conv_tabx_texts['text_{}'.format(i)] = TextBlock(address=address, file_stream=file_stream)
@@ -304,6 +305,7 @@ class MDF4(object):
                             conv['unit_addr'] = conv_tabx_texts['default_addr']['unit_addr']
                             conv_tabx_texts['default_addr']['unit_addr'] = 0
                 elif conv and conv['conversion_type'] == CONVERSION_TYPE_TRANS:
+                    # link_nr - common links (4) - default text link (1)
                     for i in range((conv['links_nr'] - 4 - 1 ) //2):
                         for key in ('input_{}_addr'.format(i), 'output_{}_addr'.format(i)):
                             address = conv[key]
