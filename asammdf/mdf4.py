@@ -313,7 +313,7 @@ class MDF4(object):
                     if address:
                         conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
 
-                if 0:
+                if self.load_measured_data:
                     # read source block and create source information object
                     source_texts = {}
                     address = channel['source_addr']
@@ -329,6 +329,9 @@ class MDF4(object):
                     else:
                         grp['channel_sources'].append(None)
                         grp['texts']['sources'].append(source_texts)
+                else:
+                    grp['channel_sources'].append(None)
+                    grp['texts']['sources'].append({})
 
                 # read text fields for channel conversions
                 conv_texts = {}
