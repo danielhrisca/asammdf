@@ -10,7 +10,7 @@ Project goals
 The main goals for this library are:
 
 * to be faster than the other Python based mdf libraries
-* to have clean and eays to understand code base
+* to have clean and easy to understand code base
 
 Features
 ========
