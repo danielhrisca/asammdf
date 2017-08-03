@@ -15,6 +15,7 @@ from hashlib import md5
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
+                   uint8,
                    issubdtype, flexible)
 from numexpr import evaluate
 from numpy.core.records import fromstring, fromarrays
@@ -946,14 +947,13 @@ class MDF4(object):
                     data = gp['data_block']['data']
                 else:
                     data = b''
-                signal_data = gp['signal_data'][ch_nr]
 
         if signal_data is None:
             if not self.load_measured_data:
                 ch_data_addr = channel['data_block_addr']
                 signal_data = self._read_agregated_signal_data(address=ch_data_addr, file_stream=file_stream)
             else:
-                signal_data = gp['signal_data'][ch_nr]
+                signal_data = gp['signal_data'][ch_nr]['data'] if gp['signal_data'][ch_nr] else b''
 
         ch_fmt = get_fmt(channel['data_type'], size, version=4)
 
@@ -979,7 +979,7 @@ class MDF4(object):
             # check if it is VLDS channel type with SDBLOCK
             if signal_data:
                 values = []
-                vals = vals.tobytes()
+                vals = vals.tostring()
                 if size == 4:
                     fmt = '<u4'
                 else:
@@ -991,6 +991,62 @@ class MDF4(object):
                     size = unpack_from('<I', signal_data, offset)[0]
                     values.append(signal_data[offset+4: offset+4+size])
                 vals = array(values)
+
+            # CANopen date
+            elif channel['data_type'] == DATA_TYPE_CANOPEN_DATE:
+                vals = vals.tostring()
+
+                types = dtype( [('ms', '<u2'),
+                                ('min', '<u1'),
+                                ('hour', '<u1'),
+                                ('day', '<u1'),
+                                ('month', '<u1'),
+                                ('year', '<u1')] )
+                dates = fromstring(vals, types)
+
+                arrays = []
+                arrays.append(dates['ms'])
+                # bit 6 and 7 of minutes are reserved
+                arrays.append(dates['min'] & 0x3F)
+                # only firt 4 bits of hour are used
+                arrays.append(dates['hour'] & 0xF)
+                # the first 4 bits are the day number
+                arrays.append(dates['day'] & 0xF)
+                # bit 6 and 7 of month are reserved
+                arrays.append(dates['month'] & 0x3F)
+                # bit 7 of year is reserved
+                arrays.append(dates['year'] & 0x7F)
+                # add summer or standard time information for hour
+                arrays.append((dates['hour'] & 0x80) >> 7)
+                # add day of week information
+                arrays.append((dates['day'] & 0xF0) >> 4)
+
+                names = ['ms', 'min', 'hour', 'day', 'month', 'year', 'summer_time', 'day_of_week']
+                vals = fromarrays(arrays, names=names)
+
+            # CANopen time
+            elif channel['data_type'] == DATA_TYPE_CANOPEN_TIME:
+                vals = vals.tostring()
+
+                types = dtype( [('ms', '<u4'),
+                                ('days', '<u2')] )
+                dates = fromstring(vals, types)
+
+                arrays = []
+                # bits 28 to 31 are reserverd for ms
+                arrays.append(dates['ms'] & 0xFFFFFFF)
+                arrays.append(dates['days'] & 0x3F)
+
+                names = ['ms', 'days']
+                vals = fromarrays(arrays, names=names)
+
+            # byte array
+            elif channel['data_type'] == DATA_TYPE_BYTEARRAY:
+                vals = vals.tostring()
+                cols = size
+                lines = len(vals) // cols
+
+                vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
 
         elif conversion_type == CONVERSION_TYPE_LIN:
             a = conversion['a']
@@ -1187,7 +1243,7 @@ class MDF4(object):
                 data = gp['data_block']['data']
             else:
                 data = b''
-            signal_data = gp['signal_data'][ch_nr]
+            signal_data = gp['signal_data'][ch_nr]['data'] if gp['signal_data'][ch_nr] else b''
 
         t = self.get_master_data(group=gp_nr, data=data)
 
