@@ -182,10 +182,13 @@ class MDF3(object):
                         grp['texts']['conversion_tab'].append(vtab_texts)
 
 
-                        # read source block and create source infromation object
-                        address = new_ch['source_depend_addr']
-                        if address:
-                            grp['channel_extensions'].append(ChannelExtension(address=address, file_stream=file_stream))
+                        if self.load_measured_data:
+                            # read source block and create source infromation object
+                            address = new_ch['source_depend_addr']
+                            if address:
+                                grp['channel_extensions'].append(ChannelExtension(address=address, file_stream=file_stream))
+                            else:
+                                grp['channel_extensions'].append(None)
                         else:
                             grp['channel_extensions'].append(None)
 
