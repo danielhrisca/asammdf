@@ -206,7 +206,12 @@ class MDF3(object):
                         else:
                             new_ch.name = new_ch['short_name'].decode('latin-1').strip('\x00')
 
-                        self.channels_db[new_ch.name] = (dg_cntr, ch_cntr)
+                        if new_ch.name in self.channels_db:
+                            self.channels_db[new_ch.name].append((dg_cntr, ch_cntr))
+                        else:
+                            self.channels_db[new_ch.name] = []
+                            self.channels_db[new_ch.name].append((dg_cntr, ch_cntr))
+
                         if new_ch['channel_type'] == CHANNEL_TYPE_MASTER:
                             self.masters_db[dg_cntr] = ch_cntr
                         # go to next channel of the current channel group
@@ -446,7 +451,13 @@ class MDF3(object):
             ch.name = name
             gp_channels.append(ch)
             offset += sig_size
-            self.channels_db[s.name] = (dg_cntr, ch_cntr)
+
+            if s.name in self.channels_db:
+                self.channels_db[s.name].append((dg_cntr, ch_cntr))
+            else:
+                self.channels_db[s.name] = []
+                self.channels_db[s.name].append((dg_cntr, ch_cntr))
+
             ch_cntr += 1
 
         #channel group
@@ -559,8 +570,12 @@ class MDF3(object):
 
     def get_channel_data(self, name=None, group=None, index=None, data=None, return_info=False):
         """get channel values. The channel is identified by name (*name* argument) or by the group and channel indexes (*group* and *index* arguments).
+
+        * if there are multiple occurances for this channel then the *group* argument can be used to select a specific group.
+        * if there are multiple occurances for this channel and the *group* argument is None then a warning is issued
+
         *data* argument is used internally by the *get* method to avoid double work.
-        By defaulkt only the channel values are returned. If the *return_info* argument is set then name, unit and conversion info is returned as well
+        By default only the channel values are returned. If the *return_info* argument is set then name, unit and conversion info is returned as well
 
         Parameters
         ----------
@@ -597,7 +612,17 @@ class MDF3(object):
             if not name in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
-                gp_nr, ch_nr = self.channels_db[name]
+                if group is None:
+                    gp_nr, ch_nr = self.channels_db[name][0]
+                    if len(self.channels_db[name]) > 1:
+                        warnings.warn('Multiple occurances for channel "{}". Using first occurance from data group {}. Use the "group" argument to select another data group'.format(name, gp_nr))
+                else:
+                    for gp_nr, ch_nr in self.channels_db[name]:
+                        if gp_nr == group:
+                            break
+                    else:
+                        gp_nr, ch_nr = self.channels_db[name][0]
+                        warnings.warn('You have selected group "{}" for channel "{}", but this channel was not found in this group. Using first occurance of "{}" from group "{}"'.format(group, name, name, gp_nr))
 
         gp = self.groups[gp_nr]
         channel = gp['channels'][ch_nr]
@@ -748,6 +773,10 @@ class MDF3(object):
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the *group* argument can be used to select a specific group.
+            * if there are multiple occurances for this channel and the *group* argument is None then a warning is issued
+
         * using the group number (keyword argument *group*) and the channel number (keyword argument *index*). Use *info* method for group and channel numbers
 
 
@@ -807,7 +836,17 @@ class MDF3(object):
             if not name in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
-                gp_nr, ch_nr = self.channels_db[name]
+                if group is None:
+                    gp_nr, ch_nr = self.channels_db[name][0]
+                    if len(self.channels_db[name]) > 1:
+                        warnings.warn('Multiple occurances for channel "{}". Using first occurance from data group {}. Use the "group" argument to select another data group'.format(name, gp_nr))
+                else:
+                    for gp_nr, ch_nr in self.channels_db[name]:
+                        if gp_nr == group:
+                            break
+                    else:
+                        gp_nr, ch_nr = self.channels_db[name][0]
+                        warnings.warn('You have selected group "{}" for channel "{}", but this channel was not found in this group. Using first occurance of "{}" from group "{}"'.format(group, name, name, gp_nr))
 
         gp = self.groups[gp_nr]
         channel = gp['channels'][ch_nr]

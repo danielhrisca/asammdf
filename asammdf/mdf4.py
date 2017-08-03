@@ -354,7 +354,11 @@ class MDF4(object):
 
                 # update channel object name and block_size attributes
                 channel.name = channel_texts['name_addr'].text_str
-                self.channels_db[channel.name] = (dg_cntr, ch_cntr)
+                if channel.name in self.channels_db:
+                    self.channels_db[channel.name].append((dg_cntr, ch_cntr))
+                else:
+                    self.channels_db[channel.name] = []
+                    self.channels_db[channel.name].append((dg_cntr, ch_cntr))
 
                 if channel['channel_type'] in (CHANNEL_TYPE_MASTER, CHANNEL_TYPE_VIRTUAL_MASTER):
                     self.masters_db[dg_cntr] = ch_cntr
@@ -649,7 +653,12 @@ class MDF4(object):
             ch.name = name
             gp_channels.append(ch)
             offset += byte_size
-            self.channels_db[name] = (dg_cntr, ch_cntr)
+
+            if name in self.channels_db:
+                self.channels_db[name].append((dg_cntr, ch_cntr))
+            else:
+                self.channels_db[name] = []
+                self.channels_db[name].append((dg_cntr, ch_cntr))
             ch_cntr += 1
 
         #channel group
@@ -862,6 +871,10 @@ class MDF4(object):
 
     def get_channel_data(self, name=None, group=None, index=None, data=None, signal_data=None, return_info=False):
         """get channel values. The channel is identified by name (*name* argument) or by the group and channel indexes (*group* and *index* arguments).
+
+        * if there are multiple occurances for this channel then the *group* argument can be used to select a specific group.
+        * if there are multiple occurances for this channel and the *group* argument is None then a warning is issued
+
         *data* argument is used internally by the *get* method to avoid double work.
         By defaulkt only the channel values are returned. If the *return_info* argument is set then name, unit and conversion info is returned as well
 
@@ -902,7 +915,18 @@ class MDF4(object):
             if not name in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
-                gp_nr, ch_nr = self.channels_db[name]
+                if group is None:
+                    gp_nr, ch_nr = self.channels_db[name][0]
+                    if len(self.channels_db[name]) > 1:
+                        msg = 'Multiple occurances for channel "{}". Using first occurance from data group {}. Use the "group" argument to select another data group'.format(name, gp_nr)
+                        warnings.warn(msg, UserWarning)
+                else:
+                    for gp_nr, ch_nr in self.channels_db[name]:
+                        if gp_nr == group:
+                            break
+                    else:
+                        gp_nr, ch_nr = self.channels_db[name][0]
+                        warnings.warn('You have selected group "{}" for channel "{}", but this channel was not found in this group. Using first occurance of "{}" from group "{}"'.format(group, name, name, gp_nr))
 
         gp = self.groups[gp_nr]
         channel = gp['channels'][ch_nr]
@@ -1169,6 +1193,10 @@ class MDF4(object):
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the *group* argument can be used to select a specific group.
+            * if there are multiple occurances for this channel and the *group* argument is None then a warning is issued
+
         * using the group number (keyword argument *group*) and the channel number (keyword argument *index*). Use *info* method for group and channel numbers
 
 
@@ -1230,7 +1258,17 @@ class MDF4(object):
             if not name in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
-                gp_nr, ch_nr = self.channels_db[name]
+                if group is None:
+                    gp_nr, ch_nr = self.channels_db[name][0]
+                    if len(self.channels_db[name]) > 1:
+                        warnings.warn('Multiple occurances for channel "{}". Using first occurance from data group {}. Use the "group" argument to select another data group'.format(name, gp_nr))
+                else:
+                    for gp_nr, ch_nr in self.channels_db[name]:
+                        if gp_nr == group:
+                            break
+                    else:
+                        gp_nr, ch_nr = self.channels_db[name][0]
+                        warnings.warn('You have selected group "{}" for channel "{}", but this channel was not found in this group. Using first occurance of "{}" from group "{}"'.format(group, name, name, gp_nr))
 
         gp = self.groups[gp_nr]
         channel = gp['channels'][ch_nr]
