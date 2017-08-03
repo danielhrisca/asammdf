@@ -32,6 +32,7 @@ Features
 * convert to different mdf version
 * add and extract attachments
 * mdf 4.10 zipped blocks
+* mdf 4 structure channels
 
 Major features still not implemented
 ====================================
