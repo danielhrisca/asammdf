@@ -203,6 +203,7 @@ class MDF4(object):
 
                 if cg_addr and self.load_measured_data == False:
                     raise MdfException('Reading unsorted file with load_measured_data option set to False is not supported')
+                dg_cntr += 1
 
             if self.load_measured_data:
                 size = 0
@@ -229,7 +230,7 @@ class MDF4(object):
                     size = len(data)
                     while i < size:
                         rec_id = data[i]
-                        # skip redord id
+                        # skip record id
                         i += 1
                         rec_size = cg_size[rec_id]
                         if rec_size:
@@ -237,7 +238,7 @@ class MDF4(object):
                             cg_data[rec_id].append(rec_data)
                         else:
                             # as shown bby mdfvalidator rec size is first byte after rec id + 3
-                            rec_size = unpack('<I', data[i: i+3])[0]
+                            rec_size = unpack('<I', data[i: i+4])[0]
                             i += 4
                             rec_data = data[i: i + rec_size]
                             cg_data[rec_id].append(rec_data)
@@ -255,7 +256,6 @@ class MDF4(object):
             self.groups.extend(new_groups)
 
             dg_addr = group['next_dg_addr']
-            dg_cntr += 1
 
     def _read_channels(self, ch_addr, grp, file_stream, dg_cntr, ch_cntr):
         channels = grp['channels']
