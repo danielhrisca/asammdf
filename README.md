@@ -28,6 +28,7 @@ Features
     * the *Signal* class facilitates operations with such channels
     
 * remove data group by index or by specifing a channel name inside the target data group
+* create new mdf files from scratch
 * append new channels
 * convert to different mdf version
 * add and extract attachments
