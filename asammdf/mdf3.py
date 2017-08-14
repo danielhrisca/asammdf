@@ -113,7 +113,7 @@ class MDF3(object):
 
             self.byteorder = '<' if self.identification['byte_order'] == 0 else '>'
 
-            self.version = self.identification['version_str'].decode('latin-1').strip('\x00').strip(' ')
+            self.version = self.identification['version_str'].decode('latin-1').strip(' \n\t\x00')
 
             self.file_history = TextBlock(address=self.header['comment_addr'], file_stream=file_stream)
 
@@ -205,7 +205,7 @@ class MDF3(object):
                         if new_ch['long_name_addr']:
                             new_ch.name = ch_texts['long_name_addr'].text_str
                         else:
-                            new_ch.name = new_ch['short_name'].decode('latin-1').strip('\x00')
+                            new_ch.name = new_ch['short_name'].decode('latin-1').strip(' \n\t\x00')
 
                         if new_ch.name in self.channels_db:
                             self.channels_db[new_ch.name].append((dg_cntr, ch_cntr))
@@ -638,7 +638,7 @@ class MDF3(object):
         channel = gp['channels'][ch_nr]
         conversion = gp['channel_conversions'][ch_nr]
         if conversion:
-            unit = conversion['unit'].decode('latin-1').strip('\x00')
+            unit = conversion['unit'].decode('latin-1').strip(' \n\t\x00')
         else:
             unit = ''
 
@@ -767,7 +767,7 @@ class MDF3(object):
             vals = (P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)
 
         elif conversion_type == CONVERSION_TYPE_FORMULA:
-            formula = conversion['formula'].decode('latin-1').strip('\x00')
+            formula = conversion['formula'].decode('latin-1').strip(' \n\t\x00')
             X1 = values['vals']
             vals = evaluate(formula)
 
@@ -994,6 +994,12 @@ class MDF3(object):
             return
         dst = dst if dst else self.name
 
+        if PYVERSION == 2:
+            self._save_py2(dst)
+        else:
+            self._save_py3(dst)
+
+    def _save_py2(self, dst):
         with open(dst, 'wb') as dst:
             #store unique texts and their addresses
             defined_texts = {}
@@ -1105,6 +1111,118 @@ class MDF3(object):
 
             for dg in self.groups:
                 write(bytes(dg['data_group']))
+
+            if self.groups:
+                self.header['first_dg_addr'] = self.groups[0]['data_group'].address
+                self.header['dg_nr'] = len(self.groups)
+                self.header['comment_addr'] = self.file_history.address
+                self.header['program_addr'] = 0
+            dst.seek(0, SEEK_START)
+            write(bytes(self.identification))
+            write(bytes(self.header))
+
+    def _save_py3(self, dst):
+        with open(dst, 'wb') as dst:
+            #store unique texts and their addresses
+            defined_texts = {}
+            address = 0
+
+            write = dst.write
+            tell = dst.tell
+
+            address += write(bytes(self.identification))
+            address += write(bytes(self.header))
+
+            self.file_history.address = address
+            address += write(bytes(self.file_history))
+
+            for gp in self.groups:
+                gp_texts = gp['texts']
+
+                # Texts
+                for _, item_list in gp_texts.items():
+                    for my_dict in item_list:
+                        for key in my_dict:
+                            #text blocks can be shared
+                            if my_dict[key].text_str in defined_texts:
+                                my_dict[key].address = defined_texts[my_dict[key].text_str]
+                            else:
+                                defined_texts[my_dict[key].text_str] = address
+                                my_dict[key].address = address
+                                address += write(bytes(my_dict[key]))
+
+                # ChannelConversions
+                cc = gp['channel_conversions']
+                for i, conv in enumerate(cc):
+                    if conv:
+                        conv.address = address
+                        if conv['conversion_type'] == CONVERSION_TYPE_VTABR:
+                            for key, item in gp_texts['conversion_tab'][i].items():
+                                conv[key] = item.address
+
+                        address += write(bytes(conv))
+
+                # Channel Extension
+                cs = gp['channel_extensions']
+                for source in cs:
+                    if source:
+                        source.address = address
+                        address += write(bytes(source))
+
+                # Channels
+                # Channels need 4 extra bytes for 8byte alignment
+
+                ch_texts = gp_texts['channels']
+                for i, channel in enumerate(gp['channels']):
+                    channel.address = address
+                    address += CN_BLOCK_SIZE
+
+                    for key in ('long_name_addr', 'comment_addr', 'display_name_addr'):
+                        channel_texts = ch_texts[i]
+                        if key in channel_texts:
+                            channel[key] = channel_texts[key].address
+                        else:
+                            channel[key] = 0
+                    channel['conversion_addr'] = cc[i].address if cc[i] else 0
+                    channel['source_depend_addr'] = cs[i].address if cs[i] else 0
+
+                for channel, next_channel in pair(gp['channels']):
+                    channel['next_ch_addr'] = next_channel.address
+                    address += write(bytes(channel))
+                next_channel['next_ch_addr'] = 0
+                address += write(bytes(next_channel))
+
+                # ChannelGroup
+                cg = gp['channel_group']
+                cg.address = address
+
+                cg['first_ch_addr'] = gp['channels'][0].address
+                cg['next_cg_addr'] = 0
+                if 'comment_addr' in gp['texts']['channel_group'][0]:
+                    cg['comment_addr'] = gp_texts['channel_group'][0]['comment_addr'].address
+                address += write(bytes(cg))
+
+                # DataBlock
+                db = gp['data_block']
+                db.address = address
+                address += write(bytes(db))
+
+            # DataGroup
+            for gp in self.groups:
+
+                dg = gp['data_group']
+                dg.address = address
+                address += dg['block_len']
+                dg['first_cg_addr'] = gp['channel_group'].address
+                dg['data_block_addr'] = gp['data_block'].address
+
+
+            for i, dg in enumerate(self.groups[:-1]):
+                dg['data_group']['next_dg_addr'] = self.groups[i+1]['data_group'].address
+            self.groups[-1]['data_group']['next_dg_addr'] = 0
+
+            for dg in self.groups:
+                address += write(bytes(dg['data_group']))
 
             if self.groups:
                 self.header['first_dg_addr'] = self.groups[0]['data_group'].address
