@@ -15,7 +15,7 @@ from hashlib import md5
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
-                   uint8,
+                   uint8, arange,
                    issubdtype, flexible)
 from numexpr import evaluate
 from numpy.core.records import fromstring, fromarrays
@@ -867,7 +867,7 @@ class MDF4(object):
             time_a = time_conv['a']
             time_b = time_conv['b']
             cycles = len(data) // block_size
-            t = array([t * time_a + time_b for t in range(cycles)], dtype=float64)
+            t = arange(cycles, dtype=float64) * time_a + time_b
 
         return t
 
@@ -1089,7 +1089,7 @@ class MDF4(object):
             else:
                 vals = vals * a
                 if b:
-                    vals = vals + b
+                    vals += b
 
         elif conversion_type == CONVERSION_TYPE_RAT:
             P1 = conversion['P1']

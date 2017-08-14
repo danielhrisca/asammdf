@@ -537,6 +537,8 @@ class MDF3(object):
         t_fmt = get_fmt(time_ch['data_type'], time_size)
         t_byte_offset, bit_offset = divmod(time_ch['start_offset'], 8)
 
+        t_byte_offset += time_ch['aditional_byte_offset']
+
         bits = time_ch['bit_count']
         if bits % 8:
             size = bits // 8 + 1
@@ -651,6 +653,8 @@ class MDF3(object):
             size = bits // 8
         block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
         byte_offset, bit_offset = divmod(channel['start_offset'], 8)
+        byte_offset += channel['aditional_byte_offset']
+
         ch_fmt = get_fmt(channel['data_type'], size)
 
         if data is None:
@@ -676,6 +680,7 @@ class MDF3(object):
         # get channel values
         conversion_type = CONVERSION_TYPE_NONE if conversion is None else conversion['conversion_type']
         vals = values['vals']
+
         if bit_offset:
             vals = vals >> bit_offset
         if bits % 8:
@@ -701,7 +706,7 @@ class MDF3(object):
             else:
                 vals = vals * a
                 if b:
-                    vals = vals + b
+                    vals += b
 
         elif conversion_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
             nr = conversion['ref_param_nr']
