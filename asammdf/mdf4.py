@@ -12,6 +12,7 @@ from struct import unpack, unpack_from
 from functools import reduce
 from collections import defaultdict
 from hashlib import md5
+import xml.etree.ElementTree as XML
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
@@ -899,8 +900,8 @@ class MDF4(object):
         -------
         vals : numpy.array
             channel values; if *return_info* is False
-        vals, name, conversion, unit : numpy.array, str, dict, str
-            channel values, channel name, channel conversion, channel unit: if *return_info* is True
+        vals, name, conversion, unit, description : numpy.array, str, dict, str, str
+            channel values, channel name, channel conversion, channel unit, channel description: if *return_info* is True
 
         """
 
@@ -952,6 +953,13 @@ class MDF4(object):
                 unit = unit.text_str
             else:
                 unit = ''
+
+        comment = gp['texts']['channels'][ch_nr].get('comment_addr', None)
+        if comment:
+            comment = comment.text_str
+            comment = XML.fromstring(comment).find('TX').text
+        else:
+            comment = ''
 
         group = gp
 
@@ -1186,7 +1194,7 @@ class MDF4(object):
             conversion = None
 
         if return_info:
-            return vals, channel.name, conversion, unit
+            return vals, channel.name, conversion, unit, comment
         else:
             return vals
 
@@ -1298,13 +1306,14 @@ class MDF4(object):
                          name=channel.name,
                          conversion=None)
         else:
-            vals, name, conversion, unit = self.get_channel_data(group=gp_nr, index=ch_nr, data=data, signal_data=signal_data, return_info=True)
+            vals, name, conversion, unit, comment = self.get_channel_data(group=gp_nr, index=ch_nr, data=data, signal_data=signal_data, return_info=True)
 
             res = Signal(samples=vals,
                          timestamps=t,
                          unit=unit,
                          name=name,
-                         conversion=conversion)
+                         conversion=conversion,
+                         comment=comment)
 
         if raster:
             tx = linspace(0, t[-1], int(t[-1] / raster))

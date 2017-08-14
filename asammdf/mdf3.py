@@ -606,8 +606,8 @@ class MDF3(object):
         -------
         vals : numpy.array
             channel values; if *return_info* is False
-        vals, name, conversion, unit : numpy.array, str, dict, str
-            channel values, channel name, channel conversion, channel unit: if *return_info* is True
+        vals, name, conversion, unit, description: numpy.array, str, dict, str, str
+            channel values, channel name, channel conversion, channel unit, channel description: if *return_info* is True
 
         """
 
@@ -779,7 +779,8 @@ class MDF3(object):
         conversion = info
 
         if return_info:
-            return vals, channel.name, conversion, unit
+            description = channel['description'].decode('latin-1').strip(' \t\n\x00')
+            return vals, channel.name, conversion, unit, description
         else:
             return vals
 
@@ -887,13 +888,14 @@ class MDF3(object):
                          name=channel.name,
                          conversion=None)
         else:
-            vals, name, conversion, unit = self.get_channel_data(group=gp_nr, index=ch_nr, data=data, return_info=True)
+            vals, name, conversion, unit, descr = self.get_channel_data(group=gp_nr, index=ch_nr, data=data, return_info=True)
 
             res = Signal(samples=vals,
                          timestamps=t,
                          unit=unit,
                          name=name,
-                         conversion=conversion)
+                         conversion=conversion,
+                         comment=descr)
         if raster:
             tx = linspace(0, t[-1], int(t[-1] / raster))
             res = res.interp(tx)

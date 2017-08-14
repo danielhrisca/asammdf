@@ -28,9 +28,11 @@ class Signal(object):
         signal name
     conversion : dict
         dict describing the channel conversion , default *None*
+    comment : str
+        signal comment, default ''
 
     """
-    def __init__(self, samples=None, timestamps=None, unit='', name='', conversion=None):
+    def __init__(self, samples=None, timestamps=None, unit='', name='', conversion=None, comment=''):
         if samples is None or timestamps is None or name == '':
             raise MdfException('"samples", "timestamps" and "name" are mandatory arguments for Signal class instance')
         elif len(samples) != len(timestamps):
@@ -41,6 +43,7 @@ class Signal(object):
             self.unit = unit
             self.name = name
             self.conversion = conversion
+            self.comment = comment
 
     def __str__(self):
         return 'Signal {{ name="{}":\ts={}\tt={}\tunit="{}"\tconversion={} }}'.format(self.name, self.samples, self.timestamps, self.unit, self.conversion)
@@ -52,7 +55,10 @@ class Signal(object):
         """plot Signal samples"""
         fig = plt.figure()
         fig.canvas.set_window_title(self.name)
-        plt.title(self.name)
+        if self.comment:
+            plt.title('{}\n({})'.format(self.name, self.comment))
+        else:
+            plt.title(self.name)
         plt.xlabel('Time [s]')
         plt.ylabel('[{}]'.format(self.unit))
         plt.plot(self.timestamps, self.samples, 'b')
