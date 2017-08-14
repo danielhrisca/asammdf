@@ -15,7 +15,7 @@ from functools import reduce
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, log, exp, clip, union1d, float64,
-                   uint8, frombuffer, issubdtype, flexible)
+                   uint8, frombuffer, issubdtype, flexible, arange)
 from numpy.core.records import fromstring, fromarrays
 from numexpr import evaluate
 from pandas import DataFrame
@@ -540,43 +540,52 @@ class MDF3(object):
         t_byte_offset += time_ch['aditional_byte_offset']
 
         bits = time_ch['bit_count']
-        if bits % 8:
-            size = bits // 8 + 1
+
+        # virtual master channel
+        if bits == 0:
+            nr = gp['channel_group']['cycles_nr']
+            step = time_ch['sampling_rate']
+            t = arange(nr, dtype=float64) * step
+
+        # master channel with values in data block
         else:
-            size = bits // 8
-
-        block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
-
-
-        if data is None:
-            if not self.load_measured_data:
-                with open(self.name, 'rb') as file_stream:
-                    # go to the first data block of the current data group
-                    dat_addr = gp['data_group']['data_block_addr']
-                    read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
-                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+            if bits % 8:
+                size = bits // 8 + 1
             else:
-                if gp['data_block']:
-                    data = gp['data_block']['data']
+                size = bits // 8
+
+            block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
+
+
+            if data is None:
+                if not self.load_measured_data:
+                    with open(self.name, 'rb') as file_stream:
+                        # go to the first data block of the current data group
+                        dat_addr = gp['data_group']['data_block_addr']
+                        read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
                 else:
-                    data = b''
+                    if gp['data_block']:
+                        data = gp['data_block']['data']
+                    else:
+                        data = b''
 
-        types = dtype( [('', 'a{}'.format(t_byte_offset)),
-                        ('t', t_fmt),
-                        ('', 'a{}'.format(block_size - t_byte_offset - size))] )
+            types = dtype( [('', 'a{}'.format(t_byte_offset)),
+                            ('t', t_fmt),
+                            ('', 'a{}'.format(block_size - t_byte_offset - size))] )
 
-        values = fromstring(data, types)
+            values = fromstring(data, types)
 
-        # get timestamps
-        time_conv_type = CONVERSION_TYPE_NONE if time_conv is None else time_conv['conversion_type']
-        if time_conv_type == CONVERSION_TYPE_LINEAR:
-            time_a = time_conv['a']
-            time_b = time_conv['b']
-            t = values['t'] * time_a
-            if time_b:
-                t += time_b
-        elif time_conv_type == CONVERSION_TYPE_NONE:
-            t = values['t']
+            # get timestamps
+            time_conv_type = CONVERSION_TYPE_NONE if time_conv is None else time_conv['conversion_type']
+            if time_conv_type == CONVERSION_TYPE_LINEAR:
+                time_a = time_conv['a']
+                time_b = time_conv['b']
+                t = values['t'] * time_a
+                if time_b:
+                    t += time_b
+            elif time_conv_type == CONVERSION_TYPE_NONE:
+                t = values['t']
 
         return t
 
