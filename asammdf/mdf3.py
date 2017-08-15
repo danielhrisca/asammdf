@@ -223,19 +223,20 @@ class MDF3(object):
                     cg_addr = grp['channel_group']['next_cg_addr']
                     dg_cntr += 1
 
-                    if cg_addr and self.load_measured_data == False:
-                        raise MdfException('Reading unsorted file with load_measured_data option set to False is not supported')
-
-                if self.load_measured_data:
+                if cg_nr > 1:
+                    cg_size = {}
                     size = 0
                     record_id_nr = gp['record_id_nr'] if gp['record_id_nr'] <= 2 else 0
-
-                    cg_size = {}
-                    cg_data = defaultdict(list)
                     for grp in new_groups:
-                        size += (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
                         cg_size[grp['channel_group']['record_id']] = grp['channel_group']['samples_byte_nr']
+                        size += (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
 
+                    for grp in new_groups:
+                        grp['sorted'] = False
+                        grp['record_size'] = cg_size
+                        grp['size'] = size
+
+                if self.load_measured_data:
                     # read data block of the current data group
                     dat_addr = gp['data_block_addr']
                     if dat_addr:
@@ -247,6 +248,7 @@ class MDF3(object):
                         kargs = {'data': data, 'compression': self.compression}
                         new_groups[0]['data_block'] = DataBlock(**kargs)
                     else:
+                        cg_data = defaultdict(list)
                         i = 0
                         size = len(data)
                         while i < size:
@@ -561,9 +563,38 @@ class MDF3(object):
                 if not self.load_measured_data:
                     with open(self.name, 'rb') as file_stream:
                         # go to the first data block of the current data group
+
                         dat_addr = gp['data_group']['data_block_addr']
-                        read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
-                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                        if gp.get('sorted', True):
+                            read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                            data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                        else:
+                            read_size = gp['size']
+                            record_id = gp['channel_group']['record_id']
+                            cg_size = gp['record_size']
+                            record_id_nr = gp['data_group']['record_id_nr'] if gp['data_group']['record_id_nr'] <= 2 else 0
+                            cg_data = []
+
+                            data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                            i = 0
+                            size = len(data)
+                            while i < size:
+                                rec_id = data[i]
+                                # skip redord id
+                                i += 1
+                                rec_size = cg_size[rec_id]
+                                if rec_id == record_id:
+                                    rec_data = data[i: i+rec_size]
+                                    cg_data.append(rec_data)
+                                # if 2 record id's are sued skip also the second one
+                                if record_id_nr == 2:
+                                    i += 1
+                                # go to next record
+                                i += rec_size
+                            data = b''.join(cg_data)
                 else:
                     if gp['data_block']:
                         data = gp['data_block']['data']
@@ -671,8 +702,36 @@ class MDF3(object):
                 with open(self.name, 'rb') as file_stream:
                     # go to the first data block of the current data group
                     dat_addr = gp['data_group']['data_block_addr']
-                    read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
-                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                    if gp.get('sorted', True):
+                        read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                    else:
+                        read_size = gp['size']
+                        record_id = gp['channel_group']['record_id']
+                        cg_size = gp['record_size']
+                        record_id_nr = gp['data_group']['record_id_nr'] if gp['data_group']['record_id_nr'] <= 2 else 0
+                        cg_data = []
+
+                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                        i = 0
+                        size = len(data)
+                        while i < size:
+                            rec_id = data[i]
+                            # skip redord id
+                            i += 1
+                            rec_size = cg_size[rec_id]
+                            if rec_id == record_id:
+                                rec_data = data[i: i+rec_size]
+                                cg_data.append(rec_data)
+                            # if 2 record id's are sued skip also the second one
+                            if record_id_nr == 2:
+                                i += 1
+                            # go to next record
+                            i += rec_size
+                        data = b''.join(cg_data)
             else:
                 if gp['data_block']:
                     data = gp['data_block']['data']
@@ -880,8 +939,36 @@ class MDF3(object):
             with open(self.name, 'rb') as file_stream:
                 # go to the first data block of the current data group
                 dat_addr = gp['data_group']['data_block_addr']
-                read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
-                data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                if gp.get('sorted', True):
+                    read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                else:
+                    read_size = gp['size']
+                    record_id = gp['channel_group']['record_id']
+                    cg_size = gp['record_size']
+                    record_id_nr = gp['data_group']['record_id_nr'] if gp['data_group']['record_id_nr'] <= 2 else 0
+                    cg_data = []
+
+                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                    i = 0
+                    size = len(data)
+                    while i < size:
+                        rec_id = data[i]
+                        # skip redord id
+                        i += 1
+                        rec_size = cg_size[rec_id]
+                        if rec_id == record_id:
+                            rec_data = data[i: i+rec_size]
+                            cg_data.append(rec_data)
+                        # if 2 record id's are sued skip also the second one
+                        if record_id_nr == 2:
+                            i += 1
+                        # go to next record
+                        i += rec_size
+                    data = b''.join(cg_data)
         else:
             if gp['data_block']:
                 data = gp['data_block']['data']
