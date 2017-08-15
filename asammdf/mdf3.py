@@ -233,15 +233,19 @@ class MDF3(object):
                     size = 0
                     record_id_nr = gp['record_id_nr'] if gp['record_id_nr'] <= 2 else 0
                     for grp in new_groups:
-                        cg_size[grp['channel_group']['record_id']] = grp['channel_group']['samples_byte_nr']
                         size += (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
+                        cg_size[grp['channel_group']['record_id']] = grp['channel_group']['samples_byte_nr']
 
                     for grp in new_groups:
                         grp['sorted'] = False
                         grp['record_size'] = cg_size
                         grp['size'] = size
+                else:
+                    record_id_nr = gp['record_id_nr'] if gp['record_id_nr'] <= 2 else 0
+                    size = (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
 
                 if self.load_measured_data:
+
                     # read data block of the current data group
                     dat_addr = gp['data_block_addr']
                     if dat_addr:
@@ -250,6 +254,7 @@ class MDF3(object):
                     else:
                         data = b''
                     if cg_nr == 1:
+
                         kargs = {'data': data, 'compression': self.compression}
                         new_groups[0]['data_block'] = DataBlock(**kargs)
                     else:
