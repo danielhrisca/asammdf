@@ -106,6 +106,7 @@ class MDF4(object):
         self.masters_db = {}
         self.compression = compression
         self.attachments = []
+        self.sorted = True
 
         if name and os.path.isfile(name):
             with open(self.name, 'rb') as file_stream:
@@ -202,16 +203,14 @@ class MDF4(object):
 
                 cg_addr = channel_group['next_cg_addr']
 
-                if cg_addr and self.load_measured_data == False:
-                    raise MdfException('Reading unsorted file with load_measured_data option set to False is not supported')
                 dg_cntr += 1
 
-            if self.load_measured_data:
-                size = 0
-                record_id_nr = group['record_id_len'] if group['record_id_len'] <= 2 else 0
-
+            # store channel groups record sizes dict in each
+            # new group data belong to the initial unsorted group, and add
+            # the key 'sorted' with the value False to use a flag;
+            # this is used later if load_measured_data=False
+            if cg_nr > 1:
                 cg_size = {}
-                cg_data = defaultdict(list)
                 for grp in new_groups:
                     if grp['channel_group']['flags'] == 0:
                         cg_size[grp['channel_group']['record_id']] = grp['channel_group']['samples_byte_nr']
@@ -219,6 +218,12 @@ class MDF4(object):
                         # VLDS flags
                         cg_size[grp['channel_group']['record_id']] = 0
 
+                for grp in new_groups:
+                    grp['sorted'] = False
+                    grp['record_size'] = cg_size
+
+
+            if self.load_measured_data:
                 # go to the first data block of the current data group
                 dat_addr = group['data_block_addr']
                 data = self._read_data_block(address=dat_addr, file_stream=file_stream)
@@ -227,6 +232,8 @@ class MDF4(object):
                     kargs = {'data': data, 'compression': self.compression}
                     new_groups[0]['data_block'] = DataBlock(**kargs)
                 else:
+                    cg_data = defaultdict(list)
+                    record_id_nr = group['record_id_len'] if group['record_id_len'] <= 2 else 0
                     i = 0
                     size = len(data)
                     while i < size:
@@ -373,7 +380,7 @@ class MDF4(object):
 
         return ch_cntr
 
-    def _read_data_block(self, address, file_stream):
+    def _read_data_block(self, address, file_stream, record_id=None):
         """read and agregate data blocks for a given data group
 
         Returns
@@ -841,6 +848,35 @@ class MDF4(object):
                     # go to the first data block of the current data group
                     dat_addr = gp['data_group']['data_block_addr']
                     data = self._read_data_block(address=dat_addr, file_stream=file_stream)
+                if not gp.get('sorted', True):
+                    cg_data = []
+                    cg_size = gp['record_size']
+                    record_id = gp['channel_group']['record_id']
+                    record_id_nr = gp['data_group']['record_id_len'] if gp['data_group']['record_id_len'] <= 2 else 0
+                    i = 0
+                    size = len(data)
+                    while i < size:
+                        rec_id = data[i]
+                        # skip record id
+                        i += 1
+                        rec_size = cg_size[rec_id]
+                        if rec_size:
+                            if rec_id == record_id:
+                                rec_data = data[i: i+rec_size]
+                                cg_data.append(rec_data)
+                        else:
+                            # as shown bby mdfvalidator rec size is first byte after rec id + 3
+                            rec_size = unpack('<I', data[i: i+4])[0]
+                            i += 4
+                            if rec_id == record_id:
+                                rec_data = data[i: i + rec_size]
+                                cg_data.append(rec_data)
+                        # if 2 record id's are used skip also the second one
+                        if record_id_nr == 2:
+                            i += 1
+                        # go to next record
+                        i += rec_size
+                    data = b''.join(cg_data)
             else:
                 if gp['data_block']:
                     data = gp['data_block']['data']
@@ -982,6 +1018,35 @@ class MDF4(object):
                     # go to the first data block of the current data group
                     dat_addr = gp['data_group']['data_block_addr']
                     data = self._read_data_block(address=dat_addr, file_stream=file_stream)
+                if not gp.get('sorted', True):
+                    cg_data = []
+                    cg_size = gp['record_size']
+                    record_id = gp['channel_group']['record_id']
+                    record_id_nr = gp['data_group']['record_id_len'] if gp['data_group']['record_id_len'] <= 2 else 0
+                    i = 0
+                    size = len(data)
+                    while i < size:
+                        rec_id = data[i]
+                        # skip record id
+                        i += 1
+                        rec_size = cg_size[rec_id]
+                        if rec_size:
+                            if rec_id == record_id:
+                                rec_data = data[i: i+rec_size]
+                                cg_data.append(rec_data)
+                        else:
+                            # as shown bby mdfvalidator rec size is first byte after rec id + 3
+                            rec_size = unpack('<I', data[i: i+4])[0]
+                            i += 4
+                            if rec_id == record_id:
+                                rec_data = data[i: i + rec_size]
+                                cg_data.append(rec_data)
+                        # if 2 record id's are used skip also the second one
+                        if record_id_nr == 2:
+                            i += 1
+                        # go to next record
+                        i += rec_size
+                    data = b''.join(cg_data)
             else:
                 if gp['data_block']:
                     data = gp['data_block']['data']
@@ -1286,6 +1351,36 @@ class MDF4(object):
                 # go to the first data block of the current data group
                 dat_addr = gp['data_group']['data_block_addr']
                 data = self._read_data_block(address=dat_addr, file_stream=file_stream)
+
+                if not gp.get('sorted', True):
+                    cg_data = []
+                    cg_size = gp['record_size']
+                    record_id = gp['channel_group']['record_id']
+                    record_id_nr = gp['data_group']['record_id_len'] if gp['data_group']['record_id_len'] <= 2 else 0
+                    i = 0
+                    size = len(data)
+                    while i < size:
+                        rec_id = data[i]
+                        # skip record id
+                        i += 1
+                        rec_size = cg_size[rec_id]
+                        if rec_size:
+                            if rec_id == record_id:
+                                rec_data = data[i: i+rec_size]
+                                cg_data.append(rec_data)
+                        else:
+                            # as shown bby mdfvalidator rec size is first byte after rec id + 3
+                            rec_size = unpack('<I', data[i: i+4])[0]
+                            i += 4
+                            if rec_id == record_id:
+                                rec_data = data[i: i + rec_size]
+                                cg_data.append(rec_data)
+                        # if 2 record id's are used skip also the second one
+                        if record_id_nr == 2:
+                            i += 1
+                        # go to next record
+                        i += rec_size
+                    data = b''.join(cg_data)
 
                 # check if it is a VLDS channel with signal data
                 ch_data_addr = channel['data_block_addr']
