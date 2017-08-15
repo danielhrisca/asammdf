@@ -209,6 +209,7 @@ class MDF4(object):
             # new group data belong to the initial unsorted group, and add
             # the key 'sorted' with the value False to use a flag;
             # this is used later if load_measured_data=False
+
             if cg_nr > 1:
                 cg_size = {}
                 for grp in new_groups:
