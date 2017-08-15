@@ -1204,9 +1204,9 @@ class MDF3(object):
 
                 for channel, next_channel in pair(gp['channels']):
                     channel['next_ch_addr'] = next_channel.address
-                    address += write(bytes(channel))
+                    write(bytes(channel))
                 next_channel['next_ch_addr'] = 0
-                address += write(bytes(next_channel))
+                write(bytes(next_channel))
 
                 # ChannelGroup
                 cg = gp['channel_group']
@@ -1238,7 +1238,7 @@ class MDF3(object):
             self.groups[-1]['data_group']['next_dg_addr'] = 0
 
             for dg in self.groups:
-                address += write(bytes(dg['data_group']))
+                write(bytes(dg['data_group']))
 
             if self.groups:
                 self.header['first_dg_addr'] = self.groups[0]['data_group'].address

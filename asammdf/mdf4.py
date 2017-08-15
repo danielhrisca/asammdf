@@ -1502,7 +1502,7 @@ class MDF4(object):
                         for key in ('name_addr', 'unit_addr', 'comment_addr', 'formula_addr'):
                             if key in gp['texts']['conversions'][j]:
                                 conv[key] = gp['texts']['conversions'][j][key].address
-                            else:
+                            elif key in conv:
                                 conv[key] = 0
                         conv['inv_conv_addr'] = 0
 
@@ -1643,10 +1643,10 @@ class MDF4(object):
                 self.attachments[-1][0]['next_at_addr'] = 0
 
                 for at_block, texts in self.attachments:
-                    address += write(bytes(at_block))
-                    align = address % 8
+                    align = write(bytes(at_block))
+                    align = align % 8
                     if align:
-                        address += write(b'\x00' * (8 - align))
+                        write(b'\x00' * (8 - align))
 
             # write file history blocks
             for i, (fh, fh_text) in enumerate(self.file_history):
@@ -1663,7 +1663,7 @@ class MDF4(object):
                 fh['next_fh_addr'] = self.file_history[i+1][0].address
             self.file_history[-1][0]['next_fh_addr'] = 0
             for fh, _ in self.file_history:
-                address += write(bytes(fh))
+                write(bytes(fh))
 
             for i, gp in enumerate(self.groups):
                 # write TXBLOCK's
@@ -1686,7 +1686,7 @@ class MDF4(object):
                         for key in ('name_addr', 'unit_addr', 'comment_addr', 'formula_addr'):
                             if key in gp['texts']['conversions'][j]:
                                 conv[key] = gp['texts']['conversions'][j][key].address
-                            else:
+                            elif key in conv:
                                 conv[key] = 0
                         conv['inv_conv_addr'] = 0
 
@@ -1731,9 +1731,9 @@ class MDF4(object):
 
                 for channel, next_channel in pair(gp['channels']):
                     channel['next_ch_addr'] = next_channel.address
-                    address += write(bytes(channel))
+                    write(bytes(channel))
                 next_channel['next_ch_addr'] = 0
-                address += write(bytes(next_channel))
+                write(bytes(next_channel))
 
                 gp['channel_group'].address = address
                 gp['channel_group']['first_ch_addr'] = gp['channels'][0].address
@@ -1757,7 +1757,7 @@ class MDF4(object):
                         address += add
                     else:
                         add = 0
-                    address += write(bytes(block) + b'\x00' * add)
+                    write(bytes(block) + b'\x00' * add)
 
             for gp in self.groups:
                 gp['data_group'].address = address
