@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import sys
 PYVERSION = sys.version_info[0]
+PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 
 import time
 import warnings
@@ -133,7 +134,10 @@ class AttachmentBlock(dict):
 
     def __bytes__(self):
         fmt = FMT_AT_COMMON + '{}s'.format(self['embedded_size'])
-        return pack(fmt, *[self[key] for key in KEYS_AT_BLOCK])
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in KEYS_AT_BLOCK])
 
 class Channel(dict):
     """ CNBLOCK class"""
@@ -212,7 +216,10 @@ class Channel(dict):
             self['upper_ext_limit'] = kargs.get('upper_ext_limit', 0)
 
     def __bytes__(self):
-        return pack(FMT_CHANNEL, *[self[key] for key in KEYS_CHANNEL])
+        if PYVERSION_MAJOR >= 36:
+            return pack(FMT_CHANNEL, *self.values())
+        else:
+            return pack(FMT_CHANNEL, *[self[key] for key in KEYS_CHANNEL])
 
 
 class ChannelGroup(dict):
@@ -264,7 +271,10 @@ class ChannelGroup(dict):
             self['invalidation_bytes_nr'] = kargs.get('invalidation_bytes_nr', 0)
 
     def __bytes__(self):
-        return pack(FMT_CHANNEL_GROUP, *[self[key] for key in KEYS_CHANNEL_GROUP])
+        if PYVERSION_MAJOR >= 36:
+            return pack(FMT_CHANNEL_GROUP, *self.values())
+        else:
+            return pack(FMT_CHANNEL_GROUP, *[self[key] for key in KEYS_CHANNEL_GROUP])
 
 
 class ChannelConversion(dict):
@@ -579,104 +589,110 @@ class ChannelConversion(dict):
 
     def __bytes__(self):
         fmt = '<4sI{}Q2B3H{}d'.format(self['links_nr'] + 2, self['val_param_nr'] + 2)
-        if self['conversion_type'] == CONVERSION_TYPE_NON:
-            keys = KEYS_CONVERSION_NONE
-        elif self['conversion_type'] == CONVERSION_TYPE_LIN:
-            keys = KEYS_CONVERSION_LINEAR
-        elif self['conversion_type'] == CONVERSION_TYPE_RAT:
-            keys = KEYS_CONVERSION_RAT
-        elif self['conversion_type'] == CONVERSION_TYPE_ALG:
-            keys = KEYS_CONVERSION_ALGEBRAIC
-        elif self['conversion_type'] in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TAB):
-            keys = KEYS_CONVERSION_NONE
-            for i in range(self['val_param_nr'] // 2):
-                keys += ('raw_{}'.format(i), 'phys_{}'.format(i))
-        elif self['conversion_type'] == CONVERSION_TYPE_RTAB:
-            keys = KEYS_CONVERSION_NONE
-            for i in range(self['val_param_nr']):
-                keys += ('lower{}'.format(i), 'upper_{}'.format(i), 'phys_{}'.format(i))
-            keys += ('default',)
-        elif self['conversion_type'] == CONVERSION_TYPE_TABX:
-            keys = ('id',
-                    'reserved0',
-                    'block_len',
-                    'links_nr',
-                    'name_addr',
-                    'unit_addr',
-                    'comment_addr',
-                    'inv_conv_addr')
-            keys += tuple('text_{}'.format(i) for i in range(self['links_nr'] - 4 - 1))
-            keys += ('default_addr',)
-            keys += ('conversion_type',
-                     'precision',
-                     'flags',
-                     'ref_param_nr',
-                     'val_param_nr',
-                     'min_phy_value',
-                     'max_phy_value')
-            keys += tuple('val_{}'.format(i) for i in range(self['val_param_nr']))
-        elif self['conversion_type'] == CONVERSION_TYPE_RTABX:
-            keys = ('id',
-                    'reserved0',
-                    'block_len',
-                    'links_nr',
-                    'name_addr',
-                    'unit_addr',
-                    'comment_addr',
-                    'inv_conv_addr')
-            keys += tuple('text_{}'.format(i) for i in range(self['links_nr'] - 4 - 1))
-            keys += ('default_addr',)
-            keys += ('conversion_type',
-                     'precision',
-                     'flags',
-                     'ref_param_nr',
-                     'val_param_nr',
-                     'min_phy_value',
-                     'max_phy_value')
-            for i in range(self['val_param_nr'] // 2):
-                keys += ('lower_{}'.format(i), 'upper_{}'.format(i))
-        elif self['conversion_type'] == CONVERSION_TYPE_TTAB:
-            keys = ('id',
-                    'reserved0',
-                    'block_len',
-                    'links_nr',
-                    'name_addr',
-                    'unit_addr',
-                    'comment_addr',
-                    'inv_conv_addr')
-            keys += tuple('text_{}'.format(i) for i in range(self['links_nr'] - 4))
-            keys += ('conversion_type',
-                     'precision',
-                     'flags',
-                     'ref_param_nr',
-                     'val_param_nr',
-                     'min_phy_value',
-                     'max_phy_value')
-            keys += tuple('val_{}'.format(i) for i in range(self['val_param_nr'] -1))
-            keys += ('val_default',)
-        elif self['conversion_type'] == CONVERSION_TYPE_TRANS:
-            keys = ('id',
-                    'reserved0',
-                    'block_len',
-                    'links_nr',
-                    'name_addr',
-                    'unit_addr',
-                    'comment_addr',
-                    'inv_conv_addr')
-            for i in range((self['links_nr'] - 4 -1) // 2):
-                keys += ('input_{}_addr'.format(i), 'output_{}_addr'.format(i))
-            keys += ('default_addr',
-                     'conversion_type',
-                     'precision',
-                     'flags',
-                     'ref_param_nr',
-                     'val_param_nr',
-                     'min_phy_value',
-                     'max_phy_value')
-            keys += tuple('val_{}'.format(i) for i in range(self['val_param_nr'] -1))
-            keys += ('val_default',)
 
-        return pack(fmt, *[self[key] for key in keys])
+        # only compute keys for Python < 3.6
+        if PYVERSION_MAJOR < 36:
+            if self['conversion_type'] == CONVERSION_TYPE_NON:
+                keys = KEYS_CONVERSION_NONE
+            elif self['conversion_type'] == CONVERSION_TYPE_LIN:
+                keys = KEYS_CONVERSION_LINEAR
+            elif self['conversion_type'] == CONVERSION_TYPE_RAT:
+                keys = KEYS_CONVERSION_RAT
+            elif self['conversion_type'] == CONVERSION_TYPE_ALG:
+                keys = KEYS_CONVERSION_ALGEBRAIC
+            elif self['conversion_type'] in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TAB):
+                keys = KEYS_CONVERSION_NONE
+                for i in range(self['val_param_nr'] // 2):
+                    keys += ('raw_{}'.format(i), 'phys_{}'.format(i))
+            elif self['conversion_type'] == CONVERSION_TYPE_RTAB:
+                keys = KEYS_CONVERSION_NONE
+                for i in range(self['val_param_nr']):
+                    keys += ('lower{}'.format(i), 'upper_{}'.format(i), 'phys_{}'.format(i))
+                keys += ('default',)
+            elif self['conversion_type'] == CONVERSION_TYPE_TABX:
+                keys = ('id',
+                        'reserved0',
+                        'block_len',
+                        'links_nr',
+                        'name_addr',
+                        'unit_addr',
+                        'comment_addr',
+                        'inv_conv_addr')
+                keys += tuple('text_{}'.format(i) for i in range(self['links_nr'] - 4 - 1))
+                keys += ('default_addr',)
+                keys += ('conversion_type',
+                         'precision',
+                         'flags',
+                         'ref_param_nr',
+                         'val_param_nr',
+                         'min_phy_value',
+                         'max_phy_value')
+                keys += tuple('val_{}'.format(i) for i in range(self['val_param_nr']))
+            elif self['conversion_type'] == CONVERSION_TYPE_RTABX:
+                keys = ('id',
+                        'reserved0',
+                        'block_len',
+                        'links_nr',
+                        'name_addr',
+                        'unit_addr',
+                        'comment_addr',
+                        'inv_conv_addr')
+                keys += tuple('text_{}'.format(i) for i in range(self['links_nr'] - 4 - 1))
+                keys += ('default_addr',)
+                keys += ('conversion_type',
+                         'precision',
+                         'flags',
+                         'ref_param_nr',
+                         'val_param_nr',
+                         'min_phy_value',
+                         'max_phy_value')
+                for i in range(self['val_param_nr'] // 2):
+                    keys += ('lower_{}'.format(i), 'upper_{}'.format(i))
+            elif self['conversion_type'] == CONVERSION_TYPE_TTAB:
+                keys = ('id',
+                        'reserved0',
+                        'block_len',
+                        'links_nr',
+                        'name_addr',
+                        'unit_addr',
+                        'comment_addr',
+                        'inv_conv_addr')
+                keys += tuple('text_{}'.format(i) for i in range(self['links_nr'] - 4))
+                keys += ('conversion_type',
+                         'precision',
+                         'flags',
+                         'ref_param_nr',
+                         'val_param_nr',
+                         'min_phy_value',
+                         'max_phy_value')
+                keys += tuple('val_{}'.format(i) for i in range(self['val_param_nr'] -1))
+                keys += ('val_default',)
+            elif self['conversion_type'] == CONVERSION_TYPE_TRANS:
+                keys = ('id',
+                        'reserved0',
+                        'block_len',
+                        'links_nr',
+                        'name_addr',
+                        'unit_addr',
+                        'comment_addr',
+                        'inv_conv_addr')
+                for i in range((self['links_nr'] - 4 -1) // 2):
+                    keys += ('input_{}_addr'.format(i), 'output_{}_addr'.format(i))
+                keys += ('default_addr',
+                         'conversion_type',
+                         'precision',
+                         'flags',
+                         'ref_param_nr',
+                         'val_param_nr',
+                         'min_phy_value',
+                         'max_phy_value')
+                keys += tuple('val_{}'.format(i) for i in range(self['val_param_nr'] -1))
+                keys += ('val_default',)
+
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in keys])
 
 
 class DataBlock(dict):
@@ -733,7 +749,11 @@ class DataBlock(dict):
             return super(DataBlock, self).__getitem__(item)
 
     def __bytes__(self):
-        return pack(FMT_DATA_BLOCK.format(self['block_len'] - COMMON_SIZE), *[self[key] for key in KEYS_DATA_BLOCK])
+        fmt = FMT_DATA_BLOCK.format(self['block_len'] - COMMON_SIZE)
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in KEYS_DATA_BLOCK])
 
 
 
@@ -838,7 +858,10 @@ class DataZippedBlock(dict):
     def __bytes__(self):
         fmt = FMT_DZ_COMMON + '{}s'.format(self['zip_size'])
         self.return_unzipped = False
-        data = pack(fmt, *[self[key] for key in KEYS_DZ_BLOCK])
+        if PYVERSION_MAJOR >= 36:
+            data = pack(fmt, *self.values())
+        else:
+            data = pack(fmt, *[self[key] for key in KEYS_DZ_BLOCK])
         self.return_unzipped = True
         return data
 
@@ -879,7 +902,10 @@ class DataGroup(dict):
             self['reserved1'] = kargs.get('reserved1', b'\00'*7)
 
     def __bytes__(self):
-        return pack(FMT_DATA_GROUP, *[self[key] for key in KEYS_DATA_GROUP])
+        if PYVERSION_MAJOR >= 36:
+            return pack(FMT_DATA_GROUP, *self.values())
+        else:
+            return pack(FMT_DATA_GROUP, *[self[key] for key in KEYS_DATA_GROUP])
 
 
 class DataList(dict):
@@ -927,10 +953,15 @@ class DataList(dict):
             self['data_block_len'] = kargs.get('data_block_len', 1)
 
     def __bytes__(self):
-        keys = ('id', 'reserved0', 'block_len', 'links_nr', 'next_dl_addr')
-        keys += tuple('data_block_addr{}'.format(i) for i in range(self['links_nr'] - 1))
-        keys += ('flags', 'reserved1', 'data_block_nr', 'data_block_len')
-        return pack(FMT_DATA_LIST.format(self['links_nr']), *[self[key] for key in keys])
+        fmt = FMT_DATA_LIST.format(self['links_nr'])
+        if PYVERSION_MAJOR < 36:
+            keys = ('id', 'reserved0', 'block_len', 'links_nr', 'next_dl_addr')
+            keys += tuple('data_block_addr{}'.format(i) for i in range(self['links_nr'] - 1))
+            keys += ('flags', 'reserved1', 'data_block_nr', 'data_block_len')
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in keys])
 
 
 class FileIdentificationBlock(dict):
@@ -974,7 +1005,10 @@ class FileIdentificationBlock(dict):
             self['unfinalized_custom_flags'] = 0
 
     def __bytes__(self):
-        return pack(FMT_IDENTIFICATION_BLOCK, *[self[key] for key in KEYS_IDENTIFICATION_BLOCK])
+        if PYVERSION_MAJOR >= 36:
+            return pack(FMT_IDENTIFICATION_BLOCK, *self.values())
+        else:
+            return pack(FMT_IDENTIFICATION_BLOCK, *[self[key] for key in KEYS_IDENTIFICATION_BLOCK])
 
 
 class FileHistory(dict):
@@ -1013,7 +1047,10 @@ class FileHistory(dict):
             self['reserved1'] = kargs.get('reserved1', b'\x00'*3)
 
     def __bytes__(self):
-        return pack(FMT_FILE_HISTORY, *[self[key] for key in KEYS_FILE_HISTORY])
+        if PYVERSION_MAJOR >= 36:
+            return pack(FMT_FILE_HISTORY, *self.values())
+        else:
+            return pack(FMT_FILE_HISTORY, *[self[key] for key in KEYS_FILE_HISTORY])
 
 
 class HeaderBlock(dict):
@@ -1069,7 +1106,10 @@ class HeaderBlock(dict):
             self['start_distance'] = kargs.get('start_distance' , 0)
 
     def __bytes__(self):
-        return pack(FMT_HEADER_BLOCK, *[self[key] for key in KEYS_HEADER_BLOCK])
+        if PYVERSION_MAJOR >= 36:
+            return pack(FMT_HEADER_BLOCK, *self.values())
+        else:
+            return pack(FMT_HEADER_BLOCK, *[self[key] for key in KEYS_HEADER_BLOCK])
 
 
 class HeaderList(dict):
@@ -1104,7 +1144,10 @@ class HeaderList(dict):
             self['reserved1'] = b'\x00' * 5
 
     def __bytes__(self):
-        return pack(FMT_HL_BLOCK, *[self[key] for key in KEYS_HL_BLOCK])
+        if PYVERSION_MAJOR >= 36:
+            return pack(FMT_HL_BLOCK, *self.values())
+        else:
+            return pack(FMT_HL_BLOCK, *[self[key] for key in KEYS_HL_BLOCK])
 
 
 class SourceInformation(dict):
@@ -1144,7 +1187,10 @@ class SourceInformation(dict):
             self['reserved1'] = b'\x00' * 5
 
     def __bytes__(self):
-        return pack(FMT_SOURCE_INFORMATION, *[self[key] for key in KEYS_SOURCE_INFORMATION])
+        if PYVERSION_MAJOR >= 36:
+            return pack(FMT_SOURCE_INFORMATION, *self.values())
+        else:
+            return pack(FMT_SOURCE_INFORMATION, *[self[key] for key in KEYS_SOURCE_INFORMATION])
 
 
 class SignalDataBlock(dict):
@@ -1175,7 +1221,10 @@ class SignalDataBlock(dict):
     def __bytes__(self):
         fmt = FMT_DATA_BLOCK.format(self['block_len'] - COMMON_SIZE)
         keys = KEYS_DATA_BLOCK
-        res = pack(fmt, *[self[key] for key in keys])
+        if PYVERSION_MAJOR >= 36:
+            res = pack(fmt, *self.values())
+        else:
+            res = pack(fmt, *[self[key] for key in keys])
         # 8 byte alignment
         size = len(res)
         if size % 8:
@@ -1264,4 +1313,8 @@ class TextBlock(dict):
         return cls(**kargs)
 
     def __bytes__(self):
-        return pack(FMT_TEXT_BLOCK.format(self['block_len'] - COMMON_SIZE), *[self[key] for key in KEYS_TEXT_BLOCK])
+        fmt = FMT_TEXT_BLOCK.format(self['block_len'] - COMMON_SIZE)
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in KEYS_TEXT_BLOCK])

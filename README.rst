@@ -27,10 +27,12 @@ Features
     * the *Signal* class facilitates operations with such channels
     
 * remove data group by index or by specifing a channel name inside the target data group
+* create new mdf files from scratch
 * append new channels
 * convert to different mdf version
 * add and extract attachments
 * mdf 4.10 zipped blocks
+* mdf 4 structure channels
 
 Major features still not implemented
 ====================================
@@ -56,7 +58,7 @@ Check the *examples* folder for extended usage demo.
 
 Documentation
 =============
-http://asammdf.readthedocs.io/en/2.1.0/
+http://asammdf.readthedocs.io/en/2.1.1/
 
 Installation
 ============
@@ -75,9 +77,10 @@ Dependencies
 asammdf uses the following libraries
 
 * numpy : the heart that makes all tick
-* numexpr : for formula based channel conversions
+* numexpr : for algebraic and rational channel conversions
 * blosc : optionally used for in memmory raw channel data compression
 * matplotlib : for Signal plotting
+* pandas : for DataFrame export
 
 Benchmarks
 ==========
