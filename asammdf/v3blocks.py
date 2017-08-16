@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import sys
 PYVERSION = sys.version_info[0]
+PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 
 import time
 import os
@@ -150,7 +151,10 @@ class Channel(dict):
             self['aditional_byte_offset'] = kargs.get('aditional_byte_offset', 0)
 
     def __bytes__(self):
-        return pack(FMT_CHANNEL, *[self[key] for key in KEYS_CHANNEL])
+        if PYVERSION_MAJOR >= 36:
+            return pack(FMT_CHANNEL, *self.values())
+        else:
+            return pack(FMT_CHANNEL, *[self[key] for key in KEYS_CHANNEL])
 
 
 class ChannelConversion(dict):
@@ -418,48 +422,68 @@ class ChannelConversion(dict):
 
     def __bytes__(self):
         conv = self['conversion_type']
+
+        # compute the fmt
         if conv == CONVERSION_TYPE_NONE:
             fmt = FMT_CONVERSION_COMMON
-            keys = KEYS_CONVESION_NONE
         elif conv == CONVERSION_TYPE_FORMULA:
             fmt = FMT_CONVERSION_FORMULA
-            keys = KEYS_CONVESION_FORMULA
         elif conv == CONVERSION_TYPE_LINEAR:
             fmt = FMT_CONVERSION_LINEAR
-            keys = KEYS_CONVESION_LINEAR
             if not self['block_len'] == CC_LIN_BLOCK_SIZE:
                 fmt += '{}s'.format(self['block_len'] - CC_LIN_BLOCK_SIZE)
-                keys += ('CANapeHiddenExtra',)
         elif conv in (CONVERSION_TYPE_POLY, CONVERSION_TYPE_RAT):
             fmt = FMT_CONVERSION_POLY_RAT
-            keys = KEYS_CONVESION_POLY_RAT
         elif conv in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
             fmt = FMT_CONVERSION_EXPO_LOGH
-            keys = KEYS_CONVESION_EXPO_LOGH
         elif conv in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
             nr = self['ref_param_nr']
             fmt = FMT_CONVERSION_COMMON + '{}d'.format(nr * 2)
-            keys = list(KEYS_CONVESION_NONE)
-            for i in range(nr):
-                keys.append('raw_{}'.format(i))
-                keys.append('phys_{}'.format(i))
         elif conv == CONVERSION_TYPE_VTABR:
             nr = self['ref_param_nr']
             fmt = FMT_CONVERSION_COMMON + '2dI' * nr
-            keys = list(KEYS_CONVESION_NONE)
-            for i in range(nr):
-                keys.append('lower_{}'.format(i))
-                keys.append('upper_{}'.format(i))
-                keys.append('text_{}'.format(i))
         elif conv == CONVERSION_TYPE_VTAB:
             nr = self['ref_param_nr']
             fmt = FMT_CONVERSION_COMMON + 'd32s' * nr
-            keys = list(KEYS_CONVESION_NONE)
-            for i in range(nr):
-                keys.append('param_val_{}'.format(i))
-                keys.append('text_{}'.format(i))
 
-        return pack(fmt, *[self[key] for key in keys])
+        # compute the keys only for Python < 3.6
+        if PYVERSION_MAJOR < 36:
+            if conv == CONVERSION_TYPE_NONE:
+                keys = KEYS_CONVESION_NONE
+            elif conv == CONVERSION_TYPE_FORMULA:
+                keys = KEYS_CONVESION_FORMULA
+            elif conv == CONVERSION_TYPE_LINEAR:
+                keys = KEYS_CONVESION_LINEAR
+                if not self['block_len'] == CC_LIN_BLOCK_SIZE:
+                    keys += ('CANapeHiddenExtra',)
+            elif conv in (CONVERSION_TYPE_POLY, CONVERSION_TYPE_RAT):
+                keys = KEYS_CONVESION_POLY_RAT
+            elif conv in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
+                keys = KEYS_CONVESION_EXPO_LOGH
+            elif conv in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
+                nr = self['ref_param_nr']
+                keys = list(KEYS_CONVESION_NONE)
+                for i in range(nr):
+                    keys.append('raw_{}'.format(i))
+                    keys.append('phys_{}'.format(i))
+            elif conv == CONVERSION_TYPE_VTABR:
+                nr = self['ref_param_nr']
+                keys = list(KEYS_CONVESION_NONE)
+                for i in range(nr):
+                    keys.append('lower_{}'.format(i))
+                    keys.append('upper_{}'.format(i))
+                    keys.append('text_{}'.format(i))
+            elif conv == CONVERSION_TYPE_VTAB:
+                nr = self['ref_param_nr']
+                keys = list(KEYS_CONVESION_NONE)
+                for i in range(nr):
+                    keys.append('param_val_{}'.format(i))
+                    keys.append('text_{}'.format(i))
+
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in keys])
 
 
 class ChannelDependency(dict):
@@ -636,7 +660,11 @@ class ChannelExtension(dict):
         else:
             fmt = FMT_SOURCE_VECTOR
             keys = KEYS_SOURCE_VECTOR
-        return pack(fmt, *[self[key] for key in keys])
+
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in keys])
 
 
 class ChannelGroup(dict):
@@ -703,8 +731,6 @@ class ChannelGroup(dict):
              self['cycles_nr']) = unpack(FMT_CHANNEL_GROUP, block)
             if self['block_len'] == CG33_BLOCK_SIZE:
                 self['sample_reduction_addr'] = unpack('<I', stream.read(4))[0]
-            else:
-                self['sample_reduction_addr'] = 0
         except KeyError:
             self.address = 0
             self['id'] = kargs.get('id', 'CG'.encode('latin-1'))
@@ -716,7 +742,8 @@ class ChannelGroup(dict):
             self['ch_nr'] = kargs.get('ch_nr', 0)
             self['samples_byte_nr'] = kargs.get('samples_byte_nr', 0)
             self['cycles_nr'] = kargs.get('cycles_nr', 0)
-            self['sample_reduction_addr'] = 0
+            if self['block_len'] == CG33_BLOCK_SIZE:
+                self['sample_reduction_addr'] = 0
 
     def __bytes__(self):
         fmt = FMT_CHANNEL_GROUP
@@ -724,8 +751,10 @@ class ChannelGroup(dict):
         if self['block_len'] == CG33_BLOCK_SIZE:
             fmt += 'I'
             keys += ('sample_reduction_addr',)
-
-        return pack(fmt, *[self[key] for key in keys])
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in keys])
 
 
 class DataBlock(dict):
@@ -849,8 +878,7 @@ class DataGroup(dict):
 
             if self['block_len'] == DG32_BLOCK_SIZE:
                 self['reserved0'] = stream.read(4)
-            else:
-                self['reserved0'] = b'\x00\x00\x00\x00'
+
         except KeyError:
             self.address = 0
             self['id'] = kargs.get('id', 'DG'.encode('latin-1'))
@@ -861,7 +889,8 @@ class DataGroup(dict):
             self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['cg_nr'] = kargs.get('cg_nr', 1)
             self['record_id_nr'] = kargs.get('record_id_nr', 0)
-            self['reserved0'] = b'\x00\x00\x00\x00'
+            if self['block_len'] == DG32_BLOCK_SIZE:
+                self['reserved0'] = b'\x00\x00\x00\x00'
 
     def __bytes__(self):
         if self['block_len'] == DG32_BLOCK_SIZE:
@@ -870,7 +899,10 @@ class DataGroup(dict):
         else:
             fmt = FMT_DATA_GROUP
             keys = KEYS_DATA_GROUP
-        return pack(fmt, *[self[key] for key in keys])
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in keys])
 
 
 class FileIdentificationBlock(dict):
@@ -943,7 +975,10 @@ class FileIdentificationBlock(dict):
             self['unfinalized_custom_flags'] = 0
 
     def __bytes__(self):
-        return pack(ID_FMT, *[self[key] for key in ID_KEYS])
+        if PYVERSION_MAJOR >= 36:
+            return pack(ID_FMT, *self.values())
+        else:
+            return pack(ID_FMT, *[self[key] for key in ID_KEYS])
 
 
 class HeaderBlock(dict):
@@ -1014,11 +1049,6 @@ class HeaderBlock(dict):
                  self['tz_offset'],
                  self['time_quality'],
                  self['timer_identification']) = unpack(HEADER_POST_320_EXTRA_FMT, stream.read(HEADER_POST_320_EXTRA_SIZE))
-            else:
-                self['abs_time'] = int(time.time() * 10**9)
-                self['tz_offset'] = 2
-                self['time_quality'] = 0
-                self['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time').encode('latin-1')
 
         except KeyError:
             version = kargs.get('version', '3.20')
@@ -1040,10 +1070,11 @@ class HeaderBlock(dict):
             self['project'] = '{:\x00<32}'.format('').encode('latin-1')
             self['subject'] = '{:\x00<32}'.format('').encode('latin-1')
 
-            self['abs_time'] = int(t1)
-            self['tz_offset'] = 2
-            self['time_quality'] = 0
-            self['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time').encode('latin-1')
+            if self['block_len'] > HEADER_COMMON_SIZE:
+                self['abs_time'] = int(t1)
+                self['tz_offset'] = 2
+                self['time_quality'] = 0
+                self['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time').encode('latin-1')
 
     def __bytes__(self):
         fmt = HEADER_COMMON_FMT
@@ -1051,7 +1082,10 @@ class HeaderBlock(dict):
         if self['block_len'] > HEADER_COMMON_SIZE:
             fmt += HEADER_POST_320_EXTRA_FMT
             keys += HEADER_POST_320_EXTRA_KEYS
-        return pack(fmt, *[self[key] for key in keys])
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in keys])
 
 
 class ProgramBlock(dict):
@@ -1098,7 +1132,10 @@ class ProgramBlock(dict):
 
     def __bytes__(self):
         fmt = FMT_PROGRAM_BLOCK.format(self['block_len'])
-        return pack(fmt, *[self[key] for key in KEYS_PROGRAM_BLOCK])
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in KEYS_PROGRAM_BLOCK])
 
 
 class SampleReduction(dict):
@@ -1234,7 +1271,10 @@ class TextBlock(dict):
     def __bytes__(self):
         #return pack('<2sH{}s'.format(self.size - 4), *[self[key] for key in KEYS_TEXT_BLOCK])
         # for performance reasons:
-        return pack('<2sH' + str(self['block_len']-4) + 's', *[self[key] for key in KEYS_TEXT_BLOCK])
+        if PYVERSION_MAJOR >= 36:
+            return pack('<2sH' + str(self['block_len']-4) + 's', *self.values())
+        else:
+            return pack('<2sH' + str(self['block_len']-4) + 's', *[self[key] for key in KEYS_TEXT_BLOCK])
 
 
 class TriggerBlock(dict):
@@ -1302,4 +1342,7 @@ class TriggerBlock(dict):
         keys = ('id', 'block_len', 'text_addr', 'trigger_events_nr')
         for i in range(triggers_nr):
             keys += ('trigger_{}_time'.format(i), 'trigger_{}_pretime'.format(i), 'trigger_{}_posttime'.format(i))
-        return pack(fmt, *[self[key] for key in keys])
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in keys])

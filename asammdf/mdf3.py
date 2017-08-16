@@ -15,9 +15,10 @@ from functools import reduce
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, log, exp, clip, union1d, float64,
-                   uint8, frombuffer)
+                   uint8, frombuffer, issubdtype, flexible, arange)
 from numpy.core.records import fromstring, fromarrays
 from numexpr import evaluate
+from pandas import DataFrame
 
 from .utils import MdfException, get_fmt, pair, fmt_to_datatype
 from .signal import Signal
@@ -112,7 +113,7 @@ class MDF3(object):
 
             self.byteorder = '<' if self.identification['byte_order'] == 0 else '>'
 
-            self.version = self.identification['version_str'].decode('latin-1').strip('\x00').strip(' ')
+            self.version = self.identification['version_str'].decode('latin-1').strip(' \n\t\x00')
 
             self.file_history = TextBlock(address=self.header['comment_addr'], file_stream=file_stream)
 
@@ -204,7 +205,7 @@ class MDF3(object):
                         if new_ch['long_name_addr']:
                             new_ch.name = ch_texts['long_name_addr'].text_str
                         else:
-                            new_ch.name = new_ch['short_name'].decode('latin-1').strip('\x00')
+                            new_ch.name = new_ch['short_name'].decode('latin-1').strip(' \n\t\x00')
 
                         if new_ch.name in self.channels_db:
                             self.channels_db[new_ch.name].append((dg_cntr, ch_cntr))
@@ -222,18 +223,28 @@ class MDF3(object):
                     cg_addr = grp['channel_group']['next_cg_addr']
                     dg_cntr += 1
 
-                    if cg_addr and self.load_measured_data == False:
-                        raise MdfException('Reading unsorted file with load_measured_data option set to False is not supported')
+                # store channel groups record sizes dict and data block size in each
+                # new group data belong to the initial unsorted group, and add
+                # the key 'sorted' with the value False to use a flag;
+                # this is used later if load_measured_data=False
 
-                if self.load_measured_data:
+                if cg_nr > 1:
+                    cg_size = {}
                     size = 0
                     record_id_nr = gp['record_id_nr'] if gp['record_id_nr'] <= 2 else 0
-
-                    cg_size = {}
-                    cg_data = defaultdict(list)
                     for grp in new_groups:
                         size += (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
                         cg_size[grp['channel_group']['record_id']] = grp['channel_group']['samples_byte_nr']
+
+                    for grp in new_groups:
+                        grp['sorted'] = False
+                        grp['record_size'] = cg_size
+                        grp['size'] = size
+                else:
+                    record_id_nr = gp['record_id_nr'] if gp['record_id_nr'] <= 2 else 0
+                    size = (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
+
+                if self.load_measured_data:
 
                     # read data block of the current data group
                     dat_addr = gp['data_block_addr']
@@ -243,9 +254,11 @@ class MDF3(object):
                     else:
                         data = b''
                     if cg_nr == 1:
+
                         kargs = {'data': data, 'compression': self.compression}
                         new_groups[0]['data_block'] = DataBlock(**kargs)
                     else:
+                        cg_data = defaultdict(list)
                         i = 0
                         size = len(data)
                         while i < size:
@@ -366,10 +379,19 @@ class MDF3(object):
                  'max_phy_value': t[-1] if cycles_nr else 0}
         gp_conv.append(ChannelConversion(**kargs))
 
+        # conversions for channels
         if cycles_nr:
-            min_max = [(amin(s.samples), amax(s.samples)) for s in signals]
+            min_max = []
+            # compute min and max valkues for all channels
+            # for string channels we append (1,0) and use this as a marker (if min>max then channel is string)
+            for s in signals:
+                if issubdtype(s.samples.dtype, flexible):
+                    min_max.append((1,0))
+                else:
+                    min_max.append((amin(s.samples), amax(s.samples)))
         else:
             min_max = [(0, 0) for s in signals]
+
         #conversion for channels
         for idx, s in enumerate(signals):
             conv = s.conversion
@@ -409,8 +431,8 @@ class MDF3(object):
             else:
                 kargs = {'conversion_type': CONVERSION_TYPE_NONE,
                          'unit': s.unit.encode('latin-1') ,
-                         'min_phy_value': min_max[idx][0],
-                         'max_phy_value': min_max[idx][1]}
+                         'min_phy_value': min_max[idx][0] if min_max[idx][0]<=min_max[idx][1] else 0,
+                         'max_phy_value': min_max[idx][1] if min_max[idx][0]<=min_max[idx][1] else 0}
                 gp_conv.append(ChannelConversion(**kargs))
 
         #source for channels and time
@@ -443,8 +465,8 @@ class MDF3(object):
             kargs = {'short_name': (s.name[:31] + '\x00').encode('latin-1') if len(s.name) >= 32 else s.name.encode('latin-1'),
                      'channel_type': CHANNEL_TYPE_VALUE,
                      'data_type': sig_type,
-                     'lower_limit': sigmin,
-                     'upper_limit': sigmax,
+                     'lower_limit': sigmin if sigmin<=sigmax else 0,
+                     'upper_limit': sigmax if sigmin<=sigmax else 0,
                      'start_offset': offset,
                      'bit_count': sig_size}
             ch = Channel(**kargs)
@@ -527,44 +549,84 @@ class MDF3(object):
         t_fmt = get_fmt(time_ch['data_type'], time_size)
         t_byte_offset, bit_offset = divmod(time_ch['start_offset'], 8)
 
+        t_byte_offset += time_ch['aditional_byte_offset']
+
         bits = time_ch['bit_count']
-        if bits % 8:
-            size = bits // 8 + 1
+
+        # virtual master channel
+        if bits == 0:
+            nr = gp['channel_group']['cycles_nr']
+            step = time_ch['sampling_rate']
+            t = arange(nr, dtype=float64) * step
+
+        # master channel with values in data block
         else:
-            size = bits // 8
-
-        block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
-
-
-        if data is None:
-            if not self.load_measured_data:
-                with open(self.name, 'rb') as file_stream:
-                    # go to the first data block of the current data group
-                    dat_addr = gp['data_group']['data_block_addr']
-                    read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
-                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+            if bits % 8:
+                size = bits // 8 + 1
             else:
-                if gp['data_block']:
-                    data = gp['data_block']['data']
+                size = bits // 8
+
+            block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
+
+
+            if data is None:
+                if not self.load_measured_data:
+                    with open(self.name, 'rb') as file_stream:
+                        # go to the first data block of the current data group
+
+                        dat_addr = gp['data_group']['data_block_addr']
+
+                        if gp.get('sorted', True):
+                            read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                            data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                        else:
+                            read_size = gp['size']
+                            record_id = gp['channel_group']['record_id']
+                            cg_size = gp['record_size']
+                            record_id_nr = gp['data_group']['record_id_nr'] if gp['data_group']['record_id_nr'] <= 2 else 0
+                            cg_data = []
+
+                            data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                            i = 0
+                            size = len(data)
+                            while i < size:
+                                rec_id = data[i]
+                                # skip redord id
+                                i += 1
+                                rec_size = cg_size[rec_id]
+                                if rec_id == record_id:
+                                    rec_data = data[i: i+rec_size]
+                                    cg_data.append(rec_data)
+                                # if 2 record id's are sued skip also the second one
+                                if record_id_nr == 2:
+                                    i += 1
+                                # go to next record
+                                i += rec_size
+                            data = b''.join(cg_data)
                 else:
-                    data = b''
+                    if gp['data_block']:
+                        data = gp['data_block']['data']
+                    else:
+                        data = b''
 
-        types = dtype( [('', 'a{}'.format(t_byte_offset)),
-                        ('t', t_fmt),
-                        ('', 'a{}'.format(block_size - t_byte_offset - size))] )
+            types = dtype( [('', 'a{}'.format(t_byte_offset)),
+                            ('t', t_fmt),
+                            ('', 'a{}'.format(block_size - t_byte_offset - size))] )
 
-        values = fromstring(data, types)
+            values = fromstring(data, types)
 
-        # get timestamps
-        time_conv_type = CONVERSION_TYPE_NONE if time_conv is None else time_conv['conversion_type']
-        if time_conv_type == CONVERSION_TYPE_LINEAR:
-            time_a = time_conv['a']
-            time_b = time_conv['b']
-            t = values['t'] * time_a
-            if time_b:
-                t += time_b
-        elif time_conv_type == CONVERSION_TYPE_NONE:
-            t = values['t']
+            # get timestamps
+            time_conv_type = CONVERSION_TYPE_NONE if time_conv is None else time_conv['conversion_type']
+            if time_conv_type == CONVERSION_TYPE_LINEAR:
+                time_a = time_conv['a']
+                time_b = time_conv['b']
+                t = values['t'] * time_a
+                if time_b:
+                    t += time_b
+            elif time_conv_type == CONVERSION_TYPE_NONE:
+                t = values['t']
 
         return t
 
@@ -594,8 +656,8 @@ class MDF3(object):
         -------
         vals : numpy.array
             channel values; if *return_info* is False
-        vals, name, conversion, unit : numpy.array, str, dict, str
-            channel values, channel name, channel conversion, channel unit: if *return_info* is True
+        vals, name, conversion, unit, description: numpy.array, str, dict, str, str
+            channel values, channel name, channel conversion, channel unit, channel description: if *return_info* is True
 
         """
 
@@ -628,7 +690,7 @@ class MDF3(object):
         channel = gp['channels'][ch_nr]
         conversion = gp['channel_conversions'][ch_nr]
         if conversion:
-            unit = conversion['unit'].decode('latin-1').strip('\x00')
+            unit = conversion['unit'].decode('latin-1').strip(' \n\t\x00')
         else:
             unit = ''
 
@@ -641,6 +703,8 @@ class MDF3(object):
             size = bits // 8
         block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
         byte_offset, bit_offset = divmod(channel['start_offset'], 8)
+        byte_offset += channel['aditional_byte_offset']
+
         ch_fmt = get_fmt(channel['data_type'], size)
 
         if data is None:
@@ -648,8 +712,36 @@ class MDF3(object):
                 with open(self.name, 'rb') as file_stream:
                     # go to the first data block of the current data group
                     dat_addr = gp['data_group']['data_block_addr']
-                    read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
-                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                    if gp.get('sorted', True):
+                        read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                    else:
+                        read_size = gp['size']
+                        record_id = gp['channel_group']['record_id']
+                        cg_size = gp['record_size']
+                        record_id_nr = gp['data_group']['record_id_nr'] if gp['data_group']['record_id_nr'] <= 2 else 0
+                        cg_data = []
+
+                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                        i = 0
+                        size = len(data)
+                        while i < size:
+                            rec_id = data[i]
+                            # skip redord id
+                            i += 1
+                            rec_size = cg_size[rec_id]
+                            if rec_id == record_id:
+                                rec_data = data[i: i+rec_size]
+                                cg_data.append(rec_data)
+                            # if 2 record id's are sued skip also the second one
+                            if record_id_nr == 2:
+                                i += 1
+                            # go to next record
+                            i += rec_size
+                        data = b''.join(cg_data)
             else:
                 if gp['data_block']:
                     data = gp['data_block']['data']
@@ -666,6 +758,7 @@ class MDF3(object):
         # get channel values
         conversion_type = CONVERSION_TYPE_NONE if conversion is None else conversion['conversion_type']
         vals = values['vals']
+
         if bit_offset:
             vals = vals >> bit_offset
         if bits % 8:
@@ -691,7 +784,7 @@ class MDF3(object):
             else:
                 vals = vals * a
                 if b:
-                    vals = vals + b
+                    vals += b
 
         elif conversion_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
             nr = conversion['ref_param_nr']
@@ -744,7 +837,7 @@ class MDF3(object):
             P5 = conversion['P5']
             P6 = conversion['P6']
             X = values['vals']
-            vals = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
+            vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
 
         elif conversion_type == CONVERSION_TYPE_POLY:
             P1 = conversion['P1']
@@ -754,17 +847,18 @@ class MDF3(object):
             P5 = conversion['P5']
             P6 = conversion['P6']
             X = values['vals']
-            vals = (P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)
+            vals = evaluate('(P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)')
 
         elif conversion_type == CONVERSION_TYPE_FORMULA:
-            formula = conversion['formula'].decode('latin-1').strip('\x00')
+            formula = conversion['formula'].decode('latin-1').strip(' \n\t\x00')
             X1 = values['vals']
             vals = evaluate(formula)
 
         conversion = info
 
         if return_info:
-            return vals, channel.name, conversion, unit
+            description = channel['description'].decode('latin-1').strip(' \t\n\x00')
+            return vals, channel.name, conversion, unit, description
         else:
             return vals
 
@@ -855,8 +949,36 @@ class MDF3(object):
             with open(self.name, 'rb') as file_stream:
                 # go to the first data block of the current data group
                 dat_addr = gp['data_group']['data_block_addr']
-                read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
-                data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                if gp.get('sorted', True):
+                    read_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                else:
+                    read_size = gp['size']
+                    record_id = gp['channel_group']['record_id']
+                    cg_size = gp['record_size']
+                    record_id_nr = gp['data_group']['record_id_nr'] if gp['data_group']['record_id_nr'] <= 2 else 0
+                    cg_data = []
+
+                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                    i = 0
+                    size = len(data)
+                    while i < size:
+                        rec_id = data[i]
+                        # skip redord id
+                        i += 1
+                        rec_size = cg_size[rec_id]
+                        if rec_id == record_id:
+                            rec_data = data[i: i+rec_size]
+                            cg_data.append(rec_data)
+                        # if 2 record id's are sued skip also the second one
+                        if record_id_nr == 2:
+                            i += 1
+                        # go to next record
+                        i += rec_size
+                    data = b''.join(cg_data)
         else:
             if gp['data_block']:
                 data = gp['data_block']['data']
@@ -872,17 +994,30 @@ class MDF3(object):
                          name=channel.name,
                          conversion=None)
         else:
-            vals, name, conversion, unit = self.get_channel_data(group=gp_nr, index=ch_nr, data=data, return_info=True)
+            vals, name, conversion, unit, descr = self.get_channel_data(group=gp_nr, index=ch_nr, data=data, return_info=True)
 
             res = Signal(samples=vals,
                          timestamps=t,
                          unit=unit,
                          name=name,
-                         conversion=conversion)
+                         conversion=conversion,
+                         comment=descr)
         if raster:
             tx = linspace(0, t[-1], int(t[-1] / raster))
             res = res.interp(tx)
         return res
+
+    def iter_to_pandas(self):
+        master_type = (CHANNEL_TYPE_MASTER, )
+        for i, gp in enumerate(self.groups):
+            t = self.get_master_data(group=i)
+            t_name = gp['channels'][self.masters_db[i]].name
+            pandas_dict = {t_name: t}
+            for j, ch in enumerate(gp['channels']):
+                if not ch['channel_type'] in master_type:
+                    vals, name, conversion, unit = self.get_channel_data(group=i, index=j, return_info=True)
+                    pandas_dict[name] = vals
+            yield DataFrame.from_dict(pandas_dict)
 
     def info(self):
         """get MDF information as a dict
@@ -967,13 +1102,17 @@ class MDF3(object):
             text = self.file_history['text'] + '\n{}: updated byt Python script'.format(time.asctime()).encode('latin-1')
             self.file_history = TextBlock.from_text(text)
 
-
-
         if self.name is None and dst is None:
             print('New MDF created without a name and no destination file name specified for save')
             return
         dst = dst if dst else self.name
 
+        if PYVERSION == 2:
+            self._save_py2(dst)
+        else:
+            self._save_py3(dst)
+
+    def _save_py2(self, dst):
         with open(dst, 'wb') as dst:
             #store unique texts and their addresses
             defined_texts = {}
@@ -1068,6 +1207,118 @@ class MDF3(object):
                 db.address = address
                 write(bytes(db))
                 address = tell()
+
+            # DataGroup
+            for gp in self.groups:
+
+                dg = gp['data_group']
+                dg.address = address
+                address += dg['block_len']
+                dg['first_cg_addr'] = gp['channel_group'].address
+                dg['data_block_addr'] = gp['data_block'].address
+
+
+            for i, dg in enumerate(self.groups[:-1]):
+                dg['data_group']['next_dg_addr'] = self.groups[i+1]['data_group'].address
+            self.groups[-1]['data_group']['next_dg_addr'] = 0
+
+            for dg in self.groups:
+                write(bytes(dg['data_group']))
+
+            if self.groups:
+                self.header['first_dg_addr'] = self.groups[0]['data_group'].address
+                self.header['dg_nr'] = len(self.groups)
+                self.header['comment_addr'] = self.file_history.address
+                self.header['program_addr'] = 0
+            dst.seek(0, SEEK_START)
+            write(bytes(self.identification))
+            write(bytes(self.header))
+
+    def _save_py3(self, dst):
+        with open(dst, 'wb') as dst:
+            #store unique texts and their addresses
+            defined_texts = {}
+            address = 0
+
+            write = dst.write
+            tell = dst.tell
+
+            address += write(bytes(self.identification))
+            address += write(bytes(self.header))
+
+            self.file_history.address = address
+            address += write(bytes(self.file_history))
+
+            for gp in self.groups:
+                gp_texts = gp['texts']
+
+                # Texts
+                for _, item_list in gp_texts.items():
+                    for my_dict in item_list:
+                        for key in my_dict:
+                            #text blocks can be shared
+                            if my_dict[key].text_str in defined_texts:
+                                my_dict[key].address = defined_texts[my_dict[key].text_str]
+                            else:
+                                defined_texts[my_dict[key].text_str] = address
+                                my_dict[key].address = address
+                                address += write(bytes(my_dict[key]))
+
+                # ChannelConversions
+                cc = gp['channel_conversions']
+                for i, conv in enumerate(cc):
+                    if conv:
+                        conv.address = address
+                        if conv['conversion_type'] == CONVERSION_TYPE_VTABR:
+                            for key, item in gp_texts['conversion_tab'][i].items():
+                                conv[key] = item.address
+
+                        address += write(bytes(conv))
+
+                # Channel Extension
+                cs = gp['channel_extensions']
+                for source in cs:
+                    if source:
+                        source.address = address
+                        address += write(bytes(source))
+
+                # Channels
+                # Channels need 4 extra bytes for 8byte alignment
+
+                ch_texts = gp_texts['channels']
+                for i, channel in enumerate(gp['channels']):
+                    channel.address = address
+                    address += CN_BLOCK_SIZE
+
+                    for key in ('long_name_addr', 'comment_addr', 'display_name_addr'):
+                        channel_texts = ch_texts[i]
+                        if key in channel_texts:
+                            channel[key] = channel_texts[key].address
+                        else:
+                            channel[key] = 0
+                    channel['conversion_addr'] = cc[i].address if cc[i] else 0
+                    channel['source_depend_addr'] = cs[i].address if cs[i] else 0
+
+                for channel, next_channel in pair(gp['channels']):
+                    channel['next_ch_addr'] = next_channel.address
+                    write(bytes(channel))
+                next_channel['next_ch_addr'] = 0
+                write(bytes(next_channel))
+
+                # ChannelGroup
+                cg = gp['channel_group']
+                cg.address = address
+
+                cg['first_ch_addr'] = gp['channels'][0].address
+                cg['next_cg_addr'] = 0
+                if 'comment_addr' in gp['texts']['channel_group'][0]:
+                    cg['comment_addr'] = gp_texts['channel_group'][0]['comment_addr'].address
+                address += write(bytes(cg))
+
+                # DataBlock
+                db = gp['data_block']
+                db.address = address
+                address += write(bytes(db))
 
             # DataGroup
             for gp in self.groups:
