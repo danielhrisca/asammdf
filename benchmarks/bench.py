@@ -208,41 +208,41 @@ def main():
     print('* 183 groups')
     print('* 36424 channels\n\n')
 
-    print('{} {} {}'.format('='*50, '='*9, '='*8))
-    print('{:<50} {:>9} {:>8}'.format('Open file', 'Time [ms]', 'RAM [MB]'))
-    print('{} {} {}'.format('='*50, '='*9, '='*8))
-    for func in (open_mdf3,
-                 open_mdf3_compressed,
-                 open_mdf3_nodata,
-                 open_reader3,
-                 open_reader3_nodata,
-                 open_mdf4,
-                 open_mdf4_compressed,
-                 open_mdf4_nodata,
-                 open_reader4,
-                 open_reader4_nodata):
-        thr = multiprocessing.Process(target=func, args=())
-        thr.start()
-        thr.join()
-    print('{} {} {}'.format('='*50, '='*9, '='*8))
+#    print('{} {} {}'.format('='*50, '='*9, '='*8))
+#    print('{:<50} {:>9} {:>8}'.format('Open file', 'Time [ms]', 'RAM [MB]'))
+#    print('{} {} {}'.format('='*50, '='*9, '='*8))
+#    for func in (open_mdf3,
+#                 open_mdf3_compressed,
+#                 open_mdf3_nodata,
+#                 open_reader3,
+#                 open_reader3_nodata,
+#                 open_mdf4,
+#                 open_mdf4_compressed,
+#                 open_mdf4_nodata,
+#                 open_reader4,
+#                 open_reader4_nodata):
+#        thr = multiprocessing.Process(target=func, args=())
+#        thr.start()
+#        thr.join()
+#    print('{} {} {}'.format('='*50, '='*9, '='*8))
+#
+#    print('\n')
 
-    print('\n')
-
-    print('{} {} {}'.format('='*50, '='*9, '='*8))
-    print('{:<50} {:>9} {:>8}'.format('Save file', 'Time [ms]', 'RAM [MB]'))
-    print('{} {} {}'.format('='*50, '='*9, '='*8))
-    for func in (save_mdf3,
-                 save_mdf3_compressed,
-                 save_reader3,
-                 save_mdf4,
-                 save_mdf4_compressed,
-                 save_reader4):
-        thr = multiprocessing.Process(target=func, args=())
-        thr.start()
-        thr.join()
-    print('{} {} {}'.format('='*50, '='*9, '='*8))
-
-    print('\n')
+#    print('{} {} {}'.format('='*50, '='*9, '='*8))
+#    print('{:<50} {:>9} {:>8}'.format('Save file', 'Time [ms]', 'RAM [MB]'))
+#    print('{} {} {}'.format('='*50, '='*9, '='*8))
+#    for func in (save_mdf3,
+#                 save_mdf3_compressed,
+#                 save_reader3,
+#                 save_mdf4,
+#                 save_mdf4_compressed,
+#                 save_reader4):
+#        thr = multiprocessing.Process(target=func, args=())
+#        thr.start()
+#        thr.join()
+#    print('{} {} {}'.format('='*50, '='*9, '='*8))
+#
+#    print('\n')
 
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     print('{:<50} {:>9} {:>8}'.format('Get all channels (36424 calls)', 'Time [ms]', 'RAM [MB]'))

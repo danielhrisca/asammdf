@@ -695,16 +695,34 @@ class MDF3(object):
             unit = ''
 
         group = gp
-
-        bits = channel['bit_count']
-        if bits % 8:
-            size = bits // 8 + 1
-        else:
-            size = bits // 8
-        block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
+        
         byte_offset, bit_offset = divmod(channel['start_offset'], 8)
         byte_offset += channel['aditional_byte_offset']
 
+        bits = channel['bit_count']
+        size = bit_offset + bits
+        # adjust size to 1, 2, 4, or 8 bytes if data type is not string
+        if channel['data_type'] != DATA_TYPE_STRING:
+            # adjust size to 8, 16, 32 or 64 bits
+            if size > 32:
+                size = 64
+            elif size > 16:
+                size = 32
+            elif size > 8:
+                size = 16
+            else:
+                size = 8
+            
+            # convert to number of bytes
+            size //= 8
+        else:
+            if size % 8:
+                size = size // 8 + 1
+            else:
+                size = size // 8
+
+        block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
+        
         ch_fmt = get_fmt(channel['data_type'], size)
 
         if data is None:
@@ -762,7 +780,7 @@ class MDF3(object):
         if bit_offset:
             vals = vals >> bit_offset
         if bits % 8:
-            vals = vals & (2**bits - 1)
+            vals = vals & ((1<<bits) - 1)
 
         info = None
 

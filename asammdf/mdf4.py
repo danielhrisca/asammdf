@@ -1001,14 +1001,33 @@ class MDF4(object):
         group = gp
 
         byte_offset, bit_offset = channel['byte_offset'], channel['bit_offset']
-
+         
         bits = channel['bit_count']
-        size = bits + bit_offset
-
-        if size % 8:
-            size = size // 8 + 1
+        size = bit_offset + bits
+        # adjust size to 1, 2, 4, or 8 bytes if data type is not string
+        if not channel['data_type'] in (DATA_TYPE_BYTEARRAY,
+                                        DATA_TYPE_STRING_UTF_8,
+                                        DATA_TYPE_STRING_LATIN_1,
+                                        DATA_TYPE_STRING_UTF_16_BE,
+                                        DATA_TYPE_STRING_UTF_16_LE):
+            # adjust size to 8, 16, 32 or 64 bits
+            if size > 32:
+                size = 64
+            elif size > 16:
+                size = 32
+            elif size > 8:
+                size = 16
+            else:
+                size = 8
+            
+            # convert to number of bytes
+            size //= 8
         else:
-            size = size // 8
+            if size % 8:
+                size = size // 8 + 1
+            else:
+                size = size // 8
+        
         block_size = gp['channel_group']['samples_byte_nr']
 
 #        print(channel, gp_nr, ch_nr, size)
@@ -1079,7 +1098,7 @@ class MDF4(object):
         if bit_offset:
             vals = vals >> bit_offset
         if bits % 8:
-            vals = vals & (2**bits - 1)
+            vals = vals & ((1<<bits)- 1)
 
         if conversion_type == CONVERSION_TYPE_NON:
             # check if it is VLDS channel type with SDBLOCK
