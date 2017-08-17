@@ -681,6 +681,8 @@ class MDF4(object):
         types = [('t', t.dtype),]
         types.extend([('sig{}'.format(i), typ) for i, typ in enumerate(sig_dtypes)])
 
+        print(types)
+
         arrays = [t, ]
         arrays.extend([sig.samples for sig in signals])
 
@@ -1001,7 +1003,7 @@ class MDF4(object):
         group = gp
 
         byte_offset, bit_offset = channel['byte_offset'], channel['bit_offset']
-         
+
         bits = channel['bit_count']
         size = bit_offset + bits
         # adjust size to 1, 2, 4, or 8 bytes if data type is not string
@@ -1019,7 +1021,7 @@ class MDF4(object):
                 size = 16
             else:
                 size = 8
-            
+
             # convert to number of bytes
             size //= 8
         else:
@@ -1027,7 +1029,7 @@ class MDF4(object):
                 size = size // 8 + 1
             else:
                 size = size // 8
-        
+
         block_size = gp['channel_group']['samples_byte_nr']
 
 #        print(channel, gp_nr, ch_nr, size)
@@ -1113,9 +1115,21 @@ class MDF4(object):
 
                 for offset in vals:
                     offset = int(offset)
-                    size = unpack_from('<I', signal_data, offset)[0]
-                    values.append(signal_data[offset+4: offset+4+size])
-                vals = array(values)
+                    str_size = unpack_from('<I', signal_data, offset)[0]
+                    values.append(signal_data[offset+4: offset+4+str_size])
+
+                if channel['data_type'] == DATA_TYPE_STRING_UTF_16_BE:
+                    vals = array([v.decode('utf-16-be') for v in values])
+
+                elif channel['data_type'] == DATA_TYPE_STRING_UTF_16_LE:
+                    vals = array([v.decode('utf-16-le') for v in values])
+
+                elif channel['data_type'] == DATA_TYPE_STRING_UTF_8:
+                    vals = array([v.decode('utf-8') for v in values])
+
+                elif channel['data_type'] == DATA_TYPE_STRING_LATIN_1:
+                    vals = array([v.decode('latin-1') for v in values])
+
 
             # CANopen date
             elif channel['data_type'] == DATA_TYPE_CANOPEN_DATE:
@@ -1172,6 +1186,8 @@ class MDF4(object):
                 lines = len(vals) // cols
 
                 vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
+
+
 
         elif conversion_type == CONVERSION_TYPE_LIN:
             a = conversion['a']
