@@ -1363,7 +1363,7 @@ class MDF3(object):
                 address += dg['block_len']
                 dg['first_cg_addr'] = gp['channel_group'].address
                 dg['data_block_addr'] = gp['data_block'].address
-                dg['trigger_addr'] = gp['trigger'].address if gp['trigger'] else 0
+                dg['trigger_addr'] = gp['trigger'][0].address if gp['trigger'][0] else 0
 
             for i, dg in enumerate(self.groups[:-1]):
                 dg['data_group']['next_dg_addr'] = self.groups[i+1]['data_group'].address
@@ -1488,7 +1488,7 @@ class MDF3(object):
                 address += dg['block_len']
                 dg['first_cg_addr'] = gp['channel_group'].address
                 dg['data_block_addr'] = gp['data_block'].address
-                dg['trigger_addr'] = gp['trigger'].address if gp['trigger'] else 0
+                dg['trigger_addr'] = gp['trigger'][0].address if gp['trigger'][0] else 0
 
 
             for i, dg in enumerate(self.groups[:-1]):
