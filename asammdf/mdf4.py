@@ -970,11 +970,12 @@ class MDF4(object):
                         gp_nr, ch_nr = self.channels_db[name][0]
                         warnings.warn('You have selected group "{}" for channel "{}", but this channel was not found in this group. Using first occurance of "{}" from group "{}"'.format(group, name, name, gp_nr))
 
+        # get the group, channel and channel conversion
         gp = self.groups[gp_nr]
         channel = gp['channels'][ch_nr]
-
         conversion = gp['channel_conversions'][ch_nr]
 
+        # get the channel signal data if available
         signal_data = gp['signal_data'][ch_nr]
         if signal_data:
             signal_data = signal_data['data']
@@ -993,6 +994,7 @@ class MDF4(object):
             else:
                 unit = ''
 
+        # get the channel commment if available
         comment = gp['texts']['channels'][ch_nr].get('comment_addr', None)
         if comment:
             comment = comment.text_str
@@ -1004,6 +1006,7 @@ class MDF4(object):
 
         byte_offset, bit_offset = channel['byte_offset'], channel['bit_offset']
 
+        # compute channel bytes size based on number of bits and bit offset
         bits = channel['bit_count']
         size = bit_offset + bits
         # adjust size to 1, 2, 4, or 8 bytes if data type is not string
@@ -1032,14 +1035,15 @@ class MDF4(object):
 
         block_size = gp['channel_group']['samples_byte_nr']
 
-#        print(channel, gp_nr, ch_nr, size)
-
+        # get the data group raw channel data if it was not provided in the function call
         if data is None:
             if not self.load_measured_data:
                 with open(self.name, 'rb') as file_stream:
                     # go to the first data block of the current data group
                     dat_addr = gp['data_group']['data_block_addr']
                     data = self._read_data_block(address=dat_addr, file_stream=file_stream)
+
+                # handle unsorted mdf
                 if not gp.get('sorted', True):
                     cg_data = []
                     cg_size = gp['record_size']
@@ -1052,12 +1056,14 @@ class MDF4(object):
                         # skip record id
                         i += 1
                         rec_size = cg_size[rec_id]
+                        # rec_size > 0 means this is not VLDS
                         if rec_size:
                             if rec_id == record_id:
                                 rec_data = data[i: i+rec_size]
                                 cg_data.append(rec_data)
+                        # rec_size = 0 means this is a VLDS channel
                         else:
-                            # as shown bby mdfvalidator rec size is first byte after rec id + 3
+                            # record size if uint32, and after this follow the actual string bytes
                             rec_size = unpack('<I', data[i: i+4])[0]
                             i += 4
                             if rec_id == record_id:
@@ -1091,14 +1097,17 @@ class MDF4(object):
         types = dtype( [('', 'a{}'.format(byte_offset)),
                         ('vals', ch_fmt),
                         ('', 'a{}'.format(block_size - byte_offset - size))] )
-#            print(channel.name, types, data)
+
         values = fromstring(data, types)
 
         # get channel values
+
         conversion_type = CONVERSION_TYPE_NON if conversion is None else conversion['conversion_type']
         vals = values['vals']
+        # align data
         if bit_offset:
             vals = vals >> bit_offset
+        # apply bitmask
         if bits % 8:
             vals = vals & ((1<<bits)- 1)
 
@@ -1111,6 +1120,7 @@ class MDF4(object):
                     fmt = '<u4'
                 else:
                     fmt = '<u8'
+                # vals will contain the offsets inside the signal data block
                 vals = frombuffer(vals, dtype=fmt)
 
                 for offset in vals:
@@ -1129,7 +1139,6 @@ class MDF4(object):
 
                 elif channel['data_type'] == DATA_TYPE_STRING_LATIN_1:
                     vals = array([v.decode('latin-1') for v in values])
-
 
             # CANopen date
             elif channel['data_type'] == DATA_TYPE_CANOPEN_DATE:
@@ -1186,8 +1195,6 @@ class MDF4(object):
                 lines = len(vals) // cols
 
                 vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
-
-
 
         elif conversion_type == CONVERSION_TYPE_LIN:
             a = conversion['a']

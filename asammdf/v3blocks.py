@@ -1334,7 +1334,16 @@ class TriggerBlock(dict):
                  self['trigger_{}_posttime'.format(i)]) = values[i*3], values[3*i+1], values[3*i+2]
 
         except KeyError:
-            pass
+            self['id'] = b'TR'
+            self['block_len'] = 10 + kargs['trigger_events_nr'] * 8 * 3
+            self['text_addr'] = 0
+            self['trigger_events_nr'] = kargs['trigger_events_nr']
+
+            nr = self['trigger_events_nr']
+            for i in range(nr):
+                self['trigger_{}_time'.format(i)] = kargs['trigger_{}_time'.format(i)]
+                self['trigger_{}_pretime'.format(i)] = kargs['trigger_{}_pretime'.format(i)]
+                self['trigger_{}_posttime'.format(i)] = kargs['trigger_{}_posttime'.format(i)]
 
     def __bytes__(self):
         triggers_nr = self['trigger_events_nr']
