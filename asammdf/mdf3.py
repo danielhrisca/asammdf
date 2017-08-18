@@ -117,6 +117,11 @@ class MDF3(object):
 
             self.file_history = TextBlock(address=self.header['comment_addr'], file_stream=file_stream)
 
+            # this will hold all channels with channel dependecies
+            ch_dep = []
+            # this will hold mapping from channel address to Channel object
+            ch_map = {}
+
             # go to first date group
             dg_addr = self.header['first_dg_addr']
             # read each data group sequentially
@@ -178,6 +183,13 @@ class MDF3(object):
                     while ch_addr:
                         # read channel block and create channel object
                         new_ch = Channel(address=ch_addr, file_stream=file_stream)
+
+                        # check if it has channeld ependencies
+                        if new_ch['ch_depend_addr']:
+                            ch_dep.append(new_ch)
+
+                        # update channel map
+                        ch_map[ch_addr] = new_ch
 
                         # read conversion block and create channel conversion object
                         address = new_ch['conversion_addr']
@@ -297,6 +309,11 @@ class MDF3(object):
 
                 # go to next data group
                 dg_addr = gp['next_dg_addr']
+
+            for ch in ch_dep:
+                dep_blk = ChannelDependency(address=ch['ch_depend_addr'], file_stream=file_stream)
+                for i in range(dep_blk['sd_nr']):
+                    ch.dependencies.append(ch_map[dep_blk['ch_{}'.format(i)]])
 
     def add_trigger(self, group, time, pre_time=0, post_time=0, comment=''):
         """ add trigger to data group
@@ -824,113 +841,119 @@ class MDF3(object):
                 else:
                     data = b''
 
+        # check if this is a channel array
+        if channel['ch_depend_addr']:
+            arrays = [self.get_channel_data(ch.name, data=data) for ch in channel.dependencies]
+            vals = fromarrays(arrays)
+            conversion = None
+        else:
 
-        types = dtype( [('', 'a{}'.format(byte_offset)),
-                        ('vals', ch_fmt),
-                        ('', 'a{}'.format(block_size - size - byte_offset))] )
+            types = dtype( [('', 'a{}'.format(byte_offset)),
+                            ('vals', ch_fmt),
+                            ('', 'a{}'.format(block_size - size - byte_offset))] )
 
-        values = fromstring(data, types)
+            values = fromstring(data, types)
 
-        # get channel values
-        conversion_type = CONVERSION_TYPE_NONE if conversion is None else conversion['conversion_type']
-        vals = values['vals']
-
-        if bit_offset:
-            vals = vals >> bit_offset
-        if bits % 8:
-            vals = vals & ((1<<bits) - 1)
-
-        info = None
-
-        if conversion_type == CONVERSION_TYPE_NONE:
-            # is it a Byte Array?
-            if channel['data_type'] == DATA_TYPE_BYTEARRAY:
-                vals = vals.tostring()
-                cols = size
-                lines = len(vals) // cols
-
-                vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
-
-        elif conversion_type == CONVERSION_TYPE_LINEAR:
-            a = conversion['a']
-            b = conversion['b']
-            if (a, b) == (1, 0):
-                if not vals.dtype == ch_fmt:
-                    vals = vals.astype(ch_fmt)
-            else:
-                vals = vals * a
-                if b:
-                    vals += b
-
-        elif conversion_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
-            nr = conversion['ref_param_nr']
-            raw = array([conversion['raw_{}'.format(i)] for i in range(nr)])
-            phys = array([conversion['phys_{}'.format(i)] for i in range(nr)])
-            if conversion_type == CONVERSION_TYPE_TABI:
-                vals = interp(values['vals'], raw, phys)
-            else:
-                idx = searchsorted(raw, values['vals'])
-                idx = clip(idx, 0, len(raw) - 1)
-                vals = phys[idx]
-
-        elif conversion_type == CONVERSION_TYPE_VTAB:
-            nr = conversion['ref_param_nr']
-            raw = array([conversion['param_val_{}'.format(i)] for i in range(nr)])
-            phys = array([conversion['text_{}'.format(i)] for i in range(nr)])
+            # get channel values
+            conversion_type = CONVERSION_TYPE_NONE if conversion is None else conversion['conversion_type']
             vals = values['vals']
-            info = {'raw': raw, 'phys': phys, 'type': CONVERSION_TYPE_VTAB}
 
-        elif conversion_type == CONVERSION_TYPE_VTABR:
-            nr = conversion['ref_param_nr']
+            if bit_offset:
+                vals = vals >> bit_offset
+            if bits % 8:
+                vals = vals & ((1<<bits) - 1)
 
-            texts = array([gp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
-            lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
-            upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
-            vals = values['vals']
-            info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': CONVERSION_TYPE_VTABR}
+            info = None
 
-        elif conversion_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
-            func = log if conversion_type == CONVERSION_TYPE_EXPO else exp
-            P1 = conversion['P1']
-            P2 = conversion['P2']
-            P3 = conversion['P3']
-            P4 = conversion['P4']
-            P5 = conversion['P5']
-            P6 = conversion['P6']
-            P7 = conversion['P7']
-            if P4 == 0:
-                vals = func(((values['vals'] - P7) * P6 - P3) / P1) / P2
-            elif P1 == 0:
-                vals = func((P3 / (values['vals'] - P7) - P6) / P4) / P5
-            else:
-                raise ValueError('wrong conversion type {}'.format(conversion_type))
+            if conversion_type == CONVERSION_TYPE_NONE:
+                # is it a Byte Array?
+                if channel['data_type'] == DATA_TYPE_BYTEARRAY:
+                    vals = vals.tostring()
+                    cols = size
+                    lines = len(vals) // cols
 
-        elif conversion_type == CONVERSION_TYPE_RAT:
-            P1 = conversion['P1']
-            P2 = conversion['P2']
-            P3 = conversion['P3']
-            P4 = conversion['P4']
-            P5 = conversion['P5']
-            P6 = conversion['P6']
-            X = values['vals']
-            vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
+                    vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
 
-        elif conversion_type == CONVERSION_TYPE_POLY:
-            P1 = conversion['P1']
-            P2 = conversion['P2']
-            P3 = conversion['P3']
-            P4 = conversion['P4']
-            P5 = conversion['P5']
-            P6 = conversion['P6']
-            X = values['vals']
-            vals = evaluate('(P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)')
+            elif conversion_type == CONVERSION_TYPE_LINEAR:
+                a = conversion['a']
+                b = conversion['b']
+                if (a, b) == (1, 0):
+                    if not vals.dtype == ch_fmt:
+                        vals = vals.astype(ch_fmt)
+                else:
+                    vals = vals * a
+                    if b:
+                        vals += b
 
-        elif conversion_type == CONVERSION_TYPE_FORMULA:
-            formula = conversion['formula'].decode('latin-1').strip(' \n\t\x00')
-            X1 = values['vals']
-            vals = evaluate(formula)
+            elif conversion_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
+                nr = conversion['ref_param_nr']
+                raw = array([conversion['raw_{}'.format(i)] for i in range(nr)])
+                phys = array([conversion['phys_{}'.format(i)] for i in range(nr)])
+                if conversion_type == CONVERSION_TYPE_TABI:
+                    vals = interp(values['vals'], raw, phys)
+                else:
+                    idx = searchsorted(raw, values['vals'])
+                    idx = clip(idx, 0, len(raw) - 1)
+                    vals = phys[idx]
 
-        conversion = info
+            elif conversion_type == CONVERSION_TYPE_VTAB:
+                nr = conversion['ref_param_nr']
+                raw = array([conversion['param_val_{}'.format(i)] for i in range(nr)])
+                phys = array([conversion['text_{}'.format(i)] for i in range(nr)])
+                vals = values['vals']
+                info = {'raw': raw, 'phys': phys, 'type': CONVERSION_TYPE_VTAB}
+
+            elif conversion_type == CONVERSION_TYPE_VTABR:
+                nr = conversion['ref_param_nr']
+
+                texts = array([gp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
+                lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
+                upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
+                vals = values['vals']
+                info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': CONVERSION_TYPE_VTABR}
+
+            elif conversion_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
+                func = log if conversion_type == CONVERSION_TYPE_EXPO else exp
+                P1 = conversion['P1']
+                P2 = conversion['P2']
+                P3 = conversion['P3']
+                P4 = conversion['P4']
+                P5 = conversion['P5']
+                P6 = conversion['P6']
+                P7 = conversion['P7']
+                if P4 == 0:
+                    vals = func(((values['vals'] - P7) * P6 - P3) / P1) / P2
+                elif P1 == 0:
+                    vals = func((P3 / (values['vals'] - P7) - P6) / P4) / P5
+                else:
+                    raise ValueError('wrong conversion type {}'.format(conversion_type))
+
+            elif conversion_type == CONVERSION_TYPE_RAT:
+                P1 = conversion['P1']
+                P2 = conversion['P2']
+                P3 = conversion['P3']
+                P4 = conversion['P4']
+                P5 = conversion['P5']
+                P6 = conversion['P6']
+                X = values['vals']
+                vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
+
+            elif conversion_type == CONVERSION_TYPE_POLY:
+                P1 = conversion['P1']
+                P2 = conversion['P2']
+                P3 = conversion['P3']
+                P4 = conversion['P4']
+                P5 = conversion['P5']
+                P6 = conversion['P6']
+                X = values['vals']
+                vals = evaluate('(P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)')
+
+            elif conversion_type == CONVERSION_TYPE_FORMULA:
+                formula = conversion['formula'].decode('latin-1').strip(' \n\t\x00')
+                X1 = values['vals']
+                vals = evaluate(formula)
+
+            conversion = info
 
         if return_info:
             description = channel['description'].decode('latin-1').strip(' \t\n\x00')

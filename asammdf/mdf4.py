@@ -271,110 +271,117 @@ class MDF4(object):
         while ch_addr:
             # read channel block and create channel object
             channel = Channel(address=ch_addr, file_stream=file_stream)
-            if channel['component_addr'] != 0:
-                ch_cntr = self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr)
-            else:
-                channels.append(channel)
 
-                # append channel signal data if load_measured_data allows it
-                if self.load_measured_data:
-                    ch_data_addr = channel['data_block_addr']
-                    signal_data = self._read_agregated_signal_data(address=ch_data_addr, file_stream=file_stream)
-                    if signal_data:
-                        grp['signal_data'].append(SignalDataBlock(data=signal_data))
-                    else:
-                        grp['signal_data'].append(None)
+            channels.append(channel)
+
+            # append channel signal data if load_measured_data allows it
+            if self.load_measured_data:
+                ch_data_addr = channel['data_block_addr']
+                signal_data = self._read_agregated_signal_data(address=ch_data_addr, file_stream=file_stream)
+                if signal_data:
+                    grp['signal_data'].append(SignalDataBlock(data=signal_data))
                 else:
                     grp['signal_data'].append(None)
+            else:
+                grp['signal_data'].append(None)
 
-                # read conversion block and create channel conversion object
-                address = channel['conversion_addr']
+            # read conversion block and create channel conversion object
+            address = channel['conversion_addr']
+            if address:
+                conv = ChannelConversion(address=address, file_stream=file_stream)
+            else:
+                conv = None
+            grp['channel_conversions'].append(conv)
+
+            conv_tabx_texts = {}
+            grp['texts']['conversion_tab'].append(conv_tabx_texts)
+            if conv and conv['conversion_type'] in (CONVERSION_TYPE_TABX, CONVERSION_TYPE_RTABX, CONVERSION_TYPE_TTAB):
+                # link_nr - common links (4) - default text link (1)
+                for i in range(conv['links_nr'] - 4 - 1):
+                    address = conv['text_{}'.format(i)]
+                    if address:
+                        conv_tabx_texts['text_{}'.format(i)] = TextBlock(address=address, file_stream=file_stream)
+                address = conv.get('default_addr', 0)
                 if address:
-                    conv = ChannelConversion(address=address, file_stream=file_stream)
-                else:
-                    conv = None
-                grp['channel_conversions'].append(conv)
-
-                conv_tabx_texts = {}
-                grp['texts']['conversion_tab'].append(conv_tabx_texts)
-                if conv and conv['conversion_type'] in (CONVERSION_TYPE_TABX, CONVERSION_TYPE_RTABX, CONVERSION_TYPE_TTAB):
-                    # link_nr - common links (4) - default text link (1)
-                    for i in range(conv['links_nr'] - 4 - 1):
-                        address = conv['text_{}'.format(i)]
-                        if address:
-                            conv_tabx_texts['text_{}'.format(i)] = TextBlock(address=address, file_stream=file_stream)
-                    address = conv.get('default_addr', 0)
-                    if address:
-                        file_stream.seek(address, SEEK_START)
-                        blk_id = file_stream.read(4)
-                        if blk_id == b'##TX':
-                            conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
-                        elif blk_id == b'##CC':
-                            conv_tabx_texts['default_addr'] = ChannelConversion(address=address, file_stream=file_stream)
-                            conv_tabx_texts['default_addr'].text_str = str(time.clock())
-
-                            conv['unit_addr'] = conv_tabx_texts['default_addr']['unit_addr']
-                            conv_tabx_texts['default_addr']['unit_addr'] = 0
-                elif conv and conv['conversion_type'] == CONVERSION_TYPE_TRANS:
-                    # link_nr - common links (4) - default text link (1)
-                    for i in range((conv['links_nr'] - 4 - 1 ) //2):
-                        for key in ('input_{}_addr'.format(i), 'output_{}_addr'.format(i)):
-                            address = conv[key]
-                            if address:
-                                conv_tabx_texts[key] = TextBlock(address=address, file_stream=file_stream)
-                    address = conv['default_addr']
-                    if address:
+                    file_stream.seek(address, SEEK_START)
+                    blk_id = file_stream.read(4)
+                    if blk_id == b'##TX':
                         conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
+                    elif blk_id == b'##CC':
+                        conv_tabx_texts['default_addr'] = ChannelConversion(address=address, file_stream=file_stream)
+                        conv_tabx_texts['default_addr'].text_str = str(time.clock())
 
-                if self.load_measured_data:
-                    # read source block and create source information object
-                    source_texts = {}
-                    address = channel['source_addr']
-                    if address:
-                        source = SourceInformation(address=address, file_stream=file_stream)
-                        grp['channel_sources'].append(source)
-                        grp['texts']['sources'].append(source_texts)
-                        # read text fields for channel sources
-                        for key in ('name_addr', 'path_addr', 'comment_addr'):
-                            address = source[key]
-                            if address:
-                                source_texts[key] = TextBlock(address=address, file_stream=file_stream)
-                    else:
-                        grp['channel_sources'].append(None)
-                        grp['texts']['sources'].append(source_texts)
+                        conv['unit_addr'] = conv_tabx_texts['default_addr']['unit_addr']
+                        conv_tabx_texts['default_addr']['unit_addr'] = 0
+            elif conv and conv['conversion_type'] == CONVERSION_TYPE_TRANS:
+                # link_nr - common links (4) - default text link (1)
+                for i in range((conv['links_nr'] - 4 - 1 ) //2):
+                    for key in ('input_{}_addr'.format(i), 'output_{}_addr'.format(i)):
+                        address = conv[key]
+                        if address:
+                            conv_tabx_texts[key] = TextBlock(address=address, file_stream=file_stream)
+                address = conv['default_addr']
+                if address:
+                    conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
+
+            if self.load_measured_data:
+                # read source block and create source information object
+                source_texts = {}
+                address = channel['source_addr']
+                if address:
+                    source = SourceInformation(address=address, file_stream=file_stream)
+                    grp['channel_sources'].append(source)
+                    grp['texts']['sources'].append(source_texts)
+                    # read text fields for channel sources
+                    for key in ('name_addr', 'path_addr', 'comment_addr'):
+                        address = source[key]
+                        if address:
+                            source_texts[key] = TextBlock(address=address, file_stream=file_stream)
                 else:
                     grp['channel_sources'].append(None)
-                    grp['texts']['sources'].append({})
+                    grp['texts']['sources'].append(source_texts)
+            else:
+                grp['channel_sources'].append(None)
+                grp['texts']['sources'].append({})
 
-                # read text fields for channel conversions
-                conv_texts = {}
-                grp['texts']['conversions'].append(conv_texts)
-                for key in ('name_addr', 'unit_addr', 'comment_addr', 'formula_addr'):
-                    if conv is not None:
-                        address = conv.get(key, 0)
-                        if address:
-                            conv_texts[key] = TextBlock(address=address, file_stream=file_stream)
-
-                # read text fields for channel
-                channel_texts = {}
-                grp['texts']['channels'].append(channel_texts)
-                for key in ('name_addr', 'comment_addr', 'unit_addr'):
-                    address = channel[key]
+            # read text fields for channel conversions
+            conv_texts = {}
+            grp['texts']['conversions'].append(conv_texts)
+            for key in ('name_addr', 'unit_addr', 'comment_addr', 'formula_addr'):
+                if conv is not None:
+                    address = conv.get(key, 0)
                     if address:
-                        channel_texts[key] = TextBlock(address=address, file_stream=file_stream)
+                        conv_texts[key] = TextBlock(address=address, file_stream=file_stream)
 
-                # update channel object name and block_size attributes
-                channel.name = channel_texts['name_addr'].text_str
-                if channel.name in self.channels_db:
-                    self.channels_db[channel.name].append((dg_cntr, ch_cntr))
+            # read text fields for channel
+            channel_texts = {}
+            grp['texts']['channels'].append(channel_texts)
+            for key in ('name_addr', 'comment_addr', 'unit_addr'):
+                address = channel[key]
+                if address:
+                    channel_texts[key] = TextBlock(address=address, file_stream=file_stream)
+
+            # update channel object name and block_size attributes
+            channel.name = channel_texts['name_addr'].text_str
+            if channel.name in self.channels_db:
+                self.channels_db[channel.name].append((dg_cntr, ch_cntr))
+            else:
+                self.channels_db[channel.name] = []
+                self.channels_db[channel.name].append((dg_cntr, ch_cntr))
+
+            if channel['channel_type'] in (CHANNEL_TYPE_MASTER, CHANNEL_TYPE_VIRTUAL_MASTER):
+                self.masters_db[dg_cntr] = ch_cntr
+
+            ch_cntr += 1
+
+            if channel['component_addr'] != 0:
+                # check if it is a CABLOCK or
+                file_stream.seek(channel['component_addr'], SEEK_START)
+                blk_id = file_stream.read(4)
+                if blk_id == b'##CN':
+                    ch_cntr = self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr)
                 else:
-                    self.channels_db[channel.name] = []
-                    self.channels_db[channel.name].append((dg_cntr, ch_cntr))
-
-                if channel['channel_type'] in (CHANNEL_TYPE_MASTER, CHANNEL_TYPE_VIRTUAL_MASTER):
-                    self.masters_db[dg_cntr] = ch_cntr
-
-                ch_cntr += 1
+                    warnings.warn('Channel arrays are not supported yet')
 
             # go to next channel of the current channel group
             ch_addr = channel['next_ch_addr']
@@ -997,8 +1004,11 @@ class MDF4(object):
         # get the channel commment if available
         comment = gp['texts']['channels'][ch_nr].get('comment_addr', None)
         if comment:
-            comment = comment.text_str
-            comment = XML.fromstring(comment).find('TX').text
+            if comment['id'] == b'##MD':
+                comment = comment.text_str
+                comment = XML.fromstring(comment).find('TX').text
+            else:
+                comment = comment.text_str
         else:
             comment = ''
 
