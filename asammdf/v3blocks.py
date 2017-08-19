@@ -82,6 +82,8 @@ class Channel(dict):
         full channel name
     address : int
         block address inside mdf file
+    dependencies : list
+        lsit of channel dependencies
 
     Examples
     --------
@@ -98,6 +100,7 @@ class Channel(dict):
         super(Channel, self).__init__()
 
         self.name = ''
+        self.dependencies = []
 
         try:
             stream = kargs['file_stream']
@@ -531,17 +534,17 @@ class ChannelDependency(dict):
             (self['id'],
              self['block_len'],
              self['dependency_type'],
-             self['sd_nr']) = unpack('<2s3H', stream.read(50))
+             self['sd_nr']) = unpack('<2s3H', stream.read(8))
 
             links_size = 3 * 4 * self['sd_nr']
             links = unpack('<{}I'.format(3 * self['sd_nr']), stream.read(links_size))
 
             for i in range(self['sd_nr']):
-                self['dg_{}'.format(i)] = links[i]
-                self['cg_{}'.format(i)] = links[i+1]
-                self['ch_{}'.format(i)] = links[i+2]
+                self['dg_{}'.format(i)] = links[3*i]
+                self['cg_{}'.format(i)] = links[3*i+1]
+                self['ch_{}'.format(i)] = links[3*i+2]
 
-            optional_dims_nr = (self['block_len'] - 50 - links_size) // 2
+            optional_dims_nr = (self['block_len'] - 8 - links_size) // 2
             self['optional_dims_nr'] = optional_dims_nr
             if optional_dims_nr:
                 dims = unpack('<{}H'.format(optional_dims_nr), stream.read(optional_dims_nr * 2))
@@ -1334,7 +1337,16 @@ class TriggerBlock(dict):
                  self['trigger_{}_posttime'.format(i)]) = values[i*3], values[3*i+1], values[3*i+2]
 
         except KeyError:
-            pass
+            self['id'] = b'TR'
+            self['block_len'] = 10 + kargs['trigger_events_nr'] * 8 * 3
+            self['text_addr'] = 0
+            self['trigger_events_nr'] = kargs['trigger_events_nr']
+
+            nr = self['trigger_events_nr']
+            for i in range(nr):
+                self['trigger_{}_time'.format(i)] = kargs['trigger_{}_time'.format(i)]
+                self['trigger_{}_pretime'.format(i)] = kargs['trigger_{}_pretime'.format(i)]
+                self['trigger_{}_posttime'.format(i)] = kargs['trigger_{}_posttime'.format(i)]
 
     def __bytes__(self):
         triggers_nr = self['trigger_events_nr']

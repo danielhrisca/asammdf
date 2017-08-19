@@ -33,7 +33,7 @@ class Timer():
         process = psutil.Process(os.getpid())
         print('{:<50} {:>9} {:>8}'.format(self.message, int(elapsed_time), int(process.memory_info().peak_wset / 1024 / 1024)))
 
-path = r'D:\TMP'
+path = r'E:\TMP'
 
 def open_mdf3():
     os.chdir(path)

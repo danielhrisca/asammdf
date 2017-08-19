@@ -117,6 +117,11 @@ class MDF3(object):
 
             self.file_history = TextBlock(address=self.header['comment_addr'], file_stream=file_stream)
 
+            # this will hold all channels with channel dependecies
+            ch_dep = []
+            # this will hold mapping from channel address to Channel object
+            ch_map = {}
+
             # go to first date group
             dg_addr = self.header['first_dg_addr']
             # read each data group sequentially
@@ -125,6 +130,19 @@ class MDF3(object):
                 cg_nr = gp['cg_nr']
                 cg_addr = gp['first_cg_addr']
                 data_addr = gp['data_block_addr']
+
+                # read trigger information if available
+                trigger_addr = gp['trigger_addr']
+                if trigger_addr:
+                    trigger = TriggerBlock(address=trigger_addr, file_stream=file_stream)
+                    if trigger['comment_addr']:
+                        trigger_text = TextBlock(address=trigger['comment_addr'], file_stream=file_stream)
+                    else:
+                        trigger_text = None
+                else:
+                    trigger = None
+                    trigger_text = None
+
                 new_groups = []
                 for i in range(cg_nr):
 
@@ -135,6 +153,7 @@ class MDF3(object):
                     grp['channel_extensions'] = []
                     grp['data_block'] = []
                     grp['texts'] = {'channels': [], 'conversion_tab': [], 'channel_group': []}
+                    grp['trigger'] = [trigger, trigger_text]
 
                     kargs = {'first_cg_addr': cg_addr,
                              'data_block_addr': data_addr}
@@ -164,6 +183,13 @@ class MDF3(object):
                     while ch_addr:
                         # read channel block and create channel object
                         new_ch = Channel(address=ch_addr, file_stream=file_stream)
+
+                        # check if it has channeld ependencies
+                        if new_ch['ch_depend_addr']:
+                            ch_dep.append(new_ch)
+
+                        # update channel map
+                        ch_map[ch_addr] = new_ch
 
                         # read conversion block and create channel conversion object
                         address = new_ch['conversion_addr']
@@ -283,6 +309,52 @@ class MDF3(object):
 
                 # go to next data group
                 dg_addr = gp['next_dg_addr']
+
+            for ch in ch_dep:
+                dep_blk = ChannelDependency(address=ch['ch_depend_addr'], file_stream=file_stream)
+                for i in range(dep_blk['sd_nr']):
+                    ch.dependencies.append(ch_map[dep_blk['ch_{}'.format(i)]])
+
+    def add_trigger(self, group, time, pre_time=0, post_time=0, comment=''):
+        """ add trigger to data group
+
+        Parameters
+        ----------
+        group : int
+            group index
+        time : float
+            trigger time
+        pre_time : float
+            trigger pre time; default 0
+        post_time : float
+            trigger post time; default 0
+        comment : str
+            trigger comment
+
+        """
+        gp = self.groups[group]
+        trigger, trigger_text = gp['trigger']
+        if trigger:
+            nr = trigger['trigger_event_nr']
+            trigger['trigger_event_nr'] += 1
+            trigger['block_len'] += 24
+            trigger['trigger_{}_time'.format(nr)] = time
+            trigger['trigger_{}_pretime'.format(nr)] = pre_time
+            trigger['trigger_{}_posttime'.format(nr)] = post_time
+            if trigger_text is None and comment:
+                trigger_text = TextBlock.from_text(comment)
+                gp['trigger'][1] = trigger_text
+        else:
+            trigger = TriggerBlock(trigger_event_nr=1,
+                                   trigger_0_time=time,
+                                   trigger_0_pretime=pre_time,
+                                   trigger_0_posttime=post_time)
+            if comment:
+                trigger_text = TextBlock.from_text(comment)
+            else:
+                trigger_text = None
+
+            gp['trigger'] = [trigger, trigger_text]
 
     def append(self, signals, acquisition_info='Python'):
         """
@@ -505,6 +577,9 @@ class MDF3(object):
         kargs = {'block_len': DG32_BLOCK_SIZE if self.version in ('3.20', '3.30') else DG31_BLOCK_SIZE}
         gp['data_group'] = DataGroup(**kargs)
 
+        # data group trigger
+        gp['trigger'] = [None, None]
+
 
     def get_master_data(self, name=None, group=None, data=None):
         """get master channel values only. The group is identified by a channel name (*name* argument) or by the index (*group* argument).
@@ -696,14 +771,32 @@ class MDF3(object):
 
         group = gp
 
-        bits = channel['bit_count']
-        if bits % 8:
-            size = bits // 8 + 1
-        else:
-            size = bits // 8
-        block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
         byte_offset, bit_offset = divmod(channel['start_offset'], 8)
         byte_offset += channel['aditional_byte_offset']
+
+        bits = channel['bit_count']
+        size = bit_offset + bits
+        # adjust size to 1, 2, 4, or 8 bytes if data type is not string
+        if channel['data_type'] != DATA_TYPE_STRING:
+            # adjust size to 8, 16, 32 or 64 bits
+            if size > 32:
+                size = 64
+            elif size > 16:
+                size = 32
+            elif size > 8:
+                size = 16
+            else:
+                size = 8
+
+            # convert to number of bytes
+            size //= 8
+        else:
+            if size % 8:
+                size = size // 8 + 1
+            else:
+                size = size // 8
+
+        block_size = gp['channel_group']['samples_byte_nr'] - gp['data_group']['record_id_nr']
 
         ch_fmt = get_fmt(channel['data_type'], size)
 
@@ -748,113 +841,119 @@ class MDF3(object):
                 else:
                     data = b''
 
+        # check if this is a channel array
+        if channel['ch_depend_addr']:
+            arrays = [self.get_channel_data(ch.name, data=data) for ch in channel.dependencies]
+            vals = fromarrays(arrays)
+            conversion = None
+        else:
 
-        types = dtype( [('', 'a{}'.format(byte_offset)),
-                        ('vals', ch_fmt),
-                        ('', 'a{}'.format(block_size - size - byte_offset))] )
+            types = dtype( [('', 'a{}'.format(byte_offset)),
+                            ('vals', ch_fmt),
+                            ('', 'a{}'.format(block_size - size - byte_offset))] )
 
-        values = fromstring(data, types)
+            values = fromstring(data, types)
 
-        # get channel values
-        conversion_type = CONVERSION_TYPE_NONE if conversion is None else conversion['conversion_type']
-        vals = values['vals']
-
-        if bit_offset:
-            vals = vals >> bit_offset
-        if bits % 8:
-            vals = vals & (2**bits - 1)
-
-        info = None
-
-        if conversion_type == CONVERSION_TYPE_NONE:
-            # is it a Byte Array?
-            if channel['data_type'] == DATA_TYPE_BYTEARRAY:
-                vals = vals.tostring()
-                cols = size
-                lines = len(vals) // cols
-
-                vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
-
-        elif conversion_type == CONVERSION_TYPE_LINEAR:
-            a = conversion['a']
-            b = conversion['b']
-            if (a, b) == (1, 0):
-                if not vals.dtype == ch_fmt:
-                    vals = vals.astype(ch_fmt)
-            else:
-                vals = vals * a
-                if b:
-                    vals += b
-
-        elif conversion_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
-            nr = conversion['ref_param_nr']
-            raw = array([conversion['raw_{}'.format(i)] for i in range(nr)])
-            phys = array([conversion['phys_{}'.format(i)] for i in range(nr)])
-            if conversion_type == CONVERSION_TYPE_TABI:
-                vals = interp(values['vals'], raw, phys)
-            else:
-                idx = searchsorted(raw, values['vals'])
-                idx = clip(idx, 0, len(raw) - 1)
-                vals = phys[idx]
-
-        elif conversion_type == CONVERSION_TYPE_VTAB:
-            nr = conversion['ref_param_nr']
-            raw = array([conversion['param_val_{}'.format(i)] for i in range(nr)])
-            phys = array([conversion['text_{}'.format(i)] for i in range(nr)])
+            # get channel values
+            conversion_type = CONVERSION_TYPE_NONE if conversion is None else conversion['conversion_type']
             vals = values['vals']
-            info = {'raw': raw, 'phys': phys, 'type': CONVERSION_TYPE_VTAB}
 
-        elif conversion_type == CONVERSION_TYPE_VTABR:
-            nr = conversion['ref_param_nr']
+            if bit_offset:
+                vals = vals >> bit_offset
+            if bits % 8:
+                vals = vals & ((1<<bits) - 1)
 
-            texts = array([gp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
-            lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
-            upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
-            vals = values['vals']
-            info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': CONVERSION_TYPE_VTABR}
+            info = None
 
-        elif conversion_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
-            func = log if conversion_type == CONVERSION_TYPE_EXPO else exp
-            P1 = conversion['P1']
-            P2 = conversion['P2']
-            P3 = conversion['P3']
-            P4 = conversion['P4']
-            P5 = conversion['P5']
-            P6 = conversion['P6']
-            P7 = conversion['P7']
-            if P4 == 0:
-                vals = func(((values['vals'] - P7) * P6 - P3) / P1) / P2
-            elif P1 == 0:
-                vals = func((P3 / (values['vals'] - P7) - P6) / P4) / P5
-            else:
-                raise ValueError('wrong conversion type {}'.format(conversion_type))
+            if conversion_type == CONVERSION_TYPE_NONE:
+                # is it a Byte Array?
+                if channel['data_type'] == DATA_TYPE_BYTEARRAY:
+                    vals = vals.tostring()
+                    cols = size
+                    lines = len(vals) // cols
 
-        elif conversion_type == CONVERSION_TYPE_RAT:
-            P1 = conversion['P1']
-            P2 = conversion['P2']
-            P3 = conversion['P3']
-            P4 = conversion['P4']
-            P5 = conversion['P5']
-            P6 = conversion['P6']
-            X = values['vals']
-            vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
+                    vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
 
-        elif conversion_type == CONVERSION_TYPE_POLY:
-            P1 = conversion['P1']
-            P2 = conversion['P2']
-            P3 = conversion['P3']
-            P4 = conversion['P4']
-            P5 = conversion['P5']
-            P6 = conversion['P6']
-            X = values['vals']
-            vals = evaluate('(P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)')
+            elif conversion_type == CONVERSION_TYPE_LINEAR:
+                a = conversion['a']
+                b = conversion['b']
+                if (a, b) == (1, 0):
+                    if not vals.dtype == ch_fmt:
+                        vals = vals.astype(ch_fmt)
+                else:
+                    vals = vals * a
+                    if b:
+                        vals += b
 
-        elif conversion_type == CONVERSION_TYPE_FORMULA:
-            formula = conversion['formula'].decode('latin-1').strip(' \n\t\x00')
-            X1 = values['vals']
-            vals = evaluate(formula)
+            elif conversion_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
+                nr = conversion['ref_param_nr']
+                raw = array([conversion['raw_{}'.format(i)] for i in range(nr)])
+                phys = array([conversion['phys_{}'.format(i)] for i in range(nr)])
+                if conversion_type == CONVERSION_TYPE_TABI:
+                    vals = interp(values['vals'], raw, phys)
+                else:
+                    idx = searchsorted(raw, values['vals'])
+                    idx = clip(idx, 0, len(raw) - 1)
+                    vals = phys[idx]
 
-        conversion = info
+            elif conversion_type == CONVERSION_TYPE_VTAB:
+                nr = conversion['ref_param_nr']
+                raw = array([conversion['param_val_{}'.format(i)] for i in range(nr)])
+                phys = array([conversion['text_{}'.format(i)] for i in range(nr)])
+                vals = values['vals']
+                info = {'raw': raw, 'phys': phys, 'type': CONVERSION_TYPE_VTAB}
+
+            elif conversion_type == CONVERSION_TYPE_VTABR:
+                nr = conversion['ref_param_nr']
+
+                texts = array([gp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
+                lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
+                upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
+                vals = values['vals']
+                info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': CONVERSION_TYPE_VTABR}
+
+            elif conversion_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
+                func = log if conversion_type == CONVERSION_TYPE_EXPO else exp
+                P1 = conversion['P1']
+                P2 = conversion['P2']
+                P3 = conversion['P3']
+                P4 = conversion['P4']
+                P5 = conversion['P5']
+                P6 = conversion['P6']
+                P7 = conversion['P7']
+                if P4 == 0:
+                    vals = func(((values['vals'] - P7) * P6 - P3) / P1) / P2
+                elif P1 == 0:
+                    vals = func((P3 / (values['vals'] - P7) - P6) / P4) / P5
+                else:
+                    raise ValueError('wrong conversion type {}'.format(conversion_type))
+
+            elif conversion_type == CONVERSION_TYPE_RAT:
+                P1 = conversion['P1']
+                P2 = conversion['P2']
+                P3 = conversion['P3']
+                P4 = conversion['P4']
+                P5 = conversion['P5']
+                P6 = conversion['P6']
+                X = values['vals']
+                vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
+
+            elif conversion_type == CONVERSION_TYPE_POLY:
+                P1 = conversion['P1']
+                P2 = conversion['P2']
+                P3 = conversion['P3']
+                P4 = conversion['P4']
+                P5 = conversion['P5']
+                P6 = conversion['P6']
+                X = values['vals']
+                vals = evaluate('(P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)')
+
+            elif conversion_type == CONVERSION_TYPE_FORMULA:
+                formula = conversion['formula'].decode('latin-1').strip(' \n\t\x00')
+                X1 = values['vals']
+                vals = evaluate(formula)
+
+            conversion = info
 
         if return_info:
             description = channel['description'].decode('latin-1').strip(' \t\n\x00')
@@ -1008,6 +1107,7 @@ class MDF3(object):
         return res
 
     def iter_to_pandas(self):
+        """ generator that yields channel groups as pandas DataFrames"""
         master_type = (CHANNEL_TYPE_MASTER, )
         for i, gp in enumerate(self.groups):
             t = self.get_master_data(group=i)
@@ -1018,6 +1118,38 @@ class MDF3(object):
                     vals, name, conversion, unit = self.get_channel_data(group=i, index=j, return_info=True)
                     pandas_dict[name] = vals
             yield DataFrame.from_dict(pandas_dict)
+
+    def iter_get_triggers(self):
+        """ generator that yields triggers
+
+        Returns
+        -------
+        trigger_info : dict
+            trigger information with the following keys:
+
+                * comment : trigger comment
+                * time : trigger time
+                * pre_time : trigger pre time
+                * post_time : trigger post time
+                * index : trigger index
+                * group : data group index of trigger
+        """
+        for i, gp in enumerate(self.groups):
+            trigger, trigger_text = gp['trigger']
+            if trigger:
+                if trigger_text:
+                    comment = trigger_text.text_str
+                else:
+                    comment = ''
+
+                for j in range(trigger['trigger_events_nr']):
+                    trigger_info = {'comment': comment,
+                                    'index' : j,
+                                    'group': i,
+                                    'time' : trigger['trigger_{}_time'.format(j)],
+                                    'pre_time' : trigger['trigger_{}_pretime'.format(j)],
+                                    'post_time' : trigger['trigger_{}_posttime'.format(j)]}
+                    yield trigger_info
 
     def info(self):
         """get MDF information as a dict
@@ -1208,6 +1340,21 @@ class MDF3(object):
                 write(bytes(db))
                 address = tell()
 
+                # TriggerBLock
+                trigger, trigger_text = gp['trigger']
+                if trigger:
+                    if trigger_text:
+                        trigger_text.address = address
+                        write(bytes(trigger_text))
+                        address = tell()
+                        trigger['comment_addr'] = trigger_text.address
+                    else:
+                        trigger['comment_addr'] = 0
+
+                    trigger.address = address
+                    write(bytes(trigger))
+                    address = tell()
+
             # DataGroup
             for gp in self.groups:
 
@@ -1216,7 +1363,7 @@ class MDF3(object):
                 address += dg['block_len']
                 dg['first_cg_addr'] = gp['channel_group'].address
                 dg['data_block_addr'] = gp['data_block'].address
-
+                dg['trigger_addr'] = gp['trigger'][0].address if gp['trigger'][0] else 0
 
             for i, dg in enumerate(self.groups[:-1]):
                 dg['data_group']['next_dg_addr'] = self.groups[i+1]['data_group'].address
@@ -1320,6 +1467,19 @@ class MDF3(object):
                 db.address = address
                 address += write(bytes(db))
 
+                # TriggerBLock
+                trigger, trigger_text = gp['trigger']
+                if trigger:
+                    if trigger_text:
+                        trigger_text.address = address
+                        address += write(bytes(trigger_text))
+                        trigger['comment_addr'] = trigger_text.address
+                    else:
+                        trigger['comment_addr'] = 0
+
+                    trigger.address = address
+                    address += write(bytes(trigger))
+
             # DataGroup
             for gp in self.groups:
 
@@ -1328,6 +1488,7 @@ class MDF3(object):
                 address += dg['block_len']
                 dg['first_cg_addr'] = gp['channel_group'].address
                 dg['data_block_addr'] = gp['data_block'].address
+                dg['trigger_addr'] = gp['trigger'][0].address if gp['trigger'][0] else 0
 
 
             for i, dg in enumerate(self.groups[:-1]):
