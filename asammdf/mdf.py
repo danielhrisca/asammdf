@@ -3,6 +3,7 @@ MDF file format module
 
 """
 import os
+import warnings
 
 from .mdf3 import MDF3
 from .mdf4 import MDF4
@@ -104,6 +105,52 @@ class MDF(object):
                                            comment=comment))
                 out.append(sigs, 'Converted from {} to {}'.format(self.version, to))
             return out
+
+    def filter(self, channels):
+        """ return new *MDF* object that contains only the channels listed in *channels* argument
+
+        Parameters
+        ----------
+        channels : list
+            list of channel names to be filtered
+
+        Returns
+        -------
+        mdf : MDF
+            new MDF file
+
+        """
+
+        # group channels by group index
+        gps = {}
+        for ch in channels:
+            if ch in self.channels_db:
+                group, index = self.channels_db[ch]
+                if not group in gps:
+                    gps[group] = []
+                gps[group].append(index)
+            else:
+                message = 'MDF filter error: Channel "{}" not found'.format(ch)
+                warnings.warn(message)
+                continue
+
+        mdf = MDF(version=self.version)
+
+        # append filtered channels to new MDF
+        for group in gps:
+            t = self.get_master_data(group=group)
+            sigs = []
+            for index in gps[group]:
+                vals, name, conversion, unit, comment = self.get_channel_data(group=group, index=index, return_info=True)
+                sigs.append(Signal(samples=vals,
+                                   timestamps=t,
+                                   unit=unit,
+                                   name=name,
+                                   conversion=conversion,
+                                   comment=comment))
+            mdf.append(sigs, 'Signals filtered from <{}>'.format(os.path.basename(self.name)))
+
+        return mdf
 
 
 if __name__ == '__main__':

@@ -37,6 +37,7 @@ Features
     
 * remove data group by index or by specifing a channel name inside the target data group
 * append new channels
+* filter a subset of channels from original mdf file
 * convert to different mdf version
 * add and extract attachments
 * mdf 4.10 zipped blocks
