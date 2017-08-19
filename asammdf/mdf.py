@@ -95,12 +95,13 @@ class MDF(object):
                 t = self.get_master_data(group=i)
                 for j, ch in enumerate(gp['channels']):
                     if not ch['channel_type'] in master_type:
-                        vals, name, conversion, unit = self.get_channel_data(group=i, index=j, return_info=True)
+                        vals, name, conversion, unit, comment = self.get_channel_data(group=i, index=j, return_info=True)
                         sigs.append(Signal(samples=vals,
                                            timestamps=t,
                                            unit=unit,
                                            name=name,
-                                           conversion=conversion))
+                                           conversion=conversion,
+                                           comment=comment))
                 out.append(sigs, 'Converted from {} to {}'.format(self.version, to))
             return out
 
