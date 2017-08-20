@@ -133,11 +133,11 @@ def save_mdf4_compressed():
 
 def get_all_mdf4_compressed():
     os.chdir(path)
-    x = MDF(r'test.mf4', compression=True)s
+    x = MDF(r'test.mf4', compression=True)
     with Timer('asammdf {} compression mdfv4'.format(asammdf_version)):
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
-                y = x.get_channel_data(group=i, index=j, samples_only=True)
+                y = x.get(group=i, index=j, samples_only=True)
 
 ################
 # mdf reader
