@@ -119,12 +119,18 @@ def get_fmt(data_type, size, version=3):
             fmt = '<f{}'.format(size)
         elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
             fmt = '>f{}'.format(size)
-        elif data_type in (v4c.DATA_TYPE_BYTEARRAY,
-                           v4c.DATA_TYPE_STRING_UTF_8,
+        elif data_type == v4c.DATA_TYPE_BYTEARRAY:
+            fmt = 'a{}'.format(size)
+        elif data_type in (v4c.DATA_TYPE_STRING_UTF_8,
                            v4c.DATA_TYPE_STRING_LATIN_1,
                            v4c.DATA_TYPE_STRING_UTF_16_BE,
                            v4c.DATA_TYPE_STRING_UTF_16_LE):
-            fmt = 'a{}'.format(size)
+            if size == 4:
+                fmt = '<u4'
+            elif size == 8:
+                fmt = '<u8'
+            else:
+                raise MdfException('invalid size for VLSD offsets')
         elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
             fmt = 'a7'
         elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:

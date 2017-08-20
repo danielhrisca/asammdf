@@ -52,7 +52,7 @@ def get_all_mdf3():
     with Timer('asammdf {} mdfv3'.format(asammdf_version)):
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
-                y = x.get(group=i, index=j)
+                y = x.get(group=i, index=j, samples_only=True)
 
 def open_mdf3_nodata():
     os.chdir(path)
@@ -66,7 +66,7 @@ def get_all_mdf3_nodata():
 
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
-                y = x.get(group=i, index=j)
+                y = x.get(group=i, index=j, samples_only=True)
 
 def open_mdf3_compressed():
     os.chdir(path)
@@ -85,7 +85,7 @@ def get_all_mdf3_compressed():
     with Timer('asammdf {} compression mdfv3'.format(asammdf_version)):
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
-                y = x.get(group=i, index=j)
+                y = x.get(group=i, index=j, samples_only=True)
 
 def open_mdf4():
     os.chdir(path)
@@ -104,7 +104,7 @@ def get_all_mdf4():
     with Timer('asammdf {} mdfv4'.format(asammdf_version)):
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
-                y = x.get(group=i, index=j)
+                y = x.get(group=i, index=j, samples_only=True)
 
 def open_mdf4_nodata():
     os.chdir(path)
@@ -116,9 +116,8 @@ def get_all_mdf4_nodata():
     x = MDF(r'test.mf4', load_measured_data=False)
     with Timer('asammdf {} nodata mdfv4'.format(asammdf_version)):
         for i, gp in enumerate(x.groups):
-            t = x.get_master_data(group=i)
             for j in range(len(gp['channels'])):
-                y = x.get_channel_data(group=i, index=j)
+                y = x.get(group=i, index=j, samples_only=True)
 
 
 def open_mdf4_compressed():
@@ -134,12 +133,11 @@ def save_mdf4_compressed():
 
 def get_all_mdf4_compressed():
     os.chdir(path)
-    x = MDF(r'test.mf4', compression=True)
+    x = MDF(r'test.mf4', compression=True)s
     with Timer('asammdf {} compression mdfv4'.format(asammdf_version)):
         for i, gp in enumerate(x.groups):
-            t = x.get_master_data(group=i)
             for j in range(len(gp['channels'])):
-                y = x.get_channel_data(group=i, index=j)
+                y = x.get_channel_data(group=i, index=j, samples_only=True)
 
 ################
 # mdf reader
@@ -235,7 +233,7 @@ def main():
     print('* {}'.format(platform.processor()))
     print('* {}GB installed RAM\n'.format(round(psutil.virtual_memory().total / 1024 / 1024 / 1024)))
     print('Notations used in the results\n')
-    print('* nodata = MDF object created with load_measured_data=False (raw channel data no loaded into RAM)')
+    print('* nodata = MDF object created with load_measured_data=False (raw channel data not loaded into RAM)')
     print('* compression = MDF object created with compression=True/blosc')
     print('* compression bcolz 6 = MDF object created with compression=6')
     print('* noDataLoading = MDF object read with noDataLoading=True')
@@ -259,7 +257,8 @@ def main():
                  open_reader4,
                  open_reader4_compression,
                  open_reader4_compression_bcolz,
-                 open_reader4_nodata):
+                 open_reader4_nodata
+                 ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
         thr.join()
@@ -286,7 +285,8 @@ def main():
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     print('{:<50} {:>9} {:>8}'.format('Get all channels (36424 calls)', 'Time [ms]', 'RAM [MB]'))
     print('{} {} {}'.format('='*50, '='*9, '='*8))
-    for func in (get_all_mdf3,
+    for func in (
+                 get_all_mdf3,
                  get_all_mdf3_compressed,
                  get_all_mdf3_nodata,
                  get_all_reader3,
@@ -295,7 +295,8 @@ def main():
                  get_all_mdf4_compressed,
                  get_all_mdf4_nodata,
                  get_all_reader4,
-                 get_all_reader4_nodata):
+                 get_all_reader4_nodata
+                 ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
         thr.join()

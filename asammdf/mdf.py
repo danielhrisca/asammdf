@@ -93,16 +93,9 @@ class MDF(object):
                 master_type = (V4_MASTER, V4_VIRTUAL_MASTER)
             for i, gp in enumerate(self.groups):
                 sigs = []
-                t = self.get_master_data(group=i)
                 for j, ch in enumerate(gp['channels']):
                     if not ch['channel_type'] in master_type:
-                        vals, name, conversion, unit, comment = self.get_channel_data(group=i, index=j, return_info=True)
-                        sigs.append(Signal(samples=vals,
-                                           timestamps=t,
-                                           unit=unit,
-                                           name=name,
-                                           conversion=conversion,
-                                           comment=comment))
+                        sigs.append(self.get(group=i, index=j))
                 out.append(sigs, 'Converted from {} to {}'.format(self.version, to))
             return out
 
@@ -141,13 +134,7 @@ class MDF(object):
             t = self.get_master_data(group=group)
             sigs = []
             for index in gps[group]:
-                vals, name, conversion, unit, comment = self.get_channel_data(group=group, index=index, return_info=True)
-                sigs.append(Signal(samples=vals,
-                                   timestamps=t,
-                                   unit=unit,
-                                   name=name,
-                                   conversion=conversion,
-                                   comment=comment))
+                sigs.append(self.get(group=group, index=index))
             mdf.append(sigs, 'Signals filtered from <{}>'.format(os.path.basename(self.name)))
 
         return mdf

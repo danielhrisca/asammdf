@@ -159,6 +159,17 @@ class Channel(dict):
         else:
             return pack(FMT_CHANNEL, *[self[key] for key in KEYS_CHANNEL])
 
+    def __lt__(self, other):
+        if self['start_offset'] < other['start_offset']:
+            return 1
+        elif self['start_offset'] == other['start_offset']:
+            if self['bit_count'] >= other['bit_count']:
+                return 1
+            else:
+                return 0
+        else:
+            return 0
+
 
 class ChannelConversion(dict):
     ''' CCBLOCK class derived from *dict*
