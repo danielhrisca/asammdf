@@ -58,7 +58,7 @@ Check the *examples* folder for extended usage demo.
 
 Documentation
 =============
-http://asammdf.readthedocs.io/en/2.1.2/
+http://asammdf.readthedocs.io/en/stable
 
 Installation
 ============
