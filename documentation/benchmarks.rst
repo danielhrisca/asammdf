@@ -104,10 +104,31 @@ Graphical results
 
     import matplotlib.pyplot as plt
     import numpy as np
+    
+    res = '../benchmarks/x64_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Open'
+    aspect = 'time'
+    for_doc = True
 
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'mdfreader 0.2.5 no convert mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4', 'mdfreader 0.2.5 noconvert mdfv4']
-    time = np.array([801, 946, 490, 2962, 2740, 1674, 1916, 1360, 31915, 31425])
-    ram =  np.array([352, 278, 172, 525, 392, 440, 343, 245, 737, 607])
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+
+    arr = ram if aspect == 'ram' else time
+
 
     y_pos = list(range(len(cat)))
 
@@ -117,132 +138,97 @@ Graphical results
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
 
-    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(cat)
     ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('Time [ms]')
-    ax.set_title('Open test file - time')
-    ax.xaxis.grid() 
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
 
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
     plt.show()
+    
     
 .. plot::
 
     import matplotlib.pyplot as plt
     import numpy as np
-    
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'mdfreader 0.2.5 no convert mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4', 'mdfreader 0.2.5 noconvert mdfv4']
-    time = np.array([801, 946, 490, 2962, 2740, 1674, 1916, 1360, 31915, 31425])
-    ram =  np.array([352, 278, 172, 525, 392, 440, 343, 245, 737, 607])
-    
+
+    res = '../benchmarks/x64_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Open'
+    aspect = 'ram'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
     y_pos = list(range(len(cat)))
-    
+
     fig, ax = plt.subplots()
     fig.set_size_inches(9, 4.5)
-    
+
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(cat)
     ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('RAM [MB]')
-    ax.set_title('Open test file - RAM usage')
-    ax.xaxis.grid() 
-    
-    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
-   
-    plt.show()
-    
-.. plot::
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
 
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'mdfreader 0.2.5 mdfv4']
-    time = np.array( [575, 705, 21591, 913, 1160, 18666] )
-    ram = np.array( [353, 276, 1985, 447, 352, 2782] )
-    
-    y_pos = list(range(len(cat)))
-    
-    fig, ax = plt.subplots()
-    fig.set_size_inches(9, 4.5)
-    
-    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
-    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(cat)
-    ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('Time [ms]')
-    ax.set_title('Save test file - time')
-    ax.xaxis.grid() 
-    
-    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
-    
-    plt.show()
-    
-.. plot::
-
-    import matplotlib.pyplot as plt
-    import numpy as np
-    
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'mdfreader 0.2.5 mdfv4']
-    time = np.array( [575, 705, 21591, 913, 1160, 18666] )
-    ram = np.array( [353, 276, 1985, 447, 352, 2782] )
-    
-    y_pos = list(range(len(cat)))
-    
-    fig, ax = plt.subplots()
-    fig.set_size_inches(9, 4.5)
-    
-    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
-    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(cat)
-    ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('RAM [MB]')
-    ax.set_title('Save test file - RAM usage')
-    ax.xaxis.grid() 
-    
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
 
-    plt.show()
-    
-.. plot::
-
-    import matplotlib.pyplot as plt
-    import numpy as np
-    
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4']
-    time = np.array( [2835, 18188, 11926, 29, 2338, 15566, 12598, 39] )
-    ram = np.array( [363, 287, 188, 525, 450, 355, 260, 737] )
-    
-    y_pos = list(range(len(cat)))
-    
-    fig, ax = plt.subplots()
-    fig.set_size_inches(9, 4.5)
-    
-    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
-    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(cat)
-    ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('Time [ms]')
-    ax.set_title('Get all channels (36424 calls) - time')
-    ax.xaxis.grid() 
-    
-    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
     
@@ -250,31 +236,268 @@ Graphical results
 
     import matplotlib.pyplot as plt
     import numpy as np
-    
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4']
-    time = np.array( [2835, 18188, 11926, 29, 2338, 15566, 12598, 39] )
-    ram = np.array( [363, 287, 188, 525, 450, 355, 260, 737] )
-    
+
+    res = '../benchmarks/x64_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Save'
+    aspect = 'time'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
     y_pos = list(range(len(cat)))
-    
+
     fig, ax = plt.subplots()
     fig.set_size_inches(9, 4.5)
-    
+
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(cat)
     ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('RAm [MB]')
-    ax.set_title('Get all channels (36424 calls) - RAM usage')
-    ax.xaxis.grid() 
-    
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
+
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
 
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
     plt.show()
+
+    
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    res = '../benchmarks/x64_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Save'
+    aspect = 'ram'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
+    y_pos = list(range(len(cat)))
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
+
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
+    plt.show()
+    
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    res = '../benchmarks/x64_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Get'
+    aspect = 'time'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
+    y_pos = list(range(len(cat)))
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
+
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
+    plt.show()
+
+    
+.. plot::
+
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    res = '../benchmarks/x64_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Get'
+    aspect = 'ram'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
+    y_pos = list(range(len(cat)))
+
+    fig, ax = plt.subplots()
+    fig.set_size_inches(9, 4.5)
+
+    asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
+    mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(cat)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
+
+    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
+    plt.show()
+
     
 
 x86 Python results
@@ -359,180 +582,399 @@ Graphical results
 
     import matplotlib.pyplot as plt
     import numpy as np
-    
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'mdfreader 0.2.5 no convert mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4', 'mdfreader 0.2.5 noconvert mdfv4']
-    time = np.array( [1031, 1259, 584, 3809, 3498, 2109, 2405, 1686, 44400, 43867] )
-    ram = np.array( [284, 192, 114, 455, 321, 341, 239, 159, 578, 449] )
-    
+
+    res = '../benchmarks/x86_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Open'
+    aspect = 'time'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
     y_pos = list(range(len(cat)))
-    
+
     fig, ax = plt.subplots()
     fig.set_size_inches(9, 4.5)
-    
+
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(cat)
     ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('Time [ms]')
-    ax.set_title('Open test file - time')
-    ax.xaxis.grid() 
-    
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
+
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
-    
+
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
     plt.show()
+
 
 .. plot::   
 
     import matplotlib.pyplot as plt
     import numpy as np
-    
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'mdfreader 0.2.5 no convert mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4', 'mdfreader 0.2.5 noconvert mdfv4']
-    time = np.array( [1031, 1259, 584, 3809, 3498, 2109, 2405, 1686, 44400, 43867] )
-    ram = np.array( [284, 192, 114, 455, 321, 341, 239, 159, 578, 449] )
-    
+
+    res = '../benchmarks/x86_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Open'
+    aspect = 'ram'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
     y_pos = list(range(len(cat)))
-    
+
     fig, ax = plt.subplots()
     fig.set_size_inches(9, 4.5)
-    
+
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(cat)
     ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('RAM [MB]')
-    ax.set_title('Open test file - RAM usage')
-    ax.xaxis.grid() 
-    
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
+
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
-    
+
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
     plt.show()
+
 
 .. plot::
 
     import matplotlib.pyplot as plt
     import numpy as np
-    
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'mdfreader 0.2.5 mdfv4']
-    time = np.array( [713, 926, 19862, 1109, 1267, 17518] )
-    ram = np.array( [286, 194, 1226, 347, 246, 1656] )
-    
+
+    res = '../benchmarks/x86_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Save'
+    aspect = 'time'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
     y_pos = list(range(len(cat)))
-    
+
     fig, ax = plt.subplots()
     fig.set_size_inches(9, 4.5)
-    
+
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(cat)
     ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('Time [ms]')
-    ax.set_title('Save test file - time')
-    ax.xaxis.grid() 
-    
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
+
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
 
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
     plt.show()
+
     
 .. plot::
 
     import matplotlib.pyplot as plt
     import numpy as np
-    
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'mdfreader 0.2.5 mdfv4']
-    time = np.array( [713, 926, 19862, 1109, 1267, 17518] )
-    ram = np.array( [286, 194, 1226, 347, 246, 1656] )
-    
+
+    res = '../benchmarks/x86_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Save'
+    aspect = 'ram'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
     y_pos = list(range(len(cat)))
-    
+
     fig, ax = plt.subplots()
     fig.set_size_inches(9, 4.5)
-    
+
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(cat)
     ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('RAM [MB]')
-    ax.set_title('Save test file - RAM usage')
-    ax.xaxis.grid() 
-    
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
+
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
-    
-    plt.savefig('x86_save.png', dpi=300)
-    
+
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
     plt.show()
+    
 
 .. plot::
 
     import matplotlib.pyplot as plt
     import numpy as np
-    
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4']
-    time = np.array( [3943, 29682, 23215, 38, 3227, 26070, 21619, 51] )
-    ram = np.array( [295, 203, 129, 455, 351, 250, 171, 578] )
-    
+
+    res = '../benchmarks/x86_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Get'
+    aspect = 'time'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
     y_pos = list(range(len(cat)))
-    
+
     fig, ax = plt.subplots()
     fig.set_size_inches(9, 4.5)
-    
+
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, time[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, time[mdfreader_pos], color='blue', ecolor='black')
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(cat)
     ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('Time [ms]')
-    ax.set_title('Get all channels (36424 calls) - time')
-    ax.xaxis.grid() 
-    
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
+
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
-    
+
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
     plt.show()
+
     
 .. plot::
 
     import matplotlib.pyplot as plt
     import numpy as np
-    
-    cat = ['asammdf 2.1.0 mdfv3', 'asammdf 2.1.0 compression mdfv3', 'asammdf 2.1.0 nodata mdfv3', 'mdfreader 0.2.5 mdfv3', 'asammdf 2.1.0 mdfv4', 'asammdf 2.1.0 compression mdfv4', 'asammdf 2.1.0 nodata mdfv4', 'mdfreader 0.2.5 mdfv4']
-    time = np.array( [3943, 29682, 23215, 38, 3227, 26070, 21619, 51] )
-    ram = np.array( [295, 203, 129, 455, 351, 250, 171, 578] )
-    
+
+    res = '../benchmarks/x86_asammdf_2.2.0_mdfreader_0.2.5.txt'
+    topic = 'Get'
+    aspect = 'ram'
+    for_doc = True
+
+    with open(res, 'r') as f:
+        lines = f.readlines()
+
+    platform = 'x86' if '32 bit' in lines[2] else 'x64'
+
+    table_spans = {'open': [22, 30],
+                   'save': [36, 42],
+                   'get': [48, 56]}
+
+
+    start, stop = table_spans[topic.lower()]
+
+    cat = [l[:50].strip() for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+
+    if aspect == 'ram':
+        arr = ram
+    else:
+        arr = time
+
     y_pos = list(range(len(cat)))
-    
+
     fig, ax = plt.subplots()
     fig.set_size_inches(9, 4.5)
-    
+
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
-    
-    ax.barh(asam_pos, ram[asam_pos], color='green', ecolor='green')
-    ax.barh(mdfreader_pos, ram[mdfreader_pos], color='blue', ecolor='black')
+
+    ax.barh(asam_pos, arr[asam_pos], color='green', ecolor='green')
+    ax.barh(mdfreader_pos, arr[mdfreader_pos], color='blue', ecolor='black')
     ax.set_yticks(y_pos)
     ax.set_yticklabels(cat)
     ax.invert_yaxis()  # labels read top-to-bottom
-    ax.set_xlabel('RAM [MB]')
-    ax.set_title('Get all channels (36424 calls) - RAM usage')
-    ax.xaxis.grid() 
-    
+    ax.set_xlabel('Time [ms]' if aspect == 'time' else 'RAM [MB]')
+    if topic == 'Get':
+        ax.set_title('Get all channels (36424 calls) - {}'.format('time' if aspect == 'time' else 'ram usage'))
+    else:
+        ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
+    ax.xaxis.grid()
+
     fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
-    
+
+    if aspect == 'time':
+        if topic == 'Get':
+            name = '{}_get_all_channels.png'.format(platform)
+        else:
+            name = '{}_{}.png'.format(platform, topic.lower())
+    else:
+        if topic == 'Get':
+            name = '{}_get_all_channels_ram_usage.png'.format(platform)
+        else:
+            name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
+
     plt.show()
