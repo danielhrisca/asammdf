@@ -5,6 +5,8 @@ MDF file format module
 import os
 import warnings
 
+from pandas import DataFrame
+
 from .mdf3 import MDF3
 from .mdf4 import MDF4
 from .signal import Signal
@@ -131,13 +133,24 @@ class MDF(object):
 
         # append filtered channels to new MDF
         for group in gps:
-            t = self.get_master_data(group=group)
             sigs = []
             for index in gps[group]:
                 sigs.append(self.get(group=group, index=index))
             mdf.append(sigs, 'Signals filtered from <{}>'.format(os.path.basename(self.name)))
 
         return mdf
+
+    def iter_to_pandas(self):
+        """ generator that yields channel groups as pandas DataFrames"""
+        for i, gp in enumerate(self.groups):
+            master_index = self.masters_db[i]
+            pandas_dict = {gp['channels'][master_index].name: self.get(group=i, index=master_index, samples_only=True)}
+            for j, ch in enumerate(gp['channels']):
+                if j == master_index:
+                    continue
+                name = gp['channels'][j].name
+                pandas_dict[name] = self.get(group=i, index=j, samples_only=True)
+            yield DataFrame.from_dict(pandas_dict)
 
 
 if __name__ == '__main__':

@@ -21,8 +21,6 @@ from numpy import (interp, linspace, dtype, amin, amax, array_equal,
 from numexpr import evaluate
 from numpy.core.records import fromstring, fromarrays
 
-from pandas import DataFrame
-
 from .v4blocks import (AttachmentBlock,
                        Channel,
                        ChannelGroup,
@@ -1308,18 +1306,6 @@ class MDF4(object):
                         tx = linspace(0, t[-1], int(t[-1] / raster))
                         res = res.interp(tx)
                     return res
-
-    def iter_to_pandas(self):
-        master_type = (CHANNEL_TYPE_MASTER, CHANNEL_TYPE_VIRTUAL_MASTER)
-        for i, gp in enumerate(self.groups):
-            t = self.get_master_data(group=i)
-            t_name = gp['channels'][self.masters_db[i]].name
-            pandas_dict = {t_name: t}
-            for j, ch in enumerate(gp['channels']):
-                if not ch['channel_type'] in master_type:
-                    vals, name, conversion, unit = self.get_channel_data(group=i, index=j, return_info=True)
-                    pandas_dict[name] = vals
-            yield DataFrame.from_dict(pandas_dict)
 
     def info(self):
         """get MDF information as a dict
