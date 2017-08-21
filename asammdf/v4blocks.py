@@ -25,6 +25,7 @@ from .v4constants import *
 
 __all__ = ['AttachmentBlock',
            'Channel',
+           'ChannelArrayBlock',
            'ChannelGroup',
            'ChannelConversion',
            'DataBlock',
@@ -145,6 +146,8 @@ class Channel(dict):
         super(Channel, self).__init__()
 
         self.name = ''
+        self.cn_template = False
+        self.cn_template_size = 0
 
         try:
             self.address = address = kargs['address']
@@ -236,6 +239,41 @@ class Channel(dict):
                 return 0
         else:
             return 0
+
+
+class ChannelArrayBlock(dict):
+    """CABLOCK class"""
+    def __init__(self, **kargs):
+        super(ChannelArrayBlock, self).__init__()
+
+        try:
+            self.address = address = kargs['address']
+            stream = kargs['file_stream']
+            stream.seek(address, SEEK_START)
+
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr']) = unpack('<4sI2Q', stream.read(24))
+
+            nr = self['links_nr']
+            links = unpack('<{}Q'.format(nr), stream.read(8*nr))
+            for i in range(nr):
+                self['link_{}'.format(i)] = links[i]
+
+            (self['ca_type'],
+             self['storage'],
+             self['dims'],
+             self['flags'],
+             self['byte_offset_base'],
+             self['invalidation_bit_base'],
+             self['dim_size']) = unpack('<2BHIiIQ', stream.read(24))
+
+        except KeyError:
+            pass
+
+    def __bytes__(self):
+        return b''
 
 
 class ChannelGroup(dict):

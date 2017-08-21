@@ -23,6 +23,7 @@ from numpy.core.records import fromstring, fromarrays
 
 from .v4blocks import (AttachmentBlock,
                        Channel,
+                       ChannelArrayBlock,
                        ChannelGroup,
                        ChannelConversion,
                        DataBlock,
@@ -211,8 +212,6 @@ class MDF4(object):
                 parents = {}
 
                 for new_ch in sorted(grp['channels']):
-                    if new_ch['component_addr']:
-                        continue
 
                     start_offset = new_ch['byte_offset']
                     bit_offset = new_ch['bit_offset']
@@ -221,39 +220,60 @@ class MDF4(object):
                     name = new_ch.name
 
                     if start_offset >= next_byte_aligned_position:
-                        parent_start_offset = start_offset
-                        parents[name] = name, bit_offset
+                        if new_ch['component_addr']:
+                            if new_ch.cn_template:
+                                # assume that the channel array in byte aligned
 
-                        # check if there are byte gaps in the record
-                        gap = parent_start_offset - next_byte_aligned_position
-                        if gap:
-                            types.append( ('', 'a{}'.format(gap)) )
+                                # check if there are byte gaps in the record
+                                gap = start_offset - next_byte_aligned_position
+                                if gap:
+                                    types.append( ('', 'a{}'.format(gap)) )
 
-                        # adjust size to 1, 2, 4 or 8 bytes
-                        size = bit_offset + bit_count
-                        if not data_type in (DATA_TYPE_BYTEARRAY,
-                                             DATA_TYPE_STRING_UTF_8,
-                                             DATA_TYPE_STRING_LATIN_1,
-                                             DATA_TYPE_STRING_UTF_16_BE,
-                                             DATA_TYPE_STRING_UTF_16_LE):
-                            if size > 32:
-                                next_byte_aligned_position = parent_start_offset + 8
-                                size = 8
-                            elif size > 16:
-                                next_byte_aligned_position = parent_start_offset + 4
-                                size = 4
-                            elif size > 8:
-                                next_byte_aligned_position = parent_start_offset + 2
-                                size = 2
+                                dim = new_ch.cn_template_size
+                                size = new_ch['bit_count'] >> 3
+                                for i in range(dim):
+                                    new_name = '{}_{}'.format(name, i)
+                                    parents[new_name] = new_name, 0
+                                    types.append( (new_name, get_fmt(data_type, size, version=4)) )
+
+                                current_parent = ''
+                                next_byte_aligned_position = start_offset + size * dim
                             else:
-                                next_byte_aligned_position = parent_start_offset + 1
-                                size = 1
+                                continue
+                        else:
+                            parent_start_offset = start_offset
+                            parents[name] = name, bit_offset
 
-                        types.append( (name, get_fmt(data_type, size, version=4)) )
+                            # check if there are byte gaps in the record
+                            gap = parent_start_offset - next_byte_aligned_position
+                            if gap:
+                                types.append( ('', 'a{}'.format(gap)) )
 
-                        current_parent = name
+                            # adjust size to 1, 2, 4 or 8 bytes
+                            size = bit_offset + bit_count
+                            if not data_type in (DATA_TYPE_BYTEARRAY,
+                                                 DATA_TYPE_STRING_UTF_8,
+                                                 DATA_TYPE_STRING_LATIN_1,
+                                                 DATA_TYPE_STRING_UTF_16_BE,
+                                                 DATA_TYPE_STRING_UTF_16_LE):
+                                if size > 32:
+                                    next_byte_aligned_position = parent_start_offset + 8
+                                    size = 8
+                                elif size > 16:
+                                    next_byte_aligned_position = parent_start_offset + 4
+                                    size = 4
+                                elif size > 8:
+                                    next_byte_aligned_position = parent_start_offset + 2
+                                    size = 2
+                                else:
+                                    next_byte_aligned_position = parent_start_offset + 1
+                                    size = 1
+
+                            types.append( (name, get_fmt(data_type, size, version=4)) )
+
+                            current_parent = name
                     else:
-                        parents[name] = current_parent, ((start_offset - parent_start_offset) << 3 )+ bit_offset
+                        parents[name] = current_parent, ((start_offset - parent_start_offset) << 3 ) + bit_offset
                 gap = record_size - next_byte_aligned_position
                 if gap:
                     types.append( ('', 'a{}'.format(gap)) )
@@ -443,7 +463,13 @@ class MDF4(object):
                 if blk_id == b'##CN':
                     ch_cntr = self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr)
                 else:
-                    warnings.warn('Channel arrays are not supported yet')
+                    ca_block = ChannelArrayBlock(address=channel['component_addr'], file_stream=file_stream)
+                    if ca_block['ca_type'] in (CA_TYPE_ARRAY, CA_TYPE_SCALE_AXIS) and ca_block['storage'] == CA_STORAGE_TYPE_CN_TEMPLATE:
+                        dim_size = ca_block['dim_size']
+                        channel.cn_template = True
+                        channel.cn_template_size = dim_size
+                    else:
+                        warnings.warn('Channel arrays are not supported yet')
 
             # go to next channel of the current channel group
             ch_addr = channel['next_ch_addr']
@@ -962,6 +988,56 @@ class MDF4(object):
         channel = grp['channels'][ch_nr]
         conversion = grp['channel_conversions'][ch_nr]
 
+        # get data group record
+        if not self.load_measured_data:
+            with open(self.name, 'rb') as file_stream:
+                # go to the first data block of the current data group
+                dat_addr = grp['data_group']['data_block_addr']
+                data = self._read_data_block(address=dat_addr, file_stream=file_stream)
+
+                if not grp.get('sorted', True):
+                    cg_data = []
+                    cg_size = grp['record_size']
+                    record_id = grp['channel_group']['record_id']
+                    record_id_nr = grp['data_group']['record_id_len'] if grp['data_group']['record_id_len'] <= 2 else 0
+                    i = 0
+                    size = len(data)
+                    while i < size:
+                        rec_id = data[i]
+                        # skip record id
+                        i += 1
+                        rec_size = cg_size[rec_id]
+                        if rec_size:
+                            if rec_id == record_id:
+                                rec_data = data[i: i+rec_size]
+                                cg_data.append(rec_data)
+                        else:
+                            # as shown bby mdfvalidator rec size is first byte after rec id + 3
+                            rec_size = unpack('<I', data[i: i+4])[0]
+                            i += 4
+                            if rec_id == record_id:
+                                rec_data = data[i: i + rec_size]
+                                cg_data.append(rec_data)
+                        # if 2 record id's are used skip also the second one
+                        if record_id_nr == 2:
+                            i += 1
+                        # go to next record
+                        i += rec_size
+                    data = b''.join(cg_data)
+
+                # check if it is a VLDS channel with signal data
+                ch_data_addr = channel['data_block_addr']
+                signal_data = self._read_agregated_signal_data(address=ch_data_addr, file_stream=file_stream)
+            record = fromstring(data, dtype=grp['types'])
+        elif self.compression:
+            if grp['data_block']:
+                data = grp['data_block']['data']
+            else:
+                data = b''
+            record = fromstring(data, dtype=grp['types'])
+        else:
+            record = grp['record']
+
         # get the channel signal data if available
         signal_data = grp['signal_data'][ch_nr]
         if signal_data:
@@ -971,14 +1047,61 @@ class MDF4(object):
 
         # check if this is a channel array
         if channel['component_addr']:
-            warnings.warn('Channel arrays not support yet')
-            if samples_only:
-                return array([])
+            if channel.cn_template:
+                name = channel.name
+                dims = channel.cn_template_size
+                arrays = [record['{}_{}'.format(name, i)] for i in range(dims)]
+
+                vals = fromarrays(arrays)
+
+                if samples_only:
+                    return vals
+                else:
+                    # get the channel commment if available
+                    comment = grp['texts']['channels'][ch_nr].get('comment_addr', None)
+                    if comment:
+                        if comment['id'] == b'##MD':
+                            comment = comment.text_str
+                            comment = XML.fromstring(comment).find('TX').text
+                        else:
+                            comment = comment.text_str
+                    else:
+                        comment = ''
+
+                    # get master channel index
+                    time_ch_nr = self.masters_db[gp_nr]
+
+                    time_conv = grp['channel_conversions'][time_ch_nr]
+                    time_ch = grp['channels'][time_ch_nr]
+                    t = record[time_ch.name]
+                    # get timestamps
+                    time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
+                    if time_conv_type == CONVERSION_TYPE_LIN:
+                        time_a = time_conv['a']
+                        time_b = time_conv['b']
+                        t = t * time_a
+                        if time_b:
+                            t += time_b
+                    res = Signal(samples=vals,
+                                 timestamps=t,
+                                 unit='',
+                                 name=channel.name,
+                                 comment=comment)
+
+                    if raster and t:
+                        tx = linspace(0, t[-1], int(t[-1] / raster))
+                        res = res.interp(tx)
+                    return res
+
             else:
-                return Signal(samples=array([]),
-                             timestamps=array([]),
-                             name=channel.name,)
-            arrays = [self.get(ch.name) for ch in channel.dependencies]
+                warnings.warn('Channel arrays not support yet')
+                if samples_only:
+                    return array([])
+                else:
+                    return Signal(samples=array([]),
+                                  timestamps=array([]),
+                                  name=channel.name,)
+            arrays = [self.get(ch.name, samples_ony=True) for ch in channel.dependencies]
             vals = fromarrays(arrays)
             info = None
             if samples_only:
@@ -1015,55 +1138,6 @@ class MDF4(object):
                     res = res.interp(tx)
                 return res
         else:
-            if not self.load_measured_data:
-                with open(self.name, 'rb') as file_stream:
-                    # go to the first data block of the current data group
-                    dat_addr = grp['data_group']['data_block_addr']
-                    data = self._read_data_block(address=dat_addr, file_stream=file_stream)
-
-                    if not grp.get('sorted', True):
-                        cg_data = []
-                        cg_size = grp['record_size']
-                        record_id = grp['channel_group']['record_id']
-                        record_id_nr = grp['data_group']['record_id_len'] if grp['data_group']['record_id_len'] <= 2 else 0
-                        i = 0
-                        size = len(data)
-                        while i < size:
-                            rec_id = data[i]
-                            # skip record id
-                            i += 1
-                            rec_size = cg_size[rec_id]
-                            if rec_size:
-                                if rec_id == record_id:
-                                    rec_data = data[i: i+rec_size]
-                                    cg_data.append(rec_data)
-                            else:
-                                # as shown bby mdfvalidator rec size is first byte after rec id + 3
-                                rec_size = unpack('<I', data[i: i+4])[0]
-                                i += 4
-                                if rec_id == record_id:
-                                    rec_data = data[i: i + rec_size]
-                                    cg_data.append(rec_data)
-                            # if 2 record id's are used skip also the second one
-                            if record_id_nr == 2:
-                                i += 1
-                            # go to next record
-                            i += rec_size
-                        data = b''.join(cg_data)
-
-                    # check if it is a VLDS channel with signal data
-                    ch_data_addr = channel['data_block_addr']
-                    signal_data = self._read_agregated_signal_data(address=ch_data_addr, file_stream=file_stream)
-                record = fromstring(data, dtype=grp['types'])
-            elif self.compression:
-                if grp['data_block']:
-                    data = grp['data_block']['data']
-                else:
-                    data = b''
-                record = fromstring(data, dtype=grp['types'])
-            else:
-                record = grp['record']
-
             # get channel values
             parent, bit_offset = grp['parents'][channel.name]
             vals = record[parent]

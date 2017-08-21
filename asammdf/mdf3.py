@@ -15,7 +15,7 @@ from functools import reduce
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, log, exp, clip, union1d, float64,
-                   uint8, frombuffer, issubdtype, flexible, arange)
+                   uint8, frombuffer, issubdtype, flexible, arange, recarray)
 from numpy.core.records import fromstring, fromarrays
 from numexpr import evaluate
 
@@ -747,14 +747,58 @@ class MDF3(object):
                         warnings.warn('You have selected group "{}" for channel "{}", but this channel was not found in this group. Using first occurance of "{}" from group "{}"'.format(group, name, name, gp_nr))
 
 
-
         grp = self.groups[gp_nr]
         channel = grp['channels'][ch_nr]
         conversion = grp['channel_conversions'][ch_nr]
 
+        # get data group record
+        if not self.load_measured_data:
+            with open(self.name, 'rb') as file_stream:
+                # go to the first data block of the current data group
+                dat_addr = grp['data_group']['data_block_addr']
+
+                if grp.get('sorted', True):
+                    read_size = grp['channel_group']['samples_byte_nr'] * grp['channel_group']['cycles_nr']
+                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                else:
+                    read_size = grp['size']
+                    record_id = grp['channel_group']['record_id']
+                    cg_size = grp['record_size']
+                    record_id_nr = grp['data_group']['record_id_nr'] if grp['data_group']['record_id_nr'] <= 2 else 0
+                    cg_data = []
+
+                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                    i = 0
+                    size = len(data)
+                    while i < size:
+                        rec_id = data[i]
+                        # skip redord id
+                        i += 1
+                        rec_size = cg_size[rec_id]
+                        if rec_id == record_id:
+                            rec_data = data[i: i+rec_size]
+                            cg_data.append(rec_data)
+                        # if 2 record id's are sued skip also the second one
+                        if record_id_nr == 2:
+                            i += 1
+                        # go to next record
+                        i += rec_size
+                    data = b''.join(cg_data)
+            record = fromstring(data, dtype=grp['types'])
+        elif self.compression:
+            if grp['data_block']:
+                data = grp['data_block']['data']
+            else:
+                data = b''
+            record = fromstring(data, dtype=grp['types'])
+        else:
+            record = grp['record']
+
         # check if this is a channel array
         if channel['ch_depend_addr']:
-            arrays = [self.get(ch.name) for ch in channel.dependencies]
+            arrays = [self.get(ch.name, samples_only=True) for ch in channel.dependencies]
             vals = fromarrays(arrays)
             info = None
 
@@ -770,8 +814,10 @@ class MDF3(object):
                 # get master channel index
                 time_ch_nr = self.masters_db[gp_nr]
 
+
                 time_conv = grp['channel_conversions'][time_ch_nr]
                 time_ch = grp['channels'][time_ch_nr]
+
                 t = record[time_ch.name]
                 # get timestamps
                 time_conv_type = CONVERSION_TYPE_NONE if time_conv is None else time_conv['conversion_type']
@@ -792,49 +838,7 @@ class MDF3(object):
                     res = res.interp(tx)
                 return res
         else:
-            if not self.load_measured_data:
-                with open(self.name, 'rb') as file_stream:
-                    # go to the first data block of the current data group
-                    dat_addr = grp['data_group']['data_block_addr']
 
-                    if grp.get('sorted', True):
-                        read_size = grp['channel_group']['samples_byte_nr'] * grp['channel_group']['cycles_nr']
-                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
-
-                    else:
-                        read_size = grp['size']
-                        record_id = grp['channel_group']['record_id']
-                        cg_size = grp['record_size']
-                        record_id_nr = grp['data_group']['record_id_nr'] if grp['data_group']['record_id_nr'] <= 2 else 0
-                        cg_data = []
-
-                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
-
-                        i = 0
-                        size = len(data)
-                        while i < size:
-                            rec_id = data[i]
-                            # skip redord id
-                            i += 1
-                            rec_size = cg_size[rec_id]
-                            if rec_id == record_id:
-                                rec_data = data[i: i+rec_size]
-                                cg_data.append(rec_data)
-                            # if 2 record id's are sued skip also the second one
-                            if record_id_nr == 2:
-                                i += 1
-                            # go to next record
-                            i += rec_size
-                        data = b''.join(cg_data)
-                record = fromstring(data, dtype=grp['types'])
-            elif self.compression:
-                if grp['data_block']:
-                    data = grp['data_block']['data']
-                else:
-                    data = b''
-                record = fromstring(data, dtype=grp['types'])
-            else:
-                record = grp['record']
 
             # get channel values
             parent, bit_offset = grp['parents'][channel.name]
