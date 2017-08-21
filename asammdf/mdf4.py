@@ -755,6 +755,13 @@ class MDF4(object):
 
         gp['types'] = types
 
+        parents = {'t': ('t', 0)}
+
+        for name in names:
+            parents[name] = name, 0
+
+        gp['parents'] = parents
+
         arrays = [t, ]
         arrays.extend([sig.samples for sig in signals])
 
@@ -1295,6 +1302,7 @@ class MDF4(object):
                         t = t * time_a
                         if time_b:
                             t += time_b
+
                     res = Signal(samples=vals,
                                  timestamps=t,
                                  unit=unit,

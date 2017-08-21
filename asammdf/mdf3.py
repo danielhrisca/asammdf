@@ -587,7 +587,7 @@ class MDF3(object):
                  'start_offset': 0,
                  'bit_count': t_size}
         ch = Channel(**kargs)
-        ch.name = name
+        ch.name = 't'
         gp_channels.append(ch)
         self.masters_db[dg_cntr] = 0
 
@@ -606,7 +606,7 @@ class MDF3(object):
                      'start_offset': offset,
                      'bit_count': sig_size}
             ch = Channel(**kargs)
-            ch.name = name
+            ch.name = s.name
             gp_channels.append(ch)
             offset += sig_size
 
@@ -624,6 +624,8 @@ class MDF3(object):
         gp['channel_group'] = ChannelGroup(**kargs)
         gp['channel_group']['ch_nr'] = channel_nr + 1
 
+
+
         #data block
         types = [('t', t.dtype),]
 
@@ -632,6 +634,14 @@ class MDF3(object):
         types = dtype(types)
 
         gp['types'] = types
+
+
+        parents = {'t': ('t', 0)}
+
+        for name in names:
+            parents[name] = name, 0
+
+        gp['parents'] = parents
 
         arrays = [t, ]
         arrays.extend(s.samples for s in signals)
@@ -642,7 +652,7 @@ class MDF3(object):
         kargs = {'data': block, 'compression' : self.compression}
         gp['data_block'] = DataBlock(**kargs)
 
-        if self.compression:
+        if not self.compression:
             gp['record'] = fromstring(gp['data_block']['data'], dtype=types)
 
         #data group
@@ -651,6 +661,8 @@ class MDF3(object):
 
         # data group trigger
         gp['trigger'] = [None, None]
+
+
 
     def get(self, name=None, group=None, index=None, raster=None, samples_only=False):
         """Gets channel samples.
@@ -733,6 +745,8 @@ class MDF3(object):
                     else:
                         gp_nr, ch_nr = self.channels_db[name][0]
                         warnings.warn('You have selected group "{}" for channel "{}", but this channel was not found in this group. Using first occurance of "{}" from group "{}"'.format(group, name, name, gp_nr))
+
+
 
         grp = self.groups[gp_nr]
         channel = grp['channels'][ch_nr]
