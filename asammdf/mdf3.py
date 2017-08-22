@@ -48,8 +48,6 @@ class MDF3(object):
         * if *True* the data group binary data block will be loaded in RAM
         * if *False* the channel data is read from disk on request
 
-    compression : bool
-        compression option for data group binary data block; default *False*
     version : string
         mdf file version ('3.00', '3.10', '3.20' or '3.30'); default '3.20'
 
@@ -65,8 +63,6 @@ class MDF3(object):
         file history text block; can be None
     load_measured_data : bool
         load measured data option
-    compression : bool
-        measured data compression option
     version : int
         mdf version
     channels_db : dict
@@ -76,14 +72,13 @@ class MDF3(object):
 
     """
 
-    def __init__(self, name=None, load_measured_data=True, compression=False, version='3.20'):
+    def __init__(self, name=None, load_measured_data=True, version='3.20'):
         self.groups = []
         self.header = None
         self.identification = None
         self.file_history = None
         self.name = name
         self.load_measured_data = load_measured_data
-        self.compression = compression
         self.channels_db = {}
         self.masters_db = {}
 
@@ -375,11 +370,10 @@ class MDF3(object):
                         data = b''
                     if cg_nr == 1:
                         grp = new_groups[0]
-                        kargs = {'data': data, 'compression': self.compression}
+                        kargs = {'data': data}
                         grp['data_block'] = DataBlock(**kargs)
 
-                        if not self.compression:
-                            grp['record'] = fromstring(grp['data_block']['data'], dtype=grp['types'])
+                        grp['record'] = fromstring(grp['data_block']['data'], dtype=grp['types'])
 
                     else:
                         cg_data = defaultdict(list)
@@ -400,7 +394,6 @@ class MDF3(object):
                         for grp in new_groups:
                             kargs = {}
                             kargs['data'] = b''.join(cg_data[grp['channel_group']['record_id']])
-                            kargs['compression'] = self.compression
                             grp['channel_group']['record_id'] = 1
                             grp['data_block'] = DataBlock(**kargs)
 
@@ -682,11 +675,10 @@ class MDF3(object):
         samples = fromarrays(arrays, dtype=types)
         block = samples.tostring()
 
-        kargs = {'data': block, 'compression' : self.compression}
+        kargs = {'data': block}
         gp['data_block'] = DataBlock(**kargs)
 
-        if not self.compression:
-            gp['record'] = fromstring(gp['data_block']['data'], dtype=types)
+        gp['record'] = fromstring(gp['data_block']['data'], dtype=types)
 
         #data group
         kargs = {'block_len': DG32_BLOCK_SIZE if self.version in ('3.20', '3.30') else DG31_BLOCK_SIZE}
@@ -785,12 +777,6 @@ class MDF3(object):
         # get data group record
         if not self.load_measured_data:
             data = self._load_group_data(grp)
-            record = fromstring(data, dtype=grp['types'])
-        elif self.compression:
-            if grp['data_block']:
-                data = grp['data_block']['data']
-            else:
-                data = b''
             record = fromstring(data, dtype=grp['types'])
         else:
             record = grp['record']

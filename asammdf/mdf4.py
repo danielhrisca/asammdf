@@ -62,8 +62,6 @@ class MDF4(object):
         * if *True* the data group binary data block will be loaded in RAM
         * if *False* the channel data is read from disk on request
 
-    compression : bool
-        compression option for data group binary data block; default *False*
     version : string
         mdf file version ('4.00', '4.10', '4.11'); default '4.00'
 
@@ -83,8 +81,6 @@ class MDF4(object):
         mdf file start block
     load_measured_data : bool
         load measured data option
-    compression : bool
-        measured data compression option
     version : int
         mdf version
     channels_db : dict
@@ -93,7 +89,7 @@ class MDF4(object):
         used for fast master channel access; for each group index key the value is the master channel index
 
     """
-    def __init__(self, name=None, load_measured_data=True, compression=False, version='4.00'):
+    def __init__(self, name=None, load_measured_data=True, version='4.00'):
         self.groups = []
         self.header = None
         self.identification = None
@@ -103,7 +99,6 @@ class MDF4(object):
         self.load_measured_data = load_measured_data
         self.channels_db = {}
         self.masters_db = {}
-        self.compression = compression
         self.attachments = []
         self.sorted = True
 
@@ -308,10 +303,9 @@ class MDF4(object):
 
                 if cg_nr == 1:
                     grp = new_groups[0]
-                    kargs = {'data': data, 'compression': self.compression}
+                    kargs = {'data': data}
                     grp['data_block'] = DataBlock(**kargs)
-                    if not self.compression:
-                        grp['record'] = fromstring(grp['data_block']['data'], dtype=grp['types'])
+                    grp['record'] = fromstring(grp['data_block']['data'], dtype=grp['types'])
                 else:
                     cg_data = defaultdict(list)
                     record_id_nr = group['record_id_len'] if group['record_id_len'] <= 2 else 0
@@ -339,11 +333,9 @@ class MDF4(object):
                     for grp in new_groups:
                         kargs = {}
                         kargs['data'] = b''.join(cg_data[grp['channel_group']['record_id']])
-                        kargs['compression'] = self.compression
                         grp['channel_group']['record_id'] = 1
                         grp['data_block'] = DataBlock(**kargs)
-                        if not self.compression:
-                            grp['record'] = fromstring(grp['data_block']['data'], dtype=grp['types'])
+                        grp['record'] = fromstring(grp['data_block']['data'], dtype=grp['types'])
             self.groups.extend(new_groups)
 
             dg_addr = group['next_dg_addr']
@@ -830,12 +822,10 @@ class MDF4(object):
         block = arrays.tostring()
 
         kargs = {'data': block,
-                 'block_len': 24 + len(block),
-                 'compression' : self.compression}
+                 'block_len': 24 + len(block)}
         gp['data_block'] = DataBlock(**kargs)
 
-        if not self.compression:
-            gp['record'] = fromstring(gp['data_block']['data'], dtype=types)
+        gp['record'] = fromstring(gp['data_block']['data'], dtype=types)
 
         #data group
         gp['data_group'] = DataGroup()
@@ -1026,12 +1016,6 @@ class MDF4(object):
         # get data group record
         if not self.load_measured_data:
             data = self._load_group_data(grp)
-            record = fromstring(data, dtype=grp['types'])
-        elif self.compression:
-            if grp['data_block']:
-                data = grp['data_block']['data']
-            else:
-                data = b''
             record = fromstring(data, dtype=grp['types'])
         else:
             record = grp['record']
@@ -1831,7 +1815,7 @@ class MDF4(object):
                 else:
                     data = self._load_group_data(gp)
                     if data:
-                        block = DataGroup(data=data)
+                        block = DataBlock(data=data)
                         data_block_address = address
                         address += block['block_len']
                         align = address % 8

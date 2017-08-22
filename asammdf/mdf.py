@@ -34,27 +34,24 @@ class MDF(object):
 
         * if *True* the data group binary data block will be loaded in RAM
         * if *False* the channel data is read from disk on request
-
-    compression : bool
-        compression option for data group binary data block; default *False*
     version : string
         mdf file version ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10', '4.11'); default '3.20'
 
     """
-    def __init__(self, name=None, load_measured_data=True, compression=False, version='3.20'):
+    def __init__(self, name=None, load_measured_data=True, version='3.20'):
         if name and os.path.isfile(name):
             with open(name, 'rb') as file_stream:
                 file_stream.read(8)
                 version = file_stream.read(4).decode('ascii')
             if version in MDF3_VERSIONS:
-                self.file = MDF3(name, load_measured_data, compression=compression)
+                self.file = MDF3(name, load_measured_data)
             elif version in MDF4_VERSIONS:
-                self.file = MDF4(name, load_measured_data, compression=compression)
+                self.file = MDF4(name, load_measured_data)
         else:
             if version in MDF3_VERSIONS:
-                self.file = MDF3(name, compression=compression, version=version)
+                self.file = MDF3(name, version=version)
             elif version in MDF4_VERSIONS:
-                self.file = MDF4(name, compression=compression, version=version)
+                self.file = MDF4(name, version=version)
 
     def __setattr__(self, attr, value):
         if attr == 'file':
@@ -68,15 +65,13 @@ class MDF(object):
         else:
             return getattr(self.file, attr)
 
-    def convert(self, to, compression=False):
+    def convert(self, to):
         """convert MDF to other versions
 
         Parameters
         ----------
         to : str
             new mdf version from ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10', '4.11')
-        compression : bool
-            enable raw channel data compression for out MDF; default *False*
 
         Returns
         -------
@@ -88,7 +83,7 @@ class MDF(object):
             print('Unknown output mdf version "{}". Available versions are {}'.format(to, MDF4_VERSIONS + MDF3_VERSIONS))
             return
         else:
-            out = MDF(version=to, compression=compression)
+            out = MDF(version=to)
             if self.version in MDF3_VERSIONS:
                 master_type = (V3_MASTER,)
             else:

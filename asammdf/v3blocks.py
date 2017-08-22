@@ -789,8 +789,6 @@ class DataBlock(dict):
     ----------
     address : int
         block address
-    compression : bool
-        compression flag
 
     Parameters
     ----------
@@ -798,15 +796,11 @@ class DataBlock(dict):
         block address inside the measurement file
     stream : file.io.handle
         binary file stream
-    compression : bool
-        option flag for data compression; default *False*
 
     """
 
     def __init__(self, **kargs):
         super(DataBlock, self).__init__()
-
-        self.compression = kargs.get('compression', False)
 
         try:
             stream = kargs['file_stream']
@@ -819,21 +813,6 @@ class DataBlock(dict):
         except KeyError:
             self.address = 0
             self['data'] = kargs.get('data', b'')
-
-    def __setitem__(self, item, value):
-        if item == 'data':
-            if self.compression:
-                super(DataBlock, self).__setitem__(item, compress(value))
-            else:
-                super(DataBlock, self).__setitem__(item, value)
-        else:
-            super(DataBlock, self).__setitem__(item, value)
-
-    def __getitem__(self, item):
-        if item == 'data' and self.compression:
-            return decompress(super(DataBlock, self).__getitem__(item))
-        else:
-            return super(DataBlock, self).__getitem__(item)
 
     def __bytes__(self):
         return self['data']

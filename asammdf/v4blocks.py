@@ -755,8 +755,6 @@ class DataBlock(dict):
 
     Parameters
     ----------
-    compression : bool
-        enable raw channel data compression in RAM
     address : int
         DTBLOCK address inside the file
     file_stream : int
@@ -765,8 +763,6 @@ class DataBlock(dict):
     """
     def __init__(self, **kargs):
         super(DataBlock, self).__init__()
-
-        self.compression = kargs.get('compression', False)
 
         try:
             self.address = address = kargs['address']
@@ -786,21 +782,6 @@ class DataBlock(dict):
             self['block_len'] = len(kargs['data']) + COMMON_SIZE
             self['links_nr'] = 0
             self['data'] = kargs['data']
-
-    def __setitem__(self, item, value):
-        if item == 'data':
-            if self.compression:
-                super(DataBlock, self).__setitem__(item, compress(value))
-            else:
-                super(DataBlock, self).__setitem__(item, value)
-        else:
-            super(DataBlock, self).__setitem__(item, value)
-
-    def __getitem__(self, item):
-        if item == 'data' and self.compression:
-            return decompress(super(DataBlock, self).__getitem__(item))
-        else:
-            return super(DataBlock, self).__getitem__(item)
 
     def __bytes__(self):
         fmt = FMT_DATA_BLOCK.format(self['block_len'] - COMMON_SIZE)
