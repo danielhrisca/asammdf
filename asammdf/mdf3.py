@@ -1186,10 +1186,15 @@ class MDF3(object):
 
                 # DataBlock
                 if self.load_measured_data == False:
-                    data = self._load_group_data(gp)
+                    # check if there are appended blocks
+                    if 'data_block' in gp:
+                        data = gp['data_block']['data']
+                    else:
+                        data = self._load_group_data(gp)
                     data_block_address = address
                     write(data)
                     address = tell()
+
                 else:
                     db = gp['data_block']
                     db.address = address
@@ -1318,7 +1323,11 @@ class MDF3(object):
 
                 # DataBlock
                 if self.load_measured_data == False:
-                    data = self._load_group_data(gp)
+                    # check if there are appended blocks
+                    if 'data_block' in gp:
+                        data = gp['data_block']['data']
+                    else:
+                        data = self._load_group_data(gp)
                     data_block_address = address
                     address += write(data)
                 else:

@@ -1604,7 +1604,11 @@ class MDF4(object):
                     else:
                         data_block_address = 0
                 else:
-                    data = self._load_group_data(gp)
+                    # check if there are appended blocks
+                    if 'data_block' in gp:
+                        data = gp['data_block']['data']
+                    else:
+                        data = self._load_group_data(gp)
                     if data:
                         block = DataBlock(data=data)
                         data_block_address = address
@@ -1799,7 +1803,11 @@ class MDF4(object):
                     else:
                         data_block_address = 0
                 else:
-                    data = self._load_group_data(gp)
+                    # check if there are appended blocks
+                    if 'data_block' in gp:
+                        data = gp['data_block']['data']
+                    else:
+                        data = self._load_group_data(gp)
                     if data:
                         block = DataBlock(data=data)
                         data_block_address = address
