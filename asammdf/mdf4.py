@@ -955,25 +955,8 @@ class MDF4(object):
 
         Returns
         -------
-        vals, t, unit, conversion : (numpy.array, numpy.array, string, dict | None)
-            The conversion is *None* exept for the VTAB and VTABR conversions. The conversion keys are:
-
-            * for TABX conversion:
-
-                * raw - numpy.array for X-axis
-                * phys - numpy.array of strings for Y-axis
-                * type - conversion type = CONVERSION_TYPE_TABX
-                * default - default bytes value
-
-            * for RTABX conversion:
-
-                * lower - numpy.array for lower range
-                * upper - numpy.array for upper range
-                * phys - numpy.array of strings for Y-axis
-                * type - conversion type =
-                * default - default bytes value
-
-            The conversion information can be used by the *append* method for the *info* argument
+        res : (numpy.array | Signal)
+            returns *Signal* if *samples_only*=*False* (default option), otherwise returns numpy.array
 
         Raises
         ------
@@ -1206,6 +1189,7 @@ class MDF4(object):
                 # byte array
                 elif channel['data_type'] == DATA_TYPE_BYTEARRAY:
                     vals = vals.tostring()
+                    size = max(bits>>3, 1)
                     cols = size
                     lines = len(vals) // cols
 
@@ -1215,6 +1199,8 @@ class MDF4(object):
                 a = conversion['a']
                 b = conversion['b']
                 if (a, b) == (1, 0):
+                    size = max(bits>>3, 1)
+                    ch_fmt = get_fmt(channel['data_type'], size, version=4)
                     if not vals.dtype == ch_fmt:
                         vals = vals.astype(ch_fmt)
                 else:
@@ -1269,25 +1255,25 @@ class MDF4(object):
             elif conversion_type == CONVERSION_TYPE_TABX:
                 nr = conversion['val_param_nr']
                 raw = array([conversion['val_{}'.format(i)] for i in range(nr)])
-                phys = array([gp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
-                default = gp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
+                phys = array([grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
+                default = grp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
                 vals = values['vals']
                 info = {'raw': raw, 'phys': phys, 'default': default, 'type': CONVERSION_TYPE_TABX}
 
             elif conversion_type == CONVERSION_TYPE_RTABX:
                 nr = conversion['val_param_nr'] // 2
 
-                phys = array([gp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
+                phys = array([grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
                 lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
-                default = gp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
+                default = grp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
                 vals = values['vals']
                 info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': CONVERSION_TYPE_RTABX}
 
             elif conversion == CONVERSION_TYPE_TTAB:
                 nr = conversion['val_param_nr'] - 1
 
-                raw = array([gp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
+                raw = array([grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
                 phys = array([conversion['val_{}'.format(i)] for i in range(nr)])
                 default = conversion['val_default']
                 vals = values['vals']
@@ -1295,9 +1281,9 @@ class MDF4(object):
 
             elif conversion == CONVERSION_TYPE_TRANS:
                 nr = (conversion['ref_param_nr'] - 1 ) // 2
-                in_ = array([gp['texts']['conversion_tab'][ch_nr]['input_{}'.format(i)]['text'] for i in range(nr)])
-                out_ = array([gp['texts']['conversion_tab'][ch_nr]['output_{}'.format(i)]['text'] for i in range(nr)])
-                default = gp['texts']['conversion_tab'][ch_nr]['default_addr']['text']
+                in_ = array([grp['texts']['conversion_tab'][ch_nr]['input_{}'.format(i)]['text'] for i in range(nr)])
+                out_ = array([grp['texts']['conversion_tab'][ch_nr]['output_{}'.format(i)]['text'] for i in range(nr)])
+                default = grp['texts']['conversion_tab'][ch_nr]['default_addr']['text']
                 vals = values['vals']
 
                 res = []

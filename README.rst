@@ -78,7 +78,6 @@ asammdf uses the following libraries
 
 * numpy : the heart that makes all tick
 * numexpr : for algebraic and rational channel conversions
-* blosc : optionally used for in memmory raw channel data compression
 * matplotlib : for Signal plotting
 * pandas : for DataFrame export
 
@@ -110,40 +109,36 @@ Files used for benchmark:
 ================================================== ========= ========
 Open file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.2.0 mdfv3                                     1149      294
-asammdf 2.2.0 compression mdfv3                         1368      202
-asammdf 2.2.0 nodata mdfv3                               861      123
-mdfreader 0.2.5 mdfv3                                   3755      455
-asammdf 2.2.0 mdfv4                                     2316      348
-asammdf 2.2.0 compression mdfv4                         2694      247
-asammdf 2.2.0 nodata mdfv4                              1886      166
-mdfreader 0.2.5 mdfv4                                  43210      578
+asammdf 2.3.0 mdfv3                                     1126      294
+asammdf 2.3.0 nodata mdfv3                               917      123
+mdfreader 0.2.5 mdfv3                                   3743      455
+asammdf 2.3.0 mdfv4                                     2359      348
+asammdf 2.3.0 nodata mdfv4                              1906      166
+mdfreader 0.2.5 mdfv4                                  43166      577
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Save file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.2.0 mdfv3                                      413      297
-asammdf 2.2.0 compression mdfv3                          592      204
-mdfreader 0.2.5 mdfv3                                  20038     1224
-asammdf 2.2.0 mdfv4                                      720      357
-asammdf 2.2.0 compression mdfv4                          674      253
-mdfreader 0.2.5 mdfv4                                  17553     1687
+asammdf 2.3.0 mdfv3                                      420      297
+asammdf 2.3.0 nodata mdfv3                               445      130
+mdfreader 0.2.5 mdfv3                                  20078     1224
+asammdf 2.3.0 mdfv4                                      711      357
+asammdf 2.3.0 nodata mdfv4                               738      175
+mdfreader 0.2.5 mdfv4                                  17822     1687
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Get all channels (36424 calls)                     Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.2.0 mdfv3                                      784      299
-asammdf 2.2.0 compression mdfv3                        25345      207
-asammdf 2.2.0 nodata mdfv3                             18657      133
-mdfreader 0.2.5 mdfv3                                     35      455
-asammdf 2.2.0 mdfv4                                      695      354
-asammdf 2.2.0 compression mdfv4                        24325      255
-asammdf 2.2.0 nodata mdfv4                             20745      176
-mdfreader 0.2.5 mdfv4                                     50      578
+asammdf 2.3.0 mdfv3                                      777      299
+asammdf 2.3.0 nodata mdfv3                             18662      132
+mdfreader 0.2.5 mdfv3                                     36      455
+asammdf 2.3.0 mdfv4                                      681      354
+asammdf 2.3.0 nodata mdfv4                             20439      176
+mdfreader 0.2.5 mdfv4                                     51      578
 ================================================== ========= ========
 
 
@@ -160,7 +155,7 @@ Benchmark environment
 Notations used in the results
 
 * nodata = MDF object created with load_measured_data=False (raw channel data not loaded into RAM)
-* compression = MDF object created with compression=True/blosc
+* compression = MDF object created with compression=blosc
 * compression bcolz 6 = MDF object created with compression=6
 * noDataLoading = MDF object read with noDataLoading=True
 
@@ -172,38 +167,34 @@ Files used for benchmark:
 ================================================== ========= ========
 Open file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.2.0 mdfv3                                     1088      379
-asammdf 2.2.0 compression mdfv3                         1287      298
-asammdf 2.2.0 nodata mdfv3                               896      198
-mdfreader 0.2.5 mdfv3                                   3533      537
-asammdf 2.2.0 mdfv4                                     2027      464
-asammdf 2.2.0 compression mdfv4                         2504      367
-asammdf 2.2.0 nodata mdfv4                              1668      268
-mdfreader 0.2.5 mdfv4                                  34908      748
+asammdf 2.3.0 mdfv3                                     1011      379
+asammdf 2.3.0 nodata mdfv3                               725      198
+mdfreader 0.2.5 mdfv3                                   2973      537
+asammdf 2.3.0 mdfv4                                     1890      464
+asammdf 2.3.0 nodata mdfv4                              1542      268
+mdfreader 0.2.5 mdfv4                                  32192      748
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Save file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.2.0 mdfv3                                      398      379
-asammdf 2.2.0 compression mdfv3                          523      302
-mdfreader 0.2.5 mdfv3                                  23881     1997
-asammdf 2.2.0 mdfv4                                      554      471
-asammdf 2.2.0 compression mdfv4                          615      373
-mdfreader 0.2.5 mdfv4                                  21288     2795
+asammdf 2.3.0 mdfv3                                      359      379
+asammdf 2.3.0 nodata mdfv3                               352      205
+mdfreader 0.2.5 mdfv3                                  21777     1997
+asammdf 2.3.0 mdfv4                                      525      471
+asammdf 2.3.0 nodata mdfv4                               542      280
+mdfreader 0.2.5 mdfv4                                  19591     2795
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Get all channels (36424 calls)                     Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.2.0 mdfv3                                      577      383
-asammdf 2.2.0 compression mdfv3                        13504      306
-asammdf 2.2.0 nodata mdfv3                              9506      210
-mdfreader 0.2.5 mdfv3                                     30      536
-asammdf 2.2.0 mdfv4                                      498      469
-asammdf 2.2.0 compression mdfv4                        15310      377
-asammdf 2.2.0 nodata mdfv4                             12565      280
-mdfreader 0.2.5 mdfv4                                     40      748
+asammdf 2.3.0 mdfv3                                      589      383
+asammdf 2.3.0 nodata mdfv3                              8841      209
+mdfreader 0.2.5 mdfv3                                     28      537
+asammdf 2.3.0 mdfv4                                      494      468
+asammdf 2.3.0 nodata mdfv4                             12330      280
+mdfreader 0.2.5 mdfv4                                     39      748
 ================================================== ========= ========

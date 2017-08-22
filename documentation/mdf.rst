@@ -36,16 +36,12 @@ MDF3 and MDF4 classes
    mdf3
    mdf4
 
-Notes about *compression* and *load_measured_data* arguments
-------------------------------------------------------------
+Notes about *load_measured_data* argument
+-----------------------------------------
 
-By default *MDF* object use no compression and the raw channel data is loaded into RAM. This will give you the best performance from *asammdf*. 
+By default when the *MDF* object is created the raw channel data is loaded into RAM. This will give you the best performance from *asammdf*. 
 
-However if you reach the physical memmory limit *asammdf* gives you two options
-
-1. use the *compression* flag: raw channel data is loaded into RAM but it is compressed. The default compression library is *blosc* and as a fallback *zlib* is used (slower). The advange is that you save RAM, but in return you will pay the compression/decompression time penalty in all operations (file open, getting channel data, saving to disk, converting).
-
-2. use the *load_measured_data* flag: raw channel data is not read. 
+However if you reach the physical memmory limit *asammdf* gives you the option use the *load_measured_data* flag. In this case the raw channel data is not read. 
 
 
 *MDF* defaults 
@@ -57,28 +53,11 @@ Advantages
     
 Disadvantages
 
-* highest RAM usage
+* higher RAM usage, there is the chance the file will exceed available RAM
     
 Use case 
 
 * when data fits inside the system RAM
-    
-    
-*MDF* with *compression*
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-Advantages
-
-* lower RAM usage than *default*
-* alows saving to disk and appending new data
-    
-Disadvantages
-
-* slowest
- 
-Use case 
-
-* when *default* data exceeds RAM and you need to append and save 
   
   
 *MDF* with *load_measured_data*
@@ -91,12 +70,12 @@ Advantages
     
 Disadvantages
 
-* ReadOnly mode: appending and saving is not possible
+* slow performance for getting channel data
  
 Use case 
 
-* when *default* data exceeds RAM and you only want to extract information from the file
+* when *default* data exceeds available RAM
 
 .. note::
 
-    See benchmarks for the effects of using the flags.
+    See benchmarks for the effects of using the flag

@@ -699,7 +699,6 @@ class MDF3(object):
         * using the group number (keyword argument *group*) and the channel number (keyword argument *index*). Use *info* method for group and channel numbers
 
 
-
         If the *raster* keyword argument is not *None* the output is interpolated accordingly
 
         Parameters
@@ -717,23 +716,8 @@ class MDF3(object):
 
         Returns
         -------
-        vals, t, unit, conversion : (numpy.array, numpy.array, string, dict | None)
-            The conversion is *None* exept for the VTAB and VTABR conversions. The conversion keys are:
-
-            * for VTAB conversion:
-
-                * raw - numpy.array for X-axis
-                * phys - numpy.array of strings for Y-axis
-                * type - conversion type = CONVERSION_TYPE_VTAB
-
-            * for VTABR conversion:
-
-                * lower - numpy.array for lower range
-                * upper - numpy.array for upper range
-                * phys - numpy.array of strings for Y-axis
-                * type - conversion type = COONVERSION_TYPE_VTABR
-
-            The conversion information can be used by the *append* method for the *info* argument
+        res : (numpy.array | Signal)
+            returns *Signal* if *samples_only*=*False* (default option), otherwise returns numpy.array
 
         Raises
         ------
@@ -843,6 +827,7 @@ class MDF3(object):
                 # is it a Byte Array?
                 if channel['data_type'] == DATA_TYPE_BYTEARRAY:
                     vals = vals.tostring()
+                    size = max(bits>>3, 1)
                     cols = size
                     lines = len(vals) // cols
 

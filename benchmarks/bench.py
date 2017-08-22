@@ -208,7 +208,7 @@ def main():
     print('* {}GB installed RAM\n'.format(round(psutil.virtual_memory().total / 1024 / 1024 / 1024)))
     print('Notations used in the results\n')
     print('* nodata = MDF object created with load_measured_data=False (raw channel data not loaded into RAM)')
-    print('* compression = MDF object created with compression=True/blosc')
+    print('* compression = MDF object created with compression=blosc')
     print('* compression bcolz 6 = MDF object created with compression=6')
     print('* noDataLoading = MDF object read with noDataLoading=True')
     print('\nFiles used for benchmark:')
