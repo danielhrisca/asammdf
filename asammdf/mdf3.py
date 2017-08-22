@@ -130,6 +130,74 @@ class MDF3(object):
                 data = b''.join(cg_data)
         return data
 
+    def _prepare_record(self, group):
+        """ compute record dtype and parents dict fro this group
+
+        Parameters
+        ==========
+        group : dict
+            MDF group dict
+
+        Returns
+        =======
+        parents, dtypes : dict, numpy.dtype
+            mapping of channels to records fields, records fiels dtype
+
+        """
+        grp = group
+        record_size = grp['channel_group']['samples_byte_nr'] << 3
+        next_byte_aligned_position = 0
+        types = []
+        current_parent = ""
+        parent_start_offset = 0
+        parents = {}
+
+        for new_ch in sorted(grp['channels']):
+            if new_ch['ch_depend_addr']:
+                continue
+
+            start_offset = new_ch['start_offset']
+            bit_offset = start_offset % 8
+            data_type = new_ch['data_type']
+            bit_count = new_ch['bit_count']
+            name = new_ch.name
+
+            if start_offset >= next_byte_aligned_position:
+                parent_start_offset = (start_offset >> 3 ) << 3
+                parents[name] = name, bit_offset
+
+                # check if there are byte gaps in the record
+                gap = (parent_start_offset - next_byte_aligned_position) >> 3
+                if gap:
+                    types.append( ('', 'a{}'.format(gap)) )
+
+                # adjust size to 1, 2, 4 or 8 bytes
+                size = bit_offset + bit_count
+                if data_type != DATA_TYPE_STRING:
+                    if size > 32:
+                        next_byte_aligned_position = parent_start_offset + 64
+                        size = 8
+                    elif size > 16:
+                        next_byte_aligned_position = parent_start_offset + 32
+                        size = 4
+                    elif size > 8:
+                        next_byte_aligned_position = parent_start_offset + 16
+                        size = 2
+                    else:
+                        next_byte_aligned_position = parent_start_offset + 8
+                        size = 1
+
+                types.append( (name, get_fmt(data_type, size)) )
+
+                current_parent = name
+            else:
+                parents[name] = current_parent, start_offset - parent_start_offset
+        gap = (record_size - next_byte_aligned_position) >> 3
+        if gap:
+            types.append( ('', 'a{}'.format(gap)) )
+
+        return parents, dtype(types)
+
     def _read(self):
         with open(self.name, 'rb') as file_stream:
 
@@ -281,60 +349,6 @@ class MDF3(object):
                         ch_cntr += 1
                         grp_chs.append(new_ch)
 
-                    record_size = grp['channel_group']['samples_byte_nr'] << 3
-                    next_byte_aligned_position = 0
-                    types = []
-                    current_parent = ""
-                    parent_start_offset = 0
-                    parents = {}
-
-                    for new_ch in sorted(grp['channels']):
-                        if new_ch['ch_depend_addr']:
-                            continue
-
-                        start_offset = new_ch['start_offset']
-                        bit_offset = start_offset % 8
-                        data_type = new_ch['data_type']
-                        bit_count = new_ch['bit_count']
-                        name = new_ch.name
-
-                        if start_offset >= next_byte_aligned_position:
-                            parent_start_offset = (start_offset >> 3 ) << 3
-                            parents[name] = name, bit_offset
-
-                            # check if there are byte gaps in the record
-                            gap = (parent_start_offset - next_byte_aligned_position) >> 3
-                            if gap:
-                                types.append( ('', 'a{}'.format(gap)) )
-
-                            # adjust size to 1, 2, 4 or 8 bytes
-                            size = bit_offset + bit_count
-                            if data_type != DATA_TYPE_STRING:
-                                if size > 32:
-                                    next_byte_aligned_position = parent_start_offset + 64
-                                    size = 8
-                                elif size > 16:
-                                    next_byte_aligned_position = parent_start_offset + 32
-                                    size = 4
-                                elif size > 8:
-                                    next_byte_aligned_position = parent_start_offset + 16
-                                    size = 2
-                                else:
-                                    next_byte_aligned_position = parent_start_offset + 8
-                                    size = 1
-
-                            types.append( (name, get_fmt(data_type, size)) )
-
-                            current_parent = name
-                        else:
-                            parents[name] = current_parent, start_offset - parent_start_offset
-                    gap = (record_size - next_byte_aligned_position) >> 3
-                    if gap:
-                        types.append( ('', 'a{}'.format(gap)) )
-
-                    grp['types'] = dtype(types)
-                    grp['parents'] = parents
-
                     cg_addr = grp['channel_group']['next_cg_addr']
                     dg_cntr += 1
 
@@ -373,8 +387,6 @@ class MDF3(object):
                         kargs = {'data': data}
                         grp['data_block'] = DataBlock(**kargs)
 
-                        grp['record'] = fromstring(grp['data_block']['data'], dtype=grp['types'])
-
                     else:
                         cg_data = defaultdict(list)
                         i = 0
@@ -397,7 +409,6 @@ class MDF3(object):
                             grp['channel_group']['record_id'] = 1
                             grp['data_block'] = DataBlock(**kargs)
 
-                            grp['record'] = fromstring(grp['data_block']['data'], dtype=grp['types'])
                 self.groups.extend(new_groups)
 
                 # go to next data group
@@ -449,7 +460,7 @@ class MDF3(object):
 
             gp['trigger'] = [trigger, trigger_text]
 
-    def append(self, signals, acquisition_info='Python'):
+    def append(self, signals, acquisition_info='Python', common_timebase=False):
         """
         Appends a new data group.
 
@@ -459,6 +470,8 @@ class MDF3(object):
             list on *Signal* objects
         acquisition_info : str
             acquisition information; default 'Python'
+        common_timebase : bool
+            flag to hint that the signals have the same timebase
 
         Examples
         --------
@@ -493,19 +506,23 @@ class MDF3(object):
             raise MdfException('"append" requires a non-empty list of Signal objects')
 
 
-        t_ = signals[0].timestamps
-        for s in signals[1:]:
-            if not array_equal(s.timestamps, t_):
-                different = True
-                break
-        else:
-            different = False
 
-        if different:
-            times = [s.timestamps for s in signals]
-            t = reduce(union1d, times).flatten().astype(float64)
-            signals = [s.interp(t) for s in signals]
-            times = None
+        t_ = signals[0].timestamps
+        if not common_timebase:
+            for s in signals[1:]:
+                if not array_equal(s.timestamps, t_):
+                    different = True
+                    break
+            else:
+                different = False
+
+            if different:
+                times = [s.timestamps for s in signals]
+                t = reduce(union1d, times).flatten().astype(float64)
+                signals = [s.interp(t) for s in signals]
+                times = None
+            else:
+                t = t_
         else:
             t = t_
 
@@ -650,23 +667,17 @@ class MDF3(object):
         gp['channel_group'] = ChannelGroup(**kargs)
         gp['channel_group']['ch_nr'] = channel_nr + 1
 
-
-
         #data block
         types = [('t', t.dtype),]
-
         types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
-
         types = dtype(types)
 
         gp['types'] = types
 
 
         parents = {'t': ('t', 0)}
-
         for name in names:
             parents[name] = name, 0
-
         gp['parents'] = parents
 
         arrays = [t, ]
@@ -677,8 +688,6 @@ class MDF3(object):
 
         kargs = {'data': block}
         gp['data_block'] = DataBlock(**kargs)
-
-        gp['record'] = fromstring(gp['data_block']['data'], dtype=types)
 
         #data group
         kargs = {'block_len': DG32_BLOCK_SIZE if self.version in ('3.20', '3.30') else DG31_BLOCK_SIZE}
@@ -758,12 +767,20 @@ class MDF3(object):
         channel = grp['channels'][ch_nr]
         conversion = grp['channel_conversions'][ch_nr]
 
+        try:
+            parents, dtypes = grp['parents'], grp['types']
+        except:
+            grp['parents'], grp['types'] = self._prepare_record(grp)
+            parents, dtypes = grp['parents'], grp['types']
         # get data group record
         if not self.load_measured_data:
             data = self._load_group_data(grp)
-            record = fromstring(data, dtype=grp['types'])
+            record = fromstring(data, dtype=dtypes)
         else:
-            record = grp['record']
+            try:
+                record = grp['record']
+            except:
+                record = grp['record'] = fromstring(grp['data_block']['data'], dtype=dtypes)
 
         # check if this is a channel array
         if channel['ch_depend_addr']:
@@ -810,7 +827,7 @@ class MDF3(object):
 
 
             # get channel values
-            parent, bit_offset = grp['parents'][channel.name]
+            parent, bit_offset = parents[channel.name]
             vals = record[parent]
 
             if bit_offset:
@@ -955,8 +972,6 @@ class MDF3(object):
                     tx = linspace(0, t[-1], int(t[-1] / raster))
                     res = res.interp(tx)
                 return res
-
-
 
     def iter_get_triggers(self):
         """ generator that yields triggers
