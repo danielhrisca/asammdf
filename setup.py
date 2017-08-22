@@ -85,7 +85,6 @@ setup(
     install_requires=['numpy',
                       'numexpr',
                       'matplotlib',
-                      'blosc',
                       'pandas'],
 
     # List additional groups of dependencies here (e.g. development

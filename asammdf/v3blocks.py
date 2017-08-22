@@ -9,13 +9,6 @@ from struct import unpack, pack
 
 from functools import partial
 
-try:
-    from blosc import compress, decompress
-    compress = partial(compress, clevel=7)
-
-except ImportError:
-    from zlib import compress, decompress
-
 from .v3constants import *
 
 
@@ -773,8 +766,6 @@ class ChannelGroup(dict):
 
 class DataBlock(dict):
     """Data Block class derived from *dict*
-
-    Data can be compressed to lower RAM usage if the *compression* keyword if set to True.
 
     The DataBlock object can be created in two modes:
 

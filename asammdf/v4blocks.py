@@ -11,12 +11,7 @@ from hashlib import md5
 from struct import unpack, pack, unpack_from
 from functools import partial
 
-try:
-    from blosc import compress, decompress
-    compress = partial(compress, clevel=7)
-
-except ImportError:
-    from zlib import compress, decompress
+from zlib import compress, decompress
 
 import numpy as np
 
@@ -77,7 +72,7 @@ class AttachmentBlock(dict):
             compression = kargs.get('compression', False)
 
             if compression:
-                data = zlib.compress(data)
+                data = compress(data)
                 original_size = size
                 size = len(data)
                 self['id'] = b'##AT'
@@ -119,7 +114,7 @@ class AttachmentBlock(dict):
     def extract(self):
         if self['flags'] & FLAG_AT_EMBEDDED:
             if self['flags'] & FLAG_AT_COMPRESSED_EMBEDDED:
-                data = zlib.decompress(self['embedded_data'])
+                data = decompress(self['embedded_data'])
             else:
                 data = self['embedded_data']
             if self['flags'] & FLAG_AT_MD5_VALID:
@@ -751,7 +746,6 @@ class ChannelConversion(dict):
 
 class DataBlock(dict):
     """DTBLOCK class
-    Raw channel dta can be compressed to save RAM; set the *compression* keyword argument to True when instantiating the object
 
     Parameters
     ----------
@@ -794,12 +788,9 @@ class DataBlock(dict):
 
 class DataZippedBlock(dict):
     """DZBLOCK class
-    Raw channel dta can be compressed to save RAM; set the *compression* keyword argument to True when instantiating the object
 
     Parameters
     ----------
-    compression : bool
-        enable raw channel data compression in RAM
     address : int
         DTBLOCK address inside the file
     file_stream : int
@@ -854,7 +845,7 @@ class DataZippedBlock(dict):
             self['original_size'] = len(data)
 
             if self['zip_type'] == FLAG_DZ_DEFLATE:
-                data = zlib.compress(data)
+                data = compress(data)
             else:
                 cols = self['param']
                 lines = self['original_size'] // cols
@@ -862,7 +853,7 @@ class DataZippedBlock(dict):
                 nd = np.fromstring(data[:lines*cols], dtype=np.uint8).reshape((lines, cols))
                 data = nd.transpose().tostring() + data[lines*cols:]
 
-                data = zlib.compress(data)
+                data = compress(data)
 
             self['zip_size'] = len(data)
             self['block_len'] = self['zip_size'] + DZ_COMMON_SIZE
@@ -874,7 +865,7 @@ class DataZippedBlock(dict):
         if item == 'data':
             if self.return_unzipped:
                 data = super(DataZippedBlock, self).__getitem__(item)
-                data = zlib.decompress(data)
+                data = decompress(data)
                 if self['zip_type'] == FLAG_DZ_DEFLATE:
                     return data
                 else:
