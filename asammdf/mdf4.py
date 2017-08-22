@@ -171,6 +171,7 @@ class MDF4(object):
                 grp['channel_conversions'] = []
                 grp['channel_sources'] = []
                 grp['signal_data'] = []
+                grp['data_block'] = None
                 # channel_group is lsit to allow uniform handling of all texts in save method
                 grp['texts'] = {'channels': [], 'sources': [], 'conversions': [], 'conversion_tab': [], 'channel_group': []}
 
@@ -1604,7 +1605,11 @@ class MDF4(object):
                     else:
                         data_block_address = 0
                 else:
-                    data = self._load_group_data(gp)
+                    # check if there are appended blocks
+                    if gp['data_block']:
+                        data = gp['data_block']['data']
+                    else:
+                        data = self._load_group_data(gp)
                     if data:
                         block = DataBlock(data=data)
                         data_block_address = address
@@ -1799,7 +1804,11 @@ class MDF4(object):
                     else:
                         data_block_address = 0
                 else:
-                    data = self._load_group_data(gp)
+                    # check if there are appended blocks
+                    if gp['data_block']:
+                        data = gp['data_block']['data']
+                    else:
+                        data = self._load_group_data(gp)
                     if data:
                         block = DataBlock(data=data)
                         data_block_address = address
