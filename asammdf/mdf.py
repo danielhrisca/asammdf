@@ -93,7 +93,9 @@ class MDF(object):
                 for j, ch in enumerate(gp['channels']):
                     if not ch['channel_type'] in master_type:
                         sigs.append(self.get(group=i, index=j))
-                out.append(sigs, 'Converted from {} to {}'.format(self.version, to))
+                out.append(sigs,
+                           'Converted from {} to {}'.format(self.version, to),
+                           common_timebase=True)
             return out
 
     def filter(self, channels):
@@ -131,7 +133,9 @@ class MDF(object):
             sigs = []
             for index in gps[group]:
                 sigs.append(self.get(group=group, index=index))
-            mdf.append(sigs, 'Signals filtered from <{}>'.format(os.path.basename(self.name)))
+            mdf.append(sigs,
+                       'Signals filtered from <{}>'.format(os.path.basename(self.name)),
+                       common_timebase=True)
 
         return mdf
 
