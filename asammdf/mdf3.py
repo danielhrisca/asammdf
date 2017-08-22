@@ -98,6 +98,43 @@ class MDF3(object):
 
             self.byteorder = '<'
 
+    def _load_group_data(self, group):
+        """ get group's data block bytes when load_measured_data=False """
+        with open(self.name, 'rb') as file_stream:
+            # go to the first data block of the current data group
+            dat_addr = group['data_group']['data_block_addr']
+
+            if group.get('sorted', True):
+                read_size = group['channel_group']['samples_byte_nr'] * group['channel_group']['cycles_nr']
+                data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+            else:
+                read_size = group['size']
+                record_id = group['channel_group']['record_id']
+                cg_size = group['record_size']
+                record_id_nr = group['data_group']['record_id_nr'] if group['data_group']['record_id_nr'] <= 2 else 0
+                cg_data = []
+
+                data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+
+                i = 0
+                size = len(data)
+                while i < size:
+                    rec_id = data[i]
+                    # skip redord id
+                    i += 1
+                    rec_size = cg_size[rec_id]
+                    if rec_id == record_id:
+                        rec_data = data[i: i+rec_size]
+                        cg_data.append(rec_data)
+                    # if 2 record id's are sued skip also the second one
+                    if record_id_nr == 2:
+                        i += 1
+                    # go to next record
+                    i += rec_size
+                data = b''.join(cg_data)
+        return data
+
     def _read(self):
         with open(self.name, 'rb') as file_stream:
 
@@ -454,10 +491,6 @@ class MDF3(object):
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
 
         """
-        if self.load_measured_data == False:
-            warnings.warn("Can't append if load_measurement_data option is False")
-            return
-
         dg_cntr = len(self.groups)
         gp = {}
         self.groups.append(gp)
@@ -662,8 +695,6 @@ class MDF3(object):
         # data group trigger
         gp['trigger'] = [None, None]
 
-
-
     def get(self, name=None, group=None, index=None, raster=None, samples_only=False):
         """Gets channel samples.
         Channel can be specified in two ways:
@@ -753,39 +784,7 @@ class MDF3(object):
 
         # get data group record
         if not self.load_measured_data:
-            with open(self.name, 'rb') as file_stream:
-                # go to the first data block of the current data group
-                dat_addr = grp['data_group']['data_block_addr']
-
-                if grp.get('sorted', True):
-                    read_size = grp['channel_group']['samples_byte_nr'] * grp['channel_group']['cycles_nr']
-                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
-
-                else:
-                    read_size = grp['size']
-                    record_id = grp['channel_group']['record_id']
-                    cg_size = grp['record_size']
-                    record_id_nr = grp['data_group']['record_id_nr'] if grp['data_group']['record_id_nr'] <= 2 else 0
-                    cg_data = []
-
-                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
-
-                    i = 0
-                    size = len(data)
-                    while i < size:
-                        rec_id = data[i]
-                        # skip redord id
-                        i += 1
-                        rec_size = cg_size[rec_id]
-                        if rec_id == record_id:
-                            rec_data = data[i: i+rec_size]
-                            cg_data.append(rec_data)
-                        # if 2 record id's are sued skip also the second one
-                        if record_id_nr == 2:
-                            i += 1
-                        # go to next record
-                        i += rec_size
-                    data = b''.join(cg_data)
+            data = self._load_group_data(grp)
             record = fromstring(data, dtype=grp['types'])
         elif self.compression:
             if grp['data_block']:
@@ -1088,9 +1087,6 @@ class MDF3(object):
         """Save MDF to *dst*. If *dst* is *None* the original file is overwritten
 
         """
-        if self.load_measured_data == False:
-            warnings.warn("Can't append if load_measurement_data option is False")
-            return
 
         if self.file_history is None:
             self.file_history = TextBlock.from_text('''<FHcomment>
@@ -1202,13 +1198,6 @@ class MDF3(object):
                 write(bytes(cg))
                 address = tell()
 
-
-                # DataBlock
-                db = gp['data_block']
-                db.address = address
-                write(bytes(db))
-                address = tell()
-
                 # TriggerBLock
                 trigger, trigger_text = gp['trigger']
                 if trigger:
@@ -1224,14 +1213,26 @@ class MDF3(object):
                     write(bytes(trigger))
                     address = tell()
 
-            # DataGroup
-            for gp in self.groups:
+                # DataBlock
+                if self.load_measured_data == False:
+                    data = self._load_group_data(gp)
+                    data_block_address = address
+                    write(data)
+                    address = tell()
+                else:
+                    db = gp['data_block']
+                    db.address = address
+                    data_block_address = address
+                    write(bytes(db))
+                    address = tell()
+                gp['data_group']['data_block_addr'] = data_block_address
 
+            # DataGroup and DataBlock
+            for i, gp in enumerate(self.groups):
                 dg = gp['data_group']
                 dg.address = address
                 address += dg['block_len']
                 dg['first_cg_addr'] = gp['channel_group'].address
-                dg['data_block_addr'] = gp['data_block'].address
                 dg['trigger_addr'] = gp['trigger'][0].address if gp['trigger'][0] else 0
 
             for i, dg in enumerate(self.groups[:-1]):
@@ -1331,11 +1332,6 @@ class MDF3(object):
                     cg['comment_addr'] = gp_texts['channel_group'][0]['comment_addr'].address
                 address += write(bytes(cg))
 
-                # DataBlock
-                db = gp['data_block']
-                db.address = address
-                address += write(bytes(db))
-
                 # TriggerBLock
                 trigger, trigger_text = gp['trigger']
                 if trigger:
@@ -1349,16 +1345,26 @@ class MDF3(object):
                     trigger.address = address
                     address += write(bytes(trigger))
 
+                # DataBlock
+                if self.load_measured_data == False:
+                    data = self._load_group_data(gp)
+                    data_block_address = address
+                    address += write(data)
+                else:
+                    db = gp['data_block']
+                    db.address = address
+                    data_block_address = address
+                    address += write(bytes(db))
+                    address = tell()
+                gp['data_group']['data_block_addr'] = data_block_address
+
             # DataGroup
             for gp in self.groups:
-
                 dg = gp['data_group']
                 dg.address = address
                 address += dg['block_len']
                 dg['first_cg_addr'] = gp['channel_group'].address
-                dg['data_block_addr'] = gp['data_block'].address
                 dg['trigger_addr'] = gp['trigger'][0].address if gp['trigger'][0] else 0
-
 
             for i, dg in enumerate(self.groups[:-1]):
                 dg['data_group']['next_dg_addr'] = self.groups[i+1]['data_group'].address

@@ -514,6 +514,45 @@ class MDF4(object):
             data = b''
         return data
 
+    def _load_group_data(self, group):
+        """ get group's data block bytes when load_measured_data=False """
+        with open(self.name, 'rb') as file_stream:
+            # go to the first data block of the current data group
+            dat_addr = group['data_group']['data_block_addr']
+            data = self._read_data_block(address=dat_addr, file_stream=file_stream)
+
+            if not group.get('sorted', True):
+                cg_data = []
+                cg_size = group['record_size']
+                record_id = group['channel_group']['record_id']
+                record_id_nr = group['data_group']['record_id_len'] if group['data_group']['record_id_len'] <= 2 else 0
+                i = 0
+                size = len(data)
+                while i < size:
+                    rec_id = data[i]
+                    # skip record id
+                    i += 1
+                    rec_size = cg_size[rec_id]
+                    if rec_size:
+                        if rec_id == record_id:
+                            rec_data = data[i: i+rec_size]
+                            cg_data.append(rec_data)
+                    else:
+                        # as shown bby mdfvalidator rec size is first byte after rec id + 3
+                        rec_size = unpack('<I', data[i: i+4])[0]
+                        i += 4
+                        if rec_id == record_id:
+                            rec_data = data[i: i + rec_size]
+                            cg_data.append(rec_data)
+                    # if 2 record id's are used skip also the second one
+                    if record_id_nr == 2:
+                        i += 1
+                    # go to next record
+                    i += rec_size
+                data = b''.join(cg_data)
+
+        return data
+
     def _read_agregated_signal_data(self, address, file_stream):
         if address:
 
@@ -585,10 +624,6 @@ class MDF4(object):
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
 
         """
-        if self.load_measured_data == False:
-            warnings.warn("Can't append if load_measurement_data option is False")
-            return
-
         if not signals:
             warnings.warn("Must provide at least one Signal object in the input list for append")
             return
@@ -990,44 +1025,7 @@ class MDF4(object):
 
         # get data group record
         if not self.load_measured_data:
-            with open(self.name, 'rb') as file_stream:
-                # go to the first data block of the current data group
-                dat_addr = grp['data_group']['data_block_addr']
-                data = self._read_data_block(address=dat_addr, file_stream=file_stream)
-
-                if not grp.get('sorted', True):
-                    cg_data = []
-                    cg_size = grp['record_size']
-                    record_id = grp['channel_group']['record_id']
-                    record_id_nr = grp['data_group']['record_id_len'] if grp['data_group']['record_id_len'] <= 2 else 0
-                    i = 0
-                    size = len(data)
-                    while i < size:
-                        rec_id = data[i]
-                        # skip record id
-                        i += 1
-                        rec_size = cg_size[rec_id]
-                        if rec_size:
-                            if rec_id == record_id:
-                                rec_data = data[i: i+rec_size]
-                                cg_data.append(rec_data)
-                        else:
-                            # as shown bby mdfvalidator rec size is first byte after rec id + 3
-                            rec_size = unpack('<I', data[i: i+4])[0]
-                            i += 4
-                            if rec_id == record_id:
-                                rec_data = data[i: i + rec_size]
-                                cg_data.append(rec_data)
-                        # if 2 record id's are used skip also the second one
-                        if record_id_nr == 2:
-                            i += 1
-                        # go to next record
-                        i += rec_size
-                    data = b''.join(cg_data)
-
-                # check if it is a VLDS channel with signal data
-                ch_data_addr = channel['data_block_addr']
-                signal_data = self._read_agregated_signal_data(address=ch_data_addr, file_stream=file_stream)
+            data = self._load_group_data(grp)
             record = fromstring(data, dtype=grp['types'])
         elif self.compression:
             if grp['data_block']:
@@ -1454,10 +1452,6 @@ class MDF4(object):
         """Save MDF to *dst*. If *dst* is *None* the original file is overwritten
 
         """
-        if self.load_measured_data == False:
-            warnings.warn("Can't save if load_measurement_data option is False")
-            return
-
         if self.name is None and dst is None:
             warnings.warn('New MDF created without a name and no destination file name specified for save')
             return
@@ -1622,21 +1616,40 @@ class MDF4(object):
                 write(bytes(gp['channel_group']))
                 address = tell()
 
-                #print(len(self.groups), self.groups.index(gp))
+                if self.load_measured_data:
+                    if gp['data_block']:
+                        block = gp['data_block']
 
-                if gp['data_block']:
-                    block = gp['data_block']
-
-                    block.address = address
-                    address += block['block_len']
-                    align = address % 8
-                    if align:
-                        add = 8 - align
-                        address += add
+                        block.address = address
+                        data_block_address = address
+                        address += block['block_len']
+                        align = address % 8
+                        if align:
+                            add = 8 - align
+                            address += add
+                        else:
+                            add = 0
+                        write(bytes(block) + b'\x00' * add)
+                        address = tell()
                     else:
-                        add = 0
-                    write(bytes(block) + b'\x00' * add)
-                    address = tell()
+                        data_block_address = 0
+                else:
+                    data = self._load_group_data(gp)
+                    if data:
+                        block = DataBlock(data=data)
+                        data_block_address = address
+                        address += block['block_len']
+                        align = address % 8
+                        if align:
+                            add = 8 - align
+                            address += add
+                        else:
+                            add = 0
+                        write(bytes(block) + b'\x00' * add)
+                        address = tell()
+                    else:
+                        data_block_address = 0
+                gp['data_group']['data_block_addr'] = data_block_address
 
             for gp in self.groups:
                 gp['data_group'].address = address
@@ -1644,10 +1657,7 @@ class MDF4(object):
 
                 gp['data_group']['first_cg_addr'] = gp['channel_group'].address
                 gp['data_group']['comment_addr'] = 0
-                if gp['data_block']:
-                    gp['data_group']['data_block_addr'] = gp['data_block'].address
-                else:
-                    gp['data_group']['data_block_addr'] = 0
+
 
             for i, dg in enumerate(self.groups[:-1]):
                 dg['data_group']['next_dg_addr'] = self.groups[i+1]['data_group'].address
@@ -1801,20 +1811,40 @@ class MDF4(object):
                 gp['channel_group']['acq_source_addr'] = 0
                 address += write(bytes(gp['channel_group']))
 
-                #print(len(self.groups), self.groups.index(gp))
+                if self.load_measured_data:
+                    if gp['data_block']:
+                        block = gp['data_block']
 
-                if gp['data_block']:
-                    block = gp['data_block']
-
-                    block.address = address
-                    address += block['block_len']
-                    align = address % 8
-                    if align:
-                        add = 8 - align
-                        address += add
+                        block.address = address
+                        data_block_address = address
+                        address += block['block_len']
+                        align = address % 8
+                        if align:
+                            add = 8 - align
+                            address += add
+                        else:
+                            add = 0
+                        write(bytes(block) + b'\x00' * add)
+                        address = tell()
                     else:
-                        add = 0
-                    write(bytes(block) + b'\x00' * add)
+                        data_block_address = 0
+                else:
+                    data = self._load_group_data(gp)
+                    if data:
+                        block = DataGroup(data=data)
+                        data_block_address = address
+                        address += block['block_len']
+                        align = address % 8
+                        if align:
+                            add = 8 - align
+                            address += add
+                        else:
+                            add = 0
+                        write(bytes(block) + b'\x00' * add)
+                        address = tell()
+                    else:
+                        data_block_address = 0
+                gp['data_group']['data_block_addr'] = data_block_address
 
             for gp in self.groups:
                 gp['data_group'].address = address
@@ -1822,10 +1852,6 @@ class MDF4(object):
 
                 gp['data_group']['first_cg_addr'] = gp['channel_group'].address
                 gp['data_group']['comment_addr'] = 0
-                if gp['data_block']:
-                    gp['data_group']['data_block_addr'] = gp['data_block'].address
-                else:
-                    gp['data_group']['data_block_addr'] = 0
 
             for i, dg in enumerate(self.groups[:-1]):
                 dg['data_group']['next_dg_addr'] = self.groups[i+1]['data_group'].address
