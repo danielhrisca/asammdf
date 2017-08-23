@@ -13,6 +13,7 @@ from functools import reduce
 from collections import defaultdict
 from hashlib import md5
 import xml.etree.ElementTree as XML
+#import lxml.etree as XML
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
@@ -677,10 +678,11 @@ class MDF4(object):
         gp_texts['channels'][-1]['name_addr'] = TextBlock.from_text('t')
         gp_texts['conversions'][-1]['unit_addr'] = TextBlock.from_text('s')
 
-        gp_texts['sources'][-1]['name_addr'] = TextBlock.from_text(source_info)
-        gp_texts['sources'][-1]['path_addr'] = TextBlock.from_text(source_info)
-        gp_texts['channel_group'][-1]['acq_name_addr'] = TextBlock.from_text(source_info)
-        gp_texts['channel_group'][-1]['comment_addr'] = TextBlock.from_text(source_info)
+        si_text = TextBlock.from_text(source_info)
+        gp_texts['sources'][-1]['name_addr'] = si_text
+        gp_texts['sources'][-1]['path_addr'] = si_text
+        gp_texts['channel_group'][-1]['acq_name_addr'] = si_text
+        gp_texts['channel_group'][-1]['comment_addr'] = si_text
 
         # channels texts
         for s in signals:
@@ -689,8 +691,8 @@ class MDF4(object):
             gp_texts['channels'][-1]['name_addr'] = TextBlock.from_text(s.name)
             if s.unit:
                 gp_texts['conversions'][-1]['unit_addr'] = TextBlock.from_text(s.unit)
-            gp_texts['sources'][-1]['name_addr'] = TextBlock.from_text(source_info)
-            gp_texts['sources'][-1]['path_addr'] = TextBlock.from_text(source_info)
+            gp_texts['sources'][-1]['name_addr'] = si_text
+            gp_texts['sources'][-1]['path_addr'] = si_text
 
         # conversion for time channel
         kargs = {'conversion_type': CONVERSION_TYPE_NON,
@@ -817,8 +819,7 @@ class MDF4(object):
         gp['channel_group'] = ChannelGroup(**kargs)
 
         #data block
-        types = [('t', t.dtype),]
-        types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
+        types = [('t', t.dtype),] + [(name, typ) for name, typ in zip(names, sig_dtypes)]
         types = dtype(types)
         gp['types'] = types
 
@@ -827,8 +828,7 @@ class MDF4(object):
             parents[name] = name, 0
         gp['parents'] = parents
 
-        arrays = [t, ]
-        arrays.extend([sig.samples for sig in signals])
+        arrays = [t, ] + [sig.samples for sig in signals]
 
         arrays = fromarrays(arrays, dtype=types)
         block = arrays.tostring()
