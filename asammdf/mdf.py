@@ -143,44 +143,43 @@ class MDF(object):
                             dataset.attrs['unit'] = sig.unit
                             dataset.attrs['comment'] = sig.comment if sig.comment else ''
             elif format == 'excel':
-                name = os.path.splitext(name)[0] + '.xlsx'
-                workbook = xlsxwriter.Workbook(name)
-                bold = workbook.add_format({'bold': True})
-
-                ws = workbook.add_worksheet("Information")
-
-                if self.version in MDF3_VERSIONS:
-                    for i, item in enumerate(('date', 'time', 'author', 'organization', 'project', 'subject')):
-                        ws.write(i, 0, item.title(), bold)
-                        ws.write(i, 1, self.header[item])
-
+                excel_name = os.path.splitext(name)[0]
+                nr = len(self.groups)
                 for i, grp in enumerate(self.groups):
-                    ws = workbook.add_worksheet('Data Group {}'.format(i + 1))
+                    print('Exporting group {} of {}'.format(i+1, nr))
 
-                    ws.write(0, 0, 'Channel', bold)
-                    ws.write(1, 0, 'comment', bold)
-                    ws.write(2, 0, 'is master', bold)
+                    workbook = xlsxwriter.Workbook('{}_{}.xlsx'.format(excel_name, 'DataGroup_{}'.format(i + 1)))
+                    bold = workbook.add_format({'bold': True})
 
-                    master_index = self.masters_db[i]
+                    ws = workbook.add_worksheet("Information")
 
-                    for j in range(3, grp['channel_group']['cycles_nr'] + 3):
-                        ws.write(j, 0, str(j))
+                    if self.version in MDF3_VERSIONS:
+                        for j, item in enumerate(('date', 'time', 'author', 'organization', 'project', 'subject')):
+                            ws.write(j, 0, item.title(), bold)
+                            ws.write(j, 1, self.header[item].decode('latin-1'))
 
-                    for j, ch in enumerate(grp['channels']):
+                        ws = workbook.add_worksheet('Data Group {}'.format(i + 1))
 
-                        name = ch.name
-                        sig = self.get(group=i, index=j)
+                        ws.write(0, 0, 'Channel', bold)
+                        ws.write(1, 0, 'comment', bold)
+                        ws.write(2, 0, 'is master', bold)
 
-                        col = j + 1
-                        ws.write(0, col, '{} [{}]'.format(sig.name, sig.unit))
-                        ws.write(1, col, sig.comment if sig.comment else '')
-                        if j == master_index:
-                            ws.write(2, col, 'x')
-                        for index, val in enumerate(sig.samples, 3):
-                            ws.write(index, col, str(val))
+                        master_index = self.masters_db[i]
 
-                ws.close()
+                        for j in range(grp['channel_group']['cycles_nr']):
+                            ws.write(j+3, 0, str(j))
 
+                        for j, ch in enumerate(grp['channels']):
+                            sig = self.get(group=i, index=j)
+
+                            col = j + 1
+                            ws.write(0, col, '{} [{}]'.format(sig.name, sig.unit))
+                            ws.write(1, col, sig.comment if sig.comment else '')
+                            if j == master_index:
+                                ws.write(2, col, 'x')
+                            ws.write_column(3, col, sig.samples.astype(str))
+
+                    workbook.close()
 
     def filter(self, channels):
         """ return new *MDF* object that contains only the channels listed in *channels* argument

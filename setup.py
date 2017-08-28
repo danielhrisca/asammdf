@@ -85,7 +85,9 @@ setup(
     install_requires=['numpy',
                       'numexpr',
                       'matplotlib',
-                      'pandas'],
+                      'pandas',
+                      'h5py',
+                      'xlsxwriter'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
