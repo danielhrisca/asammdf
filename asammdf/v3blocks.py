@@ -1226,14 +1226,11 @@ class TextBlock(dict):
         except KeyError:
             self.address = 0
             text = kargs['text']
-            if isinstance(text, str):
+            try:
                 self.text_str = text
                 text = text.encode('latin-1')
-            elif isinstance(text, bytes):
-                self.text_str = text.decode('latin-1')
-            elif isinstance(text, unicode):
-                self.text_str = text
-                text = text.encode('latin-1')
+            except:
+                self.text_str = text.decode('latin-1').strip(' \n\t\x00')
 
             self['id'] = b'TX'
             self['block_len'] = len(text) + 4 + 1

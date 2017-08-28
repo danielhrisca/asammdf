@@ -5,11 +5,9 @@ PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 
 import time
 import warnings
-import zlib
 
 from hashlib import md5
 from struct import unpack, pack, unpack_from
-from functools import partial
 
 from zlib import compress, decompress
 
@@ -1283,26 +1281,31 @@ class TextBlock(dict):
 
             self.address = 0
             text = kargs['text']
-            if isinstance(text, str):
+
+            try:
                 self.text_str = text
                 text = text.encode('utf-8')
-            elif isinstance(text, bytes):
-                self.text_str = text.decode('utf-8')
-            elif isinstance(text, unicode):
-                self.text_str = text
-                text = text.encode('utf-8')
+            except:
+                self.text_str = text.decode('utf-8').strip(' \n\t\x00')
+
             text_length = len(text)
             align = text_length % 8
-            if align == 0 and text[-1] == b'\x00':
+            if align:
+                padding = 8 - align
+            elif text[-1] in (0, b'\x00'):
                 padding = 0
             else:
-                padding = 8 - align
+                padding = 8
+
 
             self['id'] = kargs['id']
             self['reserved0'] = 0
             self['block_len'] = text_length + padding + COMMON_SIZE
             self['links_nr'] = 0
-            self['text'] = text + b'\00' * padding
+            if padding:
+                self['text'] = text + b'\00' * padding
+            else:
+                self['text'] = text
 
 
     @classmethod

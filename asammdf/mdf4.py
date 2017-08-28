@@ -17,7 +17,7 @@ import xml.etree.ElementTree as XML
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
-                   uint8, arange,
+                   uint8, arange, column_stack,
                    issubdtype, flexible)
 from numexpr import evaluate
 from numpy.core.records import fromstring, fromarrays
@@ -831,6 +831,7 @@ class MDF4(object):
         arrays = [t, ] + [sig.samples for sig in signals]
 
         arrays = fromarrays(arrays, dtype=types)
+
         block = arrays.tostring()
 
         kargs = {'data': block,
