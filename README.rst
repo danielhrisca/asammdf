@@ -31,6 +31,7 @@ Features
 * append new channels
 * filter a subset of channels from original mdf file
 * convert to different mdf version
+* export to Excel, HDF5 and CSV
 * add and extract attachments
 * mdf 4.10 zipped blocks
 * mdf 4 structure channels
@@ -79,6 +80,9 @@ asammdf uses the following libraries
 * numpy : the heart that makes all tick
 * numexpr : for algebraic and rational channel conversions
 * matplotlib : for Signal plotting
+
+optional dependencies needed for exports
+
 * pandas : for DataFrame export
 * h5py : for HDF5 export
 * xlsxwriter : for Excel export

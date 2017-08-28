@@ -6,13 +6,10 @@ import csv
 import os
 import warnings
 
-from pandas import DataFrame
-from h5py import File as HDF5
-import xlsxwriter
+import numpy as np
 
 from .mdf3 import MDF3
 from .mdf4 import MDF4
-from .signal import Signal
 from .v3constants import CHANNEL_TYPE_MASTER as V3_MASTER
 from .v4constants import CHANNEL_TYPE_MASTER as V4_MASTER
 from .v4constants import CHANNEL_TYPE_VIRTUAL_MASTER as V4_VIRTUAL_MASTER
@@ -123,78 +120,101 @@ class MDF(object):
         else:
             name = self.name if self.name else filename
             if format == 'hdf5':
-                name = os.path.splitext(name)[0] + '.hdf'
-                with HDF5(name, 'w') as f:
-                    # header information
-                    group = f.create_group(os.path.basename(name))
+                try:
+                    from h5py import File as HDF5
+                except ImportError:
+                    print('h5py not found; export to HDF5 is unavailable')
+                    return
+                else:
+                    name = os.path.splitext(name)[0] + '.hdf'
+                    with HDF5(name, 'w') as f:
+                        # header information
+                        group = f.create_group(os.path.basename(name))
 
-                    if self.version in MDF3_VERSIONS:
-                        for item in ('date', 'time', 'author', 'organization', 'project', 'subject'):
-                            group.attrs[item] = self.header[item]
+                        if self.version in MDF3_VERSIONS:
+                            for item in ('date', 'time', 'author', 'organization', 'project', 'subject'):
+                                group.attrs[item] = self.header[item]
 
-                    for i, grp in enumerate(self.groups):
-                        group = f.create_group(r'/' + 'Data Group {}'.format(i + 1))
+                        for i, grp in enumerate(self.groups):
+                            group = f.create_group(r'/' + 'Data Group {}'.format(i + 1))
 
-                        master_index = self.masters_db[i]
+                            master_index = self.masters_db[i]
 
-                        for j, ch in enumerate(grp['channels']):
-                            name = ch.name
-                            sig = self.get(group=i, index=j)
-                            if j == master_index:
-                                group.attrs['master'] = name
-                            dataset = group.create_dataset(name, data=sig.samples)
-                            dataset.attrs['unit'] = sig.unit
-                            dataset.attrs['comment'] = sig.comment if sig.comment else ''
+                            for j, ch in enumerate(grp['channels']):
+                                name = ch.name
+                                sig = self.get(group=i, index=j)
+                                if j == master_index:
+                                    group.attrs['master'] = name
+                                dataset = group.create_dataset(name, data=sig.samples)
+                                dataset.attrs['unit'] = sig.unit
+                                dataset.attrs['comment'] = sig.comment if sig.comment else ''
 
             elif format == 'excel':
-                excel_name = os.path.splitext(name)[0]
-                nr = len(self.groups)
-                for i, grp in enumerate(self.groups):
-                    print('Exporting group {} of {}'.format(i+1, nr))
+                try:
+                    import xlsxwriter
+                except ImportError:
+                    print('xlsxwriter not found; export to Excel is unavailable')
+                    return
+                else:
+                    excel_name = os.path.splitext(name)[0]
+                    nr = len(self.groups)
+                    for i, grp in enumerate(self.groups):
+                        print('Exporting group {} of {}'.format(i+1, nr))
 
-                    workbook = xlsxwriter.Workbook('{}_{}.xlsx'.format(excel_name, 'DataGroup_{}'.format(i + 1)))
-                    bold = workbook.add_format({'bold': True})
+                        workbook = xlsxwriter.Workbook('{}_{}.xlsx'.format(excel_name, 'DataGroup_{}'.format(i + 1)))
+                        bold = workbook.add_format({'bold': True})
 
-                    ws = workbook.add_worksheet("Information")
+                        ws = workbook.add_worksheet("Information")
 
-                    if self.version in MDF3_VERSIONS:
-                        for j, item in enumerate(('date', 'time', 'author', 'organization', 'project', 'subject')):
-                            ws.write(j, 0, item.title(), bold)
-                            ws.write(j, 1, self.header[item].decode('latin-1'))
+                        if self.version in MDF3_VERSIONS:
+                            for j, item in enumerate(('date', 'time', 'author', 'organization', 'project', 'subject')):
+                                ws.write(j, 0, item.title(), bold)
+                                ws.write(j, 1, self.header[item].decode('latin-1'))
 
-                        ws = workbook.add_worksheet('Data Group {}'.format(i + 1))
+                            ws = workbook.add_worksheet('Data Group {}'.format(i + 1))
 
-                        ws.write(0, 0, 'Channel', bold)
-                        ws.write(1, 0, 'comment', bold)
-                        ws.write(2, 0, 'is master', bold)
+                            ws.write(0, 0, 'Channel', bold)
+                            ws.write(1, 0, 'comment', bold)
+                            ws.write(2, 0, 'is master', bold)
 
-                        master_index = self.masters_db[i]
+                            master_index = self.masters_db[i]
 
-                        for j in range(grp['channel_group']['cycles_nr']):
-                            ws.write(j+3, 0, str(j))
+                            for j in range(grp['channel_group']['cycles_nr']):
+                                ws.write(j+3, 0, str(j))
 
-                        for j, ch in enumerate(grp['channels']):
-                            sig = self.get(group=i, index=j)
+                            for j, ch in enumerate(grp['channels']):
+                                sig = self.get(group=i, index=j)
 
-                            col = j + 1
-                            ws.write(0, col, '{} [{}]'.format(sig.name, sig.unit))
-                            ws.write(1, col, sig.comment if sig.comment else '')
-                            if j == master_index:
-                                ws.write(2, col, 'x')
-                            ws.write_column(3, col, sig.samples.astype(str))
+                                col = j + 1
+                                ws.write(0, col, '{} [{}]'.format(sig.name, sig.unit))
+                                ws.write(1, col, sig.comment if sig.comment else '')
+                                if j == master_index:
+                                    ws.write(2, col, 'x')
+                                ws.write_column(3, col, sig.samples.astype(str))
 
-                    workbook.close()
+                        workbook.close()
 
             elif format == 'csv':
                 csv_name = os.path.splitext(name)[0]
                 nr = len(self.groups)
                 for i, grp in enumerate(self.groups):
                     print('Exporting group {} of {}'.format(i+1, nr))
-                    names = ['{} [{}]'.format(ch.name)ch.name for ch in grp['channels']]
                     with open('{}_{}.csv'.format(csv_name, 'DataGroup_{}'.format(i + 1)), 'w', newline='') as csvfile:
-                        writer = csv.writer(csvfile, delimiter=';', fieldnames=names)
-                        writer.write_header()
-                    workbook = xlsxwriter.Workbook()
+                        writer = csv.writer(csvfile, delimiter=';')
+
+                        ch_nr = len(grp['channels'])
+                        channels = [self.get(group=i, index=j) for j in range(ch_nr)]
+
+                        master_index = self.masters_db[i]
+                        cycles = grp['channel_group']['cycles_nr']
+
+                        writer.writerow(['Channel',] + ['{} [{}]'.format(ch.name, ch.unit) for ch in channels])
+                        writer.writerow(['comment',] + [ch.comment for ch in channels])
+                        writer.writerow(['is master',] + ['x' if j == master_index else '' for j in range(ch_nr)])
+
+                        vals = [np.array(range(cycles), dtype=np.uint32), ] + [ch.samples for ch in channels]
+
+                        writer.writerows(zip(*vals))
 
     def filter(self, channels):
         """ return new *MDF* object that contains only the channels listed in *channels* argument
@@ -239,15 +259,21 @@ class MDF(object):
 
     def iter_to_pandas(self):
         """ generator that yields channel groups as pandas DataFrames"""
-        for i, gp in enumerate(self.groups):
-            master_index = self.masters_db[i]
-            pandas_dict = {gp['channels'][master_index].name: self.get(group=i, index=master_index, samples_only=True)}
-            for j, ch in enumerate(gp['channels']):
-                if j == master_index:
-                    continue
-                name = gp['channels'][j].name
-                pandas_dict[name] = self.get(group=i, index=j, samples_only=True)
-            yield DataFrame.from_dict(pandas_dict)
+        try:
+            from pandas import DataFrame
+        except ImportError:
+            print('pandas not found; export to pandas DataFrame is unavailable')
+            return
+        else:
+            for i, gp in enumerate(self.groups):
+                master_index = self.masters_db[i]
+                pandas_dict = {gp['channels'][master_index].name: self.get(group=i, index=master_index, samples_only=True)}
+                for j, ch in enumerate(gp['channels']):
+                    if j == master_index:
+                        continue
+                    name = gp['channels'][j].name
+                    pandas_dict[name] = self.get(group=i, index=j, samples_only=True)
+                yield DataFrame.from_dict(pandas_dict)
 
 
 if __name__ == '__main__':

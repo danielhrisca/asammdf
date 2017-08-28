@@ -94,40 +94,43 @@ class MDF3(object):
             self.byteorder = '<'
 
     def _load_group_data(self, group):
-        """ get group's data block bytes when load_measured_data=False """
-        with open(self.name, 'rb') as file_stream:
-            # go to the first data block of the current data group
-            dat_addr = group['data_group']['data_block_addr']
+        """ get group's data block bytes"""
+        if self.load_measured_data == False:
+            with open(self.name, 'rb') as file_stream:
+                # go to the first data block of the current data group
+                dat_addr = group['data_group']['data_block_addr']
 
-            if group.get('sorted', True):
-                read_size = group['channel_group']['samples_byte_nr'] * group['channel_group']['cycles_nr']
-                data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+                if group.get('sorted', True):
+                    read_size = group['channel_group']['samples_byte_nr'] * group['channel_group']['cycles_nr']
+                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
 
-            else:
-                read_size = group['size']
-                record_id = group['channel_group']['record_id']
-                cg_size = group['record_size']
-                record_id_nr = group['data_group']['record_id_nr'] if group['data_group']['record_id_nr'] <= 2 else 0
-                cg_data = []
+                else:
+                    read_size = group['size']
+                    record_id = group['channel_group']['record_id']
+                    cg_size = group['record_size']
+                    record_id_nr = group['data_group']['record_id_nr'] if group['data_group']['record_id_nr'] <= 2 else 0
+                    cg_data = []
 
-                data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
 
-                i = 0
-                size = len(data)
-                while i < size:
-                    rec_id = data[i]
-                    # skip redord id
-                    i += 1
-                    rec_size = cg_size[rec_id]
-                    if rec_id == record_id:
-                        rec_data = data[i: i+rec_size]
-                        cg_data.append(rec_data)
-                    # if 2 record id's are sued skip also the second one
-                    if record_id_nr == 2:
+                    i = 0
+                    size = len(data)
+                    while i < size:
+                        rec_id = data[i]
+                        # skip redord id
                         i += 1
-                    # go to next record
-                    i += rec_size
-                data = b''.join(cg_data)
+                        rec_size = cg_size[rec_id]
+                        if rec_id == record_id:
+                            rec_data = data[i: i+rec_size]
+                            cg_data.append(rec_data)
+                        # if 2 record id's are sued skip also the second one
+                        if record_id_nr == 2:
+                            i += 1
+                        # go to next record
+                        i += rec_size
+                    data = b''.join(cg_data)
+        else:
+            data = group['data_block']['data']
         return data
 
     def _prepare_record(self, group):
