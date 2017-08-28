@@ -551,7 +551,7 @@ class MDF4(object):
                         for i in range(dim):
                             new_name = '{}_{}'.format(name, i)
                             parents[new_name] = new_name, 0
-                            types.append( (new_name, get_fmt(data_type, size, version=4)) )
+                            types.append( (str(new_name), get_fmt(data_type, size, version=4)) )
 
                         current_parent = ''
                         next_byte_aligned_position = start_offset + size * dim
@@ -586,7 +586,7 @@ class MDF4(object):
                             next_byte_aligned_position = parent_start_offset + 1
                             size = 1
 
-                    types.append( (name, get_fmt(data_type, size, version=4)) )
+                    types.append( (str(name), get_fmt(data_type, size, version=4)) )
 
                     current_parent = name
             else:

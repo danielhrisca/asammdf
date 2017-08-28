@@ -190,7 +190,7 @@ class MDF3(object):
                         next_byte_aligned_position = parent_start_offset + 8
                         size = 1
 
-                types.append( (name, get_fmt(data_type, size)) )
+                types.append( (str(name), get_fmt(data_type, size)) )
 
                 current_parent = name
             else:
