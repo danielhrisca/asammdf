@@ -1375,7 +1375,7 @@ class MDF4(object):
                     if raster and t:
                         tx = linspace(0, t[-1], int(t[-1] / raster))
                         res = res.interp(tx)
-                    return res
+                return res
 
     def info(self):
         """get MDF information as a dict
