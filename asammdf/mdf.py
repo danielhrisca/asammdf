@@ -2,6 +2,7 @@
 MDF file format module
 
 """
+import csv
 import os
 import warnings
 
@@ -101,15 +102,17 @@ class MDF(object):
             return out
 
     def export(self, format, filename=None):
-        """ export MDF to other formats. The file name is the same
+        """ export MDF to other formats. The *MDF* file name is used is available,
+        else the *filename* aragument must be provided.
 
         Parameters
         ----------
         format : string
             can be one of the following:
 
-                * *hdf5* : HDF5 file output
-                * *excel* : Excel file output
+                * *csv* : CSV export that uses the ";" delimiter. This option wil generate a new csv file for each data group (<MDFNAME>_DataGroup_XX.csv).
+                * *hdf5* : HDF5 file output; each *MDF* data group is mapped to a *HDF5* group with the name 'Data Group xx' (where xx is the index)
+                * *excel* : Excel file output (very slow). This option wil generate a new excel file for each data group (<MDFNAME>_DataGroup_XX.xlsx).
 
         filename : string
             export file name
@@ -142,6 +145,7 @@ class MDF(object):
                             dataset = group.create_dataset(name, data=sig.samples)
                             dataset.attrs['unit'] = sig.unit
                             dataset.attrs['comment'] = sig.comment if sig.comment else ''
+
             elif format == 'excel':
                 excel_name = os.path.splitext(name)[0]
                 nr = len(self.groups)
@@ -180,6 +184,17 @@ class MDF(object):
                             ws.write_column(3, col, sig.samples.astype(str))
 
                     workbook.close()
+
+            elif format == 'csv':
+                csv_name = os.path.splitext(name)[0]
+                nr = len(self.groups)
+                for i, grp in enumerate(self.groups):
+                    print('Exporting group {} of {}'.format(i+1, nr))
+                    names = ['{} [{}]'.format(ch.name)ch.name for ch in grp['channels']]
+                    with open('{}_{}.csv'.format(csv_name, 'DataGroup_{}'.format(i + 1)), 'w', newline='') as csvfile:
+                        writer = csv.writer(csvfile, delimiter=';', fieldnames=names)
+                        writer.write_header()
+                    workbook = xlsxwriter.Workbook()
 
     def filter(self, channels):
         """ return new *MDF* object that contains only the channels listed in *channels* argument
