@@ -2,6 +2,3 @@ numpydoc
 numexpr
 numpy
 matplotlib
-pandas
-xlsxwriter
-h5py
