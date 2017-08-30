@@ -13,7 +13,6 @@ from functools import reduce
 from collections import defaultdict
 from hashlib import md5
 import xml.etree.ElementTree as XML
-#import lxml.etree as XML
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
@@ -42,6 +41,7 @@ from .v4blocks import (AttachmentBlock,
 from .v4constants import *
 from .utils import MdfException, get_fmt, fmt_to_datatype, pair
 from .signal import Signal
+from .signalconstants import *
 
 if PYVERSION == 2:
     def bytes(obj):
@@ -723,7 +723,7 @@ class MDF4(object):
             conv_texts_tab = gp_texts['conversion_tab'][idx+1]
             if conv:
                 conv_type = conv['type']
-                if conv_type == CONVERSION_TYPE_TABX:
+                if conv_type in (SIGNAL_TYPE_V4_VTAB, SIGNAL_TYPE_V3_VTAB):
                     kargs = {}
                     kargs['conversion_type'] = CONVERSION_TYPE_TABX
                     raw = conv['raw']
@@ -734,9 +734,11 @@ class MDF4(object):
                         conv_texts_tab['text_{}'.format(i)] = TextBlock.from_text(p_)
                     if conv.get('default', b''):
                         conv_texts_tab['default_addr'] = TextBlock.from_text(conv['default'])
+                    else:
+                        conv_texts_tab['default_addr'] = None
                     kargs['default_addr'] = 0
                     kargs['links_nr'] = len(raw) + 5
-                elif conv_type == CONVERSION_TYPE_RTABX:
+                elif conv_type in (SIGNAL_TYPE_V3_VTABR, SIGNAL_TYPE_V4_VTABR):
                     kargs = {}
                     kargs['conversion_type'] = CONVERSION_TYPE_RTABX
                     lower = conv['lower']
@@ -753,6 +755,8 @@ class MDF4(object):
                         conv_texts_tab['text_{}'.format(i)] = TextBlock.from_text(t_)
                     if conv.get('default', b''):
                         conv_texts_tab['default_addr'] = TextBlock.from_text(conv['default'])
+                    else:
+                        conv_texts_tab['default_addr'] = None
                     kargs['default_addr'] = 0
 
                 else:
@@ -1038,9 +1042,15 @@ class MDF4(object):
             if channel.cn_template:
                 name = channel.name
                 dims = channel.cn_template_size
-                arrays = [record['{}_{}'.format(name, i)] for i in range(dims)]
+                dim_names = ['{}_{}'.format(name, i) for i in range(dims)]
+                arrays = [record[dim_name] for dim_name in dim_names]
 
-                vals = fromarrays(arrays)
+                types = [ (dim_name, arr.dtype) for dim_name, arr in zip(dim_names, arrays)]
+                types = dtype(types)
+
+                vals = fromarrays(arrays, dtype=types)
+
+                info = {'type' : SIGNAL_TYPE_V4_ARRAY}
 
                 if samples_only:
                     return vals
@@ -1074,7 +1084,8 @@ class MDF4(object):
                                  timestamps=t,
                                  unit='',
                                  name=channel.name,
-                                 comment=comment)
+                                 comment=comment,
+                                 conversion=info)
 
                     if raster and t:
                         tx = linspace(0, t[-1], int(t[-1] / raster))
@@ -1089,42 +1100,6 @@ class MDF4(object):
                     return Signal(samples=array([]),
                                   timestamps=array([]),
                                   name=channel.name,)
-            arrays = [self.get(ch.name, samples_ony=True) for ch in channel.dependencies]
-            vals = fromarrays(arrays)
-            info = None
-            if samples_only:
-                return vals
-            else:
-                if conversion:
-                    unit = conversion['unit'].decode('latin-1').strip(' \n\t\x00')
-                else:
-                    unit = ''
-                comment = channel['description'].decode('latin-1').strip(' \t\n\x00')
-
-                # get master channel index
-                time_ch_nr = self.masters_db[gp_nr]
-
-                time_conv = grp['channel_conversions'][time_ch_nr]
-                time_ch = grp['channels'][time_ch_nr]
-                t = record[time_ch.name]
-                # get timestamps
-                time_conv_type = CONVERSION_TYPE_NONE if time_conv is None else time_conv['conversion_type']
-                if time_conv_type == CONVERSION_TYPE_LINEAR:
-                    time_a = time_conv['a']
-                    time_b = time_conv['b']
-                    t = t * time_a
-                    if time_b:
-                        t += time_b
-                res = Signal(samples=vals,
-                             timestamps=t,
-                             unit=unit,
-                             name=channel.name,
-                             comment=comment)
-
-                if raster and t:
-                    tx = linspace(0, t[-1], int(t[-1] / raster))
-                    res = res.interp(tx)
-                return res
         else:
             # get channel values
             parent, bit_offset = parents[channel.name]
@@ -1193,6 +1168,8 @@ class MDF4(object):
                     names = ['ms', 'min', 'hour', 'day', 'month', 'year', 'summer_time', 'day_of_week']
                     vals = fromarrays(arrays, names=names)
 
+                    info = {'type' : SIGNAL_TYPE_V4_CANOPENDATE}
+
                 # CANopen time
                 elif channel['data_type'] == DATA_TYPE_CANOPEN_TIME:
                     vals = vals.tostring()
@@ -1209,6 +1186,8 @@ class MDF4(object):
                     names = ['ms', 'days']
                     vals = fromarrays(arrays, names=names)
 
+                    info = {'type' : SIGNAL_TYPE_V4_CANOPENTIME}
+
                 # byte array
                 elif channel['data_type'] == DATA_TYPE_BYTEARRAY:
                     vals = vals.tostring()
@@ -1217,6 +1196,8 @@ class MDF4(object):
                     lines = len(vals) // cols
 
                     vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
+
+                    info = {'type' : SIGNAL_TYPE_V4_BYTEARRAY}
 
             elif conversion_type == CONVERSION_TYPE_LIN:
                 a = conversion['a']
@@ -1264,22 +1245,41 @@ class MDF4(object):
                 phys = array([conversion['phys_{}'.format(i)] for i in range(nr)])
                 default = conversion['default']
 
-                res = []
-                for v in vals:
-                    for l, u, p in zip(lower, upper, phys):
-                        if l <= v <= u:
-                            res.append(p)
-                            break
-                    else:
-                        res.append(default)
-                vals = array(res).astype(ch_fmt)
+                # INT channel
+                if channel['data_type'] <= 3:
+
+                    res = []
+                    for v in vals:
+                        for l, u, p in zip(lower, upper, phys):
+                            if l <= v <= u:
+                                res.append(p)
+                                break
+                        else:
+                            res.append(default)
+                    size = max(bits>>3, 1)
+                    ch_fmt = get_fmt(channel['data_type'], size, version=4)
+                    vals = array(res).astype(ch_fmt)
+
+                # else FLOAT channel
+                else:
+                    res = []
+                    for v in vals:
+                        for l, u, p in zip(lower, upper, phys):
+                            if l <= v < u:
+                                res.append(p)
+                                break
+                        else:
+                            res.append(default)
+                    size = max(bits>>3, 1)
+                    ch_fmt = get_fmt(channel['data_type'], size, version=4)
+                    vals = array(res).astype(ch_fmt)
 
             elif conversion_type == CONVERSION_TYPE_TABX:
                 nr = conversion['val_param_nr']
                 raw = array([conversion['val_{}'.format(i)] for i in range(nr)])
                 phys = array([grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
                 default = grp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
-                info = {'raw': raw, 'phys': phys, 'default': default, 'type': CONVERSION_TYPE_TABX}
+                info = {'raw': raw, 'phys': phys, 'default': default, 'type': SIGNAL_TYPE_V4_VTAB}
 
             elif conversion_type == CONVERSION_TYPE_RTABX:
                 nr = conversion['val_param_nr'] // 2
@@ -1288,7 +1288,7 @@ class MDF4(object):
                 lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
                 default = grp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
-                info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': CONVERSION_TYPE_RTABX}
+                info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': SIGNAL_TYPE_V4_VTABR}
 
             elif conversion == CONVERSION_TYPE_TTAB:
                 nr = conversion['val_param_nr'] - 1
@@ -1296,7 +1296,7 @@ class MDF4(object):
                 raw = array([grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
                 phys = array([conversion['val_{}'.format(i)] for i in range(nr)])
                 default = conversion['val_default']
-                info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': CONVERSION_TYPE_TTAB}
+                info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': SIGNAL_TYPE_V4_TTAB}
 
             elif conversion == CONVERSION_TYPE_TRANS:
                 nr = (conversion['ref_param_nr'] - 1 ) // 2
@@ -1313,7 +1313,7 @@ class MDF4(object):
                     else:
                         res.append(default)
                 vals = array(res)
-                info = {'input': in_, 'output': out_, 'default': default, 'type': CONVERSION_TYPE_TRANS}
+                info = {'input': in_, 'output': out_, 'default': default, 'type': SIGNAL_TYPE_V4_TRANS}
 
             if samples_only:
                 return vals

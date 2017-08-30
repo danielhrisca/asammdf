@@ -21,11 +21,13 @@ from numexpr import evaluate
 
 from .utils import MdfException, get_fmt, pair, fmt_to_datatype
 from .signal import Signal
+from .signalconstants import *
 from .v3constants import *
 from .v3blocks import (Channel, ChannelConversion, ChannelDependency,
                        ChannelExtension, ChannelGroup, DataBlock, DataGroup,
                        FileIdentificationBlock, HeaderBlock, ProgramBlock,
                        SampleReduction, TextBlock, TriggerBlock)
+
 
 if PYVERSION == 2:
     def bytes(obj):
@@ -579,7 +581,7 @@ class MDF3(object):
             conv = s.conversion
             if conv:
                 conv_type = conv['type']
-                if conv_type == CONVERSION_TYPE_VTAB:
+                if conv_type in (SIGNAL_TYPE_V3_VTAB, SIGNAL_TYPE_V4_VTAB):
                     kargs = {}
                     kargs['conversion_type'] = CONVERSION_TYPE_VTAB
                     raw = conv['raw']
@@ -589,7 +591,7 @@ class MDF3(object):
                         kargs['param_val_{}'.format(i)] = r_
                     kargs['ref_param_nr'] = len(raw)
                     kargs['unit'] = s.unit.encode('latin-1')
-                elif conv_type == CONVERSION_TYPE_VTABR:
+                elif conv_type in (SIGNAL_TYPE_V3_VTABR, SIGNAL_TYPE_V4_VTABR):
                     kargs = {}
                     kargs['conversion_type'] = CONVERSION_TYPE_VTABR
                     lower = conv['lower']
@@ -788,8 +790,11 @@ class MDF3(object):
         # check if this is a channel array
         if channel['ch_depend_addr']:
             arrays = [self.get(ch.name, samples_only=True) for ch in channel.dependencies]
-            vals = fromarrays(arrays)
-            info = None
+            types = [ (ch.name, arr.dtype) for ch, arr in zip(channel.dependencies, arrays)]
+            types = dtype(types)
+            vals = fromarrays(arrays, dtype=types)
+
+            info = {'type' : SIGNAL_TYPE_V3_ARRAY}
 
             if samples_only:
                 return vals
@@ -820,15 +825,14 @@ class MDF3(object):
                              timestamps=t,
                              unit=unit,
                              name=channel.name,
-                             comment=comment)
+                             comment=comment,
+                             conversion=info)
 
                 if raster and t:
                     tx = linspace(0, t[-1], int(t[-1] / raster))
                     res = res.interp(tx)
                 return res
         else:
-
-
             # get channel values
             parent, bit_offset = parents[channel.name]
             vals = record[parent]
@@ -852,6 +856,8 @@ class MDF3(object):
                     lines = len(vals) // cols
 
                     vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
+
+                    info = {'type': SIGNAL_TYPE_V3_BYTEARRAY}
 
             elif conversion_type == CONVERSION_TYPE_LINEAR:
                 a = conversion['a']
@@ -881,7 +887,7 @@ class MDF3(object):
                 nr = conversion['ref_param_nr']
                 raw = array([conversion['param_val_{}'.format(i)] for i in range(nr)])
                 phys = array([conversion['text_{}'.format(i)] for i in range(nr)])
-                info = {'raw': raw, 'phys': phys, 'type': CONVERSION_TYPE_VTAB}
+                info = {'raw': raw, 'phys': phys, 'type': SIGNAL_TYPE_V3_VTAB}
 
             elif conversion_type == CONVERSION_TYPE_VTABR:
                 nr = conversion['ref_param_nr']
@@ -889,7 +895,7 @@ class MDF3(object):
                 texts = array([grp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
                 lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
-                info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': CONVERSION_TYPE_VTABR}
+                info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': SIGNAL_TYPE_V3_VTABR}
 
             elif conversion_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
                 func = log if conversion_type == CONVERSION_TYPE_EXPO else exp
