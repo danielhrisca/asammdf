@@ -1242,7 +1242,7 @@ class MDF4(object):
                 vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
 
             elif conversion_type == CONVERSION_TYPE_ALG:
-                formula = gp['texts']['conversions'][ch_nr]['formula_addr'].text_str
+                formula = grp['texts']['conversions'][ch_nr]['formula_addr'].text_str
                 X = vals
                 vals = evaluate(formula)
 

@@ -871,9 +871,9 @@ class MDF3(object):
                 raw = array([conversion['raw_{}'.format(i)] for i in range(nr)])
                 phys = array([conversion['phys_{}'.format(i)] for i in range(nr)])
                 if conversion_type == CONVERSION_TYPE_TABI:
-                    vals = interp(values['vals'], raw, phys)
+                    vals = interp(vals, raw, phys)
                 else:
-                    idx = searchsorted(raw, values['vals'])
+                    idx = searchsorted(raw, vals)
                     idx = clip(idx, 0, len(raw) - 1)
                     vals = phys[idx]
 
@@ -886,7 +886,7 @@ class MDF3(object):
             elif conversion_type == CONVERSION_TYPE_VTABR:
                 nr = conversion['ref_param_nr']
 
-                texts = array([gp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
+                texts = array([grp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
                 lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
                 info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': CONVERSION_TYPE_VTABR}
