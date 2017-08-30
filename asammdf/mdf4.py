@@ -1238,12 +1238,12 @@ class MDF4(object):
                 P4 = conversion['P4']
                 P5 = conversion['P5']
                 P6 = conversion['P6']
-                X = values['vals']
+                X = vals
                 vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
 
             elif conversion_type == CONVERSION_TYPE_ALG:
                 formula = gp['texts']['conversions'][ch_nr]['formula_addr'].text_str
-                X = values['vals']
+                X = vals
                 vals = evaluate(formula)
 
             elif conversion_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TAB):
@@ -1251,9 +1251,9 @@ class MDF4(object):
                 raw = array([conversion['raw_{}'.format(i)] for i in range(nr)])
                 phys = array([conversion['phys_{}'.format(i)] for i in range(nr)])
                 if conversion_type == CONVERSION_TYPE_TABI:
-                    vals = interp(values['vals'], raw, phys)
+                    vals = interp(vals, raw, phys)
                 else:
-                    idx = searchsorted(raw, values['vals'])
+                    idx = searchsorted(raw, vals)
                     idx = clip(idx, 0, len(raw) - 1)
                     vals = phys[idx]
 
@@ -1263,7 +1263,6 @@ class MDF4(object):
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
                 phys = array([conversion['phys_{}'.format(i)] for i in range(nr)])
                 default = conversion['default']
-                vals = values['vals']
 
                 res = []
                 for v in vals:
@@ -1280,7 +1279,6 @@ class MDF4(object):
                 raw = array([conversion['val_{}'.format(i)] for i in range(nr)])
                 phys = array([grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
                 default = grp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
-                vals = values['vals']
                 info = {'raw': raw, 'phys': phys, 'default': default, 'type': CONVERSION_TYPE_TABX}
 
             elif conversion_type == CONVERSION_TYPE_RTABX:
@@ -1290,7 +1288,6 @@ class MDF4(object):
                 lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
                 default = grp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
-                vals = values['vals']
                 info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': CONVERSION_TYPE_RTABX}
 
             elif conversion == CONVERSION_TYPE_TTAB:
@@ -1299,7 +1296,6 @@ class MDF4(object):
                 raw = array([grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
                 phys = array([conversion['val_{}'.format(i)] for i in range(nr)])
                 default = conversion['val_default']
-                vals = values['vals']
                 info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': CONVERSION_TYPE_TTAB}
 
             elif conversion == CONVERSION_TYPE_TRANS:
@@ -1307,7 +1303,6 @@ class MDF4(object):
                 in_ = array([grp['texts']['conversion_tab'][ch_nr]['input_{}'.format(i)]['text'] for i in range(nr)])
                 out_ = array([grp['texts']['conversion_tab'][ch_nr]['output_{}'.format(i)]['text'] for i in range(nr)])
                 default = grp['texts']['conversion_tab'][ch_nr]['default_addr']['text']
-                vals = values['vals']
 
                 res = []
                 for v in vals:
