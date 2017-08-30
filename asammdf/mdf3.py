@@ -881,7 +881,6 @@ class MDF3(object):
                 nr = conversion['ref_param_nr']
                 raw = array([conversion['param_val_{}'.format(i)] for i in range(nr)])
                 phys = array([conversion['text_{}'.format(i)] for i in range(nr)])
-                vals = values['vals']
                 info = {'raw': raw, 'phys': phys, 'type': CONVERSION_TYPE_VTAB}
 
             elif conversion_type == CONVERSION_TYPE_VTABR:
@@ -890,7 +889,6 @@ class MDF3(object):
                 texts = array([gp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
                 lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
-                vals = values['vals']
                 info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': CONVERSION_TYPE_VTABR}
 
             elif conversion_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
@@ -903,9 +901,9 @@ class MDF3(object):
                 P6 = conversion['P6']
                 P7 = conversion['P7']
                 if P4 == 0:
-                    vals = func(((values['vals'] - P7) * P6 - P3) / P1) / P2
+                    vals = func(((vals - P7) * P6 - P3) / P1) / P2
                 elif P1 == 0:
-                    vals = func((P3 / (values['vals'] - P7) - P6) / P4) / P5
+                    vals = func((P3 / (vals - P7) - P6) / P4) / P5
                 else:
                     raise ValueError('wrong conversion type {}'.format(conversion_type))
 
@@ -916,7 +914,7 @@ class MDF3(object):
                 P4 = conversion['P4']
                 P5 = conversion['P5']
                 P6 = conversion['P6']
-                X = values['vals']
+                X = vals
                 vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
 
             elif conversion_type == CONVERSION_TYPE_POLY:
@@ -926,12 +924,12 @@ class MDF3(object):
                 P4 = conversion['P4']
                 P5 = conversion['P5']
                 P6 = conversion['P6']
-                X = values['vals']
+                X = vals
                 vals = evaluate('(P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)')
 
             elif conversion_type == CONVERSION_TYPE_FORMULA:
                 formula = conversion['formula'].decode('latin-1').strip(' \n\t\x00')
-                X1 = values['vals']
+                X1 = vals
                 vals = evaluate(formula)
 
             if samples_only:
