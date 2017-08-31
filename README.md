@@ -59,7 +59,7 @@ Check the *examples* folder for extended usage demo.
 
 Documentation
 =============
-http://asammdf.readthedocs.io/en/stable
+http://asammdf.readthedocs.io/en/latest
 
 Installation
 ============
