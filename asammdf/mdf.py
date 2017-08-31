@@ -135,6 +135,10 @@ class MDF(object):
                             for item in ('date', 'time', 'author', 'organization', 'project', 'subject'):
                                 group.attrs[item] = self.header[item]
 
+                        # save each data group in a HDF5 group called "Data Group xx"
+                        # with the index starting from 1
+                        # each HDF5 group will have a string attribute "master" that
+                        # will hold the name of the master channel
                         for i, grp in enumerate(self.groups):
                             group = f.create_group(r'/' + 'Data Group {}'.format(i + 1))
 
