@@ -222,12 +222,9 @@ class MDF3(object):
 
             self.file_history = TextBlock(address=self.header['comment_addr'], file_stream=file_stream)
 
-            # this will hold all channels with channel dependecies
-            ch_dep = []
             # this will hold mapping from channel address to Channel object
+            # needed for linking dependecy blocks to refernced channels after the file is loaded
             ch_map = {}
-
-            parents_map = {}
 
             # go to first date group
             dg_addr = self.header['first_dg_addr']
@@ -261,6 +258,7 @@ class MDF3(object):
                     grp['data_block'] = None
                     grp['texts'] = {'channels': [], 'conversion_tab': [], 'channel_group': []}
                     grp['trigger'] = [trigger, trigger_text]
+                    grp['channel_dependencies'] = []
 
                     kargs = {'first_cg_addr': cg_addr,
                              'data_block_addr': data_addr}
@@ -292,9 +290,12 @@ class MDF3(object):
                         # read channel block and create channel object
                         new_ch = Channel(address=ch_addr, file_stream=file_stream)
 
-                        # check if it has channeld ependencies
+                        # check if it has channel dependencies
                         if new_ch['ch_depend_addr']:
-                            ch_dep.append(new_ch)
+                            grp['channel_dependencies'].append(ChannelDependency(address=new_ch['ch_depend_addr'], file_stream=file_stream))
+                        else:
+                            grp['channel_dependencies'].append(None)
+
 
                         # update channel map
                         ch_map[ch_addr] = new_ch
@@ -419,10 +420,12 @@ class MDF3(object):
                 # go to next data group
                 dg_addr = gp['next_dg_addr']
 
-            for ch in ch_dep:
-                dep_blk = ChannelDependency(address=ch['ch_depend_addr'], file_stream=file_stream)
-                for i in range(dep_blk['sd_nr']):
-                    ch.dependencies.append(ch_map[dep_blk['ch_{}'.format(i)]])
+            for grp in self.groups:
+                for dependency_block in grp['channel_dependencies']:
+                    if dependency_block:
+                        for i in range(dependency_block['sd_nr']):
+                            ref_channel_addr = dependency_block['ch_{}'.format(i)]
+                            dependency_block.referenced_channels.append(ch_map[ref_channel_addr])
 
     def add_trigger(self, group, time, pre_time=0, post_time=0, comment=''):
         """ add trigger to data group
@@ -771,6 +774,7 @@ class MDF3(object):
         grp = self.groups[gp_nr]
         channel = grp['channels'][ch_nr]
         conversion = grp['channel_conversions'][ch_nr]
+        dependecy_block = grp['channel_dependencies'][ch_nr]
 
         try:
             parents, dtypes = grp['parents'], grp['types']
@@ -788,8 +792,8 @@ class MDF3(object):
                 record = grp['record'] = fromstring(grp['data_block']['data'], dtype=dtypes)
 
         # check if this is a channel array
-        if channel['ch_depend_addr']:
-            arrays = [self.get(ch.name, samples_only=True) for ch in channel.dependencies]
+        if dependecy_block:
+            arrays = [self.get(ch.name, samples_only=True) for ch in dependecy_block.referenced_channels]
             types = [ (ch.name, arr.dtype) for ch, arr in zip(channel.dependencies, arrays)]
             types = dtype(types)
             vals = fromarrays(arrays, dtype=types)
@@ -1084,9 +1088,9 @@ class MDF3(object):
         if self.file_history is None:
             self.file_history = TextBlock.from_text('''<FHcomment>
 <TX>created</TX>
-<tool_id>PythonMDFEditor</tool_id>
+<tool_id>asammdf</tool_id>
 <tool_vendor> </tool_vendor>
-<tool_version>1.0</tool_version>
+<tool_version>2.4.1</tool_version>
 </FHcomment>''')
         else:
             text = self.file_history['text'] + '\n{}: updated byt Python script'.format(time.asctime()).encode('latin-1')
@@ -1097,174 +1101,38 @@ class MDF3(object):
             return
         dst = dst if dst else self.name
 
-        if PYVERSION == 2:
-            self._save_py2(dst)
-        else:
-            self._save_py3(dst)
-
-    def _save_py2(self, dst):
         with open(dst, 'wb') as dst:
             #store unique texts and their addresses
             defined_texts = {}
+            # list of all blocks
+            blocks = []
+
             address = 0
 
-            write = dst.write
-            tell = dst.tell
+            blocks.append(self.identification)
+            address += ID_BLOCK_SIZE
 
-            write(bytes(self.identification))
-            address = tell()
-            write(bytes(self.header))
-            address = tell()
+            blocks.append(self.header)
+            address += self.header['block_len']
 
             self.file_history.address = address
-            write(bytes(self.file_history))
-            address = tell()
+            blocks.append(self.file_history)
+            address += self.file_history['block_len']
 
+            # DataGroup
+            # put them first in the block list so they will be written first to disk
+            # this way, in case of load_measured_data=False, we can safely restore
+            # the original data block address
             for gp in self.groups:
-                gp_texts = gp['texts']
-
-                # Texts
-                for _, item_list in gp_texts.items():
-                    for my_dict in item_list:
-                        for key in my_dict:
-                            #text blocks can be shared
-                            if my_dict[key].text_str in defined_texts:
-                                my_dict[key].address = defined_texts[my_dict[key].text_str]
-                            else:
-                                defined_texts[my_dict[key].text_str] = address
-                                my_dict[key].address = address
-                                write(bytes(my_dict[key]))
-                                address = tell()
-
-                # ChannelConversions
-                cc = gp['channel_conversions']
-                for i, conv in enumerate(cc):
-                    if conv:
-                        conv.address = address
-                        if conv['conversion_type'] == CONVERSION_TYPE_VTABR:
-                            for key, item in gp_texts['conversion_tab'][i].items():
-                                conv[key] = item.address
-
-                        write(bytes(conv))
-                        address = tell()
-
-                # Channel Extension
-                cs = gp['channel_extensions']
-                for source in cs:
-                    if source:
-                        source.address = address
-                        write(bytes(source))
-                        address = tell()
-
-                # Channels
-                # Channels need 4 extra bytes for 8byte alignment
-
-                ch_texts = gp_texts['channels']
-                for i, channel in enumerate(gp['channels']):
-                    channel.address = address
-                    address += CN_BLOCK_SIZE
-
-                    for key in ('long_name_addr', 'comment_addr', 'display_name_addr'):
-                        channel_texts = ch_texts[i]
-                        if key in channel_texts:
-                            channel[key] = channel_texts[key].address
-                        else:
-                            channel[key] = 0
-                    channel['conversion_addr'] = cc[i].address if cc[i] else 0
-                    channel['source_depend_addr'] = cs[i].address if cs[i] else 0
-
-                for channel, next_channel in pair(gp['channels']):
-                    channel['next_ch_addr'] = next_channel.address
-                    write(bytes(channel))
-                next_channel['next_ch_addr'] = 0
-                write(bytes(next_channel))
-                address = tell()
-
-                # ChannelGroup
-                cg = gp['channel_group']
-                cg.address = address
-
-                cg['first_ch_addr'] = gp['channels'][0].address
-                cg['next_cg_addr'] = 0
-                if 'comment_addr' in gp['texts']['channel_group'][0]:
-                    cg['comment_addr'] = gp_texts['channel_group'][0]['comment_addr'].address
-                write(bytes(cg))
-                address = tell()
-
-                # TriggerBLock
-                trigger, trigger_text = gp['trigger']
-                if trigger:
-                    if trigger_text:
-                        trigger_text.address = address
-                        write(bytes(trigger_text))
-                        address = tell()
-                        trigger['comment_addr'] = trigger_text.address
-                    else:
-                        trigger['comment_addr'] = 0
-
-                    trigger.address = address
-                    write(bytes(trigger))
-                    address = tell()
-
-                # DataBlock
-                if self.load_measured_data == False:
-                    # check if there are appended blocks
-                    if gp['data_block']:
-                        data = gp['data_block']['data']
-                    else:
-                        data = self._load_group_data(gp)
-                    data_block_address = address
-                    write(data)
-                    address = tell()
-
-                else:
-                    db = gp['data_block']
-                    db.address = address
-                    data_block_address = address
-                    write(bytes(db))
-                    address = tell()
-                gp['data_group']['data_block_addr'] = data_block_address
-
-            # DataGroup and DataBlock
-            for i, gp in enumerate(self.groups):
                 dg = gp['data_group']
+                blocks.append(dg)
                 dg.address = address
                 address += dg['block_len']
-                dg['first_cg_addr'] = gp['channel_group'].address
-                dg['trigger_addr'] = gp['trigger'][0].address if gp['trigger'][0] else 0
-
             for i, dg in enumerate(self.groups[:-1]):
                 dg['data_group']['next_dg_addr'] = self.groups[i+1]['data_group'].address
             self.groups[-1]['data_group']['next_dg_addr'] = 0
 
-            for dg in self.groups:
-                write(bytes(dg['data_group']))
-
-            if self.groups:
-                self.header['first_dg_addr'] = self.groups[0]['data_group'].address
-                self.header['dg_nr'] = len(self.groups)
-                self.header['comment_addr'] = self.file_history.address
-                self.header['program_addr'] = 0
-            dst.seek(0, SEEK_START)
-            write(bytes(self.identification))
-            write(bytes(self.header))
-
-    def _save_py3(self, dst):
-        with open(dst, 'wb') as dst:
-            #store unique texts and their addresses
-            defined_texts = {}
-            address = 0
-
-            write = dst.write
-            tell = dst.tell
-
-            address += write(bytes(self.identification))
-            address += write(bytes(self.header))
-
-            self.file_history.address = address
-            address += write(bytes(self.file_history))
-
-            for gp in self.groups:
+            for index, gp in enumerate(self.groups):
                 gp_texts = gp['texts']
 
                 # Texts
@@ -1277,7 +1145,8 @@ class MDF3(object):
                             else:
                                 defined_texts[my_dict[key].text_str] = address
                                 my_dict[key].address = address
-                                address += write(bytes(my_dict[key]))
+                                blocks.append(my_dict[key])
+                                address += my_dict[key]['block_len']
 
                 # ChannelConversions
                 cc = gp['channel_conversions']
@@ -1288,21 +1157,30 @@ class MDF3(object):
                             for key, item in gp_texts['conversion_tab'][i].items():
                                 conv[key] = item.address
 
-                        address += write(bytes(conv))
+                        blocks.append(conv)
+                        address += conv['block_len']
 
                 # Channel Extension
                 cs = gp['channel_extensions']
                 for source in cs:
                     if source:
                         source.address = address
-                        address += write(bytes(source))
+                        blocks.append(source)
+                        address += source['block_len']
+
+                # Channel Dependency
+                cd = gp['channel_dependencies']
+                for dep in cd:
+                    if dep:
+                        dep.address = address
+                        blocks.append(dep)
+                        address += dep['block_len']
 
                 # Channels
-                # Channels need 4 extra bytes for 8byte alignment
-
                 ch_texts = gp_texts['channels']
                 for i, channel in enumerate(gp['channels']):
                     channel.address = address
+                    blocks.append(channel)
                     address += CN_BLOCK_SIZE
 
                     for key in ('long_name_addr', 'comment_addr', 'display_name_addr'):
@@ -1313,76 +1191,85 @@ class MDF3(object):
                             channel[key] = 0
                     channel['conversion_addr'] = cc[i].address if cc[i] else 0
                     channel['source_depend_addr'] = cs[i].address if cs[i] else 0
+                    if cd[i]:
+                        channel['ch_depend_addr'] = cd.address
+                    else:
+                        channel['ch_depend_addr'] = 0
 
                 for channel, next_channel in pair(gp['channels']):
                     channel['next_ch_addr'] = next_channel.address
-                    write(bytes(channel))
                 next_channel['next_ch_addr'] = 0
-                write(bytes(next_channel))
 
                 # ChannelGroup
                 cg = gp['channel_group']
                 cg.address = address
+                blocks.append(cg)
+                address += cg['block_len']
 
                 cg['first_ch_addr'] = gp['channels'][0].address
                 cg['next_cg_addr'] = 0
                 if 'comment_addr' in gp['texts']['channel_group'][0]:
                     cg['comment_addr'] = gp_texts['channel_group'][0]['comment_addr'].address
-                address += write(bytes(cg))
 
                 # TriggerBLock
                 trigger, trigger_text = gp['trigger']
                 if trigger:
                     if trigger_text:
                         trigger_text.address = address
-                        address += write(bytes(trigger_text))
+                        blocks.append(trigger_text)
+                        address += trigger_text['block_len']
                         trigger['comment_addr'] = trigger_text.address
                     else:
                         trigger['comment_addr'] = 0
 
                     trigger.address = address
-                    address += write(bytes(trigger))
+                    blocks.append(trigger)
+                    address += trigger['block_len']
 
                 # DataBlock
-                if self.load_measured_data == False:
-                    # check if there are appended blocks
-                    if gp['data_block']:
-                        data = gp['data_block']['data']
-                    else:
-                        data = self._load_group_data(gp)
-                    data_block_address = address
-                    address += write(data)
+                original_data_addr = gp['data_group']['data_block_addr']
+                gp['data_group']['data_block_addr'] = address
+                address += gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                data_block = gp.get('data_block', None)
+                if data_block:
+                    blocks.append(data_block)
                 else:
-                    db = gp['data_block']
-                    db.address = address
-                    data_block_address = address
-                    address += write(bytes(db))
-                    address = tell()
-                gp['data_group']['data_block_addr'] = data_block_address
+                    # trying to call bytes([gp, address]) will result in an exception
+                    # that be used as a flag for non existing data block in case
+                    # of load_measured_data=False, the address is the actual address
+                    # of the data group's data within the original file
+                    blocks.append([gp, original_data_addr])
+
+            # update referenced channels addresses within the channel dependecies
+            for gp in self.groups:
+                for dep in gp['channel_dependencies']:
+                    if dep:
+                        for i, ch in enumerate(dep.referenced_channels):
+                            dep['ch_{}'.format(i)] = ch.address
 
             # DataGroup
             for gp in self.groups:
-                dg = gp['data_group']
-                dg.address = address
-                address += dg['block_len']
-                dg['first_cg_addr'] = gp['channel_group'].address
-                dg['trigger_addr'] = gp['trigger'][0].address if gp['trigger'][0] else 0
-
-            for i, dg in enumerate(self.groups[:-1]):
-                dg['data_group']['next_dg_addr'] = self.groups[i+1]['data_group'].address
-            self.groups[-1]['data_group']['next_dg_addr'] = 0
-
-            for dg in self.groups:
-                write(bytes(dg['data_group']))
+                gp['data_group']['first_cg_addr'] = gp['channel_group'].address
+                gp['data_group']['trigger_addr'] = gp['trigger'][0].address if gp['trigger'][0] else 0
 
             if self.groups:
                 self.header['first_dg_addr'] = self.groups[0]['data_group'].address
                 self.header['dg_nr'] = len(self.groups)
                 self.header['comment_addr'] = self.file_history.address
                 self.header['program_addr'] = 0
-            dst.seek(0, SEEK_START)
-            write(bytes(self.identification))
-            write(bytes(self.header))
+
+            write = dst.write
+            for block in blocks:
+                try:
+                    write(bytes(block))
+                except:
+                    # this will only be executed for data blocks when load_measured_data=False
+                    gp, address = block
+                    # restore data block address from original file so that
+                    # future calls to get will still work after the save
+                    gp['data_group']['data_block_addr'] = address
+                    data = self._load_group_data(gp)
+                    write(data)
 
 
 if __name__ == '__main__':
