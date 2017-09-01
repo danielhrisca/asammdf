@@ -576,7 +576,10 @@ class ChannelDependency(dict):
         if option_dims_nr:
             fmt += '{}H'.format(option_dims_nr)
             keys += tuple('dim_{}'.format(i) for i in range(option_dims_nr))
-        return pack(fmt, *[self[key] for key in keys])
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in keys])
 
 
 class ChannelExtension(dict):
