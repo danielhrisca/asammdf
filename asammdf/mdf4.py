@@ -1016,16 +1016,12 @@ class MDF4(object):
         channel = grp['channels'][ch_nr]
         conversion = grp['channel_conversions'][ch_nr]
 
-
-
         # get data group record
         try:
             parents, dtypes = grp['parents'], grp['types']
         except:
             grp['parents'], grp['types'] = self._prepare_record(grp)
             parents, dtypes = grp['parents'], grp['types']
-
-        print(grp['types'], len(grp['data_block']['data']))
 
         # get data group record
         if not self.load_measured_data:

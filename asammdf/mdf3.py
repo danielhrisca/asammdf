@@ -474,6 +474,8 @@ class MDF3(object):
         """
         Appends a new data group.
 
+        For channel depencies type Signals, the *samples* attribute must be a numpy.recarray
+
         Parameters
         ----------
         signals : list
