@@ -298,7 +298,7 @@ class MDF3(object):
 
 
                         # update channel map
-                        ch_map[ch_addr] = new_ch
+                        ch_map[ch_addr] = (new_ch, grp)
 
                         # read conversion block and create channel conversion object
                         address = new_ch['conversion_addr']
@@ -793,8 +793,9 @@ class MDF3(object):
 
         # check if this is a channel array
         if dependecy_block:
-            arrays = [self.get(ch.name, samples_only=True) for ch in dependecy_block.referenced_channels]
-            types = [ (ch.name, arr.dtype) for ch, arr in zip(channel.dependencies, arrays)]
+            referenced_channels = [ch for ch, gp_ in dependecy_block.referenced_channels]
+            arrays = [self.get(ch.name, samples_only=True) for ch in referenced_channels]
+            types = [ (ch.name, arr.dtype) for ch, arr in zip(referenced_channels, arrays)]
             types = dtype(types)
             vals = fromarrays(arrays, dtype=types)
 
@@ -1192,7 +1193,7 @@ class MDF3(object):
                     channel['conversion_addr'] = cc[i].address if cc[i] else 0
                     channel['source_depend_addr'] = cs[i].address if cs[i] else 0
                     if cd[i]:
-                        channel['ch_depend_addr'] = cd.address
+                        channel['ch_depend_addr'] = cd[i].address
                     else:
                         channel['ch_depend_addr'] = 0
 
@@ -1244,8 +1245,10 @@ class MDF3(object):
             for gp in self.groups:
                 for dep in gp['channel_dependencies']:
                     if dep:
-                        for i, ch in enumerate(dep.referenced_channels):
+                        for i, (ch, grp) in enumerate(dep.referenced_channels):
                             dep['ch_{}'.format(i)] = ch.address
+                            dep['cg_{}'.format(i)] = grp['channel_group'].address
+                            dep['dg_{}'.format(i)] = grp['data_group'].address
 
             # DataGroup
             for gp in self.groups:
