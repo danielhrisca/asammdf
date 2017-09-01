@@ -191,6 +191,8 @@ class MDF3(object):
                     else:
                         next_byte_aligned_position = parent_start_offset + 8
                         size = 1
+                else:
+                    size = size >> 3
 
                 types.append( (str(name), get_fmt(data_type, size)) )
 
@@ -543,7 +545,7 @@ class MDF3(object):
         for sig in signals:
             if isinstance(sig.samples, recarray):
                 recarray_signals.append(sig)
-                channel_nr += len(sig.samples.dtype)
+                channel_nr += len(sig.samples.dtype) + 1
             else:
                 simple_signals.append(sig)
                 channel_nr += 1
@@ -605,6 +607,14 @@ class MDF3(object):
         offset = t_size
         ch_cntr = 1
 
+        arrays = [t, ]
+        types = [('t', t.dtype),]
+        formats = [fmt_to_datatype(t.dtype), ]
+
+        sig_dtypes = [s.samples.dtype for s in simple_signals]
+        sig_formats = [fmt_to_datatype(typ) for typ in sig_dtypes]
+
+        parents = {'t': ('t', 0)}
 
         # first add the signals in the simple signal list
         if simple_signals:
@@ -717,6 +727,148 @@ class MDF3(object):
             for _ in simple_signals:
                 gp_dep.append(None)
 
+            arrays.extend(s.samples for s in simple_signals)
+            types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
+            formats.extend([fmt_to_datatype(typ) for typ in sig_dtypes])
+
+            for name in names:
+                parents[name] = name, 0
+
+        # second, add the channel dependency signals
+        if recarray_signals:
+            for sig in recarray_signals:
+                names = sig.samples.dtype.names
+                signals = [sig.samples[name] for name in names]
+                arrays.extend(signals)
+
+                # can't have same filed name in dtype so we must hadnle anme conflincts
+                dtype_fields = [t[0] for t in types]
+                new_names = []
+                for name in names:
+                    i = 0
+                    new_name = name
+                    while new_name in dtype_fields:
+                        new_name = "{}_{}".format(name, i)
+                        i += 1
+                    new_names.append(new_name)
+
+                names = new_names
+
+                # add parent signal texts
+                name = sig.name
+                for _, item in gp['texts'].items():
+                    item.append({})
+                if len(name) >= 32:
+                    gp_texts['channels'][-1]['long_name_addr'] = TextBlock.from_text(name)
+                # add components texts
+                for name in names:
+                    for _, item in gp['texts'].items():
+                        item.append({})
+                    if len(name) >= 32:
+                        gp_texts['channels'][-1]['long_name_addr'] = TextBlock.from_text(name)
+
+                # parent has no conversion
+                gp_conv.append(None)
+                # add components conversions
+                min_max = []
+                if cycles_nr:
+                    for s in signals:
+                        min_max.append((amin(s), amax(s)))
+                else:
+                    for s in signals:
+                        min_max = [(0, 0)]
+                for i, s in enumerate(signals):
+                    kargs = {'conversion_type': CONVERSION_TYPE_NONE,
+                             'unit': b'',
+                             'min_phy_value': min_max[i][0],
+                             'max_phy_value': min_max[i][1]}
+                    gp_conv.append(ChannelConversion(**kargs))
+
+                # add parent and components sources
+                kargs = {'module_nr': 0,
+                         'module_address': 0,
+                         'type': SOURCE_ECU,
+                         'description': 'Channel inserted by Python Script'.encode('latin-1')}
+                gp_source.append(ChannelExtension(**kargs))
+                for _ in signals:
+                    gp_source.append(ChannelExtension(**kargs))
+
+                new_sig_dtypes = [s.dtype for s in signals]
+                new_sig_formats = [fmt_to_datatype(typ) for typ in new_sig_dtypes]
+
+                types.extend([(name, dtype_) for name, dtype_ in zip(names, new_sig_dtypes)])
+                formats.extend(new_sig_formats)
+
+                # parent channel has channel dependencies
+                parent_dep = ChannelDependency(sd_nr=len(signals))
+                gp_dep.append(parent_dep)
+
+                # components do not have channel dependencies
+                for _ in signals:
+                    gp_dep.append(None)
+
+                # add parent channel
+                if offset > MAX_UINT16:
+                    additional_byte_offset = (offset - MAX_UINT16 ) >> 3
+                    start_bit_offset = offset - additional_byte_offset << 3
+                else:
+                    start_bit_offset = offset
+                    additional_byte_offset = 0
+                kargs = {'short_name': (sig.name[:31] + '\x00').encode('latin-1') if len(sig.name) >= 32 else sig.name.encode('latin-1'),
+                         'channel_type': CHANNEL_TYPE_VALUE,
+                         'data_type': new_sig_formats[0][0],
+                         'min_raw_value': 0,
+                         'max_raw_value': 0,
+                         'start_offset': start_bit_offset,
+                         'bit_count': new_sig_formats[0][1],
+                         'aditional_byte_offset' : additional_byte_offset}
+                ch = Channel(**kargs)
+                ch.name = sig.name
+                gp_channels.append(ch)
+
+                if sig.name in self.channels_db:
+                    self.channels_db[sig.name].append((dg_cntr, ch_cntr))
+                else:
+                    self.channels_db[sig.name] = []
+                    self.channels_db[sig.name].append((dg_cntr, ch_cntr))
+
+                ch_cntr += 1
+
+                # add components channels
+                for (sigmin, sigmax), (sig_type, sig_size), name in zip(min_max, new_sig_formats, names):
+                    if offset > MAX_UINT16:
+                        additional_byte_offset = (offset - MAX_UINT16 ) >> 3
+                        start_bit_offset = offset - additional_byte_offset << 3
+                    else:
+                        start_bit_offset = offset
+                        additional_byte_offset = 0
+                    kargs = {'short_name': (name[:31] + '\x00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
+                             'channel_type': CHANNEL_TYPE_VALUE,
+                             'data_type': sig_type,
+                             'min_raw_value': sigmin if sigmin<=sigmax else 0,
+                             'max_raw_value': sigmax if sigmin<=sigmax else 0,
+                             'start_offset': start_bit_offset,
+                             'bit_count': sig_size,
+                             'aditional_byte_offset' : additional_byte_offset}
+                    ch = Channel(**kargs)
+                    ch.name = name
+                    gp_channels.append(ch)
+                    offset += sig_size
+
+                    if name in self.channels_db:
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
+                    else:
+                        self.channels_db[name] = []
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                    ch_cntr += 1
+
+                    # update parent channel dependency referenced channels list
+                    parent_dep.referenced_channels.append((ch, gp))
+
+                for name in names:
+                    parents[name] = name, 0
+
         #channel group
         kargs = {'cycles_nr': cycles_nr,
                  'samples_byte_nr': offset // 8}
@@ -724,20 +876,10 @@ class MDF3(object):
         gp['channel_group']['ch_nr'] = channel_nr + 1
 
         #data block
-        types = [('t', t.dtype),]
-        types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
         types = dtype(types)
 
         gp['types'] = types
-
-
-        parents = {'t': ('t', 0)}
-        for name in names:
-            parents[name] = name, 0
         gp['parents'] = parents
-
-        arrays = [t, ]
-        arrays.extend(s.samples for s in signals)
 
         samples = fromarrays(arrays, dtype=types)
         block = samples.tostring()

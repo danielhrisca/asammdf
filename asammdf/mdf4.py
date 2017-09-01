@@ -572,19 +572,21 @@ class MDF4(object):
                                          DATA_TYPE_STRING_UTF_8,
                                          DATA_TYPE_STRING_LATIN_1,
                                          DATA_TYPE_STRING_UTF_16_BE,
-                                         DATA_TYPE_STRING_UTF_16_LE):
+                                         DATA_TYPE_STRING_UTF_16_LE,
+                                         DATA_TYPE_CANOPEN_TIME,
+                                         DATA_TYPE_CANOPEN_DATE):
                         if size > 32:
-                            next_byte_aligned_position = parent_start_offset + 8
                             size = 8
                         elif size > 16:
-                            next_byte_aligned_position = parent_start_offset + 4
                             size = 4
                         elif size > 8:
-                            next_byte_aligned_position = parent_start_offset + 2
                             size = 2
                         else:
-                            next_byte_aligned_position = parent_start_offset + 1
                             size = 1
+                    else:
+                        size = size >> 3
+
+                    next_byte_aligned_position = parent_start_offset + size
 
                     types.append( (str(name), get_fmt(data_type, size, version=4)) )
 
@@ -1014,12 +1016,17 @@ class MDF4(object):
         channel = grp['channels'][ch_nr]
         conversion = grp['channel_conversions'][ch_nr]
 
+
+
         # get data group record
         try:
             parents, dtypes = grp['parents'], grp['types']
         except:
             grp['parents'], grp['types'] = self._prepare_record(grp)
             parents, dtypes = grp['parents'], grp['types']
+
+        print(grp['types'], len(grp['data_block']['data']))
+
         # get data group record
         if not self.load_measured_data:
             data = self._load_group_data(grp)
@@ -1138,6 +1145,7 @@ class MDF4(object):
 
                 # CANopen date
                 elif channel['data_type'] == DATA_TYPE_CANOPEN_DATE:
+
                     vals = vals.tostring()
 
                     types = dtype( [('ms', '<u2'),
