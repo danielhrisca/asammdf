@@ -93,7 +93,6 @@ class Channel(dict):
         super(Channel, self).__init__()
 
         self.name = ''
-        self.dependencies = []
 
         try:
             stream = kargs['file_stream']
@@ -529,6 +528,8 @@ class ChannelDependency(dict):
     '''
     def __init__(self, **kargs):
         super(ChannelDependency, self).__init__()
+
+        self.referenced_channels = []
 
         try:
             stream = kargs['file_stream']

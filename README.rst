@@ -40,7 +40,7 @@ Major features still not implemented
 ====================================
 
 * functionality related to sample reduction block (but the class is defined)
-* mdf 3 channel dependency save and append (only reading is implemented)
+* mdf 3 channel dependency append (reading and saving file with CDBLOCKs is implemented)
 * handling of unfinnished measurements (mdf 4)
 * mdf 4 channel arrays
 * xml schema for TXBLOCK and MDBLOCK
@@ -59,7 +59,7 @@ Check the *examples* folder for extended usage demo.
 
 Documentation
 =============
-http://asammdf.readthedocs.io/en/stable
+http://asammdf.readthedocs.io/en/latest
 
 Installation
 ============
