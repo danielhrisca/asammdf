@@ -139,12 +139,12 @@ class MDF3(object):
         """ compute record dtype and parents dict fro this group
 
         Parameters
-        ==========
+        ----------
         group : dict
             MDF group dict
 
         Returns
-        =======
+        -------
         parents, dtypes : dict, numpy.dtype
             mapping of channels to records fields, records fiels dtype
 
@@ -156,6 +156,8 @@ class MDF3(object):
         current_parent = ""
         parent_start_offset = 0
         parents = {}
+
+        #
 
         for new_ch in sorted(grp['channels']):
             if new_ch['ch_depend_addr']:
