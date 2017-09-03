@@ -98,45 +98,55 @@ class MDF3(object):
     def _load_group_data(self, group):
         """ get group's data block bytes"""
         if self.load_measured_data == False:
-            with open(self.name, 'rb') as file_stream:
-                # go to the first data block of the current data group
-                dat_addr = group['data_group']['data_block_addr']
+            # could be an appended group
+            # for now appended groups keep the measured data in the memory.
+            # the plan is to use a temp file for appended groups, to keep the
+            # memory usage low.
+            data_block = group.get('data_block', None)
+            if data_block:
+                data = data_block['data']
+            else:
+                # this is a group from the source file
+                # so fetch the measured data from it
+                with open(self.name, 'rb') as file_stream:
+                    # go to the first data block of the current data group
+                    dat_addr = group['data_group']['data_block_addr']
 
-                if group.get('sorted', True):
-                    read_size = group['channel_group']['samples_byte_nr'] * group['channel_group']['cycles_nr']
-                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+                    if group.get('sorted', True):
+                        read_size = group['channel_group']['samples_byte_nr'] * group['channel_group']['cycles_nr']
+                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
 
-                else:
-                    read_size = group['size']
-                    record_id = group['channel_group']['record_id']
-                    cg_size = group['record_size']
-                    record_id_nr = group['data_group']['record_id_nr'] if group['data_group']['record_id_nr'] <= 2 else 0
-                    cg_data = []
+                    else:
+                        read_size = group['size']
+                        record_id = group['channel_group']['record_id']
+                        cg_size = group['record_size']
+                        record_id_nr = group['data_group']['record_id_nr'] if group['data_group']['record_id_nr'] <= 2 else 0
+                        cg_data = []
 
-                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
 
-                    i = 0
-                    size = len(data)
-                    while i < size:
-                        rec_id = data[i]
-                        # skip redord id
-                        i += 1
-                        rec_size = cg_size[rec_id]
-                        if rec_id == record_id:
-                            rec_data = data[i: i+rec_size]
-                            cg_data.append(rec_data)
-                        # if 2 record id's are sued skip also the second one
-                        if record_id_nr == 2:
+                        i = 0
+                        size = len(data)
+                        while i < size:
+                            rec_id = data[i]
+                            # skip redord id
                             i += 1
-                        # go to next record
-                        i += rec_size
-                    data = b''.join(cg_data)
+                            rec_size = cg_size[rec_id]
+                            if rec_id == record_id:
+                                rec_data = data[i: i+rec_size]
+                                cg_data.append(rec_data)
+                            # if 2 record id's are sued skip also the second one
+                            if record_id_nr == 2:
+                                i += 1
+                            # go to next record
+                            i += rec_size
+                        data = b''.join(cg_data)
         else:
             data = group['data_block']['data']
         return data
 
     def _prepare_record(self, group):
-        """ compute record dtype and parents dict fro this group
+        """ compute record dtype and parents dict for this group
 
         Parameters
         ----------
@@ -157,9 +167,21 @@ class MDF3(object):
         parent_start_offset = 0
         parents = {}
 
-        #
+        # the channels are first sorted ascending (see __lt__ method of Channel class):
+        # a channel with lower start offset is smaller, when two channels have
+        # the same start offset the one with higer bit size is considered smaller.
+        # The reason is that when the numpy record is built and there are overlapping
+        # channels, the parent fields should be bigger (bit size) than the embedded
+        # channels. For each channel the parent dict will have a (parent name, bit offset)
+        # pair: the channel value is computed using the values from the parent field,
+        # and the bit offset, which is the channel's bit offset within the parent bytes.
+        # This means all parents will have themselves as parent, and bit offset of 0.
+        # Gaps in the records are also considered. Non standard integers size is
+        # adjusted to the first higher standard integer size (eq. uint of 28bits will
+        # be adjusted to 32bits)
 
         for new_ch in sorted(grp['channels']):
+            # channels with channel dependencies are skipped from the numpy record
             if new_ch['ch_depend_addr']:
                 continue
 
@@ -178,7 +200,7 @@ class MDF3(object):
                 if gap:
                     types.append( ('', 'a{}'.format(gap)) )
 
-                # adjust size to 1, 2, 4 or 8 bytes
+                # adjust size to 1, 2, 4 or 8 bytes for nonstandard integers
                 size = bit_offset + bit_count
                 if data_type != DATA_TYPE_STRING:
                     if size > 32:
@@ -1303,6 +1325,19 @@ class MDF3(object):
             print('New MDF created without a name and no destination file name specified for save')
             return
         dst = dst if dst else self.name
+
+        # all MDF blocks are appended to the blocks list in the order in which
+        # they will be written to disk. While creating this list, all the relevant
+        # block links are updated so that once all blocks have been added to the list
+        # they can simply be written (using the bytes protocol).
+        # DataGroup blocks are written first after the identification and header blocks.
+        # When load_measured_data=False we need to restore the original data block addresses
+        # within the data group block. This is needed to allow further work with the object
+        # after the save method call (eq. new calls to get method). Since the data group blocks
+        # are written first, it is safe to restor the original links when the data blocks
+        # are written. For lado_measured_data=False, the blocks list will contain a tuple
+        # instead of a DataBlock instance; the tuple will have the reference to the
+        # data group object and the original link to the data block in the soource MDF file.
 
         with open(dst, 'wb') as dst:
             #store unique texts and their addresses
