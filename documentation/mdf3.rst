@@ -32,6 +32,7 @@ The *groups* attribute is a dictionary list with the following keys:
 * channels : list of Channel objects with the same order as found in the mdf file
 * channel_conversions : list of ChannelConversion objects in 1-to-1 relation with the channel list
 * channel_sources : list of SourceInformation objects in 1-to-1 relation with the channels list
+* chanel_dependencies : list of ChannelDependency objects in a 1-to-1 relation with the channel list
 * data_block : DataBlock object
 * texts : dictionay containing TextBlock objects used throughout the mdf
 
@@ -48,6 +49,8 @@ The *groups* attribute is a dictionary list with the following keys:
     * conversion_tab : list of dictionaries that contain TextBlock objects ralated to VATB and VTABR channel conversions
     
         * text_{n} : n-th text of the VTABR conversion
+       
+* sorted : bool flag to indicate if the source file was sorted; it is used when *load_measured_data* = *False*
         
 The *file_history* attribute is a TextBlock object.
 
