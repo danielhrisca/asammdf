@@ -2,3 +2,4 @@ numpydoc
 numexpr
 numpy
 matplotlib
+wheel

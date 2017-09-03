@@ -82,6 +82,7 @@ asammdf uses the following libraries
 * numpy : the heart that makes all tick
 * numexpr : for algebraic and rational channel conversions
 * matplotlib : for Signal plotting
+* wheel : for installation in virtual environments
 
 optional dependencies needed for exports
 
