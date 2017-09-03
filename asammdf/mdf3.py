@@ -93,8 +93,6 @@ class MDF3(object):
             self.version = version
             self.header = HeaderBlock(version=self.version)
 
-            self.byteorder = '<'
-
     def _load_group_data(self, group):
         """ get group's data block bytes"""
         if self.load_measured_data == False:
@@ -113,7 +111,7 @@ class MDF3(object):
                     dat_addr = group['data_group']['data_block_addr']
 
                     if group.get('sorted', True):
-                    read_size = group['size']
+                        read_size = group['size']
                         data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
 
                     else:
@@ -242,8 +240,6 @@ class MDF3(object):
             self.identification = FileIdentificationBlock(file_stream=file_stream)
             self.header = HeaderBlock(file_stream=file_stream)
 
-            self.byteorder = '<' if self.identification['byte_order'] == 0 else '>'
-
             self.version = self.identification['version_str'].decode('latin-1').strip(' \n\t\x00')
 
             self.file_history = TextBlock(address=self.header['comment_addr'], file_stream=file_stream)
@@ -321,7 +317,6 @@ class MDF3(object):
                             grp['channel_dependencies'].append(ChannelDependency(address=new_ch['ch_depend_addr'], file_stream=file_stream))
                         else:
                             grp['channel_dependencies'].append(None)
-
 
                         # update channel map
                         ch_map[ch_addr] = (new_ch, grp)
@@ -404,7 +399,7 @@ class MDF3(object):
                         grp['size'] = size
                 else:
                     record_id_nr = gp['record_id_nr'] if gp['record_id_nr'] <= 2 else 0
-                    size = (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
+                    grp['size'] = size = (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
 
                 if self.load_measured_data:
 
