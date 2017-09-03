@@ -430,40 +430,48 @@ class MDF4(object):
     def _load_group_data(self, group):
         """ get group's data block bytes """
         if self.load_measured_data == False:
-            with open(self.name, 'rb') as file_stream:
-                # go to the first data block of the current data group
-                dat_addr = group['data_group']['data_block_addr']
-                data = self._read_data_block(address=dat_addr, file_stream=file_stream)
+            # could be an appended group
+            # for now appended groups keep the measured data in the memory.
+            # the plan is to use a temp file for appended groups, to keep the
+            # memory usage low.
+            data_block = group.get('data_block', None)
+            if data_block:
+                data = data_block['data']
+            else:
+                with open(self.name, 'rb') as file_stream:
+                    # go to the first data block of the current data group
+                    dat_addr = group['data_group']['data_block_addr']
+                    data = self._read_data_block(address=dat_addr, file_stream=file_stream)
 
-                if not group.get('sorted', True):
-                    cg_data = []
-                    cg_size = group['record_size']
-                    record_id = group['channel_group']['record_id']
-                    record_id_nr = group['data_group']['record_id_len'] if group['data_group']['record_id_len'] <= 2 else 0
-                    i = 0
-                    size = len(data)
-                    while i < size:
-                        rec_id = data[i]
-                        # skip record id
-                        i += 1
-                        rec_size = cg_size[rec_id]
-                        if rec_size:
-                            if rec_id == record_id:
-                                rec_data = data[i: i+rec_size]
-                                cg_data.append(rec_data)
-                        else:
-                            # as shown bby mdfvalidator rec size is first byte after rec id + 3
-                            rec_size = unpack('<I', data[i: i+4])[0]
-                            i += 4
-                            if rec_id == record_id:
-                                rec_data = data[i: i + rec_size]
-                                cg_data.append(rec_data)
-                        # if 2 record id's are used skip also the second one
-                        if record_id_nr == 2:
+                    if not group.get('sorted', True):
+                        cg_data = []
+                        cg_size = group['record_size']
+                        record_id = group['channel_group']['record_id']
+                        record_id_nr = group['data_group']['record_id_len'] if group['data_group']['record_id_len'] <= 2 else 0
+                        i = 0
+                        size = len(data)
+                        while i < size:
+                            rec_id = data[i]
+                            # skip record id
                             i += 1
-                        # go to next record
-                        i += rec_size
-                    data = b''.join(cg_data)
+                            rec_size = cg_size[rec_id]
+                            if rec_size:
+                                if rec_id == record_id:
+                                    rec_data = data[i: i+rec_size]
+                                    cg_data.append(rec_data)
+                            else:
+                                # as shown bby mdfvalidator rec size is first byte after rec id + 3
+                                rec_size = unpack('<I', data[i: i+4])[0]
+                                i += 4
+                                if rec_id == record_id:
+                                    rec_data = data[i: i + rec_size]
+                                    cg_data.append(rec_data)
+                            # if 2 record id's are used skip also the second one
+                            if record_id_nr == 2:
+                                i += 1
+                            # go to next record
+                            i += rec_size
+                        data = b''.join(cg_data)
         else:
             data = group['data_block']['data']
 

@@ -20,6 +20,11 @@ import psutil
 import sys
 import platform
 
+try:
+    import resource
+except ImportError:
+    pass
+
 class Timer():
     def __init__(self, message):
         self.message = message
@@ -31,9 +36,12 @@ class Timer():
     def __exit__(self, type, value, traceback):
         elapsed_time = (perf_counter() - self.start) * 1000
         process = psutil.Process(os.getpid())
-        print('{:<50} {:>9} {:>8}'.format(self.message, int(elapsed_time), int(process.memory_info().peak_wset / 1024 / 1024)))
+        if platform.system() == 'Windows':
+            print('{:<50} {:>9} {:>8}'.format(self.message, int(elapsed_time), int(process.memory_info().peak_wset / 1024 / 1024)))
+        else:
+            print('{:<50} {:>9} {:>8}'.format(self.message, int(elapsed_time), int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)))
 
-path = r'E:\TMP'
+path = r'D:\TMP'
 
 def open_mdf3():
     os.chdir(path)
@@ -129,6 +137,25 @@ def save_reader4():
     with Timer('mdfreader {} mdfv4'.format(mdfreader_version)):
         x.write(r'x.mf4')
 
+def save_reader4_nodata():
+    os.chdir(path)
+    x = MDFreader(r'test.mf4', noDataLoading=True)
+    with Timer('mdfreader {} noDataLoading mdfv4'.format(mdfreader_version)):
+        x.write(r'x.mf4')
+
+def save_reader4_compression():
+    os.chdir(path)
+    x = MDFreader(r'test.mf4', compression='blosc')
+    with Timer('mdfreader {} compression mdfv4'.format(mdfreader_version)):
+        x.write(r'x.mf4')
+
+def save_reader4_compression_bcolz():
+    os.chdir(path)
+    x = MDFreader(r'test.mf4', compression=6)
+    with Timer('mdfreader {} compression bcolz 6 mdfv4'.format(mdfreader_version)):
+        x.write(r'x.mf4')
+
+
 def get_all_reader4():
     os.chdir(path)
     x = MDFreader(r'test.mf4')
@@ -140,6 +167,20 @@ def get_all_reader4_nodata():
     os.chdir(path)
     x = MDFreader(r'test.mf4', noDataLoading=True)
     with Timer('mdfreader {} nodata mdfv4'.format(mdfreader_version)):
+        for s in x:
+            y = x.getChannelData(s)
+
+def get_all_reader4_compression():
+    os.chdir(path)
+    x = MDFreader(r'test.mf4', compression='blosc')
+    with Timer('mdfreader {} compression mdfv4'.format(mdfreader_version)):
+        for s in x:
+            y = x.getChannelData(s)
+
+def get_all_reader4_compression_bcolz():
+    os.chdir(path)
+    x = MDFreader(r'test.mf4', compression=6)
+    with Timer('mdfreader {} compression bcolz 6 mdfv4'.format(mdfreader_version)):
         for s in x:
             y = x.getChannelData(s)
 
@@ -170,6 +211,24 @@ def save_reader3():
     with Timer('mdfreader {} mdfv3'.format(mdfreader_version)):
         x.write(r'x.mdf')
 
+def save_reader3_nodata():
+    os.chdir(path)
+    x = MDFreader(r'test.mdf', noDataLoading=True)
+    with Timer('mdfreader {} noDataLoading mdfv3'.format(mdfreader_version)):
+        x.write(r'x.mdf')
+
+def save_reader3_compression():
+    os.chdir(path)
+    x = MDFreader(r'test.mdf', compression='blosc')
+    with Timer('mdfreader {} compression mdfv3'.format(mdfreader_version)):
+        x.write(r'x.mdf')
+
+def save_reader3_compression_bcolz():
+    os.chdir(path)
+    x = MDFreader(r'test.mdf', compression=6)
+    with Timer('mdfreader {} compression bcolz 6 mdfv3'.format(mdfreader_version)):
+        x.write(r'x.mdf')
+
 def get_all_reader3():
     os.chdir(path)
     x = MDFreader(r'test.mdf')
@@ -181,6 +240,20 @@ def get_all_reader3_nodata():
     os.chdir(path)
     x = MDFreader(r'test.mdf', noDataLoading=True)
     with Timer('mdfreader {} nodata mdfv3'.format(mdfreader_version)):
+        for s in x:
+            y = x.getChannelData(s)
+
+def get_all_reader3_compression():
+    os.chdir(path)
+    x = MDFreader(r'test.mdf', compression='blosc')
+    with Timer('mdfreader {} compression mdfv3'.format(mdfreader_version)):
+        for s in x:
+            y = x.getChannelData(s)
+
+def get_all_reader3_compression_bcolz():
+    os.chdir(path)
+    x = MDFreader(r'test.mdf', compression=6)
+    with Timer('mdfreader {} compression bcolz 6 mdfv3'.format(mdfreader_version)):
         for s in x:
             y = x.getChannelData(s)
 
@@ -207,10 +280,10 @@ def main():
     print('* {}'.format(platform.processor()))
     print('* {}GB installed RAM\n'.format(round(psutil.virtual_memory().total / 1024 / 1024 / 1024)))
     print('Notations used in the results\n')
-    print('* nodata = MDF object created with load_measured_data=False (raw channel data not loaded into RAM)')
-    print('* compression = MDF object created with compression=blosc')
-    print('* compression bcolz 6 = MDF object created with compression=6')
-    print('* noDataLoading = MDF object read with noDataLoading=True')
+    print('* nodata = asammdf MDF object created with load_measured_data=False (raw channel data not loaded into RAM)')
+    print('* compression = mdfreader mdf object created with compression=blosc')
+    print('* compression bcolz 6 = mdfreader mdf object created with compression=6')
+    print('* noDataLoading = mdfreader mdf object read with noDataLoading=True')
     print('\nFiles used for benchmark:')
     print('* 183 groups')
     print('* 36424 channels\n\n')
@@ -246,9 +319,15 @@ def main():
                  save_mdf3,
                  save_mdf3_nodata,
                  save_reader3,
+                 save_reader3_nodata,
+                 save_reader3_compression,
+                 save_reader3_compression_bcolz,
                  save_mdf4,
                  save_mdf4_nodata,
-                 save_reader4
+                 save_reader4,
+                 save_reader4_nodata,
+                 save_reader4_compression,
+                 save_reader4_compression_bcolz,
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
@@ -265,10 +344,14 @@ def main():
                  get_all_mdf3_nodata,
                  get_all_reader3,
                  get_all_reader3_nodata,
+                 get_all_reader3_compression,
+                 get_all_reader3_compression_bcolz,
                  get_all_mdf4,
                  get_all_mdf4_nodata,
                  get_all_reader4,
-                 get_all_reader4_nodata
+                 get_all_reader4_nodata,
+                 get_all_reader4_compression,
+                 get_all_reader4_compression_bcolz,
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()

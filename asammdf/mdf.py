@@ -4,7 +4,7 @@ MDF file format module
 """
 import csv
 import os
-import warnings
+from warnings import warn
 
 import numpy as np
 
@@ -80,7 +80,7 @@ class MDF(object):
 
         """
         if not to in MDF3_VERSIONS + MDF4_VERSIONS:
-            print('Unknown output mdf version "{}". Available versions are {}'.format(to, MDF4_VERSIONS + MDF3_VERSIONS))
+            warn('Unknown output mdf version "{}". Available versions are {}'.format(to, MDF4_VERSIONS + MDF3_VERSIONS))
             return
         else:
             out = MDF(version=to)
@@ -88,6 +88,8 @@ class MDF(object):
                 master_type = (V3_MASTER,)
             else:
                 master_type = (V4_MASTER, V4_VIRTUAL_MASTER)
+
+            # walk through all groups and get all channels
             for i, gp in enumerate(self.groups):
                 sigs = []
                 for j, ch in enumerate(gp['channels']):
@@ -108,7 +110,7 @@ class MDF(object):
             can be one of the following:
 
                 * *csv* : CSV export that uses the ";" delimiter. This option wil generate a new csv file for each data group (<MDFNAME>_DataGroup_XX.csv).
-                * *hdf5* : HDF5 file output; each *MDF* data group is mapped to a *HDF5* group with the name 'Data Group xx' (where xx is the index)
+                * *hdf5* : HDF5 file output; each *MDF* data group is mapped to a *HDF5* group with the name 'DataGroup_xx' (where xx is the index)
                 * *excel* : Excel file output (very slow). This option wil generate a new excel file for each data group (<MDFNAME>_DataGroup_XX.xlsx).
 
         filename : string
@@ -116,14 +118,14 @@ class MDF(object):
 
         """
         if filename is None and self.name is None:
-            warnings.warn('Must specify filename for export if MDF was created without a file name')
+            warn('Must specify filename for export if MDF was created without a file name')
         else:
             name = self.name if self.name else filename
             if format == 'hdf5':
                 try:
                     from h5py import File as HDF5
                 except ImportError:
-                    print('h5py not found; export to HDF5 is unavailable')
+                    warn('h5py not found; export to HDF5 is unavailable')
                     return
                 else:
                     name = os.path.splitext(name)[0] + '.hdf'
@@ -135,12 +137,12 @@ class MDF(object):
                             for item in ('date', 'time', 'author', 'organization', 'project', 'subject'):
                                 group.attrs[item] = self.header[item]
 
-                        # save each data group in a HDF5 group called "Data Group xx"
+                        # save each data group in a HDF5 group called "DataGroup_xx"
                         # with the index starting from 1
                         # each HDF5 group will have a string attribute "master" that
                         # will hold the name of the master channel
                         for i, grp in enumerate(self.groups):
-                            group = f.create_group(r'/' + 'Data Group {}'.format(i + 1))
+                            group = f.create_group(r'/' + 'DataGroup_{}'.format(i + 1))
 
                             master_index = self.masters_db[i]
 
@@ -157,7 +159,7 @@ class MDF(object):
                 try:
                     import xlsxwriter
                 except ImportError:
-                    print('xlsxwriter not found; export to Excel is unavailable')
+                    warn('xlsxwriter not found; export to Excel is unavailable')
                     return
                 else:
                     excel_name = os.path.splitext(name)[0]
@@ -175,8 +177,12 @@ class MDF(object):
                                 ws.write(j, 0, item.title(), bold)
                                 ws.write(j, 1, self.header[item].decode('latin-1'))
 
-                            ws = workbook.add_worksheet('Data Group {}'.format(i + 1))
+                            ws = workbook.add_worksheet('DataGroup_{}'.format(i + 1))
 
+                            # the sheet header has 3 rows
+                            # the channel name and unit 'YY [xx]'
+                            # the channel comment
+                            # the flag for data grup master channel
                             ws.write(0, 0, 'Channel', bold)
                             ws.write(1, 0, 'comment', bold)
                             ws.write(2, 0, 'is master', bold)
@@ -244,8 +250,7 @@ class MDF(object):
                     gps[group] = []
                 gps[group].append(index)
             else:
-                message = 'MDF filter error: Channel "{}" not found'.format(ch)
-                warnings.warn(message)
+                warn('MDF filter error: Channel "{}" not found, it will be ignored'.format(ch))
                 continue
 
         mdf = MDF(version=self.version)
@@ -266,7 +271,7 @@ class MDF(object):
         try:
             from pandas import DataFrame
         except ImportError:
-            print('pandas not found; export to pandas DataFrame is unavailable')
+            warn('pandas not found; export to pandas DataFrame is unavailable')
             return
         else:
             for i, gp in enumerate(self.groups):

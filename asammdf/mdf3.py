@@ -68,7 +68,7 @@ class MDF3(object):
     version : int
         mdf version
     channels_db : dict
-        used for fast channel access by name; for each name key the value is a list of (group index, channel index) tuple
+        used for fast channel access by name; for each name key the value is a (group index, channel index) tuple
     masters_db : dict
         used for fast master channel access; for each group index key the value is the master channel index
 
@@ -93,56 +93,68 @@ class MDF3(object):
             self.version = version
             self.header = HeaderBlock(version=self.version)
 
+            self.byteorder = '<'
+
     def _load_group_data(self, group):
         """ get group's data block bytes"""
         if self.load_measured_data == False:
-            with open(self.name, 'rb') as file_stream:
-                # go to the first data block of the current data group
-                dat_addr = group['data_group']['data_block_addr']
+            # could be an appended group
+            # for now appended groups keep the measured data in the memory.
+            # the plan is to use a temp file for appended groups, to keep the
+            # memory usage low.
+            data_block = group.get('data_block', None)
+            if data_block:
+                data = data_block['data']
+            else:
+                # this is a group from the source file
+                # so fetch the measured data from it
+                with open(self.name, 'rb') as file_stream:
+                    # go to the first data block of the current data group
+                    dat_addr = group['data_group']['data_block_addr']
 
-                if group.get('sorted', True):
+                    if group.get('sorted', True):
                     read_size = group['size']
-                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
 
-                else:
-                    read_size = group['size']
-                    record_id = group['channel_group']['record_id']
-                    cg_size = group['record_size']
-                    record_id_nr = group['data_group']['record_id_nr'] if group['data_group']['record_id_nr'] <= 2 else 0
-                    cg_data = []
+                    else:
+                        read_size = group['size']
+                        record_id = group['channel_group']['record_id']
+                        cg_size = group['record_size']
+                        record_id_nr = group['data_group']['record_id_nr'] if group['data_group']['record_id_nr'] <= 2 else 0
+                        cg_data = []
 
-                    data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
+                        data = DataBlock(file_stream=file_stream, address=dat_addr, size=read_size)['data']
 
-                    i = 0
-                    size = len(data)
-                    while i < size:
-                        rec_id = data[i]
-                        # skip redord id
-                        i += 1
-                        rec_size = cg_size[rec_id]
-                        if rec_id == record_id:
-                            rec_data = data[i: i+rec_size]
-                            cg_data.append(rec_data)
-                        # if 2 record id's are sued skip also the second one
-                        if record_id_nr == 2:
+                        i = 0
+                        size = len(data)
+                        while i < size:
+                            rec_id = data[i]
+                            # skip redord id
                             i += 1
-                        # go to next record
-                        i += rec_size
-                    data = b''.join(cg_data)
+                            rec_size = cg_size[rec_id]
+                            if rec_id == record_id:
+                                rec_data = data[i: i+rec_size]
+                                cg_data.append(rec_data)
+                            # if 2 record id's are sued skip also the second one
+                            if record_id_nr == 2:
+                                i += 1
+                            # go to next record
+                            i += rec_size
+                        data = b''.join(cg_data)
         else:
             data = group['data_block']['data']
         return data
 
     def _prepare_record(self, group):
-        """ compute record dtype and parents dict fro this group
+        """ compute record dtype and parents dict for this group
 
         Parameters
-        ==========
+        ----------
         group : dict
             MDF group dict
 
         Returns
-        =======
+        -------
         parents, dtypes : dict, numpy.dtype
             mapping of channels to records fields, records fiels dtype
 
@@ -155,7 +167,21 @@ class MDF3(object):
         parent_start_offset = 0
         parents = {}
 
+        # the channels are first sorted ascending (see __lt__ method of Channel class):
+        # a channel with lower start offset is smaller, when two channels have
+        # the same start offset the one with higer bit size is considered smaller.
+        # The reason is that when the numpy record is built and there are overlapping
+        # channels, the parent fields should be bigger (bit size) than the embedded
+        # channels. For each channel the parent dict will have a (parent name, bit offset)
+        # pair: the channel value is computed using the values from the parent field,
+        # and the bit offset, which is the channel's bit offset within the parent bytes.
+        # This means all parents will have themselves as parent, and bit offset of 0.
+        # Gaps in the records are also considered. Non standard integers size is
+        # adjusted to the first higher standard integer size (eq. uint of 28bits will
+        # be adjusted to 32bits)
+
         for new_ch in sorted(grp['channels']):
+            # channels with channel dependencies are skipped from the numpy record
             if new_ch['ch_depend_addr']:
                 continue
 
@@ -174,7 +200,7 @@ class MDF3(object):
                 if gap:
                     types.append( ('', 'a{}'.format(gap)) )
 
-                # adjust size to 1, 2, 4 or 8 bytes
+                # adjust size to 1, 2, 4 or 8 bytes for nonstandard integers
                 size = bit_offset + bit_count
                 if data_type != DATA_TYPE_STRING:
                     if size > 32:
@@ -215,6 +241,8 @@ class MDF3(object):
 
             self.identification = FileIdentificationBlock(file_stream=file_stream)
             self.header = HeaderBlock(file_stream=file_stream)
+
+            self.byteorder = '<' if self.identification['byte_order'] == 0 else '>'
 
             self.version = self.identification['version_str'].decode('latin-1').strip(' \n\t\x00')
 
@@ -294,6 +322,7 @@ class MDF3(object):
                         else:
                             grp['channel_dependencies'].append(None)
 
+
                         # update channel map
                         ch_map[ch_addr] = (new_ch, grp)
 
@@ -360,6 +389,8 @@ class MDF3(object):
                 # this is used later if load_measured_data=False
 
                 if cg_nr > 1:
+                    # this is an unsorted file since there are multiple channel groups
+                    # within a data group
                     cg_size = {}
                     size = 0
                     record_id_nr = gp['record_id_nr'] if gp['record_id_nr'] <= 2 else 0
@@ -373,7 +404,7 @@ class MDF3(object):
                         grp['size'] = size
                 else:
                     record_id_nr = gp['record_id_nr'] if gp['record_id_nr'] <= 2 else 0
-                    grp['size'] = size = (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
+                    size = (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
 
                 if self.load_measured_data:
 
@@ -390,6 +421,7 @@ class MDF3(object):
                         grp['data_block'] = DataBlock(**kargs)
 
                     else:
+                        # agregate data for each record ID in the cg_data dict
                         cg_data = defaultdict(list)
                         i = 0
                         size = len(data)
@@ -416,6 +448,7 @@ class MDF3(object):
                 # go to next data group
                 dg_addr = gp['next_dg_addr']
 
+            # once the file has been loaded update the channel depency refenreces
             for grp in self.groups:
                 for dependency_block in grp['channel_dependencies']:
                     if dependency_block:
@@ -504,15 +537,22 @@ class MDF3(object):
 
         """
         dg_cntr = len(self.groups)
+
         gp = {}
+        gp['channels'] = gp_channels = []
+        gp['channel_conversions'] = gp_conv = []
+        gp['channel_extensions'] = gp_source = []
+        gp['channel_dependencies'] = gp_dep = []
+        gp['texts'] = gp_texts = {'channels': [],
+                                  'conversion_tab': [],
+                                  'channel_group': []}
         self.groups.append(gp)
 
-        channel_nr = len(signals)
-        if not channel_nr:
+        if not signals:
             raise MdfException('"append" requires a non-empty list of Signal objects')
 
-
-
+        # check if the signals have a common timebase
+        # if not interpolate the signals using the union of all timbases
         t_ = signals[0].timestamps
         if not common_timebase:
             for s in signals[1:]:
@@ -532,9 +572,12 @@ class MDF3(object):
         else:
             t = t_
 
-        # search for signals that come from a channel dependcy
-        # this means the samples will be of type np.recarray
-
+        # split for signals that come from a channel dependency
+        # (this means the samples will be of type np.recarray)
+        # from the regular one dimensional signals.
+        # The regular signals will be first added to the group.
+        # The recarray signals will be saved along side the fields, which will
+        # be saved as new signals.
         simple_signals = []
         recarray_signals = []
         channel_nr = 0
@@ -546,23 +589,10 @@ class MDF3(object):
                 simple_signals.append(sig)
                 channel_nr += 1
 
-        # split the recarray signals into the component signals
-        # and append to simple signals list also create the
-
         cycles_nr = len(t)
 
+        # setup all blocks related to the time master channel
         t_type, t_size = fmt_to_datatype(t.dtype)
-
-        gp['channels'] = gp_channels = []
-        gp['channel_conversions'] = gp_conv = []
-        gp['channel_extensions'] = gp_source = []
-        gp['channel_dependencies'] = gp_dep = []
-        gp['texts'] = gp_texts = {'channels': [],
-                                  'conversion_tab': [],
-                                  'channel_group': []}
-
-
-        # add the time channel information
 
         #time channel texts
         for _, item in gp_texts.items():
@@ -586,10 +616,11 @@ class MDF3(object):
 
         #time channel
         kargs = {'short_name': 't'.encode('latin-1'),
-                 #'source_depend_addr': gp['texts']['sources'][0]['path_addr'].address,
                  'channel_type': CHANNEL_TYPE_MASTER,
                  'data_type': t_type,
                  'start_offset': 0,
+                 'min_raw_value' : t[0],
+                 'max_raw_value' : t[-1],
                  'bit_count': t_size}
         ch = Channel(**kargs)
         ch.name = 't'
@@ -599,17 +630,18 @@ class MDF3(object):
         # time channel doesn't have channel dependencies
         gp_dep.append(None)
 
-        # prepare start bit offset and channel counter for the signals
+        # prepare start bit offset and channel counter for the other channels
         offset = t_size
         ch_cntr = 1
 
+        # arrays will hold the samples for all channels
+        # types holds the (channel name, numpy dtype) pairs for all channels
+        # formats holds the (ASAM channel data type, bit size) for all channels
         arrays = [t, ]
         types = [('t', t.dtype),]
         formats = [fmt_to_datatype(t.dtype), ]
 
-        sig_dtypes = [s.samples.dtype for s in simple_signals]
-        sig_formats = [fmt_to_datatype(typ) for typ in sig_dtypes]
-
+        # data group record parents
         parents = {'t': ('t', 0)}
 
         # first add the signals in the simple signal list
@@ -678,7 +710,7 @@ class MDF3(object):
                              'max_phy_value': min_max[idx][1] if min_max[idx][0]<=min_max[idx][1] else 0}
                     gp_conv.append(ChannelConversion(**kargs))
 
-            #source for channels and time
+            #source for channels
             for _ in simple_signals:
                 kargs = {'module_nr': 0,
                          'module_address': 0,
@@ -686,12 +718,12 @@ class MDF3(object):
                          'description': 'Channel inserted by Python Script'.encode('latin-1')}
                 gp_source.append(ChannelExtension(**kargs))
 
-
             sig_dtypes = [s.samples.dtype for s in simple_signals]
             sig_formats = [fmt_to_datatype(typ) for typ in sig_dtypes]
 
             #channels
             for (sigmin, sigmax), (sig_type, sig_size), s in zip(min_max, sig_formats, simple_signals):
+                # compute additional byte offset for large records size
                 if offset > MAX_UINT16:
                     additional_byte_offset = (offset - MAX_UINT16 ) >> 3
                     start_bit_offset = offset - additional_byte_offset << 3
@@ -701,45 +733,50 @@ class MDF3(object):
                 kargs = {'short_name': (s.name[:31] + '\x00').encode('latin-1') if len(s.name) >= 32 else s.name.encode('latin-1'),
                          'channel_type': CHANNEL_TYPE_VALUE,
                          'data_type': sig_type,
-                         'lower_limit': sigmin if sigmin<=sigmax else 0,
-                         'upper_limit': sigmax if sigmin<=sigmax else 0,
+                         'min_raw_value': sigmin if sigmin <= sigmax else 0,
+                         'max_raw_value': sigmax if sigmin <= sigmax else 0,
                          'start_offset': start_bit_offset,
                          'bit_count': sig_size,
                          'aditional_byte_offset' : additional_byte_offset}
                 ch = Channel(**kargs)
-                ch.name = s.name
+
+                name = s.name
+
+                ch.name = name
                 gp_channels.append(ch)
                 offset += sig_size
 
-                if s.name in self.channels_db:
-                    self.channels_db[s.name].append((dg_cntr, ch_cntr))
-                else:
-                    self.channels_db[s.name] = []
-                    self.channels_db[s.name].append((dg_cntr, ch_cntr))
+                if not name in self.channels_db:
+                    self.channels_db[name] = []
+                self.channels_db[name].append((dg_cntr, ch_cntr))
 
                 ch_cntr += 1
 
-            # simple channel don't have channel dependencies
+            # simple channels don't have channel dependencies
             for _ in simple_signals:
                 gp_dep.append(None)
 
+            # extend arrays, types and formats with data related to the simple signals
             arrays.extend(s.samples for s in simple_signals)
             types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
-            formats.extend([fmt_to_datatype(typ) for typ in sig_dtypes])
+            formats.extend(sig_formats)
 
+            # update the parents as well
             for name in names:
                 parents[name] = name, 0
 
-        # second, add the channel dependency signals
+        # second, add the recarray signals
         if recarray_signals:
             for sig in recarray_signals:
                 names = sig.samples.dtype.names
                 signals = [sig.samples[name] for name in names]
-                arrays.extend(signals)
 
-                # can't have same filed name in dtype so we must hadnle anme conflincts
+                # numpy dtype does not allow for reapeating names so we must handle name conflincts
                 dtype_fields = [t[0] for t in types]
                 new_names = []
+                # if the name already exist in the dtype fiels then
+                # compute a new name "name_xx", by incrementing the index
+                # until a valid new name is found
                 for name in names:
                     i = 0
                     new_name = name
@@ -750,7 +787,7 @@ class MDF3(object):
 
                 names = new_names
 
-                # add parent signal texts
+                # add recarray parent signal texts
                 name = sig.name
                 for _, item in gp['texts'].items():
                     item.append({})
@@ -763,13 +800,13 @@ class MDF3(object):
                     if len(name) >= 32:
                         gp_texts['channels'][-1]['long_name_addr'] = TextBlock.from_text(name)
 
-                # parent has no conversion
+                # recarray parent has no conversion
                 gp_conv.append(None)
                 # add components conversions
                 min_max = []
                 if cycles_nr:
                     for s in signals:
-                        min_max.append((amin(s), amax(s)))
+                        min_max.append( (amin(s), amax(s)) )
                 else:
                     for s in signals:
                         min_max = [(0, 0)]
@@ -792,10 +829,12 @@ class MDF3(object):
                 new_sig_dtypes = [s.dtype for s in signals]
                 new_sig_formats = [fmt_to_datatype(typ) for typ in new_sig_dtypes]
 
+                # extend arrays, types and formasts with data from current recarray
+                arrays.extend(signals)
                 types.extend([(name, dtype_) for name, dtype_ in zip(names, new_sig_dtypes)])
                 formats.extend(new_sig_formats)
 
-                # parent channel has channel dependencies
+                # add channel dependency block for recarray parent channel
                 parent_dep = ChannelDependency(sd_nr=len(signals))
                 gp_dep.append(parent_dep)
 
@@ -819,14 +858,13 @@ class MDF3(object):
                          'bit_count': new_sig_formats[0][1],
                          'aditional_byte_offset' : additional_byte_offset}
                 ch = Channel(**kargs)
-                ch.name = sig.name
+                ch.name = name = sig.name
                 gp_channels.append(ch)
 
-                if sig.name in self.channels_db:
-                    self.channels_db[sig.name].append((dg_cntr, ch_cntr))
-                else:
-                    self.channels_db[sig.name] = []
-                    self.channels_db[sig.name].append((dg_cntr, ch_cntr))
+                # update channel database with racaaray parent indexes
+                if not name in self.channels_db:
+                    self.channels_db[name] = []
+                self.channels_db[name].append((dg_cntr, ch_cntr))
 
                 ch_cntr += 1
 
@@ -851,23 +889,23 @@ class MDF3(object):
                     gp_channels.append(ch)
                     offset += sig_size
 
-                    if name in self.channels_db:
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-                    else:
+                    # update channel database with component indexes
+                    if not name in self.channels_db:
                         self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
+                    self.channels_db[name].append((dg_cntr, ch_cntr))
 
                     ch_cntr += 1
 
                     # update parent channel dependency referenced channels list
                     parent_dep.referenced_channels.append((ch, gp))
 
+                # also update record parents
                 for name in names:
                     parents[name] = name, 0
 
         #channel group
         kargs = {'cycles_nr': cycles_nr,
-                 'samples_byte_nr': offset // 8}
+                 'samples_byte_nr': offset >> 3}
         gp['channel_group'] = ChannelGroup(**kargs)
         gp['channel_group']['ch_nr'] = channel_nr + 1
 
@@ -1287,6 +1325,19 @@ class MDF3(object):
             print('New MDF created without a name and no destination file name specified for save')
             return
         dst = dst if dst else self.name
+
+        # all MDF blocks are appended to the blocks list in the order in which
+        # they will be written to disk. While creating this list, all the relevant
+        # block links are updated so that once all blocks have been added to the list
+        # they can simply be written (using the bytes protocol).
+        # DataGroup blocks are written first after the identification and header blocks.
+        # When load_measured_data=False we need to restore the original data block addresses
+        # within the data group block. This is needed to allow further work with the object
+        # after the save method call (eq. new calls to get method). Since the data group blocks
+        # are written first, it is safe to restor the original links when the data blocks
+        # are written. For lado_measured_data=False, the blocks list will contain a tuple
+        # instead of a DataBlock instance; the tuple will have the reference to the
+        # data group object and the original link to the data block in the soource MDF file.
 
         with open(dst, 'wb') as dst:
             #store unique texts and their addresses
