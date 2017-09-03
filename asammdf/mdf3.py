@@ -569,7 +569,7 @@ class MDF3(object):
         # conversions for channels
         if cycles_nr:
             min_max = []
-            # compute min and max valkues for all channels
+            # compute min and max values for all channels
             # for string channels we append (1,0) and use this as a marker (if min>max then channel is string)
             for s in signals:
                 if issubdtype(s.samples.dtype, flexible):

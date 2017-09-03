@@ -370,7 +370,7 @@ class MDF4(object):
             ch_cntr += 1
 
             if channel['component_addr']:
-                # check if it is a CABLOCK or
+                # check if it is a CABLOCK or CNBLOCK
                 file_stream.seek(channel['component_addr'], SEEK_START)
                 blk_id = file_stream.read(4)
                 if blk_id == b'##CN':
