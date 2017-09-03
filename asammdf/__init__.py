@@ -3,7 +3,7 @@ from .mdf4 import MDF4
 from .mdf import MDF
 from .signal import Signal
 
-__version__ = '2.4.0'
+__version__ = '2.4.3'
 
 __all__ = ['__version__',
            'MDF',

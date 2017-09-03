@@ -24,7 +24,7 @@ Intro
 The benchmarks were done using two test files (for mdf version 3 and 4) of around 170MB. 
 The files contain 183 data groups and a total of 36424 channels.
 
-*asamdf 2.3.2* was compared against *mdfreader 0.2.5*. 
+*asamdf 2.4.3* was compared against *mdfreader 0.2.5*. 
 *mdfreader* seems to be the most used Python package to handle MDF files, and it also supports both version 3 and 4 of the standard.
 
 The three benchmark cathegories are file open, file save and extracting the data for all channels inside the file(36424 calls).
@@ -57,39 +57,41 @@ Files used for benchmark:
 * 183 groups
 * 36424 channels
 
+Raw data
+^^^^^^^^
 
 ================================================== ========= ========
 Open file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.3.2 mdfv3                                      831      371
-asammdf 2.3.2 nodata mdfv3                               609      190
-mdfreader 0.2.5 mdfv3                                   3083      536
-asammdf 2.3.2 mdfv4                                     1710      455
-asammdf 2.3.2 nodata mdfv4                              1349      260
-mdfreader 0.2.5 mdfv4                                  30847      748
+asammdf 2.4.3 mdfv3                                      768      372
+asammdf 2.4.3 nodata mdfv3                               597      190
+mdfreader 0.2.5 mdfv3                                   2742      536
+asammdf 2.4.3 mdfv4                                     1655      455
+asammdf 2.4.3 nodata mdfv4                              1292      260
+mdfreader 0.2.5 mdfv4                                  29513      748
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Save file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.3.2 mdfv3                                      348      371
-asammdf 2.3.2 nodata mdfv3                               343      197
-mdfreader 0.2.5 mdfv3                                  21244     1997
-asammdf 2.3.2 mdfv4                                      530      462
-asammdf 2.3.2 nodata mdfv4                               522      272
-mdfreader 0.2.5 mdfv4                                  19594     2795
+asammdf 2.4.3 mdfv3                                      384      373
+asammdf 2.4.3 nodata mdfv3                               379      196
+mdfreader 0.2.5 mdfv3                                  20888     1996
+asammdf 2.4.3 mdfv4                                      518      462
+asammdf 2.4.3 nodata mdfv4                               502      272
+mdfreader 0.2.5 mdfv4                                  18299     2795
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Get all channels (36424 calls)                     Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.3.2 mdfv3                                      681      383
-asammdf 2.3.2 nodata mdfv3                              9175      209
-mdfreader 0.2.5 mdfv3                                     29      537
-asammdf 2.3.2 mdfv4                                      599      464
-asammdf 2.3.2 nodata mdfv4                             12191      273
+asammdf 2.4.3 mdfv3                                      662      381
+asammdf 2.4.3 nodata mdfv3                              8735      208
+mdfreader 0.2.5 mdfv3                                     27      536
+asammdf 2.4.3 mdfv4                                      609      464
+asammdf 2.4.3 nodata mdfv4                             12104      273
 mdfreader 0.2.5 mdfv4                                     38      748
 ================================================== ========= ========
 
@@ -101,7 +103,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
     
-    res = '../benchmarks/results/x64_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x64_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Open'
     aspect = 'time'
     for_doc = True
@@ -169,7 +171,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x64_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Open'
     aspect = 'ram'
     for_doc = True
@@ -237,7 +239,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x64_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Save'
     aspect = 'time'
     for_doc = True
@@ -306,7 +308,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x64_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Save'
     aspect = 'ram'
     for_doc = True
@@ -374,7 +376,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x64_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Get'
     aspect = 'time'
     for_doc = True
@@ -443,7 +445,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x64_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Get'
     aspect = 'ram'
     for_doc = True
@@ -512,20 +514,6 @@ x86 Python results
 ------------------
 The test environment used for 32 bit tests had:
 
-* Python 3.6.1 (v3.6.1:69c0db5, Mar 21 2017, 17:54:52) [MSC v.1900 32 bit (Intel)]
-* Windows-7-6.1.7601-SP1
-* Intel64 Family 6 Model 94 Stepping 3, GenuineIntel (i7-6820Q)
-* 16GB installed RAM
-
-The notations used in the results have the following meaning:
-
-* nodata = MDF object created with load_measured_data=False (raw channel data no loaded into RAM)
-* compression = MDF object created with compression=True (raw channel data loaded into RAM and compressed)
-* noconvert = MDF object created with convertAfterRead=False
-
-Raw data
-^^^^^^^^
-
 * 3.6.1 (v3.6.1:69c0db5, Mar 21 2017, 17:54:52) [MSC v.1900 32 bit (Intel)]
 * Windows-10-10.0.14393-SP0
 * Intel64 Family 6 Model 94 Stepping 3, GenuineIntel
@@ -534,7 +522,7 @@ Raw data
 Notations used in the results
 
 * nodata = MDF object created with load_measured_data=False (raw channel data not loaded into RAM)
-* compression = MDF object created with compression=True/blosc
+* compression = MDF object created with compression=blosc
 * compression bcolz 6 = MDF object created with compression=6
 * noDataLoading = MDF object read with noDataLoading=True
 
@@ -543,39 +531,43 @@ Files used for benchmark:
 * 36424 channels
 
 
+Raw data
+^^^^^^^^
+
+
 ================================================== ========= ========
 Open file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.3.2 mdfv3                                      980      288
-asammdf 2.3.2 nodata mdfv3                               670      118
-mdfreader 0.2.5 mdfv3                                   3776      455
-asammdf 2.3.2 mdfv4                                     2071      342
-asammdf 2.3.2 nodata mdfv4                              1610      160
-mdfreader 0.2.5 mdfv4                                  43559      578
+asammdf 2.4.3 mdfv3                                      927      289
+asammdf 2.4.3 nodata mdfv3                               647      118
+mdfreader 0.2.5 mdfv3                                   3583      455
+asammdf 2.4.3 mdfv4                                     1956      343
+asammdf 2.4.3 nodata mdfv4                              1509      161
+mdfreader 0.2.5 mdfv4                                  41613      578
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Save file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.3.2 mdfv3                                      406      291
-asammdf 2.3.2 nodata mdfv3                               432      125
-mdfreader 0.2.5 mdfv3                                  19623     1224
-asammdf 2.3.2 mdfv4                                      691      351
-asammdf 2.3.2 nodata mdfv4                               734      169
-mdfreader 0.2.5 mdfv4                                  17657     1687
+asammdf 2.4.3 mdfv3                                      415      292
+asammdf 2.4.3 nodata mdfv3                               437      126
+mdfreader 0.2.5 mdfv3                                  19103     1225
+asammdf 2.4.3 mdfv4                                      667      351
+asammdf 2.4.3 nodata mdfv4                               714      169
+mdfreader 0.2.5 mdfv4                                  16612     1687
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Get all channels (36424 calls)                     Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.3.2 mdfv3                                      963      298
-asammdf 2.3.2 nodata mdfv3                             19059      132
+asammdf 2.4.3 mdfv3                                      935      297
+asammdf 2.4.3 nodata mdfv3                             18635      131
 mdfreader 0.2.5 mdfv3                                     34      455
-asammdf 2.3.2 mdfv4                                      868      349
-asammdf 2.3.2 nodata mdfv4                             20434      171
-mdfreader 0.2.5 mdfv4                                     54      578
+asammdf 2.4.3 mdfv4                                      827      349
+asammdf 2.4.3 nodata mdfv4                             20404      170
+mdfreader 0.2.5 mdfv4                                     46      578
 ================================================== ========= ========
 
 
@@ -587,7 +579,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x86_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Open'
     aspect = 'time'
     for_doc = True
@@ -656,7 +648,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x86_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Open'
     aspect = 'ram'
     for_doc = True
@@ -725,7 +717,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x86_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Save'
     aspect = 'time'
     for_doc = True
@@ -794,7 +786,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x86_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Save'
     aspect = 'ram'
     for_doc = True
@@ -863,7 +855,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x86_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Get'
     aspect = 'time'
     for_doc = True
@@ -932,7 +924,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.3.2_mdfreader_0.2.5.txt'
+    res = '../benchmarks/results/x86_asammdf_2.4.3_mdfreader_0.2.5.txt'
     topic = 'Get'
     aspect = 'ram'
     for_doc = True

@@ -46,11 +46,16 @@ Features
 Major features still not implemented
 ------------------------------------
 
-* functionality related to sample reduction block (but the class is defined)
-* mdf 3 channel dependency save and append (only reading is implemented)
-* handling of unfinnished measurements (mdf 4)
-* mdf 4 channel arrays
-* xml schema for TXBLOCK and MDBLOCK
+* for version 3
+
+    * functionality related to sample reduction block (but the class is defined)
+    
+* for version 4
+
+    * handling of unfinnished measurements (mdf 4)
+    * mdf 4 channel arrays
+    * xml schema for TXBLOCK and MDBLOCK
+    
     
 Dependencies
 ------------

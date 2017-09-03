@@ -550,23 +550,32 @@ class ChannelDependency(dict):
                 self['ch_{}'.format(i)] = links[3*i+2]
 
             optional_dims_nr = (self['block_len'] - 8 - links_size) // 2
-            self['optional_dims_nr'] = optional_dims_nr
             if optional_dims_nr:
                 dims = unpack('<{}H'.format(optional_dims_nr), stream.read(optional_dims_nr * 2))
                 for i, dim in enumerate(dims):
                     self['dim_{}'.format(i)] = dim
 
         except KeyError:
-            print('CDBLOCK can only be loaded from a mdf file')
+            sd_nr = kargs['sd_nr']
+            self['id'] = b'CD'
+            self['block_len'] = 8 + 3 * 4 * sd_nr
+            self['dependency_type'] = 1
+            self['sd_nr'] = sd_nr
+            for i in range(sd_nr):
+                self['dg_{}'.format(i)] = 0
+                self['cg_{}'.format(i)] = 0
+                self['ch_{}'.format(i)] = 0
 
     def __bytes__(self):
         fmt = '<2s3H{}I'.format(self['sd_nr'] * 3)
         keys = ('id', 'block_len', 'dependency_type', 'sd_nr')
         for i in range(self['sd_nr']):
             keys += ('dg_{}'.format(i), 'cg_{}'.format(i), 'ch_{}'.format(i))
-        if self['optional_dims_nr']:
-            fmt += '{}H'.format(self['optional_dims_nr'])
-            keys += tuple('dim_{}'.format(i) for i in range(self['optional_dims_nr']))
+        links_size = 3 * 4 * self['sd_nr']
+        option_dims_nr = (self['block_len'] - 8 - links_size) // 2
+        if option_dims_nr:
+            fmt += '{}H'.format(option_dims_nr)
+            keys += tuple('dim_{}'.format(i) for i in range(option_dims_nr))
         return pack(fmt, *[self[key] for key in keys])
 
 
