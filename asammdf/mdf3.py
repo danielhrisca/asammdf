@@ -65,10 +65,10 @@ class MDF3(object):
         file history text block; can be None
     load_measured_data : bool
         load measured data option
-    version : int
+    version : str
         mdf version
     channels_db : dict
-        used for fast channel access by name; for each name key the value is a (group index, channel index) tuple
+        used for fast channel access by name; for each name key the value is a list of (group index, channel index) tuples
     masters_db : dict
         used for fast master channel access; for each group index key the value is the master channel index
 
@@ -87,7 +87,7 @@ class MDF3(object):
         if name and os.path.isfile(name):
             self._read()
         else:
-            self.groups = []
+            self.load_measured_data = True
 
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
@@ -170,8 +170,8 @@ class MDF3(object):
         # the same start offset the one with higer bit size is considered smaller.
         # The reason is that when the numpy record is built and there are overlapping
         # channels, the parent fields should be bigger (bit size) than the embedded
-        # channels. For each channel the parent dict will have a (parent name, bit offset)
-        # pair: the channel value is computed using the values from the parent field,
+        # channels. For each channel the parent dict will have a (parent name, bit offset) pair:
+        # the channel value is computed using the values from the parent field,
         # and the bit offset, which is the channel's bit offset within the parent bytes.
         # This means all parents will have themselves as parent, and bit offset of 0.
         # Gaps in the records are also considered. Non standard integers size is

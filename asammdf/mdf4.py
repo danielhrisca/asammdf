@@ -66,6 +66,7 @@ class MDF4(object):
     version : string
         mdf file version ('4.00', '4.10', '4.11'); default '4.00'
 
+
     Attributes
     ----------
     name : string
@@ -82,10 +83,10 @@ class MDF4(object):
         mdf file start block
     load_measured_data : bool
         load measured data option
-    version : int
+    version : str
         mdf version
     channels_db : dict
-        used for fast channel access by name; for each name key the value is a (group index, channel index) tuple
+        used for fast channel access by name; for each name key the value is a list of (group index, channel index) tuples
     masters_db : dict
         used for fast master channel access; for each group index key the value is the master channel index
 
@@ -376,6 +377,7 @@ class MDF4(object):
                 if blk_id == b'##CN':
                     ch_cntr = self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr)
                 else:
+                    # only channel arrays with storage=CN_TEMPLATE are supported so far
                     ca_block = ChannelArrayBlock(address=channel['component_addr'], file_stream=file_stream)
                     if ca_block['ca_type'] in (CA_TYPE_ARRAY, CA_TYPE_SCALE_AXIS) and ca_block['storage'] == CA_STORAGE_TYPE_CN_TEMPLATE:
                         dim_size = ca_block['dim_size']
@@ -400,10 +402,13 @@ class MDF4(object):
         if address:
             file_stream.seek(address, SEEK_START)
             id_string = file_stream.read(4)
+            # can be a DataBlock
             if id_string == b'##DT':
                 data = DataBlock(address=address, file_stream=file_stream)['data']
+            # or a DataZippedBlock
             elif id_string == b'##DZ':
                 data = DataZippedBlock(address=address, file_stream=file_stream)['data']
+            # or a DataList
             elif id_string == b'##DL':
                 data = []
                 while address:
@@ -420,6 +425,7 @@ class MDF4(object):
                             data.append(self._read_data_block(address=addr, file_stream=file_stream))
                     address = dl['next_dl_addr']
                 data = b''.join(data)
+            # or a header list
             elif id_string == b'##HL':
                 hl = HeaderList(address=address, file_stream=file_stream)
                 return self._read_data_block(address=hl['first_dl_addr'], file_stream=file_stream)
@@ -478,8 +484,8 @@ class MDF4(object):
         return data
 
     def _read_agregated_signal_data(self, address, file_stream):
+        """ this method is used to get the channel signal data, usually for VLSD channels """
         if address:
-
             file_stream.seek(address, SEEK_START)
             blk_id = file_stream.read(4)
             if blk_id == b'##SD':
@@ -518,12 +524,12 @@ class MDF4(object):
         """ compute record dtype and parents dict fro this group
 
         Parameters
-        ==========
+        ----------
         group : dict
             MDF group dict
 
         Returns
-        =======
+        -------
         parents, dtypes : dict, numpy.dtype
             mapping of channels to records fields, records fiels dtype
 
@@ -535,6 +541,20 @@ class MDF4(object):
         current_parent = ""
         parent_start_offset = 0
         parents = {}
+
+        # the channels are first sorted ascending (see __lt__ method of Channel class):
+        # a channel with lower byte offset is smaller, when two channels have
+        # the same byte offset the one with higer bit size + bit offset is considered smaller, and
+        # if bit size + bit offset are equal then the one with lower bit_offset is smaller.
+        # The reason is that when the numpy record is built and there are overlapping
+        # channels, the parent fields should be bigger (bit size) than the embedded
+        # channels. For each channel the parent dict will have a (parent name, bit offset) pair:
+        # the channel value is computed using the values from the parent field,
+        # and the bit offset, which is the channel's bit offset within the parent bytes.
+        # This means all parents will have themselves as parent, and bit offset of 0.
+        # Gaps in the records are also considered. Non standard integers size is
+        # adjusted to the first higher standard integer size (eq. uint of 28bits will
+        # be adjusted to 32bits)
 
         for new_ch in sorted(grp['channels']):
 
