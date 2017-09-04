@@ -84,7 +84,7 @@ class MDF3(object):
         self.channels_db = {}
         self.masters_db = {}
 
-        if name and os.path.isfile(name):
+        if name:
             self._read()
         else:
             self.load_measured_data = True
@@ -1300,8 +1300,18 @@ class MDF3(object):
             return
         self.groups.pop(idx)
 
-    def save(self, dst=None):
-        """Save MDF to *dst*. If *dst* is *None* the original file is overwritten
+    def save(self, dst='', overwrite=False):
+        """Save MDF to *dst*. If *dst* is not provided the the destination file name is
+        the MDF name. If overwrite is *True* then the destination file is overwritten,
+        otherwise the file name is appened with '_xx', were 'xx' is the first conter that produces a new
+        file name (that does not already exist in the filesystem)
+
+        Parameters
+        ----------
+        dst : str
+            destination file name, Default ''
+        overwrite : bool
+            overwrite flag, default *False*
 
         """
 
@@ -1316,10 +1326,20 @@ class MDF3(object):
             text = self.file_history['text'] + '\n{}: updated byt Python script'.format(time.asctime()).encode('latin-1')
             self.file_history = TextBlock.from_text(text)
 
-        if self.name is None and dst is None:
-            print('New MDF created without a name and no destination file name specified for save')
-            return
+        if self.name is None and dst == '':
+            raise MdfException('Must specify a destination file name for MDF created from scratch')
+
         dst = dst if dst else self.name
+        if overwrite == False:
+            if os.path.isfile(dst):
+                cntr = 0
+                while True:
+                    name = os.path.splitext(dst)[0] + '_{}.mdf'.format(cntr)
+                    if not os.path.isfile(name):
+                        break
+                    else:
+                        cntr += 1
+                dst = name
 
         # all MDF blocks are appended to the blocks list in the order in which
         # they will be written to disk. While creating this list, all the relevant

@@ -13,6 +13,7 @@ from .mdf4 import MDF4
 from .v3constants import CHANNEL_TYPE_MASTER as V3_MASTER
 from .v4constants import CHANNEL_TYPE_MASTER as V4_MASTER
 from .v4constants import CHANNEL_TYPE_VIRTUAL_MASTER as V4_VIRTUAL_MASTER
+from .utils import MdfException
 
 
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
@@ -28,7 +29,7 @@ class MDF(object):
     Parameters
     ----------
     name : string
-        mdf file name
+        mdf file name, if provided it must be a real file name
     load_measured_data : bool
         load data option; default *True*
 
@@ -39,19 +40,22 @@ class MDF(object):
 
     """
     def __init__(self, name=None, load_measured_data=True, version='3.20'):
-        if name and os.path.isfile(name):
-            with open(name, 'rb') as file_stream:
-                file_stream.read(8)
-                version = file_stream.read(4).decode('ascii')
-            if version in MDF3_VERSIONS:
-                self.file = MDF3(name, load_measured_data)
-            elif version in MDF4_VERSIONS:
-                self.file = MDF4(name, load_measured_data)
+        if name:
+            if os.path.isfile(name):
+                with open(name, 'rb') as file_stream:
+                    file_stream.read(8)
+                    version = file_stream.read(4).decode('ascii')
+                if version in MDF3_VERSIONS:
+                    self.file = MDF3(name, load_measured_data)
+                elif version in MDF4_VERSIONS:
+                    self.file = MDF4(name, load_measured_data)
+            else:
+                raise MdfException('File "{}" does not exist'.format(name))
         else:
             if version in MDF3_VERSIONS:
-                self.file = MDF3(name, version=version)
+                self.file = MDF3(version=version)
             elif version in MDF4_VERSIONS:
-                self.file = MDF4(name, version=version)
+                self.file = MDF4(version=version)
 
     def __setattr__(self, attr, value):
         if attr == 'file':

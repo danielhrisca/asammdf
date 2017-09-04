@@ -104,7 +104,7 @@ class MDF4(object):
         self.attachments = []
         self.sorted = True
 
-        if name and os.path.isfile(name):
+        if name:
             with open(self.name, 'rb') as file_stream:
                 self._read(file_stream)
         else:
@@ -567,7 +567,7 @@ class MDF4(object):
             if start_offset >= next_byte_aligned_position:
                 if new_ch['component_addr']:
                     if new_ch.cn_template:
-                        # assume that the channel array in byte aligned
+                        # assume that the channel array is byte aligned
 
                         # check if there are byte gaps in the record
                         gap = start_offset - next_byte_aligned_position
@@ -584,7 +584,10 @@ class MDF4(object):
                         current_parent = ''
                         next_byte_aligned_position = start_offset + size * dim
                     else:
-                        continue
+                        parents[name] = None, None
+                # virtual channels do not have bytes in the record
+                elif new_ch['channel_type'] in (CHANNEL_TYPE_VIRTUAL_MASTER, CHANNEL_TYPE_VIRTUAL):
+                    parents[name] = None, None
                 else:
                     parent_start_offset = start_offset
                     parents[name] = name, bit_offset
@@ -1102,15 +1105,21 @@ class MDF4(object):
 
                     time_conv = grp['channel_conversions'][time_ch_nr]
                     time_ch = grp['channels'][time_ch_nr]
-                    t = record[time_ch.name]
-                    # get timestamps
-                    time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
-                    if time_conv_type == CONVERSION_TYPE_LIN:
+                    if time_ch['channel_type'] == CHANNEL_TYPE_VIRTUAL_MASTER:
                         time_a = time_conv['a']
                         time_b = time_conv['b']
-                        t = t * time_a
-                        if time_b:
-                            t += time_b
+                        cycles = grp['channel_group']['cycles_nr']
+                        t = arange(cycles, dtype=float64) * time_a + time_b
+                    else:
+                        t = record[time_ch.name]
+                        # get timestamps
+                        time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
+                        if time_conv_type == CONVERSION_TYPE_LIN:
+                            time_a = time_conv['a']
+                            time_b = time_conv['b']
+                            t = t * time_a
+                            if time_b:
+                                t += time_b
                     res = Signal(samples=vals,
                                  timestamps=t,
                                  unit='',
@@ -1134,13 +1143,20 @@ class MDF4(object):
         else:
             # get channel values
             parent, bit_offset = parents[channel.name]
-            vals = record[parent]
 
-            if bit_offset:
-                vals = vals >> bit_offset
-            bits = channel['bit_count']
-            if bits % 8:
-                vals = vals & ((1<<bits) - 1)
+            if channel['channel_type'] == CHANNEL_TYPE_VIRTUAL:
+                data_type = channel['data_type']
+                ch_dtype = dtype(get_fmt(data_type, 8, version=4))
+                cycles = grp['channel_group']['cycles_nr']
+                vals = arange(cycles, dtype=ch_dtype)
+            else:
+                vals = record[parent]
+
+                if bit_offset:
+                    vals = vals >> bit_offset
+                bits = channel['bit_count']
+                if bits % 8:
+                    vals = vals & ((1<<bits) - 1)
 
             info = None
 
@@ -1385,15 +1401,21 @@ class MDF4(object):
                 else:
                     time_conv = grp['channel_conversions'][time_ch_nr]
                     time_ch = grp['channels'][time_ch_nr]
-                    t = record[time_ch.name]
-                    # get timestamps
-                    time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
-                    if time_conv_type == CONVERSION_TYPE_LIN:
+                    if time_ch['channel_type'] == CHANNEL_TYPE_VIRTUAL_MASTER:
                         time_a = time_conv['a']
                         time_b = time_conv['b']
-                        t = t * time_a
-                        if time_b:
-                            t += time_b
+                        cycles = grp['channel_group']['cycles_nr']
+                        t = arange(cycles, dtype=float64) * time_a + time_b
+                    else:
+                        t = record[time_ch.name]
+                        # get timestamps
+                        time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
+                        if time_conv_type == CONVERSION_TYPE_LIN:
+                            time_a = time_conv['a']
+                            time_b = time_conv['b']
+                            t = t * time_a
+                            if time_b:
+                                t += time_b
 
                     res = Signal(samples=vals,
                                  timestamps=t,
@@ -1468,15 +1490,34 @@ class MDF4(object):
             return
         self.groups.pop(idx)
 
-    def save(self, dst=None):
-        """Save MDF to *dst*. If *dst* is *None* the original file is overwritten
+    def save(self, dst='', overwrite=False):
+        """Save MDF to *dst*. If *dst* is not provided the the destination file name is
+        the MDF name. If overwrite is *True* then the destination file is overwritten,
+        otherwise the file name is appened with '_xx', were 'xx' is the first conter that produces a new
+        file name (that does not already exist in the filesystem)
+
+        Parameters
+        ----------
+        dst : str
+            destination file name, Default ''
+        overwrite : bool
+            overwrite flag, default *False*
 
         """
-        if self.name is None and dst is None:
-            warnings.warn('New MDF created without a name and no destination file name specified for save')
-            return
+        if self.name is None and dst == '':
+            raise MdfException('Must specify a destination file name for MDF created from scratch')
 
         dst = dst if dst else self.name
+        if overwrite == False:
+            if os.path.isfile(dst):
+                cntr = 0
+                while True:
+                    name = os.path.splitext(dst)[0] + '_{}.mdf'.format(cntr)
+                    if not os.path.isfile(name):
+                        break
+                    else:
+                        cntr += 1
+                dst = name
 
         if not self.file_history:
             comment = 'created'
