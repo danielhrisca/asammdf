@@ -16,7 +16,7 @@ import xml.etree.ElementTree as XML
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
-                   uint8, arange, column_stack,
+                   uint8, arange, column_stack, argwhere,
                    issubdtype, flexible)
 from numexpr import evaluate
 from numpy.core.records import fromstring, fromarrays
@@ -536,6 +536,7 @@ class MDF4(object):
         """
         grp = group
         record_size = grp['channel_group']['samples_byte_nr']
+        invalidation_bytes_nr = grp['channel_group']['invalidation_bytes_nr']
         next_byte_aligned_position = 0
         types = []
         current_parent = ""
@@ -627,6 +628,8 @@ class MDF4(object):
         gap = record_size - next_byte_aligned_position
         if gap:
             types.append( ('', 'a{}'.format(gap)) )
+            
+        types.append( ('invalidation_bytes', 'a{}'.format(invalidation_bytes_nr)) )
 
         return parents, dtype(types)
 
@@ -1362,6 +1365,21 @@ class MDF4(object):
                         res.append(default)
                 vals = array(res)
                 info = {'input': in_, 'output': out_, 'default': default, 'type': SIGNAL_TYPE_V4_TRANS}
+                
+            # in case of invalidation bits, valid_index will hold the valid indexes
+            valid_index = None
+            if grp['channel_group']['invalidation_bytes_nr']:
+                
+                if channel['flags'] & ( FLAG_INVALIDATION_BIT_VALID | FLAG_ALL_SAMPLES_VALID ) == FLAG_INVALIDATION_BIT_VALID:
+                    
+                    ch_invalidation_pos = channel['pos_invalidation_bit']
+                    pos_byte, pos_offset = divmod(ch_invalidation_pos)
+                    mask = 1 << pos_offset
+                    
+                    inval_bytes = record['invalidation_bytes']
+                    inval_index = array([bytes_[pos_byte] & mask for bytes_ in inval_bytes])
+                    valid_index = argwhere(inval_index == 0).flatten()
+                    vals = vals[valid_index]
 
             if samples_only:
                 return vals
@@ -1416,6 +1434,10 @@ class MDF4(object):
                             t = t * time_a
                             if time_b:
                                 t += time_b
+                        
+                    # consider invalidation bits
+                    if valid_index:
+                        t = t[valid_index]
 
                     res = Signal(samples=vals,
                                  timestamps=t,

@@ -2,6 +2,7 @@
 asammdf utility functions and classes
 '''
 import itertools
+import re
 from numpy import issubdtype, signedinteger, unsignedinteger, floating, flexible
 from . import v3constants as v3c
 from . import v4constants as v4c
@@ -181,3 +182,70 @@ def pair(iterable):
     current, next_ = itertools.tee(iterable)
     next(next_, None)
     return zip(current, next_)
+
+
+def load_dbc(dbc):
+    """ Loads all messages description from DBC
+
+    Parameters
+    ----------
+    dbc : str
+        DBC file path
+        
+    Returns
+    -------
+    messages : dict
+        the keys are the message ID's from the dbc
+
+    """
+
+    pattern = r'(?P<msg>^BO_ (.+\n)+)'
+
+    with open(dbc, 'r') as f:
+        string = f.read()
+
+    messages = {}
+
+    for match in re.finditer(pattern, string, flags=re.M):
+        msg = match.group('msg')
+
+        pattern = r'BO_ (?P<can_id>\d+) (?P<name>[^ :]+): (?P<dlc>\d).+'
+        match = re.search(pattern, msg)
+        can_id = int(match.group('can_id'))
+        name = match.group('name')
+        dlc = int(match.group('dlc'))
+
+        pattern = (r'SG_ (?P<name>[^ ]+) : '
+                   r'(?P<start_bit>\d{1,2})\|(?P<size>\d{1,2})'
+                   r'@(?P<byte_order>\d)(?P<signed>[+-])'
+                   r' \((?P<factor>[^,]+),(?P<offset>[^)]+)\)'
+                   r' \[(?P<min_value>[^|]+)\|(?P<max_value>[^]]+)\]'
+                   r' "(?P<unit>[^"]*)"')
+
+        messages[can_id] = {'name': name, 'dlc': dlc, 'signals': {}, 'can_id': can_id}
+
+        signals = messages[can_id]['signals']
+
+        for match in re.finditer(pattern, msg):
+            signal_name = match.group('name')
+            start_bit = int(match.group('start_bit'))
+            size = int(match.group('size'))
+            byte_order = match.group('byte_order')
+            signed = match.group('signed') == '-'
+            factor = float(match.group('factor'))
+            offset = float(match.group('offset'))
+            min_value = float(match.group('min_value'))
+            max_value = float(match.group('max_value'))
+            unit = match.group('unit')
+            signals[signal_name] = {'start_bit': start_bit,
+                                    'size': size,
+                                    'byte_order': byte_order,
+                                    'signed': signed,
+                                    'factor': factor,
+                                    'offset': offset,
+                                    'min_value': min_value,
+                                    'max_value': max_value,
+                                    'unit': unit}
+            
+    return messages
+
