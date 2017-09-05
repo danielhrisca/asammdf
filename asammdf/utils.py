@@ -3,7 +3,10 @@ asammdf utility functions and classes
 '''
 import itertools
 import re
+from functools import lru_cache
+
 from numpy import issubdtype, signedinteger, unsignedinteger, floating, flexible
+
 from . import v3constants as v3c
 from . import v4constants as v4c
 
@@ -65,7 +68,7 @@ def dtype_mapping(invalue, outversion=3):
         res = v3tov4[invalue]
     return res
 
-
+@lru_cache(100)
 def get_fmt(data_type, size, version=3):
     """convert mdf channel data type to numpy dtype format string
 
@@ -191,7 +194,7 @@ def load_dbc(dbc):
     ----------
     dbc : str
         DBC file path
-        
+
     Returns
     -------
     messages : dict
@@ -246,6 +249,6 @@ def load_dbc(dbc):
                                     'min_value': min_value,
                                     'max_value': max_value,
                                     'unit': unit}
-            
+
     return messages
 
