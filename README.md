@@ -37,7 +37,7 @@ Features
 * mdf 4.10 zipped blocks
 * mdf 4 structure channels
 
-Major features still not implemented
+Major features not implemented (yet)
 ====================================
 * for version 3
 
@@ -45,6 +45,7 @@ Major features still not implemented
     
 * for version 4
 
+    * handling of bus logging measurements
     * handling of unfinnished measurements (mdf 4)
     * mdf 4 channel arrays
     * xml schema for TXBLOCK and MDBLOCK
