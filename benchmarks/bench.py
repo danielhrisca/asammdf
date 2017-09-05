@@ -292,18 +292,18 @@ def main():
     print('{:<50} {:>9} {:>8}'.format('Open file', 'Time [ms]', 'RAM [MB]'))
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (
-                 open_mdf3,
-                 open_mdf3_nodata,
-                 open_reader3,
-                 open_reader3_compression,
-                 open_reader3_compression_bcolz,
-                 open_reader3_nodata,
-                 open_mdf4,
-                 open_mdf4_nodata,
-                 open_reader4,
-                 open_reader4_compression,
-                 open_reader4_compression_bcolz,
-                 open_reader4_nodata
+#                 open_mdf3,
+#                 open_mdf3_nodata,
+#                 open_reader3,
+#                 open_reader3_compression,
+#                 open_reader3_compression_bcolz,
+#                 open_reader3_nodata,
+#                 open_mdf4,
+#                 open_mdf4_nodata,
+#                 open_reader4,
+#                 open_reader4_compression,
+#                 open_reader4_compression_bcolz,
+#                 open_reader4_nodata
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
@@ -316,18 +316,18 @@ def main():
     print('{:<50} {:>9} {:>8}'.format('Save file', 'Time [ms]', 'RAM [MB]'))
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (
-                 save_mdf3,
-                 save_mdf3_nodata,
-                 save_reader3,
-                 save_reader3_nodata,
-                 save_reader3_compression,
-                 save_reader3_compression_bcolz,
-                 save_mdf4,
-                 save_mdf4_nodata,
-                 save_reader4,
-                 save_reader4_nodata,
-                 save_reader4_compression,
-                 save_reader4_compression_bcolz,
+#                 save_mdf3,
+#                 save_mdf3_nodata,
+#                 save_reader3,
+#                 save_reader3_nodata,
+#                 save_reader3_compression,
+#                 save_reader3_compression_bcolz,
+#                 save_mdf4,
+#                 save_mdf4_nodata,
+#                 save_reader4,
+#                 save_reader4_nodata,
+#                 save_reader4_compression,
+#                 save_reader4_compression_bcolz,
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
@@ -342,16 +342,16 @@ def main():
     for func in (
                  get_all_mdf3,
                  get_all_mdf3_nodata,
-                 get_all_reader3,
-                 get_all_reader3_nodata,
-                 get_all_reader3_compression,
-                 get_all_reader3_compression_bcolz,
+#                 get_all_reader3,
+#                 get_all_reader3_nodata,
+#                 get_all_reader3_compression,
+#                 get_all_reader3_compression_bcolz,
                  get_all_mdf4,
                  get_all_mdf4_nodata,
-                 get_all_reader4,
-                 get_all_reader4_nodata,
-                 get_all_reader4_compression,
-                 get_all_reader4_compression_bcolz,
+#                 get_all_reader4,
+#                 get_all_reader4_nodata,
+#                 get_all_reader4_compression,
+#                 get_all_reader4_compression_bcolz,
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
