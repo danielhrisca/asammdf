@@ -18,9 +18,9 @@ class Signal(object):
 
     Parameters
     ----------
-    samples : numpy.array
+    samples : numpy.array | list | tuple
         signal samples
-    timestamps : numpy.array
+    timestamps : numpy.array | list | tuple
         signal timestamps
     unit : str
         signal unit
@@ -38,7 +38,11 @@ class Signal(object):
         elif len(samples) != len(timestamps):
             raise MdfException('samples and timestamps lenght do not match ({} vs {})'.format(len(samples), len(timestamps)))
         else:
-            self.samples = samples
+            if isinstance(samples, list) or isinstance(samples, tuple):
+                samples = np.array(samples)
+            if isinstance(timestamps, list) or isinstance(samples, tuple):
+                timestamps = np.array(timestamps, dtype=np.float64)
+            self.samples = samples 
             self.timestamps = timestamps
             self.unit = unit
             self.name = name
