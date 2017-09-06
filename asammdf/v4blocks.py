@@ -355,6 +355,7 @@ class ChannelConversion(dict):
                  self['val_param_nr'],
                  self['min_phy_value'],
                  self['max_phy_value']) = unpack('<4Q2B3H2d', block)
+                
             elif conv == CONVERSION_TYPE_LIN:
                 (self['name_addr'],
                  self['unit_addr'],
@@ -369,6 +370,7 @@ class ChannelConversion(dict):
                  self['max_phy_value'],
                  self['b'],
                  self['a']) = unpack('<4Q2B3H4d', block)
+                
             elif conv == CONVERSION_TYPE_RAT:
                 (self['name_addr'],
                  self['unit_addr'],
@@ -562,6 +564,7 @@ class ChannelConversion(dict):
                 self['val_param_nr'] = 0
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
+                
             elif kargs['conversion_type'] == CONVERSION_TYPE_LIN:
                 self['block_len'] = kargs.get('block_len', CC_LIN_BLOCK_SIZE)
                 self['links_nr'] = kargs.get('links_nr', 4)
@@ -578,6 +581,7 @@ class ChannelConversion(dict):
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['b'] = kargs.get('b', 0)
                 self['a'] = kargs.get('a', 1)
+                
             elif kargs['conversion_type'] == CONVERSION_TYPE_ALG:
                 self['block_len'] = kargs.get('block_len', CC_ALG_BLOCK_SIZE)
                 self['links_nr'] = kargs.get('links_nr', 5)
@@ -593,8 +597,8 @@ class ChannelConversion(dict):
                 self['val_param_nr'] = kargs.get('val_param_nr', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
+                
             elif kargs['conversion_type'] == CONVERSION_TYPE_TABX:
-
                 self['block_len'] = ((kargs['links_nr'] - 5) * 8 * 2) + 88
                 self['links_nr'] = kargs['links_nr']
                 self['name_addr'] = kargs.get('name_addr', 0)
@@ -613,6 +617,7 @@ class ChannelConversion(dict):
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 for i in range(kargs['links_nr'] - 5):
                     self['val_{}'.format(i)] = kargs['val_{}'.format(i)]
+                    
             elif kargs['conversion_type'] == CONVERSION_TYPE_RTABX:
                 self['block_len'] = ((kargs['links_nr'] - 5) * 8 * 3) + 88
                 self['links_nr'] = kargs['links_nr']
@@ -1122,7 +1127,7 @@ class HeaderBlock(dict):
             self['abs_time'] = kargs.get('abs_time' , int(time.time()) * 10**9)
             self['tz_offset'] = kargs.get('tz_offset' , 120)
             self['daylight_save_time'] = kargs.get('daylight_save_time' , 60)
-            self['time_flags'] = kargs.get('time_flags' , 2)   #offset valid
+            self['time_flags'] = kargs.get('time_flags' , 2)     #offset valid
             self['time_quality'] = kargs.get('time_quality' , 0) #time source PC
             self['flags'] = kargs.get('flags' , 0)
             self['reserved4'] = kargs.get('reserved4', 0)
@@ -1297,7 +1302,6 @@ class TextBlock(dict):
             else:
                 padding = 8
 
-
             self['id'] = kargs['id']
             self['reserved0'] = 0
             self['block_len'] = text_length + padding + COMMON_SIZE
@@ -1306,7 +1310,6 @@ class TextBlock(dict):
                 self['text'] = text + b'\00' * padding
             else:
                 self['text'] = text
-
 
     @classmethod
     def from_text(cls, text, meta=False):
