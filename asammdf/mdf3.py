@@ -1279,10 +1279,6 @@ class MDF3(object):
         >>> mdf.remove(name='VehicleSpeed')
 
         """
-        if self.load_measured_data == False:
-            warnings.warn("Can't remove group if load_measurement_data option is False")
-            return
-
         if group:
             if 0 <= group <= len(self.groups):
                 idx = group

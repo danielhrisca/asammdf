@@ -628,7 +628,7 @@ class MDF4(object):
         gap = record_size - next_byte_aligned_position
         if gap:
             types.append( ('', 'a{}'.format(gap)) )
-            
+
         types.append( ('invalidation_bytes', 'a{}'.format(invalidation_bytes_nr)) )
 
         return parents, dtype(types)
@@ -1365,17 +1365,17 @@ class MDF4(object):
                         res.append(default)
                 vals = array(res)
                 info = {'input': in_, 'output': out_, 'default': default, 'type': SIGNAL_TYPE_V4_TRANS}
-                
+
             # in case of invalidation bits, valid_index will hold the valid indexes
             valid_index = None
             if grp['channel_group']['invalidation_bytes_nr']:
-                
+
                 if channel['flags'] & ( FLAG_INVALIDATION_BIT_VALID | FLAG_ALL_SAMPLES_VALID ) == FLAG_INVALIDATION_BIT_VALID:
-                    
+
                     ch_invalidation_pos = channel['pos_invalidation_bit']
                     pos_byte, pos_offset = divmod(ch_invalidation_pos)
                     mask = 1 << pos_offset
-                    
+
                     inval_bytes = record['invalidation_bytes']
                     inval_index = array([bytes_[pos_byte] & mask for bytes_ in inval_bytes])
                     valid_index = argwhere(inval_index == 0).flatten()
@@ -1434,7 +1434,7 @@ class MDF4(object):
                             t = t * time_a
                             if time_b:
                                 t += time_b
-                        
+
                     # consider invalidation bits
                     if valid_index:
                         t = t[valid_index]
@@ -1491,10 +1491,6 @@ class MDF4(object):
         >>> mdf.remove(name='VehicleSpeed')
 
         """
-        if self.load_measured_data == False:
-            warnings.warn("Can't remove group if load_measurement_data option is False")
-            return
-
         if group:
             if 0 <= group <= len(self.groups):
                 idx = group
