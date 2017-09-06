@@ -59,7 +59,7 @@ class MDF(object):
 
         # link underlying _file attributes and methods to the new MDF object
         for attr in set(dir(self._file)) - set(dir(self)):
-            setattr(self, attr, getattr(self.file, attr))
+            setattr(self, attr, getattr(self._file, attr))
 
     def convert(self, to):
         """convert MDF to other versions
