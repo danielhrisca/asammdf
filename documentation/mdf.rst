@@ -21,8 +21,13 @@
 MDF
 ===
 
-This class acts as a proxy for the MDF3 and MDF4 classes. All attribute access is delegated to the underling *file* attribute (MDF3 or MDF4 object). 
+This class acts as a proxy for the MDF3 and MDF4 classes. 
+All attribute access is delegated to the underlying *_file* attribute (MDF3 or MDF4 object). 
 See MDF3 and MDF4 for available extra methods.
+
+An empty MDF file is created if the *name* argument is not provided. 
+If the *name* argument is provided then the file must exist in the filesystem, otherwise an exception is raised.
+
 
 .. autoclass:: asammdf.mdf.MDF
     :members:
@@ -39,9 +44,11 @@ MDF3 and MDF4 classes
 Notes about *load_measured_data* argument
 -----------------------------------------
 
-By default when the *MDF* object is created the raw channel data is loaded into RAM. This will give you the best performance from *asammdf*. 
+By default when the *MDF* object is created the raw channel data is loaded into RAM. 
+This will give you the best performance from *asammdf*. 
 
-However if you reach the physical memmory limit *asammdf* gives you the option use the *load_measured_data* flag. In this case the raw channel data is not read. 
+However if you reach the physical memmory limit *asammdf* gives you the option use the *load_measured_data* flag. 
+In this case the raw channel data is not read. 
 
 
 *MDF* defaults 
