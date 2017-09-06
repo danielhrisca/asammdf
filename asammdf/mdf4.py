@@ -102,7 +102,6 @@ class MDF4(object):
         self.channels_db = {}
         self.masters_db = {}
         self.attachments = []
-        self.sorted = True
 
         if name:
             with open(self.name, 'rb') as file_stream:

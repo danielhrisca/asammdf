@@ -46,28 +46,20 @@ class MDF(object):
                     file_stream.read(8)
                     version = file_stream.read(4).decode('ascii')
                 if version in MDF3_VERSIONS:
-                    self.file = MDF3(name, load_measured_data)
+                    self._file = MDF3(name, load_measured_data)
                 elif version in MDF4_VERSIONS:
-                    self.file = MDF4(name, load_measured_data)
+                    self._file = MDF4(name, load_measured_data)
             else:
                 raise MdfException('File "{}" does not exist'.format(name))
         else:
             if version in MDF3_VERSIONS:
-                self.file = MDF3(version=version)
+                self._file = MDF3(version=version)
             elif version in MDF4_VERSIONS:
-                self.file = MDF4(version=version)
+                self._file = MDF4(version=version)
 
-    def __setattr__(self, attr, value):
-        if attr == 'file':
-            super(MDF, self).__setattr__(attr, value)
-        else:
-            setattr(self.file, attr, value)
-
-    def __getattr__(self, attr):
-        if attr == 'file':
-            return super(MDF, self).__getattr__(attr)
-        else:
-            return getattr(self.file, attr)
+        # link underlying _file attributes and methods to the new MDF object
+        for attr in set(dir(self._file)) - set(dir(self)):
+            setattr(self, attr, getattr(self.file, attr))
 
     def convert(self, to):
         """convert MDF to other versions
