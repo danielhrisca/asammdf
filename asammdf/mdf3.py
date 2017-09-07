@@ -164,6 +164,7 @@ class MDF3(object):
         current_parent = ""
         parent_start_offset = 0
         parents = {}
+        group_channels = set()
 
         # the channels are first sorted ascending (see __lt__ method of Channel class):
         # a channel with lower start offset is smaller, when two channels have
@@ -178,7 +179,7 @@ class MDF3(object):
         # adjusted to the first higher standard integer size (eq. uint of 28bits will
         # be adjusted to 32bits)
 
-        for new_ch in sorted(grp['channels']):
+        for original_index, new_ch in sorted(enumerate(grp['channels']), key=lambda i: i[1]):
             # channels with channel dependencies are skipped from the numpy record
             if new_ch['ch_depend_addr']:
                 continue
@@ -187,11 +188,20 @@ class MDF3(object):
             bit_offset = start_offset % 8
             data_type = new_ch['data_type']
             bit_count = new_ch['bit_count']
-            name = new_ch.name
+            name = str(new_ch.name)
+
+            # handle multiple occurance of same channel name
+            i = 0
+            new_name = name
+            while new_name in group_channels:
+                new_name = "{}_{}".format(name, i)
+                i += 1
+            name = str(new_name)
+            group_channels.add(name)
 
             if start_offset >= next_byte_aligned_position:
                 parent_start_offset = (start_offset >> 3 ) << 3
-                parents[name] = name, bit_offset
+                parents[original_index] = name, bit_offset
 
                 # check if there are byte gaps in the record
                 gap = (parent_start_offset - next_byte_aligned_position) >> 3
@@ -216,11 +226,11 @@ class MDF3(object):
                 else:
                     size = size >> 3
 
-                types.append( (str(name), get_fmt(data_type, size)) )
+                types.append( (name, get_fmt(data_type, size)) )
 
                 current_parent = name
             else:
-                parents[name] = current_parent, start_offset - parent_start_offset
+                parents[original_index] = current_parent, start_offset - parent_start_offset
         gap = (record_size - next_byte_aligned_position) >> 3
         if gap:
             types.append( ('', 'a{}'.format(gap)) )
@@ -637,7 +647,7 @@ class MDF3(object):
         formats = [fmt_to_datatype(t.dtype), ]
 
         # data group record parents
-        parents = {'t': ('t', 0)}
+        parents = {0: ('t', 0)}
 
         # first add the signals in the simple signal list
         if simple_signals:
@@ -745,7 +755,11 @@ class MDF3(object):
                     self.channels_db[name] = []
                 self.channels_db[name].append((dg_cntr, ch_cntr))
 
+                # update the parents as well
+                parents[ch_cntr] = name, 0
+
                 ch_cntr += 1
+
 
             # simple channels don't have channel dependencies
             for _ in simple_signals:
@@ -755,10 +769,6 @@ class MDF3(object):
             arrays.extend(s.samples for s in simple_signals)
             types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
             formats.extend(sig_formats)
-
-            # update the parents as well
-            for name in names:
-                parents[name] = name, 0
 
         # second, add the recarray signals
         if recarray_signals:
@@ -889,14 +899,13 @@ class MDF3(object):
                         self.channels_db[name] = []
                     self.channels_db[name].append((dg_cntr, ch_cntr))
 
+                    # also update record parents
+                    parents[ch_cntr] = name, 0
+
                     ch_cntr += 1
 
                     # update parent channel dependency referenced channels list
                     parent_dep.referenced_channels.append((ch, gp))
-
-                # also update record parents
-                for name in names:
-                    parents[name] = name, 0
 
         #channel group
         kargs = {'cycles_nr': cycles_nr,
@@ -929,8 +938,8 @@ class MDF3(object):
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the *group* argument can be used to select a specific group.
-            * if there are multiple occurances for this channel and the *group* argument is None then a warning is issued
+            * if there are multiple occurances for this channel then the *group* and *index* arguments can be used to select a specific group.
+            * if there are multiple occurances for this channel and either the *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel number (keyword argument *index*). Use *info* method for group and channel numbers
 
@@ -977,10 +986,10 @@ class MDF3(object):
             if not name in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
-                if group is None:
+                if group is None or index is None:
                     gp_nr, ch_nr = self.channels_db[name][0]
                     if len(self.channels_db[name]) > 1:
-                        warnings.warn('Multiple occurances for channel "{}". Using first occurance from data group {}. Use the "group" argument to select another data group'.format(name, gp_nr))
+                        warnings.warn('Multiple occurances for channel "{}". Using first occurance from data group {}. Provide both "group" and "index" arguments to select another data group'.format(name, gp_nr))
                 else:
                     for gp_nr, ch_nr in self.channels_db[name]:
                         if gp_nr == group:
@@ -1058,7 +1067,7 @@ class MDF3(object):
                 return res
         else:
             # get channel values
-            parent, bit_offset = parents[channel.name]
+            parent, bit_offset = parents[ch_nr]
             vals = record[parent]
 
             if bit_offset:
