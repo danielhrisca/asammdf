@@ -541,6 +541,7 @@ class MDF4(object):
         current_parent = ""
         parent_start_offset = 0
         parents = {}
+        group_channels = set()
 
         # the channels are first sorted ascending (see __lt__ method of Channel class):
         # a channel with lower byte offset is smaller, when two channels have
@@ -556,13 +557,22 @@ class MDF4(object):
         # adjusted to the first higher standard integer size (eq. uint of 28bits will
         # be adjusted to 32bits)
 
-        for new_ch in sorted(grp['channels']):
+        for original_index, new_ch in sorted(enumerate(grp['channels']), key=lambda i: i[1]):
 
             start_offset = new_ch['byte_offset']
             bit_offset = new_ch['bit_offset']
             data_type = new_ch['data_type']
             bit_count = new_ch['bit_count']
-            name = new_ch.name
+            name = str(new_ch.name)
+
+            # handle multiple occurance of same channel name
+            i = 0
+            new_name = name
+            while new_name in group_channels:
+                new_name = "{}_{}".format(name, i)
+                i += 1
+            name = str(new_name)
+            group_channels.add(name)
 
             if start_offset >= next_byte_aligned_position:
                 if new_ch['component_addr']:
@@ -577,9 +587,8 @@ class MDF4(object):
                         dim = new_ch.cn_template_size
                         size = new_ch['bit_count'] >> 3
                         for i in range(dim):
-                            new_name = '{}_{}'.format(name, i)
-                            parents[new_name] = new_name, 0
-                            types.append( (str(new_name), get_fmt(data_type, size, version=4)) )
+                            new_name = str('{}_dim_{}'.format(name, i))
+                            types.append( (new_name, get_fmt(data_type, size, version=4)) )
 
                         current_parent = ''
                         next_byte_aligned_position = start_offset + size * dim
@@ -587,10 +596,10 @@ class MDF4(object):
                         parents[name] = None, None
                 # virtual channels do not have bytes in the record
                 elif new_ch['channel_type'] in (CHANNEL_TYPE_VIRTUAL_MASTER, CHANNEL_TYPE_VIRTUAL):
-                    parents[name] = None, None
+                    parents[original_index] = None, None
                 else:
                     parent_start_offset = start_offset
-                    parents[name] = name, bit_offset
+                    parents[original_index] = name, bit_offset
 
                     # check if there are byte gaps in the record
                     gap = parent_start_offset - next_byte_aligned_position
@@ -619,11 +628,11 @@ class MDF4(object):
 
                     next_byte_aligned_position = parent_start_offset + size
 
-                    types.append( (str(name), get_fmt(data_type, size, version=4)) )
+                    types.append( (name, get_fmt(data_type, size, version=4)) )
 
                     current_parent = name
             else:
-                parents[name] = current_parent, ((start_offset - parent_start_offset) << 3 ) + bit_offset
+                parents[original_index] = current_parent, ((start_offset - parent_start_offset) << 3 ) + bit_offset
         gap = record_size - next_byte_aligned_position
         if gap:
             types.append( ('', 'a{}'.format(gap)) )
@@ -865,9 +874,9 @@ class MDF4(object):
         types = dtype(types)
         gp['types'] = types
 
-        parents = {'t': ('t', 0)}
-        for name in names:
-            parents[name] = name, 0
+        parents = {0: ('t', 0)}
+        for i, name in enumerate(names, 1):
+            parents[i] = name, 0
         gp['parents'] = parents
 
         arrays = [t, ] + [sig.samples for sig in signals]
@@ -986,8 +995,8 @@ class MDF4(object):
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the *group* argument can be used to select a specific group.
-            * if there are multiple occurances for this channel and the *group* argument is None then a warning is issued
+            * if there are multiple occurances for this channel then the *group* and *index* arguments can be used to select a specific group.
+            * if there are multiple occurances for this channel and either the *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel number (keyword argument *index*). Use *info* method for group and channel numbers
 
@@ -1033,10 +1042,10 @@ class MDF4(object):
             if not name in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
-                if group is None:
+                if group is None or index is None:
                     gp_nr, ch_nr = self.channels_db[name][0]
                     if len(self.channels_db[name]) > 1:
-                        warnings.warn('Multiple occurances for channel "{}". Using first occurance from data group {}. Use the "group" argument to select another data group'.format(name, gp_nr))
+                        warnings.warn('Multiple occurances for channel "{}". Using first occurance from data group {}. Provide both "group" and "index" arguments to select another data group'.format(name, gp_nr))
                 else:
                     for gp_nr, ch_nr in self.channels_db[name]:
                         if gp_nr == group:
@@ -1078,7 +1087,7 @@ class MDF4(object):
             if channel.cn_template:
                 name = channel.name
                 dims = channel.cn_template_size
-                dim_names = ['{}_{}'.format(name, i) for i in range(dims)]
+                dim_names = ['{}_dim_{}'.format(name, i) for i in range(dims)]
                 arrays = [record[dim_name] for dim_name in dim_names]
 
                 types = [ (dim_name, arr.dtype) for dim_name, arr in zip(dim_names, arrays)]
@@ -1144,7 +1153,7 @@ class MDF4(object):
                                   name=channel.name,)
         else:
             # get channel values
-            parent, bit_offset = parents[channel.name]
+            parent, bit_offset = parents[ch_nr]
 
             if channel['channel_type'] == CHANNEL_TYPE_VIRTUAL:
                 data_type = channel['data_type']
