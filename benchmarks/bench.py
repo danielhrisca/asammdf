@@ -120,6 +120,30 @@ def get_all_mdf4_nodata():
             for j in range(len(gp['channels'])):
                 y = x.get(group=i, index=j, samples_only=True)
 
+def convert_v3_v4():
+    os.chdir(path)
+    x = MDF(r'test.mdf')
+    with Timer('asammdf {} v3 to v4'.format(asammdf_version)):
+        y = x.convert('4.11')
+
+def convert_v3_v4_nodata():
+    os.chdir(path)
+    x = MDF(r'test.mdf', load_measured_data=False)
+    with Timer('asammdf {} v3 to v4 nodata'.format(asammdf_version)):
+        y = x.convert('4.11')
+
+def convert_v4_v3():
+    os.chdir(path)
+    x = MDF(r'test.mf4')
+    with Timer('asammdf {} v4 to v3'.format(asammdf_version)):
+        y = x.convert('3.30')
+
+def convert_v4_v3_nodata():
+    os.chdir(path)
+    x = MDF(r'test.mf4', load_measured_data=False)
+    with Timer('asammdf {} v4 to v3 nodata'.format(asammdf_version)):
+        y = x.convert('3.30')
+
 
 ################
 # mdf reader
@@ -352,6 +376,23 @@ def main():
 #                 get_all_reader4_nodata,
 #                 get_all_reader4_compression,
 #                 get_all_reader4_compression_bcolz,
+                 ):
+        thr = multiprocessing.Process(target=func, args=())
+        thr.start()
+        thr.join()
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
+
+
+    print('\n')
+
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
+    print('{:<50} {:>9} {:>8}'.format('Convert file', 'Time [ms]', 'RAM [MB]'))
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
+    for func in (
+                 convert_v3_v4,
+                 convert_v3_v4_nodata,
+                 convert_v4_v3,
+                 convert_v4_v3_nodata,
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
