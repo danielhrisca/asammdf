@@ -62,6 +62,42 @@ def get_all_mdf3():
             for j in range(len(gp['channels'])):
                 y = x.get(group=i, index=j, samples_only=True)
 
+def all_mdf3():
+    os.chdir(path)
+    with Timer('asammdf {} mdfv3'.format(asammdf_version)):
+        x = MDF(r'test.mdf')
+        for i, gp in enumerate(x.groups):
+            for j in range(len(gp['channels'])):
+                y = x.get(group=i, index=j, samples_only=True)
+        x.save(r'x.mdf')
+
+def all_mdf3_nodata():
+    os.chdir(path)
+    with Timer('asammdf {} mdfv3 nodata'.format(asammdf_version)):
+        x = MDF(r'test.mdf', load_measured_data=False)
+        for i, gp in enumerate(x.groups):
+            for j in range(len(gp['channels'])):
+                y = x.get(group=i, index=j, samples_only=True)
+        x.save(r'x.mdf')
+
+def all_mdf4():
+    os.chdir(path)
+    with Timer('asammdf {} mdfv4'.format(asammdf_version)):
+        x = MDF(r'test.mf4')
+        for i, gp in enumerate(x.groups):
+            for j in range(len(gp['channels'])):
+                y = x.get(group=i, index=j, samples_only=True)
+        x.save(r'x.mf4')
+
+def all_mdf4_nodata():
+    os.chdir(path)
+    with Timer('asammdf {} mdfv4 nodata'.format(asammdf_version)):
+        x = MDF(r'test.mf4', load_measured_data=False)
+        for i, gp in enumerate(x.groups):
+            for j in range(len(gp['channels'])):
+                y = x.get(group=i, index=j, samples_only=True)
+        x.save(r'x.mf4')
+
 def open_mdf3_nodata():
     os.chdir(path)
     with Timer('asammdf {} nodata mdfv3'.format(asammdf_version)):
@@ -124,25 +160,28 @@ def convert_v3_v4():
     os.chdir(path)
     x = MDF(r'test.mdf')
     with Timer('asammdf {} v3 to v4'.format(asammdf_version)):
-        y = x.convert('4.11')
+        y = x.convert('4.10')
 
 def convert_v3_v4_nodata():
     os.chdir(path)
     x = MDF(r'test.mdf', load_measured_data=False)
     with Timer('asammdf {} v3 to v4 nodata'.format(asammdf_version)):
-        y = x.convert('4.11')
+        y = x.convert(to='4.10', load_measured_data=False)
+        x.close()
 
 def convert_v4_v3():
     os.chdir(path)
     x = MDF(r'test.mf4')
     with Timer('asammdf {} v4 to v3'.format(asammdf_version)):
         y = x.convert('3.30')
+        x.close()
 
 def convert_v4_v3_nodata():
     os.chdir(path)
     x = MDF(r'test.mf4', load_measured_data=False)
     with Timer('asammdf {} v4 to v3 nodata'.format(asammdf_version)):
-        y = x.convert('3.30')
+        y = x.convert('3.30', load_measured_data=False)
+        x.close()
 
 
 ################
@@ -186,6 +225,22 @@ def get_all_reader4():
     with Timer('mdfreader {} mdfv4'.format(mdfreader_version)):
         for s in x:
             y = x.getChannelData(s)
+
+def all_reader4():
+    os.chdir(path)
+    with Timer('mdfreader {} mdfv4'.format(mdfreader_version)):
+        x = MDFreader(r'test.mf4')
+        for s in x:
+            y = x.getChannelData(s)
+        x.write('x.mf4')
+
+def all_reader4_nodata():
+    os.chdir(path)
+    with Timer('mdfreader {} noDataLoading mdfv4'.format(mdfreader_version)):
+        x = MDFreader(r'test.mf4', noDataLoading=True)
+        for s in x:
+            y = x.getChannelData(s)
+        x.write('x.mf4')
 
 def get_all_reader4_nodata():
     os.chdir(path)
@@ -316,18 +371,18 @@ def main():
     print('{:<50} {:>9} {:>8}'.format('Open file', 'Time [ms]', 'RAM [MB]'))
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (
-#                 open_mdf3,
-#                 open_mdf3_nodata,
-#                 open_reader3,
-#                 open_reader3_compression,
-#                 open_reader3_compression_bcolz,
-#                 open_reader3_nodata,
-#                 open_mdf4,
-#                 open_mdf4_nodata,
-#                 open_reader4,
-#                 open_reader4_compression,
-#                 open_reader4_compression_bcolz,
-#                 open_reader4_nodata
+                 open_mdf3,
+                 open_mdf3_nodata,
+                 open_reader3,
+                 open_reader3_compression,
+                 open_reader3_compression_bcolz,
+                 open_reader3_nodata,
+                 open_mdf4,
+                 open_mdf4_nodata,
+                 open_reader4,
+                 open_reader4_compression,
+                 open_reader4_compression_bcolz,
+                 open_reader4_nodata
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
@@ -340,18 +395,18 @@ def main():
     print('{:<50} {:>9} {:>8}'.format('Save file', 'Time [ms]', 'RAM [MB]'))
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (
-#                 save_mdf3,
-#                 save_mdf3_nodata,
-#                 save_reader3,
-#                 save_reader3_nodata,
-#                 save_reader3_compression,
-#                 save_reader3_compression_bcolz,
-#                 save_mdf4,
-#                 save_mdf4_nodata,
-#                 save_reader4,
-#                 save_reader4_nodata,
-#                 save_reader4_compression,
-#                 save_reader4_compression_bcolz,
+                 save_mdf3,
+                 save_mdf3_nodata,
+                 save_reader3,
+                 save_reader3_nodata,
+                 save_reader3_compression,
+                 save_reader3_compression_bcolz,
+                 save_mdf4,
+                 save_mdf4_nodata,
+                 save_reader4,
+                 save_reader4_nodata,
+                 save_reader4_compression,
+                 save_reader4_compression_bcolz,
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()
@@ -366,16 +421,16 @@ def main():
     for func in (
                  get_all_mdf3,
                  get_all_mdf3_nodata,
-#                 get_all_reader3,
-#                 get_all_reader3_nodata,
-#                 get_all_reader3_compression,
-#                 get_all_reader3_compression_bcolz,
+                 get_all_reader3,
+                 get_all_reader3_nodata,
+                 get_all_reader3_compression,
+                 get_all_reader3_compression_bcolz,
                  get_all_mdf4,
                  get_all_mdf4_nodata,
-#                 get_all_reader4,
-#                 get_all_reader4_nodata,
-#                 get_all_reader4_compression,
-#                 get_all_reader4_compression_bcolz,
+                 get_all_reader4,
+                 get_all_reader4_nodata,
+                 get_all_reader4_compression,
+                 get_all_reader4_compression_bcolz,
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()

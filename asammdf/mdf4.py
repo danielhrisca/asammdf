@@ -8,6 +8,8 @@ PYVERSION = sys.version_info[0]
 import time
 import warnings
 import os
+
+from tempfile import TemporaryFile
 from struct import unpack, unpack_from
 from functools import reduce
 from collections import defaultdict
@@ -103,12 +105,13 @@ class MDF4(object):
         self.masters_db = {}
         self.attachments = []
 
+        # used when appending to MDF object created with load_measured_data=False
+        self._tempfile = None
+
         if name:
             with open(self.name, 'rb') as file_stream:
                 self._read(file_stream)
         else:
-            self.load_measured_data = True
-
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
@@ -220,6 +223,7 @@ class MDF4(object):
                     grp['record_size'] = cg_size
 
             if self.load_measured_data:
+                grp['data_location'] = LOCATION_MEMORY
                 # go to the first data block of the current data group
                 dat_addr = group['data_block_addr']
                 data = self._read_data_block(address=dat_addr, file_stream=file_stream)
@@ -257,6 +261,9 @@ class MDF4(object):
                         kargs['data'] = b''.join(cg_data[grp['channel_group']['record_id']])
                         grp['channel_group']['record_id'] = 1
                         grp['data_block'] = DataBlock(**kargs)
+            else:
+                grp['data_location'] = LOCATION_ORIGINAL_FILE
+
             self.groups.extend(new_groups)
 
             dg_addr = group['next_dg_addr']
@@ -439,10 +446,7 @@ class MDF4(object):
             # for now appended groups keep the measured data in the memory.
             # the plan is to use a temp file for appended groups, to keep the
             # memory usage low.
-            data_block = group.get('data_block', None)
-            if data_block:
-                data = data_block['data']
-            else:
+            if group['data_location'] == LOCATION_ORIGINAL_FILE:
                 with open(self.name, 'rb') as file_stream:
                     # go to the first data block of the current data group
                     dat_addr = group['data_group']['data_block_addr']
@@ -477,6 +481,11 @@ class MDF4(object):
                             # go to next record
                             i += rec_size
                         data = b''.join(cg_data)
+            elif group['data_location'] == LOCATION_TEMPORARY_FILE:
+                read_size = group['size']
+                dat_addr = group['data_group']['data_block_addr']
+                self._tempfile.seek(dat_addr, SEEK_START)
+                data = self._tempfile.read(read_size)
         else:
             data = group['data_block']['data']
 
@@ -865,9 +874,14 @@ class MDF4(object):
             ch_cntr += 1
 
         #channel group
-        kargs = {'cycles_nr': len(t),
+        cycles_nr = len(t)
+        kargs = {'cycles_nr': cycles_nr,
                  'samples_byte_nr': offset}
         gp['channel_group'] = ChannelGroup(**kargs)
+        gp['size'] = cycles_nr * offset
+
+        #data group
+        gp['data_group'] = DataGroup()
 
         #data block
         types = [('t', t.dtype),] + [(name, typ) for name, typ in zip(names, sig_dtypes)]
@@ -885,12 +899,19 @@ class MDF4(object):
 
         block = arrays.tostring()
 
-        kargs = {'data': block,
-                 'block_len': 24 + len(block)}
-        gp['data_block'] = DataBlock(**kargs)
-
-        #data group
-        gp['data_group'] = DataGroup()
+        if self.load_measured_data:
+            gp['data_location'] = LOCATION_MEMORY
+            kargs = {'data': block,
+                     'block_len': 24 + len(block)}
+            gp['data_block'] = DataBlock(**kargs)
+        else:
+            gp['data_location'] = LOCATION_TEMPORARY_FILE
+            if self._tempfile is None:
+                self._tempfile = TemporaryFile()
+            self._tempfile.seek(0, SEEK_END)
+            data_address = self._tempfile.tell()
+            gp['data_group']['data_block_addr'] = data_address
+            self._tempfile.write(block)
 
     def attach(self, data, file_name=None, comment=None, compression=True, mime=r'application/octet-stream'):
         """ attach embedded attachment as application/octet-stream
@@ -928,6 +949,13 @@ class MDF4(object):
         at_block = AttachmentBlock(data=data, compression=compression)
         at_block['creator_index'] = creator_index
         self.attachments.append((at_block, texts))
+
+    def close(self):
+        """ if the MDF was created with load_measured_data=False and new channels
+        have been appended, then this must be called just before the object is not
+        used anymore to clean-up the temporary file"""
+        if self.load_measured_data == False and self._tempfile is not None:
+            self._tempfile.close()
 
     def extract_attachment(self, index):
         """ extract attachemnt *index* data. If it is an embedded attachment, then this method creates the new file according to the attachemnt file name information
@@ -1920,11 +1948,7 @@ class MDF4(object):
                     else:
                         data_block_address = 0
                 else:
-                    # check if there are appended blocks
-                    if gp['data_block']:
-                        data = gp['data_block']['data']
-                    else:
-                        data = self._load_group_data(gp)
+                    data = self._load_group_data(gp)
                     if data:
                         block = DataBlock(data=data)
                         data_block_address = address

@@ -12,6 +12,7 @@ import warnings
 
 from collections import defaultdict
 from functools import reduce
+from tempfile import TemporaryFile
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, log, exp, clip, union1d, float64,
@@ -84,11 +85,12 @@ class MDF3(object):
         self.channels_db = {}
         self.masters_db = {}
 
+        # used when appending to MDF object created with load_measured_data=False
+        self._tempfile = None
+
         if name:
             self._read()
         else:
-            self.load_measured_data = True
-
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
             self.header = HeaderBlock(version=self.version)
@@ -100,10 +102,7 @@ class MDF3(object):
             # for now appended groups keep the measured data in the memory.
             # the plan is to use a temp file for appended groups, to keep the
             # memory usage low.
-            data_block = group.get('data_block', None)
-            if data_block:
-                data = data_block['data']
-            else:
+            if group['data_location'] == LOCATION_ORIGINAL_FILE:
                 # this is a group from the source file
                 # so fetch the measured data from it
                 with open(self.name, 'rb') as file_stream:
@@ -139,6 +138,11 @@ class MDF3(object):
                             # go to next record
                             i += rec_size
                         data = b''.join(cg_data)
+            elif group['data_location'] == LOCATION_TEMPORARY_FILE:
+                read_size = group['size']
+                dat_addr = group['data_group']['data_block_addr']
+                self._tempfile.seek(dat_addr, SEEK_START)
+                data = self._tempfile.read(read_size)
         else:
             data = group['data_block']['data']
         return data
@@ -412,7 +416,7 @@ class MDF3(object):
                     grp['size'] = size = (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
 
                 if self.load_measured_data:
-
+                    grp['data_location'] = LOCATION_MEMORY
                     # read data block of the current data group
                     dat_addr = gp['data_block_addr']
                     if dat_addr:
@@ -447,6 +451,8 @@ class MDF3(object):
                             kargs['data'] = b''.join(cg_data[grp['channel_group']['record_id']])
                             grp['channel_group']['record_id'] = 1
                             grp['data_block'] = DataBlock(**kargs)
+                else:
+                    grp['data_location'] = LOCATION_ORIGINAL_FILE
 
                 self.groups.extend(new_groups)
 
@@ -912,6 +918,11 @@ class MDF3(object):
                  'samples_byte_nr': offset >> 3}
         gp['channel_group'] = ChannelGroup(**kargs)
         gp['channel_group']['ch_nr'] = channel_nr + 1
+        gp['size'] = cycles_nr * (offset >> 3)
+
+        #data group
+        kargs = {'block_len': DG32_BLOCK_SIZE if self.version in ('3.20', '3.30') else DG31_BLOCK_SIZE}
+        gp['data_group'] = DataGroup(**kargs)
 
         #data block
         types = dtype(types)
@@ -922,15 +933,28 @@ class MDF3(object):
         samples = fromarrays(arrays, dtype=types)
         block = samples.tostring()
 
-        kargs = {'data': block}
-        gp['data_block'] = DataBlock(**kargs)
-
-        #data group
-        kargs = {'block_len': DG32_BLOCK_SIZE if self.version in ('3.20', '3.30') else DG31_BLOCK_SIZE}
-        gp['data_group'] = DataGroup(**kargs)
+        if self.load_measured_data:
+            gp['data_location'] = LOCATION_MEMORY
+            kargs = {'data': block}
+            gp['data_block'] = DataBlock(**kargs)
+        else:
+            gp['data_location'] = LOCATION_TEMPORARY_FILE
+            if self._tempfile is None:
+                self._tempfile = TemporaryFile()
+            self._tempfile.seek(0, SEEK_END)
+            data_address = self._tempfile.tell()
+            gp['data_group']['data_block_addr'] = data_address
+            self._tempfile.write(block)
 
         # data group trigger
         gp['trigger'] = [None, None]
+
+    def close(self):
+        """ if the MDF was created with load_measured_data=False and new channels
+        have been appended, then this must be called just before the object is not
+        used anymore to clean-up the temporary file"""
+        if self.load_measured_data == False and self._tempfile is not None:
+            self._tempfile.close()
 
     def get(self, name=None, group=None, index=None, raster=None, samples_only=False):
         """Gets channel samples.
@@ -1487,9 +1511,8 @@ class MDF3(object):
                 # DataBlock
                 original_data_addr = gp['data_group']['data_block_addr']
                 gp['data_group']['data_block_addr'] = address
-                address += gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
-                data_block = gp.get('data_block', None)
-                if data_block:
+                address += gp['size']
+                if self.load_measured_data:
                     blocks.append(data_block)
                 else:
                     # trying to call bytes([gp, address]) will result in an exception

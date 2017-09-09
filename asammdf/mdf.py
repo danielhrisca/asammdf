@@ -53,21 +53,26 @@ class MDF(object):
                 raise MdfException('File "{}" does not exist'.format(name))
         else:
             if version in MDF3_VERSIONS:
-                self._file = MDF3(version=version)
+                self._file = MDF3(version=version, load_measured_data=load_measured_data)
             elif version in MDF4_VERSIONS:
-                self._file = MDF4(version=version)
+                self._file = MDF4(version=version, load_measured_data=load_measured_data)
 
         # link underlying _file attributes and methods to the new MDF object
         for attr in set(dir(self._file)) - set(dir(self)):
             setattr(self, attr, getattr(self._file, attr))
 
-    def convert(self, to):
+    def convert(self, to, load_measured_data=True):
         """convert MDF to other versions
 
         Parameters
         ----------
         to : str
             new mdf version from ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10', '4.11')
+        load_measured_data : bool
+            load data option; default *True*
+
+            * if *True* the data group binary data block will be loaded in RAM
+            * if *False* the channel data is stored to a temporary file and read from disk on request
 
         Returns
         -------
@@ -79,7 +84,7 @@ class MDF(object):
             warn('Unknown output mdf version "{}". Available versions are {}'.format(to, MDF4_VERSIONS + MDF3_VERSIONS))
             return
         else:
-            out = MDF(version=to)
+            out = MDF(version=to, load_measured_data=load_measured_data)
             if self.version in MDF3_VERSIONS:
                 master_type = (V3_MASTER,)
             else:
