@@ -1368,6 +1368,7 @@ class MDF3(object):
                         break
                     else:
                         cntr += 1
+                warnings.warn('Destination file "{}" already exists and "overwrite" is False. Saving MDF file as "{}"'.format(dst, name))
                 dst = name
 
         # all MDF blocks are appended to the blocks list in the order in which
@@ -1513,7 +1514,7 @@ class MDF3(object):
                 gp['data_group']['data_block_addr'] = address
                 address += gp['size']
                 if self.load_measured_data:
-                    blocks.append(data_block)
+                    blocks.append(gp['data_block'])
                 else:
                     # trying to call bytes([gp, address]) will result in an exception
                     # that be used as a flag for non existing data block in case

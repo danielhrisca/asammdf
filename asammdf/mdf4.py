@@ -1571,6 +1571,7 @@ class MDF4(object):
                         break
                     else:
                         cntr += 1
+                warnings.warn('Destination file "{}" already exists and "overwrite" is False. Saving MDF file as "{}"'.format(dst, name))
                 dst = name
 
         if not self.file_history:

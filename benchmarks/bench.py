@@ -52,7 +52,7 @@ def save_mdf3():
     os.chdir(path)
     x = MDF(r'test.mdf')
     with Timer('asammdf {} mdfv3'.format(asammdf_version)):
-        x.save(r'x.mdf')
+        x.save(r'x.mdf', overwrite=True)
 
 def get_all_mdf3():
     os.chdir(path)
@@ -69,7 +69,7 @@ def all_mdf3():
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
                 y = x.get(group=i, index=j, samples_only=True)
-        x.save(r'x.mdf')
+        x.save(r'x.mdf', overwrite=True)
 
 def all_mdf3_nodata():
     os.chdir(path)
@@ -78,7 +78,7 @@ def all_mdf3_nodata():
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
                 y = x.get(group=i, index=j, samples_only=True)
-        x.save(r'x.mdf')
+        x.save(r'x.mdf', overwrite=True)
 
 def all_mdf4():
     os.chdir(path)
@@ -87,7 +87,7 @@ def all_mdf4():
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
                 y = x.get(group=i, index=j, samples_only=True)
-        x.save(r'x.mf4')
+        x.save(r'x.mf4', overwrite=True)
 
 def all_mdf4_nodata():
     os.chdir(path)
@@ -96,7 +96,7 @@ def all_mdf4_nodata():
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
                 y = x.get(group=i, index=j, samples_only=True)
-        x.save(r'x.mf4')
+        x.save(r'x.mf4', overwrite=True)
 
 def open_mdf3_nodata():
     os.chdir(path)
@@ -107,7 +107,7 @@ def save_mdf3_nodata():
     os.chdir(path)
     x = MDF(r'test.mdf', load_measured_data=False)
     with Timer('asammdf {} nodata mdfv3'.format(asammdf_version)):
-        x.save(r'x.mdf')
+        x.save(r'x.mdf', overwrite=True)
 
 def get_all_mdf3_nodata():
     os.chdir(path)
@@ -127,7 +127,7 @@ def save_mdf4():
     os.chdir(path)
     x = MDF(r'test.mf4')
     with Timer('asammdf {} mdfv4'.format(asammdf_version)):
-        x.save(r'x.mf4')
+        x.save(r'x.mf4', overwrite=True)
 
 def get_all_mdf4():
     os.chdir(path)
@@ -146,7 +146,7 @@ def save_mdf4_nodata():
     os.chdir(path)
     x = MDF(r'test.mf4', load_measured_data=False)
     with Timer('asammdf {} nodata mdfv4'.format(asammdf_version)):
-        x.save(r'x.mf4')
+        x.save(r'x.mf4', overwrite=True)
 
 def get_all_mdf4_nodata():
     os.chdir(path)
