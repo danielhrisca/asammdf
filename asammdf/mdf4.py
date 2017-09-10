@@ -1566,7 +1566,7 @@ class MDF4(object):
             if os.path.isfile(dst):
                 cntr = 0
                 while True:
-                    name = os.path.splitext(dst)[0] + '_{}.mdf'.format(cntr)
+                    name = os.path.splitext(dst)[0] + '_{}.mf4'.format(cntr)
                     if not os.path.isfile(name):
                         break
                     else:
