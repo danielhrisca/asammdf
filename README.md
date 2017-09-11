@@ -17,9 +17,7 @@ Features
 
 * read sorted and unsorted MDF v3 and v4 files
 * files are loaded in RAM for fast operations
-
-    * for low memory computers or for large data files there is the option to load only the metadata and leave the raw channel data (the samples) unread; this of course will mean slower channel data access speed
-
+* handle large files (exceeding the available RAM) using *load_measured_data* = *False* argument
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
 * time domain operation using the *Signal* class
 
@@ -109,6 +107,10 @@ Python 3 x64
 
 ![](benchmarks/x64_get_all_channels_ram_usage.png)
 
+![](benchmarks/x64_convert.png)
+
+![](benchmarks/x64_convert_ram_usage.png)
+
 Python 3 x86
 ------------
 
@@ -123,3 +125,7 @@ Python 3 x86
 ![](benchmarks/x86_get_all_channels.png)
 
 ![](benchmarks/x86_get_all_channels_ram_usage.png)
+
+![](benchmarks/x86_convert.png)
+
+![](benchmarks/x86_convert_ram_usage.png)

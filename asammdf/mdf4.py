@@ -1557,7 +1557,8 @@ class MDF4(object):
         overwrite : bool
             overwrite flag, default *False*
 
-        """        if self.name is None and dst == '':
+        """
+        if self.name is None and dst == '':
             raise MdfException('Must specify a destination file name for MDF created from scratch')
 
         dst = dst if dst else self.name

@@ -25,9 +25,7 @@ Features
 
 * read sorted and unsorted MDF v3 and v4 files
 * files are loaded in RAM for fast operations
-
-    * for low memory computers or for large data files there is the option to load only the metadata and leave the raw channel data (the samples) unread; this of course will mean slower channel data access speed
-
+* handle large files (exceeding the available RAM) using *load_measured_data* = *False* argument
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
 * time domain operation using the *Signal* class
 
@@ -43,7 +41,7 @@ Features
 * add and extract attachments
 * mdf 4.10 zipped blocks
 
-Major features still not implemented
+Major features not implemented (yet)
 ------------------------------------
 
 * for version 3
@@ -52,6 +50,7 @@ Major features still not implemented
     
 * for version 4
 
+    * handling of bus logging measurements
     * handling of unfinnished measurements (mdf 4)
     * mdf 4 channel arrays
     * xml schema for TXBLOCK and MDBLOCK

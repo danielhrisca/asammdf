@@ -73,7 +73,7 @@ Use case
 Advantages
 
 * lowest RAM usage  
-* faster than *compression*
+* can handle files that do not fit in the available physical memory
     
 Disadvantages
 
