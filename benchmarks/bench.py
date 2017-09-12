@@ -41,7 +41,7 @@ class Timer():
         else:
             print('{:<50} {:>9} {:>8}'.format(self.message, int(elapsed_time), int(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)))
 
-path = r'E:\TMP'
+path = r'D:\TMP'
 
 def open_mdf3():
     os.chdir(path)
@@ -158,31 +158,56 @@ def get_all_mdf4_nodata():
 
 def convert_v3_v4():
     os.chdir(path)
-    x = MDF(r'test.mdf')
-    with Timer('asammdf {} v3 to v4'.format(asammdf_version)):
-        y = x.convert('4.10')
+    with MDF(r'test.mdf') as x:
+        with Timer('asammdf {} v3 to v4'.format(asammdf_version)):
+            y = x.convert('4.10')
 
 def convert_v3_v4_nodata():
     os.chdir(path)
-    x = MDF(r'test.mdf', load_measured_data=False)
-    with Timer('asammdf {} v3 to v4 nodata'.format(asammdf_version)):
-        y = x.convert(to='4.10', load_measured_data=False)
-        x.close()
+    with MDF(r'test.mdf', load_measured_data=False) as x:
+        with Timer('asammdf {} v3 to v4 nodata'.format(asammdf_version)):
+            y = x.convert(to='4.10', load_measured_data=False)
+            y.close()
 
 def convert_v4_v3():
     os.chdir(path)
-    x = MDF(r'test.mf4')
-    with Timer('asammdf {} v4 to v3'.format(asammdf_version)):
-        y = x.convert('3.30')
-        x.close()
+    with MDF(r'test.mf4') as x:
+        with Timer('asammdf {} v4 to v3'.format(asammdf_version)):
+            y = x.convert('3.30')
+            y.close()
 
 def convert_v4_v3_nodata():
     os.chdir(path)
-    x = MDF(r'test.mf4', load_measured_data=False)
-    with Timer('asammdf {} v4 to v3 nodata'.format(asammdf_version)):
-        y = x.convert('3.30', load_measured_data=False)
-        x.close()
+    with MDF(r'test.mf4', load_measured_data=False) as x:
+        with Timer('asammdf {} v4 to v3 nodata'.format(asammdf_version)):
+            y = x.convert('3.30', load_measured_data=False)
+            y.close()
 
+def merge_v3():
+    os.chdir(path)
+    files = [r'test.mdf', ] * 2
+    with Timer('asammdf {} v3'.format(asammdf_version)):
+        y = MDF.merge(files)
+
+def merge_v3_nodata():
+    os.chdir(path)
+    files = [r'test.mdf', ] * 2
+    with Timer('asammdf {} v3 nodata'.format(asammdf_version)):
+        y = MDF.merge(files, load_measured_data=False)
+        y.close()
+
+def merge_v4():
+    files = [r'test.mf4', ] * 2
+    os.chdir(path)
+    with Timer('asammdf {} v4'.format(asammdf_version)):
+        y = MDF.merge(files)
+
+def merge_v4_nodata():
+    files = [r'test.mf4', ] * 2
+    os.chdir(path)
+    with Timer('asammdf {} v4 nodata'.format(asammdf_version)):
+        y = MDF.merge(files, load_measured_data=False)
+        y.close()
 
 ################
 # mdf reader
@@ -363,7 +388,7 @@ def main():
     print('* compression = mdfreader mdf object created with compression=blosc')
     print('* compression bcolz 6 = mdfreader mdf object created with compression=6')
     print('* noDataLoading = mdfreader mdf object read with noDataLoading=True')
-    print('\nFiles used for benchmark:')
+    print('\nFiles used for benchmark:\n')
     print('* 183 groups')
     print('* 36424 channels\n\n')
 
@@ -371,15 +396,15 @@ def main():
     print('{:<50} {:>9} {:>8}'.format('Open file', 'Time [ms]', 'RAM [MB]'))
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (
-#                 open_mdf3,
-#                 open_mdf3_nodata,
-#                 open_reader3,
+                 open_mdf3,
+                 open_mdf3_nodata,
+                 open_reader3,
 #                 open_reader3_compression,
 #                 open_reader3_compression_bcolz,
 #                 open_reader3_nodata,
-#                 open_mdf4,
-#                 open_mdf4_nodata,
-#                 open_reader4,
+                 open_mdf4,
+                 open_mdf4_nodata,
+                 open_reader4,
 #                 open_reader4_compression,
 #                 open_reader4_compression_bcolz,
 #                 open_reader4_nodata
@@ -395,16 +420,16 @@ def main():
     print('{:<50} {:>9} {:>8}'.format('Save file', 'Time [ms]', 'RAM [MB]'))
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (
-#                 save_mdf3,
-#                 save_mdf3_nodata,
-#                 save_reader3,
+                 save_mdf3,
+                 save_mdf3_nodata,
+                 save_reader3,
 #                 save_reader3_nodata,
 #                 save_reader3_compression,
 #                 save_reader3_compression_bcolz,
-#                 save_mdf4,
-#                 save_mdf4_nodata,
-#                 save_reader4,
-                 save_reader4_nodata,
+                 save_mdf4,
+                 save_mdf4_nodata,
+                 save_reader4,
+#                 save_reader4_nodata,
 #                 save_reader4_compression,
 #                 save_reader4_compression_bcolz,
                  ):
@@ -419,15 +444,15 @@ def main():
     print('{:<50} {:>9} {:>8}'.format('Get all channels (36424 calls)', 'Time [ms]', 'RAM [MB]'))
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (
-#                 get_all_mdf3,
-#                 get_all_mdf3_nodata,
-#                 get_all_reader3,
+                 get_all_mdf3,
+                 get_all_mdf3_nodata,
+                 get_all_reader3,
 #                 get_all_reader3_nodata,
 #                 get_all_reader3_compression,
 #                 get_all_reader3_compression_bcolz,
-#                 get_all_mdf4,
-#                 get_all_mdf4_nodata,
-#                 get_all_reader4,
+                 get_all_mdf4,
+                 get_all_mdf4_nodata,
+                 get_all_reader4,
 #                 get_all_reader4_nodata,
 #                 get_all_reader4_compression,
 #                 get_all_reader4_compression_bcolz,
@@ -444,10 +469,27 @@ def main():
     print('{:<50} {:>9} {:>8}'.format('Convert file', 'Time [ms]', 'RAM [MB]'))
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (
-#                 convert_v3_v4,
-#                 convert_v3_v4_nodata,
-#                 convert_v4_v3,
-#                 convert_v4_v3_nodata,
+                 convert_v3_v4,
+                 convert_v3_v4_nodata,
+                 convert_v4_v3,
+                 convert_v4_v3_nodata,
+                 ):
+        thr = multiprocessing.Process(target=func, args=())
+        thr.start()
+        thr.join()
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
+
+
+    print('\n')
+
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
+    print('{:<50} {:>9} {:>8}'.format('Merge files', 'Time [ms]', 'RAM [MB]'))
+    print('{} {} {}'.format('='*50, '='*9, '='*8))
+    for func in (
+                 merge_v3,
+                 merge_v3_nodata,
+                 merge_v4,
+                 merge_v4_nodata,
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()

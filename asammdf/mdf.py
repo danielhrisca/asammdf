@@ -61,6 +61,12 @@ class MDF(object):
         for attr in set(dir(self._file)) - set(dir(self)):
             setattr(self, attr, getattr(self._file, attr))
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
     def convert(self, to, load_measured_data=True):
         """convert MDF to other versions
 
@@ -300,6 +306,77 @@ class MDF(object):
                        common_timebase=True)
 
         return mdf
+
+    @staticmethod
+    def merge(files, load_measured_data=True):
+        """ merge several files and return the merged MDF object. The files
+        must have the same internal structure (same number of groups, and same
+        channels in each group)
+
+        Parameters
+        ----------
+        files : list | tuple
+            list of MDF file names
+        load_measured_data : bool
+            load data option; default *True*
+
+            * if *True* the data group binary data block will be loaded in RAM
+            * if *False* the channel data is stored to a temporary file and read from disk on request
+
+        Returns
+        -------
+        merged : MDF
+            new MDF object with merged channels
+
+        Raises
+        ------
+        MdfException : if there are inconsistances between the files
+            merged MDF object
+        """
+        if files:
+            merged = MDF(files[0], load_measured_data=load_measured_data)
+            for file in files[1:]:
+                mdf = MDF(file, load_measured_data=load_measured_data)
+                out = merged
+                merged = MDF(load_measured_data=load_measured_data)
+                if len(out.groups) != len(mdf.groups):
+                    raise MdfException("Can't merge files: merged has {} groups and {} has {} groups".format(len(out.groups),
+                                                                                                             mdf.name,
+                                                                                                             len(mdf.groups)))
+                for i, (gp1, gp2) in enumerate(zip(out.groups, mdf.groups)):
+                    sigs = []
+                    master_index = out.masters_db[i]
+
+                    if len(gp1['channels']) != len(gp2['channels']):
+                        raise MdfException("Can't merge files: merged DataGroup {} has {} channels and {} DataGroup {} has {} channels"\
+                                               .format(i,
+                                                       len(gp1['channels']),
+                                                       mdf.name,
+                                                       i,
+                                                       len(gp2['channels'])))
+
+                    for j, (ch1, ch2) in enumerate(zip(gp1['channels'], gp2['channels'])):
+                        if ch1.name != ch2.name:
+                            raise MdfException("Can't merge files: merged DataGroup {} channel {} is named {} and {} DataGroup {} channel {} is named {}"\
+                                                   .format(i,
+                                                           j,
+                                                           ch1.name,
+                                                           mdf.name,
+                                                           i,
+                                                           j,
+                                                           ch2.name))
+                        if j == master_index:
+                            continue
+                        sig1 = out.get(group=i, index=j)
+                        sig2 = mdf.get(group=i, index=j)
+                        sigs.append(sig1.extend(sig2))
+
+                    merged.append(sigs, common_timebase=True)
+                mdf.close()
+            return merged
+        else:
+            raise MdfException('No files given for merge')
+
 
     def iter_to_pandas(self):
         """ generator that yields channel groups as pandas DataFrames"""

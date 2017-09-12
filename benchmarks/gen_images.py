@@ -26,7 +26,8 @@ def f(res, topic, aspect, for_doc=False):
     table_spans = {'open': [idx[1] + 1, idx[2]],
                    'save': [idx[4] + 1, idx[5]],
                    'get': [idx[7] + 1, idx[8]],
-                   'convert' : [idx[10] + 1, idx[11]]}
+                   'convert' : [idx[10] + 1, idx[11]],
+                   'merge' : [idx[13] + 1, idx[14]]}
 
 
     start, stop = table_spans[topic.lower()]
@@ -81,6 +82,6 @@ def f(res, topic, aspect, for_doc=False):
 
 for file in (r'e:\02__PythonWorkspace\asammdf\benchmarks\results\x64_asammdf_2.5.0_mdfreader_0.2.5.txt',
               r'e:\02__PythonWorkspace\asammdf\benchmarks\results\x86_asammdf_2.5.0_mdfreader_0.2.5.txt'):
-    for topic in ('Open', 'Save', 'Get', 'Convert'):
+    for topic in ('Open', 'Save', 'Get', 'Convert', 'Merge'):
         for aspect in ('time', 'ram'):
             f(file, topic, aspect)

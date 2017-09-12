@@ -28,6 +28,13 @@ See MDF3 and MDF4 for available extra methods.
 An empty MDF file is created if the *name* argument is not provided. 
 If the *name* argument is provided then the file must exist in the filesystem, otherwise an exception is raised.
 
+Best practice is to use the MDF as a context manager. This way all resources are released correctly in case of exceptions.
+
+.. code::
+
+    with MDF(r'test.mdf') as mdf_file:
+        # do something
+        
 
 .. autoclass:: asammdf.mdf.MDF
     :members:
@@ -78,6 +85,11 @@ Advantages
 Disadvantages
 
 * slow performance for getting channel data
+* must call *close* method to release the temporary file used in case of appending
+
+.. note::
+
+    it is advised to use the MDF context manager in this case
  
 Use case 
 

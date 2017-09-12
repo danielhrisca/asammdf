@@ -159,6 +159,33 @@ class Signal(object):
                                     self.comment)
         return result
 
+    def extend(self, other):
+        """ extend signal with samples from another signal
+
+        Parameters
+        ----------
+        other : Signal
+
+        """
+        last_stamp = self.timestamps[-1]
+        delta = last_stamp / len(self) + last_stamp
+        if len(other):
+            other_first_sample = other.timestamps[0]
+            if last_stamp >= other_first_sample:
+                timestamps = other.timestamps + delta - other_first_sample
+            else:
+                timestamps = other.timestamps
+
+            result = Signal(np.append(self.samples, other.samples),
+                            np.append(self.timestamps, timestamps),
+                            self.unit,
+                            self.name,
+                            self.conversion,
+                            self.comment)
+        else:
+            result = self
+        return result
+
     def interp(self, new_timestamps):
         """ returns a new *Signal* interpolated using the *new_timestamps*"""
         if self.samples.dtype in ('float64', 'float32'):
