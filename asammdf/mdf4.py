@@ -746,7 +746,7 @@ class MDF4(object):
                 item.append({})
             gp_texts['channels'][-1]['name_addr'] = TextBlock.from_text(s.name)
             if s.unit:
-                gp_texts['conversions'][-1]['unit_addr'] = TextBlock.from_text(s.unit)
+                gp_texts['channels'][-1]['unit_addr'] = TextBlock.from_text(s.unit)
             gp_texts['sources'][-1]['name_addr'] = si_text
             gp_texts['sources'][-1]['path_addr'] = si_text
 
@@ -791,6 +791,7 @@ class MDF4(object):
                         conv_texts_tab['default_addr'] = None
                     kargs['default_addr'] = 0
                     kargs['links_nr'] = len(raw) + 5
+                    gp_conv.append(ChannelConversion(**kargs))
                 elif conv_type in (SIGNAL_TYPE_V3_VTABR, SIGNAL_TYPE_V4_VTABR):
                     kargs = {}
                     kargs['conversion_type'] = CONVERSION_TYPE_RTABX
@@ -811,19 +812,12 @@ class MDF4(object):
                     else:
                         conv_texts_tab['default_addr'] = None
                     kargs['default_addr'] = 0
+                    gp_conv.append(ChannelConversion(**kargs))
 
                 else:
-                     kargs = {'conversion_type': CONVERSION_TYPE_NON,
-                              'min_phy_value': min_max[idx][0],
-                              'max_phy_value': min_max[idx][1]}
-                gp_conv.append(ChannelConversion(**kargs))
+                    gp_conv.append(None)
             else:
-                sigmin, sigmax = min_max[idx]
-                kargs = {'conversion_type': CONVERSION_TYPE_NON,
-                         'min_phy_value': sigmin if sigmin<=sigmax else 0,
-                         'max_phy_value': sigmax if sigmin<=sigmax else 0,}
-                gp_conv.append(ChannelConversion(**kargs))
-
+                gp_conv.append(None)
 
         #source for channels
         for i in range(signals_nr + 1):
