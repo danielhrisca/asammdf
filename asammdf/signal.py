@@ -121,16 +121,31 @@ class Signal(object):
                                 self.conversion,
                                 self.comment)
             else:
-                start = np.searchsorted(self.timestamps, start, side='left')
-                stop = np.searchsorted(self.timestamps, stop, side='right')
-                if stop == start:
-                    stop += 1
-                result = Signal(self.samples[start: stop],
-                                self.timestamps[start:stop],
-                                self.unit,
-                                self.name,
-                                self.conversion,
-                                self.comment)
+                start_ = np.searchsorted(self.timestamps, start, side='left')
+                stop_ = np.searchsorted(self.timestamps, stop, side='right')
+                if stop_ == start_:
+                    if len(self.timestamps) and stop >= self.timestamps[0] and start <= self.timestamps[-1]:
+
+                        result = Signal(self.samples[start_ - 1: start_],
+                                        self.timestamps[start_ - 1: start_],
+                                        self.unit,
+                                        self.name,
+                                        self.conversion,
+                                        self.comment)
+                    else:
+                        result = Signal(np.array([]),
+                                        np.array([]),
+                                        self.unit,
+                                        self.name,
+                                        self.conversion,
+                                        self.comment)
+                else:
+                    result = Signal(self.samples[start_: stop_],
+                                    self.timestamps[start_: stop_],
+                                    self.unit,
+                                    self.name,
+                                    self.conversion,
+                                    self.comment)
         return result
 
     def interp(self, new_timestamps):
