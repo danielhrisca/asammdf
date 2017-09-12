@@ -68,7 +68,7 @@ setup(
     ],
 
     # What does your project relate to?
-    keywords='parsers for binary measurement files',
+    keywords='read reader edit editor parse parser asam mdf measurement',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().

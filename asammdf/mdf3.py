@@ -630,8 +630,8 @@ class MDF3(object):
                  'channel_type': CHANNEL_TYPE_MASTER,
                  'data_type': t_type,
                  'start_offset': 0,
-                 'min_raw_value' : t[0],
-                 'max_raw_value' : t[-1],
+                 'min_raw_value' : t[0] if t else 0,
+                 'max_raw_value' : t[-1] if t else 0,
                  'bit_count': t_size}
         ch = Channel(**kargs)
         ch.name = 't'
@@ -749,6 +749,8 @@ class MDF3(object):
                          'start_offset': start_bit_offset,
                          'bit_count': sig_size,
                          'aditional_byte_offset' : additional_byte_offset}
+                if s.comment:
+                    kargs['description'] = (s.comment[:127] + '\x00').encode('latin-1') if len(s.comment) >= 128 else s.comment.encode('latin-1')
                 ch = Channel(**kargs)
 
                 name = s.name
@@ -1511,7 +1513,7 @@ class MDF3(object):
 
                 # DataBlock
                 original_data_addr = gp['data_group']['data_block_addr']
-                gp['data_group']['data_block_addr'] = address
+                gp['data_group']['data_block_addr'] = address if gp['size'] else 0
                 address += gp['size']
                 if self.load_measured_data:
                     blocks.append(gp['data_block'])

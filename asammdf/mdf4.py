@@ -213,7 +213,7 @@ class MDF4(object):
                 cg_size = {}
                 for grp in new_groups:
                     if grp['channel_group']['flags'] == 0:
-                        cg_size[grp['channel_group']['record_id']] = grp['channel_group']['samples_byte_nr']
+                        cg_size[grp['channel_group']['record_id']] = grp['channel_group']['samples_byte_nr'] + grp['channel_group']['invalidation_bytes_nr']
                     else:
                         # VLDS flags
                         cg_size[grp['channel_group']['record_id']] = 0
@@ -1736,7 +1736,7 @@ class MDF4(object):
 
                 # DataBlock
                 original_data_addr = gp['data_group']['data_block_addr']
-                gp['data_group']['data_block_addr'] = address
+                gp['data_group']['data_block_addr'] = address if gp['channel_group']['cycles_nr'] else 0
                 if self.load_measured_data:
                     blocks.append(gp['data_block'])
 

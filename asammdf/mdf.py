@@ -117,7 +117,7 @@ class MDF(object):
             new MDF object
 
         """
-        out = MDF()
+        out = MDF(version=self.version)
         if self.version in MDF3_VERSIONS:
             master_type = (V3_MASTER,)
         else:

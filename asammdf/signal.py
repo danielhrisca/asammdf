@@ -50,7 +50,7 @@ class Signal(object):
             self.comment = comment
 
     def __str__(self):
-        return 'Signal {{ name="{}":\ts={}\tt={}\tunit="{}"\tconversion={} }}'.format(self.name, self.samples, self.timestamps, self.unit, self.conversion)
+        return 'Signal {{ name="{}":\ts={}\tt={}\tunit="{}"\tconversion={} \tcomment="{}"}}'.format(self.name, self.samples, self.timestamps, self.unit, self.conversion, self.comment)
 
     def __repr__(self):
         return 'Signal {{ {}:\ts={}\tt={} }}'.format(self.name, repr(self.samples), repr(self.timestamps))
@@ -97,17 +97,40 @@ class Signal(object):
             result = self
         else:
             if start is None:
-                stop = max(0, np.searchsorted(self.timestamps, stop, side='right'))
-                result = Signal(self.samples[: stop], self.timestamps[:stop], self.unit, self.name, self.conversion)
+                stop = np.searchsorted(self.timestamps, stop, side='right')
+                if stop:
+                    result = Signal(self.samples[: stop],
+                                    self.timestamps[:stop],
+                                    self.unit,
+                                    self.name,
+                                    self.conversion,
+                                    self.comment)
+                else:
+                    result = Signal(np.array([]),
+                                    np.array([]),
+                                    self.unit,
+                                    self.name,
+                                    self.conversion,
+                                    self.comment)
             elif stop is None:
-                start = max(0, np.searchsorted(self.timestamps, start, side='right') - 1)
-                result = Signal(self.samples[start: ], self.timestamps[start: ], self.unit, self.name, self.conversion)
+                start = np.searchsorted(self.timestamps, start, side='left')
+                result = Signal(self.samples[start: ],
+                                self.timestamps[start: ],
+                                self.unit,
+                                self.name,
+                                self.conversion,
+                                self.comment)
             else:
-                start = max(0, np.searchsorted(self.timestamps, start, side='right') - 1)
-                stop = max(0, np.searchsorted(self.timestamps, stop, side='right'))
+                start = np.searchsorted(self.timestamps, start, side='left')
+                stop = np.searchsorted(self.timestamps, stop, side='right')
                 if stop == start:
                     stop += 1
-                result = Signal(self.samples[start: stop], self.timestamps[start:stop], self.unit, self.name, self.conversion)
+                result = Signal(self.samples[start: stop],
+                                self.timestamps[start:stop],
+                                self.unit,
+                                self.name,
+                                self.conversion,
+                                self.comment)
         return result
 
     def interp(self, new_timestamps):
