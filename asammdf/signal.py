@@ -93,10 +93,14 @@ class Signal(object):
         0.98, 10.48
 
         """
+
         if start is None and stop is None:
+            # return the channel uncut
             result = self
+
         else:
             if start is None:
+                # cut from beggining to stop
                 stop = np.searchsorted(self.timestamps, stop, side='right')
                 if stop:
                     result = Signal(self.samples[: stop],
@@ -112,7 +116,9 @@ class Signal(object):
                                     self.name,
                                     self.conversion,
                                     self.comment)
+
             elif stop is None:
+                # cut from start to end
                 start = np.searchsorted(self.timestamps, start, side='left')
                 result = Signal(self.samples[start: ],
                                 self.timestamps[start: ],
@@ -120,12 +126,16 @@ class Signal(object):
                                 self.name,
                                 self.conversion,
                                 self.comment)
+
             else:
+                # cut between start and stop
                 start_ = np.searchsorted(self.timestamps, start, side='left')
                 stop_ = np.searchsorted(self.timestamps, stop, side='right')
                 if stop_ == start_:
-                    if len(self.timestamps) and stop >= self.timestamps[0] and start <= self.timestamps[-1]:
 
+                    if len(self.timestamps) and stop >= self.timestamps[0] and start <= self.timestamps[-1]:
+                        # start and stop are found between 2 signal samples
+                        # so return the previous sample
                         result = Signal(self.samples[start_ - 1: start_],
                                         self.timestamps[start_ - 1: start_],
                                         self.unit,
@@ -133,6 +143,7 @@ class Signal(object):
                                         self.conversion,
                                         self.comment)
                     else:
+                        # signal is empty or start and stop are outside the signal time base
                         result = Signal(np.array([]),
                                         np.array([]),
                                         self.unit,
