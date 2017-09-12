@@ -630,8 +630,8 @@ class MDF3(object):
                  'channel_type': CHANNEL_TYPE_MASTER,
                  'data_type': t_type,
                  'start_offset': 0,
-                 'min_raw_value' : t[0] if t else 0,
-                 'max_raw_value' : t[-1] if t else 0,
+                 'min_raw_value' : t[0] if cycles_nr else 0,
+                 'max_raw_value' : t[-1] if cycles_nr else 0,
                  'bit_count': t_size}
         ch = Channel(**kargs)
         ch.name = 't'

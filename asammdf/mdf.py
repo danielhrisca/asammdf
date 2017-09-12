@@ -280,10 +280,10 @@ class MDF(object):
         gps = {}
         for ch in channels:
             if ch in self.channels_db:
-                group, index = self.channels_db[ch]
-                if not group in gps:
-                    gps[group] = []
-                gps[group].append(index)
+                for group, index in self.channels_db[ch]:
+                    if not group in gps:
+                        gps[group] = []
+                    gps[group].append(index)
             else:
                 warn('MDF filter error: Channel "{}" not found, it will be ignored'.format(ch))
                 continue
@@ -296,7 +296,7 @@ class MDF(object):
             for index in gps[group]:
                 sigs.append(self.get(group=group, index=index))
             mdf.append(sigs,
-                       'Signals filtered from <{}>'.format(os.path.basename(self.name)),
+                       'Signals filtered from <{}>'.format(os.path.basename(self.name) if self.name else 'New MDF'),
                        common_timebase=True)
 
         return mdf

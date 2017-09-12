@@ -49,3 +49,7 @@ pow2 *= -1
 pow2.name = '- Uint8_Signal ^ 2'
 pow2.plot()
 
+# cut signal
+s_int32.plot()
+cut_signal = s_int32.cut(start=0.2, stop=0.35)
+cut_signal.plot()
