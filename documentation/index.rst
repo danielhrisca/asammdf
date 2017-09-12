@@ -36,6 +36,7 @@ Features
 * remove data group by index or by specifing a channel name inside the target data group
 * append new channels
 * filter a subset of channels from original mdf file
+* cut measurement to specified time interval
 * convert to different mdf version
 * export to Excel, HDF5 and CSV
 * add and extract attachments

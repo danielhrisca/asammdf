@@ -28,6 +28,7 @@ Features
 * create new mdf files from scratch
 * append new channels
 * filter a subset of channels from original mdf file
+* cut measurement to specified time interval
 * convert to different mdf version
 * export to Excel, HDF5 and CSV
 * add and extract attachments

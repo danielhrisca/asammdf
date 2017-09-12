@@ -42,7 +42,7 @@ class Signal(object):
                 samples = np.array(samples)
             if isinstance(timestamps, list) or isinstance(samples, tuple):
                 timestamps = np.array(timestamps, dtype=np.float64)
-            self.samples = samples 
+            self.samples = samples
             self.timestamps = timestamps
             self.unit = unit
             self.name = name
@@ -70,7 +70,7 @@ class Signal(object):
         plt.grid(True)
         plt.show()
 
-    def cut(self, start, stop):
+    def cut(self, start=None, stop=None):
         """
         Cuts the signal according to the *start* and *stop* values, by using the insertion indexes in the signal's *time* axis.
 
@@ -83,7 +83,7 @@ class Signal(object):
 
         Returns
         -------
-        outsig : Signal
+        result : Signal
             new *Signal* cut from the original
 
         Examples
@@ -93,11 +93,22 @@ class Signal(object):
         0.98, 10.48
 
         """
-        start = max(0, np.searchsorted(self.timestamps, start, side='right') - 1)
-        stop = max(0, np.searchsorted(self.timestamps, stop, side='right') - 1)
-        if stop == start:
-            stop += 1
-        return Signal(self.samples[start: stop], self.timestamps[start:stop], self.unit, self.name, self.conversion)
+        if start is None and stop is None:
+            result = self
+        else:
+            if start is None:
+                stop = max(0, np.searchsorted(self.timestamps, stop, side='right'))
+                result = Signal(self.samples[: stop], self.timestamps[:stop], self.unit, self.name, self.conversion)
+            elif stop is None:
+                start = max(0, np.searchsorted(self.timestamps, start, side='right') - 1)
+                result = Signal(self.samples[start: ], self.timestamps[start: ], self.unit, self.name, self.conversion)
+            else:
+                start = max(0, np.searchsorted(self.timestamps, start, side='right') - 1)
+                stop = max(0, np.searchsorted(self.timestamps, stop, side='right'))
+                if stop == start:
+                    stop += 1
+                result = Signal(self.samples[start: stop], self.timestamps[start:stop], self.unit, self.name, self.conversion)
+        return result
 
     def interp(self, new_timestamps):
         """ returns a new *Signal* interpolated using the *new_timestamps*"""

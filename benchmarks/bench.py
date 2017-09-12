@@ -404,7 +404,7 @@ def main():
 #                 save_mdf4,
 #                 save_mdf4_nodata,
 #                 save_reader4,
-#                 save_reader4_nodata,
+                 save_reader4_nodata,
 #                 save_reader4_compression,
 #                 save_reader4_compression_bcolz,
                  ):
@@ -444,10 +444,10 @@ def main():
     print('{:<50} {:>9} {:>8}'.format('Convert file', 'Time [ms]', 'RAM [MB]'))
     print('{} {} {}'.format('='*50, '='*9, '='*8))
     for func in (
-                 convert_v3_v4,
-                 convert_v3_v4_nodata,
-                 convert_v4_v3,
-                 convert_v4_v3_nodata,
+#                 convert_v3_v4,
+#                 convert_v3_v4_nodata,
+#                 convert_v4_v3,
+#                 convert_v4_v3_nodata,
                  ):
         thr = multiprocessing.Process(target=func, args=())
         thr.start()

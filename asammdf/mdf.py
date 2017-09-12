@@ -101,6 +101,40 @@ class MDF(object):
                            common_timebase=True)
             return out
 
+    def cut(self, start=None, stop=None):
+        """convert MDF to other versions
+
+        Parameters
+        ----------
+        start : float
+            start time, default None. If *None* then the start of measurement is used
+        stop : float
+            stop time, default . If *None* then the end of measurement is used
+
+        Returns
+        -------
+        out : MDF
+            new MDF object
+
+        """
+        out = MDF()
+        if self.version in MDF3_VERSIONS:
+            master_type = (V3_MASTER,)
+        else:
+            master_type = (V4_MASTER, V4_VIRTUAL_MASTER)
+
+        # walk through all groups and get all channels
+        for i, gp in enumerate(self.groups):
+            sigs = []
+            for j, ch in enumerate(gp['channels']):
+                if not ch['channel_type'] in master_type:
+                    sigs.append(self.get(group=i, index=j).cut(start, stop))
+            out.append(sigs,
+                       'Cut from {} to {}'.format('{}s'.format(start) if start else 'start of measurement',
+                                                  '{}s'.format(stop) if stop else 'end of measurement'),
+                       common_timebase=True)
+        return out
+
     def export(self, format, filename=None):
         """ export MDF to other formats. The *MDF* file name is used is available,
         else the *filename* aragument must be provided.
