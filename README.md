@@ -113,6 +113,10 @@ Python 3 x64
 
 ![](benchmarks/x64_convert_ram_usage.png)
 
+![](benchmarks/x64_merge.png)
+
+![](benchmarks/x64_merge_ram_usage.png)
+
 Python 3 x86
 ------------
 
@@ -131,3 +135,7 @@ Python 3 x86
 ![](benchmarks/x86_convert.png)
 
 ![](benchmarks/x86_convert_ram_usage.png)
+
+![](benchmarks/x86_merge.png)
+
+![](benchmarks/x86_merge_ram_usage.png)
