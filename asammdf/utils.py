@@ -23,10 +23,10 @@ class MdfException(Exception):
 
 
 def bytes(obj):
-    if isinstance(obj, str):
-        return obj
-    else:
+    try:
         return obj.__bytes__()
+    except:
+        return obj
 
 
 def dtype_mapping(invalue, outversion=3):
