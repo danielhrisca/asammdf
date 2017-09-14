@@ -46,8 +46,7 @@ from .signal import Signal
 from .signalconstants import *
 
 if PYVERSION == 2:
-    def bytes(obj):
-        return obj.__bytes__()
+    from .utils import bytes
 
 __all__ = ['MDF4', ]
 
@@ -878,7 +877,7 @@ class MDF4(object):
         gp['data_group'] = DataGroup()
 
         #data block
-        types = [('t', t.dtype),] + [(name, typ) for name, typ in zip(names, sig_dtypes)]
+        types = [(str('t'), t.dtype),] + [(str(name), typ) for name, typ in zip(names, sig_dtypes)]
         types = dtype(types)
         gp['types'] = types
 
@@ -1431,7 +1430,10 @@ class MDF4(object):
                 if comment:
                     if comment['id'] == b'##MD':
                         comment = comment.text_str
-                        comment = XML.fromstring(comment).find('TX').text
+                        try:
+                            comment = XML.fromstring(comment).find('TX').text
+                        except:
+                            comment = ''
                     else:
                         comment = comment.text_str
                 else:

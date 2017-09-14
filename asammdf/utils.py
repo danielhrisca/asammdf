@@ -3,7 +3,6 @@ asammdf utility functions and classes
 '''
 import itertools
 import re
-from functools import lru_cache
 
 from numpy import issubdtype, signedinteger, unsignedinteger, floating, flexible
 
@@ -14,12 +13,20 @@ from . import v4constants as v4c
 __all__ = ['MdfException',
            'get_fmt',
            'fmt_to_datatype',
-           'pair']
+           'pair',
+           'bytes']
 
 
 class MdfException(Exception):
     """MDF Exception class"""
     pass
+
+
+def bytes(obj):
+    if isinstance(obj, str):
+        return obj
+    else:
+        return obj.__bytes__()
 
 
 def dtype_mapping(invalue, outversion=3):
@@ -69,7 +76,6 @@ def dtype_mapping(invalue, outversion=3):
     return res
 
 
-@lru_cache(100)
 def get_fmt(data_type, size, version=3):
     """convert mdf channel data type to numpy dtype format string
 
@@ -143,7 +149,6 @@ def get_fmt(data_type, size, version=3):
     return fmt
 
 
-@lru_cache(100)
 def fmt_to_datatype(fmt, version=3):
     """convert numpy dtype format string to mdf channel data type and size
 

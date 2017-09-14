@@ -31,8 +31,7 @@ from .v3blocks import (Channel, ChannelConversion, ChannelDependency,
 
 
 if PYVERSION == 2:
-    def bytes(obj):
-        return obj.__bytes__()
+    from .utils import bytes
 
 
 __all__ = ['MDF3', ]
@@ -927,6 +926,7 @@ class MDF3(object):
         gp['data_group'] = DataGroup(**kargs)
 
         #data block
+        types = [(str(name), d_type) for name, d_type in types]
         types = dtype(types)
 
         gp['types'] = types
