@@ -84,6 +84,9 @@ class MDF3(object):
         self.channels_db = {}
         self.masters_db = {}
 
+        # MDF version 3.x do not support compressed data blocks
+        self.compression = 0
+
         # used when appending to MDF object created with load_measured_data=False
         self._tempfile = None
 
@@ -415,7 +418,6 @@ class MDF3(object):
                     grp['size'] = size = (grp['channel_group']['samples_byte_nr'] + record_id_nr) * grp['channel_group']['cycles_nr']
 
                 if self.load_measured_data:
-                    grp['data_location'] = LOCATION_MEMORY
                     # read data block of the current data group
                     dat_addr = gp['data_block_addr']
                     if dat_addr:
@@ -425,6 +427,7 @@ class MDF3(object):
                         data = b''
                     if cg_nr == 1:
                         grp = new_groups[0]
+                        grp['data_location'] = LOCATION_MEMORY
                         kargs = {'data': data}
                         grp['data_block'] = DataBlock(**kargs)
 
@@ -446,12 +449,14 @@ class MDF3(object):
                             # go to next record
                             i += rec_size
                         for grp in new_groups:
+                            grp['data_location'] = LOCATION_MEMORY
                             kargs = {}
                             kargs['data'] = b''.join(cg_data[grp['channel_group']['record_id']])
                             grp['channel_group']['record_id'] = 1
                             grp['data_block'] = DataBlock(**kargs)
                 else:
-                    grp['data_location'] = LOCATION_ORIGINAL_FILE
+                    for grp in new_groups:
+                        grp['data_location'] = LOCATION_ORIGINAL_FILE
 
                 self.groups.extend(new_groups)
 

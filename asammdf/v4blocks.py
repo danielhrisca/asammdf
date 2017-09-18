@@ -355,7 +355,7 @@ class ChannelConversion(dict):
                  self['val_param_nr'],
                  self['min_phy_value'],
                  self['max_phy_value']) = unpack('<4Q2B3H2d', block)
-                
+
             elif conv == CONVERSION_TYPE_LIN:
                 (self['name_addr'],
                  self['unit_addr'],
@@ -370,7 +370,7 @@ class ChannelConversion(dict):
                  self['max_phy_value'],
                  self['b'],
                  self['a']) = unpack('<4Q2B3H4d', block)
-                
+
             elif conv == CONVERSION_TYPE_RAT:
                 (self['name_addr'],
                  self['unit_addr'],
@@ -564,7 +564,7 @@ class ChannelConversion(dict):
                 self['val_param_nr'] = 0
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                
+
             elif kargs['conversion_type'] == CONVERSION_TYPE_LIN:
                 self['block_len'] = kargs.get('block_len', CC_LIN_BLOCK_SIZE)
                 self['links_nr'] = kargs.get('links_nr', 4)
@@ -581,7 +581,7 @@ class ChannelConversion(dict):
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['b'] = kargs.get('b', 0)
                 self['a'] = kargs.get('a', 1)
-                
+
             elif kargs['conversion_type'] == CONVERSION_TYPE_ALG:
                 self['block_len'] = kargs.get('block_len', CC_ALG_BLOCK_SIZE)
                 self['links_nr'] = kargs.get('links_nr', 5)
@@ -597,7 +597,7 @@ class ChannelConversion(dict):
                 self['val_param_nr'] = kargs.get('val_param_nr', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                
+
             elif kargs['conversion_type'] == CONVERSION_TYPE_TABX:
                 self['block_len'] = ((kargs['links_nr'] - 5) * 8 * 2) + 88
                 self['links_nr'] = kargs['links_nr']
@@ -617,7 +617,7 @@ class ChannelConversion(dict):
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 for i in range(kargs['links_nr'] - 5):
                     self['val_{}'.format(i)] = kargs['val_{}'.format(i)]
-                    
+
             elif kargs['conversion_type'] == CONVERSION_TYPE_RTABX:
                 self['block_len'] = ((kargs['links_nr'] - 5) * 8 * 3) + 88
                 self['links_nr'] = kargs['links_nr']
@@ -824,15 +824,16 @@ class DataZippedBlock(dict):
 
         except KeyError:
             self.prevent_data_setitem = False
+            self.address = 0
 
             data = kargs['data']
 
             self['id'] = b'##DZ'
             self['reserved0'] = 0
-
+            self['block_len'] = 0
             self['links_nr'] = 0
-            self['original_type'] = kargs.get('original_type', 'DT')
-            self['zip_type'] = karg.get('zip_type', FLAG_DZ_DEFLATE)
+            self['original_type'] = kargs.get('original_type', b'DT')
+            self['zip_type'] = kargs.get('zip_type', FLAG_DZ_DEFLATE)
             self['reserved1'] = 0
             self['param'] = 0 if self['zip_type'] == FLAG_DZ_DEFLATE else kargs['param']
 
@@ -967,11 +968,11 @@ class DataList(dict):
         except KeyError:
 
             self.address = 0
-            self['id'] = kargs.get('id', '##DL'.encode('utf-8'))
-            self['reserved0'] = kargs.get('reserved0', 0)
-            self['block_len'] = kargs.get('block_len', CN_BLOCK_SIZE)
-            self['links_nr'] = kargs.get('links_nr', 8)
-            self['next_dl_addr'] = kargs.get('next_dl_addr', 0)
+            self['id'] = b'##DL'
+            self['reserved0'] = 0
+            self['block_len'] = 40 + 8 * kargs.get('links_nr', 2)
+            self['links_nr'] = kargs.get('links_nr', 2)
+            self['next_dl_addr'] = 0
 
             for i in range(self['links_nr'] - 1):
                 self['data_block_addr{}'.format(i)] = kargs.get('data_block_addr{}'.format(i), 0)
@@ -1167,7 +1168,7 @@ class HeaderList(dict):
             self['reserved0'] = 0
             self['block_len'] = HL_BLOCK_SIZE
             self['links_nr'] = 1
-            self['first_dl_addr'] = 0
+            self['first_dl_addr'] = kargs.get('first_dl_addr', 0)
             self['flags'] = 1
             self['zip_type'] = 0
             self['reserved1'] = b'\x00' * 5

@@ -66,6 +66,12 @@ class MDF4(object):
 
     version : string
         mdf file version ('4.00', '4.10', '4.11'); default '4.00'
+    compression : int
+        use compressed data blocks, default 0; only valid since version 4.10
+
+        * 0 - no compression
+        * 1 - deflate (slower, but produces smaller files)
+        * 2 - transposition + deflate (slowest, but produces the smallest files)
 
 
     Attributes
@@ -92,7 +98,7 @@ class MDF4(object):
         used for fast master channel access; for each group index key the value is the master channel index
 
     """
-    def __init__(self, name=None, load_measured_data=True, version='4.00'):
+    def __init__(self, name=None, load_measured_data=True, version='4.00', compression=0):
         self.groups = []
         self.header = None
         self.identification = None
@@ -104,13 +110,18 @@ class MDF4(object):
         self.masters_db = {}
         self.attachments = []
 
+        self.compression = compression
+
         # used when appending to MDF object created with load_measured_data=False
         self._tempfile = None
 
         if name:
             with open(self.name, 'rb') as file_stream:
                 self._read(file_stream)
+
         else:
+            if version == '4.00':
+                self.compression = 0
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
@@ -120,6 +131,10 @@ class MDF4(object):
 
         self.identification = FileIdentificationBlock(file_stream=file_stream)
         self.version = self.identification['version_str'].decode('utf-8').strip(' \n\t\x00')
+        # compressed data blocks are valid since version 4.10
+        if self.version == '4.00':
+                self.compression = 0
+
         self.header = HeaderBlock(address=0x40, file_stream=file_stream)
 
         # read file comment
@@ -222,15 +237,20 @@ class MDF4(object):
                     grp['record_size'] = cg_size
 
             if self.load_measured_data:
-                grp['data_location'] = LOCATION_MEMORY
                 # go to the first data block of the current data group
                 dat_addr = group['data_block_addr']
                 data = self._read_data_block(address=dat_addr, file_stream=file_stream)
 
                 if cg_nr == 1:
                     grp = new_groups[0]
-                    kargs = {'data': data}
-                    grp['data_block'] = DataBlock(**kargs)
+                    grp['data_location'] = LOCATION_MEMORY
+                    if self.compression:
+                        kargs = {'data': data,
+                                 'zip_type': FLAG_DZ_DEFLATE if self.compression == 1 else FLAG_DZ_TRANPOSED_DEFLATE,
+                                 'param': 0 if self.compression == 1 else grp['channel_group']['samples_byte_nr']}
+                        grp['data_block'] = DataZippedBlock(**kargs)
+                    else:
+                        grp['data_block'] = DataBlock(data=data)
                 else:
                     cg_data = defaultdict(list)
                     record_id_nr = group['record_id_len'] if group['record_id_len'] <= 2 else 0
@@ -256,12 +276,19 @@ class MDF4(object):
                         # go to next record
                         i += rec_size
                     for grp in new_groups:
+                        grp['data_location'] = LOCATION_MEMORY
                         kargs = {}
                         kargs['data'] = b''.join(cg_data[grp['channel_group']['record_id']])
                         grp['channel_group']['record_id'] = 1
-                        grp['data_block'] = DataBlock(**kargs)
+                        if self.compression:
+                            kargs['zip_type'] = FLAG_DZ_DEFLATE if self.compression == 1 else FLAG_DZ_TRANPOSED_DEFLATE
+                            kargs['param'] = 0 if self.compression == 1 else grp['channel_group']['samples_byte_nr']
+                            grp['data_block'] = DataZippedBlock(**kargs)
+                        else:
+                            grp['data_block'] = DataBlock(**kargs)
             else:
-                grp['data_location'] = LOCATION_ORIGINAL_FILE
+                for grp in new_groups:
+                    grp['data_location'] = LOCATION_ORIGINAL_FILE
 
             self.groups.extend(new_groups)
 
@@ -481,10 +508,8 @@ class MDF4(object):
                             i += rec_size
                         data = b''.join(cg_data)
             elif group['data_location'] == LOCATION_TEMPORARY_FILE:
-                read_size = group['size']
                 dat_addr = group['data_group']['data_block_addr']
-                self._tempfile.seek(dat_addr, SEEK_START)
-                data = self._tempfile.read(read_size)
+                data = self._read_data_block(address=dat_addr, file_stream=self._tempfile)
         else:
             data = group['data_block']['data']
 
@@ -894,9 +919,10 @@ class MDF4(object):
 
         if self.load_measured_data:
             gp['data_location'] = LOCATION_MEMORY
-            kargs = {'data': block,
-                     'block_len': 24 + len(block)}
-            gp['data_block'] = DataBlock(**kargs)
+            if self.compression:
+                gp['data_block'] = DataZippedBlock(data=block)
+            else:
+                gp['data_block'] = DataBlock(data=block)
         else:
             gp['data_location'] = LOCATION_TEMPORARY_FILE
             if self._tempfile is None:
@@ -904,7 +930,13 @@ class MDF4(object):
             self._tempfile.seek(0, SEEK_END)
             data_address = self._tempfile.tell()
             gp['data_group']['data_block_addr'] = data_address
-            self._tempfile.write(block)
+            if self.compression:
+                kargs = {'data': block,
+                         'zip_type': FLAG_DZ_DEFLATE if self.compression == 1 else FLAG_DZ_TRANPOSED_DEFLATE,
+                         'param': 0 if self.compression == 1 else gp['channel_group']['samples_byte_nr']}
+                self._tempfile.writebytes(DataZippedBlock(**kargs))
+            else:
+                self._tempfile.writebytes(DataBlock(data=block))
 
     def attach(self, data, file_name=None, comment=None, compression=True, mime=r'application/octet-stream'):
         """ attach embedded attachment as application/octet-stream
@@ -1579,16 +1611,54 @@ class MDF4(object):
         with open(dst, 'wb') as dst:
             defined_texts = {}
 
-            blocks = []
-
-            blocks.append(self.identification)
-
-            blocks.append(self.header)
-
             write = dst.write
             tell = dst.tell
+            seek = dst.seek
 
-            address = IDENTIFICATION_BLOCK_SIZE + HEADER_BLOCK_SIZE
+            write(bytes(self.identification))
+            write(bytes(self.header))
+
+            original_data_addresses = []
+
+            # write DataBlocks first
+            for gp in self.groups:
+
+                original_data_addresses.append(gp['data_group']['data_block_addr'])
+                address = tell()
+
+                if self.load_measured_data:
+                    data_block = gp['data_block']
+                    write(bytes(data_block))
+
+                    align = data_block['block_len'] % 8
+                    if align:
+                        write(b'\x00' * (8-align))
+                else:
+                    # trying to call bytes([gp, address]) will result in an exception
+                    # that be used as a flag for non existing data block in case
+                    # of load_measured_data=False, the address is the actual address
+                    # of the data group's data within the original file
+                    # this will only be executed for data blocks when load_measured_data=False
+
+                    data = self._load_group_data(gp)
+                    if self.compression:
+                        kargs = {'data': data,
+                                 'zip_type': FLAG_DZ_DEFLATE if self.compression == 1 else FLAG_DZ_TRANPOSED_DEFLATE,
+                                 'param': 0 if self.compression == 1 else gp['channel_group']['samples_byte_nr']}
+                        data_block = DataZippedBlock(**kargs)
+                    else:
+                        data_block = DataBlock(data=data)
+                    write(bytes(data_block))
+
+                    align = data_block['block_len'] % 8
+                    if align:
+                        write(b'\x00' * (8-align))
+
+                gp['data_group']['data_block_addr'] = address if gp['channel_group']['cycles_nr'] else 0
+
+            address = tell()
+
+            blocks = []
 
             if self.file_comment:
                 self.file_comment.address = address
@@ -1736,32 +1806,8 @@ class MDF4(object):
                 address += gp['channel_group']['block_len']
                 blocks.append(gp['channel_group'])
 
-                # DataBlock
-                original_data_addr = gp['data_group']['data_block_addr']
-                gp['data_group']['data_block_addr'] = address if gp['channel_group']['cycles_nr'] else 0
-                if self.load_measured_data:
-                    blocks.append(gp['data_block'])
-
-                    align = gp['data_block']['block_len'] % 8
-                    if align:
-                        blocks.append(b'\x00' * (8-align))
-                    address += gp['data_block']['block_len'] + align
-                else:
-                    # trying to call bytes([gp, address]) will result in an exception
-                    # that be used as a flag for non existing data block in case
-                    # of load_measured_data=False, the address is the actual address
-                    # of the data group's data within the original file
-                    blocks.append([gp, original_data_addr])
-
-                    record_bytes = gp['channel_group']['samples_byte_nr']
-                    record_id_nr = gp['data_group']['record_id_len']
-                    invalidation_bytes = gp['channel_group']['invalidation_bytes_nr']
-                    cycles_nr = gp['channel_group']['cycles_nr']
-                    size = cycles_nr * (record_bytes + invalidation_bytes + record_id_nr) + COMMON_SIZE
-                    align = size % 8
-                    if align:
-                        blocks.append(b'\x00' * (8-align))
-                    address += size + align
+            for block in blocks:
+                write(bytes(block))
 
             if self.groups:
                 self.header['first_dg_addr'] = self.groups[0]['data_group'].address
@@ -1771,18 +1817,12 @@ class MDF4(object):
             self.header['first_attachment_addr'] = self.attachments[0][0].address if self.attachments else 0
             self.header['comment_addr'] = self.file_comment.address if self.file_comment else 0
 
-            for block in blocks:
-                try:
-                    write(bytes(block))
-                except:
-                    # this will only be executed for data blocks when load_measured_data=False
-                    gp, address = block
-                    # restore data block address from original file so that
-                    # future calls to get will still work after the save
-                    gp['data_group']['data_block_addr'] = address
-                    data = self._load_group_data(gp)
-                    data_block = DataBlock(data=data)
-                    write(bytes(data_block))
+            seek(IDENTIFICATION_BLOCK_SIZE , SEEK_START)
+            write(bytes(self.header))
+
+            for orig_addr, gp in zip(original_data_addresses, self.groups):
+                gp['data_group']['data_block_addr'] = orig_addr
+
 
 
 if __name__ == '__main__':

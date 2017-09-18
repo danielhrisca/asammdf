@@ -194,7 +194,7 @@ KEYS_DATA_GROUP = ('id',
                    'record_id_len',
                    'reserved1')
 
-FMT_DATA_LIST = '<4sIQQ{}QB3sIQ'
+FMT_DATA_LIST = '<4sI2Q{}QB3sIQ'
 
 FMT_CONVERSION_NONE = '<4sI6Q2B3H2d'
 KEYS_CONVERSION_NONE = ('id',
