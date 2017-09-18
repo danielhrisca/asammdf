@@ -66,12 +66,6 @@ class MDF4(object):
 
     version : string
         mdf file version ('4.00', '4.10', '4.11'); default '4.00'
-    compression : int
-        use compressed data blocks, default 0; only valid since version 4.10
-
-        * 0 - no compression
-        * 1 - deflate (slower, but produces smaller files)
-        * 2 - transposition + deflate (slowest, but produces the smallest files)
 
 
     Attributes
@@ -98,7 +92,7 @@ class MDF4(object):
         used for fast master channel access; for each group index key the value is the master channel index
 
     """
-    def __init__(self, name=None, load_measured_data=True, version='4.00', compression=0):
+    def __init__(self, name=None, load_measured_data=True, version='4.00'):
         self.groups = []
         self.header = None
         self.identification = None
@@ -110,8 +104,6 @@ class MDF4(object):
         self.masters_db = {}
         self.attachments = []
 
-        self.compression = compression
-
         # used when appending to MDF object created with load_measured_data=False
         self._tempfile = None
 
@@ -120,8 +112,6 @@ class MDF4(object):
                 self._read(file_stream)
 
         else:
-            if version == '4.00':
-                self.compression = 0
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
@@ -131,9 +121,6 @@ class MDF4(object):
 
         self.identification = FileIdentificationBlock(file_stream=file_stream)
         self.version = self.identification['version_str'].decode('utf-8').strip(' \n\t\x00')
-        # compressed data blocks are valid since version 4.10
-        if self.version == '4.00':
-                self.compression = 0
 
         self.header = HeaderBlock(address=0x40, file_stream=file_stream)
 
@@ -244,13 +231,7 @@ class MDF4(object):
                 if cg_nr == 1:
                     grp = new_groups[0]
                     grp['data_location'] = LOCATION_MEMORY
-                    if self.compression:
-                        kargs = {'data': data,
-                                 'zip_type': FLAG_DZ_DEFLATE if self.compression == 1 else FLAG_DZ_TRANPOSED_DEFLATE,
-                                 'param': 0 if self.compression == 1 else grp['channel_group']['samples_byte_nr']}
-                        grp['data_block'] = DataZippedBlock(**kargs)
-                    else:
-                        grp['data_block'] = DataBlock(data=data)
+                    grp['data_block'] = DataBlock(data=data)
                 else:
                     cg_data = defaultdict(list)
                     record_id_nr = group['record_id_len'] if group['record_id_len'] <= 2 else 0
@@ -280,12 +261,7 @@ class MDF4(object):
                         kargs = {}
                         kargs['data'] = b''.join(cg_data[grp['channel_group']['record_id']])
                         grp['channel_group']['record_id'] = 1
-                        if self.compression:
-                            kargs['zip_type'] = FLAG_DZ_DEFLATE if self.compression == 1 else FLAG_DZ_TRANPOSED_DEFLATE
-                            kargs['param'] = 0 if self.compression == 1 else grp['channel_group']['samples_byte_nr']
-                            grp['data_block'] = DataZippedBlock(**kargs)
-                        else:
-                            grp['data_block'] = DataBlock(**kargs)
+                        grp['data_block'] = DataBlock(**kargs)
             else:
                 for grp in new_groups:
                     grp['data_location'] = LOCATION_ORIGINAL_FILE
@@ -509,7 +485,9 @@ class MDF4(object):
                         data = b''.join(cg_data)
             elif group['data_location'] == LOCATION_TEMPORARY_FILE:
                 dat_addr = group['data_group']['data_block_addr']
-                data = self._read_data_block(address=dat_addr, file_stream=self._tempfile)
+                self._tempfile.seek(dat_addr, SEEK_START)
+                size = group['channel_group']['samples_byte_nr'] * group['channel_group']['cycles_nr']
+                data = self._tempfile.read(size)
         else:
             data = group['data_block']['data']
 
@@ -919,10 +897,7 @@ class MDF4(object):
 
         if self.load_measured_data:
             gp['data_location'] = LOCATION_MEMORY
-            if self.compression:
-                gp['data_block'] = DataZippedBlock(data=block)
-            else:
-                gp['data_block'] = DataBlock(data=block)
+            gp['data_block'] = DataBlock(data=block)
         else:
             gp['data_location'] = LOCATION_TEMPORARY_FILE
             if self._tempfile is None:
@@ -930,13 +905,7 @@ class MDF4(object):
             self._tempfile.seek(0, SEEK_END)
             data_address = self._tempfile.tell()
             gp['data_group']['data_block_addr'] = data_address
-            if self.compression:
-                kargs = {'data': block,
-                         'zip_type': FLAG_DZ_DEFLATE if self.compression == 1 else FLAG_DZ_TRANPOSED_DEFLATE,
-                         'param': 0 if self.compression == 1 else gp['channel_group']['samples_byte_nr']}
-                self._tempfile.writebytes(DataZippedBlock(**kargs))
-            else:
-                self._tempfile.writebytes(DataBlock(data=block))
+            self._tempfile.writebytes(block)
 
     def attach(self, data, file_name=None, comment=None, compression=True, mime=r'application/octet-stream'):
         """ attach embedded attachment as application/octet-stream
@@ -1572,7 +1541,7 @@ class MDF4(object):
             return
         self.groups.pop(idx)
 
-    def save(self, dst='', overwrite=False):
+    def save(self, dst='', overwrite=False, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file name is
         the MDF name. If overwrite is *True* then the destination file is overwritten,
         otherwise the file name is appened with '_xx', were 'xx' is the first conter that produces a new
@@ -1584,6 +1553,12 @@ class MDF4(object):
             destination file name, Default ''
         overwrite : bool
             overwrite flag, default *False*
+        compression : int
+            use compressed data blocks, default 0; only valid since version 4.10
+
+            * 0 - no compression
+            * 1 - deflate (slower, but produces smaller files)
+            * 2 - transposition + deflate (slowest, but produces the smallest files)
 
         """
         if self.name is None and dst == '':
@@ -1628,6 +1603,11 @@ class MDF4(object):
 
                 if self.load_measured_data:
                     data_block = gp['data_block']
+                    if compression and self.version != '4.00':
+                        kargs = {'data': data_block['data'],
+                                 'zip_type': FLAG_DZ_DEFLATE if compression == 1 else FLAG_DZ_TRANPOSED_DEFLATE,
+                                 'param': 0 if compression == 1 else gp['channel_group']['samples_byte_nr']}
+                        data_block = DataZippedBlock(**kargs)
                     write(bytes(data_block))
 
                     align = data_block['block_len'] % 8
@@ -1641,7 +1621,7 @@ class MDF4(object):
                     # this will only be executed for data blocks when load_measured_data=False
 
                     data = self._load_group_data(gp)
-                    if self.compression:
+                    if compression and self.version != '4.00':
                         kargs = {'data': data,
                                  'zip_type': FLAG_DZ_DEFLATE if self.compression == 1 else FLAG_DZ_TRANPOSED_DEFLATE,
                                  'param': 0 if self.compression == 1 else gp['channel_group']['samples_byte_nr']}
@@ -1822,7 +1802,6 @@ class MDF4(object):
 
             for orig_addr, gp in zip(original_data_addresses, self.groups):
                 gp['data_group']['data_block_addr'] = orig_addr
-
 
 
 if __name__ == '__main__':

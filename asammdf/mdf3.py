@@ -84,9 +84,6 @@ class MDF3(object):
         self.channels_db = {}
         self.masters_db = {}
 
-        # MDF version 3.x do not support compressed data blocks
-        self.compression = 0
-
         # used when appending to MDF object created with load_measured_data=False
         self._tempfile = None
 
@@ -1336,7 +1333,7 @@ class MDF3(object):
             return
         self.groups.pop(idx)
 
-    def save(self, dst='', overwrite=False):
+    def save(self, dst='', overwrite=False, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file name is
         the MDF name. If overwrite is *True* then the destination file is overwritten,
         otherwise the file name is appened with '_xx', were 'xx' is the first conter that produces a new
@@ -1348,6 +1345,8 @@ class MDF3(object):
             destination file name, Default ''
         overwrite : bool
             overwrite flag, default *False*
+        compression : int
+            does nothing for mdf version3; introduced here to share the same API as mdf version 4 files
 
         """
 

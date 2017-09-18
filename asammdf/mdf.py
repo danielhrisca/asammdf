@@ -37,15 +37,9 @@ class MDF(object):
         * if *False* the channel data is read from disk on request
     version : string
         mdf file version ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10', '4.11'); default '3.20'
-    compression : int
-        use compressed data blocks, default 0; only valid since version 4.10
-
-        * 0 - no compression
-        * 1 - deflate (slower, but produces smaller files)
-        * 2 - transposition + deflate (slowest, but produces the smallest files)
 
     """
-    def __init__(self, name=None, load_measured_data=True, version='3.20', compression=0):
+    def __init__(self, name=None, load_measured_data=True, version='3.20'):
         if name:
             if os.path.isfile(name):
                 with open(name, 'rb') as file_stream:
@@ -54,14 +48,14 @@ class MDF(object):
                 if version in MDF3_VERSIONS:
                     self._file = MDF3(name, load_measured_data)
                 elif version in MDF4_VERSIONS:
-                    self._file = MDF4(name, load_measured_data, compression=compression)
+                    self._file = MDF4(name, load_measured_data)
             else:
                 raise MdfException('File "{}" does not exist'.format(name))
         else:
             if version in MDF3_VERSIONS:
                 self._file = MDF3(version=version, load_measured_data=load_measured_data)
             elif version in MDF4_VERSIONS:
-                self._file = MDF4(version=version, load_measured_data=load_measured_data, compression=compression)
+                self._file = MDF4(version=version, load_measured_data=load_measured_data)
 
         # link underlying _file attributes and methods to the new MDF object
         for attr in set(dir(self._file)) - set(dir(self)):
@@ -73,7 +67,7 @@ class MDF(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def convert(self, to, load_measured_data=True, compression=0):
+    def convert(self, to, load_measured_data=True):
         """convert MDF to other versions
 
         Parameters
@@ -86,13 +80,6 @@ class MDF(object):
             * if *True* the data group binary data block will be loaded in RAM
             * if *False* the channel data is stored to a temporary file and read from disk on request
 
-        compression : int
-            use compressed data blocks, default 0; only valid since version 4.10
-
-            * 0 - no compression
-            * 1 - deflate (slower, but produces smaller files)
-            * 2 - transposition + deflate (slowest, but produces the smallest files)
-
         Returns
         -------
         out : MDF
@@ -103,7 +90,7 @@ class MDF(object):
             warn('Unknown output mdf version "{}". Available versions are {}'.format(to, MDF4_VERSIONS + MDF3_VERSIONS))
             return
         else:
-            out = MDF(version=to, load_measured_data=load_measured_data, compression=compression)
+            out = MDF(version=to, load_measured_data=load_measured_data)
             if self.version in MDF3_VERSIONS:
                 master_type = (V3_MASTER,)
             else:
@@ -136,7 +123,7 @@ class MDF(object):
             new MDF object
 
         """
-        out = MDF(version=self.version, compression=self.compression)
+        out = MDF(version=self.version)
         if self.version in MDF3_VERSIONS:
             master_type = (V3_MASTER,)
         else:
@@ -307,7 +294,7 @@ class MDF(object):
                 warn('MDF filter error: Channel "{}" not found, it will be ignored'.format(ch))
                 continue
 
-        mdf = MDF(version=self.version, load_measured_data=self.load_measured_data, compression=self.compression)
+        mdf = MDF(version=self.version, load_measured_data=self.load_measured_data)
 
         # append filtered channels to new MDF
         for group in gps:
@@ -321,7 +308,7 @@ class MDF(object):
         return mdf
 
     @staticmethod
-    def merge(files, load_measured_data=True, compression=0):
+    def merge(files, load_measured_data=True):
         """ merge several files and return the merged MDF object. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -335,12 +322,6 @@ class MDF(object):
 
             * if *True* the data group binary data block will be loaded in RAM
             * if *False* the channel data is stored to a temporary file and read from disk on request
-        compression : int
-            use compressed data blocks, default 0; only valid since version 4.10
-
-            * 0 - no compression
-            * 1 - deflate (slower, but produces smaller files)
-            * 2 - transposition + deflate (slowest, but produces the smallest files)
 
         Returns
         -------
@@ -353,11 +334,11 @@ class MDF(object):
             merged MDF object
         """
         if files:
-            merged = MDF(files[0], load_measured_data=load_measured_data, compression=compression)
+            merged = MDF(files[0], load_measured_data=load_measured_data)
             for file in files[1:]:
-                mdf = MDF(file, load_measured_data=load_measured_data, compression=compression)
+                mdf = MDF(file, load_measured_data=load_measured_data)
                 out = merged
-                merged = MDF(load_measured_data=load_measured_data, compression=compression)
+                merged = MDF(load_measured_data=load_measured_data)
                 if len(out.groups) != len(mdf.groups):
                     raise MdfException("Can't merge files: merged has {} groups and {} has {} groups".format(len(out.groups),
                                                                                                              mdf.name,
