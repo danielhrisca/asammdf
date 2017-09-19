@@ -905,7 +905,7 @@ class MDF4(object):
             self._tempfile.seek(0, SEEK_END)
             data_address = self._tempfile.tell()
             gp['data_group']['data_block_addr'] = data_address
-            self._tempfile.writebytes(block)
+            self._tempfile.write(bytes(block))
 
     def attach(self, data, file_name=None, comment=None, compression=True, mime=r'application/octet-stream'):
         """ attach embedded attachment as application/octet-stream

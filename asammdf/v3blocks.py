@@ -4,9 +4,9 @@ PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 
 import time
-import os
-from struct import unpack, pack
 
+from struct import unpack, pack
+from getpass import getuser
 from functools import partial
 
 from .v3constants import *
@@ -1059,10 +1059,7 @@ class HeaderBlock(dict):
             t2 = time.gmtime()
             self['date'] = '{:\x00<10}'.format(time.strftime('%d:%m:%Y', t2)).encode('latin-1')
             self['time'] = '{:\x00<8}'.format(time.strftime('%X', t2)).encode('latin-1')
-            if PYVERSION > 2:
-                self['author'] = '{:\x00<32}'.format(os.getlogin()).encode('latin-1')
-            else:
-                self['author'] = b'\x00' * 32
+            self['author'] = '{:\x00<32}'.format(getuser()).encode('latin-1')
             self['organization'] = '{:\x00<32}'.format('').encode('latin-1')
             self['project'] = '{:\x00<32}'.format('').encode('latin-1')
             self['subject'] = '{:\x00<32}'.format('').encode('latin-1')
