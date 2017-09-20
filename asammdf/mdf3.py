@@ -18,6 +18,7 @@ from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, log, exp, clip, union1d, float64,
                    uint8, frombuffer, issubdtype, flexible, arange, recarray)
 from numpy.core.records import fromstring, fromarrays
+from numpy.core.defchararray import decode, encode
 from numexpr import evaluate
 
 from .utils import MdfException, get_fmt, pair, fmt_to_datatype
@@ -227,6 +228,7 @@ class MDF3(object):
                         next_byte_aligned_position = parent_start_offset + 8
                         size = 1
                 else:
+                    next_byte_aligned_position = parent_start_offset + size
                     size = size >> 3
 
                 types.append( (name, get_fmt(data_type, size)) )
@@ -774,7 +776,6 @@ class MDF3(object):
 
                 ch_cntr += 1
 
-
             # simple channels don't have channel dependencies
             for _ in simple_signals:
                 gp_dep.append(None)
@@ -1115,15 +1116,24 @@ class MDF3(object):
 
             if conversion_type == CONVERSION_TYPE_NONE:
                 # is it a Byte Array?
-                if channel['data_type'] == DATA_TYPE_BYTEARRAY:
-                    vals = vals.tostring()
-                    size = max(bits>>3, 1)
-                    cols = size
-                    lines = len(vals) // cols
+                if DATA_TYPE_STRING <= channel['data_type'] <= DATA_TYPE_BYTEARRAY:
+                    if channel['data_type'] == DATA_TYPE_BYTEARRAY:
+                        vals = vals.tostring()
+                        size = max(bits>>3, 1)
+                        cols = size
+                        lines = len(vals) // cols
 
-                    vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
+                        vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
 
-                    info = {'type': SIGNAL_TYPE_V3_BYTEARRAY}
+                        info = {'type': SIGNAL_TYPE_V3_BYTEARRAY}
+
+                    elif channel['data_type'] == DATA_TYPE_STRING:
+                        vals = [val.tobytes() for val in vals]
+                        vals = array([x.decode('latin-1').strip('\x00') for x in vals])
+                        if PYVERSION == 2:
+                            vals = array([str(val) for val in vals])
+
+                        vals = encode(vals, 'latin-1')
 
             elif conversion_type == CONVERSION_TYPE_LINEAR:
                 a = conversion['a']

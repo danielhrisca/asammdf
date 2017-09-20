@@ -199,7 +199,7 @@ class Channel(dict):
             self['bit_offset'] = kargs.get('bit_offset', 0)
             self['byte_offset'] = kargs.get('byte_offset', 8)
             self['bit_count'] = kargs.get('bit_count', 8)
-            self['flags'] = 28
+            self['flags'] = kargs.get('flags', 28)
             self['pos_invalidation_bit'] = 0
             self['precision'] = 3
             self['reserved1'] = 0

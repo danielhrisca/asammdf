@@ -114,7 +114,7 @@ def get_fmt(data_type, size, version=3):
                            v3c.DATA_TYPE_DOUBLE_MOTOROLA):
             fmt = '>f{}'.format(size)
         elif data_type == v3c.DATA_TYPE_STRING:
-            fmt = 'a{}'.format(size)
+            fmt = 'V{}'.format(size)
     elif version == 4:
         if size == 0:
             fmt = 'b'
@@ -183,7 +183,7 @@ def fmt_to_datatype(fmt, version=3):
         elif issubdtype(fmt, floating):
             data_type = v4c.DATA_TYPE_REAL_INTEL
         elif issubdtype(fmt, flexible):
-            data_type = v4c.DATA_TYPE_STRING_UTF_8
+            data_type = v4c.DATA_TYPE_STRING_LATIN_1
     return data_type, size
 
 

@@ -20,7 +20,7 @@ from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
                    uint8, arange, column_stack, argwhere,
                    issubdtype, flexible)
-from numpy.core.defchararray import decode
+from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromstring, fromarrays
 from numexpr import evaluate
 
@@ -865,7 +865,9 @@ class MDF4(object):
                      'min_raw_value': sigmin if sigmin<=sigmax else 0,
                      'max_raw_value' : sigmax if sigmin<=sigmax else 0,
                      'lower_limit' : sigmin if sigmin<=sigmax else 0,
-                     'upper_limit' : sigmax if sigmin<=sigmax else 255}
+                     'upper_limit' : sigmax if sigmin<=sigmax else 0}
+            if sigmin > sigmax:
+                kargs['flags'] = 0
             ch = Channel(**kargs)
             ch.name = name
             gp_channels.append(ch)
@@ -1227,6 +1229,8 @@ class MDF4(object):
                         if PYVERSION == 2:
                             vals = array([str(val) for val in vals])
 
+                        vals = encode(vals, 'latin-1')
+
                 elif channel['channel_type'] == CHANNEL_TYPE_VLSD:
                     values = []
                     for offset in vals:
@@ -1250,6 +1254,8 @@ class MDF4(object):
                         vals = array([str(val) for val in vals])
                     else:
                         vals = array(vals)
+
+                    vals = encode(vals, 'latin-1')
 
                 # CANopen date
                 elif channel['data_type'] == DATA_TYPE_CANOPEN_DATE:
