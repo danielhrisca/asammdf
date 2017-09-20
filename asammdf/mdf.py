@@ -49,6 +49,8 @@ class MDF(object):
                     self._file = MDF3(name, load_measured_data)
                 elif version in MDF4_VERSIONS:
                     self._file = MDF4(name, load_measured_data)
+                else:
+                    raise MdfException('"{}" is not a supported MDF file;, "{}" file version was found'.format(name, version))
             else:
                 raise MdfException('File "{}" does not exist'.format(name))
         else:
@@ -348,23 +350,21 @@ class MDF(object):
                     master_index = out.masters_db[i]
 
                     if len(gp1['channels']) != len(gp2['channels']):
-                        raise MdfException("Can't merge files: merged DataGroup {} has {} channels and {} DataGroup {} has {} channels"\
-                                               .format(i,
-                                                       len(gp1['channels']),
-                                                       mdf.name,
-                                                       i,
-                                                       len(gp2['channels'])))
+                        raise MdfException("Can't merge files: merged DataGroup {} has {} channels and {} DataGroup {} has {} channels".format(i,
+                                                                                                                                               len(gp1['channels']),
+                                                                                                                                               mdf.name,
+                                                                                                                                               i,
+                                                                                                                                               len(gp2['channels'])))
 
                     for j, (ch1, ch2) in enumerate(zip(gp1['channels'], gp2['channels'])):
                         if ch1.name != ch2.name:
-                            raise MdfException("Can't merge files: merged DataGroup {} channel {} is named {} and {} DataGroup {} channel {} is named {}"\
-                                                   .format(i,
-                                                           j,
-                                                           ch1.name,
-                                                           mdf.name,
-                                                           i,
-                                                           j,
-                                                           ch2.name))
+                            raise MdfException("Can't merge files: merged DataGroup {} channel {} is named {} and {} DataGroup {} channel {} is named {}".format(i,
+                                                                                                                                                                 j,
+                                                                                                                                                                 ch1.name,
+                                                                                                                                                                 mdf.name,
+                                                                                                                                                                 i,
+                                                                                                                                                                 j,
+                                                                                                                                                                 ch2.name))
                         if j == master_index:
                             continue
                         sig1 = out.get(group=i, index=j)

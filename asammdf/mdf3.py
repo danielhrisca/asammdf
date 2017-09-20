@@ -635,8 +635,13 @@ class MDF3(object):
                  'max_raw_value' : t[-1] if cycles_nr else 0,
                  'bit_count': t_size}
         ch = Channel(**kargs)
-        ch.name = 't'
+        ch.name = name = 't'
         gp_channels.append(ch)
+
+        ch_cntr = 0
+        if not name in self.channels_db:
+            self.channels_db[name] = []
+        self.channels_db[name].append((dg_cntr, ch_cntr))
         self.masters_db[dg_cntr] = 0
 
         # time channel doesn't have channel dependencies
@@ -644,7 +649,7 @@ class MDF3(object):
 
         # prepare start bit offset and channel counter for the other channels
         offset = t_size
-        ch_cntr = 1
+        ch_cntr += 1
 
         # arrays will hold the samples for all channels
         # types holds the (channel name, numpy dtype) pairs for all channels

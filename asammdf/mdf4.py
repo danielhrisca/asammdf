@@ -20,8 +20,9 @@ from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
                    uint8, arange, column_stack, argwhere,
                    issubdtype, flexible)
-from numexpr import evaluate
+from numpy.core.defchararray import decode
 from numpy.core.records import fromstring, fromarrays
+from numexpr import evaluate
 
 from .v4blocks import (AttachmentBlock,
                        Channel,
@@ -836,15 +837,23 @@ class MDF4(object):
                  'lower_limit' : t[0] if cycles_nr else 0,
                  'upper_limit' : t[-1] if cycles_nr else 0}
         ch = Channel(**kargs)
-        ch.name = 't'
+        ch.name = name = 't'
         gp_channels.append(ch)
+
+        ch_cntr = 0
+        if name in self.channels_db:
+            self.channels_db[name].append((dg_cntr, ch_cntr))
+        else:
+            self.channels_db[name] = []
+            self.channels_db[name].append((dg_cntr, ch_cntr))
+        ch_cntr += 1
         self.masters_db[dg_cntr] = 0
 
         #channels
         sig_dtypes = [sig.samples.dtype for sig in signals]
         sig_formats = [fmt_to_datatype(typ, version=4) for typ in sig_dtypes]
         offset = t_size // 8
-        ch_cntr = 1
+
         names = [sig.name for sig in signals]
         for (sigmin, sigmax), (sig_type, sig_size), name in zip(min_max, sig_formats, names):
             byte_size = max(sig_size // 8, 1)
@@ -1197,7 +1206,28 @@ class MDF4(object):
 
             if conversion_type == CONVERSION_TYPE_NON:
                 # check if it is VLDS channel type with SDBLOCK
-                if signal_data:
+
+                if channel['channel_type'] == CHANNEL_TYPE_VALUE:
+                    if DATA_TYPE_STRING_LATIN_1 <= channel['data_type'] <= DATA_TYPE_STRING_UTF_16_BE:
+                        vals = [val.tobytes() for val in vals]
+
+                        if channel['data_type'] == DATA_TYPE_STRING_UTF_16_BE:
+                            encoding = 'utf-16-be'
+
+                        elif channel['data_type'] == DATA_TYPE_STRING_UTF_16_LE:
+                            encoding = 'utf-16-le'
+
+                        elif channel['data_type'] == DATA_TYPE_STRING_UTF_8:
+                            encoding = 'utf-8'
+
+                        elif channel['data_type'] == DATA_TYPE_STRING_LATIN_1:
+                            encoding = 'latin-1'
+
+                        vals = array([x.decode(encoding).strip('\x00') for x in vals])
+                        if PYVERSION == 2:
+                            vals = array([str(val) for val in vals])
+
+                elif channel['channel_type'] == CHANNEL_TYPE_VLSD:
                     values = []
                     for offset in vals:
                         offset = int(offset)
@@ -1205,16 +1235,21 @@ class MDF4(object):
                         values.append(signal_data[offset+4: offset+4+str_size])
 
                     if channel['data_type'] == DATA_TYPE_STRING_UTF_16_BE:
-                        vals = array([v.decode('utf-16-be') for v in values])
+                        vals = decode(values, 'utf-16-be')
 
                     elif channel['data_type'] == DATA_TYPE_STRING_UTF_16_LE:
-                        vals = array([v.decode('utf-16-le') for v in values])
+                        vals = decode(values, 'utf-16-le')
 
                     elif channel['data_type'] == DATA_TYPE_STRING_UTF_8:
-                        vals = array([v.decode('utf-8') for v in values])
+                        vals = decode(values, 'utf-8')
 
                     elif channel['data_type'] == DATA_TYPE_STRING_LATIN_1:
-                        vals = array([v.decode('latin-1') for v in values])
+                        vals = decode(values, 'latin-1')
+
+                    if PYVERSION == 2:
+                        vals = array([str(val) for val in vals])
+                    else:
+                        vals = array(vals)
 
                 # CANopen date
                 elif channel['data_type'] == DATA_TYPE_CANOPEN_DATE:

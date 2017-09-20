@@ -131,7 +131,7 @@ def get_fmt(data_type, size, version=3):
         elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
             fmt = '>f{}'.format(size)
         elif data_type == v4c.DATA_TYPE_BYTEARRAY:
-            fmt = 'a{}'.format(size)
+            fmt = 'V{}'.format(size)
         elif data_type in (v4c.DATA_TYPE_STRING_UTF_8,
                            v4c.DATA_TYPE_STRING_LATIN_1,
                            v4c.DATA_TYPE_STRING_UTF_16_BE,
@@ -141,11 +141,11 @@ def get_fmt(data_type, size, version=3):
             elif size == 8:
                 fmt = '<u8'
             else:
-                raise MdfException('invalid size for VLSD offsets')
+                fmt = 'V{}'.format(size)
         elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
-            fmt = 'a7'
+            fmt = 'V7'
         elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
-            fmt = 'a6'
+            fmt = 'V6'
     return fmt
 
 
