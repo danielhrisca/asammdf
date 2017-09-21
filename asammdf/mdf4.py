@@ -1232,30 +1232,34 @@ class MDF4(object):
                         vals = encode(vals, 'latin-1')
 
                 elif channel['channel_type'] == CHANNEL_TYPE_VLSD:
-                    values = []
-                    for offset in vals:
-                        offset = int(offset)
-                        str_size = unpack_from('<I', signal_data, offset)[0]
-                        values.append(signal_data[offset+4: offset+4+str_size])
+                    if signal_data:
+                        values = []
+                        for offset in vals:
+                            offset = int(offset)
+                            str_size = unpack_from('<I', signal_data, offset)[0]
+                            values.append(signal_data[offset+4: offset+4+str_size])
 
-                    if channel['data_type'] == DATA_TYPE_STRING_UTF_16_BE:
-                        vals = decode(values, 'utf-16-be')
+                        if channel['data_type'] == DATA_TYPE_STRING_UTF_16_BE:
+                            vals = decode(values, 'utf-16-be')
 
-                    elif channel['data_type'] == DATA_TYPE_STRING_UTF_16_LE:
-                        vals = decode(values, 'utf-16-le')
+                        elif channel['data_type'] == DATA_TYPE_STRING_UTF_16_LE:
+                            vals = decode(values, 'utf-16-le')
 
-                    elif channel['data_type'] == DATA_TYPE_STRING_UTF_8:
-                        vals = decode(values, 'utf-8')
+                        elif channel['data_type'] == DATA_TYPE_STRING_UTF_8:
+                            vals = decode(values, 'utf-8')
 
-                    elif channel['data_type'] == DATA_TYPE_STRING_LATIN_1:
-                        vals = decode(values, 'latin-1')
+                        elif channel['data_type'] == DATA_TYPE_STRING_LATIN_1:
+                            vals = decode(values, 'latin-1')
 
-                    if PYVERSION == 2:
-                        vals = array([str(val) for val in vals])
+                        if PYVERSION == 2:
+                            vals = array([str(val) for val in vals])
+                        else:
+                            vals = array(vals)
+
+                        vals = encode(vals, 'latin-1')
                     else:
-                        vals = array(vals)
-
-                    vals = encode(vals, 'latin-1')
+                        # no VLSD signal data samples
+                        vals = array([])
 
                 # CANopen date
                 elif channel['data_type'] == DATA_TYPE_CANOPEN_DATE:
@@ -1328,6 +1332,7 @@ class MDF4(object):
                     size = max(bits>>3, 1)
                     ch_fmt = get_fmt(channel['data_type'], size, version=4)
                     if not vals.dtype == ch_fmt:
+                        print(channel.name, ch_fmt, vals.dtype, dtypes)
                         vals = vals.astype(ch_fmt)
                 else:
                     vals = vals * a
