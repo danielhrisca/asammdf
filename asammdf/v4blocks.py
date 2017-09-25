@@ -38,6 +38,7 @@ class AttachmentBlock(dict):
     """ ATBLOCK class
 
     When adding new attachments only embedded attachemnts are allowed, with keyword argument *data* of type bytes"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(AttachmentBlock, self).__init__()
 
@@ -135,6 +136,7 @@ class AttachmentBlock(dict):
 
 class Channel(dict):
     """ CNBLOCK class"""
+    __slots__ = ['address', 'name', 'cn_template', 'cn_template_size']
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
@@ -236,6 +238,7 @@ class Channel(dict):
 
 class ChannelArrayBlock(dict):
     """CABLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(ChannelArrayBlock, self).__init__()
 
@@ -271,6 +274,7 @@ class ChannelArrayBlock(dict):
 
 class ChannelGroup(dict):
     """CGBLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(ChannelGroup, self).__init__()
 
@@ -326,6 +330,7 @@ class ChannelGroup(dict):
 
 class ChannelConversion(dict):
     """CCBLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
 
@@ -758,6 +763,7 @@ class DataBlock(dict):
         file handle
 
     """
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(DataBlock, self).__init__()
 
@@ -800,6 +806,7 @@ class DataZippedBlock(dict):
         file handle
 
     """
+    __slots__ = ['address', 'prevent_data_setitem', 'return_unzipped']
     def __init__(self, **kargs):
         super(DataZippedBlock, self).__init__()
 
@@ -898,6 +905,7 @@ class DataZippedBlock(dict):
 
 class DataGroup(dict):
     """DGBLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(DataGroup, self).__init__()
 
@@ -940,6 +948,7 @@ class DataGroup(dict):
 
 class DataList(dict):
     """DLBLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(DataList, self).__init__()
 
@@ -996,6 +1005,7 @@ class DataList(dict):
 
 class FileIdentificationBlock(dict):
     """IDBLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
 
         super(FileIdentificationBlock, self).__init__()
@@ -1043,6 +1053,7 @@ class FileIdentificationBlock(dict):
 
 class FileHistory(dict):
     """FHBLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(FileHistory, self).__init__()
 
@@ -1085,6 +1096,7 @@ class FileHistory(dict):
 
 class HeaderBlock(dict):
     """HDBLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(HeaderBlock, self).__init__()
 
@@ -1144,6 +1156,7 @@ class HeaderBlock(dict):
 
 class HeaderList(dict):
     """HLBLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(HeaderList, self).__init__()
 
@@ -1182,6 +1195,7 @@ class HeaderList(dict):
 
 class SourceInformation(dict):
     """SIBLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(SourceInformation, self).__init__()
 
@@ -1225,6 +1239,7 @@ class SourceInformation(dict):
 
 class SignalDataBlock(dict):
     """SDBLOCK class"""
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(SignalDataBlock, self).__init__()
 
@@ -1264,6 +1279,7 @@ class SignalDataBlock(dict):
 
 class TextBlock(dict):
     """common TXBLOCK and MDBLOCK class"""
+    __slots__ = ['address', 'text_str']
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
 

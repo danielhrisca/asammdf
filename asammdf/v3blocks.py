@@ -5,7 +5,7 @@ PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 
 import time
 
-from struct import unpack, pack
+from struct import unpack, pack, Struct
 from getpass import getuser
 from functools import partial
 
@@ -89,6 +89,8 @@ class Channel(dict):
     b'CN'
 
     '''
+    __slots__ = ['name', 'address']
+
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
@@ -241,6 +243,7 @@ class ChannelConversion(dict):
     0, 100.0
 
     '''
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
 
@@ -526,6 +529,7 @@ class ChannelDependency(dict):
         block address inside mdf file
 
     '''
+    __slots__ = ['address', 'referemced_channels']
     def __init__(self, **kargs):
         super(ChannelDependency, self).__init__()
 
@@ -629,6 +633,7 @@ class ChannelExtension(dict):
         block address inside mdf file
 
     '''
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(ChannelExtension, self).__init__()
 
@@ -731,6 +736,7 @@ class ChannelGroup(dict):
     b'CG'
 
     '''
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(ChannelGroup, self).__init__()
 
@@ -802,7 +808,7 @@ class DataBlock(dict):
         binary file stream
 
     """
-
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(DataBlock, self).__init__()
 
@@ -855,6 +861,7 @@ class DataGroup(dict):
         block address inside mdf file
 
     '''
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(DataGroup, self).__init__()
 
@@ -937,6 +944,7 @@ class FileIdentificationBlock(dict):
         block address inside mdf file; should be 0 always
 
     '''
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(FileIdentificationBlock, self).__init__()
 
@@ -1019,6 +1027,7 @@ class HeaderBlock(dict):
         block address inside mdf file; should be 64 always
 
     '''
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(HeaderBlock, self).__init__()
 
@@ -1109,6 +1118,7 @@ class ProgramBlock(dict):
         block address inside mdf file
 
     '''
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(ProgramBlock, self).__init__()
 
@@ -1159,6 +1169,7 @@ class SampleReduction(dict):
         block address inside mdf file
 
     '''
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(SampleReduction, self).__init__()
 
@@ -1220,6 +1231,7 @@ class TextBlock(dict):
     b'VehicleSpeed'
 
     '''
+    __slots__ = ['address', 'text_str']
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
         try:
@@ -1299,6 +1311,7 @@ class TriggerBlock(dict):
         block address inside mdf file
 
     '''
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(TriggerBlock, self).__init__()
 
