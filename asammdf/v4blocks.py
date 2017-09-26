@@ -359,7 +359,7 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack('<4Q2B3H2d', block)
+                 self['max_phy_value']) = unpack(FMT_CONVERSION_NONE_INIT, block)
 
             elif conv == CONVERSION_TYPE_LIN:
                 (self['name_addr'],
@@ -374,7 +374,7 @@ class ChannelConversion(dict):
                  self['min_phy_value'],
                  self['max_phy_value'],
                  self['b'],
-                 self['a']) = unpack('<4Q2B3H4d', block)
+                 self['a']) = unpack(FMT_CONVERSION_LINEAR_INIT, block)
 
             elif conv == CONVERSION_TYPE_RAT:
                 (self['name_addr'],
@@ -393,7 +393,7 @@ class ChannelConversion(dict):
                  self['P3'],
                  self['P4'],
                  self['P5'],
-                 self['P6']) = unpack('<4Q2B3H8d', block)
+                 self['P6']) = unpack(FMT_CONVERSION_RAT_INIT, block)
 
             elif conv == CONVERSION_TYPE_ALG:
                 (self['name_addr'],
@@ -407,7 +407,7 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack('<5Q2B3H2d', block)
+                 self['max_phy_value']) = unpack(FMT_CONVERSION_ALGEBRAIC_INIT, block)
 
             elif conv in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TAB):
                 (self['name_addr'],
@@ -420,7 +420,7 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack_from('<4Q2B3H2d', block)
+                 self['max_phy_value']) = unpack_from(FMT_CONVERSION_NONE_INIT, block)
 
                 nr = self['val_param_nr']
                 values = unpack('<{}d'.format(nr), block[56:])
@@ -439,7 +439,7 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack_from('<4Q2B3H2d', block)
+                 self['max_phy_value']) = unpack_from(FMT_CONVERSION_NONE_INIT, block)
                 nr = self['val_param_nr']
                 values = unpack('<{}d'.format(nr), block[56:])
                 for i in range((nr - 1) // 3):
@@ -1279,7 +1279,9 @@ class SignalDataBlock(dict):
 
 class TextBlock(dict):
     """common TXBLOCK and MDBLOCK class"""
+
     __slots__ = ['address', 'text_str']
+
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
 
