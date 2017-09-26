@@ -1138,12 +1138,7 @@ class MDF3(object):
             elif conversion_type == CONVERSION_TYPE_LINEAR:
                 a = conversion['a']
                 b = conversion['b']
-                if (a, b) == (1, 0):
-                    size = max(bits>>3, 1)
-                    ch_fmt = get_fmt(channel['data_type'], size)
-                    if not vals.dtype == ch_fmt:
-                        vals = vals.astype(ch_fmt)
-                else:
+                if (a, b) != (1, 0):
                     vals = vals * a
                     if b:
                         vals += b

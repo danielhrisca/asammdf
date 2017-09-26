@@ -1328,13 +1328,7 @@ class MDF4(object):
             elif conversion_type == CONVERSION_TYPE_LIN:
                 a = conversion['a']
                 b = conversion['b']
-                if (a, b) == (1, 0):
-                    size = max(bits>>3, 1)
-                    ch_fmt = get_fmt(channel['data_type'], size, version=4)
-                    if not vals.dtype == ch_fmt:
-                        print(channel.name, ch_fmt, vals.dtype, dtypes)
-                        vals = vals.astype(ch_fmt)
-                else:
+                if (a, b) != (1, 0):
                     vals = vals * a
                     if b:
                         vals += b
