@@ -262,27 +262,28 @@ class ChannelConversion(dict):
              self['max_phy_value'],
              self['unit'],
              self['conversion_type'],
-             self['ref_param_nr']) = unpack_from(FMT_CONVERSION_COMMON_SHORT, block, 4)
+             self['ref_param_nr']) = unpack_from(FMT_CONVERSION_COMMON_SHORT, block)
 
             conv_type = self['conversion_type']
 
-            if conv_type == CONVERSION_TYPE_NONE:
+            if conv_type == CONVERSION_TYPE_LINEAR:
+                (self['b'],
+                 self['a']) = unpack_from('<2d', block, CC_COMMON_SHORT_SIZE)
+                if not size == CC_LIN_BLOCK_SIZE:
+                    self['CANapeHiddenExtra'] = block[CC_LIN_BLOCK_SIZE - 4:]
+
+            elif conv_type == CONVERSION_TYPE_NONE:
                 pass
+
             elif conv_type == CONVERSION_TYPE_FORMULA:
-                self['formula'] = block[CC_COMMON_BLOCK_SIZE - 4:]
+                self['formula'] = block[CC_COMMON_SHORT_SIZE:]
 
             elif conv_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
                 nr = self['ref_param_nr']
-                values = unpack_from('<{}d'.format(2*nr), block, CC_COMMON_BLOCK_SIZE-4)
+                values = unpack_from('<{}d'.format(2*nr), block, CC_COMMON_SHORT_SIZE)
                 for i in range(nr):
                     (self['raw_{}'.format(i)],
                      self['phys_{}'.format(i)]) = values[i*2], values[2*i+1]
-
-            elif conv_type == CONVERSION_TYPE_LINEAR:
-                (self['b'],
-                 self['a']) = unpack_from('<2d', block, CC_COMMON_BLOCK_SIZE - 4)
-                if not size == CC_LIN_BLOCK_SIZE:
-                    self['CANapeHiddenExtra'] = block[CC_LIN_BLOCK_SIZE - 4:]
 
             elif conv_type in (CONVERSION_TYPE_POLY, CONVERSION_TYPE_RAT):
                 (self['P1'],
@@ -290,7 +291,7 @@ class ChannelConversion(dict):
                  self['P3'],
                  self['P4'],
                  self['P5'],
-                 self['P6']) = unpack_from('<6d', block, CC_COMMON_BLOCK_SIZE - 4)
+                 self['P6']) = unpack_from('<6d', block)
 
             elif conv_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
                 (self['P1'],
@@ -299,12 +300,12 @@ class ChannelConversion(dict):
                  self['P4'],
                  self['P5'],
                  self['P6'],
-                 self['P7']) = unpack_from('<7d', block, CC_COMMON_BLOCK_SIZE - 4)
+                 self['P7']) = unpack_from('<7d', block, CC_COMMON_SHORT_SIZE)
 
             elif conv_type == CONVERSION_TYPE_VTAB:
                 nr = self['ref_param_nr']
 
-                values = unpack_from('<' + 'd32s' * nr, block, CC_COMMON_BLOCK_SIZE - 4)
+                values = unpack_from('<' + 'd32s' * nr, block, CC_COMMON_SHORT_SIZE)
 
                 for i in range(nr):
                     (self['param_val_{}'.format(i)],
@@ -313,13 +314,12 @@ class ChannelConversion(dict):
             elif conv_type == CONVERSION_TYPE_VTABR:
                 nr = self['ref_param_nr']
 
-                values = unpack_from('<' + '2dI' * nr, block, CC_COMMON_BLOCK_SIZE - 4)
+                values = unpack_from('<' + '2dI' * nr, block, CC_COMMON_SHORT_SIZE)
                 for i in range(nr):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
                      self['text_{}'.format(i)]) = values[i*3], values[3*i+1], values[3*i+2]
         except KeyError:
-
             self.address = 0
             self['id'] = 'CC'.encode('latin-1')
 
@@ -529,7 +529,7 @@ class ChannelDependency(dict):
         block address inside mdf file
 
     '''
-    __slots__ = ['address', 'referemced_channels']
+    __slots__ = ['address', 'referenced_channels']
     def __init__(self, **kargs):
         super(ChannelDependency, self).__init__()
 
@@ -1257,6 +1257,9 @@ class TextBlock(dict):
             self['id'] = b'TX'
             self['block_len'] = len(text) + 4 + 1
             self['text'] = text + b'\x00'
+        except:
+            print(hex(address))
+            raise
 
     @classmethod
     def from_text(cls, text):

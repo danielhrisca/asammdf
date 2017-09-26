@@ -276,8 +276,8 @@ class MDF3(object):
                 trigger_addr = gp['trigger_addr']
                 if trigger_addr:
                     trigger = TriggerBlock(address=trigger_addr, file_stream=file_stream)
-                    if trigger['comment_addr']:
-                        trigger_text = TextBlock(address=trigger['comment_addr'], file_stream=file_stream)
+                    if trigger['text_addr']:
+                        trigger_text = TextBlock(address=trigger['text_addr'], file_stream=file_stream)
                     else:
                         trigger_text = None
                 else:
