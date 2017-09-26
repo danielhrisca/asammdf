@@ -5,7 +5,7 @@ PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 
 import time
 
-from struct import unpack, pack, Struct
+from struct import unpack, pack, Struct, unpack_from
 from getpass import getuser
 from functools import partial
 
@@ -255,34 +255,34 @@ class ChannelConversion(dict):
             (self['id'],
              self['block_len']) = unpack('<2sH', block)
             size = self['block_len']
-            block += stream.read(size - 4)
+            block = stream.read(size - 4)
 
             (self['range_flag'],
              self['min_phy_value'],
              self['max_phy_value'],
              self['unit'],
              self['conversion_type'],
-             self['ref_param_nr']) = unpack(FMT_CONVERSION_COMMON_SHORT, block[4:CC_COMMON_BLOCK_SIZE])
+             self['ref_param_nr']) = unpack_from(FMT_CONVERSION_COMMON_SHORT, block, 4)
 
             conv_type = self['conversion_type']
 
             if conv_type == CONVERSION_TYPE_NONE:
                 pass
             elif conv_type == CONVERSION_TYPE_FORMULA:
-                self['formula'] = unpack('<{}s'.format(size - 46), block[CC_COMMON_BLOCK_SIZE:])[0]
+                self['formula'] = block[CC_COMMON_BLOCK_SIZE - 4:]
 
             elif conv_type in (CONVERSION_TYPE_TABI, CONVERSION_TYPE_TABX):
                 nr = self['ref_param_nr']
-                values = unpack('<{}d'.format(2*nr), block[CC_COMMON_BLOCK_SIZE:])
+                values = unpack_from('<{}d'.format(2*nr), block, CC_COMMON_BLOCK_SIZE-4)
                 for i in range(nr):
                     (self['raw_{}'.format(i)],
                      self['phys_{}'.format(i)]) = values[i*2], values[2*i+1]
 
             elif conv_type == CONVERSION_TYPE_LINEAR:
                 (self['b'],
-                 self['a']) = unpack('<2d', block[CC_COMMON_BLOCK_SIZE: CC_LIN_BLOCK_SIZE])
+                 self['a']) = unpack_from('<2d', block, CC_COMMON_BLOCK_SIZE - 4)
                 if not size == CC_LIN_BLOCK_SIZE:
-                    self['CANapeHiddenExtra'] = block[CC_LIN_BLOCK_SIZE:]
+                    self['CANapeHiddenExtra'] = block[CC_LIN_BLOCK_SIZE - 4:]
 
             elif conv_type in (CONVERSION_TYPE_POLY, CONVERSION_TYPE_RAT):
                 (self['P1'],
@@ -290,7 +290,7 @@ class ChannelConversion(dict):
                  self['P3'],
                  self['P4'],
                  self['P5'],
-                 self['P6']) = unpack('<6d', block[CC_COMMON_BLOCK_SIZE: CC_POLY_BLOCK_SIZE])
+                 self['P6']) = unpack_from('<6d', block, CC_COMMON_BLOCK_SIZE - 4)
 
             elif conv_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
                 (self['P1'],
@@ -299,12 +299,12 @@ class ChannelConversion(dict):
                  self['P4'],
                  self['P5'],
                  self['P6'],
-                 self['P7']) = unpack('<7d', block[CC_COMMON_BLOCK_SIZE: CC_EXPO_BLOCK_SIZE])
+                 self['P7']) = unpack_from('<7d', block, CC_COMMON_BLOCK_SIZE - 4)
 
             elif conv_type == CONVERSION_TYPE_VTAB:
                 nr = self['ref_param_nr']
 
-                values = unpack('<' + 'd32s' * nr, block[CC_COMMON_BLOCK_SIZE:])
+                values = unpack_from('<' + 'd32s' * nr, block, CC_COMMON_BLOCK_SIZE - 4)
 
                 for i in range(nr):
                     (self['param_val_{}'.format(i)],
@@ -313,7 +313,7 @@ class ChannelConversion(dict):
             elif conv_type == CONVERSION_TYPE_VTABR:
                 nr = self['ref_param_nr']
 
-                values = unpack('<' + '2dI' * nr, block[CC_COMMON_BLOCK_SIZE:])
+                values = unpack_from('<' + '2dI' * nr, block, CC_COMMON_BLOCK_SIZE - 4)
                 for i in range(nr):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
