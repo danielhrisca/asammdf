@@ -178,6 +178,7 @@ class MDF4(object):
                 grp['channel_sources'] = []
                 grp['signal_data'] = []
                 grp['data_block'] = None
+                grp['channel_dependencies'] = []
                 # channel_group is lsit to allow uniform handling of all texts in save method
                 grp['texts'] = {'channels': [], 'sources': [], 'conversions': [], 'conversion_tab': [], 'channel_group': []}
 
@@ -271,13 +272,17 @@ class MDF4(object):
 
             dg_addr = group['next_dg_addr']
 
-    def _read_channels(self, ch_addr, grp, file_stream, dg_cntr, ch_cntr):
+    def _read_channels(self, ch_addr, grp, file_stream, dg_cntr, ch_cntr, channel_composition=False):
+
         channels = grp['channels']
+        composition = []
         while ch_addr:
             # read channel block and create channel object
             channel = Channel(address=ch_addr, file_stream=file_stream)
 
             channels.append(channel)
+            if channel_composition:
+                composition.append(channel)
 
             # append channel signal data if load_measured_data allows it
             if self.load_measured_data:
@@ -384,7 +389,8 @@ class MDF4(object):
                 file_stream.seek(channel['component_addr'], SEEK_START)
                 blk_id = file_stream.read(4)
                 if blk_id == b'##CN':
-                    ch_cntr = self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr)
+                    ch_cntr, compositioin = self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr)
+                    grp['channel_dependencies'].append(composition)
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are supported so far
                     ca_block = ChannelArrayBlock(address=channel['component_addr'], file_stream=file_stream)
@@ -392,13 +398,24 @@ class MDF4(object):
                         dim_size = ca_block['dim_size']
                         channel.cn_template = True
                         channel.cn_template_size = dim_size
+                        grp['channel_dependencies'].append([ca_block,])
                     else:
+                        ca_list = [ca_block, ]
+                        grp['channel_dependencies'].append(ca_block)
+                        while ca_block['link_0']:
+                            ca_block = ChannelArrayBlock(address=ca_block['link_0'], file_stream=file_stream)
+                            ca_list.append(ca_block)
+                        grp['channel_dependencies'].append(ca_list)
+                        print(ca_list)
                         warnings.warn('Channel arrays are not supported yet')
+
+            else:
+                grp['channel_dependencies'].append(None)
 
             # go to next channel of the current channel group
             ch_addr = channel['next_ch_addr']
 
-        return ch_cntr
+        return ch_cntr, composition
 
     def _read_data_block(self, address, file_stream, record_id=None):
         """read and agregate data blocks for a given data group
@@ -569,13 +586,17 @@ class MDF4(object):
         # adjusted to the first higher standard integer size (eq. uint of 28bits will
         # be adjusted to 32bits)
 
+
         for original_index, new_ch in sorted(enumerate(grp['channels']), key=lambda i: i[1]):
 
             start_offset = new_ch['byte_offset']
             bit_offset = new_ch['bit_offset']
             data_type = new_ch['data_type']
             bit_count = new_ch['bit_count']
-            name = str(new_ch.name)
+            ch_type = new_ch['channel_type']
+            name = new_ch.name
+            if PYVERSION == 2:
+                name = str(new_ch.name)
 
             # handle multiple occurance of same channel name
             i = 0
@@ -583,66 +604,68 @@ class MDF4(object):
             while new_name in group_channels:
                 new_name = "{}_{}".format(name, i)
                 i += 1
-            name = str(new_name)
+
             group_channels.add(name)
 
             if start_offset >= next_byte_aligned_position:
-                if new_ch['component_addr']:
-                    if new_ch.cn_template:
-                        # assume that the channel array is byte aligned
+                if ch_type not in (CHANNEL_TYPE_VIRTUAL_MASTER, CHANNEL_TYPE_VIRTUAL):
+                    if not new_ch['component_addr']:
+                        parent_start_offset = start_offset
+                        parents[original_index] = name, bit_offset
 
                         # check if there are byte gaps in the record
-                        gap = start_offset - next_byte_aligned_position
+                        gap = parent_start_offset - next_byte_aligned_position
                         if gap:
                             types.append( ('', 'a{}'.format(gap)) )
 
-                        dim = new_ch.cn_template_size
-                        size = new_ch['bit_count'] >> 3
-                        for i in range(dim):
-                            new_name = str('{}_dim_{}'.format(name, i))
-                            types.append( (new_name, get_fmt(data_type, size, version=4)) )
-
-                        current_parent = ''
-                        next_byte_aligned_position = start_offset + size * dim
-                    else:
-                        parents[name] = None, None
-                # virtual channels do not have bytes in the record
-                elif new_ch['channel_type'] in (CHANNEL_TYPE_VIRTUAL_MASTER, CHANNEL_TYPE_VIRTUAL):
-                    parents[original_index] = None, None
-                else:
-                    parent_start_offset = start_offset
-                    parents[original_index] = name, bit_offset
-
-                    # check if there are byte gaps in the record
-                    gap = parent_start_offset - next_byte_aligned_position
-                    if gap:
-                        types.append( ('', 'a{}'.format(gap)) )
-
-                    # adjust size to 1, 2, 4 or 8 bytes
-                    size = bit_offset + bit_count
-                    if not data_type in (DATA_TYPE_BYTEARRAY,
-                                         DATA_TYPE_STRING_UTF_8,
-                                         DATA_TYPE_STRING_LATIN_1,
-                                         DATA_TYPE_STRING_UTF_16_BE,
-                                         DATA_TYPE_STRING_UTF_16_LE,
-                                         DATA_TYPE_CANOPEN_TIME,
-                                         DATA_TYPE_CANOPEN_DATE):
-                        if size > 32:
-                            size = 8
-                        elif size > 16:
-                            size = 4
-                        elif size > 8:
-                            size = 2
+                        # adjust size to 1, 2, 4 or 8 bytes
+                        size = bit_offset + bit_count
+                        if not data_type in (DATA_TYPE_BYTEARRAY,
+                                             DATA_TYPE_STRING_UTF_8,
+                                             DATA_TYPE_STRING_LATIN_1,
+                                             DATA_TYPE_STRING_UTF_16_BE,
+                                             DATA_TYPE_STRING_UTF_16_LE,
+                                             DATA_TYPE_CANOPEN_TIME,
+                                             DATA_TYPE_CANOPEN_DATE):
+                            if size > 32:
+                                size = 8
+                            elif size > 16:
+                                size = 4
+                            elif size > 8:
+                                size = 2
+                            else:
+                                size = 1
                         else:
-                            size = 1
+                            size = size >> 3
+
+                        next_byte_aligned_position = parent_start_offset + size
+
+                        types.append( (name, get_fmt(data_type, size, version=4)) )
+
+                        current_parent = name
                     else:
-                        size = size >> 3
+                        if new_ch.cn_template:
+                            # assume that the channel array is byte aligned
 
-                    next_byte_aligned_position = parent_start_offset + size
+                            # check if there are byte gaps in the record
+                            gap = start_offset - next_byte_aligned_position
+                            if gap:
+                                types.append( ('', 'a{}'.format(gap)) )
 
-                    types.append( (name, get_fmt(data_type, size, version=4)) )
+                            dim = new_ch.cn_template_size
+                            size = bit_count >> 3
+                            for i in range(dim):
+                                new_name = str('{}_dim_{}'.format(name, i))
+                                types.append( (new_name, get_fmt(data_type, size, version=4)) )
 
-                    current_parent = name
+                            current_parent = ''
+                            next_byte_aligned_position = start_offset + size * dim
+                        else:
+                            parents[original_index] = None, None
+                # virtual channels do not have bytes in the record
+                else:
+                    parents[original_index] = None, None
+
             else:
                 parents[original_index] = current_parent, ((start_offset - parent_start_offset) << 3 ) + bit_offset
         gap = record_size - next_byte_aligned_position
@@ -1473,7 +1496,7 @@ class MDF4(object):
                         comment = comment.text_str
                         try:
                             comment = XML.fromstring(comment).find('TX').text
-                        except:
+                        except Exception as e:
                             comment = ''
                     else:
                         comment = comment.text_str

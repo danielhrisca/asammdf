@@ -192,7 +192,9 @@ class MDF3(object):
             bit_offset = start_offset % 8
             data_type = new_ch['data_type']
             bit_count = new_ch['bit_count']
-            name = str(new_ch.name)
+            name = new_ch.name
+            if PYVERSION == 2:
+                name = str(new_ch.name)
 
             # handle multiple occurance of same channel name
             i = 0
@@ -200,7 +202,6 @@ class MDF3(object):
             while new_name in group_channels:
                 new_name = "{}_{}".format(name, i)
                 i += 1
-            name = str(new_name)
             group_channels.add(name)
 
             if start_offset >= next_byte_aligned_position:

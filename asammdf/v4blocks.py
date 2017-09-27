@@ -220,16 +220,17 @@ class Channel(dict):
             return pack(FMT_CHANNEL, *[self[key] for key in KEYS_CHANNEL])
 
     def __lt__(self, other):
-        if self['byte_offset'] < other['byte_offset']:
+        self_byte_offset = self['byte_offset']
+        other_byte_offset = other['byte_offset']
+
+        if self_byte_offset < other_byte_offset:
             return 1
-        elif self['byte_offset'] == other['byte_offset']:
-            if self['bit_count'] + self['bit_offset'] > other['bit_count'] + other['bit_offset']:
+        elif self_byte_offset == other_byte_offset:
+            self_range = self['bit_offset'] + self['bit_count']
+            other_range = other['bit_offset'] + other['bit_count']
+
+            if self_range > other_range:
                 return 1
-            elif self['bit_count'] + self['bit_offset'] == other['bit_count'] + other['bit_offset']:
-                if self['bit_offset'] < other['bit_offset']:
-                    return 1
-                else:
-                    return 0
             else:
                 return 0
         else:

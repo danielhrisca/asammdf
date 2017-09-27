@@ -35,13 +35,13 @@ class Signal(object):
     def __init__(self, samples=None, timestamps=None, unit='', name='', conversion=None, comment=''):
         if samples is None or timestamps is None or name == '':
             raise MdfException('"samples", "timestamps" and "name" are mandatory arguments for Signal class instance')
-        elif len(samples) != len(timestamps):
-            raise MdfException('samples and timestamps lenght do not match ({} vs {})'.format(len(samples), len(timestamps)))
         else:
-            if isinstance(samples, list) or isinstance(samples, tuple):
+            if isinstance(samples, (list, tuple)):
                 samples = np.array(samples)
-            if isinstance(timestamps, list) or isinstance(samples, tuple):
+            if isinstance(timestamps, (list, tuple)):
                 timestamps = np.array(timestamps, dtype=np.float64)
+            if samples.size != timestamps.size:
+                raise MdfException('samples and timestamps lenght do not match ({} vs {})'.format(samples.size, timestamps.size))
             self.samples = samples
             self.timestamps = timestamps
             self.unit = unit
