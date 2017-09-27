@@ -105,6 +105,8 @@ class MDF4(object):
         self.masters_db = {}
         self.attachments = []
 
+        self._ch_map = {}
+
         # used when appending to MDF object created with load_measured_data=False
         self._tempfile = None
 
@@ -272,6 +274,18 @@ class MDF4(object):
 
             dg_addr = group['next_dg_addr']
 
+        for grp in self.groups:
+            for dependency_list in grp['channel_dependencies']:
+                if dependency_list:
+                    for dep in dependency_list:
+                        if isinstance(dep, Channel):
+                            break
+                        else:
+                            if dep['ca_type'] == CA_TYPE_LOOKUP and dep['links_nr'] == 4 * dep['dims'] + 1:
+                                for i in range(dep['dims']):
+                                    ch_addr = dep['scale_axis_{}_ch_addr'.format(i)]
+                                    dep.referenced_channels.append(self._ch_map[ch_addr][0])
+
     def _read_channels(self, ch_addr, grp, file_stream, dg_cntr, ch_cntr, channel_composition=False):
 
         channels = grp['channels']
@@ -279,6 +293,8 @@ class MDF4(object):
         while ch_addr:
             # read channel block and create channel object
             channel = Channel(address=ch_addr, file_stream=file_stream)
+
+            self._ch_map[ch_addr] = (channel, grp)
 
             channels.append(channel)
             if channel_composition:
@@ -389,25 +405,18 @@ class MDF4(object):
                 file_stream.seek(channel['component_addr'], SEEK_START)
                 blk_id = file_stream.read(4)
                 if blk_id == b'##CN':
-                    ch_cntr, compositioin = self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr)
+                    ch_cntr, composition = self._read_channels(channel['component_addr'], grp, file_stream, dg_cntr, ch_cntr, True)
                     grp['channel_dependencies'].append(composition)
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are supported so far
                     ca_block = ChannelArrayBlock(address=channel['component_addr'], file_stream=file_stream)
-                    if ca_block['ca_type'] in (CA_TYPE_ARRAY, CA_TYPE_SCALE_AXIS) and ca_block['storage'] == CA_STORAGE_TYPE_CN_TEMPLATE:
-                        dim_size = ca_block['dim_size']
-                        channel.cn_template = True
-                        channel.cn_template_size = dim_size
-                        grp['channel_dependencies'].append([ca_block,])
-                    else:
-                        ca_list = [ca_block, ]
-                        grp['channel_dependencies'].append(ca_block)
-                        while ca_block['link_0']:
-                            ca_block = ChannelArrayBlock(address=ca_block['link_0'], file_stream=file_stream)
-                            ca_list.append(ca_block)
-                        grp['channel_dependencies'].append(ca_list)
-                        print(ca_list)
-                        warnings.warn('Channel arrays are not supported yet')
+                    if ca_block['storage'] != CA_STORAGE_TYPE_CN_TEMPLATE:
+                        warnings.warn('Only CN template arrays are supported')
+                    ca_list = [ca_block, ]
+                    while ca_block['composition_addr']:
+                        ca_block = ChannelArrayBlock(address=ca_block['composition_addr'], file_stream=file_stream)
+                        ca_list.append(ca_block)
+                    grp['channel_dependencies'].append(ca_list)
 
             else:
                 grp['channel_dependencies'].append(None)
@@ -594,6 +603,7 @@ class MDF4(object):
             data_type = new_ch['data_type']
             bit_count = new_ch['bit_count']
             ch_type = new_ch['channel_type']
+            dependecy_list = grp['channel_dependencies'][original_index]
             name = new_ch.name
             if PYVERSION == 2:
                 name = str(new_ch.name)
@@ -609,7 +619,7 @@ class MDF4(object):
 
             if start_offset >= next_byte_aligned_position:
                 if ch_type not in (CHANNEL_TYPE_VIRTUAL_MASTER, CHANNEL_TYPE_VIRTUAL):
-                    if not new_ch['component_addr']:
+                    if not dependecy_list:
                         parent_start_offset = start_offset
                         parents[original_index] = name, bit_offset
 
@@ -644,7 +654,9 @@ class MDF4(object):
 
                         current_parent = name
                     else:
-                        if new_ch.cn_template:
+                        if isinstance(dependecy_list[0], ChannelArrayBlock):
+                            ca_block = dependecy_list[0]
+
                             # assume that the channel array is byte aligned
 
                             # check if there are byte gaps in the record
@@ -652,14 +664,19 @@ class MDF4(object):
                             if gap:
                                 types.append( ('', 'a{}'.format(gap)) )
 
-                            dim = new_ch.cn_template_size
+                            shape = tuple(ca_block['dim_size_{}'.format(i)] for i in range(ca_block['dims']))
+                            if ca_block['byte_offset_base'] > 1 and len(shape) == 1:
+                                shape += (ca_block['byte_offset_base'], )
+                            dim = 1
+                            for d in shape:
+                                dim *= d
                             size = bit_count >> 3
-                            for i in range(dim):
-                                new_name = str('{}_dim_{}'.format(name, i))
-                                types.append( (new_name, get_fmt(data_type, size, version=4)) )
+                            types.append( (name, get_fmt(data_type, size, version=4), shape) )
 
-                            current_parent = ''
+                            current_parent = name
                             next_byte_aligned_position = start_offset + size * dim
+                            parents[original_index] = name, 0
+
                         else:
                             parents[original_index] = None, None
                 # virtual channels do not have bytes in the record
@@ -1113,6 +1130,7 @@ class MDF4(object):
         grp = self.groups[gp_nr]
         channel = grp['channels'][ch_nr]
         conversion = grp['channel_conversions'][ch_nr]
+        dependency_list = grp['channel_dependencies'][ch_nr]
 
         # get data group record
         try:
@@ -1139,74 +1157,72 @@ class MDF4(object):
             signal_data = b''
 
         # check if this is a channel array
-        if channel['component_addr']:
-            if channel.cn_template:
-                name = channel.name
-                dims = channel.cn_template_size
-                dim_names = ['{}_dim_{}'.format(name, i) for i in range(dims)]
-                arrays = [record[dim_name] for dim_name in dim_names]
+        if dependency_list:
+            arrays = []
+            name = channel.name
 
-                types = [ (dim_name, arr.dtype) for dim_name, arr in zip(dim_names, arrays)]
+            if all(isinstance(dep, Channel) for dep in dependency_list):
+                arrays = [self.get(ch.name, samples_only=True) for ch in dependency_list]
+                names = [ch.name for ch in dependency_list]
+                types = [ (name, arr.dtype) for name, arr in zip(names, arrays)]
                 types = dtype(types)
 
                 vals = fromarrays(arrays, dtype=types)
 
-                info = {'type' : SIGNAL_TYPE_V4_ARRAY}
-
-                if samples_only:
-                    return vals
-                else:
-                    # get the channel commment if available
-                    comment = grp['texts']['channels'][ch_nr].get('comment_addr', None)
-                    if comment:
-                        if comment['id'] == b'##MD':
-                            comment = comment.text_str
-                            comment = XML.fromstring(comment).find('TX').text
-                        else:
-                            comment = comment.text_str
-                    else:
-                        comment = ''
-
-                    # get master channel index
-                    time_ch_nr = self.masters_db[gp_nr]
-
-                    time_conv = grp['channel_conversions'][time_ch_nr]
-                    time_ch = grp['channels'][time_ch_nr]
-                    if time_ch['channel_type'] == CHANNEL_TYPE_VIRTUAL_MASTER:
-                        time_a = time_conv['a']
-                        time_b = time_conv['b']
-                        cycles = grp['channel_group']['cycles_nr']
-                        t = arange(cycles, dtype=float64) * time_a + time_b
-                    else:
-                        t = record[time_ch.name]
-                        # get timestamps
-                        time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
-                        if time_conv_type == CONVERSION_TYPE_LIN:
-                            time_a = time_conv['a']
-                            time_b = time_conv['b']
-                            t = t * time_a
-                            if time_b:
-                                t += time_b
-                    res = Signal(samples=vals,
-                                 timestamps=t,
-                                 unit='',
-                                 name=channel.name,
-                                 comment=comment,
-                                 conversion=info)
-
-                    if raster and t:
-                        tx = linspace(0, t[-1], int(t[-1] / raster))
-                        res = res.interp(tx)
-                    return res
+                info = {'type': SIGNAL_TYPE_V4_CHANNEL_COMPOSITION}
 
             else:
-                warnings.warn('Channel arrays not support yet')
-                if samples_only:
-                    return array([])
+                parent, bit_offset = parents[ch_nr]
+                vals = record[parent]
+
+                info = {'type': SIGNAL_TYPE_V4_ARRAY}
+
+            if samples_only:
+                return vals
+            else:
+                # get the channel commment if available
+                comment = grp['texts']['channels'][ch_nr].get('comment_addr', None)
+                if comment:
+                    if comment['id'] == b'##MD':
+                        comment = comment.text_str
+                        comment = XML.fromstring(comment).find('TX').text
+                    else:
+                        comment = comment.text_str
                 else:
-                    return Signal(samples=array([]),
-                                  timestamps=array([]),
-                                  name=channel.name,)
+                    comment = ''
+
+                # get master channel index
+                time_ch_nr = self.masters_db[gp_nr]
+
+                time_conv = grp['channel_conversions'][time_ch_nr]
+                time_ch = grp['channels'][time_ch_nr]
+                if time_ch['channel_type'] == CHANNEL_TYPE_VIRTUAL_MASTER:
+                    time_a = time_conv['a']
+                    time_b = time_conv['b']
+                    cycles = grp['channel_group']['cycles_nr']
+                    t = arange(cycles, dtype=float64) * time_a + time_b
+                else:
+                    t = record[time_ch.name]
+                    # get timestamps
+                    time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
+                    if time_conv_type == CONVERSION_TYPE_LIN:
+                        time_a = time_conv['a']
+                        time_b = time_conv['b']
+                        t = t * time_a
+                        if time_b:
+                            t += time_b
+                res = Signal(samples=vals,
+                             timestamps=t,
+                             unit='',
+                             name=channel.name,
+                             comment=comment,
+                             conversion=info)
+
+                if raster and t:
+                    tx = linspace(0, t[-1], int(t[-1] / raster))
+                    res = res.interp(tx)
+                return res
+
         else:
             # get channel values
             parent, bit_offset = parents[ch_nr]

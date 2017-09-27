@@ -136,13 +136,11 @@ class AttachmentBlock(dict):
 
 class Channel(dict):
     """ CNBLOCK class"""
-    __slots__ = ['address', 'name', 'cn_template', 'cn_template_size']
+    __slots__ = ['address', 'name']
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
         self.name = ''
-        self.cn_template = False
-        self.cn_template_size = 0
 
         try:
             self.address = address = kargs['address']
@@ -239,9 +237,11 @@ class Channel(dict):
 
 class ChannelArrayBlock(dict):
     """CABLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', 'referenced_channels']
     def __init__(self, **kargs):
         super(ChannelArrayBlock, self).__init__()
+
+        self.referenced_channels = []
 
         try:
             self.address = address = kargs['address']
@@ -255,16 +255,43 @@ class ChannelArrayBlock(dict):
 
             nr = self['links_nr']
             links = unpack('<{}Q'.format(nr), stream.read(8*nr))
-            for i in range(nr):
-                self['link_{}'.format(i)] = links[i]
+            self['composition_addr'] = links[0]
+
+            values = unpack('<2BHIiI', stream.read(16))
+            dims_nr = values[2]
+
+            if nr == 1:
+                pass
+
+            # lookup table with fixed axis
+            elif nr == dims_nr + 1:
+                for i in range(dims_nr):
+                    self['axis_conversion_{}'.format(i)] = links[i+1]
+
+            # lookup table with CN template
+            elif nr == 4 * dims_nr + 1 :
+                for i in range(dims_nr):
+                    self['axis_conversion_{}'.format(i)] = links[i + 1]
+                for i in range(dims_nr):
+                    self['scale_axis_{}_dg_addr'.format(i)] =  links[3*i + dims_nr + 1]
+                    self['scale_axis_{}_cg_addr'.format(i)] =  links[3*i + 1 + dims_nr + 1]
+                    self['scale_axis_{}_ch_addr'.format(i)] = links[3*i + 2 + dims_nr + 1]
 
             (self['ca_type'],
              self['storage'],
              self['dims'],
              self['flags'],
              self['byte_offset_base'],
-             self['invalidation_bit_base'],
-             self['dim_size']) = unpack('<2BHIiIQ', stream.read(24))
+             self['invalidation_bit_base']) = values
+
+            dim_sizes = unpack('<{}Q'.format(dims_nr), stream.read(8*dims_nr))
+            for i, size in enumerate(dim_sizes):
+                self['dim_size_{}'.format(i)] = size
+
+            if self['flags'] & FLAG_CA_FIXED_AXIS:
+                for i in range(dims_nr):
+                    for j in range(self['dim_size_{}'.format(i)]):
+                        self['axis_{}_value_{}'.format(i, j)] = unpack('<d', stream.read(8))[0]
 
         except KeyError:
             pass
