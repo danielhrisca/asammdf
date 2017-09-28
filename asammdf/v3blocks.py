@@ -1233,7 +1233,7 @@ class TextBlock(dict):
     b'VehicleSpeed'
 
     '''
-    __slots__ = ['address', 'text_str']
+    __slots__ = ['address',]
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
         try:
@@ -1244,45 +1244,25 @@ class TextBlock(dict):
             (self['id'],
              self['block_len']) = unpack('<2sH', stream.read(4))
             size = self['block_len'] - 4
-            self['text'] = text = stream.read(size)
+            self['text'] = stream.read(size)
 
-            self.text_str = text.decode('latin-1').strip('\x00')
         except KeyError:
             self.address = 0
             text = kargs['text']
             try:
-                self.text_str = text
                 text = text.encode('latin-1')
             except:
-                self.text_str = text.decode('latin-1').strip(' \n\t\x00')
+                pass
 
             self['id'] = b'TX'
             self['block_len'] = len(text) + 4 + 1
             self['text'] = text + b'\x00'
-        except:
-            print(hex(address))
-            raise
-
-    @classmethod
-    def from_text(cls, text):
-        """
-        Creates a *TextBlock* object from a string or bytes
-
-        Parameters
-        ----------
-        text : str | bytes
-            input string
-
-        """
-        return cls(text=text)
 
     def __bytes__(self):
-        #return pack('<2sH{}s'.format(self.size - 4), *[self[key] for key in KEYS_TEXT_BLOCK])
-        # for performance reasons:
         if PYVERSION_MAJOR >= 36:
-            return pack('<2sH' + str(self['block_len']-4) + 's', *self.values())
+            return pack('<2sH{}s'.format(self['block_len']-4), *self.values())
         else:
-            return pack('<2sH' + str(self['block_len']-4) + 's', *[self[key] for key in KEYS_TEXT_BLOCK])
+            return pack('<2sH{}s'.format(self['block_len']-4), *[self[key] for key in KEYS_TEXT_BLOCK])
 
 
 class TriggerBlock(dict):

@@ -1308,7 +1308,7 @@ class SignalDataBlock(dict):
 class TextBlock(dict):
     """common TXBLOCK and MDBLOCK class"""
 
-    __slots__ = ['address', 'text_str']
+    __slots__ = ['address', ]
 
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
@@ -1325,9 +1325,7 @@ class TextBlock(dict):
 
             size = self['block_len'] - COMMON_SIZE
 
-            self['text'] = text = stream.read(size)
-
-            self.text_str = text.decode('utf-8').strip('\x00')
+            self['text'] = stream.read(size)
 
         except KeyError:
 
@@ -1335,10 +1333,9 @@ class TextBlock(dict):
             text = kargs['text']
 
             try:
-                self.text_str = text
                 text = text.encode('utf-8')
             except:
-                self.text_str = text.decode('utf-8').strip(' \n\t\x00')
+                pass
 
             text_length = len(text)
             align = text_length % 8
@@ -1349,7 +1346,7 @@ class TextBlock(dict):
             else:
                 padding = 8
 
-            self['id'] = kargs['id']
+            self['id'] = b'##MD' if kargs.get('meta', False) else b'##TX'
             self['reserved0'] = 0
             self['block_len'] = text_length + padding + COMMON_SIZE
             self['links_nr'] = 0
@@ -1357,39 +1354,6 @@ class TextBlock(dict):
                 self['text'] = text + b'\00' * padding
             else:
                 self['text'] = text
-
-    @classmethod
-    def from_text(cls, text, meta=False):
-        """Create a TextBlock from a str or bytes
-
-        Parameters
-        ----------
-        text : str | bytes
-            input text
-        meta : bool
-            enable meta text block
-
-        Returns
-        -------
-
-        Examples
-        --------
-        >>> t = TextBlock.from_text(b'speed')
-        >>> t['id']
-        b'##TX'
-        >>> t.text_str
-        speed
-        >>> t = TextBlock.from_text('mass', meta=True)
-        >>> t['id']
-        b'##MD'
-
-        """
-        kargs = {}
-
-        kargs['id'] = b'##MD' if meta else b'##TX'
-        kargs['text'] = text
-
-        return cls(**kargs)
 
     def __bytes__(self):
         fmt = FMT_TEXT_BLOCK.format(self['block_len'] - COMMON_SIZE)

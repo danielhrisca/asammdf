@@ -374,7 +374,7 @@ class MDF3(object):
 
                         # update channel object name and block_size attributes
                         if new_ch['long_name_addr']:
-                            new_ch.name = ch_texts['long_name_addr'].text_str
+                            new_ch.name = ch_texts['long_name_addr']['text'].decode('latin-1')
                         else:
                             new_ch.name = new_ch['short_name'].decode('latin-1').strip(' \n\t\x00')
 
@@ -498,7 +498,7 @@ class MDF3(object):
             trigger['trigger_{}_pretime'.format(nr)] = pre_time
             trigger['trigger_{}_posttime'.format(nr)] = post_time
             if trigger_text is None and comment:
-                trigger_text = TextBlock.from_text(comment)
+                trigger_text = TextBlock(text=comment)
                 gp['trigger'][1] = trigger_text
         else:
             trigger = TriggerBlock(trigger_event_nr=1,
@@ -506,7 +506,7 @@ class MDF3(object):
                                    trigger_0_pretime=pre_time,
                                    trigger_0_posttime=post_time)
             if comment:
-                trigger_text = TextBlock.from_text(comment)
+                trigger_text = TextBlock(text=comment)
             else:
                 trigger_text = None
 
@@ -613,7 +613,7 @@ class MDF3(object):
         for _, item in gp_texts.items():
             item.append({})
 
-        gp_texts['channel_group'][-1]['comment_addr'] = TextBlock.from_text(acquisition_info)
+        gp_texts['channel_group'][-1]['comment_addr'] = TextBlock(text=acquisition_info)
 
         #conversion for time channel
         kargs = {'conversion_type': CONVERSION_TYPE_NONE,
@@ -672,7 +672,7 @@ class MDF3(object):
                 for _, item in gp['texts'].items():
                     item.append({})
                 if len(name) >= 32:
-                    gp_texts['channels'][-1]['long_name_addr'] = TextBlock.from_text(name)
+                    gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
 
             # conversions for channels
             if cycles_nr:
@@ -715,7 +715,7 @@ class MDF3(object):
                             kargs['lower_{}'.format(i)] = l_
                             kargs['upper_{}'.format(i)] = u_
                             kargs['text_{}'.format(i)] = 0
-                            gp_texts['conversion_tab'][-1]['text_{}'.format(i)] = TextBlock.from_text(t_)
+                            gp_texts['conversion_tab'][-1]['text_{}'.format(i)] = TextBlock(text=t_)
 
                     else:
                          kargs = {'conversion_type': CONVERSION_TYPE_NONE,
@@ -813,13 +813,13 @@ class MDF3(object):
                 for _, item in gp['texts'].items():
                     item.append({})
                 if len(name) >= 32:
-                    gp_texts['channels'][-1]['long_name_addr'] = TextBlock.from_text(name)
+                    gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
                 # add components texts
                 for name in names:
                     for _, item in gp['texts'].items():
                         item.append({})
                     if len(name) >= 32:
-                        gp_texts['channels'][-1]['long_name_addr'] = TextBlock.from_text(name)
+                        gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
 
                 # recarray parent has no conversion
                 gp_conv.append(None)
@@ -1271,7 +1271,7 @@ class MDF3(object):
             trigger, trigger_text = gp['trigger']
             if trigger:
                 if trigger_text:
-                    comment = trigger_text.text_str
+                    comment = trigger_text['text'].decode('latin-1')
                 else:
                     comment = ''
 
@@ -1362,7 +1362,7 @@ class MDF3(object):
         """
 
         if self.file_history is None:
-            self.file_history = TextBlock.from_text('''<FHcomment>
+            self.file_history = TextBlock(text='''<FHcomment>
 <TX>created</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor> </tool_vendor>
@@ -1370,7 +1370,7 @@ class MDF3(object):
 </FHcomment>''')
         else:
             text = self.file_history['text'] + '\n{}: updated byt Python script'.format(time.asctime()).encode('latin-1')
-            self.file_history = TextBlock.from_text(text)
+            self.file_history = TextBlock(text=text)
 
         if self.name is None and dst == '':
             raise MdfException('Must specify a destination file name for MDF created from scratch')
@@ -1440,13 +1440,15 @@ class MDF3(object):
                     for my_dict in item_list:
                         for key in my_dict:
                             #text blocks can be shared
-                            if my_dict[key].text_str in defined_texts:
-                                my_dict[key].address = defined_texts[my_dict[key].text_str]
+                            tx_block = my_dict[key]
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                tx_block.address = defined_texts[text]
                             else:
-                                defined_texts[my_dict[key].text_str] = address
-                                my_dict[key].address = address
-                                blocks.append(my_dict[key])
-                                address += my_dict[key]['block_len']
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                blocks.append(tx_block)
+                                address += tx_block['block_len']
 
                 # ChannelConversions
                 cc = gp['channel_conversions']

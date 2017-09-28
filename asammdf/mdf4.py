@@ -335,7 +335,7 @@ class MDF4(object):
                         conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
                     elif blk_id == b'##CC':
                         conv_tabx_texts['default_addr'] = ChannelConversion(address=address, file_stream=file_stream)
-                        conv_tabx_texts['default_addr'].text_str = str(time.clock())
+                        conv_tabx_texts['default_addr']['text'] = str(time.clock()).encode('utf-8')
 
                         conv['unit_addr'] = conv_tabx_texts['default_addr']['unit_addr']
                         conv_tabx_texts['default_addr']['unit_addr'] = 0
@@ -388,7 +388,7 @@ class MDF4(object):
                     channel_texts[key] = TextBlock(address=address, file_stream=file_stream)
 
             # update channel object name and block_size attributes
-            channel.name = channel_texts['name_addr'].text_str
+            channel.name = channel_texts['name_addr']['text'].decode('utf-8').strip(' \t\n\r\x00')
             if channel.name in self.channels_db:
                 self.channels_db[channel.name].append((dg_cntr, ch_cntr))
             else:
@@ -774,10 +774,10 @@ class MDF4(object):
         # time channel texts
         for key, item in gp['texts'].items():
             item.append({})
-        gp_texts['channels'][-1]['name_addr'] = TextBlock.from_text('t')
-        gp_texts['conversions'][-1]['unit_addr'] = TextBlock.from_text('s')
+        gp_texts['channels'][-1]['name_addr'] = TextBlock(text='t')
+        gp_texts['conversions'][-1]['unit_addr'] = TextBlock(text='s')
 
-        si_text = TextBlock.from_text(source_info)
+        si_text = TextBlock(text=source_info)
         gp_texts['sources'][-1]['name_addr'] = si_text
         gp_texts['sources'][-1]['path_addr'] = si_text
         gp_texts['channel_group'][-1]['acq_name_addr'] = si_text
@@ -787,9 +787,9 @@ class MDF4(object):
         for s in signals:
             for key, item in gp['texts'].items():
                 item.append({})
-            gp_texts['channels'][-1]['name_addr'] = TextBlock.from_text(s.name)
+            gp_texts['channels'][-1]['name_addr'] = TextBlock(text=s.name)
             if s.unit:
-                gp_texts['channels'][-1]['unit_addr'] = TextBlock.from_text(s.unit)
+                gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=s.unit)
             gp_texts['sources'][-1]['name_addr'] = si_text
             gp_texts['sources'][-1]['path_addr'] = si_text
 
@@ -827,9 +827,9 @@ class MDF4(object):
                     for i, (r_, p_) in enumerate(zip(raw, phys)):
                         kargs['text_{}'.format(i)] = 0
                         kargs['val_{}'.format(i)] = r_
-                        conv_texts_tab['text_{}'.format(i)] = TextBlock.from_text(p_)
+                        conv_texts_tab['text_{}'.format(i)] = TextBlock(text=p_)
                     if conv.get('default', b''):
-                        conv_texts_tab['default_addr'] = TextBlock.from_text(conv['default'])
+                        conv_texts_tab['default_addr'] = TextBlock(text=conv['default'])
                     else:
                         conv_texts_tab['default_addr'] = None
                     kargs['default_addr'] = 0
@@ -849,9 +849,9 @@ class MDF4(object):
                         kargs['lower_{}'.format(i)] = l_
                         kargs['upper_{}'.format(i)] = u_
                         kargs['text_{}'.format(i)] = 0
-                        conv_texts_tab['text_{}'.format(i)] = TextBlock.from_text(t_)
+                        conv_texts_tab['text_{}'.format(i)] = TextBlock(text=t_)
                     if conv.get('default', b''):
-                        conv_texts_tab['default_addr'] = TextBlock.from_text(conv['default'])
+                        conv_texts_tab['default_addr'] = TextBlock(text=conv['default'])
                     else:
                         conv_texts_tab['default_addr'] = None
                     kargs['default_addr'] = 0
@@ -943,6 +943,10 @@ class MDF4(object):
         arrays = [t, ] + [sig.samples for sig in signals]
 
         arrays = fromarrays(arrays, dtype=types)
+        
+        gp['channel_dependencies'] = []
+        for i in range(len(arrays)):
+            gp['channel_dependencies'].append(None)
 
         block = arrays.tostring()
 
@@ -977,7 +981,7 @@ class MDF4(object):
         """
         creator_index = len(self.file_history)
         fh = FileHistory()
-        fh_text = TextBlock.from_text("""<FHcomment>
+        fh_text = TextBlock(text="""<FHcomment>
 	<TX>Added new embedded attachment from {}</TX>
 	<tool_id>asammdf</tool_id>
 	<tool_vendor>asammdf</tool_vendor>
@@ -987,10 +991,10 @@ class MDF4(object):
         self.file_history.append((fh, fh_text))
 
         texts = {}
-        texts['mime_addr'] = TextBlock.from_text(mime)
+        texts['mime_addr'] = TextBlock(text=mime)
         if comment:
-            texts['comment_addr'] = TextBlock.from_text(comment)
-        texts['file_name_addr'] = TextBlock.from_text(file_name if file_name else 'bin.bin')
+            texts['comment_addr'] = TextBlock(text=comment)
+        texts['file_name_addr'] = TextBlock(text=file_name if file_name else 'bin.bin')
         at_block = AttachmentBlock(data=data, compression=compression)
         at_block['creator_index'] = creator_index
         self.attachments.append((at_block, texts))
@@ -1027,35 +1031,37 @@ class MDF4(object):
             if flags & FLAG_AT_EMBEDDED:
                 data = attachment.extract()
 
-                out_path = os.path.dirname(texts['file_name_addr'].text_str)
+                file_path = texts['file_name_addr']['text'].decode('utf-8')
+                out_path = os.path.dirname(file_path)
                 if out_path:
                     if not os.path.exists(out_path):
                         os.makedirs(out_path)
 
-                with open(texts['file_name_addr'].text_str, 'wb') as f:
+                with open(file_path, 'wb') as f:
                     f.write(data)
 
                 return data
             else:
                 # for external attachemnts read the files and return the content
                 if flags & FLAG_AT_MD5_VALID:
-                    data = open(texts['file_name_addr'].text_str, 'rb').read()
+                    file_path = texts['file_name_addr']['text'].decode('utf-8')
+                    data = open(file_path, 'rb').read()
                     md5_worker = md5()
                     md5_worker.update(data)
                     md5_sum = md5_worker.digest()
                     if attachment['md5_sum'] == md5_sum:
-                        if texts['mime_addr'].text_str.startswith('text'):
-                            with open(texts['file_name_addr'].text_str, 'r') as f:
+                        if texts['mime_addr']['text'].decode('utf-8').startswith('text'):
+                            with open(file_path, 'r') as f:
                                 data = f.read()
                         return data
                     else:
-                        warnings.warn('ATBLOCK md5sum="{}" and external attachment data ({}) md5sum="{}"'.format(self['md5_sum'], texts['file_name_addr'].text_str, md5_sum))
+                        warnings.warn('ATBLOCK md5sum="{}" and external attachment data ({}) md5sum="{}"'.format(self['md5_sum'], file_path, md5_sum))
                 else:
-                    if texts['mime_addr'].text_str.startswith('text'):
+                    if texts['mime_addr']['text'].decode('utf-8').startswith('text'):
                         mode = 'r'
                     else:
                         mode = 'rb'
-                    with open(texts['file_name_addr'].text_str, mode) as f:
+                    with open(file_path, mode) as f:
                         data = f.read()
                     return data
         except Exception as err:
@@ -1184,10 +1190,10 @@ class MDF4(object):
                 comment = grp['texts']['channels'][ch_nr].get('comment_addr', None)
                 if comment:
                     if comment['id'] == b'##MD':
-                        comment = comment.text_str
+                        comment = comment['text'].decode('utf-8')
                         comment = XML.fromstring(comment).find('TX').text
                     else:
-                        comment = comment.text_str
+                        comment = comment['text'].decode('utf-8')
                 else:
                     comment = ''
 
@@ -1383,7 +1389,7 @@ class MDF4(object):
                 vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
 
             elif conversion_type == CONVERSION_TYPE_ALG:
-                formula = grp['texts']['conversions'][ch_nr]['formula_addr'].text_str
+                formula = grp['texts']['conversions'][ch_nr]['formula_addr']['text'].decode('utf-8')
                 X = vals
                 vals = evaluate(formula)
 
@@ -1496,12 +1502,12 @@ class MDF4(object):
                 # search for unit in conversion texts
                 unit = grp['texts']['conversions'][ch_nr].get('unit_addr', None)
                 if unit:
-                    unit = unit.text_str
+                    unit = unit['text'].decode('utf-8')
                 else:
                     # search for physical unit in channel texts
                     unit = grp['texts']['channels'][ch_nr].get('unit_addr', None)
                     if unit:
-                        unit = unit.text_str
+                        unit = unit['text'].decode('utf-8')
                     else:
                         unit = ''
 
@@ -1509,13 +1515,13 @@ class MDF4(object):
                 comment = grp['texts']['channels'][ch_nr].get('comment_addr', None)
                 if comment:
                     if comment['id'] == b'##MD':
-                        comment = comment.text_str
+                        comment = comment['text'].decode('utf-8')
                         try:
                             comment = XML.fromstring(comment).find('TX').text
                         except Exception as e:
                             comment = ''
                     else:
-                        comment = comment.text_str
+                        comment = comment['text'].decode('utf-8')
                 else:
                     comment = ''
 
@@ -1661,7 +1667,7 @@ class MDF4(object):
         else:
             comment = 'updated'
 
-        self.file_history.append([FileHistory(), TextBlock.from_text('<FHcomment>\n<TX>{}</TX>\n<tool_id>PythonMDFEditor</tool_id>\n<tool_vendor></tool_vendor>\n<tool_version>1.0</tool_version>\n</FHcomment>'.format(comment), meta=True)])
+        self.file_history.append([FileHistory(), TextBlock(text='<FHcomment>\n<TX>{}</TX>\n<tool_id>PythonMDFEditor</tool_id>\n<tool_vendor></tool_vendor>\n<tool_version>1.0</tool_version>\n</FHcomment>'.format(comment), meta=True)])
         with open(dst, 'wb') as dst:
             defined_texts = {}
 
@@ -1781,13 +1787,15 @@ class MDF4(object):
                     for dict_ in item_list:
                         for key in dict_:
                             #text blocks can be shared
-                            if dict_[key].text_str in defined_texts:
-                                dict_[key].address = defined_texts[dict_[key].text_str]
+                            tx_block = dict_[key]
+                            text = dict_[key]['text']
+                            if text in defined_texts:
+                                tx_block.address = defined_texts[text]
                             else:
-                                defined_texts[dict_[key].text_str] = address
-                                dict_[key].address = address
-                                address += dict_[key]['block_len']
-                                blocks.append(dict_[key])
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                address += tx_block['block_len']
+                                blocks.append(tx_block)
 
                 # channel conversions
                 for j, conv in enumerate(gp['channel_conversions']):
