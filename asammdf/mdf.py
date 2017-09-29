@@ -152,10 +152,11 @@ class MDF(object):
         format : string
             can be one of the following:
 
-                * *csv* : CSV export that uses the ";" delimiter. This option wil generate a new csv file for each data group (<MDFNAME>_DataGroup_XX.csv).
+                * *csv* : CSV export that uses the ";" delimiter. This option will generate a new csv file for each data group (<MDFNAME>_DataGroup_XX.csv).
                 * *hdf5* : HDF5 file output; each *MDF* data group is mapped to a *HDF5* group with the name 'DataGroup_xx' (where xx is the index)
-                * *excel* : Excel file output (very slow). This option wil generate a new excel file for each data group (<MDFNAME>_DataGroup_XX.xlsx)
-                * *mat* : Matlab .mat version 5 export, for Matlab >= 7.6
+                * *excel* : Excel file output (very slow). This option will generate a new excel file for each data group (<MDFNAME>_DataGroup_XX.xlsx)
+                * *mat* : Matlab .mat version 5 export, for Matlab >= 7.6. IN the mat file the channels will be renamed to 'DataGroup_xx_<channel name>'.
+                The channel group master will be renamed to 'DataGroup_xx_<channel name>_master'. ( *xx* is the data group index starting from 0).
 
         filename : string
             export file name
@@ -286,9 +287,11 @@ class MDF(object):
 #                        master = self.get(group=i, index=master_index, samples_only=True)
 
                         for j, ch in enumerate(grp['channels']):
-#                            if j == master_index:
-#                                continue
-                            mdict[ch.name] = self.get(group=i, index=j, samples_only=True)
+                            if j == master_index:
+                                channel_name = 'DataGroup_{}_{}_master'.format(i, ch.name)
+                            else:
+                                channel_name = 'DataGroup_{}_{}'.format(i, ch.name)
+                            mdict[channel_name] = self.get(group=i, index=j, samples_only=True)
 
                     savemat(name, mdict, long_field_names=True, do_compression=True)
 
