@@ -38,7 +38,7 @@ Features
 * filter a subset of channels from original mdf file
 * cut measurement to specified time interval
 * convert to different mdf version
-* export to Excel, HDF5 and CSV
+* export to Excel, HDF5, Matlab and CSV
 * merge multiple files sharing the same internal structure
 * add and extract attachments
 * mdf 4.10 zipped blocks
@@ -74,6 +74,7 @@ optional dependencies needed for exports
 * pandas : for DataFrame export
 * h5py : for HDF5 export
 * xlsxwriter : for Excel export
+* scipy : for Matlab .mat export
 
 
 Installation
