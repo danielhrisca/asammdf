@@ -943,7 +943,7 @@ class MDF4(object):
         arrays = [t, ] + [sig.samples for sig in signals]
 
         arrays = fromarrays(arrays, dtype=types)
-        
+
         gp['channel_dependencies'] = []
         for i in range(len(arrays)):
             gp['channel_dependencies'].append(None)
@@ -1783,12 +1783,11 @@ class MDF4(object):
             # go through each data group and append the rest of the blocks
             for i, gp in enumerate(self.groups):
                 # write TXBLOCK's
-                for _, item_list in gp['texts'].items():
+                for item_list in gp['texts'].values():
                     for dict_ in item_list:
-                        for key in dict_:
+                        for key, tx_block in dict_.items():
                             #text blocks can be shared
-                            tx_block = dict_[key]
-                            text = dict_[key]['text']
+                            text = tx_block['text']
                             if text in defined_texts:
                                 tx_block.address = defined_texts[text]
                             else:
@@ -1801,12 +1800,10 @@ class MDF4(object):
                 for j, conv in enumerate(gp['channel_conversions']):
                     if conv:
                         conv.address = address
+                        conv_texts = gp['texts']['conversions'][j]
 
-                        for key in ('name_addr', 'unit_addr', 'comment_addr', 'formula_addr'):
-                            if key in gp['texts']['conversions'][j]:
-                                conv[key] = gp['texts']['conversions'][j][key].address
-                            elif key in conv:
-                                conv[key] = 0
+                        for key, text_block in conv_texts.items():
+                            conv[key] = text_block.address
                         conv['inv_conv_addr'] = 0
 
                         if conv['conversion_type'] in (CONVERSION_TYPE_TABX,
@@ -1823,12 +1820,11 @@ class MDF4(object):
                 for j, source in enumerate(gp['channel_sources']):
                     if source:
                         source.address = address
+                        source_texts = gp['texts']['sources'][j]
 
                         for key in ('name_addr', 'path_addr', 'comment_addr'):
-                            if key in gp['texts']['sources'][j]:
-                                source[key] = gp['texts']['sources'][j][key].address
-                            else:
-                                source[key] = 0
+                            text_block = source_texts.get(key, None)
+                            source[key] = 0 if text_block is None else text_block.address
 
                         address += source['block_len']
                         blocks.append(source)
@@ -1843,14 +1839,15 @@ class MDF4(object):
                 # channels
                 for j, (channel, signal_data) in enumerate(zip(gp['channels'], gp['signal_data'])):
                     channel.address = address
+                    channel_texts = gp['texts']['channels'][j]
+
                     address += channel['block_len']
                     blocks.append(channel)
 
                     for key in ('name_addr', 'comment_addr', 'unit_addr'):
-                        if key in gp['texts']['channels'][j]:
-                            channel[key] = gp['texts']['channels'][j][key].address
-                        else:
-                            channel[key] = 0
+                        text_block = channel_texts.get(key, None)
+                        channel[key] = 0 if text_block is None else text_block.address
+
                     channel['conversion_addr'] = 0 if not gp['channel_conversions'][j] else gp['channel_conversions'][j].address
                     channel['source_addr'] = gp['channel_sources'][j].address if gp['channel_sources'][j] else 0
                     channel['data_block_addr'] = signal_data.address if signal_data else 0
