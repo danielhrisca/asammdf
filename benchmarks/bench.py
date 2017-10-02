@@ -538,7 +538,7 @@ def main(path, text_output, format):
     errors = []
 
     if not path:
-        path = os.path.dirname(__file__),
+        path = os.path.dirname(__file__)
 
     output.append('Benchmark environment\n')
     output.append('* {}'.format(sys.version))
