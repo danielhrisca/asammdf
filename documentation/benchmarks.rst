@@ -37,6 +37,18 @@ You will need the following packages to be able to run the benchmark script
 * psutil
 * mdfreader
 
+Usage
+-----
+Extract the test files from the archive.
+Run the module *bench.py*
+
+
+.. argparse::
+   :filename: ..\benchmarks\bench.py
+   :func: _cmd_line_parser
+   :prog: bench.py
+   
+
 x64 Python results
 ------------------
 The test environment used for 64 bit tests had:
