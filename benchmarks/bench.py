@@ -663,9 +663,9 @@ def main(path, text_output, format):
             errors.append(err)
         output.extend(table_end(format))
 
-    errors = '\n'.join(errors)
+    errors = [err for err in errors if err]
     if errors:
-        print('\n\nERRORS\n', errors)
+        print('\n\nERRORS\n', '\n'.join(errors))
 
     if text_output:
         file = os.path.join('{}_asammdf_{}_mdfreader_{}.{}'.format(
