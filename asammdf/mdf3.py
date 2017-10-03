@@ -215,7 +215,16 @@ class MDF3(object):
 
                 # adjust size to 1, 2, 4 or 8 bytes for nonstandard integers
                 size = bit_offset + bit_count
-                if data_type != DATA_TYPE_STRING:
+                if data_type == DATA_TYPE_STRING:
+                    next_byte_aligned_position = parent_start_offset + size
+                    size = size >> 3
+                    types.append( (name, get_fmt(data_type, size)) )
+
+                elif data_type == DATA_TYPE_BYTEARRY:
+                    size = size >> 3
+                    types.append( (name, 'u1', (size, 1)) )
+
+                else:
                     if size > 32:
                         next_byte_aligned_position = parent_start_offset + 64
                         size = 8
@@ -228,15 +237,13 @@ class MDF3(object):
                     else:
                         next_byte_aligned_position = parent_start_offset + 8
                         size = 1
-                else:
-                    next_byte_aligned_position = parent_start_offset + size
-                    size = size >> 3
 
-                types.append( (name, get_fmt(data_type, size)) )
+                    types.append( (name, get_fmt(data_type, size)) )
 
                 current_parent = name
             else:
                 parents[original_index] = current_parent, start_offset - parent_start_offset
+
         gap = (record_size - next_byte_aligned_position) >> 3
         if gap:
             types.append( ('', 'a{}'.format(gap)) )
@@ -588,17 +595,18 @@ class MDF3(object):
             t = t_
 
         # split for signals that come from a channel dependency
-        # (this means the samples will be of type np.recarray)
+        # (this means the samples will be of type np.composed)
         # from the regular one dimensional signals.
         # The regular signals will be first added to the group.
-        # The recarray signals will be saved along side the fields, which will
+        # The composed signals will be saved along side the fields, which will
         # be saved as new signals.
         simple_signals = []
-        recarray_signals = []
+        composed_signals = []
         channel_nr = 0
         for sig in signals:
-            if isinstance(sig.samples, recarray):
-                recarray_signals.append(sig)
+            signal_origin = sig.info.get('type', -1)
+            if signal_origin in COMPOSED_SIGNAL_TYPES:
+                composed_signals.append(sig)
                 channel_nr += len(sig.samples.dtype) + 1
             else:
                 simple_signals.append(sig)
@@ -689,25 +697,25 @@ class MDF3(object):
 
             #conversion for channels
             for idx, s in enumerate(simple_signals):
-                conv = s.conversion
-                if conv:
-                    conv_type = conv['type']
-                    if conv_type in (SIGNAL_TYPE_V3_VTAB, SIGNAL_TYPE_V4_VTAB):
+                info = s.info
+                if info:
+                    signal_origin = info['type']
+                    if signal_origin in (SIGNAL_TYPE_V3_VTAB, SIGNAL_TYPE_V4_VTAB):
                         kargs = {}
                         kargs['conversion_type'] = CONVERSION_TYPE_VTAB
-                        raw = conv['raw']
-                        phys = conv['phys']
+                        raw = info['raw']
+                        phys = info['phys']
                         for i, (r_, p_) in enumerate(zip(raw, phys)):
                             kargs['text_{}'.format(i)] = p_[:31] + b'\x00'
                             kargs['param_val_{}'.format(i)] = r_
                         kargs['ref_param_nr'] = len(raw)
                         kargs['unit'] = s.unit.encode('latin-1')
-                    elif conv_type in (SIGNAL_TYPE_V3_VTABR, SIGNAL_TYPE_V4_VTABR):
+                    elif signal_origin in (SIGNAL_TYPE_V3_VTABR, SIGNAL_TYPE_V4_VTABR):
                         kargs = {}
                         kargs['conversion_type'] = CONVERSION_TYPE_VTABR
-                        lower = conv['lower']
-                        upper = conv['upper']
-                        texts = conv['phys']
+                        lower = info['lower']
+                        upper = info['upper']
+                        texts = info['phys']
                         kargs['unit'] = s.unit.encode('latin-1')
                         kargs['ref_param_nr'] = len(upper)
 
@@ -786,9 +794,9 @@ class MDF3(object):
             types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
             formats.extend(sig_formats)
 
-        # second, add the recarray signals
-        if recarray_signals:
-            for sig in recarray_signals:
+        # second, add the composed signals
+        if composed_signals:
+            for sig in composed_signals:
                 names = sig.samples.dtype.names
                 signals = [sig.samples[name] for name in names]
 
@@ -808,7 +816,7 @@ class MDF3(object):
 
                 names = new_names
 
-                # add recarray parent signal texts
+                # add composed parent signal texts
                 name = sig.name
                 for _, item in gp['texts'].items():
                     item.append({})
@@ -821,7 +829,7 @@ class MDF3(object):
                     if len(name) >= 32:
                         gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
 
-                # recarray parent has no conversion
+                # composed parent has no conversion
                 gp_conv.append(None)
                 # add components conversions
                 min_max = []
@@ -850,12 +858,12 @@ class MDF3(object):
                 new_sig_dtypes = [s.dtype for s in signals]
                 new_sig_formats = [fmt_to_datatype(typ) for typ in new_sig_dtypes]
 
-                # extend arrays, types and formasts with data from current recarray
+                # extend arrays, types and formasts with data from current composed
                 arrays.extend(signals)
                 types.extend([(name, dtype_) for name, dtype_ in zip(names, new_sig_dtypes)])
                 formats.extend(new_sig_formats)
 
-                # add channel dependency block for recarray parent channel
+                # add channel dependency block for composed parent channel
                 parent_dep = ChannelDependency(sd_nr=len(signals))
                 gp_dep.append(parent_dep)
 
@@ -1094,7 +1102,7 @@ class MDF3(object):
                              unit=unit,
                              name=channel.name,
                              comment=comment,
-                             conversion=info)
+                             info=info)
 
                 if raster and t:
                     tx = linspace(0, t[-1], int(t[-1] / raster))
@@ -1119,12 +1127,6 @@ class MDF3(object):
                 # is it a Byte Array?
                 if DATA_TYPE_STRING <= channel['data_type'] <= DATA_TYPE_BYTEARRAY:
                     if channel['data_type'] == DATA_TYPE_BYTEARRAY:
-                        vals = vals.tostring()
-                        size = max(bits>>3, 1)
-                        cols = size
-                        lines = len(vals) // cols
-
-                        vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
 
                         info = {'type': SIGNAL_TYPE_V3_BYTEARRAY}
 
@@ -1135,6 +1137,8 @@ class MDF3(object):
                             vals = array([str(val) for val in vals])
 
                         vals = encode(vals, 'latin-1')
+
+                        info = {'type': SIGNAL_TYPE_V3_STRING}
 
             elif conversion_type == CONVERSION_TYPE_LINEAR:
                 a = conversion['a']
@@ -1245,7 +1249,7 @@ class MDF3(object):
                                  unit=unit,
                                  name=channel.name,
                                  comment=comment,
-                                 conversion=info)
+                                 info=info)
 
                 if raster and t:
                     tx = linspace(0, t[-1], int(t[-1] / raster))

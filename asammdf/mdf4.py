@@ -815,34 +815,34 @@ class MDF4(object):
 
         # create channel conversions from the Signal's conversion attribute
         for idx, s in enumerate(signals):
-            conv = s.conversion
+            info = s.info
             conv_texts_tab = gp_texts['conversion_tab'][idx+1]
-            if conv:
-                conv_type = conv['type']
-                if conv_type in (SIGNAL_TYPE_V4_VTAB, SIGNAL_TYPE_V3_VTAB):
+            if info:
+                signal_origin = info['type']
+                if signal_origin in (SIGNAL_TYPE_V4_VTAB, SIGNAL_TYPE_V3_VTAB):
                     kargs = {}
                     kargs['conversion_type'] = CONVERSION_TYPE_TABX
-                    raw = conv['raw']
-                    phys = conv['phys']
+                    raw = info['raw']
+                    phys = info['phys']
                     for i, (r_, p_) in enumerate(zip(raw, phys)):
                         kargs['text_{}'.format(i)] = 0
                         kargs['val_{}'.format(i)] = r_
                         conv_texts_tab['text_{}'.format(i)] = TextBlock(text=p_)
-                    if conv.get('default', b''):
-                        conv_texts_tab['default_addr'] = TextBlock(text=conv['default'])
+                    if info.get('default', b''):
+                        conv_texts_tab['default_addr'] = TextBlock(text=info['default'])
                     else:
                         conv_texts_tab['default_addr'] = None
                     kargs['default_addr'] = 0
                     kargs['links_nr'] = len(raw) + 5
                     gp_conv.append(ChannelConversion(**kargs))
-                elif conv_type in (SIGNAL_TYPE_V3_VTABR, SIGNAL_TYPE_V4_VTABR):
+                elif signal_origin in (SIGNAL_TYPE_V3_VTABR, SIGNAL_TYPE_V4_VTABR):
                     kargs = {}
                     kargs['conversion_type'] = CONVERSION_TYPE_RTABX
-                    lower = conv['lower']
-                    upper = conv['upper']
-                    texts = conv['phys']
+                    lower = info['lower']
+                    upper = info['upper']
+                    texts = info['phys']
                     kargs['ref_param_nr'] = len(upper)
-                    kargs['default_addr'] = conv.get('default', 0)
+                    kargs['default_addr'] = info.get('default', 0)
                     kargs['links_nr'] = len(lower) + 5
 
                     for i, (u_, l_, t_) in enumerate(zip(upper, lower, texts)):
@@ -850,8 +850,8 @@ class MDF4(object):
                         kargs['upper_{}'.format(i)] = u_
                         kargs['text_{}'.format(i)] = 0
                         conv_texts_tab['text_{}'.format(i)] = TextBlock(text=t_)
-                    if conv.get('default', b''):
-                        conv_texts_tab['default_addr'] = TextBlock(text=conv['default'])
+                    if info.get('default', b''):
+                        conv_texts_tab['default_addr'] = TextBlock(text=info['default'])
                     else:
                         conv_texts_tab['default_addr'] = None
                     kargs['default_addr'] = 0
@@ -1222,7 +1222,7 @@ class MDF4(object):
                              unit='',
                              name=channel.name,
                              comment=comment,
-                             conversion=info)
+                             info=info)
 
                 if raster and t:
                     tx = linspace(0, t[-1], int(t[-1] / raster))
@@ -1562,7 +1562,7 @@ class MDF4(object):
                                  unit=unit,
                                  name=channel.name,
                                  comment=comment,
-                                 conversion=info)
+                                 info=info)
 
                     if raster and t:
                         tx = linspace(0, t[-1], int(t[-1] / raster))

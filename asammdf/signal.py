@@ -26,13 +26,13 @@ class Signal(object):
         signal unit
     name : str
         signal name
-    conversion : dict
-        dict describing the channel conversion , default *None*
+    info : dict
+        dict that contains extra information about the signal , default *None*
     comment : str
         signal comment, default ''
 
     """
-    def __init__(self, samples=None, timestamps=None, unit='', name='', conversion=None, comment=''):
+    def __init__(self, samples=None, timestamps=None, unit='', name='', info=None, comment=''):
         if samples is None or timestamps is None or name == '':
             raise MdfException('"samples", "timestamps" and "name" are mandatory arguments for Signal class instance')
         else:
@@ -46,11 +46,11 @@ class Signal(object):
             self.timestamps = timestamps
             self.unit = unit
             self.name = name
-            self.conversion = conversion
+            self.info = info
             self.comment = comment
 
     def __str__(self):
-        return 'Signal {{ name="{}":\ts={}\tt={}\tunit="{}"\tconversion={} \tcomment="{}"}}'.format(self.name, self.samples, self.timestamps, self.unit, self.conversion, self.comment)
+        return 'Signal {{ name="{}":\ts={}\tt={}\tunit="{}"\tinfo={} \tcomment="{}"}}'.format(self.name, self.samples, self.timestamps, self.unit, self.info, self.comment)
 
     def __repr__(self):
         return 'Signal {{ {}:\ts={}\tt={} }}'.format(self.name, repr(self.samples), repr(self.timestamps))
@@ -107,14 +107,14 @@ class Signal(object):
                                     self.timestamps[:stop],
                                     self.unit,
                                     self.name,
-                                    self.conversion,
+                                    self.info,
                                     self.comment)
                 else:
                     result = Signal(np.array([]),
                                     np.array([]),
                                     self.unit,
                                     self.name,
-                                    self.conversion,
+                                    self.info,
                                     self.comment)
 
             elif stop is None:
@@ -124,7 +124,7 @@ class Signal(object):
                                 self.timestamps[start: ],
                                 self.unit,
                                 self.name,
-                                self.conversion,
+                                self.info,
                                 self.comment)
 
             else:
@@ -140,7 +140,7 @@ class Signal(object):
                                         self.timestamps[start_ - 1: start_],
                                         self.unit,
                                         self.name,
-                                        self.conversion,
+                                        self.info,
                                         self.comment)
                     else:
                         # signal is empty or start and stop are outside the signal time base
@@ -148,14 +148,14 @@ class Signal(object):
                                         np.array([]),
                                         self.unit,
                                         self.name,
-                                        self.conversion,
+                                        self.info,
                                         self.comment)
                 else:
                     result = Signal(self.samples[start_: stop_],
                                     self.timestamps[start_: stop_],
                                     self.unit,
                                     self.name,
-                                    self.conversion,
+                                    self.info,
                                     self.comment)
         return result
 
@@ -180,7 +180,7 @@ class Signal(object):
                             np.append(self.timestamps, timestamps),
                             self.unit,
                             self.name,
-                            self.conversion,
+                            self.info,
                             self.comment)
         else:
             result = self
@@ -194,7 +194,7 @@ class Signal(object):
             idx = np.searchsorted(self.timestamps, new_timestamps, side='right') - 1
             idx = np.clip(idx, 0, idx[-1])
             s = self.samples[idx]
-        return Signal(s, new_timestamps, self.unit, self.name, self.conversion)
+        return Signal(s, new_timestamps, self.unit, self.name, self.info)
 
     def __apply_func(self, other, func_name):
 
@@ -211,16 +211,16 @@ class Signal(object):
             func = getattr(self.samples, func_name)
             s = func(other)
             time = self.timestamps
-        return Signal(s, time, self.unit, self.name, self.conversion)
+        return Signal(s, time, self.unit, self.name, self.info)
 
     def __pos__(self):
-        return Signal(self.samples, self.timestamps, self.unit, self.name, self.conversion)
+        return Signal(self.samples, self.timestamps, self.unit, self.name, self.info)
 
     def __neg__(self):
-        return Signal(np.negative(self.samples), self.timestamps, self.unit, self.name, self.conversion)
+        return Signal(np.negative(self.samples), self.timestamps, self.unit, self.name, self.info)
 
     def __round__(self, n):
-        return Signal(np.around(self.samples, n), self.timestamps, self.unit, self.name, self.conversion)
+        return Signal(np.around(self.samples, n), self.timestamps, self.unit, self.name, self.info)
 
     def __sub__(self, other):
         return self.__apply_func(other, '__sub__')
@@ -276,7 +276,7 @@ class Signal(object):
     def __invert__(self):
         s = ~self.samples
         time = self.timestamps
-        return Signal(s, time, self.unit, self.name, self.conversion)
+        return Signal(s, time, self.unit, self.name, self.info)
 
     def __lshift__(self, other):
         return self.__apply_func(other, '__lshift__')
@@ -312,7 +312,7 @@ class Signal(object):
         return len(self.samples)
 
     def __abs__(self):
-        return Signal(np.fabs(self.samples), self.timestamps, self.unit, self.name, self.conversion)
+        return Signal(np.fabs(self.samples), self.timestamps, self.unit, self.name, self.info)
 
     def __getitem__(self, val):
         return self.samples[val]
@@ -322,7 +322,7 @@ class Signal(object):
 
     def astype(self, np_type):
         """ returns new *Signal* with samples of dtype *np_type*"""
-        return Signal(self.samples.astype(np_type), self.timestamps, self.unit, self.name, self.conversion)
+        return Signal(self.samples.astype(np_type), self.timestamps, self.unit, self.name, self.info)
 
 
 if __name__ == '__main__':

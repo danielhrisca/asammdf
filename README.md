@@ -57,6 +57,7 @@ Usage
 
 ```python
    from asammdf import MDF
+   
    mdf = MDF('sample.mdf')
    speed = mdf.get('WheelSpeed')
    speed.plot()
