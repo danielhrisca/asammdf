@@ -220,7 +220,7 @@ class MDF3(object):
                     size = size >> 3
                     types.append( (name, get_fmt(data_type, size)) )
 
-                elif data_type == DATA_TYPE_BYTEARRY:
+                elif data_type == DATA_TYPE_BYTEARRAY:
                     size = size >> 3
                     types.append( (name, 'u1', (size, 1)) )
 
