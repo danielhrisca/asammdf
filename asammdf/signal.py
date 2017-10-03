@@ -53,7 +53,7 @@ class Signal(object):
         return 'Signal {{ name="{}":\ts={}\tt={}\tunit="{}"\tinfo={} \tcomment="{}"}}'.format(self.name, self.samples, self.timestamps, self.unit, self.info, self.comment)
 
     def __repr__(self):
-        return 'Signal {{ {}:\ts={}\tt={} }}'.format(self.name, repr(self.samples), repr(self.timestamps))
+        return str(self)
 
     def plot(self):
         """plot Signal samples"""

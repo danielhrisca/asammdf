@@ -604,8 +604,7 @@ class MDF3(object):
         composed_signals = []
         channel_nr = 0
         for sig in signals:
-            signal_origin = sig.info.get('type', -1)
-            if signal_origin in COMPOSED_SIGNAL_TYPES:
+            if sig.info and sig.info.get('type', -1) in COMPOSED_SIGNAL_TYPES:
                 composed_signals.append(sig)
                 channel_nr += len(sig.samples.dtype) + 1
             else:
@@ -682,6 +681,20 @@ class MDF3(object):
                 if len(name) >= 32:
                     gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
 
+            sig_dtypes = []
+            sig_formats = []
+            for i, s in enumerate(simple_signals):
+                if s.info and s.info.get('type', -1) in (SIGNAL_TYPE_V3_BYTEARRAY, SIGNAL_TYPE_V4_BYTEARRAY):
+                    size = 1
+                    for dim in s.samples.shape[1:]:
+                        size *= dim
+                    sig_dtypes.append(dtype('{}u1'.format(s.samples.shape[1:])))
+                    sig_formats.append((DATA_TYPE_BYTEARRAY, size << 3))
+                    gp_texts['channels'][i+1]['comment_addr'] = TextBlock(text='From array of shape {}'.format(s.samples.shape[1:]))
+                else:
+                    sig_dtypes.append(s.samples.dtype)
+                    sig_formats.append(fmt_to_datatype(s.samples.dtype))
+
             # conversions for channels
             if cycles_nr:
                 min_max = []
@@ -746,8 +759,6 @@ class MDF3(object):
                          'description': 'Channel inserted by Python Script'.encode('latin-1')}
                 gp_source.append(ChannelExtension(**kargs))
 
-            sig_dtypes = [s.samples.dtype for s in simple_signals]
-            sig_formats = [fmt_to_datatype(typ) for typ in sig_dtypes]
 
             #channels
             for (sigmin, sigmax), (sig_type, sig_size), s in zip(min_max, sig_formats, simple_signals):
@@ -944,6 +955,7 @@ class MDF3(object):
 
         #data block
         types = [(str(name), d_type) for name, d_type in types]
+
         types = dtype(types)
 
         gp['types'] = types

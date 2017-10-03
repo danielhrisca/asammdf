@@ -1276,6 +1276,70 @@ class MDF4(object):
 
                         vals = encode(vals, 'latin-1')
 
+                    # CANopen date
+                    elif channel['data_type'] == DATA_TYPE_CANOPEN_DATE:
+
+                        vals = vals.tostring()
+
+                        types = dtype( [('ms', '<u2'),
+                                        ('min', '<u1'),
+                                        ('hour', '<u1'),
+                                        ('day', '<u1'),
+                                        ('month', '<u1'),
+                                        ('year', '<u1')] )
+                        dates = fromstring(vals, types)
+
+                        arrays = []
+                        arrays.append(dates['ms'])
+                        # bit 6 and 7 of minutes are reserved
+                        arrays.append(dates['min'] & 0x3F)
+                        # only firt 4 bits of hour are used
+                        arrays.append(dates['hour'] & 0xF)
+                        # the first 4 bits are the day number
+                        arrays.append(dates['day'] & 0xF)
+                        # bit 6 and 7 of month are reserved
+                        arrays.append(dates['month'] & 0x3F)
+                        # bit 7 of year is reserved
+                        arrays.append(dates['year'] & 0x7F)
+                        # add summer or standard time information for hour
+                        arrays.append((dates['hour'] & 0x80) >> 7)
+                        # add day of week information
+                        arrays.append((dates['day'] & 0xF0) >> 4)
+
+                        names = ['ms', 'min', 'hour', 'day', 'month', 'year', 'summer_time', 'day_of_week']
+                        vals = fromarrays(arrays, names=names)
+
+                        info = {'type' : SIGNAL_TYPE_V4_CANOPENDATE}
+
+                    # CANopen time
+                    elif channel['data_type'] == DATA_TYPE_CANOPEN_TIME:
+                        vals = vals.tostring()
+
+                        types = dtype( [('ms', '<u4'),
+                                        ('days', '<u2')] )
+                        dates = fromstring(vals, types)
+
+                        arrays = []
+                        # bits 28 to 31 are reserverd for ms
+                        arrays.append(dates['ms'] & 0xFFFFFFF)
+                        arrays.append(dates['days'] & 0x3F)
+
+                        names = ['ms', 'days']
+                        vals = fromarrays(arrays, names=names)
+
+                        info = {'type' : SIGNAL_TYPE_V4_CANOPENTIME}
+
+                    # byte array
+                    elif channel['data_type'] == DATA_TYPE_BYTEARRAY:
+                        vals = vals.tostring()
+                        size = max(bits>>3, 1)
+                        cols = size
+                        lines = len(vals) // cols
+
+                        vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
+
+                        info = {'type' : SIGNAL_TYPE_V4_BYTEARRAY}
+
                 elif channel['channel_type'] == CHANNEL_TYPE_VLSD:
                     if signal_data:
                         values = []
@@ -1305,70 +1369,6 @@ class MDF4(object):
                     else:
                         # no VLSD signal data samples
                         vals = array([])
-
-                # CANopen date
-                elif channel['data_type'] == DATA_TYPE_CANOPEN_DATE:
-
-                    vals = vals.tostring()
-
-                    types = dtype( [('ms', '<u2'),
-                                    ('min', '<u1'),
-                                    ('hour', '<u1'),
-                                    ('day', '<u1'),
-                                    ('month', '<u1'),
-                                    ('year', '<u1')] )
-                    dates = fromstring(vals, types)
-
-                    arrays = []
-                    arrays.append(dates['ms'])
-                    # bit 6 and 7 of minutes are reserved
-                    arrays.append(dates['min'] & 0x3F)
-                    # only firt 4 bits of hour are used
-                    arrays.append(dates['hour'] & 0xF)
-                    # the first 4 bits are the day number
-                    arrays.append(dates['day'] & 0xF)
-                    # bit 6 and 7 of month are reserved
-                    arrays.append(dates['month'] & 0x3F)
-                    # bit 7 of year is reserved
-                    arrays.append(dates['year'] & 0x7F)
-                    # add summer or standard time information for hour
-                    arrays.append((dates['hour'] & 0x80) >> 7)
-                    # add day of week information
-                    arrays.append((dates['day'] & 0xF0) >> 4)
-
-                    names = ['ms', 'min', 'hour', 'day', 'month', 'year', 'summer_time', 'day_of_week']
-                    vals = fromarrays(arrays, names=names)
-
-                    info = {'type' : SIGNAL_TYPE_V4_CANOPENDATE}
-
-                # CANopen time
-                elif channel['data_type'] == DATA_TYPE_CANOPEN_TIME:
-                    vals = vals.tostring()
-
-                    types = dtype( [('ms', '<u4'),
-                                    ('days', '<u2')] )
-                    dates = fromstring(vals, types)
-
-                    arrays = []
-                    # bits 28 to 31 are reserverd for ms
-                    arrays.append(dates['ms'] & 0xFFFFFFF)
-                    arrays.append(dates['days'] & 0x3F)
-
-                    names = ['ms', 'days']
-                    vals = fromarrays(arrays, names=names)
-
-                    info = {'type' : SIGNAL_TYPE_V4_CANOPENTIME}
-
-                # byte array
-                elif channel['data_type'] == DATA_TYPE_BYTEARRAY:
-                    vals = vals.tostring()
-                    size = max(bits>>3, 1)
-                    cols = size
-                    lines = len(vals) // cols
-
-                    vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
-
-                    info = {'type' : SIGNAL_TYPE_V4_BYTEARRAY}
 
             elif conversion_type == CONVERSION_TYPE_LIN:
                 a = conversion['a']

@@ -181,15 +181,7 @@ def fmt_to_datatype(fmt, version=3):
             data_type = v3c.DATA_TYPE_STRING
         else:
             # here we have arrays
-            fmt = fmt.subdtype[0]
-            if issubdtype(fmt, unsignedinteger):
-                data_type = v3c.DATA_TYPE_UNSIGNED
-            elif issubdtype(fmt, signedinteger):
-                data_type = v3c.DATA_TYPE_SIGNED
-            elif issubdtype(fmt, floating):
-                data_type = v3c.DATA_TYPE_FLOAT if size == 32 else v3c.DATA_TYPE_DOUBLE
-            elif issubdtype(fmt, flexible):
-                data_type = v3c.DATA_TYPE_STRING
+            data_type = v3c.DATA_TYPE_BYTEARRAY
 
     elif version == 4:
         if issubdtype(fmt, unsignedinteger):
@@ -202,15 +194,7 @@ def fmt_to_datatype(fmt, version=3):
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
         else:
             # here we have arrays
-            fmt = fmt.subdtype[0]
-            if issubdtype(fmt, unsignedinteger):
-                data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
-            elif issubdtype(fmt, signedinteger):
-                data_type = v4c.DATA_TYPE_SIGNED_INTEL
-            elif issubdtype(fmt, floating):
-                data_type = v4c.DATA_TYPE_REAL_INTEL
-            elif issubdtype(fmt, flexible):
-                data_type = v4c.DATA_TYPE_STRING_LATIN_1
+            data_type = v4c.DATA_TYPE_BYTEARRAY
     return data_type, size
 
 
