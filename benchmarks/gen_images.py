@@ -44,7 +44,7 @@ def f(res, topic, aspect, for_doc=False):
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 4.5)
+    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -61,7 +61,7 @@ def f(res, topic, aspect, for_doc=False):
         ax.set_title('{} test file - {}'.format(topic, 'time' if aspect == 'time' else 'ram usage'))
     ax.xaxis.grid()
 
-    fig.subplots_adjust(bottom=0.15, top=0.9, left=0.4, right=0.9)
+    fig.subplots_adjust(bottom=0.72/fig.get_figheight(), top=1-0.48/fig.get_figheight(), left=0.4, right=0.9)
 
     if aspect == 'time':
         if topic == 'Get':
