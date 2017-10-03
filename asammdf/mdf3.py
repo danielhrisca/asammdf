@@ -1436,11 +1436,10 @@ class MDF3(object):
                 gp_texts = gp['texts']
 
                 # Texts
-                for _, item_list in gp_texts.items():
+                for item_list in gp_texts.values():
                     for my_dict in item_list:
-                        for key in my_dict:
+                        for key, tx_block in my_dict.items():
                             #text blocks can be shared
-                            tx_block = my_dict[key]
                             text = tx_block['text']
                             if text in defined_texts:
                                 tx_block.address = defined_texts[text]
@@ -1482,15 +1481,15 @@ class MDF3(object):
                 ch_texts = gp_texts['channels']
                 for i, channel in enumerate(gp['channels']):
                     channel.address = address
+                    channel_texts = ch_texts[i]
+
                     blocks.append(channel)
                     address += CN_BLOCK_SIZE
 
                     for key in ('long_name_addr', 'comment_addr', 'display_name_addr'):
-                        channel_texts = ch_texts[i]
-                        if key in channel_texts:
-                            channel[key] = channel_texts[key].address
-                        else:
-                            channel[key] = 0
+                        text_block = channel_texts.get(key, None)
+                        channel[key] = 0 if text_block is None else text_block.address
+
                     channel['conversion_addr'] = cc[i].address if cc[i] else 0
                     channel['source_depend_addr'] = cs[i].address if cs[i] else 0
                     if cd[i]:
