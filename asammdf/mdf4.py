@@ -771,16 +771,8 @@ class MDF4(object):
         # The regular signals will be first added to the group.
         # The composed signals will be saved along side the fields, which will
         # be saved as new signals.
-        simple_signals = []
-        composed_signals = []
-        channel_nr = 0
-        for sig in signals:
-            if sig.info and sig.info.get('type', -1) in COMPOSED_SIGNAL_TYPES:
-                composed_signals.append(sig)
-                channel_nr += len(sig.samples.dtype) + 1
-            else:
-                simple_signals.append(sig)
-                channel_nr += 1
+        simple_signals = [sig for sig in signals if sig.samples.dtype.names is None]
+        composed_signals = [sig for sig in signals if sig.samples.dtype.names]
 
         cycles_nr = len(t)
 
@@ -861,17 +853,19 @@ class MDF4(object):
 
             sig_dtypes = []
             sig_formats = []
-            for i, s in enumerate(simple_signals):
-                if s.info and s.info.get('type', -1) in (SIGNAL_TYPE_V3_BYTEARRAY, SIGNAL_TYPE_V4_BYTEARRAY):
+            for i, sig in enumerate(simple_signals):
+                shape = sig.samples.shape
+                if len(shape) > 1:
+                    shape = shape[1:]
                     size = 1
-                    for dim in s.samples.shape[1:]:
+                    for dim in shape:
                         size *= dim
-                    sig_dtypes.append(dtype('{}u1'.format(s.samples.shape[1:])))
+                    sig_dtypes.append(dtype('{}u1'.format(shape)))
                     sig_formats.append((DATA_TYPE_BYTEARRAY, size << 3))
-                    gp_texts['channels'][i+1]['comment_addr'] = TextBlock(text='From array of shape {}'.format(s.samples.shape[1:]))
+                    gp_texts['channels'][i+1]['comment_addr'] = TextBlock(text='From array of shape {}'.format(shape))
                 else:
-                    sig_dtypes.append(s.samples.dtype)
-                    sig_formats.append(fmt_to_datatype(s.samples.dtype))
+                    sig_dtypes.append(sig.samples.dtype)
+                    sig_formats.append(fmt_to_datatype(sig.samples.dtype))
 
             # conversions for channels
             if cycles_nr:
@@ -891,8 +885,7 @@ class MDF4(object):
                 info = s.info
                 conv_texts_tab = gp_texts['conversion_tab'][idx+1]
                 if info:
-                    signal_origin = info['type']
-                    if signal_origin in (SIGNAL_TYPE_V4_VTAB, SIGNAL_TYPE_V3_VTAB):
+                    if 'raw' in info:
                         kargs = {}
                         kargs['conversion_type'] = CONVERSION_TYPE_TABX
                         raw = info['raw']
@@ -908,7 +901,7 @@ class MDF4(object):
                         kargs['default_addr'] = 0
                         kargs['links_nr'] = len(raw) + 5
                         gp_conv.append(ChannelConversion(**kargs))
-                    elif signal_origin in (SIGNAL_TYPE_V3_VTABR, SIGNAL_TYPE_V4_VTABR):
+                    elif 'lower' in info:
                         kargs = {}
                         kargs['conversion_type'] = CONVERSION_TYPE_RTABX
                         lower = info['lower']
@@ -1042,6 +1035,7 @@ class MDF4(object):
 
                 new_sig_dtypes = [s.dtype for s in signals]
                 new_sig_formats = [fmt_to_datatype(typ) for typ in new_sig_dtypes]
+                shapes = [s.shape[1:] for s in signals]
 
                 # extend arrays, types and formasts with data from current composed
                 arrays.extend(signals)
@@ -1083,13 +1077,19 @@ class MDF4(object):
                 ch_cntr += 1
 
                 # add components channels
-                for (sigmin, sigmax), (sig_type, sig_size), name in zip(min_max, new_sig_formats, names):
+                for (sigmin, sigmax), (sig_type, sig_size), shape, name in zip(min_max, new_sig_formats, shapes, names):
                     if offset > MAX_UINT16:
                         additional_byte_offset = (offset - MAX_UINT16 ) >> 3
                         start_bit_offset = offset - additional_byte_offset << 3
                     else:
                         start_bit_offset = offset
                         additional_byte_offset = 0
+
+                    size = 1
+                    for dim in shape:
+                        size *= dim
+                    sig_size *= size
+
                     kargs = {'short_name': (name[:31] + '\x00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
                              'channel_type': CHANNEL_TYPE_VALUE,
                              'data_type': sig_type,
@@ -1350,6 +1350,8 @@ class MDF4(object):
         else:
             signal_data = b''
 
+        info = None
+
         # check if this is a channel array
         if dependency_list:
             arrays = []
@@ -1363,8 +1365,6 @@ class MDF4(object):
                 types = dtype(types)
 
                 vals = fromarrays(arrays, dtype=types)
-
-                info = {'type': SIGNAL_TYPE_V4_CHANNEL_COMPOSITION}
 
             else:
                 # channel arrays
@@ -1404,7 +1404,7 @@ class MDF4(object):
                             for i in range(dims_nr):
                                 axis = ca_block.referenced_channels[i]
                                 shape = ca_block['dim_size_{}'.format(i)]
-                                axis_values = self.get(axis.name, samples_only=True)[axis.name]
+                                axis_values = self.get(axis.name, samples_only=True)['{}_samples'.format(axis.name)]
                                 arrays.append(axis_values)
                                 types.append( (axis.name, axis_values.dtype, (shape, )))
 
@@ -1431,13 +1431,11 @@ class MDF4(object):
                         for i in range(dims_nr):
                             axis = ca_block.referenced_channels[i]
                             shape = ca_block['dim_size_{}'.format(i)]
-                            axis_values = self.get(axis.name, samples_only=True)[axis.name]
+                            axis_values = self.get(axis.name, samples_only=True)['{}_samples'.format(axis.name)]
                             arrays.append(axis_values)
                             types.append( (axis.name, axis_values.dtype, (shape, )))
 
                 vals = fromarrays(arrays, dtype(types))
-
-                info = {'type': SIGNAL_TYPE_V4_ARRAY}
 
             if samples_only:
                 return vals
@@ -1566,8 +1564,6 @@ class MDF4(object):
                         names = ['ms', 'min', 'hour', 'day', 'month', 'year', 'summer_time', 'day_of_week']
                         vals = fromarrays(arrays, names=names)
 
-                        info = {'type' : SIGNAL_TYPE_V4_CANOPENDATE}
-
                     # CANopen time
                     elif channel['data_type'] == DATA_TYPE_CANOPEN_TIME:
                         vals = vals.tostring()
@@ -1583,8 +1579,6 @@ class MDF4(object):
 
                         names = ['ms', 'days']
                         vals = fromarrays(arrays, names=names)
-
-                        info = {'type' : SIGNAL_TYPE_V4_CANOPENTIME}
 
                     # byte array
                     elif channel['data_type'] == DATA_TYPE_BYTEARRAY:
@@ -1702,7 +1696,7 @@ class MDF4(object):
                 raw = array([conversion['val_{}'.format(i)] for i in range(nr)])
                 phys = array([grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
                 default = grp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
-                info = {'raw': raw, 'phys': phys, 'default': default, 'type': SIGNAL_TYPE_V4_VTAB}
+                info = {'raw': raw, 'phys': phys, 'default': default}
 
             elif conversion_type == CONVERSION_TYPE_RTABX:
                 nr = conversion['val_param_nr'] // 2
@@ -1711,7 +1705,7 @@ class MDF4(object):
                 lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
                 default = grp['texts']['conversion_tab'][ch_nr].get('default_addr', {}).get('text', b'')
-                info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': SIGNAL_TYPE_V4_VTABR}
+                info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default}
 
             elif conversion == CONVERSION_TYPE_TTAB:
                 nr = conversion['val_param_nr'] - 1
@@ -1719,7 +1713,7 @@ class MDF4(object):
                 raw = array([grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text'] for i in range(nr)])
                 phys = array([conversion['val_{}'.format(i)] for i in range(nr)])
                 default = conversion['val_default']
-                info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default, 'type': SIGNAL_TYPE_V4_TTAB}
+                info = {'lower': lower, 'upper': upper, 'phys': phys, 'default': default}
 
             elif conversion == CONVERSION_TYPE_TRANS:
                 nr = (conversion['ref_param_nr'] - 1 ) // 2
@@ -1736,7 +1730,7 @@ class MDF4(object):
                     else:
                         res.append(default)
                 vals = array(res)
-                info = {'input': in_, 'output': out_, 'default': default, 'type': SIGNAL_TYPE_V4_TRANS}
+                info = {'input': in_, 'output': out_, 'default': default}
 
             # in case of invalidation bits, valid_index will hold the valid indexes
             valid_index = None

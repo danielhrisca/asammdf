@@ -600,23 +600,15 @@ class MDF3(object):
         # The regular signals will be first added to the group.
         # The composed signals will be saved along side the fields, which will
         # be saved as new signals.
-        simple_signals = []
-        composed_signals = []
-        channel_nr = 0
-        for sig in signals:
-            if sig.info and sig.info.get('type', -1) in COMPOSED_SIGNAL_TYPES:
-                composed_signals.append(sig)
-                channel_nr += len(sig.samples.dtype) + 1
-            else:
-                simple_signals.append(sig)
-                channel_nr += 1
+        simple_signals = [sig for sig in signals if sig.samples.dtype.names is None]
+        composed_signals = [sig for sig in signals if sig.samples.dtype.names]
 
         cycles_nr = len(t)
 
         # setup all blocks related to the time master channel
         t_type, t_size = fmt_to_datatype(t.dtype)
 
-        #time channel texts
+        # time channel texts
         for _, item in gp_texts.items():
             item.append({})
 
@@ -683,17 +675,19 @@ class MDF3(object):
 
             sig_dtypes = []
             sig_formats = []
-            for i, s in enumerate(simple_signals):
-                if s.info and s.info.get('type', -1) in (SIGNAL_TYPE_V3_BYTEARRAY, SIGNAL_TYPE_V4_BYTEARRAY):
+            for i, sig in enumerate(simple_signals):
+                shape = sig.samples.shape
+                if len(shape) > 1:
+                    shape = shape[1:]
                     size = 1
-                    for dim in s.samples.shape[1:]:
+                    for dim in shape:
                         size *= dim
-                    sig_dtypes.append(dtype('{}u1'.format(s.samples.shape[1:])))
+                    sig_dtypes.append(dtype('{}u1'.format(shape)))
                     sig_formats.append((DATA_TYPE_BYTEARRAY, size << 3))
-                    gp_texts['channels'][i+1]['comment_addr'] = TextBlock(text='From array of shape {}'.format(s.samples.shape[1:]))
+                    gp_texts['channels'][i+1]['comment_addr'] = TextBlock(text='From array of shape {}'.format(shape))
                 else:
-                    sig_dtypes.append(s.samples.dtype)
-                    sig_formats.append(fmt_to_datatype(s.samples.dtype))
+                    sig_dtypes.append(sig.samples.dtype)
+                    sig_formats.append(fmt_to_datatype(sig.samples.dtype))
 
             # conversions for channels
             if cycles_nr:
@@ -712,8 +706,7 @@ class MDF3(object):
             for idx, s in enumerate(simple_signals):
                 info = s.info
                 if info:
-                    signal_origin = info['type']
-                    if signal_origin in (SIGNAL_TYPE_V3_VTAB, SIGNAL_TYPE_V4_VTAB):
+                    if 'raw' in info:
                         kargs = {}
                         kargs['conversion_type'] = CONVERSION_TYPE_VTAB
                         raw = info['raw']
@@ -723,7 +716,7 @@ class MDF3(object):
                             kargs['param_val_{}'.format(i)] = r_
                         kargs['ref_param_nr'] = len(raw)
                         kargs['unit'] = s.unit.encode('latin-1')
-                    elif signal_origin in (SIGNAL_TYPE_V3_VTABR, SIGNAL_TYPE_V4_VTABR):
+                    elif 'lower' in info:
                         kargs = {}
                         kargs['conversion_type'] = CONVERSION_TYPE_VTABR
                         lower = info['lower']
@@ -916,13 +909,21 @@ class MDF3(object):
                 ch_cntr += 1
 
                 # add components channels
-                for (sigmin, sigmax), (sig_type, sig_size), name in zip(min_max, new_sig_formats, names):
+                for (sigmin, sigmax), (sig_type, sig_size), shape, name in zip(min_max, new_sig_formats, shapes, names):
                     if offset > MAX_UINT16:
                         additional_byte_offset = (offset - MAX_UINT16 ) >> 3
                         start_bit_offset = offset - additional_byte_offset << 3
                     else:
                         start_bit_offset = offset
                         additional_byte_offset = 0
+
+                    size = sig_size
+                    for dim in shape:
+                        size *= dim
+
+                    print(sig_size, size, name)
+
+
                     kargs = {'short_name': (name[:31] + '\x00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
                              'channel_type': CHANNEL_TYPE_VALUE,
                              'data_type': sig_type,
@@ -934,7 +935,7 @@ class MDF3(object):
                     ch = Channel(**kargs)
                     ch.name = name
                     gp_channels.append(ch)
-                    offset += sig_size
+                    offset += size
 
                     # update channel database with component indexes
                     if not name in self.channels_db:
@@ -953,7 +954,7 @@ class MDF3(object):
         kargs = {'cycles_nr': cycles_nr,
                  'samples_byte_nr': offset >> 3}
         gp['channel_group'] = ChannelGroup(**kargs)
-        gp['channel_group']['ch_nr'] = channel_nr + 1
+        gp['channel_group']['ch_nr'] = ch_cntr
         gp['size'] = cycles_nr * (offset >> 3)
 
         #data group
@@ -967,9 +968,11 @@ class MDF3(object):
         gp['types'] = types
         gp['parents'] = parents
 
-        print(types)
+
         samples = fromarrays(arrays, dtype=types)
         block = samples.tostring()
+
+        print(types, gp['size'], len(block))
 
         if self.load_measured_data:
             gp['data_location'] = LOCATION_MEMORY
@@ -1089,7 +1092,7 @@ class MDF3(object):
             types = dtype(types)
             vals = fromarrays(arrays, dtype=types)
 
-            info = {'type' : SIGNAL_TYPE_V3_ARRAY}
+            info = {}
 
             if samples_only:
                 return vals
@@ -1144,20 +1147,13 @@ class MDF3(object):
 
             if conversion_type == CONVERSION_TYPE_NONE:
                 # is it a Byte Array?
-                if DATA_TYPE_STRING <= channel['data_type'] <= DATA_TYPE_BYTEARRAY:
-                    if channel['data_type'] == DATA_TYPE_BYTEARRAY:
+                if channel['data_type'] == DATA_TYPE_STRING:
+                    vals = [val.tobytes() for val in vals]
+                    vals = array([x.decode('latin-1').strip(' \n\t\x00') for x in vals])
+                    if PYVERSION == 2:
+                        vals = array([str(val) for val in vals])
 
-                        info = {'type': SIGNAL_TYPE_V3_BYTEARRAY}
-
-                    elif channel['data_type'] == DATA_TYPE_STRING:
-                        vals = [val.tobytes() for val in vals]
-                        vals = array([x.decode('latin-1').strip(' \n\t\x00') for x in vals])
-                        if PYVERSION == 2:
-                            vals = array([str(val) for val in vals])
-
-                        vals = encode(vals, 'latin-1')
-
-                        info = {'type': SIGNAL_TYPE_V3_STRING}
+                    vals = encode(vals, 'latin-1')
 
             elif conversion_type == CONVERSION_TYPE_LINEAR:
                 a = conversion['a']
@@ -1182,7 +1178,7 @@ class MDF3(object):
                 nr = conversion['ref_param_nr']
                 raw = array([conversion['param_val_{}'.format(i)] for i in range(nr)])
                 phys = array([conversion['text_{}'.format(i)] for i in range(nr)])
-                info = {'raw': raw, 'phys': phys, 'type': SIGNAL_TYPE_V3_VTAB}
+                info = {'raw': raw, 'phys': phys}
 
             elif conversion_type == CONVERSION_TYPE_VTABR:
                 nr = conversion['ref_param_nr']
@@ -1190,7 +1186,7 @@ class MDF3(object):
                 texts = array([grp['texts']['conversion_tab'][ch_nr].get('text_{}'.format(i), {}).get('text', b'') for i in range(nr)])
                 lower = array([conversion['lower_{}'.format(i)] for i in range(nr)])
                 upper = array([conversion['upper_{}'.format(i)] for i in range(nr)])
-                info = {'lower': lower, 'upper': upper, 'phys': texts, 'type': SIGNAL_TYPE_V3_VTABR}
+                info = {'lower': lower, 'upper': upper, 'phys': texts}
 
             elif conversion_type in (CONVERSION_TYPE_EXPO, CONVERSION_TYPE_LOGH):
                 func = log if conversion_type == CONVERSION_TYPE_EXPO else exp
@@ -1456,6 +1452,7 @@ class MDF3(object):
             self.groups[-1]['data_group']['next_dg_addr'] = 0
 
             for index, gp in enumerate(self.groups):
+#                print(address, hex(address), gp['texts'])
                 gp_texts = gp['texts']
 
                 # Texts
