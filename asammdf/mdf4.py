@@ -694,275 +694,6 @@ class MDF4(object):
 
         return parents, dtype(types)
 
-    def append2(self, signals, source_info='Python', common_timebase=False):
-        """Appends a new data group.
-
-        Parameters
-        ----------
-        signals : list
-            list on *Signal* objects
-        acquisition_info : str
-            acquisition information; default 'Python'
-        common_timebase : bool
-            flag to hint that the signals have the same timebase
-
-        Examples
-        --------
-        >>> # case 1 conversion type None
-        >>> s1 = np.array([1, 2, 3, 4, 5])
-        >>> s2 = np.array([-1, -2, -3, -4, -5])
-        >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
-        >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
-        >>> names = ['Positive', 'Negative', 'Float']
-        >>> units = ['+', '-', '.f']
-        >>> info = {}
-        >>> s1 = Signal(samples=s1, timstamps=t, unit='+', name='Positive')
-        >>> s2 = Signal(samples=s2, timstamps=t, unit='-', name='Negative')
-        >>> s3 = Signal(samples=s3, timstamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF4('new.mf4')
-        >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
-        >>> # case 2: VTAB conversions from channels inside another file
-        >>> mdf1 = MDF4('in.mf4')
-        >>> ch1 = mdf1.get("Channel1_VTAB")
-        >>> ch2 = mdf1.get("Channel2_VTABR")
-        >>> sigs = [ch1, ch2]
-        >>> mdf2 = MDF4('out.mf4')
-        >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
-
-        """
-        if not signals:
-            warnings.warn("Must provide at least one Signal object in the input list for append")
-            return
-
-        signals_nr = len(signals)
-        dg_cntr = len(self.groups)
-        self.groups.append({})
-        gp = self.groups[-1]
-
-        # check if all signals have the same time base
-        t_ = signals[0].timestamps
-        if not common_timebase:
-            for s in signals[1:]:
-                if not array_equal(s.timestamps, t_):
-                    different = True
-                    break
-            else:
-                different = False
-
-            # computed union of all time bases
-            if different:
-                times = [s.timestamps for s in signals]
-                t = reduce(union1d, times).flatten().astype(float64)
-                signals = [s.interp(t) for s in signals]
-                times = None
-            else:
-                t = t_
-        else:
-            t = t_
-
-        cycles_nr = len(t)
-
-        t_type, t_size = fmt_to_datatype(t.dtype, version=4)
-
-        gp['channels'] = gp_channels = []
-        gp['channel_conversions'] = gp_conv = []
-        gp['channel_sources'] = gp_source = []
-        # SDBLOCKS are not used when appending
-        # so we get None for each signal, +1 for the master channel
-        gp['signal_data'] = [None,] * (signals_nr + 1)
-        gp['texts'] = gp_texts = {'channels': [], 'sources': [], 'conversions': [], 'conversion_tab': [], 'channel_group': []}
-
-        # time channel texts
-        for key, item in gp['texts'].items():
-            item.append({})
-        gp_texts['channels'][-1]['name_addr'] = TextBlock(text='t')
-        gp_texts['conversions'][-1]['unit_addr'] = TextBlock(text='s')
-
-        si_text = TextBlock(text=source_info)
-        gp_texts['sources'][-1]['name_addr'] = si_text
-        gp_texts['sources'][-1]['path_addr'] = si_text
-        gp_texts['channel_group'][-1]['acq_name_addr'] = si_text
-        gp_texts['channel_group'][-1]['comment_addr'] = si_text
-
-        # channels texts
-        for s in signals:
-            for key, item in gp['texts'].items():
-                item.append({})
-            gp_texts['channels'][-1]['name_addr'] = TextBlock(text=s.name)
-            if s.unit:
-                gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=s.unit)
-            gp_texts['sources'][-1]['name_addr'] = si_text
-            gp_texts['sources'][-1]['path_addr'] = si_text
-
-        # conversion for time channel
-        kargs = {'conversion_type': CONVERSION_TYPE_NON,
-                 'min_phy_value': t[0] if cycles_nr else 0,
-                 'max_phy_value': t[-1] if cycles_nr else 0}
-        gp_conv.append(ChannelConversion(**kargs))
-        gp_texts['conversion_tab'].append({})
-
-        # conversions for channels
-        if cycles_nr:
-            min_max = []
-            # compute min and max valkues for all channels
-            # for string channels we append (1,0) and use this as a marker (if min>max then channel is string)
-            for s in signals:
-                if issubdtype(s.samples.dtype, flexible):
-                    min_max.append((1,0))
-                else:
-                    min_max.append((amin(s.samples), amax(s.samples)))
-        else:
-            min_max = [(0, 0) for s in signals]
-
-        # create channel conversions from the Signal's conversion attribute
-        for idx, s in enumerate(signals):
-            info = s.info
-            conv_texts_tab = gp_texts['conversion_tab'][idx+1]
-            if info:
-                signal_origin = info['type']
-                if signal_origin in (SIGNAL_TYPE_V4_VTAB, SIGNAL_TYPE_V3_VTAB):
-                    kargs = {}
-                    kargs['conversion_type'] = CONVERSION_TYPE_TABX
-                    raw = info['raw']
-                    phys = info['phys']
-                    for i, (r_, p_) in enumerate(zip(raw, phys)):
-                        kargs['text_{}'.format(i)] = 0
-                        kargs['val_{}'.format(i)] = r_
-                        conv_texts_tab['text_{}'.format(i)] = TextBlock(text=p_)
-                    if info.get('default', b''):
-                        conv_texts_tab['default_addr'] = TextBlock(text=info['default'])
-                    else:
-                        conv_texts_tab['default_addr'] = None
-                    kargs['default_addr'] = 0
-                    kargs['links_nr'] = len(raw) + 5
-                    gp_conv.append(ChannelConversion(**kargs))
-                elif signal_origin in (SIGNAL_TYPE_V3_VTABR, SIGNAL_TYPE_V4_VTABR):
-                    kargs = {}
-                    kargs['conversion_type'] = CONVERSION_TYPE_RTABX
-                    lower = info['lower']
-                    upper = info['upper']
-                    texts = info['phys']
-                    kargs['ref_param_nr'] = len(upper)
-                    kargs['default_addr'] = info.get('default', 0)
-                    kargs['links_nr'] = len(lower) + 5
-
-                    for i, (u_, l_, t_) in enumerate(zip(upper, lower, texts)):
-                        kargs['lower_{}'.format(i)] = l_
-                        kargs['upper_{}'.format(i)] = u_
-                        kargs['text_{}'.format(i)] = 0
-                        conv_texts_tab['text_{}'.format(i)] = TextBlock(text=t_)
-                    if info.get('default', b''):
-                        conv_texts_tab['default_addr'] = TextBlock(text=info['default'])
-                    else:
-                        conv_texts_tab['default_addr'] = None
-                    kargs['default_addr'] = 0
-                    gp_conv.append(ChannelConversion(**kargs))
-
-                else:
-                    gp_conv.append(None)
-            else:
-                gp_conv.append(None)
-
-        #source for channels
-        for i in range(signals_nr + 1):
-            gp_source.append(SourceInformation())
-
-        #time channel
-        kargs = {'channel_type': CHANNEL_TYPE_MASTER,
-                 'data_type': t_type,
-                 'sync_type': 1,
-                 'byte_offset': 0,
-                 'bit_count': t_size,
-                 'min_raw_value': t[0] if cycles_nr else 0,
-                 'max_raw_value' : t[-1] if cycles_nr else 0,
-                 'lower_limit' : t[0] if cycles_nr else 0,
-                 'upper_limit' : t[-1] if cycles_nr else 0}
-        ch = Channel(**kargs)
-        ch.name = name = 't'
-        gp_channels.append(ch)
-
-        ch_cntr = 0
-        if name in self.channels_db:
-            self.channels_db[name].append((dg_cntr, ch_cntr))
-        else:
-            self.channels_db[name] = []
-            self.channels_db[name].append((dg_cntr, ch_cntr))
-        ch_cntr += 1
-        self.masters_db[dg_cntr] = 0
-
-        #channels
-        sig_dtypes = [sig.samples.dtype for sig in signals]
-        sig_formats = [fmt_to_datatype(typ, version=4) for typ in sig_dtypes]
-        offset = t_size // 8
-
-        names = [sig.name for sig in signals]
-        for (sigmin, sigmax), (sig_type, sig_size), name in zip(min_max, sig_formats, names):
-            byte_size = max(sig_size // 8, 1)
-            kargs = {'channel_type': CHANNEL_TYPE_VALUE,
-                     'bit_count': sig_size,
-                     'byte_offset': offset,
-                     'bit_offset' : 0,
-                     'data_type': sig_type,
-                     'min_raw_value': sigmin if sigmin<=sigmax else 0,
-                     'max_raw_value' : sigmax if sigmin<=sigmax else 0,
-                     'lower_limit' : sigmin if sigmin<=sigmax else 0,
-                     'upper_limit' : sigmax if sigmin<=sigmax else 0}
-            if sigmin > sigmax:
-                kargs['flags'] = 0
-            ch = Channel(**kargs)
-            ch.name = name
-            gp_channels.append(ch)
-            offset += byte_size
-
-            if name in self.channels_db:
-                self.channels_db[name].append((dg_cntr, ch_cntr))
-            else:
-                self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
-            ch_cntr += 1
-
-        #channel group
-        cycles_nr = len(t)
-        kargs = {'cycles_nr': cycles_nr,
-                 'samples_byte_nr': offset}
-        gp['channel_group'] = ChannelGroup(**kargs)
-        gp['size'] = cycles_nr * offset
-
-        #data group
-        gp['data_group'] = DataGroup()
-
-        #data block
-        types = [(str('t'), t.dtype),] + [(str(name), typ) for name, typ in zip(names, sig_dtypes)]
-        types = dtype(types)
-        gp['types'] = types
-
-        parents = {0: ('t', 0)}
-        for i, name in enumerate(names, 1):
-            parents[i] = name, 0
-        gp['parents'] = parents
-
-        arrays = [t, ] + [sig.samples for sig in signals]
-
-        arrays = fromarrays(arrays, dtype=types)
-
-        gp['channel_dependencies'] = []
-        for i in range(len(arrays)):
-            gp['channel_dependencies'].append(None)
-
-        block = arrays.tostring()
-
-        if self.load_measured_data:
-            gp['data_location'] = LOCATION_MEMORY
-            gp['data_block'] = DataBlock(data=block)
-        else:
-            gp['data_location'] = LOCATION_TEMPORARY_FILE
-            if self._tempfile is None:
-                self._tempfile = TemporaryFile()
-            self._tempfile.seek(0, SEEK_END)
-            data_address = self._tempfile.tell()
-            gp['data_group']['data_block_addr'] = data_address
-            self._tempfile.write(bytes(block))
-
     def append(self, signals, source_info='Python', common_timebase=False):
         """Appends a new data group.
 
@@ -1488,7 +1219,7 @@ class MDF4(object):
             if flags & FLAG_AT_EMBEDDED:
                 data = attachment.extract()
 
-                file_path = texts['file_name_addr']['text'].decode('utf-8')
+                file_path = texts['file_name_addr']['text'].decode('utf-8').strip(' \n\t\x00')
                 out_path = os.path.dirname(file_path)
                 if out_path:
                     if not os.path.exists(out_path):
@@ -1501,7 +1232,7 @@ class MDF4(object):
             else:
                 # for external attachemnts read the files and return the content
                 if flags & FLAG_AT_MD5_VALID:
-                    file_path = texts['file_name_addr']['text'].decode('utf-8')
+                    file_path = texts['file_name_addr']['text'].decode('utf-8').strip(' \n\t\x00')
                     data = open(file_path, 'rb').read()
                     md5_worker = md5()
                     md5_worker.update(data)
@@ -1625,6 +1356,7 @@ class MDF4(object):
             name = channel.name
 
             if all(isinstance(dep, Channel) for dep in dependency_list):
+                # structure channel composition
                 arrays = [self.get(ch.name, samples_only=True) for ch in dependency_list]
                 names = [ch.name for ch in dependency_list]
                 types = [ (name, arr.dtype) for name, arr in zip(names, arrays)]
@@ -1635,7 +1367,7 @@ class MDF4(object):
                 info = {'type': SIGNAL_TYPE_V4_CHANNEL_COMPOSITION}
 
             else:
-
+                # channel arrays
                 arrays = []
                 types = []
 
@@ -1651,12 +1383,12 @@ class MDF4(object):
                         cycles_nr = len(vals)
                         shape = ca_block['dim_size_0']
                         arrays.append(vals)
-                        types.append( (channel.name, vals.dtype, (shape, )) )
+                        types.append( ('{}_samples'.format(channel.name), vals.dtype, (shape, )) )
 
                     elif ca_block['ca_type'] == CA_TYPE_LOOKUP:
                         shape = vals.shape[1:]
                         arrays.append(vals)
-                        types.append( (channel.name, vals.dtype, shape) )
+                        types.append( ('{}_samples'.format(channel.name), vals.dtype, shape) )
 
                         if ca_block['flags'] & FLAG_CA_FIXED_AXIS:
                             cycles_nr = len(vals)
@@ -1680,7 +1412,7 @@ class MDF4(object):
                         cycles_nr = len(vals)
                         shape = vals.shape[1:]
                         arrays.append(vals)
-                        types.append( (channel.name, vals.dtype, shape) )
+                        types.append( ('{}_samples'.format(channel.name), vals.dtype, shape) )
 
                 for ca_block in dependency_list[1:]:
                     dims_nr = ca_block['dims']
@@ -1714,10 +1446,11 @@ class MDF4(object):
                 comment = grp['texts']['channels'][ch_nr].get('comment_addr', None)
                 if comment:
                     if comment['id'] == b'##MD':
-                        comment = comment['text'].decode('utf-8')
+                        comment = comment['text'].decode('utf-8').strip(' \n\t\x00')
+                        print(comment)
                         comment = XML.fromstring(comment).find('TX').text
                     else:
-                        comment = comment['text'].decode('utf-8')
+                        comment = comment['text'].decode('utf-8').strip(' \n\t\x00')
                 else:
                     comment = ''
 
@@ -1913,7 +1646,7 @@ class MDF4(object):
                 vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
 
             elif conversion_type == CONVERSION_TYPE_ALG:
-                formula = grp['texts']['conversions'][ch_nr]['formula_addr']['text'].decode('utf-8')
+                formula = grp['texts']['conversions'][ch_nr]['formula_addr']['text'].decode('utf-8').strip(' \n\t\x00')
                 X = vals
                 vals = evaluate(formula)
 
@@ -2026,12 +1759,12 @@ class MDF4(object):
                 # search for unit in conversion texts
                 unit = grp['texts']['conversions'][ch_nr].get('unit_addr', None)
                 if unit:
-                    unit = unit['text'].decode('utf-8')
+                    unit = unit['text'].decode('utf-8').strip(' \n\t\x00')
                 else:
                     # search for physical unit in channel texts
                     unit = grp['texts']['channels'][ch_nr].get('unit_addr', None)
                     if unit:
-                        unit = unit['text'].decode('utf-8')
+                        unit = unit['text'].decode('utf-8').strip(' \n\t\x00')
                     else:
                         unit = ''
 
@@ -2039,13 +1772,13 @@ class MDF4(object):
                 comment = grp['texts']['channels'][ch_nr].get('comment_addr', None)
                 if comment:
                     if comment['id'] == b'##MD':
-                        comment = comment['text'].decode('utf-8')
+                        comment = comment['text'].decode('utf-8').strip(' \n\t\x00')
                         try:
                             comment = XML.fromstring(comment).find('TX').text
                         except Exception as e:
                             comment = ''
                     else:
-                        comment = comment['text'].decode('utf-8')
+                        comment = comment['text'].decode('utf-8').strip(' \n\t\x00')
                 else:
                     comment = ''
 
@@ -2104,7 +1837,7 @@ class MDF4(object):
 
         """
         info = {}
-        info['version'] = self.identification['version_str'].strip(b'\x00').decode('utf-8')
+        info['version'] = self.identification['version_str'].strip(b'\x00').decode('utf-8').strip(' \n\t\x00')
         info['groups'] = len(self.groups)
         for i, gp in enumerate(self.groups):
             inf = {}

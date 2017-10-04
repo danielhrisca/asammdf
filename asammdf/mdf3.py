@@ -381,7 +381,7 @@ class MDF3(object):
 
                         # update channel object name and block_size attributes
                         if new_ch['long_name_addr']:
-                            new_ch.name = ch_texts['long_name_addr']['text'].decode('latin-1')
+                            new_ch.name = ch_texts['long_name_addr']['text'].decode('latin-1').strip(' \n\t\x00')
                         else:
                             new_ch.name = new_ch['short_name'].decode('latin-1').strip(' \n\t\x00')
 
@@ -802,7 +802,10 @@ class MDF3(object):
 
             # extend arrays, types and formats with data related to the simple signals
             arrays.extend(s.samples for s in simple_signals)
-            types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
+            if PYVERSION == 3:
+                types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
+            else:
+                types.extend([(str(name), typ) for name, typ in zip(names, sig_dtypes)])
             formats.extend(sig_formats)
 
         # second, add the composed signals
@@ -868,10 +871,14 @@ class MDF3(object):
 
                 new_sig_dtypes = [s.dtype for s in signals]
                 new_sig_formats = [fmt_to_datatype(typ) for typ in new_sig_dtypes]
+                shapes = [s.shape[1:] for s in signals]
 
                 # extend arrays, types and formasts with data from current composed
                 arrays.extend(signals)
-                types.extend([(name, dtype_) for name, dtype_ in zip(names, new_sig_dtypes)])
+                if PYVERSION == 3:
+                    types.extend([(name, dtype_, shape) for name, shape, dtype_ in zip(names, shapes, new_sig_dtypes)])
+                else:
+                    types.extend([(str(name), dtype_, shape) for name, shape, dtype_ in zip(names, shapes, new_sig_dtypes)])
                 formats.extend(new_sig_formats)
 
                 # add channel dependency block for composed parent channel
@@ -954,13 +961,13 @@ class MDF3(object):
         gp['data_group'] = DataGroup(**kargs)
 
         #data block
-        types = [(str(name), d_type) for name, d_type in types]
 
         types = dtype(types)
 
         gp['types'] = types
         gp['parents'] = parents
 
+        print(types)
         samples = fromarrays(arrays, dtype=types)
         block = samples.tostring()
 
@@ -1144,7 +1151,7 @@ class MDF3(object):
 
                     elif channel['data_type'] == DATA_TYPE_STRING:
                         vals = [val.tobytes() for val in vals]
-                        vals = array([x.decode('latin-1').strip('\x00') for x in vals])
+                        vals = array([x.decode('latin-1').strip(' \n\t\x00') for x in vals])
                         if PYVERSION == 2:
                             vals = array([str(val) for val in vals])
 
@@ -1287,7 +1294,7 @@ class MDF3(object):
             trigger, trigger_text = gp['trigger']
             if trigger:
                 if trigger_text:
-                    comment = trigger_text['text'].decode('latin-1')
+                    comment = trigger_text['text'].decode('latin-1').strip(' \n\t\x00')
                 else:
                     comment = ''
 
@@ -1310,11 +1317,11 @@ class MDF3(object):
 
         """
         info = {}
-        info['version'] = self.identification['version_str'].strip(b'\x00').decode('latin-1')
-        info['author'] = self.header['author'].strip(b'\x00').decode('latin-1')
-        info['organization'] = self.header['organization'].strip(b'\x00').decode('latin-1')
-        info['project'] = self.header['project'].strip(b'\x00').decode('latin-1')
-        info['subject'] = self.header['subject'].strip(b'\x00').decode('latin-1')
+        info['version'] = self.identification['version_str'].strip(b'\x00').decode('latin-1').strip(' \n\t\x00')
+        info['author'] = self.header['author'].strip(b'\x00').decode('latin-1').strip(' \n\t\x00')
+        info['organization'] = self.header['organization'].strip(b'\x00').decode('latin-1').strip(' \n\t\x00')
+        info['project'] = self.header['project'].strip(b'\x00').decode('latin-1').strip(' \n\t\x00')
+        info['subject'] = self.header['subject'].strip(b'\x00').decode('latin-1').strip(' \n\t\x00')
         info['groups'] = len(self.groups)
         for i, gp in enumerate(self.groups):
             inf = {}
