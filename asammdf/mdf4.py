@@ -664,13 +664,14 @@ class MDF4(object):
                             if gap:
                                 types.append( ('', 'a{}'.format(gap)) )
 
+                            size = bit_count >> 3
                             shape = tuple(ca_block['dim_size_{}'.format(i)] for i in range(ca_block['dims']))
-                            if ca_block['byte_offset_base'] > 1 and len(shape) == 1:
-                                shape += (ca_block['byte_offset_base'], )
+                            if ca_block['byte_offset_base'] // size > 1 and len(shape) == 1:
+                                shape += (ca_block['byte_offset_base'] // size, )
                             dim = 1
                             for d in shape:
                                 dim *= d
-                            size = bit_count >> 3
+
                             types.append( (name, get_fmt(data_type, size, version=4), shape) )
 
                             current_parent = name
@@ -1634,8 +1635,75 @@ class MDF4(object):
                 info = {'type': SIGNAL_TYPE_V4_CHANNEL_COMPOSITION}
 
             else:
+
+                arrays = []
+                types = []
+
                 parent, bit_offset = parents[ch_nr]
                 vals = record[parent]
+
+                cycles_nr = len(vals)
+
+                for ca_block in dependency_list[:1]:
+                    dims_nr = ca_block['dims']
+
+                    if ca_block['ca_type'] == CA_TYPE_SCALE_AXIS:
+                        cycles_nr = len(vals)
+                        shape = ca_block['dim_size_0']
+                        arrays.append(vals)
+                        types.append( (channel.name, vals.dtype, (shape, )) )
+
+                    elif ca_block['ca_type'] == CA_TYPE_LOOKUP:
+                        shape = vals.shape[1:]
+                        arrays.append(vals)
+                        types.append( (channel.name, vals.dtype, shape) )
+
+                        if ca_block['flags'] & FLAG_CA_FIXED_AXIS:
+                            cycles_nr = len(vals)
+                            for i in range(dims_nr):
+                                shape = ca_block['dim_size_{}'.format(i)]
+                                axis = []
+                                for j in range(shape):
+                                    axis.append(ca_block['axis_{}_value_{}'.format(i, j)])
+                                axis = array([axis for i in range(cycles_nr)])
+                                arrays.append(axis)
+                                types.append( ('axis_{}'.format(i), axis.dtype, (shape,)) )
+                        else:
+                            for i in range(dims_nr):
+                                axis = ca_block.referenced_channels[i]
+                                shape = ca_block['dim_size_{}'.format(i)]
+                                axis_values = self.get(axis.name, samples_only=True)[axis.name]
+                                arrays.append(axis_values)
+                                types.append( (axis.name, axis_values.dtype, (shape, )))
+
+                    elif ca_block['ca_type'] == CA_TYPE_ARRAY:
+                        cycles_nr = len(vals)
+                        shape = vals.shape[1:]
+                        arrays.append(vals)
+                        types.append( (channel.name, vals.dtype, shape) )
+
+                for ca_block in dependency_list[1:]:
+                    dims_nr = ca_block['dims']
+
+                    if ca_block['flags'] & FLAG_CA_FIXED_AXIS:
+                        cycles_nr = len(vals)
+                        for i in range(dims_nr):
+                            shape = ca_block['dim_size_{}'.format(i)]
+                            axis = []
+                            for j in range(shape):
+                                axis.append(ca_block['axis_{}_value_{}'.format(i, j)])
+                            axis = array([axis for i in range(cycles_nr)])
+                            arrays.append(axis)
+                            types.append( ('axis_{}'.format(i), axis.dtype, (shape,)) )
+                    else:
+                        for i in range(dims_nr):
+                            axis = ca_block.referenced_channels[i]
+                            shape = ca_block['dim_size_{}'.format(i)]
+                            axis_values = self.get(axis.name, samples_only=True)[axis.name]
+                            arrays.append(axis_values)
+                            types.append( (axis.name, axis_values.dtype, (shape, )))
+
+                vals = fromarrays(arrays, dtype(types))
 
                 info = {'type': SIGNAL_TYPE_V4_ARRAY}
 
