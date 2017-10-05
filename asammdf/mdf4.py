@@ -44,7 +44,6 @@ from .v4blocks import (AttachmentBlock,
 from .v4constants import *
 from .utils import MdfException, get_fmt, fmt_to_datatype, pair
 from .signal import Signal
-from .signalconstants import *
 
 if PYVERSION == 2:
     from .utils import bytes
@@ -1445,7 +1444,11 @@ class MDF4(object):
                 if comment:
                     if comment['id'] == b'##MD':
                         comment = comment['text'].decode('utf-8').strip(' \n\t\x00')
-                        comment = XML.fromstring(comment).find('TX').text
+                        comment = XML.fromstring(comment).find('TX')
+                        if comment:
+                            comment = comment.text
+                        else:
+                            comment = ''
                     else:
                         comment = comment['text'].decode('utf-8').strip(' \n\t\x00')
                 else:

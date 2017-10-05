@@ -25,7 +25,6 @@ from numexpr import evaluate
 
 from .utils import MdfException, get_fmt, pair, fmt_to_datatype
 from .signal import Signal
-from .signalconstants import *
 from .v3constants import *
 from .v3blocks import (Channel, ChannelConversion, ChannelDependency,
                        ChannelExtension, ChannelGroup, DataBlock, DataGroup,
@@ -1022,8 +1021,6 @@ class MDF3(object):
         samples = fromarrays(arrays, dtype=types)
         block = samples.tostring()
 
-        print(types, gp['size'], len(block))
-
         if self.load_measured_data:
             gp['data_location'] = LOCATION_MEMORY
             kargs = {'data': block}
@@ -1522,7 +1519,6 @@ class MDF3(object):
             self.groups[-1]['data_group']['next_dg_addr'] = 0
 
             for index, gp in enumerate(self.groups):
-#                print(address, hex(address), gp['texts'])
                 gp_texts = gp['texts']
 
                 # Texts
