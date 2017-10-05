@@ -57,18 +57,62 @@ class Signal(object):
 
     def plot(self):
         """plot Signal samples"""
-        fig = plt.figure()
-        fig.canvas.set_window_title(self.name)
-        if self.comment:
-            plt.title('{}\n({})'.format(self.name, self.comment))
+        if len(self.samples.shape) <= 1 and self.samples.dtype.names is None:
+            fig = plt.figure()
+            fig.canvas.set_window_title(self.name)
+            if self.comment:
+                plt.title('{}\n({})'.format(self.name, self.comment))
+            else:
+                plt.title(self.name)
+            plt.xlabel('Time [s]')
+            plt.ylabel('[{}]'.format(self.unit))
+            plt.plot(self.timestamps, self.samples, 'b')
+            plt.plot(self.timestamps, self.samples, 'b.')
+            plt.grid(True)
+            plt.show()
         else:
-            plt.title(self.name)
-        plt.xlabel('Time [s]')
-        plt.ylabel('[{}]'.format(self.unit))
-        plt.plot(self.timestamps, self.samples, 'b')
-        plt.plot(self.timestamps, self.samples, 'b.')
-        plt.grid(True)
-        plt.show()
+            if self.samples.dtype.names is None:
+                from mpl_toolkits.mplot3d import axes3d
+                import matplotlib.pyplot as plt
+
+                fig = plt.figure()
+                ax = fig.add_subplot(111, projection='3d')
+
+                # Grab some test data.
+                X = list(range(self.samples.shape[1]))
+                Y = list(range(self.samples.shape[2]))
+                Z = self.samples
+
+                # Plot a basic wireframe.
+                ax.plot_wireframe(X, Y, Z, rstride=10, cstride=10)
+
+                plt.show()
+
+                import numpy as np
+                import matplotlib.pyplot as plt
+                from matplotlib.widgets import Slider
+
+                fig, ax = plt.subplots()
+                plt.subplots_adjust(bottom=0.25)
+
+                t = np.arange(0.0, 100.0, 0.1)
+                s = np.sin(2*np.pi*t)
+                l, = plt.plot(t,s)
+                plt.axis([0, 10, -1, 1])
+
+                axcolor = 'lightgoldenrodyellow'
+                axpos = plt.axes([0.2, 0.1, 0.65, 0.03], axisbg=axcolor)
+
+                spos = Slider(axpos, 'Pos', 0.1, 90.0)
+
+                def update(val):
+                    pos = spos.val
+                    ax.axis([pos,pos+10,-1,1])
+                    fig.canvas.draw_idle()
+
+                spos.on_changed(update)
+
+                plt.show()
 
     def cut(self, start=None, stop=None):
         """
