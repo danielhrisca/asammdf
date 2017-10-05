@@ -13,10 +13,12 @@ import warnings
 from collections import defaultdict
 from functools import reduce
 from tempfile import TemporaryFile
+from itertools import product
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, log, exp, clip, union1d, float64,
-                   uint8, frombuffer, issubdtype, flexible, arange, recarray)
+                   uint8, frombuffer, issubdtype, flexible, arange, recarray,
+                   column_stack)
 from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import decode, encode
 from numexpr import evaluate
@@ -600,8 +602,8 @@ class MDF3(object):
         # The regular signals will be first added to the group.
         # The composed signals will be saved along side the fields, which will
         # be saved as new signals.
-        simple_signals = [sig for sig in signals if sig.samples.dtype.names is None]
-        composed_signals = [sig for sig in signals if sig.samples.dtype.names]
+        simple_signals = [sig for sig in signals if len(sig.samples.shape) <= 1 and sig.samples.dtype.names is None]
+        composed_signals = [sig for sig in signals if len(sig.samples.shape) > 1 or sig.samples.dtype.names]
 
         cycles_nr = len(t)
 
@@ -665,7 +667,7 @@ class MDF3(object):
 
         # first add the signals in the simple signal list
         if simple_signals:
-            #channels texts
+            # channels texts
             names = [s.name for s in simple_signals]
             for name in names:
                 for _, item in gp['texts'].items():
@@ -769,7 +771,8 @@ class MDF3(object):
                          'max_raw_value': sigmax if sigmin <= sigmax else 0,
                          'start_offset': start_bit_offset,
                          'bit_count': sig_size,
-                         'aditional_byte_offset' : additional_byte_offset}
+                         'aditional_byte_offset' : additional_byte_offset,
+                         'description': s.comment.encode('latin-1')}
                 if s.comment:
                     kargs['description'] = (s.comment[:127] + '\x00').encode('latin-1') if len(s.comment) >= 128 else s.comment.encode('latin-1')
                 ch = Channel(**kargs)
@@ -805,23 +808,73 @@ class MDF3(object):
         if composed_signals:
             for sig in composed_signals:
                 names = sig.samples.dtype.names
-                signals = [sig.samples[name] for name in names]
+                name = sig.name
 
-                # numpy dtype does not allow for reapeating names so we must handle name conflincts
-                dtype_fields = [t[0] for t in types]
-                new_names = []
-                # if the name already exist in the dtype fiels then
-                # compute a new name "name_xx", by incrementing the index
-                # until a valid new name is found
-                for name in names:
-                    i = 0
-                    new_name = name
-                    while new_name in dtype_fields:
-                        new_name = "{}_{}".format(name, i)
-                        i += 1
-                    new_names.append(new_name)
+                if names:
+                    new_names = []
+                    signals = []
+                    samples = sig.samples[names[0]]
 
-                names = new_names
+
+                    shape = samples.shape[1:]
+                    dims = [list(range(size)) for size in shape]
+
+                    for indexes in product(*dims):
+                        subarray = samples
+                        for idx in indexes:
+                            subarray = subarray[:, idx]
+                        signals.append(subarray)
+
+                        new_names.append('{}{}'.format(name, ''.join('[{}]'.format(idx) for idx in indexes)))
+
+                    # add channel dependency block for composed parent channel
+                    sd_nr = len(signals)
+                    kargs = {'sd_nr': sd_nr}
+                    for i, dim in enumerate(shape[::-1]):
+                        kargs['dim_{}'.format(i)] = dim
+                    parent_dep = ChannelDependency(**kargs)
+                    gp_dep.append(parent_dep)
+
+                    signals.extend([sig.samples[name] for name in names[1:]])
+
+                    # numpy dtype does not allow for reapeating names so we must handle name conflincts
+                    dtype_fields = [t[0] for t in types]
+                    # if the name already exist in the dtype fiels then
+                    # compute a new name "name_xx", by incrementing the index
+                    # until a valid new name is found
+                    for name in names[1:]:
+                        i = 0
+                        new_name = name
+                        while new_name in dtype_fields:
+                            new_name = "{}_{}".format(name, i)
+                            i += 1
+                        new_names.append(new_name)
+
+                    names = new_names
+
+                else:
+                    names = []
+                    signals = []
+
+                    shape = sig.samples.shape[1:]
+                    dims = [list(range(size)) for size in shape]
+
+                    for indexes in product(*dims):
+                        subarray = sig.samples
+                        for idx in indexes:
+                            subarray = subarray[:, idx]
+                        signals.append(subarray)
+
+                        names.append('{}{}'.format(name, ''.join('[{}]'.format(idx) for idx in indexes)))
+
+                    # add channel dependency block for composed parent channel
+                    sd_nr = len(signals)
+                    kargs = {'sd_nr': sd_nr}
+                    for i, dim in enumerate(shape[::-1]):
+                        kargs['dim_{}'.format(i)] = dim
+                    parent_dep = ChannelDependency(**kargs)
+                    gp_dep.append(parent_dep)
+
 
                 # add composed parent signal texts
                 name = sig.name
@@ -874,10 +927,6 @@ class MDF3(object):
                     types.extend([(str(name), dtype_, shape) for name, shape, dtype_ in zip(names, shapes, new_sig_dtypes)])
                 formats.extend(new_sig_formats)
 
-                # add channel dependency block for composed parent channel
-                parent_dep = ChannelDependency(sd_nr=len(signals))
-                gp_dep.append(parent_dep)
-
                 # components do not have channel dependencies
                 for _ in signals:
                     gp_dep.append(None)
@@ -896,7 +945,8 @@ class MDF3(object):
                          'max_raw_value': 0,
                          'start_offset': start_bit_offset,
                          'bit_count': new_sig_formats[0][1],
-                         'aditional_byte_offset' : additional_byte_offset}
+                         'aditional_byte_offset' : additional_byte_offset,
+                         'description': sig.comment.encode('latin-1')}
                 ch = Channel(**kargs)
                 ch.name = name = sig.name
                 gp_channels.append(ch)
@@ -909,7 +959,7 @@ class MDF3(object):
                 ch_cntr += 1
 
                 # add components channels
-                for (sigmin, sigmax), (sig_type, sig_size), shape, name in zip(min_max, new_sig_formats, shapes, names):
+                for i, ((sigmin, sigmax), (sig_type, sig_size), shape, name) in enumerate(zip(min_max, new_sig_formats, shapes, names)):
                     if offset > MAX_UINT16:
                         additional_byte_offset = (offset - MAX_UINT16 ) >> 3
                         start_bit_offset = offset - additional_byte_offset << 3
@@ -920,9 +970,6 @@ class MDF3(object):
                     size = sig_size
                     for dim in shape:
                         size *= dim
-
-                    print(sig_size, size, name)
-
 
                     kargs = {'short_name': (name[:31] + '\x00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
                              'channel_type': CHANNEL_TYPE_VALUE,
@@ -937,6 +984,11 @@ class MDF3(object):
                     gp_channels.append(ch)
                     offset += size
 
+                    if i < sd_nr:
+                        parent_dep.referenced_channels.append((ch, gp))
+                    else:
+                        ch['description'] = 'axis {} for channel {}'.format(name, sig.name).encode('latin-1')
+
                     # update channel database with component indexes
                     if not name in self.channels_db:
                         self.channels_db[name] = []
@@ -947,8 +999,6 @@ class MDF3(object):
 
                     ch_cntr += 1
 
-                    # update parent channel dependency referenced channels list
-                    parent_dep.referenced_channels.append((ch, gp))
 
         #channel group
         kargs = {'cycles_nr': cycles_nr,
@@ -1067,7 +1117,8 @@ class MDF3(object):
         grp = self.groups[gp_nr]
         channel = grp['channels'][ch_nr]
         conversion = grp['channel_conversions'][ch_nr]
-        dependecy_block = grp['channel_dependencies'][ch_nr]
+        dependency_block = grp['channel_dependencies'][ch_nr]
+        cycles_nr = grp['channel_group']['cycles_nr']
 
         try:
             parents, dtypes = grp['parents'], grp['types']
@@ -1084,15 +1135,34 @@ class MDF3(object):
             except:
                 record = grp['record'] = fromstring(grp['data_block']['data'], dtype=dtypes)
 
-        # check if this is a channel array
-        if dependecy_block:
-            referenced_channels = [ch for ch, gp_ in dependecy_block.referenced_channels]
-            arrays = [self.get(ch.name, samples_only=True) for ch in referenced_channels]
-            types = [ (ch.name, arr.dtype) for ch, arr in zip(referenced_channels, arrays)]
-            types = dtype(types)
-            vals = fromarrays(arrays, dtype=types)
+        info = None
 
-            info = {}
+        # check if this is a channel array
+        if dependency_block:
+            if dependency_block['dependency_type'] == DEPENDENCY_TYPE_VECTOR:
+                referenced_channels = [ch for ch, gp_ in dependency_block.referenced_channels]
+                arrays = [self.get(ch.name, samples_only=True) for ch in referenced_channels]
+                types = [ (ch.name, arr.dtype) for ch, arr in zip(referenced_channels, arrays)]
+                types = dtype(types)
+                vals = fromarrays(arrays, dtype=types)
+            elif dependency_block['dependency_type'] >= DEPENDENCY_TYPE_NDIM:
+                shape = []
+                i = 0
+                while True:
+                    try:
+                        dim = dependency_block['dim_{}'.format(i)]
+                        shape.append(dim)
+                        i += 1
+                    except KeyError:
+                        break
+                shape = shape[::-1]
+
+                referenced_channels = [ch for ch, gp_ in dependency_block.referenced_channels]
+                arrays = [self.get(ch.name, samples_only=True) for ch in referenced_channels]
+                if cycles_nr:
+                    shape.insert(0, cycles_nr)
+
+                vals = column_stack(arrays).flatten().reshape(tuple(shape))
 
             if samples_only:
                 return vals

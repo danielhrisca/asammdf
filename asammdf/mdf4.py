@@ -1445,7 +1445,6 @@ class MDF4(object):
                 if comment:
                     if comment['id'] == b'##MD':
                         comment = comment['text'].decode('utf-8').strip(' \n\t\x00')
-                        print(comment)
                         comment = XML.fromstring(comment).find('TX').text
                     else:
                         comment = comment['text'].decode('utf-8').strip(' \n\t\x00')

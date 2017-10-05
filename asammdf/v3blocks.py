@@ -9,6 +9,7 @@ from struct import unpack, pack, Struct, unpack_from
 from getpass import getuser
 from functools import partial
 
+from .utils import MdfException
 from .v3constants import *
 
 
@@ -506,7 +507,7 @@ class ChannelDependency(dict):
 
     * id - Block type identifier, always "CD"
     * block_len - Block size of this block in bytes (entire CDBLOCK)
-    * data - Dependency type
+    * dependency_type - Dependency type
     * sd_nr - Total number of signals dependencies (m)
     * for each dependency there is a group of three keys:
 
@@ -571,6 +572,16 @@ class ChannelDependency(dict):
                 self['dg_{}'.format(i)] = 0
                 self['cg_{}'.format(i)] = 0
                 self['ch_{}'.format(i)] = 0
+            i = 0
+            while True:
+                try:
+                    self['dim_{}'.format(i)] = kargs['dim_{}'.format(i)]
+                    i += 1
+                except KeyError:
+                    break
+            if i:
+                self['dependency_type'] = 256 + i
+                self['block_len'] += 2 * i
 
     def __bytes__(self):
         fmt = '<2s3H{}I'.format(self['sd_nr'] * 3)
