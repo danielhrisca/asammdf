@@ -4,6 +4,8 @@ asammdf *Signal* class module for time correct signal processing
 """
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import axes3d
+from matplotlib.widgets import Slider
 
 from .utils import MdfException
 
@@ -72,47 +74,37 @@ class Signal(object):
             plt.show()
         else:
             if self.samples.dtype.names is None:
-                from mpl_toolkits.mplot3d import axes3d
-                import matplotlib.pyplot as plt
-
                 fig = plt.figure()
                 ax = fig.add_subplot(111, projection='3d')
 
                 # Grab some test data.
-                X = list(range(self.samples.shape[1]))
-                Y = list(range(self.samples.shape[2]))
-                Z = self.samples
+                X = np.array(range(self.samples.shape[2]))
+                Y = np.array(range(self.samples.shape[1]))
+                X, Y = np.meshgrid(X, Y)
+
+                Z = self.samples[0]
 
                 # Plot a basic wireframe.
-                ax.plot_wireframe(X, Y, Z, rstride=10, cstride=10)
+                self.l = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
 
-                plt.show()
+                # Place Sliders on Graph
+                ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
 
-                import numpy as np
-                import matplotlib.pyplot as plt
-                from matplotlib.widgets import Slider
-
-                fig, ax = plt.subplots()
-                plt.subplots_adjust(bottom=0.25)
-
-                t = np.arange(0.0, 100.0, 0.1)
-                s = np.sin(2*np.pi*t)
-                l, = plt.plot(t,s)
-                plt.axis([0, 10, -1, 1])
-
-                axcolor = 'lightgoldenrodyellow'
-                axpos = plt.axes([0.2, 0.1, 0.65, 0.03], axisbg=axcolor)
-
-                spos = Slider(axpos, 'Pos', 0.1, 90.0)
+                # Create Sliders & Determine Range
+                sa = Slider(ax_a, 'Time [s]', self.timestamps[0], self.timestamps[-1], valinit=self.timestamps[0])
 
                 def update(val):
-                    pos = spos.val
-                    ax.axis([pos,pos+10,-1,1])
+                    self.l.remove()
+                    idx = np.searchsorted(self.timestamps, sa.val, side='right')
+                    Z = self.samples[idx-1]
+                    self.l = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
                     fig.canvas.draw_idle()
 
-                spos.on_changed(update)
+                sa.on_changed(update)
 
                 plt.show()
+
+                del self.l
 
     def cut(self, start=None, stop=None):
         """
