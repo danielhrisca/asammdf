@@ -423,14 +423,14 @@ class MDF(object):
                     channels = gp1['channels']
 
                     if mdf.version in MDF3_VERSIONS:
-                        for dep in gp['channel_dependencies']:
+                        for dep in gp1['channel_dependencies']:
                             if dep is None:
                                 continue
                             for ch, ch_gp in dep.referenced_channels:
                                 if ch_gp == gp1:
                                     excluded_channels.append(channels.index(ch))
                     else:
-                        for dependency_list in gp['channel_dependencies']:
+                        for dependency_list in gp1['channel_dependencies']:
                             if dependency_list is None:
                                 continue
                             if all(dep['id'] == b'##CN' for dep in dependency_list):
