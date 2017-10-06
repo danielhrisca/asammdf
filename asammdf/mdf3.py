@@ -677,18 +677,8 @@ class MDF3(object):
             sig_dtypes = []
             sig_formats = []
             for i, sig in enumerate(simple_signals):
-                shape = sig.samples.shape
-                if len(shape) > 1:
-                    shape = shape[1:]
-                    size = 1
-                    for dim in shape:
-                        size *= dim
-                    sig_dtypes.append(dtype('{}u1'.format(shape)))
-                    sig_formats.append((DATA_TYPE_BYTEARRAY, size << 3))
-                    gp_texts['channels'][i+1]['comment_addr'] = TextBlock(text='From array of shape {}'.format(shape))
-                else:
-                    sig_dtypes.append(sig.samples.dtype)
-                    sig_formats.append(fmt_to_datatype(sig.samples.dtype))
+                sig_dtypes.append(sig.samples.dtype)
+                sig_formats.append(fmt_to_datatype(sig.samples.dtype))
 
             # conversions for channels
             if cycles_nr:
@@ -813,7 +803,6 @@ class MDF3(object):
                     new_names = []
                     signals = []
                     samples = sig.samples[names[0]]
-
 
                     shape = samples.shape[1:]
                     dims = [list(range(size)) for size in shape]

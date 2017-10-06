@@ -14,6 +14,7 @@ from struct import unpack, unpack_from
 from functools import reduce
 from collections import defaultdict
 from hashlib import md5
+from itertools import product
 import xml.etree.ElementTree as XML
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
@@ -770,8 +771,8 @@ class MDF4(object):
         # The regular signals will be first added to the group.
         # The composed signals will be saved along side the fields, which will
         # be saved as new signals.
-        simple_signals = [sig for sig in signals if sig.samples.dtype.names is None]
-        composed_signals = [sig for sig in signals if sig.samples.dtype.names]
+        simple_signals = [sig for sig in signals if len(sig.samples.shape) <= 1 and sig.samples.dtype.names is None]
+        composed_signals = [sig for sig in signals if len(sig.samples.shape) > 1 or sig.samples.dtype.names]
 
         cycles_nr = len(t)
 
@@ -853,18 +854,8 @@ class MDF4(object):
             sig_dtypes = []
             sig_formats = []
             for i, sig in enumerate(simple_signals):
-                shape = sig.samples.shape
-                if len(shape) > 1:
-                    shape = shape[1:]
-                    size = 1
-                    for dim in shape:
-                        size *= dim
-                    sig_dtypes.append(dtype('{}u1'.format(shape)))
-                    sig_formats.append((DATA_TYPE_BYTEARRAY, size << 3))
-                    gp_texts['channels'][i+1]['comment_addr'] = TextBlock(text='From array of shape {}'.format(shape))
-                else:
-                    sig_dtypes.append(sig.samples.dtype)
-                    sig_formats.append(fmt_to_datatype(sig.samples.dtype))
+                sig_dtypes.append(sig.samples.dtype)
+                sig_formats.append(fmt_to_datatype(sig.samples.dtype))
 
             # conversions for channels
             if cycles_nr:
@@ -968,30 +959,116 @@ class MDF4(object):
 
             # extend arrays, types and formats with data related to the simple signals
             arrays.extend(s.samples for s in simple_signals)
-            types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
+            if PYVERSION == 3:
+                types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
+            else:
+                types.extend([(str(name), typ) for name, typ in zip(names, sig_dtypes)])
             formats.extend(sig_formats)
 
         # second, add the composed signals
         if composed_signals:
             for sig in composed_signals:
                 names = sig.samples.dtype.names
-                signals = [sig.samples[name] for name in names]
+                name = sig.name
 
-                # numpy dtype does not allow for reapeating names so we must handle name conflincts
-                dtype_fields = [t[0] for t in types]
-                new_names = []
-                # if the name already exist in the dtype fiels then
-                # compute a new name "name_xx", by incrementing the index
-                # until a valid new name is found
-                for name in names:
-                    i = 0
-                    new_name = name
-                    while new_name in dtype_fields:
-                        new_name = "{}_{}".format(name, i)
-                        i += 1
-                    new_names.append(new_name)
+                if len(names) > 1:
+                    new_names = []
+                    signals = []
+                    samples = sig.samples[names[0]]
 
-                names = new_names
+                    shape = samples.shape[1:]
+
+                    signals.append(samples)
+                    new_names.append(name)
+
+                    # add channel dependency block for composed parent channel
+                    dims_nr = len(names) - 1
+                    kargs = {'dims': dims_nr,
+                             'ca_type': CA_TYPE_LOOKUP,
+                             'flags': FLAG_CA_AXIS | FLAG_CA_FIXED_AXIS if len(names) == 1 else FLAG_CA_AXIS,
+                             'byte_offset_base': samples.dtype.itemsize,
+                             }
+                    for i in range(dims_nr):
+                        kargs['dim_size_{}'.format(i)] = shape[i]
+                    parent_dep = ChannelArrayBlock(**kargs)
+                    gp_dep.append(parent_dep)
+
+                    signals.extend([sig.samples[name] for name in names[1:]])
+
+                    # numpy dtype does not allow for reapeating names so we must handle name conflincts
+                    dtype_fields = [t[0] for t in types]
+                    # if the name already exist in the dtype fiels then
+                    # compute a new name "name_xx", by incrementing the index
+                    # until a valid new name is found
+                    for name in names[1:]:
+                        i = 0
+                        new_name = name
+                        while new_name in dtype_fields:
+                            new_name = "{}_{}".format(name, i)
+                            i += 1
+                        new_names.append(new_name)
+
+                    names = new_names
+
+                elif len(names) == 1:
+                    signals = []
+                    samples = sig.samples[names[0]]
+
+                    shape = samples.shape[1:]
+
+                    signals.append(samples)
+                    new_names.append(name)
+
+                    # add channel dependency block for composed parent channel
+                    dims_nr = len(shape)
+                    kargs = {'dims': dims_nr,
+                             'ca_type': CA_TYPE_ARRAY,
+                             'flags': 0,
+                             'byte_offset_base': samples.dtype.itemsize,
+                             }
+                    for i in range(dims_nr):
+                        kargs['dim_size_{}'.format(i)] = shape[i]
+
+                    parent_dep = ChannelArrayBlock(**kargs)
+                    gp_dep.append(parent_dep)
+
+                    signals.extend([sig.samples[name] for name in names[1:]])
+
+                    # numpy dtype does not allow for reapeating names so we must handle name conflincts
+                    dtype_fields = [t[0] for t in types]
+                    # if the name already exist in the dtype fiels then
+                    # compute a new name "name_xx", by incrementing the index
+                    # until a valid new name is found
+                    for name in names[1:]:
+                        i = 0
+                        new_name = name
+                        while new_name in dtype_fields:
+                            new_name = "{}_{}".format(name, i)
+                            i += 1
+                        new_names.append(new_name)
+
+                else:
+                    names = []
+                    signals = []
+
+                    shape = sig.samples.shape[1:]
+                    dims = [list(range(size)) for size in shape]
+
+                    for indexes in product(*dims):
+                        subarray = sig.samples
+                        for idx in indexes:
+                            subarray = subarray[:, idx]
+                        signals.append(subarray)
+
+                        names.append('{}{}'.format(name, ''.join('[{}]'.format(idx) for idx in indexes)))
+
+                    # add channel dependency block for composed parent channel
+                    sd_nr = len(signals)
+                    kargs = {'sd_nr': sd_nr}
+                    for i, dim in enumerate(shape[::-1]):
+                        kargs['dim_{}'.format(i)] = dim
+                    parent_dep = ChannelDependency(**kargs)
+                    gp_dep.append(parent_dep)
 
                 # add composed parent signal texts
                 name = sig.name
@@ -1038,7 +1115,10 @@ class MDF4(object):
 
                 # extend arrays, types and formasts with data from current composed
                 arrays.extend(signals)
-                types.extend([(name, dtype_) for name, dtype_ in zip(names, new_sig_dtypes)])
+                if PYVERSION == 3:
+                    types.extend([(name, dtype_, shape) for name, shape, dtype_ in zip(names, shapes, new_sig_dtypes)])
+                else:
+                    types.extend([(str(name), dtype_, shape) for name, shape, dtype_ in zip(names, shapes, new_sig_dtypes)])
                 formats.extend(new_sig_formats)
 
                 # add channel dependency block for composed parent channel

@@ -294,10 +294,153 @@ class ChannelArrayBlock(dict):
                         self['axis_{}_value_{}'.format(i, j)] = unpack('<d', stream.read(8))[0]
 
         except KeyError:
-            pass
+            self['id'] = b'##CA'
+            self['reserved0'] = 0
+
+
+            ca_type = kargs['ca_type']
+
+            if ca_type == CA_TYPE_ARRAY:
+                dims_nr = kargs['dims']
+                self['block_len'] = 48 + dims_nr * 8
+                self['links_nr'] = 1
+                self['composition_addr'] = 0
+                self['ca_type'] = CA_TYPE_ARRAY
+                self['storage'] = CA_STORAGE_TYPE_CN_TEMPLATE
+                self['dims'] = dims_nr
+                self['flags'] = 0
+                self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
+                self['invalidation_bit_base'] = kargs.get('byte_offset_base', 0)
+                for i in range(dims_nr):
+                    self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
+            elif ca_type == CA_TYPE_SCALE_AXIS:
+                self['block_len'] = 56
+                self['links_nr'] = 1
+                self['composition_addr'] = 0
+                self['ca_type'] = CA_TYPE_SCALE_AXIS
+                self['storage'] = CA_STORAGE_TYPE_CN_TEMPLATE
+                self['dims'] = 1
+                self['flags'] = 0
+                self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
+                self['invalidation_bit_base'] = kargs.get('byte_offset_base', 0)
+                self['dim_size_0'] = kargs['dim_size_0']
+            elif ca_type == CA_TYPE_LOOKUP:
+                flags = kargs['flags']
+                dims_nr = kargs['dims']
+                values = sum(kargs['dim_size_{}'.format(i)] for i in range(dims_nr))
+                if flags & FLAG_CA_FIXED_AXIS:
+                    self['block_len'] = 48 + dims_nr * 16 + values * 8
+                    self['links_nr'] = 1 + dims_nr
+                    self['composition_addr'] = 0
+                    for i in range(dims_nr):
+                        self['axis_conversion_{}'.format(i)] = 0
+                    self['ca_type'] = CA_TYPE_LOOKUP
+                    self['storage'] = CA_STORAGE_TYPE_CN_TEMPLATE
+                    self['dims'] = dims_nr
+                    self['flags'] = FLAG_CA_FIXED_AXIS | FLAG_CA_AXIS
+                    self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
+                    self['invalidation_bit_base'] = kargs.get('byte_offset_base', 0)
+                    for i in range(dims_nr):
+                        self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
+                    for i in range(dims_nr):
+                        for j in range(self['dim_size_{}'.format(i)]):
+                            self['axis_{}_value_{}'.format(i, j)] = kargs['axis_{}_value_{}'.format(i, j)]
+                else:
+                    self['block_len'] = 48 + dims_nr * 5 * 8
+                    self['links_nr'] = 1 + dims_nr * 4
+                    self['composition_addr'] = 0
+                    for i in range(dims_nr):
+                        self['axis_conversion_{}'.format(i)] = 0
+                    for i in range(dims_nr):
+                        self['scale_axis_{}_dg_addr'.format(i)] = 0
+                        self['scale_axis_{}_cg_addr'.format(i)] = 0
+                        self['scale_axis_{}_ch_addr'.format(i)] = 0
+                    self['ca_type'] = CA_TYPE_LOOKUP
+                    self['storage'] = CA_STORAGE_TYPE_CN_TEMPLATE
+                    self['dims'] = dims_nr
+                    self['flags'] = FLAG_CA_AXIS
+                    self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
+                    self['invalidation_bit_base'] = kargs.get('byte_offset_base', 0)
+                    for i in range(dims_nr):
+                        self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
+
 
     def __bytes__(self):
-        return b''
+        flags = self['flags']
+        ca_type = self['ca_type']
+        dims_nr = self['dims']
+
+        if ca_type == CA_TYPE_ARRAY:
+            keys = ('id',
+                    'reserved0',
+                    'block_len',
+                    'links_nr'
+                    'composition_addr',
+                    'ca_type',
+                    'storage',
+                    'dims',
+                    'flags',
+                    'byte_offset_base',
+                    'invalidation_bit_base')
+            keys += tuple('dim_size_{}'.format(i) for i in range(dims_nr))
+            fmt = '<4sI3Q2BHIiI{}Q'.format(dims_nr)
+        elif ca_type == CA_TYPE_SCALE_AXIS:
+            keys = ('id',
+                    'reserved0',
+                    'block_len',
+                    'links_nr'
+                    'composition_addr',
+                    'ca_type',
+                    'storage',
+                    'dims',
+                    'flags',
+                    'byte_offset_base',
+                    'invalidation_bit_base',
+                    'dim_size_0')
+            fmt = '<4sI3Q2BHIiIQ'
+        elif ca_type == CA_TYPE_LOOKUP:
+            if flags & FLAG_CA_FIXED_AXIS:
+                nr = sum(self['dim_size_{}'.format(i)] for i in range(dims_nr)) + dims_nr
+                keys = ('id',
+                        'reserved0',
+                        'block_len',
+                        'links_nr'
+                        'composition_addr')
+                keys += tuple('axis_conversion_{}'.format(i) for i in range(dims_nr))
+                keys += ('ca_type',
+                        'storage',
+                        'dims',
+                        'flags',
+                        'byte_offset_base',
+                        'invalidation_bit_base')
+                keys += tuple('axis_{}_value_{}'.format(i, j) for i in range(dims_nr) for j in range(self['dim_size_{}'.format(i)]))
+                fmt = '<4sI{}Q2BHIiI{}Q'.format(self['links_nr'] + 1, nr)
+            else:
+                nr = sum(self['dim_size_{}'.format(i)] for i in range(dims_nr)) + dims_nr
+                keys = ('id',
+                        'reserved0',
+                        'block_len',
+                        'links_nr'
+                        'composition_addr')
+                keys += tuple('axis_conversion_{}'.format(i) for i in range(dims_nr))
+                for i in range(dims_nr):
+                    self['scale_axis_{}_dg_addr'.format(i)] = 0
+                    self['scale_axis_{}_cg_addr'.format(i)] = 0
+                    self['scale_axis_{}_ch_addr'.format(i)] = 0
+                keys += ('ca_type',
+                        'storage',
+                        'dims',
+                        'flags',
+                        'byte_offset_base',
+                        'invalidation_bit_base')
+                keys += tuple('axis_{}_value_{}'.format(i, j) for j in range(self['dim_size_{}'.format(i)])
+                                                                    for i in range(dims_nr))
+                fmt = '<4sI{}Q2BHIiI{}Q'.format(self['links_nr'] + 1, dims_nr)
+
+        if PYVERSION_MAJOR >= 36:
+            return pack(fmt, *self.values())
+        else:
+            return pack(fmt, *[self[key] for key in keys])
 
 
 class ChannelGroup(dict):

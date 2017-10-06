@@ -52,7 +52,7 @@ class Signal(object):
             self.comment = comment
 
     def __str__(self):
-        return 'Signal {{ name="{}":\ts={}\tt={}\tunit="{}"\tinfo={} \tcomment="{}"}}'.format(self.name, self.samples, self.timestamps, self.unit, self.info, self.comment)
+        return '<Signal {}:\n\tsamples={}\n\ttimestamps={}\n\tunit="{}"\n\tinfo={}\n\tcomment="{}">\n'.format(self.name, self.samples, self.timestamps, self.unit, self.info, self.comment)
 
     def __repr__(self):
         return str(self)
@@ -105,6 +105,8 @@ class Signal(object):
                 plt.show()
 
                 del self.l
+
+
 
     def cut(self, start=None, stop=None):
         """
