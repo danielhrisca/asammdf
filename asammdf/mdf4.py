@@ -1460,38 +1460,38 @@ class MDF4(object):
 
                     if ca_block['ca_type'] == CA_TYPE_SCALE_AXIS:
                         cycles_nr = len(vals)
-                        shape = ca_block['dim_size_0']
+                        shape = (ca_block['dim_size_0'], )
                         arrays.append(vals)
-                        types.append( ('{}_samples'.format(channel.name), vals.dtype, (shape, )) )
+                        types.append( (channel.name, vals.dtype, shape) )
 
                     elif ca_block['ca_type'] == CA_TYPE_LOOKUP:
                         shape = vals.shape[1:]
                         arrays.append(vals)
-                        types.append( ('{}_samples'.format(channel.name), vals.dtype, shape) )
+                        types.append( (channel.name, vals.dtype, shape) )
 
                         if ca_block['flags'] & FLAG_CA_FIXED_AXIS:
                             cycles_nr = len(vals)
                             for i in range(dims_nr):
-                                shape = ca_block['dim_size_{}'.format(i)]
+                                shape = (ca_block['dim_size_{}'.format(i)], )
                                 axis = []
-                                for j in range(shape):
+                                for j in range(shape[0]):
                                     axis.append(ca_block['axis_{}_value_{}'.format(i, j)])
                                 axis = array([axis for i in range(cycles_nr)])
                                 arrays.append(axis)
-                                types.append( ('axis_{}'.format(i), axis.dtype, (shape,)) )
+                                types.append( ('axis_{}'.format(i), axis.dtype, shape) )
                         else:
                             for i in range(dims_nr):
                                 axis = ca_block.referenced_channels[i]
-                                shape = ca_block['dim_size_{}'.format(i)]
-                                axis_values = self.get(axis.name, samples_only=True)['{}_samples'.format(axis.name)]
+                                shape = (ca_block['dim_size_{}'.format(i)], )
+                                axis_values = self.get(axis.name, samples_only=True)[axis.name]
                                 arrays.append(axis_values)
-                                types.append( (axis.name, axis_values.dtype, (shape, )))
+                                types.append( (axis.name, axis_values.dtype, shape))
 
                     elif ca_block['ca_type'] == CA_TYPE_ARRAY:
                         cycles_nr = len(vals)
                         shape = vals.shape[1:]
                         arrays.append(vals)
-                        types.append( ('{}_samples'.format(channel.name), vals.dtype, shape) )
+                        types.append( (channel.name, vals.dtype, shape) )
 
                 for ca_block in dependency_list[1:]:
                     dims_nr = ca_block['dims']
@@ -1499,20 +1499,20 @@ class MDF4(object):
                     if ca_block['flags'] & FLAG_CA_FIXED_AXIS:
                         cycles_nr = len(vals)
                         for i in range(dims_nr):
-                            shape = ca_block['dim_size_{}'.format(i)]
+                            shape = (ca_block['dim_size_{}'.format(i)], )
                             axis = []
-                            for j in range(shape):
+                            for j in range(shape[0]):
                                 axis.append(ca_block['axis_{}_value_{}'.format(i, j)])
                             axis = array([axis for i in range(cycles_nr)])
                             arrays.append(axis)
-                            types.append( ('axis_{}'.format(i), axis.dtype, (shape,)) )
+                            types.append( ('axis_{}'.format(i), axis.dtype, shape) )
                     else:
                         for i in range(dims_nr):
                             axis = ca_block.referenced_channels[i]
-                            shape = ca_block['dim_size_{}'.format(i)]
-                            axis_values = self.get(axis.name, samples_only=True)['{}_samples'.format(axis.name)]
+                            shape = (ca_block['dim_size_{}'.format(i)], )
+                            axis_values = self.get(axis.name, samples_only=True)[axis.name]
                             arrays.append(axis_values)
-                            types.append( (axis.name, axis_values.dtype, (shape, )))
+                            types.append( (axis.name, axis_values.dtype, shape))
 
                 vals = fromarrays(arrays, dtype(types))
 
@@ -1671,7 +1671,11 @@ class MDF4(object):
 
                         vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
 
-                        info = {'type' : SIGNAL_TYPE_V4_BYTEARRAY}
+                        types = dtype([(channel.name, vals.dtype, vals.shape[1:])])
+                        arrays = [vals, ]
+
+                        vals = fromarrays(arrays, dtype=types)
+
 
                 elif channel['channel_type'] == CHANNEL_TYPE_VLSD:
                     if signal_data:
