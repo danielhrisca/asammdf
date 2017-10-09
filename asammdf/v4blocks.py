@@ -424,9 +424,9 @@ class ChannelArrayBlock(dict):
                         'composition_addr')
                 keys += tuple('axis_conversion_{}'.format(i) for i in range(dims_nr))
                 for i in range(dims_nr):
-                    self['scale_axis_{}_dg_addr'.format(i)] = 0
-                    self['scale_axis_{}_cg_addr'.format(i)] = 0
-                    self['scale_axis_{}_ch_addr'.format(i)] = 0
+                    keys += ('scale_axis_{}_dg_addr'.format(i),
+                             'scale_axis_{}_cg_addr'.format(i),
+                             'scale_axis_{}_ch_addr'.format(i))
                 keys += ('ca_type',
                         'storage',
                         'dims',
@@ -435,7 +435,7 @@ class ChannelArrayBlock(dict):
                         'invalidation_bit_base')
                 keys += tuple('axis_{}_value_{}'.format(i, j) for j in range(self['dim_size_{}'.format(i)])
                                                                     for i in range(dims_nr))
-                fmt = '<4sI{}Q2BHIiI{}Q'.format(self['links_nr'] + 1, dims_nr)
+                fmt = '<4sI{}Q2BHIiI{}Q'.format(self['links_nr'] + 2, dims_nr)
 
         if PYVERSION_MAJOR >= 36:
             return pack(fmt, *self.values())
