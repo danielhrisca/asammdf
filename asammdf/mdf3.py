@@ -1240,7 +1240,11 @@ class MDF3(object):
         Returns
         -------
         res : (numpy.array | Signal)
-            returns *Signal* if *samples_only*=*False* (default option), otherwise returns numpy.array
+            returns *Signal* if *samples_only*=*False* (default option), otherwise returns numpy.array.
+            The *Signal* samples are:
+
+                * numpy recarray for channels that have CDBLOCK or BYTEARRAY type channels
+                * numpy array for all the rest
 
         Raises
         ------

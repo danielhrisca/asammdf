@@ -24,9 +24,17 @@ Features
 * export to Excel, HDF5, Matlab and CSV
 * merge multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
-* full support (read, append, save) for maps (multidemsional array channels, ie. mdf version 3 channel dependencies and mdf version 4 channel arrays and structure channel composition)
-* add and extract attachments for mdf version 4
+* full support (read, append, save) for the following map types (multidimensional array channels):
 
+    * mdf version 3 channels with CDBLOCK
+    * mdf version 4 structure channel composition
+    * mdf version 4 channel arrays with CNTemplate storage and one of the array types:
+    
+        * 0 - array
+        * 1 - scaling axis
+        * 2 - look-up
+        
+* add and extract attachments for mdf version 4
 * files are loaded in RAM for fast operations
 * handle large files (exceeding the available RAM) using *load_measured_data* = *False* argument
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files

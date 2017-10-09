@@ -1457,6 +1457,10 @@ class MDF4(object):
         -------
         res : (numpy.array | Signal)
             returns *Signal* if *samples_only*=*False* (default option), otherwise returns numpy.array
+            The *Signal* samples are:
+
+                * numpy recarray for channels that have composition/channel array address or for channel of type BYTEARRAY, CANOPENDATE, CANOPENTIME
+                * numpy array for all the rest
 
         Raises
         ------
@@ -1767,7 +1771,6 @@ class MDF4(object):
                         arrays = [vals, ]
 
                         vals = fromarrays(arrays, dtype=types)
-
 
                 elif channel['channel_type'] == CHANNEL_TYPE_VLSD:
                     if signal_data:
