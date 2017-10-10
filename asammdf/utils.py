@@ -204,6 +204,37 @@ def pair(iterable):
     next(next_, None)
     return zip(current, next_)
 
+def get_unique_names(used_names, names):
+    """ returns a list of unique names
+
+    Parameters
+    ----------
+    used_names : list
+        list of already taken names
+    names : list
+        new names to be made unique
+
+    Returns
+    -------
+    unique_names : list
+        lis of all unique names
+
+    """
+
+    used_names = set(used_names)
+
+    unique_names = []
+    for name in names:
+        i = 0
+        new_name = name
+        while new_name in used_names:
+            new_name = "{}_{}".format(name, i)
+            i += 1
+        unique_names.append(new_name)
+        used_names.add(new_name)
+
+    return unique_names
+
 
 def load_dbc(dbc):
     """ Loads all messages description from DBC

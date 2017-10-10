@@ -23,7 +23,7 @@ from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import decode, encode
 from numexpr import evaluate
 
-from .utils import MdfException, get_fmt, pair, fmt_to_datatype
+from .utils import MdfException, get_fmt, pair, fmt_to_datatype, get_unique_names
 from .signal import Signal
 from .v3constants import *
 from .v3blocks import (Channel, ChannelConversion, ChannelDependency,
@@ -203,6 +203,7 @@ class MDF3(object):
             while new_name in group_channels:
                 new_name = "{}_{}".format(name, i)
                 i += 1
+            name = new_name
             group_channels.add(name)
 
             if start_offset >= next_byte_aligned_position:
@@ -679,6 +680,9 @@ class MDF3(object):
                     if len(name) >= 32:
                         gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
 
+                dtype_fields = [t[0] for t in types]
+                field_names = get_unique_names(dtype_fields, names)
+
                 sig_dtypes = []
                 sig_formats = []
                 for i, sig in enumerate(simple_signals):
@@ -749,7 +753,7 @@ class MDF3(object):
                     gp_source.append(ChannelExtension(**kargs))
 
                 #channels
-                for (sigmin, sigmax), (sig_type, sig_size), s in zip(min_max, sig_formats, simple_signals):
+                for (sigmin, sigmax), (sig_type, sig_size), s, field_name in zip(min_max, sig_formats, simple_signals, field_names):
                     # compute additional byte offset for large records size
                     if offset > MAX_UINT16:
                         additional_byte_offset = (offset - MAX_UINT16 ) >> 3
@@ -764,8 +768,7 @@ class MDF3(object):
                              'max_raw_value': sigmax if sigmin <= sigmax else 0,
                              'start_offset': start_bit_offset,
                              'bit_count': sig_size,
-                             'aditional_byte_offset' : additional_byte_offset,
-                             'description': s.comment.encode('latin-1')}
+                             'aditional_byte_offset' : additional_byte_offset}
                     if s.comment:
                         kargs['description'] = (s.comment[:127] + '\x00').encode('latin-1') if len(s.comment) >= 128 else s.comment.encode('latin-1')
                     ch = Channel(**kargs)
@@ -781,7 +784,7 @@ class MDF3(object):
                     self.channels_db[name].append((dg_cntr, ch_cntr))
 
                     # update the parents as well
-                    parents[ch_cntr] = name, 0
+                    parents[ch_cntr] = field_name, 0
 
                     ch_cntr += 1
 
@@ -792,9 +795,9 @@ class MDF3(object):
                 # extend arrays, types and formats with data related to the simple signals
                 arrays.extend(s.samples for s in simple_signals)
                 if PYVERSION == 3:
-                    types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
+                    types.extend([(name, typ) for name, typ in zip(field_names, sig_dtypes)])
                 else:
-                    types.extend([(str(name), typ) for name, typ in zip(names, sig_dtypes)])
+                    types.extend([(str(name), typ) for name, typ in zip(field_names, sig_dtypes)])
                 formats.extend(sig_formats)
 
             # second, add the composed signals
@@ -828,18 +831,11 @@ class MDF3(object):
 
                     signals.extend([sig.samples[name] for name in names[1:]])
 
+                    new_names.extend(names[1:])
+
                     # numpy dtype does not allow for reapeating names so we must handle name conflincts
                     dtype_fields = [t[0] for t in types]
-                    # if the name already exist in the dtype fiels then
-                    # compute a new name "name_xx", by incrementing the index
-                    # until a valid new name is found
-                    for name in names[1:]:
-                        i = 0
-                        new_name = name
-                        while new_name in dtype_fields:
-                            new_name = "{}_{}".format(name, i)
-                            i += 1
-                        new_names.append(new_name)
+                    field_names = get_unique_names(dtype_fields, new_names)
 
                     names = new_names
 
@@ -857,6 +853,8 @@ class MDF3(object):
                         signals.append(subarray)
 
                         names.append('{}{}'.format(name, ''.join('[{}]'.format(idx) for idx in indexes)))
+
+                    field_names = names
 
                     # add channel dependency block for composed parent channel
                     sd_nr = len(signals)
@@ -913,10 +911,12 @@ class MDF3(object):
                 # extend arrays, types and formasts with data from current composed
                 arrays.extend(signals)
                 if PYVERSION == 3:
-                    types.extend([(name, dtype_, shape) for name, shape, dtype_ in zip(names, shapes, new_sig_dtypes)])
+                    types.extend([(name, dtype_) for name, shape, dtype_ in zip(field_names, shapes, new_sig_dtypes)])
                 else:
-                    types.extend([(str(name), dtype_, shape) for name, shape, dtype_ in zip(names, shapes, new_sig_dtypes)])
+                    types.extend([(str(name), dtype_) for name, shape, dtype_ in zip(field_names, shapes, new_sig_dtypes)])
                 formats.extend(new_sig_formats)
+
+                print(sig.name, types)
 
                 # components do not have channel dependencies
                 for _ in signals:
@@ -937,7 +937,7 @@ class MDF3(object):
                          'start_offset': start_bit_offset,
                          'bit_count': new_sig_formats[0][1],
                          'aditional_byte_offset' : additional_byte_offset,
-                         'description': sig.comment.encode('latin-1')}
+                         'description': sig.comment.encode('latin-1') if sig.comment else b''}
                 ch = Channel(**kargs)
                 ch.name = name = sig.name
                 gp_channels.append(ch)
@@ -950,7 +950,7 @@ class MDF3(object):
                 ch_cntr += 1
 
                 # add components channels
-                for i, ((sigmin, sigmax), (sig_type, sig_size), shape, name) in enumerate(zip(min_max, new_sig_formats, shapes, names)):
+                for i, ((sigmin, sigmax), (sig_type, sig_size), shape, name) in enumerate(zip(min_max, new_sig_formats, shapes, field_names)):
                     if offset > MAX_UINT16:
                         additional_byte_offset = (offset - MAX_UINT16 ) >> 3
                         start_bit_offset = offset - additional_byte_offset << 3
@@ -1002,7 +1002,7 @@ class MDF3(object):
             gp['data_group'] = DataGroup(**kargs)
 
             #data block
-
+            print(types)
             types = dtype(types)
 
             gp['types'] = types
@@ -1105,10 +1105,14 @@ class MDF3(object):
             # data group record parents
             parents = {0: ('t', 0)}
 
-            for name in names:
+            # numpy dtype does not allow for reapeating names so we must handle name conflincts
+            dtype_fields = [t[0] for t in types]
+            field_names = get_unique_names(dtype_fields, names)
+
+            for name, field_name in zip(names, field_names):
                 vals = sig.samples[name]
                 arrays.append(vals)
-                types.append((name, vals.dtype))
+                types.append((field_name, vals.dtype))
 
                 sig_type, sig_size = fmt_to_datatype(vals.dtype)
 
@@ -1162,7 +1166,7 @@ class MDF3(object):
                 self.channels_db[name].append((dg_cntr, ch_cntr))
 
                 # also update record parents
-                parents[ch_cntr] = name, 0
+                parents[ch_cntr] = field_name, 0
 
                 ch_cntr += 1
 
@@ -1307,7 +1311,7 @@ class MDF3(object):
         # check if this is a channel array
         if dependency_block:
             if dependency_block['dependency_type'] == DEPENDENCY_TYPE_VECTOR:
-                shape = (dependency_block['sd_nr'], )
+                shape = [dependency_block['sd_nr'], ]
             elif dependency_block['dependency_type'] >= DEPENDENCY_TYPE_NDIM:
                 shape = []
                 i = 0
@@ -1392,8 +1396,8 @@ class MDF3(object):
                     vals = array([x.decode('latin-1').strip(' \n\t\x00') for x in vals])
                     if PYVERSION == 2:
                         vals = array([str(val) for val in vals])
-
-                    vals = encode(vals, 'latin-1')
+                    if len(vals):
+                        vals = encode(vals, 'latin-1')
 
                 elif channel['data_type'] == DATA_TYPE_BYTEARRAY:
                     arrays = [vals, ]

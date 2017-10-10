@@ -97,7 +97,10 @@ class MDF(object):
             # walk through all groups and get all channels
             for i, gp in enumerate(self.groups):
                 sigs = []
-                excluded_channels = [self.masters_db[i], ]
+                if self.masters_db.get(i, None) is None:
+                    excluded_channels = []
+                else:
+                    excluded_channels = [self.masters_db[i], ]
                 channels = gp['channels']
 
                 if self.version in MDF3_VERSIONS:
@@ -126,9 +129,10 @@ class MDF(object):
                     if j in excluded_channels:
                         continue
                     sigs.append(self.get(group=i, index=j))
-                out.append(sigs,
-                           'Converted from {} to {}'.format(self.version, to),
-                           common_timebase=True)
+                if sigs:
+                    out.append(sigs,
+                               'Converted from {} to {}'.format(self.version, to),
+                               common_timebase=True)
             return out
 
     def cut(self, start=None, stop=None):
@@ -147,12 +151,15 @@ class MDF(object):
             new MDF object
 
         """
-        out = MDF(version=to, load_measured_data=load_measured_data)
+        out = MDF(version=self.version, load_measured_data=self.load_measured_data)
 
         # walk through all groups and get all channels
         for i, gp in enumerate(self.groups):
             sigs = []
-            excluded_channels = [self.masters_db[i], ]
+            if self.masters_db.get(i, None) is None:
+                excluded_channels = []
+            else:
+                excluded_channels = [self.masters_db[i], ]
             channels = gp['channels']
 
             if self.version in MDF3_VERSIONS:
@@ -182,10 +189,11 @@ class MDF(object):
                     continue
                 sigs.append(self.get(group=i, index=j).cut(start=start, stop=stop))
 
-            out.append(sigs,
-                       'Cut from {} to {}'.format('{}s'.format(start) if start else 'start of measurement',
-                                                  '{}s'.format(stop) if stop else 'end of measurement'),
-                       common_timebase=True)
+            if sigs:
+                out.append(sigs,
+                           'Cut from {} to {}'.format('{}s'.format(start) if start else 'start of measurement',
+                                                      '{}s'.format(stop) if stop else 'end of measurement'),
+                           common_timebase=True)
         return out
 
     def export(self, format, filename=None):
@@ -374,9 +382,10 @@ class MDF(object):
             sigs = []
             for index in gps[group]:
                 sigs.append(self.get(group=group, index=index))
-            mdf.append(sigs,
-                       'Signals filtered from <{}>'.format(os.path.basename(self.name) if self.name else 'New MDF'),
-                       common_timebase=True)
+            if sigs:
+                mdf.append(sigs,
+                           'Signals filtered from <{}>'.format(os.path.basename(self.name) if self.name else 'New MDF'),
+                           common_timebase=True)
 
         return mdf
 
@@ -419,7 +428,10 @@ class MDF(object):
                 for i, (gp1, gp2) in enumerate(zip(out.groups, mdf.groups)):
                     sigs = []
 
-                    excluded_channels = [mdf.masters_db[i], ]
+                    if mdf.masters_db.get(i, None) is None:
+                        excluded_channels = []
+                    else:
+                        excluded_channels = [self.masters_db[i], ]
                     channels = gp1['channels']
 
                     if mdf.version in MDF3_VERSIONS:
@@ -467,7 +479,9 @@ class MDF(object):
                         sig2 = mdf.get(group=i, index=j)
                         sigs.append(sig1.extend(sig2))
 
-                    merged.append(sigs, common_timebase=True)
+                    if sigs:
+                        merged.append(sigs, common_timebase=True)
+
                 mdf.close()
             return merged
         else:

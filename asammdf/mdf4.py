@@ -19,7 +19,7 @@ import xml.etree.ElementTree as XML
 
 from numpy import (interp, linspace, dtype, amin, amax, array_equal,
                    array, searchsorted, clip, union1d, float64, frombuffer,
-                   uint8, arange, column_stack, argwhere,
+                   uint8, column_stack, argwhere, arange,
                    issubdtype, flexible)
 from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromstring, fromarrays
@@ -43,7 +43,7 @@ from .v4blocks import (AttachmentBlock,
                        TextBlock)
 
 from .v4constants import *
-from .utils import MdfException, get_fmt, fmt_to_datatype, pair
+from .utils import MdfException, get_fmt, fmt_to_datatype, pair, get_unique_names
 from .signal import Signal
 
 if PYVERSION == 2:
@@ -595,7 +595,6 @@ class MDF4(object):
         # adjusted to the first higher standard integer size (eq. uint of 28bits will
         # be adjusted to 32bits)
 
-
         for original_index, new_ch in sorted(enumerate(grp['channels']), key=lambda i: i[1]):
 
             start_offset = new_ch['byte_offset']
@@ -614,7 +613,7 @@ class MDF4(object):
             while new_name in group_channels:
                 new_name = "{}_{}".format(name, i)
                 i += 1
-
+            name = new_name
             group_channels.add(name)
 
             if start_offset >= next_byte_aligned_position:
@@ -686,6 +685,7 @@ class MDF4(object):
 
             else:
                 parents[original_index] = current_parent, ((start_offset - parent_start_offset) << 3 ) + bit_offset
+
         gap = record_size - next_byte_aligned_position
         if gap:
             types.append( ('', 'a{}'.format(gap)) )
@@ -841,6 +841,10 @@ class MDF4(object):
         # first add the signals in the simple signal list
         if simple_signals:
             names = [s.name for s in simple_signals]
+
+            dtype_fields = [t[0] for t in types]
+            field_names = get_unique_names(dtype_fields, names)
+
             # channels texts
             for s in signals:
                 for key, item in gp['texts'].items():
@@ -923,7 +927,7 @@ class MDF4(object):
                 gp_source.append(SourceInformation())
 
             #channels
-            for (sigmin, sigmax), (sig_type, sig_size), name in zip(min_max, sig_formats, names):
+            for (sigmin, sigmax), (sig_type, sig_size), name, field_name in zip(min_max, sig_formats, names, field_names):
                 byte_size = max(sig_size // 8, 1)
                 kargs = {'channel_type': CHANNEL_TYPE_VALUE,
                          'bit_count': sig_size,
@@ -949,7 +953,7 @@ class MDF4(object):
                     self.channels_db[name].append((dg_cntr, ch_cntr))
 
                 # update the parents as well
-                parents[ch_cntr] = name, 0
+                parents[ch_cntr] = field_name, 0
 
                 ch_cntr += 1
 
@@ -960,9 +964,9 @@ class MDF4(object):
             # extend arrays, types and formats with data related to the simple signals
             arrays.extend(s.samples for s in simple_signals)
             if PYVERSION == 3:
-                types.extend([(name, typ) for name, typ in zip(names, sig_dtypes)])
+                types.extend([(name, typ) for name, typ in zip(field_names, sig_dtypes)])
             else:
-                types.extend([(str(name), typ) for name, typ in zip(names, sig_dtypes)])
+                types.extend([(str(name), typ) for name, typ in zip(field_names, sig_dtypes)])
             formats.extend(sig_formats)
 
         # second, add the composed signals
@@ -975,11 +979,15 @@ class MDF4(object):
 
                 if names:
                     if names in (canopen_time_fields, canopen_date_fields):
+                        dtype_fields = [t[0] for t in types]
+                        field_name = get_unique_names(dtype_fields, [name, ])
+
                         if names == canopen_time_fields:
+
                             vals = sig.samples.tostring()
 
                             arrays.append(frombuffer(vals, dtype='V6'))
-                            types.append( (sig.name, 'V6') )
+                            types.append( (field_name, 'V6') )
                             formats.append( (DATA_TYPE_CANOPEN_TIME, 6) )
                             byte_size = 6
                             sig_type = DATA_TYPE_CANOPEN_TIME
@@ -991,7 +999,7 @@ class MDF4(object):
                             vals = fromarrays(vals).tostring()
 
                             arrays.append(frombuffer(vals, dtype='V7'))
-                            types.append( (sig.name, 'V7') )
+                            types.append( (field_name, 'V7') )
                             formats.append( (DATA_TYPE_CANOPEN_DATE, 7) )
                             byte_size = 7
                             sig_type = DATA_TYPE_CANOPEN_DATE
@@ -1040,12 +1048,14 @@ class MDF4(object):
                             self.channels_db[name].append((dg_cntr, ch_cntr))
 
                         # update the parents as well
-                        parents[ch_cntr] = name, 0
+                        parents[ch_cntr] = field_name, 0
 
                         ch_cntr += 1
 
                     elif names[0] != sig.name:
                         # here we have a structure channel composition
+                        dtype_fields = [t[0] for t in types]
+                        field_name = get_unique_names(dtype_fields, [name, ])
 
                         # first we add the structure channel
                         # add channel texts
@@ -1095,13 +1105,16 @@ class MDF4(object):
 
                         # then we add the fields
 
-                        for name in names:
+                        dtype_fields = [t[0] for t in types]
+                        field_names = get_unique_names(dtype_fields, names)
+
+                        for name, field_name in zip(names, field_names):
                             vals = sig.samples[name]
 
                             sig_type, sig_size = fmt_to_datatype(vals.dtype)
 
                             types.append(vals.dtype)
-                            formats.append( (name, vals.dtype) )
+                            formats.append( (field_name, vals.dtype) )
                             byte_size = sig_size >> 3
 
                             arrays.append(vals)
@@ -1147,7 +1160,7 @@ class MDF4(object):
                                 self.channels_db[name].append((dg_cntr, ch_cntr))
 
                             # update the parents as well
-                            parents[ch_cntr] = name, 0
+                            parents[ch_cntr] = field_name, 0
 
                             ch_cntr += 1
 
@@ -1158,12 +1171,11 @@ class MDF4(object):
                         signals = []
                         min_max = []
 
+                        dtype_fields = [t[0] for t in types]
+                        field_names = get_unique_names(dtype_fields, names)
+
                         if len(shape) > 1:
-
-                            new_names = []
-
                             signals.append(samples)
-                            new_names.append(name)
 
                             # add channel dependency block for composed parent channel
                             dims_nr = len(shape)
@@ -1175,6 +1187,8 @@ class MDF4(object):
                                          }
                                 for i in range(dims_nr):
                                     kargs['dim_size_{}'.format(i)] = shape[i]
+
+
                             else:
 
                                 kargs = {'dims': dims_nr,
@@ -1190,20 +1204,6 @@ class MDF4(object):
                             parent_dep = ChannelArrayBlock(**kargs)
                             gp_dep.append([parent_dep,])
 
-                            # numpy dtype does not allow for reapeating names so we must handle name conflincts
-                            dtype_fields = [t[0] for t in types]
-                            # if the name already exist in the dtype fiels then
-                            # compute a new name "name_xx", by incrementing the index
-                            # until a valid new name is found
-                            for name in names[1:]:
-                                i = 0
-                                new_name = name
-                                while new_name in dtype_fields:
-                                    new_name = "{}_{}".format(name, i)
-                                    i += 1
-                                new_names.append(new_name)
-
-                            names = new_names
                         else:
                             signals.append(samples)
 
@@ -1217,7 +1217,6 @@ class MDF4(object):
                             gp_dep.append([parent_dep,])
 
                         min_max = [(amin(s), amax(s)) for s in signals]
-
 
                         # add composed parent signal texts
                         for name in names:
@@ -1239,9 +1238,9 @@ class MDF4(object):
                         # extend arrays, types and formasts with data from current composed
                         arrays.extend(signals)
                         if PYVERSION == 3:
-                            types.extend([(name, dtype_, shape) for name, shape, dtype_ in zip(names, shapes, new_sig_dtypes)])
+                            types.extend([(name, dtype_, shape) for name, shape, dtype_ in zip(field_names, shapes, new_sig_dtypes)])
                         else:
-                            types.extend([(str(name), dtype_, shape) for name, shape, dtype_ in zip(names, shapes, new_sig_dtypes)])
+                            types.extend([(str(name), dtype_, shape) for name, shape, dtype_ in zip(field_names, shapes, new_sig_dtypes)])
                         formats.extend(new_sig_formats)
 
                         # components do not have channel dependencies
@@ -1255,7 +1254,7 @@ class MDF4(object):
                             gp_dep.append([ChannelArrayBlock(**kargs),])
 
                         # add components channels
-                        for (sigmin, sigmax), (sig_type, sig_size), name, shape in zip(min_max, new_sig_formats, names, shapes):
+                        for (sigmin, sigmax), (sig_type, sig_size), name, field_name, shape in zip(min_max, new_sig_formats, names, field_names, shapes):
                             byte_size = max(sig_size // 8, 1)
                             kargs = {'channel_type': CHANNEL_TYPE_VALUE,
                                      'bit_count': sig_size,
@@ -1283,7 +1282,7 @@ class MDF4(object):
                                 self.channels_db[name].append((dg_cntr, ch_cntr))
 
                             # update the parents as well
-                            parents[ch_cntr] = name, 0
+                            parents[ch_cntr] = field_name, 0
 
                             ch_cntr += 1
 
@@ -1541,6 +1540,8 @@ class MDF4(object):
 
                 vals = fromarrays(arrays, dtype=types)
 
+                cycles_nr = len(vals)
+
             else:
                 # channel arrays
                 arrays = []
@@ -1555,7 +1556,6 @@ class MDF4(object):
                     dims_nr = ca_block['dims']
 
                     if ca_block['ca_type'] == CA_TYPE_SCALE_AXIS:
-                        cycles_nr = len(vals)
                         shape = (ca_block['dim_size_0'], )
                         arrays.append(vals)
                         types.append( (channel.name, vals.dtype, shape) )
@@ -1566,7 +1566,6 @@ class MDF4(object):
                         types.append( (channel.name, vals.dtype, shape) )
 
                         if ca_block['flags'] & FLAG_CA_FIXED_AXIS:
-                            cycles_nr = len(vals)
                             for i in range(dims_nr):
                                 shape = (ca_block['dim_size_{}'.format(i)], )
                                 axis = []
@@ -1584,7 +1583,6 @@ class MDF4(object):
                                 types.append( (axis.name, axis_values.dtype, shape))
 
                     elif ca_block['ca_type'] == CA_TYPE_ARRAY:
-                        cycles_nr = len(vals)
                         shape = vals.shape[1:]
                         arrays.append(vals)
                         types.append( (channel.name, vals.dtype, shape) )
@@ -1593,7 +1591,6 @@ class MDF4(object):
                     dims_nr = ca_block['dims']
 
                     if ca_block['flags'] & FLAG_CA_FIXED_AXIS:
-                        cycles_nr = len(vals)
                         for i in range(dims_nr):
                             shape = (ca_block['dim_size_{}'.format(i)], )
                             axis = []
@@ -1631,25 +1628,29 @@ class MDF4(object):
                     comment = ''
 
                 # get master channel index
-                time_ch_nr = self.masters_db[gp_nr]
+                time_ch_nr = self.masters_db.get(gp_nr, None)
 
-                time_conv = grp['channel_conversions'][time_ch_nr]
-                time_ch = grp['channels'][time_ch_nr]
-                if time_ch['channel_type'] == CHANNEL_TYPE_VIRTUAL_MASTER:
-                    time_a = time_conv['a']
-                    time_b = time_conv['b']
-                    cycles = grp['channel_group']['cycles_nr']
-                    t = arange(cycles, dtype=float64) * time_a + time_b
+                if time_ch_nr is None:
+                    t = arange(cycles_nr, dtype=float64)
                 else:
-                    t = record[time_ch.name]
-                    # get timestamps
-                    time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
-                    if time_conv_type == CONVERSION_TYPE_LIN:
+                    time_conv = grp['channel_conversions'][time_ch_nr]
+                    time_ch = grp['channels'][time_ch_nr]
+                    if time_ch['channel_type'] == CHANNEL_TYPE_VIRTUAL_MASTER:
                         time_a = time_conv['a']
                         time_b = time_conv['b']
-                        t = t * time_a
-                        if time_b:
-                            t += time_b
+                        cycles = grp['channel_group']['cycles_nr']
+                        t = arange(cycles, dtype=float64) * time_a + time_b
+                    else:
+                        t = record[time_ch.name]
+                        # get timestamps
+                        time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
+                        if time_conv_type == CONVERSION_TYPE_LIN:
+                            time_a = time_conv['a']
+                            time_b = time_conv['b']
+                            t = t * time_a
+                            if time_b:
+                                t += time_b
+
                 res = Signal(samples=vals,
                              timestamps=t,
                              unit='',
@@ -1674,11 +1675,15 @@ class MDF4(object):
             else:
                 vals = record[parent]
 
+#                print(vals.dtype, channel, hex(channel.address))
+
                 if bit_offset:
                     vals = vals >> bit_offset
                 bits = channel['bit_count']
                 if bits % 8:
                     vals = vals & ((1<<bits) - 1)
+
+#            print(vals)
 
             info = None
 
@@ -1762,10 +1767,10 @@ class MDF4(object):
                     elif channel['data_type'] == DATA_TYPE_BYTEARRAY:
                         vals = vals.tostring()
                         size = max(bits>>3, 1)
-                        cols = size
-                        lines = len(vals) // cols
 
-                        vals = frombuffer(vals, dtype=uint8).reshape((lines, cols))
+                        vals = frombuffer(vals, dtype=dtype('({},)u1'.format(size)))
+
+                        print(vals.dtype, vals.shape)
 
                         types = dtype([(channel.name, vals.dtype, vals.shape[1:])])
                         arrays = [vals, ]
@@ -1781,16 +1786,16 @@ class MDF4(object):
                             values.append(signal_data[offset+4: offset+4+str_size])
 
                         if channel['data_type'] == DATA_TYPE_STRING_UTF_16_BE:
-                            vals = decode(values, 'utf-16-be')
+                            vals = [v.decode('utf-16-be') for v in values]
 
                         elif channel['data_type'] == DATA_TYPE_STRING_UTF_16_LE:
-                            vals = decode(values, 'utf-16-le')
+                            vals = [v.decode('utf-16-le') for v in values]
 
                         elif channel['data_type'] == DATA_TYPE_STRING_UTF_8:
-                            vals = decode(values, 'utf-8')
+                            vals = [v.decode('utf-8') for v in values]
 
                         elif channel['data_type'] == DATA_TYPE_STRING_LATIN_1:
-                            vals = decode(values, 'latin-1')
+                            vals = [v.decode('latin-1') for v in values]
 
                         if PYVERSION == 2:
                             vals = array([str(val) for val in vals])
@@ -1958,47 +1963,52 @@ class MDF4(object):
                     comment = ''
 
                 # get master channel index
-                time_ch_nr = self.masters_db[gp_nr]
+                time_ch_nr = self.masters_db.get(gp_nr, None)
 
-                if time_ch_nr == ch_nr:
-                    res = Signal(samples=vals.copy(),
-                                 timestamps=vals,
-                                 unit=unit,
-                                 name=channel.name,
-                                 comment=comment)
+                if time_ch_nr is None:
+                    t = arange(len(vals), dtype=float64)
                 else:
-                    time_conv = grp['channel_conversions'][time_ch_nr]
-                    time_ch = grp['channels'][time_ch_nr]
-                    if time_ch['channel_type'] == CHANNEL_TYPE_VIRTUAL_MASTER:
-                        time_a = time_conv['a']
-                        time_b = time_conv['b']
-                        cycles = grp['channel_group']['cycles_nr']
-                        t = arange(cycles, dtype=float64) * time_a + time_b
+                    if time_ch_nr == ch_nr:
+                        res = Signal(samples=vals.copy(),
+                                     timestamps=vals,
+                                     unit=unit,
+                                     name=channel.name,
+                                     comment=comment)
                     else:
-                        t = record[time_ch.name]
-                        # get timestamps
-                        time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
-                        if time_conv_type == CONVERSION_TYPE_LIN:
+                        time_conv = grp['channel_conversions'][time_ch_nr]
+                        time_ch = grp['channels'][time_ch_nr]
+                        if time_ch['channel_type'] == CHANNEL_TYPE_VIRTUAL_MASTER:
                             time_a = time_conv['a']
                             time_b = time_conv['b']
-                            t = t * time_a
-                            if time_b:
-                                t += time_b
+                            cycles = grp['channel_group']['cycles_nr']
+                            t = arange(cycles, dtype=float64) * time_a + time_b
+                        else:
+                            t = record[time_ch.name]
+                            # get timestamps
+                            time_conv_type = CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
+                            if time_conv_type == CONVERSION_TYPE_LIN:
+                                time_a = time_conv['a']
+                                time_b = time_conv['b']
+                                t = t * time_a
+                                if time_b:
+                                    t += time_b
 
-                    # consider invalidation bits
-                    if valid_index:
-                        t = t[valid_index]
+                # consider invalidation bits
+                if valid_index:
+                    t = t[valid_index]
 
-                    res = Signal(samples=vals,
-                                 timestamps=t,
-                                 unit=unit,
-                                 name=channel.name,
-                                 comment=comment,
-                                 info=info)
+#                print(channel.name, vals, t)
 
-                    if raster and t:
-                        tx = linspace(0, t[-1], int(t[-1] / raster))
-                        res = res.interp(tx)
+                res = Signal(samples=vals,
+                             timestamps=t,
+                             unit=unit,
+                             name=channel.name,
+                             comment=comment,
+                             info=info)
+
+                if raster and t:
+                    tx = linspace(0, t[-1], int(t[-1] / raster))
+                    res = res.interp(tx)
                 return res
 
     def info(self):

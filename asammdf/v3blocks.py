@@ -754,6 +754,7 @@ class ChannelGroup(dict):
         super(ChannelGroup, self).__init__()
 
         try:
+
             stream = kargs['file_stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
