@@ -147,7 +147,7 @@ class MDF(object):
             new MDF object
 
         """
-        out = MDF(version=to, load_measured_data=load_measured_data)
+        out = MDF(version=self.version, load_measured_data=self.load_measured_data)
 
         # walk through all groups and get all channels
         for i, gp in enumerate(self.groups):
