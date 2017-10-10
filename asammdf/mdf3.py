@@ -23,7 +23,7 @@ from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import decode, encode
 from numexpr import evaluate
 
-from .utils import MdfException, get_fmt, pair, fmt_to_datatype, get_unique_names
+from .utils import MdfException, get_fmt, pair, fmt_to_datatype, get_unique_name, get_min_max
 from .signal import Signal
 from .v3constants import *
 from .v3blocks import (Channel, ChannelConversion, ChannelDependency,
@@ -584,18 +584,25 @@ class MDF3(object):
         else:
             t = t_
 
-        # split for signals that come from a channel dependency
-        # (this means the samples will be of type np.composed)
-        # from the regular one dimensional signals.
+        # split regular from composed signals. Composed signals have recarray samples
+        # or multimendional ndarray.
         # The regular signals will be first added to the group.
         # The composed signals will be saved along side the fields, which will
         # be saved as new signals.
-        simple_signals = [sig for sig in signals if len(sig.samples.shape) <= 1 and sig.samples.dtype.names is None]
-        composed_signals = [sig for sig in signals if len(sig.samples.shape) > 1 or sig.samples.dtype.names]
+        simple_signals = [sig for sig in signals
+                          if len(sig.samples.shape) <= 1
+                          and sig.samples.dtype.names is None]
+        composed_signals = [sig for sig in signals
+                            if len(sig.samples.shape) > 1
+                            or sig.samples.dtype.names]
 
         # mdf version 4 structure channels and CANopen types will be saved to new channel groups
-        new_groups_signals = [sig for sig in composed_signals if sig.samples.dtype.names and sig.samples.dtype.names[0] != sig.name]
-        composed_signals = [sig for sig in composed_signals if not sig.samples.dtype.names or sig.samples.dtype.names[0] == sig.name]
+        new_groups_signals = [sig for sig in composed_signals
+                              if sig.samples.dtype.names
+                              and sig.samples.dtype.names[0] != sig.name]
+        composed_signals = [sig for sig in composed_signals
+                            if not sig.samples.dtype.names
+                            or sig.samples.dtype.names[0] == sig.name]
 
         if simple_signals or composed_signals:
             dg_cntr = len(self.groups)
@@ -611,9 +618,14 @@ class MDF3(object):
             self.groups.append(gp)
 
             cycles_nr = len(t)
+            fields = []
+            types = []
+            parents = {}
+            ch_cntr = 0
+            offset = 0
+            field_names = set()
 
             # setup all blocks related to the time master channel
-            t_type, t_size = fmt_to_datatype(t.dtype)
 
             # time channel texts
             for _, item in gp_texts.items():
@@ -636,6 +648,7 @@ class MDF3(object):
             gp_source.append(ChannelExtension(**kargs))
 
             #time channel
+            t_type, t_size = fmt_to_datatype(t.dtype)
             kargs = {'short_name': 't'.encode('latin-1'),
                      'channel_type': CHANNEL_TYPE_MASTER,
                      'data_type': t_type,
@@ -643,117 +656,229 @@ class MDF3(object):
                      'min_raw_value' : t[0] if cycles_nr else 0,
                      'max_raw_value' : t[-1] if cycles_nr else 0,
                      'bit_count': t_size}
-            ch = Channel(**kargs)
-            ch.name = name = 't'
-            gp_channels.append(ch)
+            channel = Channel(**kargs)
+            channel.name = name = 't'
+            gp_channels.append(channel)
 
-            ch_cntr = 0
             if not name in self.channels_db:
                 self.channels_db[name] = []
             self.channels_db[name].append((dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
+            # data group record parents
+            parents[ch_cntr] = name
 
             # time channel doesn't have channel dependencies
             gp_dep.append(None)
 
-            # prepare start bit offset and channel counter for the other channels
-            offset = t_size
+            fields.append(t)
+            types.append( (name, t.dtype))
+            field_names.add(name)
+
+            offset += t_size
             ch_cntr += 1
 
-            # arrays will hold the samples for all channels
-            # types holds the (channel name, numpy dtype) pairs for all channels
-            # formats holds the (ASAM channel data type, bit size) for all channels
-            arrays = [t, ]
-            types = [('t', t.dtype),]
-            formats = [fmt_to_datatype(t.dtype), ]
-
-            # data group record parents
-            parents = {0: ('t', 0)}
-
             # first add the signals in the simple signal list
-            if simple_signals:
+            for signal in simple_signals:
                 # channels texts
-                names = [s.name for s in simple_signals]
-                for name in names:
+                name = signal.name
+                for _, item in gp['texts'].items():
+                    item.append({})
+                if len(name) >= 32:
+                    gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
+
+                # conversions for channel
+                min_val, max_val = get_min_max(signal.samples)
+
+                info = signal.info
+                if info and 'raw' in info:
+                    kargs = {}
+                    kargs['conversion_type'] = CONVERSION_TYPE_VTAB
+                    raw = info['raw']
+                    phys = info['phys']
+                    for i, (r_, p_) in enumerate(zip(raw, phys)):
+                        kargs['text_{}'.format(i)] = p_[:31] + b'\x00'
+                        kargs['param_val_{}'.format(i)] = r_
+                    kargs['ref_param_nr'] = len(raw)
+                    kargs['unit'] = signal.unit.encode('latin-1')
+                elif info and 'lower' in info:
+                    kargs = {}
+                    kargs['conversion_type'] = CONVERSION_TYPE_VTABR
+                    lower = info['lower']
+                    upper = info['upper']
+                    texts = info['phys']
+                    kargs['unit'] = signal.unit.encode('latin-1')
+                    kargs['ref_param_nr'] = len(upper)
+
+                    for i, (u_, l_, t_) in enumerate(zip(upper, lower, texts)):
+                        kargs['lower_{}'.format(i)] = l_
+                        kargs['upper_{}'.format(i)] = u_
+                        kargs['text_{}'.format(i)] = 0
+                        gp_texts['conversion_tab'][-1]['text_{}'.format(i)] = TextBlock(text=t_)
+
+                else:
+                     kargs = {'conversion_type': CONVERSION_TYPE_NONE,
+                              'unit': s.unit.encode('latin-1'),
+                              'min_phy_value': min_val if min_val <= max_val else 0,
+                              'max_phy_value': max_val if min_val <= max_val else 0}
+                gp_conv.append(ChannelConversion(**kargs))
+
+                # source for channel
+                kargs = {'module_nr': 0,
+                         'module_address': 0,
+                         'type': SOURCE_ECU,
+                         'description': b'Channel inserted by Python Script'}
+                gp_source.append(ChannelExtension(**kargs))
+
+                # compute additional byte offset for large records size
+                if offset > MAX_UINT16:
+                    additional_byte_offset = (offset - MAX_UINT16 ) >> 3
+                    start_bit_offset = offset - additional_byte_offset << 3
+                else:
+                    start_bit_offset = offset
+                    additional_byte_offset = 0
+                s_type, s_size = fmt_to_datatype(signal.samples.dtype)
+                kargs = {'short_name': (name[:31] + '\x00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
+                         'channel_type': CHANNEL_TYPE_VALUE,
+                         'data_type': s_type,
+                         'min_raw_value': min_val if min_val <= max_val else 0,
+                         'max_raw_value': max_val if min_val <= max_val else 0,
+                         'start_offset': start_bit_offset,
+                         'bit_count': s_size,
+                         'aditional_byte_offset' : additional_byte_offset}
+                comment = signal.comment
+                if comment:
+                    if len(comment) >= 128:
+                        comment = (comment[:127] + '\x00').encode('latin-1')
+                    else:
+                        comment = comment.encode('latin-1')
+                    kargs['description'] = comment
+
+                channel = Channel(**kargs)
+                channel.name = name
+                gp_channels.append(channel)
+                offset += s_size
+
+                if not name in self.channels_db:
+                    self.channels_db[name] = []
+                self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                # update the parents as well
+                field_name = get_unique_name(field_names, name)
+                parents[ch_cntr] = field_name, 0
+
+                fields.append(signal.samples)
+                types.append( (field_name, signal.samples.dtype) )
+                field_names.add(field_name)
+
+                ch_cntr += 1
+
+                # simple channels don't have channel dependencies
+                gp_dep.append(None)
+
+            # second, add the composed signals
+            for signal in composed_signals:
+                names = signal.samples.dtype.names
+                name = signal.name
+
+                component_names = []
+                component_samples = []
+                if names:
+                    samples = signal.samples[names[0]]
+                else:
+                    samples = signal.samples
+
+                shape = samples.shape[1:]
+                dims = [list(range(size)) for size in shape]
+
+                for indexes in product(*dims):
+                    subarray = samples
+                    for idx in indexes:
+                        subarray = subarray[:, idx]
+                    component_samples.append(subarray)
+                    component_names.append('{}{}'.format(name, ''.join('[{}]'.format(idx) for idx in indexes)))
+
+                # add channel dependency block for composed parent channel
+                sd_nr = len(component_samples)
+                kargs = {'sd_nr': sd_nr}
+                for i, dim in enumerate(shape[::-1]):
+                    kargs['dim_{}'.format(i)] = dim
+                parent_dep = ChannelDependency(**kargs)
+                gp_dep.append(parent_dep)
+
+                if names:
+                    component_samples.extend([signal.samples[name_] for name_ in names[1:]])
+                    component_names.extend(names[1:])
+
+                # add composed parent signal texts
+                for _, item in gp['texts'].items():
+                    item.append({})
+                if len(name) >= 32:
+                    gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
+
+                # composed parent has no conversion
+                gp_conv.append(None)
+
+                # add parent and components sources
+                kargs = {'module_nr': 0,
+                         'module_address': 0,
+                         'type': SOURCE_ECU,
+                         'description': b'Channel inserted by Python Script'}
+                gp_source.append(ChannelExtension(**kargs))
+
+                min_val, max_val = get_min_max(samples)
+
+                s_type, s_size = fmt_to_datatype(samples.dtype)
+                # compute additional byte offset for large records size
+                if offset > MAX_UINT16:
+                    additional_byte_offset = (offset - MAX_UINT16 ) >> 3
+                    start_bit_offset = offset - additional_byte_offset << 3
+                else:
+                    start_bit_offset = offset
+                    additional_byte_offset = 0
+                kargs = {'short_name': (name[:31] + '\x00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
+                         'channel_type': CHANNEL_TYPE_VALUE,
+                         'data_type': s_type,
+                         'min_raw_value': min_val if min_val <= max_val else 0,
+                         'max_raw_value': max_val if min_val <= max_val else 0,
+                         'start_offset': start_bit_offset,
+                         'bit_count': s_size,
+                         'aditional_byte_offset' : additional_byte_offset}
+                comment = signal.comment
+                if comment:
+                    if len(comment) >= 128:
+                        comment = (comment[:127] + '\x00').encode('latin-1')
+                    else:
+                        comment = comment.encode('latin-1')
+                    kargs['description'] = comment
+
+                channel = Channel(**kargs)
+                channel.name = name
+                gp_channels.append(channel)
+
+                if not name in self.channels_db:
+                    self.channels_db[name] = []
+                self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                ch_cntr += 1
+
+                for i, (name, samples) in enumerate(zip(component_names, component_samples)):
                     for _, item in gp['texts'].items():
                         item.append({})
                     if len(name) >= 32:
                         gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
 
-                dtype_fields = [t[0] for t in types]
-                field_names = get_unique_names(dtype_fields, names)
+                    min_val, max_val = get_min_max(samples)
+                    s_type, s_size = fmt_to_datatype(samples.dtype)
+                    shape = samples.shape[1:]
 
-                sig_dtypes = []
-                sig_formats = []
-                for i, sig in enumerate(simple_signals):
-                    sig_dtypes.append(sig.samples.dtype)
-                    sig_formats.append(fmt_to_datatype(sig.samples.dtype))
-
-                # conversions for channels
-                if cycles_nr:
-                    min_max = []
-                    # compute min and max values for all channels
-                    # for string channels we append (1,0) and use this as a marker (if min>max then channel is string)
-                    for s in simple_signals:
-                        if issubdtype(s.samples.dtype, flexible):
-                            min_max.append((1,0))
-                        else:
-                            min_max.append((amin(s.samples), amax(s.samples)))
-                else:
-                    min_max = [(0, 0) for s in simple_signals]
-
-                #conversion for channels
-                for idx, s in enumerate(simple_signals):
-                    info = s.info
-                    if info:
-                        if 'raw' in info:
-                            kargs = {}
-                            kargs['conversion_type'] = CONVERSION_TYPE_VTAB
-                            raw = info['raw']
-                            phys = info['phys']
-                            for i, (r_, p_) in enumerate(zip(raw, phys)):
-                                kargs['text_{}'.format(i)] = p_[:31] + b'\x00'
-                                kargs['param_val_{}'.format(i)] = r_
-                            kargs['ref_param_nr'] = len(raw)
-                            kargs['unit'] = s.unit.encode('latin-1')
-                        elif 'lower' in info:
-                            kargs = {}
-                            kargs['conversion_type'] = CONVERSION_TYPE_VTABR
-                            lower = info['lower']
-                            upper = info['upper']
-                            texts = info['phys']
-                            kargs['unit'] = s.unit.encode('latin-1')
-                            kargs['ref_param_nr'] = len(upper)
-
-                            for i, (u_, l_, t_) in enumerate(zip(upper, lower, texts)):
-                                kargs['lower_{}'.format(i)] = l_
-                                kargs['upper_{}'.format(i)] = u_
-                                kargs['text_{}'.format(i)] = 0
-                                gp_texts['conversion_tab'][-1]['text_{}'.format(i)] = TextBlock(text=t_)
-
-                        else:
-                             kargs = {'conversion_type': CONVERSION_TYPE_NONE,
-                                      'unit': s.unit.encode('latin-1'),
-                                      'min_phy_value': min_max[idx][0],
-                                      'max_phy_value': min_max[idx][1]}
-                        gp_conv.append(ChannelConversion(**kargs))
-                    else:
-                        kargs = {'conversion_type': CONVERSION_TYPE_NONE,
-                                 'unit': s.unit.encode('latin-1') ,
-                                 'min_phy_value': min_max[idx][0] if min_max[idx][0]<=min_max[idx][1] else 0,
-                                 'max_phy_value': min_max[idx][1] if min_max[idx][0]<=min_max[idx][1] else 0}
-                        gp_conv.append(ChannelConversion(**kargs))
-
-                #source for channels
-                for _ in simple_signals:
                     kargs = {'module_nr': 0,
                              'module_address': 0,
                              'type': SOURCE_ECU,
-                             'description': 'Channel inserted by Python Script'.encode('latin-1')}
+                             'description': b'Channel inserted by Python Script'}
                     gp_source.append(ChannelExtension(**kargs))
 
-                #channels
-                for (sigmin, sigmax), (sig_type, sig_size), s, field_name in zip(min_max, sig_formats, simple_signals, field_names):
+                    gp_conv.append(None)
+
                     # compute additional byte offset for large records size
                     if offset > MAX_UINT16:
                         additional_byte_offset = (offset - MAX_UINT16 ) >> 3
@@ -761,234 +886,44 @@ class MDF3(object):
                     else:
                         start_bit_offset = offset
                         additional_byte_offset = 0
-                    kargs = {'short_name': (s.name[:31] + '\x00').encode('latin-1') if len(s.name) >= 32 else s.name.encode('latin-1'),
+
+                    kargs = {'short_name': (name[:31] + '\x00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
                              'channel_type': CHANNEL_TYPE_VALUE,
-                             'data_type': sig_type,
-                             'min_raw_value': sigmin if sigmin <= sigmax else 0,
-                             'max_raw_value': sigmax if sigmin <= sigmax else 0,
+                             'data_type': s_type,
+                             'min_raw_value': min_val if min_val <= max_val else 0,
+                             'max_raw_value': max_val if min_val <= max_val else 0,
                              'start_offset': start_bit_offset,
-                             'bit_count': sig_size,
+                             'bit_count': s_size,
                              'aditional_byte_offset' : additional_byte_offset}
-                    if s.comment:
-                        kargs['description'] = (s.comment[:127] + '\x00').encode('latin-1') if len(s.comment) >= 128 else s.comment.encode('latin-1')
-                    ch = Channel(**kargs)
 
-                    name = s.name
-
-                    ch.name = name
-                    gp_channels.append(ch)
-                    offset += sig_size
+                    channel = Channel(**kargs)
+                    channel.name = name
+                    gp_channels.append(channel)
+                    size = s_size
+                    for dim in shape:
+                        size *= dim
+                    offset += size
 
                     if not name in self.channels_db:
                         self.channels_db[name] = []
                     self.channels_db[name].append((dg_cntr, ch_cntr))
 
                     # update the parents as well
+                    field_name = get_unique_name(field_names, name)
                     parents[ch_cntr] = field_name, 0
 
+                    fields.append(samples)
+                    types.append( (field_name, samples.dtype, shape) )
+                    field_names.add(field_name)
+
                     ch_cntr += 1
 
-                # simple channels don't have channel dependencies
-                for _ in simple_signals:
                     gp_dep.append(None)
-
-                # extend arrays, types and formats with data related to the simple signals
-                arrays.extend(s.samples for s in simple_signals)
-                if PYVERSION == 3:
-                    types.extend([(name, typ) for name, typ in zip(field_names, sig_dtypes)])
-                else:
-                    types.extend([(str(name), typ) for name, typ in zip(field_names, sig_dtypes)])
-                formats.extend(sig_formats)
-
-            # second, add the composed signals
-            for sig in composed_signals:
-                names = sig.samples.dtype.names
-                name = sig.name
-
-                if names:
-                    new_names = []
-                    signals = []
-                    samples = sig.samples[names[0]]
-
-                    shape = samples.shape[1:]
-                    dims = [list(range(size)) for size in shape]
-
-                    for indexes in product(*dims):
-                        subarray = samples
-                        for idx in indexes:
-                            subarray = subarray[:, idx]
-                        signals.append(subarray)
-
-                        new_names.append('{}{}'.format(name, ''.join('[{}]'.format(idx) for idx in indexes)))
-
-                    # add channel dependency block for composed parent channel
-                    sd_nr = len(signals)
-                    kargs = {'sd_nr': sd_nr}
-                    for i, dim in enumerate(shape[::-1]):
-                        kargs['dim_{}'.format(i)] = dim
-                    parent_dep = ChannelDependency(**kargs)
-                    gp_dep.append(parent_dep)
-
-                    signals.extend([sig.samples[name] for name in names[1:]])
-
-                    new_names.extend(names[1:])
-
-                    # numpy dtype does not allow for reapeating names so we must handle name conflincts
-                    dtype_fields = [t[0] for t in types]
-                    field_names = get_unique_names(dtype_fields, new_names)
-
-                    names = new_names
-
-                else:
-                    names = []
-                    signals = []
-
-                    shape = sig.samples.shape[1:]
-                    dims = [list(range(size)) for size in shape]
-
-                    for indexes in product(*dims):
-                        subarray = sig.samples
-                        for idx in indexes:
-                            subarray = subarray[:, idx]
-                        signals.append(subarray)
-
-                        names.append('{}{}'.format(name, ''.join('[{}]'.format(idx) for idx in indexes)))
-
-                    field_names = names
-
-                    # add channel dependency block for composed parent channel
-                    sd_nr = len(signals)
-                    kargs = {'sd_nr': sd_nr}
-                    for i, dim in enumerate(shape[::-1]):
-                        kargs['dim_{}'.format(i)] = dim
-                    parent_dep = ChannelDependency(**kargs)
-                    gp_dep.append(parent_dep)
-
-
-                # add composed parent signal texts
-                name = sig.name
-                for _, item in gp['texts'].items():
-                    item.append({})
-                if len(name) >= 32:
-                    gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
-                # add components texts
-                for name in names:
-                    for _, item in gp['texts'].items():
-                        item.append({})
-                    if len(name) >= 32:
-                        gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
-
-                # composed parent has no conversion
-                gp_conv.append(None)
-                # add components conversions
-                min_max = []
-                if cycles_nr:
-                    for s in signals:
-                        min_max.append( (amin(s), amax(s)) )
-                else:
-                    for s in signals:
-                        min_max = [(0, 0)]
-                for i, s in enumerate(signals):
-                    kargs = {'conversion_type': CONVERSION_TYPE_NONE,
-                             'unit': b'',
-                             'min_phy_value': min_max[i][0],
-                             'max_phy_value': min_max[i][1]}
-                    gp_conv.append(ChannelConversion(**kargs))
-
-                # add parent and components sources
-                kargs = {'module_nr': 0,
-                         'module_address': 0,
-                         'type': SOURCE_ECU,
-                         'description': 'Channel inserted by Python Script'.encode('latin-1')}
-                gp_source.append(ChannelExtension(**kargs))
-                for _ in signals:
-                    gp_source.append(ChannelExtension(**kargs))
-
-                new_sig_dtypes = [s.dtype for s in signals]
-                new_sig_formats = [fmt_to_datatype(typ) for typ in new_sig_dtypes]
-                shapes = [s.shape[1:] for s in signals]
-
-                # extend arrays, types and formasts with data from current composed
-                arrays.extend(signals)
-                if PYVERSION == 3:
-                    types.extend([(name, dtype_) for name, shape, dtype_ in zip(field_names, shapes, new_sig_dtypes)])
-                else:
-                    types.extend([(str(name), dtype_) for name, shape, dtype_ in zip(field_names, shapes, new_sig_dtypes)])
-                formats.extend(new_sig_formats)
-
-                print(sig.name, types)
-
-                # components do not have channel dependencies
-                for _ in signals:
-                    gp_dep.append(None)
-
-                # add parent channel
-                if offset > MAX_UINT16:
-                    additional_byte_offset = (offset - MAX_UINT16 ) >> 3
-                    start_bit_offset = offset - additional_byte_offset << 3
-                else:
-                    start_bit_offset = offset
-                    additional_byte_offset = 0
-                kargs = {'short_name': (sig.name[:31] + '\x00').encode('latin-1') if len(sig.name) >= 32 else sig.name.encode('latin-1'),
-                         'channel_type': CHANNEL_TYPE_VALUE,
-                         'data_type': new_sig_formats[0][0],
-                         'min_raw_value': 0,
-                         'max_raw_value': 0,
-                         'start_offset': start_bit_offset,
-                         'bit_count': new_sig_formats[0][1],
-                         'aditional_byte_offset' : additional_byte_offset,
-                         'description': sig.comment.encode('latin-1') if sig.comment else b''}
-                ch = Channel(**kargs)
-                ch.name = name = sig.name
-                gp_channels.append(ch)
-
-                # update channel database with racaaray parent indexes
-                if not name in self.channels_db:
-                    self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                ch_cntr += 1
-
-                # add components channels
-                for i, ((sigmin, sigmax), (sig_type, sig_size), shape, name) in enumerate(zip(min_max, new_sig_formats, shapes, field_names)):
-                    if offset > MAX_UINT16:
-                        additional_byte_offset = (offset - MAX_UINT16 ) >> 3
-                        start_bit_offset = offset - additional_byte_offset << 3
-                    else:
-                        start_bit_offset = offset
-                        additional_byte_offset = 0
-
-                    size = sig_size
-                    for dim in shape:
-                        size *= dim
-
-                    kargs = {'short_name': (name[:31] + '\x00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
-                             'channel_type': CHANNEL_TYPE_VALUE,
-                             'data_type': sig_type,
-                             'min_raw_value': sigmin if sigmin<=sigmax else 0,
-                             'max_raw_value': sigmax if sigmin<=sigmax else 0,
-                             'start_offset': start_bit_offset,
-                             'bit_count': sig_size,
-                             'aditional_byte_offset' : additional_byte_offset}
-                    ch = Channel(**kargs)
-                    ch.name = name
-                    gp_channels.append(ch)
-                    offset += size
 
                     if i < sd_nr:
-                        parent_dep.referenced_channels.append((ch, gp))
+                        parent_dep.referenced_channels.append((channel, gp))
                     else:
-                        ch['description'] = 'axis {} for channel {}'.format(name, sig.name).encode('latin-1')
-
-                    # update channel database with component indexes
-                    if not name in self.channels_db:
-                        self.channels_db[name] = []
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                    # also update record parents
-                    parents[ch_cntr] = name, 0
-
-                    ch_cntr += 1
+                        channel['description'] = '{} - axis {}'.format(signal.name, name).encode('latin-1')
 
             #channel group
             kargs = {'cycles_nr': cycles_nr,
@@ -1002,13 +937,12 @@ class MDF3(object):
             gp['data_group'] = DataGroup(**kargs)
 
             #data block
-            print(types)
             types = dtype(types)
 
             gp['types'] = types
             gp['parents'] = parents
 
-            samples = fromarrays(arrays, dtype=types)
+            samples = fromarrays(fields, dtype=types)
             block = samples.tostring()
 
             if self.load_measured_data:
@@ -1027,7 +961,7 @@ class MDF3(object):
             # data group trigger
             gp['trigger'] = [None, None]
 
-        for sig in new_groups_signals:
+        for signal in new_groups_signals:
             dg_cntr = len(self.groups)
             gp = {}
             gp['channels'] = gp_channels = []
@@ -1040,21 +974,20 @@ class MDF3(object):
             self.groups.append(gp)
 
             cycles_nr = len(t)
+            fields = []
+            types = []
+            parents = []
+            ch_cntr = 0
+            offset = 0
+            field_names = set()
 
             # setup all blocks related to the time master channel
-            t_type, t_size = fmt_to_datatype(t.dtype)
 
             # time channel texts
             for _, item in gp_texts.items():
                 item.append({})
 
-            names = sig.samples.dtype.names
-            if names == ('ms', 'days'):
-                gp_texts['channel_group'][-1]['comment_addr'] = TextBlock(text='From mdf version 4 CANopen Time channel')
-            elif names == ('ms', 'min', 'hour', 'day', 'month', 'year', 'summer_time', 'day_of_week'):
-                gp_texts['channel_group'][-1]['comment_addr'] = TextBlock(text='From mdf version 4 CANopen Date channel')
-            else:
-                gp_texts['channel_group'][-1]['comment_addr'] = TextBlock(text='From mdf version 4 structure channel composition')
+            gp_texts['channel_group'][-1]['comment_addr'] = TextBlock(text=acquisition_info)
 
             #conversion for time channel
             kargs = {'conversion_type': CONVERSION_TYPE_NONE,
@@ -1070,7 +1003,8 @@ class MDF3(object):
                      'description': 'Channel inserted by Python Script'.encode('latin-1')}
             gp_source.append(ChannelExtension(**kargs))
 
-            # time channel
+            #time channel
+            t_type, t_size = fmt_to_datatype(t.dtype)
             kargs = {'short_name': 't'.encode('latin-1'),
                      'channel_type': CHANNEL_TYPE_MASTER,
                      'data_type': t_type,
@@ -1078,97 +1012,99 @@ class MDF3(object):
                      'min_raw_value' : t[0] if cycles_nr else 0,
                      'max_raw_value' : t[-1] if cycles_nr else 0,
                      'bit_count': t_size}
-            ch = Channel(**kargs)
-            ch.name = name = 't'
-            gp_channels.append(ch)
+            channel = Channel(**kargs)
+            channel.name = name = 't'
+            gp_channels.append(channel)
 
-            ch_cntr = 0
             if not name in self.channels_db:
                 self.channels_db[name] = []
             self.channels_db[name].append((dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
+            # data group record parents
+            parents[ch_cntr] = name
 
             # time channel doesn't have channel dependencies
             gp_dep.append(None)
 
-            # prepare start bit offset and channel counter for the other channels
-            offset = t_size
+            fields.append(t)
+            types.append( (name, t_type))
+            field_names.add(name)
+
+            offset += t_size
             ch_cntr += 1
 
-            # arrays will hold the samples for all channels
-            # types holds the (channel name, numpy dtype) pairs for all channels
-            # formats holds the (ASAM channel data type, bit size) for all channels
-            arrays = [t, ]
-            types = [('t', t.dtype),]
-            formats = [fmt_to_datatype(t.dtype), ]
+            names = sig.samples.dtype.names
+            if names == ('ms', 'days'):
+                gp_texts['channel_group'][-1]['comment_addr'] = TextBlock(text='From mdf version 4 CANopen Time channel')
+            elif names == ('ms', 'min', 'hour', 'day', 'month', 'year', 'summer_time', 'day_of_week'):
+                gp_texts['channel_group'][-1]['comment_addr'] = TextBlock(text='From mdf version 4 CANopen Date channel')
+            else:
+                gp_texts['channel_group'][-1]['comment_addr'] = TextBlock(text='From mdf version 4 structure channel composition')
 
-            # data group record parents
-            parents = {0: ('t', 0)}
+            for name in names:
 
-            # numpy dtype does not allow for reapeating names so we must handle name conflincts
-            dtype_fields = [t[0] for t in types]
-            field_names = get_unique_names(dtype_fields, names)
+                samples = signal.samples[name]
 
-            for name, field_name in zip(names, field_names):
-                vals = sig.samples[name]
-                arrays.append(vals)
-                types.append((field_name, vals.dtype))
-
-                sig_type, sig_size = fmt_to_datatype(vals.dtype)
-
-                gp_dep.append(None)
-
-                # add signal texts
+                # channels texts
                 for _, item in gp['texts'].items():
                     item.append({})
                 if len(name) >= 32:
                     gp_texts['channels'][-1]['long_name_addr'] = TextBlock(text=name)
 
-                min_val, max_val = amin(vals), amax(vals)
+                # conversions for channel
+                min_val, max_val = get_min_max(signal.samples)
 
                 kargs = {'conversion_type': CONVERSION_TYPE_NONE,
-                         'unit': b'',
-                         'min_phy_value': min_val,
-                         'max_phy_value': max_val}
+                         'unit': s.unit.encode('latin-1'),
+                         'min_phy_value': min_val if min_val <= max_val else 0,
+                         'max_phy_value': max_val if min_val <= max_val else 0}
                 gp_conv.append(ChannelConversion(**kargs))
 
+                # source for channel
                 kargs = {'module_nr': 0,
                          'module_address': 0,
                          'type': SOURCE_ECU,
-                         'description': 'Channel inserted by Python Script'.encode('latin-1')}
+                         'description': b'Channel inserted by Python Script'}
                 gp_source.append(ChannelExtension(**kargs))
 
+                # compute additional byte offset for large records size
                 if offset > MAX_UINT16:
                     additional_byte_offset = (offset - MAX_UINT16 ) >> 3
                     start_bit_offset = offset - additional_byte_offset << 3
                 else:
                     start_bit_offset = offset
                     additional_byte_offset = 0
-
+                s_type, s_size = fmt_to_datatype(samples.dtype)
                 kargs = {'short_name': (name[:31] + '\x00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
                          'channel_type': CHANNEL_TYPE_VALUE,
-                         'data_type': sig_type,
-                         'min_raw_value': min_val,
-                         'max_raw_value': max_val,
+                         'data_type': s_type,
+                         'min_raw_value': min_val if min_val <= max_val else 0,
+                         'max_raw_value': max_val if min_val <= max_val else 0,
                          'start_offset': start_bit_offset,
-                         'bit_count': sig_size,
+                         'bit_count': s_size,
                          'aditional_byte_offset' : additional_byte_offset}
-                ch = Channel(**kargs)
-                ch.name = name
-                gp_channels.append(ch)
-                offset += sig_size
 
-#                ch['description'] = 'axis {} for channel {}'.format(name, sig.name).encode('latin-1')
+                channel = Channel(**kargs)
+                channel.name = name
+                gp_channels.append(channel)
+                offset += s_size
 
-                # update channel database with component indexes
                 if not name in self.channels_db:
                     self.channels_db[name] = []
                 self.channels_db[name].append((dg_cntr, ch_cntr))
 
-                # also update record parents
+                # update the parents as well
+                field_name = get_unique_name(field_names, name)
                 parents[ch_cntr] = field_name, 0
 
+                fields.append(samples)
+                types.append( (field_name, samples.dtype) )
+                field_names.add(field_name)
+
                 ch_cntr += 1
+
+                # simple channels don't have channel dependencies
+                gp_dep.append(None)
 
             # channel group
             kargs = {'cycles_nr': cycles_nr,
@@ -1188,7 +1124,7 @@ class MDF3(object):
             gp['types'] = types
             gp['parents'] = parents
 
-            samples = fromarrays(arrays, dtype=types)
+            samples = fromarrays(fields, dtype=types)
             block = samples.tostring()
 
             if self.load_measured_data:

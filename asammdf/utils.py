@@ -4,7 +4,7 @@ asammdf utility functions and classes
 import itertools
 import re
 
-from numpy import issubdtype, signedinteger, unsignedinteger, floating, flexible
+from numpy import issubdtype, signedinteger, unsignedinteger, floating, flexible, amin, amax
 
 from . import v3constants as v3c
 from . import v4constants as v4c
@@ -204,36 +204,43 @@ def pair(iterable):
     next(next_, None)
     return zip(current, next_)
 
-def get_unique_names(used_names, names):
+def get_unique_name(used_names, name):
     """ returns a list of unique names
 
     Parameters
     ----------
-    used_names : list
-        list of already taken names
-    names : list
-        new names to be made unique
+    used_names : set
+        set of already taken names
+    names : str
+        name to be made unique
 
     Returns
     -------
-    unique_names : list
-        lis of all unique names
+    unique_name : str
+        new unique name
 
     """
+    i = 0
+    unique_name = name
+    while unique_name in used_names:
+        unique_name = "{}_{}".format(name, i)
+        i += 1
 
-    used_names = set(used_names)
+    return unique_name
 
-    unique_names = []
-    for name in names:
-        i = 0
-        new_name = name
-        while new_name in used_names:
-            new_name = "{}_{}".format(name, i)
-            i += 1
-        unique_names.append(new_name)
-        used_names.add(new_name)
+def get_min_max(samples):
 
-    return unique_names
+
+    if len(samples):
+        if issubdtype(samples.dtype, flexible):
+            min_val, max_val = amin(samples), amax(samples)
+        else:
+            # for string channels we append (1,0) and use this as a marker
+            # if min>max then channel is string
+            min_val, max_val = 1, 0
+    else:
+        min_val, max_val = 0, 0
+    return min_val, max_val
 
 
 def load_dbc(dbc):

@@ -43,7 +43,7 @@ from .v4blocks import (AttachmentBlock,
                        TextBlock)
 
 from .v4constants import *
-from .utils import MdfException, get_fmt, fmt_to_datatype, pair, get_unique_names
+from .utils import MdfException, get_fmt, fmt_to_datatype, pair, get_unique_name
 from .signal import Signal
 
 if PYVERSION == 2:
