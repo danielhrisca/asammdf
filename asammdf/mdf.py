@@ -10,9 +10,6 @@ import numpy as np
 
 from .mdf3 import MDF3
 from .mdf4 import MDF4
-from .v3constants import CHANNEL_TYPE_MASTER as V3_MASTER
-from .v4constants import CHANNEL_TYPE_MASTER as V4_MASTER
-from .v4constants import CHANNEL_TYPE_VIRTUAL_MASTER as V4_VIRTUAL_MASTER
 from .utils import MdfException
 
 
