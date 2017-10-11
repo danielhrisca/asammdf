@@ -462,7 +462,7 @@ class ChannelArrayBlock(dict):
             fmt = '<4sI3Q2BHIiIQ'
         elif ca_type == v4c.CA_TYPE_LOOKUP:
             if flags & v4c.FLAG_CA_FIXED_AXIS:
-                nr = sum(self['dim_size_{}'.format(i)] for i in range(dims_nr)) + dims_nr
+                nr = sum(self['dim_size_{}'.format(i)] for i in range(dims_nr))
                 keys = ('id',
                         'reserved0',
                         'block_len',
@@ -476,9 +476,8 @@ class ChannelArrayBlock(dict):
                         'byte_offset_base',
                         'invalidation_bit_base')
                 keys += tuple('axis_{}_value_{}'.format(i, j) for i in range(dims_nr) for j in range(self['dim_size_{}'.format(i)]))
-                fmt = '<4sI{}Q2BHIiI{}Q'.format(self['links_nr'] + 1, nr)
+                fmt = '<4sI{}Q2BHIiI{}Q{}d'.format(self['links_nr'] + 2, dims_nr, nr)
             else:
-                nr = sum(self['dim_size_{}'.format(i)] for i in range(dims_nr)) + dims_nr
                 keys = ('id',
                         'reserved0',
                         'block_len',
@@ -742,7 +741,7 @@ class ChannelConversion(dict):
                 links_nr = self['links_nr'] - 4
 
                 links = unpack_from('<{}Q'.format(links_nr), block, 32)
-                for i, link in enumerate(links[:-1]):
+                for i, link in enumerate(links):
                     self['text_{}'.format(i)] = link
 
                 (self['conversion_type'],
