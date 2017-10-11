@@ -39,6 +39,7 @@ mdf4.save('my_new_file.mf4')
 
 # convert new file to mdf version 3.10 with load_measured_data=False
 mdf3 = mdf4.convert(to='3.10', load_measured_data=False)
+
 print(mdf3.version)
 # prints >>> 3.10
 

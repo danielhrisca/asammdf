@@ -230,6 +230,7 @@ class Channel(dict):
             self['upper_ext_limit'] = kargs.get('upper_ext_limit', 0)
 
     def __bytes__(self):
+
         fmt = FMT_CHANNEL.format(self['links_nr'])
 
         if PYVERSION_MAJOR >= 36:
@@ -363,7 +364,7 @@ class ChannelArrayBlock(dict):
                 self['dims'] = dims_nr
                 self['flags'] = 0
                 self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
-                self['invalidation_bit_base'] = kargs.get('byte_offset_base', 0)
+                self['invalidation_bit_base'] = kargs.get('invalidation_bit_base', 0)
                 for i in range(dims_nr):
                     self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
             elif ca_type == CA_TYPE_SCALE_AXIS:
@@ -375,7 +376,7 @@ class ChannelArrayBlock(dict):
                 self['dims'] = 1
                 self['flags'] = 0
                 self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
-                self['invalidation_bit_base'] = kargs.get('byte_offset_base', 0)
+                self['invalidation_bit_base'] = kargs.get('invalidation_bit_base', 0)
                 self['dim_size_0'] = kargs['dim_size_0']
             elif ca_type == CA_TYPE_LOOKUP:
                 flags = kargs['flags']
@@ -392,7 +393,7 @@ class ChannelArrayBlock(dict):
                     self['dims'] = dims_nr
                     self['flags'] = FLAG_CA_FIXED_AXIS | FLAG_CA_AXIS
                     self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
-                    self['invalidation_bit_base'] = kargs.get('byte_offset_base', 0)
+                    self['invalidation_bit_base'] = kargs.get('invalidation_bit_base', 0)
                     for i in range(dims_nr):
                         self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
                     for i in range(dims_nr):
@@ -413,7 +414,7 @@ class ChannelArrayBlock(dict):
                     self['dims'] = dims_nr
                     self['flags'] = FLAG_CA_AXIS
                     self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
-                    self['invalidation_bit_base'] = kargs.get('byte_offset_base', 0)
+                    self['invalidation_bit_base'] = kargs.get('invalidation_bit_base', 0)
                     for i in range(dims_nr):
                         self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
 

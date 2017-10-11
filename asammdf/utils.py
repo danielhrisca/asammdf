@@ -233,11 +233,11 @@ def get_min_max(samples):
 
     if len(samples):
         if issubdtype(samples.dtype, flexible):
-            min_val, max_val = amin(samples), amax(samples)
-        else:
             # for string channels we append (1,0) and use this as a marker
             # if min>max then channel is string
             min_val, max_val = 1, 0
+        else:
+            min_val, max_val = amin(samples), amax(samples)
     else:
         min_val, max_val = 0, 0
     return min_val, max_val

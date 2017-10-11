@@ -431,7 +431,7 @@ class MDF(object):
                     if mdf.masters_db.get(i, None) is None:
                         excluded_channels = []
                     else:
-                        excluded_channels = [self.masters_db[i], ]
+                        excluded_channels = [mdf.masters_db[i], ]
                     channels = gp1['channels']
 
                     if mdf.version in MDF3_VERSIONS:

@@ -1,5 +1,3 @@
 Extract the archived test files. 
 
-Edit bench.py and set the path global variable to the folder that contains the test files.
-
-Run the file and get the results from stdout.
+run "bench.py --help" for available options.

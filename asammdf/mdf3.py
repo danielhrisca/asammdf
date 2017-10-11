@@ -344,7 +344,7 @@ class MDF3(object):
                             grp['channel_dependencies'].append(None)
 
                         # update channel map
-                        ch_map[ch_addr] = (new_ch, grp)
+                        ch_map[ch_addr] = (ch_cntr, dg_cntr)
 
                         # read conversion block and create channel conversion object
                         address = new_ch['conversion_addr']
@@ -717,7 +717,7 @@ class MDF3(object):
 
                 else:
                      kargs = {'conversion_type': CONVERSION_TYPE_NONE,
-                              'unit': s.unit.encode('latin-1'),
+                              'unit': signal.unit.encode('latin-1'),
                               'min_phy_value': min_val if min_val <= max_val else 0,
                               'max_phy_value': max_val if min_val <= max_val else 0}
                 gp_conv.append(ChannelConversion(**kargs))
@@ -916,14 +916,16 @@ class MDF3(object):
                     types.append( (field_name, samples.dtype, shape) )
                     field_names.add(field_name)
 
-                    ch_cntr += 1
+
 
                     gp_dep.append(None)
 
                     if i < sd_nr:
-                        parent_dep.referenced_channels.append((channel, gp))
+                        parent_dep.referenced_channels.append((ch_cntr, dg_cntr))
                     else:
                         channel['description'] = '{} - axis {}'.format(signal.name, name).encode('latin-1')
+
+                    ch_cntr += 1
 
             #channel group
             kargs = {'cycles_nr': cycles_nr,
@@ -976,7 +978,7 @@ class MDF3(object):
             cycles_nr = len(t)
             fields = []
             types = []
-            parents = []
+            parents = {}
             ch_cntr = 0
             offset = 0
             field_names = set()
@@ -1027,13 +1029,13 @@ class MDF3(object):
             gp_dep.append(None)
 
             fields.append(t)
-            types.append( (name, t_type))
+            types.append( (name, t.dtype))
             field_names.add(name)
 
             offset += t_size
             ch_cntr += 1
 
-            names = sig.samples.dtype.names
+            names = signal.samples.dtype.names
             if names == ('ms', 'days'):
                 gp_texts['channel_group'][-1]['comment_addr'] = TextBlock(text='From mdf version 4 CANopen Time channel')
             elif names == ('ms', 'min', 'hour', 'day', 'month', 'year', 'summer_time', 'day_of_week'):
@@ -1055,7 +1057,7 @@ class MDF3(object):
                 min_val, max_val = get_min_max(signal.samples)
 
                 kargs = {'conversion_type': CONVERSION_TYPE_NONE,
-                         'unit': s.unit.encode('latin-1'),
+                         'unit': signal.unit.encode('latin-1'),
                          'min_phy_value': min_val if min_val <= max_val else 0,
                          'max_phy_value': max_val if min_val <= max_val else 0}
                 gp_conv.append(ChannelConversion(**kargs))
@@ -1118,7 +1120,6 @@ class MDF3(object):
             gp['data_group'] = DataGroup(**kargs)
 
             #data block
-
             types = dtype(types)
 
             gp['types'] = types
@@ -1262,8 +1263,7 @@ class MDF3(object):
 
             record_shape = tuple(shape)
 
-            referenced_channels = [ch for ch, gp_ in dependency_block.referenced_channels]
-            arrays = [self.get(ch.name, samples_only=True) for ch in referenced_channels]
+            arrays = [self.get(group=dg_nr, index=ch_nr, samples_only=True) for ch_nr, dg_nr in dependency_block.referenced_channels]
             if cycles_nr:
                 shape.insert(0, cycles_nr)
 
@@ -1515,40 +1515,6 @@ class MDF3(object):
 
         return info
 
-    def remove(self, group=None, name=None):
-        """Remove data group. Use *group* or *name* keyword arguments to identify the group's index. *group* has priority
-
-        Parameters
-        ----------
-        name : string
-            name of the channel inside the data group to be removed
-        group : int
-            data group index to be removed
-
-        Examples
-        --------
-        >>> mdf = MDF3('test.mdf')
-        >>> mdf.remove(group=3)
-        >>> mdf.remove(name='VehicleSpeed')
-
-        """
-        if group:
-            if 0 <= group <= len(self.groups):
-                idx = group
-            else:
-                print('Group index "{}" not in valid range[0..{}]'.format(group, len(self.groups)))
-                return
-        elif name:
-            if name in self.channels_db:
-                idx = self.channels_db[name][1]
-            else:
-                print('Channel name "{}" not found in the measurement'.format(name))
-                return
-        else:
-            print('Must specify a valid group or name argument')
-            return
-        self.groups.pop(idx)
-
     def save(self, dst='', overwrite=False, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file name is
         the MDF name. If overwrite is *True* then the destination file is overwritten,
@@ -1749,7 +1715,9 @@ class MDF3(object):
             for gp in self.groups:
                 for dep in gp['channel_dependencies']:
                     if dep:
-                        for i, (ch, grp) in enumerate(dep.referenced_channels):
+                        for i, (ch_nr, dg_nr) in enumerate(dep.referenced_channels):
+                            grp = self.groups[dg_nr]
+                            ch = grp['channels'][ch_nr]
                             dep['ch_{}'.format(i)] = ch.address
                             dep['cg_{}'.format(i)] = grp['channel_group'].address
                             dep['dg_{}'.format(i)] = grp['data_group'].address
