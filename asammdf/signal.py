@@ -205,8 +205,12 @@ class Signal(object):
         other : Signal
 
         """
-        last_stamp = self.timestamps[-1]
-        delta = last_stamp / len(self) + last_stamp
+        if len(self.timestamps):
+            last_stamp = self.timestamps[-1]
+            delta = last_stamp / len(self) + last_stamp
+        else:
+            last_stamp = 0
+            delta = 0
         if len(other):
             other_first_sample = other.timestamps[0]
             if last_stamp >= other_first_sample:

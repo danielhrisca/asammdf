@@ -2307,7 +2307,7 @@ class MDF4(object):
             self.header['first_attachment_addr'] = self.attachments[0][0].address if self.attachments else 0
             self.header['comment_addr'] = self.file_comment.address if self.file_comment else 0
 
-            seek(v4c.IDENTIFICATION_BLOCK_SIZE , SEEK_START)
+            seek(v4c.IDENTIFICATION_BLOCK_SIZE , v4c.SEEK_START)
             write(bytes(self.header))
 
             for orig_addr, gp in zip(original_data_addresses, self.groups):
