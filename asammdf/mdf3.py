@@ -713,10 +713,10 @@ class MDF3(object):
                         gp_texts['conversion_tab'][-1]['text_{}'.format(i)] = TextBlock(text=t_)
 
                 else:
-                     kargs = {'conversion_type': v3c.CONVERSION_TYPE_NONE,
-                              'unit': signal.unit.encode('latin-1'),
-                              'min_phy_value': min_val if min_val <= max_val else 0,
-                              'max_phy_value': max_val if min_val <= max_val else 0}
+                    kargs = {'conversion_type': v3c.CONVERSION_TYPE_NONE,
+                             'unit': signal.unit.encode('latin-1'),
+                             'min_phy_value': min_val if min_val <= max_val else 0,
+                             'max_phy_value': max_val if min_val <= max_val else 0}
                 gp_conv.append(ChannelConversion(**kargs))
 
                 # source for channel

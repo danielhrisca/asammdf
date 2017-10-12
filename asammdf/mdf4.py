@@ -424,7 +424,7 @@ class MDF4(object):
 
         return ch_cntr, composition
 
-    def _read_data_block(self, address, file_stream, record_id=None):
+    def _read_data_block(self, address, file_stream):
         """read and agregate data blocks for a given data group
 
         Returns
@@ -980,7 +980,7 @@ class MDF4(object):
                     s_size = byte_size << 3
 
                     # add channel texts
-                    for key, item in gp['texts'].items():
+                    for item in gp['texts'].values():
                         item.append({})
                     gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
                     if signal.unit:
@@ -1033,7 +1033,7 @@ class MDF4(object):
 
                     # first we add the structure channel
                     # add channel texts
-                    for key, item in gp['texts'].items():
+                    for item in gp['texts'].values():
                         item.append({})
                     gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
                     if signal.unit:
@@ -1047,14 +1047,14 @@ class MDF4(object):
                     # add channel source
                     gp_source.append(SourceInformation())
 
-                    s_type, s_size = fmt_to_datatype()
+#                    s_type, s_size = fmt_to_datatype()
 
                     # add channel block
                     kargs = {'channel_type': v4c.CHANNEL_TYPE_VALUE,
                              'bit_count': 8,
                              'byte_offset': offset,
                              'bit_offset' : 0,
-                             'data_type': v4c.CHANNEL_TYPE_BYTEARRAY,
+                             'data_type': v4c.DATA_TYPE_BYTEARRAY,
                              'min_raw_value': 0,
                              'max_raw_value' : 0,
                              'lower_limit' : 0,
@@ -1093,7 +1093,7 @@ class MDF4(object):
                         types.append(vals.dtype)
 
                         # add channel texts
-                        for key, item in gp['texts'].items():
+                        for item in gp['texts'].values():
                             item.append({})
                         gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
                         gp_texts['sources'][-1]['name_addr'] = si_text
@@ -1183,7 +1183,7 @@ class MDF4(object):
 
                     # first we add the structure channel
                     # add channel texts
-                    for key, item in gp['texts'].items():
+                    for item in gp['texts'].values():
                         item.append({})
                     gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
                     if signal.unit:
@@ -1239,7 +1239,7 @@ class MDF4(object):
                         types.append( (field_name, samples.dtype, shape) )
 
                         # add composed parent signal texts
-                        for key, item in gp['texts'].items():
+                        for item in gp['texts'].values():
                             item.append({})
                         gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
                         gp_texts['sources'][-1]['name_addr'] = si_text
@@ -1413,7 +1413,7 @@ class MDF4(object):
                                 data = f.read()
                         return data
                     else:
-                        warnings.warn('ATBLOCK md5sum="{}" and external attachment data ({}) md5sum="{}"'.format(self['md5_sum'], file_path, md5_sum))
+                        warnings.warn('ATBLOCK md5sum="{}" and external attachment data ({}) md5sum="{}"'.format(attachment['md5_sum'], file_path, md5_sum))
                 else:
                     if texts['mime_addr']['text'].decode('utf-8').startswith('text'):
                         mode = 'r'
@@ -2110,8 +2110,8 @@ class MDF4(object):
                     data = self._load_group_data(gp)
                     if compression and self.version != '4.00':
                         kargs = {'data': data,
-                                 'zip_type': v4c.FLAG_DZ_DEFLATE if self.compression == 1 else v4c.FLAG_DZ_TRANPOSED_DEFLATE,
-                                 'param': 0 if self.compression == 1 else gp['channel_group']['samples_byte_nr']}
+                                 'zip_type': v4c.FLAG_DZ_DEFLATE if compression == 1 else v4c.FLAG_DZ_TRANPOSED_DEFLATE,
+                                 'param': 0 if compression == 1 else gp['channel_group']['samples_byte_nr']}
                         data_block = DataZippedBlock(**kargs)
                     else:
                         data_block = DataBlock(data=data)

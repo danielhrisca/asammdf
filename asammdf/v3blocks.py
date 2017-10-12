@@ -3,9 +3,6 @@ classes that implement the blocks for MDF version 3
 """
 from __future__ import print_function, division
 import sys
-PYVERSION = sys.version_info[0]
-PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
-
 import time
 
 from struct import unpack, pack, unpack_from
@@ -14,6 +11,8 @@ from getpass import getuser
 from . import v3constants as v3c
 
 
+PYVERSION = sys.version_info[0]
+PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 SEEK_START = v3c.SEEK_START
 SEEK_END = v3c.SEEK_END
 
@@ -155,22 +154,24 @@ class Channel(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            return pack(v3c.FMT_CHANNEL, *self.values())
+            result = pack(v3c.FMT_CHANNEL, *self.values())
         else:
-            return pack(v3c.FMT_CHANNEL, *[self[key] for key in v3c.KEYS_CHANNEL])
+            result = pack(v3c.FMT_CHANNEL, *[self[key] for key in v3c.KEYS_CHANNEL])
+        return result
 
     def __lt__(self, other):
         self_start = self['start_offset']
         other_start = other['start_offset']
         if self_start < other_start:
-            return 1
+            result = 1
         elif self_start == other_start:
             if self['bit_count'] >= other['bit_count']:
-                return 1
+                result = 1
             else:
-                return 0
+                result = 0
         else:
-            return 0
+            result = 0
+        return result
 
 
 class ChannelConversion(dict):
@@ -499,9 +500,10 @@ class ChannelConversion(dict):
                     keys.append('text_{}'.format(i))
 
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
 
 
 class ChannelDependency(dict):
@@ -600,9 +602,10 @@ class ChannelDependency(dict):
             fmt += '{}H'.format(option_dims_nr)
             keys += tuple('dim_{}'.format(i) for i in range(option_dims_nr))
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
 
 
 class ChannelExtension(dict):
@@ -706,9 +709,10 @@ class ChannelExtension(dict):
             keys = v3c.KEYS_SOURCE_VECTOR
 
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
 
 
 class ChannelGroup(dict):
@@ -798,10 +802,10 @@ class ChannelGroup(dict):
             fmt += 'I'
             keys += ('sample_reduction_addr',)
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in keys])
-
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
 
 class DataBlock(dict):
     """Data Block class derived from *dict*
@@ -906,7 +910,7 @@ class DataGroup(dict):
         except KeyError:
             self.address = 0
             self['id'] = kargs.get('id', 'DG'.encode('latin-1'))
-            self['block_len'] = kargs.get('block_len',v3c. DG32_BLOCK_SIZE)
+            self['block_len'] = kargs.get('block_len', v3c. DG32_BLOCK_SIZE)
             self['next_dg_addr'] = kargs.get('next_dg_addr', 0)
             self['first_cg_addr'] = kargs.get('first_cg_addr', 0)
             self['trigger_addr'] = kargs.get('comment_addr', 0)
@@ -924,9 +928,10 @@ class DataGroup(dict):
             fmt = v3c.FMT_DATA_GROUP
             keys = v3c.KEYS_DATA_GROUP
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
 
 
 class FileIdentificationBlock(dict):
@@ -1001,9 +1006,10 @@ class FileIdentificationBlock(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            return pack(v3c.ID_FMT, *self.values())
+            result = pack(v3c.ID_FMT, *self.values())
         else:
-            return pack(v3c.ID_FMT, *[self[key] for key in v3c.ID_KEYS])
+            result = pack(v3c.ID_FMT, *[self[key] for key in v3c.ID_KEYS])
+        return result
 
 
 class HeaderBlock(dict):
@@ -1106,9 +1112,10 @@ class HeaderBlock(dict):
             fmt += v3c.HEADER_POST_320_EXTRA_FMT
             keys += v3c.HEADER_POST_320_EXTRA_KEYS
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
 
 
 class ProgramBlock(dict):
@@ -1157,9 +1164,10 @@ class ProgramBlock(dict):
     def __bytes__(self):
         fmt = v3c.FMT_PROGRAM_BLOCK.format(self['block_len'])
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in v3c.KEYS_PROGRAM_BLOCK])
+            result = pack(fmt, *[self[key] for key in v3c.KEYS_PROGRAM_BLOCK])
+        return result
 
 
 class SampleReduction(dict):
@@ -1209,7 +1217,8 @@ class SampleReduction(dict):
             pass
 
     def __bytes__(self):
-        return pack(v3c.FMT_SAMPLE_REDUCTION_BLOCK, *[self[key] for key in v3c.KEYS_SAMPLE_REDUCTION_BLOCK])
+        result = pack(v3c.FMT_SAMPLE_REDUCTION_BLOCK, *[self[key] for key in v3c.KEYS_SAMPLE_REDUCTION_BLOCK])
+        return result
 
 
 class TextBlock(dict):
@@ -1269,7 +1278,7 @@ class TextBlock(dict):
             text = kargs['text']
             try:
                 text = text.encode('latin-1')
-            except:
+            except AttributeError:
                 pass
 
             self['id'] = b'TX'
@@ -1278,9 +1287,10 @@ class TextBlock(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            return pack('<2sH{}s'.format(self['block_len']-4), *self.values())
+            result = pack('<2sH{}s'.format(self['block_len']-4), *self.values())
         else:
-            return pack('<2sH{}s'.format(self['block_len']-4), *[self[key] for key in v3c.KEYS_TEXT_BLOCK])
+            result = pack('<2sH{}s'.format(self['block_len']-4), *[self[key] for key in v3c.KEYS_TEXT_BLOCK])
+        return result
 
 
 class TriggerBlock(dict):
@@ -1359,6 +1369,7 @@ class TriggerBlock(dict):
         for i in range(triggers_nr):
             keys += ('trigger_{}_time'.format(i), 'trigger_{}_pretime'.format(i), 'trigger_{}_posttime'.format(i))
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[self[key] for key in keys])
+        return result

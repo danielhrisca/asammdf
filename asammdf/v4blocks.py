@@ -138,9 +138,10 @@ class AttachmentBlock(dict):
     def __bytes__(self):
         fmt = v4c.FMT_AT_COMMON + '{}s'.format(self['embedded_size'])
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in v4c.KEYS_AT_BLOCK])
+            result = pack(fmt, *[self[key] for key in v4c.KEYS_AT_BLOCK])
+        return result
 
 class Channel(dict):
     """ CNBLOCK class"""
@@ -242,7 +243,7 @@ class Channel(dict):
         fmt = v4c.FMT_CHANNEL.format(self['links_nr'])
 
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
             keys = ['id',
                     'reserved0',
@@ -277,24 +278,26 @@ class Channel(dict):
                      'upper_limit',
                      'lower_ext_limit',
                      'upper_ext_limit']
-            return pack(fmt, *[self[key] for key in v4c.KEYS_CHANNEL])
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
 
     def __lt__(self, other):
         self_byte_offset = self['byte_offset']
         other_byte_offset = other['byte_offset']
 
         if self_byte_offset < other_byte_offset:
-            return 1
+            result = 1
         elif self_byte_offset == other_byte_offset:
             self_range = self['bit_offset'] + self['bit_count']
             other_range = other['bit_offset'] + other['bit_count']
 
             if self_range > other_range:
-                return 1
+                result = 1
             else:
-                return 0
+                result = 0
         else:
-            return 0
+            result = 0
+        return result
 
 
 class ChannelArrayBlock(dict):
@@ -499,9 +502,10 @@ class ChannelArrayBlock(dict):
                 fmt = '<4sI{}Q2BHIiI{}Q'.format(self['links_nr'] + 2, dims_nr)
 
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
 
 
 class ChannelGroup(dict):
@@ -555,9 +559,10 @@ class ChannelGroup(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            return pack(v4c.FMT_CHANNEL_GROUP, *self.values())
+            result = pack(v4c.FMT_CHANNEL_GROUP, *self.values())
         else:
-            return pack(v4c.FMT_CHANNEL_GROUP, *[self[key] for key in v4c.KEYS_CHANNEL_GROUP])
+            result = pack(v4c.FMT_CHANNEL_GROUP, *[self[key] for key in v4c.KEYS_CHANNEL_GROUP])
+        return result
 
 
 class ChannelConversion(dict):
@@ -979,9 +984,10 @@ class ChannelConversion(dict):
                 keys += ('val_default',)
 
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
 
 
 class DataBlock(dict):
@@ -1021,9 +1027,10 @@ class DataBlock(dict):
     def __bytes__(self):
         fmt = v4c.FMT_DATA_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in v4c.KEYS_DATA_BLOCK])
+            result = pack(fmt, *[self[key] for key in v4c.KEYS_DATA_BLOCK])
+        return result
 
 
 
@@ -1109,20 +1116,18 @@ class DataZippedBlock(dict):
             if self.return_unzipped:
                 data = super(DataZippedBlock, self).__getitem__(item)
                 data = decompress(data)
-                if self['zip_type'] == v4c.FLAG_DZ_DEFLATE:
-                    return data
-                else:
+                if self['zip_type'] == v4c.FLAG_DZ_TRANPOSED_DEFLATE:
                     cols = self['param']
                     lines = self['original_size'] // cols
 
                     nd = np.fromstring(data[:lines*cols], dtype=np.uint8).reshape((cols, lines))
                     data = nd.transpose().tostring() + data[lines*cols:]
-
-                    return data
             else:
-                return super(DataZippedBlock, self).__getitem__(item)
+                data = super(DataZippedBlock, self).__getitem__(item)
+            value = data
         else:
-            return super(DataZippedBlock, self).__getitem__(item)
+            value = super(DataZippedBlock, self).__getitem__(item)
+        return value
 
     def __bytes__(self):
         fmt = v4c.FMT_DZ_COMMON + '{}s'.format(self['zip_size'])
@@ -1173,9 +1178,10 @@ class DataGroup(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            return pack(v4c.FMT_DATA_GROUP, *self.values())
+            result = pack(v4c.FMT_DATA_GROUP, *self.values())
         else:
-            return pack(v4c.FMT_DATA_GROUP, *[self[key] for key in v4c.KEYS_DATA_GROUP])
+            result = pack(v4c.FMT_DATA_GROUP, *[self[key] for key in v4c.KEYS_DATA_GROUP])
+        return result
 
 
 class DataList(dict):
@@ -1230,9 +1236,10 @@ class DataList(dict):
             keys += tuple('data_block_addr{}'.format(i) for i in range(self['links_nr'] - 1))
             keys += ('flags', 'reserved1', 'data_block_nr', 'data_block_len')
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
 
 
 class FileIdentificationBlock(dict):
@@ -1278,9 +1285,10 @@ class FileIdentificationBlock(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            return pack(v4c.FMT_IDENTIFICATION_BLOCK, *self.values())
+            result = pack(v4c.FMT_IDENTIFICATION_BLOCK, *self.values())
         else:
-            return pack(v4c.FMT_IDENTIFICATION_BLOCK, *[self[key] for key in v4c.KEYS_IDENTIFICATION_BLOCK])
+            result = pack(v4c.FMT_IDENTIFICATION_BLOCK, *[self[key] for key in v4c.KEYS_IDENTIFICATION_BLOCK])
+        return result
 
 
 class FileHistory(dict):
@@ -1321,9 +1329,10 @@ class FileHistory(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            return pack(v4c.FMT_FILE_HISTORY, *self.values())
+            result = pack(v4c.FMT_FILE_HISTORY, *self.values())
         else:
-            return pack(v4c.FMT_FILE_HISTORY, *[self[key] for key in v4c.KEYS_FILE_HISTORY])
+            result = pack(v4c.FMT_FILE_HISTORY, *[self[key] for key in v4c.KEYS_FILE_HISTORY])
+        return result
 
 
 class HeaderBlock(dict):
@@ -1381,9 +1390,10 @@ class HeaderBlock(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            return pack(v4c.FMT_HEADER_BLOCK, *self.values())
+            result = pack(v4c.FMT_HEADER_BLOCK, *self.values())
         else:
-            return pack(v4c.FMT_HEADER_BLOCK, *[self[key] for key in v4c.KEYS_HEADER_BLOCK])
+            result = pack(v4c.FMT_HEADER_BLOCK, *[self[key] for key in v4c.KEYS_HEADER_BLOCK])
+        return result
 
 
 class HeaderList(dict):
@@ -1420,9 +1430,10 @@ class HeaderList(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            return pack(v4c.FMT_HL_BLOCK, *self.values())
+            result = pack(v4c.FMT_HL_BLOCK, *self.values())
         else:
-            return pack(v4c.FMT_HL_BLOCK, *[self[key] for key in v4c.KEYS_HL_BLOCK])
+            result = pack(v4c.FMT_HL_BLOCK, *[self[key] for key in v4c.KEYS_HL_BLOCK])
+        return result
 
 
 class SourceInformation(dict):
@@ -1464,9 +1475,10 @@ class SourceInformation(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            return pack(v4c.FMT_SOURCE_INFORMATION, *self.values())
+            result = pack(v4c.FMT_SOURCE_INFORMATION, *self.values())
         else:
-            return pack(v4c.FMT_SOURCE_INFORMATION, *[self[key] for key in v4c.KEYS_SOURCE_INFORMATION])
+            result = pack(v4c.FMT_SOURCE_INFORMATION, *[self[key] for key in v4c.KEYS_SOURCE_INFORMATION])
+        return result
 
 
 class SignalDataBlock(dict):
@@ -1538,7 +1550,7 @@ class TextBlock(dict):
 
             try:
                 text = text.encode('utf-8')
-            except:
+            except AttributeError:
                 pass
 
             text_length = len(text)
@@ -1562,6 +1574,7 @@ class TextBlock(dict):
     def __bytes__(self):
         fmt = v4c.FMT_TEXT_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)
         if PYVERSION_MAJOR >= 36:
-            return pack(fmt, *self.values())
+            result = pack(fmt, *self.values())
         else:
-            return pack(fmt, *[self[key] for key in v4c.KEYS_TEXT_BLOCK])
+            result = pack(fmt, *[self[key] for key in v4c.KEYS_TEXT_BLOCK])
+        return result
