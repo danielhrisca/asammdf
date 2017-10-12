@@ -10,9 +10,6 @@ import numpy as np
 
 from .mdf3 import MDF3
 from .mdf4 import MDF4
-from .v3constants import CHANNEL_TYPE_MASTER as V3_MASTER
-from .v4constants import CHANNEL_TYPE_MASTER as V4_MASTER
-from .v4constants import CHANNEL_TYPE_VIRTUAL_MASTER as V4_VIRTUAL_MASTER
 from .utils import MdfException
 
 
@@ -36,10 +33,10 @@ class MDF(object):
         * if *True* the data group binary data block will be loaded in RAM
         * if *False* the channel data is read from disk on request
     version : string
-        mdf file version ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10', '4.11'); default '3.20'
+        mdf file version ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10', '4.11'); default '4.10'
 
     """
-    def __init__(self, name=None, load_measured_data=True, version='3.20'):
+    def __init__(self, name=None, load_measured_data=True, version='4.10'):
         if name:
             if os.path.isfile(name):
                 with open(name, 'rb') as file_stream:
@@ -97,16 +94,19 @@ class MDF(object):
             # walk through all groups and get all channels
             for i, gp in enumerate(self.groups):
                 sigs = []
-                excluded_channels = [self.masters_db[i], ]
+                if self.masters_db.get(i, None) is None:
+                    excluded_channels = []
+                else:
+                    excluded_channels = [self.masters_db[i], ]
                 channels = gp['channels']
 
                 if self.version in MDF3_VERSIONS:
                     for dep in gp['channel_dependencies']:
                         if dep is None:
                             continue
-                        for ch, ch_gp in dep.referenced_channels:
-                            if ch_gp == gp:
-                                excluded_channels.append(channels.index(ch))
+                        for ch_nr, gp_nr in dep.referenced_channels:
+                            if gp_nr == i:
+                                excluded_channels.append(ch_nr)
                 else:
                     for dependency_list in gp['channel_dependencies']:
                         if dependency_list is None:
@@ -116,19 +116,18 @@ class MDF(object):
                                 excluded_channels.append(channels.index(ch))
                         else:
                             for dep in dependency_list:
-                                for ch in dep.referenced_channels:
-                                    try:
-                                        excluded_channels.append(channels.index(ch))
-                                    except ValueError:
-                                        continue
+                                for ch_nr, gp_nr in dep.referenced_channels:
+                                    if gp_nr == i:
+                                        excluded_channels.append(ch_nr)
 
                 for j, ch in enumerate(gp['channels']):
                     if j in excluded_channels:
                         continue
                     sigs.append(self.get(group=i, index=j))
-                out.append(sigs,
-                           'Converted from {} to {}'.format(self.version, to),
-                           common_timebase=True)
+                if sigs:
+                    out.append(sigs,
+                               'Converted from {} to {}'.format(self.version, to),
+                               common_timebase=True)
             return out
 
     def cut(self, start=None, stop=None):
@@ -152,16 +151,19 @@ class MDF(object):
         # walk through all groups and get all channels
         for i, gp in enumerate(self.groups):
             sigs = []
-            excluded_channels = [self.masters_db[i], ]
+            if self.masters_db.get(i, None) is None:
+                excluded_channels = []
+            else:
+                excluded_channels = [self.masters_db[i], ]
             channels = gp['channels']
 
             if self.version in MDF3_VERSIONS:
                 for dep in gp['channel_dependencies']:
                     if dep is None:
                         continue
-                    for ch, ch_gp in dep.referenced_channels:
-                        if ch_gp == gp:
-                            excluded_channels.append(channels.index(ch))
+                    for ch_nr, gp_nr in dep.referenced_channels:
+                        if gp_nr == i:
+                            excluded_channels.append(ch_nr)
             else:
                 for dependency_list in gp['channel_dependencies']:
                     if dependency_list is None:
@@ -171,21 +173,20 @@ class MDF(object):
                             excluded_channels.append(channels.index(ch))
                     else:
                         for dep in dependency_list:
-                            for ch in dep.referenced_channels:
-                                try:
-                                    excluded_channels.append(channels.index(ch))
-                                except ValueError:
-                                    continue
+                            for ch_nr, gp_nr in dep.referenced_channels:
+                                if gp_nr == i:
+                                    excluded_channels.append(ch_nr)
 
             for j, ch in enumerate(gp['channels']):
                 if j in excluded_channels:
                     continue
                 sigs.append(self.get(group=i, index=j).cut(start=start, stop=stop))
 
-            out.append(sigs,
-                       'Cut from {} to {}'.format('{}s'.format(start) if start else 'start of measurement',
-                                                  '{}s'.format(stop) if stop else 'end of measurement'),
-                       common_timebase=True)
+            if sigs:
+                out.append(sigs,
+                           'Cut from {} to {}'.format('{}s'.format(start) if start else 'start of measurement',
+                                                      '{}s'.format(stop) if stop else 'end of measurement'),
+                           common_timebase=True)
         return out
 
     def export(self, format, filename=None):
@@ -374,14 +375,15 @@ class MDF(object):
             sigs = []
             for index in gps[group]:
                 sigs.append(self.get(group=group, index=index))
-            mdf.append(sigs,
-                       'Signals filtered from <{}>'.format(os.path.basename(self.name) if self.name else 'New MDF'),
-                       common_timebase=True)
+            if sigs:
+                mdf.append(sigs,
+                           'Signals filtered from <{}>'.format(os.path.basename(self.name) if self.name else 'New MDF'),
+                           common_timebase=True)
 
         return mdf
 
     @staticmethod
-    def merge(files, load_measured_data=True):
+    def merge(files, outversion='4.10', load_measured_data=True):
         """ merge several files and return the merged MDF object. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -390,6 +392,8 @@ class MDF(object):
         ----------
         files : list | tuple
             list of MDF file names
+        outversion : str
+            merged file version
         load_measured_data : bool
             load data option; default *True*
 
@@ -407,72 +411,70 @@ class MDF(object):
             merged MDF object
         """
         if files:
-            merged = MDF(files[0], load_measured_data=load_measured_data)
-            for file in files[1:]:
-                mdf = MDF(file, load_measured_data=load_measured_data)
-                out = merged
-                merged = MDF(load_measured_data=load_measured_data)
-                if len(out.groups) != len(mdf.groups):
-                    raise MdfException("Can't merge files: merged has {} groups and {} has {} groups".format(len(out.groups),
-                                                                                                             mdf.name,
-                                                                                                             len(mdf.groups)))
-                for i, (gp1, gp2) in enumerate(zip(out.groups, mdf.groups)):
-                    sigs = []
+            files = [MDF(file, load_measured_data=load_measured_data) for file in files]
 
+            if not len(set(len(file.groups) for file in files)) == 1:
+                raise MdfException("Can't merge files: difference in number of data groups")
+
+
+            merged = MDF(version=outversion, load_measured_data=load_measured_data)
+
+            for i, groups in enumerate(zip(*(file.groups for file in files))):
+                if not len(set(len(group['channels']) for group in groups)) == 1:
+                    raise MdfException("Can't merge files: different channel number for data groups {}".format(i))
+
+                signals = []
+
+                mdf = files[0]
+                if mdf.masters_db.get(i, None) is None:
+                    excluded_channels = []
+                else:
                     excluded_channels = [mdf.masters_db[i], ]
-                    channels = gp1['channels']
 
-                    if mdf.version in MDF3_VERSIONS:
-                        for dep in gp1['channel_dependencies']:
-                            if dep is None:
-                                continue
-                            for ch, ch_gp in dep.referenced_channels:
-                                if ch_gp == gp1:
-                                    excluded_channels.append(channels.index(ch))
-                    else:
-                        for dependency_list in gp1['channel_dependencies']:
-                            if dependency_list is None:
-                                continue
-                            if all(dep['id'] == b'##CN' for dep in dependency_list):
-                                for ch in dependency_list:
-                                    excluded_channels.append(channels.index(ch))
-                            else:
-                                for dep in dependency_list:
-                                    for ch in dep.referenced_channels:
-                                        try:
-                                            excluded_channels.append(channels.index(ch))
-                                        except ValueError:
-                                            continue
+                group = groups[0]
+                channels = group['channels']
 
-
-                    if len(gp1['channels']) != len(gp2['channels']):
-                        raise MdfException("Can't merge files: merged DataGroup {} has {} channels and {} DataGroup {} has {} channels".format(i,
-                                                                                                                                               len(gp1['channels']),
-                                                                                                                                               mdf.name,
-                                                                                                                                               i,
-                                                                                                                                               len(gp2['channels'])))
-
-                    for j, (ch1, ch2) in enumerate(zip(gp1['channels'], gp2['channels'])):
-                        if ch1.name != ch2.name:
-                            raise MdfException("Can't merge files: merged DataGroup {} channel {} is named {} and {} DataGroup {} channel {} is named {}".format(i,
-                                                                                                                                                                 j,
-                                                                                                                                                                 ch1.name,
-                                                                                                                                                                 mdf.name,
-                                                                                                                                                                 i,
-                                                                                                                                                                 j,
-                                                                                                                                                                 ch2.name))
-                        if j in excluded_channels:
+                if mdf.version in MDF3_VERSIONS:
+                    for dep in group['channel_dependencies']:
+                        if dep is None:
                             continue
-                        sig1 = out.get(group=i, index=j)
-                        sig2 = mdf.get(group=i, index=j)
-                        sigs.append(sig1.extend(sig2))
+                        for ch_nr, gp_nr in dep.referenced_channels:
+                            if gp_nr == i:
+                                excluded_channels.append(ch_nr)
+                else:
+                    for dependency_list in group['channel_dependencies']:
+                        if dependency_list is None:
+                            continue
+                        if all(dep['id'] == b'##CN' for dep in dependency_list):
+                            for ch in dependency_list:
+                                excluded_channels.append(channels.index(ch))
+                        else:
+                            for dep in dependency_list:
+                                for ch_nr, gp_nr in dep.referenced_channels:
+                                    if gp_nr == i:
+                                        excluded_channels.append(ch_nr)
 
-                    merged.append(sigs, common_timebase=True)
-                mdf.close()
+                for j, channels in enumerate(zip(*(group['channels'] for group in groups))):
+                    if not len(set(ch.name for ch in channels)) == 1:
+                        raise MdfException("Can't merge files: different channel names for data groups {}".format(i))
+
+                    if j in excluded_channels:
+                        continue
+
+                    sigs = [file.get(group=i, index=j) for file in files]
+
+                    sig = sigs[0]
+                    for s in sigs[1:]:
+                        sig = sig.extend(s)
+
+                    signals.append(sig)
+
+                if signals:
+                    merged.append(signals, common_timebase=True)
+
             return merged
         else:
             raise MdfException('No files given for merge')
-
 
     def iter_to_pandas(self):
         """ generator that yields channel groups as pandas DataFrames"""

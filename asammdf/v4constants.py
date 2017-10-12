@@ -77,8 +77,8 @@ FLAG_ALL_SAMPLES_VALID = 1
 FLAG_INVALIDATION_BIT_VALID = 2
 
 FLAG_PRECISION = 1
-FLAG_PHY_RANGE_OK = 2
-FLAG_VAL_RANGE_OK = 8
+FLAG_PHY_RANGE_OK = 1 << 4
+FLAG_VAL_RANGE_OK = 1 << 3
 FLAG_AT_EMBEDDED = 1
 FLAG_AT_COMPRESSED_EMBEDDED = 2
 FLAG_AT_MD5_VALID = 4
@@ -86,42 +86,15 @@ FLAG_DZ_DEFLATE = 0
 FLAG_DZ_TRANPOSED_DEFLATE = 1
 FLAG_CA_FIXED_AXIS = 1 << 5
 FLAG_CA_AXIS = 1 << 4
+FLAG_CN_DEFAULT_X = 1 << 12
 
 # data location
 LOCATION_ORIGINAL_FILE = 0
 LOCATION_TEMPORARY_FILE = 1
 LOCATION_MEMORY = 2
 
-FMT_CHANNEL = '<4sI10Q4B4I2BH6d'
-KEYS_CHANNEL = ('id',
-                'reserved0',
-                'block_len',
-                'links_nr',
-                'next_ch_addr',
-                'component_addr',
-                'name_addr',
-                'source_addr',
-                'conversion_addr',
-                'data_block_addr',
-                'unit_addr',
-                'comment_addr',
-                'channel_type',
-                'sync_type',
-                'data_type',
-                'bit_offset',
-                'byte_offset',
-                'bit_count',
-                'flags',
-                'pos_invalidation_bit',
-                'precision',
-                'reserved1',
-                'attachment_nr',
-                'min_raw_value',
-                'max_raw_value',
-                'lower_limit',
-                'upper_limit',
-                'lower_ext_limit',
-                'upper_ext_limit')
+FMT_CHANNEL = '<4sI2Q{}Q4B4I2BH6d'
+FMT_CHANNEL_PARAMS = '<4B4I2BH6d'
 
 FMT_TEXT_BLOCK = '<4sIQQ{}s'
 KEYS_TEXT_BLOCK = ('id',
@@ -305,4 +278,3 @@ KEYS_HL_BLOCK = ('id',
                  'flags',
                  'zip_type',
                  'reserved1')
-

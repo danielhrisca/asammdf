@@ -4,7 +4,7 @@ asammdf utility functions and classes
 import itertools
 import re
 
-from numpy import issubdtype, signedinteger, unsignedinteger, floating, flexible
+from numpy import issubdtype, signedinteger, unsignedinteger, floating, flexible, amin, amax
 
 from . import v3constants as v3c
 from . import v4constants as v4c
@@ -26,7 +26,10 @@ def bytes(obj):
     try:
         return obj.__bytes__()
     except:
-        return obj
+        if isinstance(obj, str):
+            return obj
+        else:
+            raise
 
 
 def dtype_mapping(invalue, outversion=3):
@@ -50,7 +53,7 @@ def dtype_mapping(invalue, outversion=3):
               v3c.DATA_TYPE_SIGNED: v4c.DATA_TYPE_SIGNED_INTEL,
               v3c.DATA_TYPE_FLOAT: v4c.DATA_TYPE_REAL_INTEL,
               v3c.DATA_TYPE_DOUBLE: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_STRING: v4c.DATA_TYPE_STRING,
+              v3c.DATA_TYPE_STRING: v4c.DATA_TYPE_STRING_LATIN_1,
               v3c.DATA_TYPE_UNSIGNED_INTEL: v4c.DATA_TYPE_UNSIGNED_INTEL,
               v3c.DATA_TYPE_UNSIGNED_INTEL: v4c.DATA_TYPE_UNSIGNED_INTEL,
               v3c.DATA_TYPE_SIGNED_INTEL: v4c.DATA_TYPE_SIGNED_INTEL,
@@ -63,7 +66,7 @@ def dtype_mapping(invalue, outversion=3):
     v4tov3 = {v4c.DATA_TYPE_UNSIGNED_INTEL: v3c.DATA_TYPE_UNSIGNED_INTEL,
               v4c.DATA_TYPE_UNSIGNED_MOTOROLA: v3c.DATA_TYPE_UNSIGNED_MOTOROLA,
               v4c.DATA_TYPE_SIGNED_INTEL: v3c.DATA_TYPE_SIGNED_INTEL,
-              v4c.DATA_TYPE_STRING: v3c.DATA_TYPE_STRING,
+              v4c.DATA_TYPE_STRING_LATIN_1: v3c.DATA_TYPE_STRING,
               v4c.DATA_TYPE_BYTEARRAY: v3c.DATA_TYPE_STRING,
               v4c.DATA_TYPE_REAL_INTEL: v3c.DATA_TYPE_DOUBLE_INTEL,
               v4c.DATA_TYPE_REAL_MOTOROLA: v3c.DATA_TYPE_DOUBLE_MOTOROLA,
@@ -152,6 +155,18 @@ def get_fmt(data_type, size, version=3):
     return fmt
 
 
+def fix_dtype_fields(fields):
+    """ convert field names to str in case of Python """
+    new_types = []
+    for pair_ in fields:
+        new_pair = [str(pair_[0])]
+        for item in pair_[1:]:
+            new_pair.append(item)
+        new_types.append(tuple(new_pair))
+
+    return new_types
+
+
 def fmt_to_datatype(fmt, version=3):
     """convert numpy dtype format string to mdf channel data type and size
 
@@ -203,6 +218,44 @@ def pair(iterable):
     current, next_ = itertools.tee(iterable)
     next(next_, None)
     return zip(current, next_)
+
+def get_unique_name(used_names, name):
+    """ returns a list of unique names
+
+    Parameters
+    ----------
+    used_names : set
+        set of already taken names
+    names : str
+        name to be made unique
+
+    Returns
+    -------
+    unique_name : str
+        new unique name
+
+    """
+    i = 0
+    unique_name = name
+    while unique_name in used_names:
+        unique_name = "{}_{}".format(name, i)
+        i += 1
+
+    return unique_name
+
+def get_min_max(samples):
+
+
+    if len(samples):
+        if issubdtype(samples.dtype, flexible):
+            # for string channels we append (1,0) and use this as a marker
+            # if min>max then channel is string
+            min_val, max_val = 1, 0
+        else:
+            min_val, max_val = amin(samples), amax(samples)
+    else:
+        min_val, max_val = 0, 0
+    return min_val, max_val
 
 
 def load_dbc(dbc):
