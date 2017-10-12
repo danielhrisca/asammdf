@@ -76,7 +76,7 @@ class Timer():
             info = info.read()
             self.error = '{} : {} --> Excption during run:\n{}'.format(self.topic, self.message, info)
 
-        return True
+        return True;
 
 
 def open_mdf3(path, output, format):
@@ -583,13 +583,13 @@ def main(path, text_output, format):
                  save_mdf3,
                  save_mdf3_nodata,
                  save_reader3,
-                 save_reader3_nodata,
+#                 save_reader3_nodata,
                  save_reader3_compression,
                  save_reader3_compression_bcolz,
                  save_mdf4,
                  save_mdf4_nodata,
                  save_reader4,
-                 save_reader4_nodata,
+#                 save_reader4_nodata,
                  save_reader4_compression,
                  save_reader4_compression_bcolz,
                  )

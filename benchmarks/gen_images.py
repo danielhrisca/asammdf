@@ -80,8 +80,8 @@ def f(res, topic, aspect, for_doc=False):
         plt.savefig(name, dpi=300)
 
 
-for file in (r'e:\02__PythonWorkspace\asammdf\benchmarks\results\x64_asammdf_2.6.0_mdfreader_0.2.6.txt',
-              r'e:\02__PythonWorkspace\asammdf\benchmarks\results\x86_asammdf_2.6.0_mdfreader_0.2.6.txt'):
+for file in (r'e:\02__PythonWorkspace\asammdf\benchmarks\results\x64_asammdf_2.6.2_mdfreader_0.2.6.txt',
+              r'e:\02__PythonWorkspace\asammdf\benchmarks\results\x86_asammdf_2.6.2_mdfreader_0.2.6.txt'):
     for topic in ('Open', 'Save', 'Get', 'Convert', 'Merge'):
         for aspect in ('time', 'ram'):
             f(file, topic, aspect)
