@@ -7,6 +7,9 @@
 
 Project goals
 =============
+
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger)
+
 The main goals for this library are:
 
 * to be faster than the other Python based mdf libraries
