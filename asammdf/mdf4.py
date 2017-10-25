@@ -2345,7 +2345,10 @@ class MDF4(object):
 
         group = self.groups[index]
 
-        time_ch_nr = self.masters_db.get(index, None)
+        try:
+            time_ch_nr = self.masters_db[index]
+        except:
+            time_ch_nr = None
         cycles_nr = group['channel_group']['cycles_nr']
 
         if time_ch_nr is None:
@@ -2369,7 +2372,10 @@ class MDF4(object):
                 if data is None:
                     data = self._load_group_data(group)
 
-                parent, bit_offset = parents.get(time_ch_nr, (None, None))
+                try:
+                    parent, bit_offset = parents[time_ch_nr]
+                except:
+                    parent, bit_offset = None, None
                 if parent is not None:
                     not_found = object()
                     record = group.get('record', not_found)
@@ -2386,8 +2392,7 @@ class MDF4(object):
                     t = self._get_not_byte_aligned_data(data, group, time_ch_nr)
 
                 # get timestamps
-                time_conv_type = v4c.CONVERSION_TYPE_NON if time_conv is None else time_conv['conversion_type']
-                if time_conv_type == v4c.CONVERSION_TYPE_LIN:
+                if time_conv and time_conv['conversion_type'] == v4c.CONVERSION_TYPE_LIN:
                     time_a = time_conv['a']
                     time_b = time_conv['b']
                     t = t * time_a

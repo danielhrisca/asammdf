@@ -76,8 +76,12 @@ class MDF(object):
         group = self.groups[index]
 
         excluded_channels = set()
-        if self.masters_db.get(index, None) is not None:
-            excluded_channels.add(self.masters_db[index])
+        try:
+            master_index = self.masters_db[index]
+            excluded_channels.add(master_index)
+        except:
+            pass
+
         channels = group['channels']
 
         if self.version in MDF3_VERSIONS:

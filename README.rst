@@ -117,6 +117,9 @@ optional dependencies needed for exports
 Benchmarks
 ==========
 
+Graphical results can be seen here at http://asammdf.readthedocs.io/en/stable/benchmarks.html
+
+
 Python 3 x86
 ------------
 
