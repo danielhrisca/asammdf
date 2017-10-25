@@ -1663,12 +1663,12 @@ class TextBlock(dict):
             else:
                 padding = 8
 
-            if 'meta' in kargs:
+            try:
                 if kargs['meta']:
                     self['id'] = b'##MD'
                 else:
                     self['id'] = b'##TX'
-            else:
+            except:
                 self['id'] = b'##TX'
 
             self['reserved0'] = 0

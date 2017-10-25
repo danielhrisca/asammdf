@@ -55,6 +55,8 @@ from .signal import Signal
 get_fmt = partial(get_fmt, version=4)
 fmt_to_datatype = partial(fmt_to_datatype, version=4)
 
+MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
+
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
     from .utils import bytes
@@ -375,34 +377,50 @@ class MDF4(object):
 
             conv_tabx_texts = {}
             grp['texts']['conversion_tab'].append(conv_tabx_texts)
-            if conv and conv['conversion_type'] in (v4c.CONVERSION_TYPE_TABX, v4c.CONVERSION_TYPE_RTABX, v4c.CONVERSION_TYPE_TTAB):
-                # link_nr - common links (4) - default text link (1)
-                for i in range(conv['links_nr'] - 4 - 1):
-                    address = conv['text_{}'.format(i)]
-                    if address:
-                        conv_tabx_texts['text_{}'.format(i)] = TextBlock(address=address, file_stream=file_stream)
-                address = conv.get('default_addr', 0)
-                if address:
-                    file_stream.seek(address, v4c.SEEK_START)
-                    blk_id = file_stream.read(4)
-                    if blk_id == b'##TX':
-                        conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
-                    elif blk_id == b'##CC':
-                        conv_tabx_texts['default_addr'] = ChannelConversion(address=address, file_stream=file_stream)
-                        conv_tabx_texts['default_addr']['text'] = str(time.clock()).encode('utf-8')
+            # read text fields for channel conversions
+            conv_texts = {}
+            grp['texts']['conversions'].append(conv_texts)
 
-                        conv['unit_addr'] = conv_tabx_texts['default_addr']['unit_addr']
-                        conv_tabx_texts['default_addr']['unit_addr'] = 0
-            elif conv and conv['conversion_type'] == v4c.CONVERSION_TYPE_TRANS:
-                # link_nr - common links (4) - default text link (1)
-                for i in range((conv['links_nr'] - 4 - 1 ) //2):
-                    for key in ('input_{}_addr'.format(i), 'output_{}_addr'.format(i)):
-                        address = conv[key]
+            if conv:
+                for key in ('name_addr', 'unit_addr', 'comment_addr'):
+                    address = conv[key]
+                    if address:
+                        conv_texts[key] = TextBlock(address=address, file_stream=file_stream)
+                if 'formula_addr' in conv:
+                    address = conv['formula_addr']
+                    if address:
+                        conv_texts['formula_addr'] = TextBlock(address=address, file_stream=file_stream)
+                    else:
+                        conv_texts['formula_addr'] = None
+
+                if conv['conversion_type'] in v4c.TABULAR_CONVERSIONS:
+                    # link_nr - common links (4) - default text link (1)
+                    for i in range(conv['links_nr'] - 4 - 1):
+                        address = conv['text_{}'.format(i)]
                         if address:
-                            conv_tabx_texts[key] = TextBlock(address=address, file_stream=file_stream)
-                address = conv['default_addr']
-                if address:
-                    conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
+                            conv_tabx_texts['text_{}'.format(i)] = TextBlock(address=address, file_stream=file_stream)
+                    address = conv.get('default_addr', 0)
+                    if address:
+                        file_stream.seek(address, v4c.SEEK_START)
+                        blk_id = file_stream.read(4)
+                        if blk_id == b'##TX':
+                            conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
+                        elif blk_id == b'##CC':
+                            conv_tabx_texts['default_addr'] = ChannelConversion(address=address, file_stream=file_stream)
+                            conv_tabx_texts['default_addr']['text'] = str(time.clock()).encode('utf-8')
+
+                            conv['unit_addr'] = conv_tabx_texts['default_addr']['unit_addr']
+                            conv_tabx_texts['default_addr']['unit_addr'] = 0
+                elif conv['conversion_type'] == v4c.CONVERSION_TYPE_TRANS:
+                    # link_nr - common links (4) - default text link (1)
+                    for i in range((conv['links_nr'] - 4 - 1 ) //2):
+                        for key in ('input_{}_addr'.format(i), 'output_{}_addr'.format(i)):
+                            address = conv[key]
+                            if address:
+                                conv_tabx_texts[key] = TextBlock(address=address, file_stream=file_stream)
+                    address = conv['default_addr']
+                    if address:
+                        conv_tabx_texts['default_addr'] = TextBlock(address=address, file_stream=file_stream)
 
             if self.load_measured_data:
                 # read source block and create source information object
@@ -424,21 +442,6 @@ class MDF4(object):
                 grp['channel_sources'].append(None)
                 grp['texts']['sources'].append({})
 
-            # read text fields for channel conversions
-            conv_texts = {}
-            grp['texts']['conversions'].append(conv_texts)
-            if conv is not None:
-                for key in ('name_addr', 'unit_addr', 'comment_addr'):
-                    address = conv[key]
-                    if address:
-                        conv_texts[key] = TextBlock(address=address, file_stream=file_stream)
-                if 'formula_addr' in conv:
-                    address = conv['formula_addr']
-                    if address:
-                        conv_texts['formula_addr'] = TextBlock(address=address, file_stream=file_stream)
-                    else:
-                        conv_texts['formula_addr'] = None
-
             # read text fields for channel
             channel_texts = {}
             grp['texts']['channels'].append(channel_texts)
@@ -449,13 +452,11 @@ class MDF4(object):
 
             # update channel object name and block_size attributes
             channel.name = channel_texts['name_addr']['text'].decode('utf-8').strip(' \t\n\r\x00')
-            if channel.name in self.channels_db:
-                self.channels_db[channel.name].append((dg_cntr, ch_cntr))
-            else:
+            if channel.name not in self.channels_db:
                 self.channels_db[channel.name] = []
-                self.channels_db[channel.name].append((dg_cntr, ch_cntr))
+            self.channels_db[channel.name].append((dg_cntr, ch_cntr))
 
-            if channel['channel_type'] in (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER):
+            if channel['channel_type'] in MASTER_CHANNELS:
                 self.masters_db[dg_cntr] = ch_cntr
 
             ch_cntr += 1
@@ -956,10 +957,10 @@ class MDF4(object):
         # time channel texts
         for _, item in gp_texts.items():
             item.append({})
-        gp_texts['channels'][-1]['name_addr'] = TextBlock(text='t')
-        gp_texts['conversions'][-1]['unit_addr'] = TextBlock(text='s')
+        gp_texts['channels'][-1]['name_addr'] = TextBlock(text='t', meta=False)
+        gp_texts['conversions'][-1]['unit_addr'] = TextBlock(text='s', meta=False)
 
-        si_text = TextBlock(text=source_info)
+        si_text = TextBlock(text=source_info, meta=False)
         gp_texts['sources'][-1]['name_addr'] = si_text
         gp_texts['sources'][-1]['path_addr'] = si_text
         gp_texts['channel_group'][-1]['acq_name_addr'] = si_text
@@ -1076,9 +1077,9 @@ class MDF4(object):
                 name = signal.name
                 for _, item in gp['texts'].items():
                     item.append({})
-                gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
+                gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
                 if signal.unit:
-                    gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit)
+                    gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
                 gp_texts['sources'][-1]['name_addr'] = si_text
                 gp_texts['sources'][-1]['path_addr'] = si_text
 
@@ -1094,9 +1095,9 @@ class MDF4(object):
                     for i, (r_, p_) in enumerate(zip(raw, phys)):
                         kargs['text_{}'.format(i)] = 0
                         kargs['val_{}'.format(i)] = r_
-                        conv_texts_tab['text_{}'.format(i)] = TextBlock(text=p_)
+                        conv_texts_tab['text_{}'.format(i)] = TextBlock(text=p_, meta=False)
                     if info.get('default', b''):
-                        conv_texts_tab['default_addr'] = TextBlock(text=info['default'])
+                        conv_texts_tab['default_addr'] = TextBlock(text=info['default'], meta=False)
                     kargs['default_addr'] = 0
                     kargs['links_nr'] = len(raw) + 5
                     gp_conv.append(ChannelConversion(**kargs))
@@ -1114,9 +1115,9 @@ class MDF4(object):
                         kargs['lower_{}'.format(i)] = l_
                         kargs['upper_{}'.format(i)] = u_
                         kargs['text_{}'.format(i)] = 0
-                        conv_texts_tab['text_{}'.format(i)] = TextBlock(text=t_)
+                        conv_texts_tab['text_{}'.format(i)] = TextBlock(text=t_, meta=False)
                     if info.get('default', b''):
-                        conv_texts_tab['default_addr'] = TextBlock(text=info['default'])
+                        conv_texts_tab['default_addr'] = TextBlock(text=info['default'], meta=False)
                     kargs['default_addr'] = 0
                     gp_conv.append(ChannelConversion(**kargs))
 
@@ -1171,9 +1172,9 @@ class MDF4(object):
             name = signal.name
             for _, item in gp['texts'].items():
                 item.append({})
-            gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
+            gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
             if signal.unit:
-                gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit)
+                gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
             gp_texts['sources'][-1]['name_addr'] = si_text
             gp_texts['sources'][-1]['path_addr'] = si_text
 
@@ -1189,9 +1190,9 @@ class MDF4(object):
                 for i, (r_, p_) in enumerate(zip(raw, phys)):
                     kargs['text_{}'.format(i)] = 0
                     kargs['val_{}'.format(i)] = r_
-                    conv_texts_tab['text_{}'.format(i)] = TextBlock(text=p_)
+                    conv_texts_tab['text_{}'.format(i)] = TextBlock(text=p_, meta=False)
                 if info.get('default', b''):
-                    conv_texts_tab['default_addr'] = TextBlock(text=info['default'])
+                    conv_texts_tab['default_addr'] = TextBlock(text=info['default'], meta=False)
                 kargs['default_addr'] = 0
                 kargs['links_nr'] = len(raw) + 5
                 gp_conv.append(ChannelConversion(**kargs))
@@ -1209,9 +1210,9 @@ class MDF4(object):
                     kargs['lower_{}'.format(i)] = l_
                     kargs['upper_{}'.format(i)] = u_
                     kargs['text_{}'.format(i)] = 0
-                    conv_texts_tab['text_{}'.format(i)] = TextBlock(text=t_)
+                    conv_texts_tab['text_{}'.format(i)] = TextBlock(text=t_, meta=False)
                 if info.get('default', b''):
-                    conv_texts_tab['default_addr'] = TextBlock(text=info['default'])
+                    conv_texts_tab['default_addr'] = TextBlock(text=info['default'], meta=False)
                 kargs['default_addr'] = 0
                 gp_conv.append(ChannelConversion(**kargs))
 
@@ -1298,9 +1299,9 @@ class MDF4(object):
                     # add channel texts
                     for item in gp['texts'].values():
                         item.append({})
-                    gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
+                    gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
                     if signal.unit:
-                        gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit)
+                        gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
                     gp_texts['sources'][-1]['name_addr'] = si_text
                     gp_texts['sources'][-1]['path_addr'] = si_text
 
@@ -1351,9 +1352,9 @@ class MDF4(object):
                     # add channel texts
                     for item in gp['texts'].values():
                         item.append({})
-                    gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
+                    gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
                     if signal.unit:
-                        gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit)
+                        gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
                     gp_texts['sources'][-1]['name_addr'] = si_text
                     gp_texts['sources'][-1]['path_addr'] = si_text
 
@@ -1411,7 +1412,7 @@ class MDF4(object):
                         # add channel texts
                         for item in gp['texts'].values():
                             item.append({})
-                        gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
+                        gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
                         gp_texts['sources'][-1]['name_addr'] = si_text
                         gp_texts['sources'][-1]['path_addr'] = si_text
 
@@ -1504,9 +1505,9 @@ class MDF4(object):
                     # add channel texts
                     for item in gp['texts'].values():
                         item.append({})
-                    gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
+                    gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
                     if signal.unit:
-                        gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit)
+                        gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
                     gp_texts['sources'][-1]['name_addr'] = si_text
                     gp_texts['sources'][-1]['path_addr'] = si_text
 
@@ -1561,7 +1562,7 @@ class MDF4(object):
                         # add composed parent signal texts
                         for item in gp['texts'].values():
                             item.append({})
-                        gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name)
+                        gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
                         gp_texts['sources'][-1]['name_addr'] = si_text
                         gp_texts['sources'][-1]['path_addr'] = si_text
 
@@ -1674,9 +1675,9 @@ class MDF4(object):
         self.file_history.append((fh, fh_text))
 
         texts = {}
-        texts['mime_addr'] = TextBlock(text=mime)
+        texts['mime_addr'] = TextBlock(text=mime, meta=False)
         if comment:
-            texts['comment_addr'] = TextBlock(text=comment)
+            texts['comment_addr'] = TextBlock(text=comment, meta=False)
         texts['file_name_addr'] = TextBlock(text=file_name if file_name else 'bin.bin')
         at_block = AttachmentBlock(data=data, compression=compression)
         at_block['creator_index'] = creator_index
@@ -2290,6 +2291,7 @@ class MDF4(object):
                 else:
                     unit = ''
 
+
             # get the channel commment if available
             if 'comment_addr' in channel_texts:
                 comment = channel_texts['comment_addr']
@@ -2300,7 +2302,7 @@ class MDF4(object):
                     except:
                         comment = ''
                 else:
-                    comment = comment['text'].decode('utf-8').strip(' \n\t\x00')
+                    comment = comment['text'].decode('utf-8')
             else:
                 comment = ''
 
