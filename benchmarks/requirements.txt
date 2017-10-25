@@ -1,0 +1,7 @@
+numpy
+matplotlib
+asammdf
+mdfreader
+blosc
+numpexpr
+psutil

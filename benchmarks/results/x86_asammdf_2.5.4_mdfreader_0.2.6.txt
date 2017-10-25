@@ -1,0 +1,93 @@
+Benchmark environment
+
+* 3.6.1 (v3.6.1:69c0db5, Mar 21 2017, 17:54:52) [MSC v.1900 32 bit (Intel)]
+* Windows-10-10.0.14393-SP0
+* Intel64 Family 6 Model 94 Stepping 3, GenuineIntel
+* 16GB installed RAM
+
+Notations used in the results
+
+* nodata = asammdf MDF object created with load_measured_data=False (raw channel data not loaded into RAM)
+* compression = mdfreader mdf object created with compression=blosc
+* compression bcolz 6 = mdfreader mdf object created with compression=6
+* noDataLoading = mdfreader mdf object read with noDataLoading=True
+
+Files used for benchmark:
+
+* 183 groups
+* 36424 channels
+
+
+
+================================================== ========= ========
+Open file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.5.4 mdfv3                                      898      289
+asammdf 2.5.4 nodata mdfv3                               631      121
+mdfreader 0.2.6 mdfv3                                   3431      460
+mdfreader 0.2.6 compression mdfv3                       4722      184
+mdfreader 0.2.6 compression bcolz 6 mdfv3               4624      940
+mdfreader 0.2.6 noDataLoading mdfv3                     1824      120
+asammdf 2.5.4 mdfv4                                     1943      333
+asammdf 2.5.4 nodata mdfv4                              1547      153
+mdfreader 0.2.6 mdfv4                                   6326      881
+mdfreader 0.2.6 compression mdfv4                       7354      594
+mdfreader 0.2.6 compression bcolz 6 mdfv4               7379     1303
+mdfreader 0.2.6 noDataLoading mdfv4                     4343      530
+================================================== ========= ========
+
+
+================================================== ========= ========
+Save file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.5.4 mdfv3                                      434      293
+asammdf 2.5.4 nodata mdfv3                               461      128
+mdfreader 0.2.6 mdfv3                                   8901      483
+mdfreader 0.2.6 noDataLoading mdfv3                    10331      483
+mdfreader 0.2.6 compression mdfv3                       9247      450
+mdfreader 0.2.6 compression bcolz 6 mdfv3               8775      941
+asammdf 2.5.4 mdfv4                                      687      339
+asammdf 2.5.4 nodata mdfv4                               775      162
+mdfreader 0.2.6 mdfv4                                   6943      901
+mdfreader 0.2.6 noDataLoading mdfv4                     8039      901
+mdfreader 0.2.6 compression mdfv4                       7061      860
+mdfreader 0.2.6 compression bcolz 6 mdfv4               6811     1320
+================================================== ========= ========
+
+
+================================================== ========= ========
+Get all channels (36424 calls)                     Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.5.4 mdfv3                                      754      298
+asammdf 2.5.4 nodata mdfv3                             18535      134
+mdfreader 0.2.6 mdfv3                                     79      460
+mdfreader 0.2.6 nodata mdfv3                          108596      333
+mdfreader 0.2.6 compression mdfv3                        673      188
+mdfreader 0.2.6 compression bcolz 6 mdfv3                298      942
+asammdf 2.5.4 mdfv4                                      759      339
+asammdf 2.5.4 nodata mdfv4                             20622      163
+mdfreader 0.2.6 mdfv4                                     78      880
+mdfreader 0.2.6 nodata mdfv4                          155000      752
+mdfreader 0.2.6 compression mdfv4                        677      602
+mdfreader 0.2.6 compression bcolz 6 mdfv4                322     1310
+================================================== ========= ========
+
+
+================================================== ========= ========
+Convert file                                       Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.5.4 v3 to v4                                  5772      693
+asammdf 2.5.4 v3 to v4 nodata                          28056      486
+asammdf 2.5.4 v4 to v3                                  5828      692
+asammdf 2.5.4 v4 to v3 nodata                          32825      630
+================================================== ========= ========
+
+
+================================================== ========= ========
+Merge files                                        Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.5.4 v3                                       13135     1220
+asammdf 2.5.4 v3 nodata                                52395      336
+asammdf 2.5.4 v4                                       15282     1259
+asammdf 2.5.4 v4 nodata                                59918      359
+================================================== ========= ========

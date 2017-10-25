@@ -1,0 +1,3 @@
+Add two files called "test.mdf" and "test.mf4" to a folder and select the folder for the run.
+
+run "bench.py --help" for available options.

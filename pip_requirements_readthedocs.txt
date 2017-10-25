@@ -1,0 +1,6 @@
+numpydoc
+numexpr
+numpy
+matplotlib
+wheel
+sphinx-argparse

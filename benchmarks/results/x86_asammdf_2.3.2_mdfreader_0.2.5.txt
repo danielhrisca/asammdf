@@ -1,0 +1,53 @@
+Benchmark environment
+
+* 3.6.1 (v3.6.1:69c0db5, Mar 21 2017, 17:54:52) [MSC v.1900 32 bit (Intel)]
+* Windows-10-10.0.14393-SP0
+* Intel64 Family 6 Model 94 Stepping 3, GenuineIntel
+* 16GB installed RAM
+
+Notations used in the results
+
+* nodata = MDF object created with load_measured_data=False (raw channel data not loaded into RAM)
+* compression = MDF object created with compression=blosc
+* compression bcolz 6 = MDF object created with compression=6
+* noDataLoading = MDF object read with noDataLoading=True
+
+Files used for benchmark:
+* 183 groups
+* 36424 channels
+
+
+================================================== ========= ========
+Open file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.3.2 mdfv3                                      980      288
+asammdf 2.3.2 nodata mdfv3                               670      118
+mdfreader 0.2.5 mdfv3                                   3776      455
+asammdf 2.3.2 mdfv4                                     2071      342
+asammdf 2.3.2 nodata mdfv4                              1610      160
+mdfreader 0.2.5 mdfv4                                  43559      578
+================================================== ========= ========
+
+
+================================================== ========= ========
+Save file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.3.2 mdfv3                                      406      291
+asammdf 2.3.2 nodata mdfv3                               432      125
+mdfreader 0.2.5 mdfv3                                  19623     1224
+asammdf 2.3.2 mdfv4                                      691      351
+asammdf 2.3.2 nodata mdfv4                               734      169
+mdfreader 0.2.5 mdfv4                                  17657     1687
+================================================== ========= ========
+
+
+================================================== ========= ========
+Get all channels (36424 calls)                     Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.3.2 mdfv3                                      963      298
+asammdf 2.3.2 nodata mdfv3                             19059      132
+mdfreader 0.2.5 mdfv3                                     34      455
+asammdf 2.3.2 mdfv4                                      868      349
+asammdf 2.3.2 nodata mdfv4                             20434      171
+mdfreader 0.2.5 mdfv4                                     54      578
+================================================== ========= ========
