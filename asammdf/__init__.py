@@ -4,8 +4,8 @@ from .mdf3 import MDF3
 from .mdf4 import MDF4
 from .mdf import MDF
 from .signal import Signal
+from .version import __version__
 
-__version__ = '2.6.4.dev'
 
 __all__ = [
     '__version__',

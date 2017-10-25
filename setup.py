@@ -14,7 +14,7 @@ here = path.abspath(path.dirname(__file__))
 # Get the long description from the README file
 long_description = open('README.rst').read()
 
-with open(path.join('asammdf', '__init__.py'), 'r') as f:
+with open(path.join('asammdf', 'version.py'), 'r') as f:
     for line in f:
         if line.startswith('__version__'):
             version = line.split('=')[-1].strip().strip("'")

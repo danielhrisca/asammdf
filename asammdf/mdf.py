@@ -261,7 +261,7 @@ class MDF(object):
             warn(message)
             return
 
-        name = self.name if self.name else filename
+        name = filename if filename else self.name
         if fmt == 'hdf5':
             try:
                 from h5py import File as HDF5
@@ -269,7 +269,8 @@ class MDF(object):
                 warn('h5py not found; export to HDF5 is unavailable')
                 return
             else:
-                name = os.path.splitext(name)[0] + '.hdf'
+                if not name.endswith('.hdf'):
+                    name = os.path.splitext(name)[0] + '.hdf'
                 with HDF5(name, 'w') as f:
                     # header information
                     group = f.create_group(os.path.basename(name))
@@ -283,7 +284,7 @@ class MDF(object):
                     # each HDF5 group will have a string attribute "master"
                     # that will hold the name of the master channel
                     for i, grp in enumerate(self.groups):
-                        group_name = r'/' + 'DataGroup_{}'.fmt(i + 1)
+                        group_name = r'/' + 'DataGroup_{}'.format(i + 1)
                         group = f.create_group(group_name)
 
                         master_index = self.masters_db[i]

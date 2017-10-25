@@ -8,6 +8,7 @@ from mpl_toolkits.mplot3d import axes3d
 from matplotlib.widgets import Slider
 
 from .utils import MdfException
+from .version import __version__
 
 
 class Signal(object):
@@ -63,6 +64,10 @@ class Signal(object):
         if len(self.samples.shape) <= 1 and self.samples.dtype.names is None:
             fig = plt.figure()
             fig.canvas.set_window_title(self.name)
+            fig.text(0.95, 0.05, 'asammdf {}'.format(__version__),
+                     fontsize=8, color='red',
+                     ha='right', va='top', alpha=0.5)
+
             if self.comment:
                 plt.title('{}\n({})'.format(self.name, self.comment))
             else:
@@ -76,6 +81,10 @@ class Signal(object):
         else:
             if self.samples.dtype.names is None:
                 fig = plt.figure()
+                fig.text(0.95, 0.05, 'asammdf {}'.format(__version__),
+                     fontsize=8, color='red',
+                     ha='right', va='top', alpha=0.5)
+
                 ax = fig.add_subplot(111, projection='3d')
 
                 # Grab some test data.

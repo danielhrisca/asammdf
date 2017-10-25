@@ -804,7 +804,7 @@ class MDF3(object):
             else:
                 compacted_signals = []
 
-             # first try to compact unsigned integers
+            # first try to compact unsigned integers
             while compacted_signals:
                 # channels texts
 

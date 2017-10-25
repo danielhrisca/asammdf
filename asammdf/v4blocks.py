@@ -229,62 +229,23 @@ class Channel(dict):
             self['data_block_addr'] = 0
             self['unit_addr'] = 0
             self['comment_addr'] = 0
-            try:
-                self['channel_type'] = kargs['channel_type']
-            except:
-                self['channel_type'] = 0
-            if 'sync_type' in kargs:
-                self['sync_type'] = kargs['sync_type']
-            else:
-                self['sync_type'] = 0
-            try:
-                self['data_type'] = kargs['data_type']
-            except:
-                self['data_type'] = 0
-            try:
-                self['bit_offset'] = kargs['bit_offset']
-            except:
-                self['bit_offset'] = 0
-            try:
-                self['byte_offset'] = kargs['byte_offset']
-            except:
-                self['byte_offset'] = 8
-            try:
-                self['bit_count'] = kargs['bit_count']
-            except:
-                self['bit_count'] = 8
-            try:
-                self['flags'] = kargs['flags']
-            except:
-                self['flags'] = 28
+            self['channel_type'] = kargs['channel_type']
+            self['sync_type'] = kargs.get('sync_type', 0)
+            self['data_type'] = kargs['data_type']
+            self['bit_offset'] = kargs['bit_offset']
+            self['byte_offset'] = kargs['byte_offset']
+            self['bit_count'] = kargs['bit_count']
+            self['flags'] = kargs.get('flags', 28)
             self['pos_invalidation_bit'] = 0
             self['precision'] = 3
             self['reserved1'] = 0
             self['attachment_nr'] = 0
-            try:
-                self['min_raw_value'] = kargs['min_raw_value']
-            except:
-                self['min_raw_value'] = 0
-            try:
-                self['max_raw_value'] = kargs['max_raw_value']
-            except:
-                self['max_raw_value'] = 0
-            try:
-                self['lower_limit'] = kargs['lower_limit']
-            except:
-                self['lower_limit'] = 0
-            try:
-                self['upper_limit'] = kargs['upper_limit']
-            except:
-                self['upper_limit'] = 0
-            if 'lower_ext_limit' in kargs:
-                self['lower_ext_limit'] = kargs['lower_ext_limit']
-            else:
-                self['lower_ext_limit'] = 0
-            if 'upper_ext_limit' in kargs:
-                self['upper_ext_limit'] = kargs['upper_ext_limit']
-            else:
-                self['upper_ext_limit'] = 0
+            self['min_raw_value'] = kargs.get('min_raw_value', 0)
+            self['max_raw_value'] = kargs.get('max_raw_value', 0)
+            self['lower_limit'] = kargs.get('lower_limit', 0)
+            self['upper_limit'] = kargs.get('upper_limit', 100)
+            self['lower_ext_limit'] = kargs.get('lower_ext_limit', 0)
+            self['upper_ext_limit'] = kargs.get('upper_ext_limit', 0)
 
     def __bytes__(self):
 
@@ -848,68 +809,32 @@ class ChannelConversion(dict):
             if kargs['conversion_type'] == v4c.CONVERSION_TYPE_NON:
                 self['block_len'] = v4c.CC_NONE_BLOCK_SIZE
                 self['links_nr'] = 4
-                if 'name_addr' in kargs:
-                    self['name_addr'] = kargs['name_addr']
-                else:
-                    self['name_addr'] = 0
-                if 'unit_addr' in kargs:
-                    self['unit_addr'] = kargs['unit_addr']
-                else:
-                    self['unit_addr'] = 0
-                if 'comment_addr' in kargs:
-                    self['comment_addr'] = kargs['comment_addr']
-                else:
-                    self['comment_addr'] = 0
-                if 'inv_conv_addr' in kargs:
-                    self['inv_conv_addr'] = kargs['inv_conv_addr']
-                else:
-                    self['inv_conv_addr'] = 0
+                self['name_addr'] = 0
+                self['unit_addr'] = 0
+                self['comment_addr'] = 0
+                self['inv_conv_addr'] = 0
                 self['conversion_type'] = v4c.CONVERSION_TYPE_NON
                 self['precision'] = 1
                 self['flags'] = 0
                 self['ref_param_nr'] = 0
                 self['val_param_nr'] = 0
-                try:
-                    self['min_phy_value'] = kargs['min_phy_value']
-                except:
-                    self['min_phy_value'] = 0
-                try:
-                    self['max_phy_value'] = kargs['max_phy_value']
-                except:
-                    self['max_phy_value'] = 0
+                self['min_phy_value'] = kargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kargs.get('max_phy_value', 0)
 
             elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_LIN:
                 self['block_len'] = v4c.CC_LIN_BLOCK_SIZE
                 self['links_nr'] = 4
-                if 'name_addr' in kargs:
-                    self['name_addr'] = kargs['name_addr']
-                else:
-                    self['name_addr'] = 0
-                if 'unit_addr' in kargs:
-                    self['unit_addr'] = kargs['unit_addr']
-                else:
-                    self['unit_addr'] = 0
-                if 'comment_addr' in kargs:
-                    self['comment_addr'] = kargs['comment_addr']
-                else:
-                    self['comment_addr'] = 0
-                if 'inv_conv_addr' in kargs:
-                    self['inv_conv_addr'] = kargs['inv_conv_addr']
-                else:
-                    self['inv_conv_addr'] = 0
+                self['name_addr'] = kargs.get('name_addr', 0)
+                self['unit_addr'] = kargs.get('unit_addr', 0)
+                self['comment_addr'] = kargs.get('comment_addr', 0)
+                self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
                 self['conversion_type'] = v4c.CONVERSION_TYPE_LIN
-                self['precision'] = 1
-                self['flags'] = 0
+                self['precision'] = kargs.get('precision', 1)
+                self['flags'] = kargs.get('flags', 0)
                 self['ref_param_nr'] = 0
                 self['val_param_nr'] = 2
-                try:
-                    self['min_phy_value'] = kargs['min_phy_value']
-                except:
-                    self['min_phy_value'] = 0
-                try:
-                    self['max_phy_value'] = kargs['max_phy_value']
-                except:
-                    self['max_phy_value'] = 0
+                self['min_phy_value'] = kargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['b'] = kargs['b']
                 self['a'] = kargs['a']
 
@@ -1556,14 +1481,8 @@ class SourceInformation(dict):
             self['name_addr'] = 0
             self['path_addr'] = 0
             self['comment_addr'] = 0
-            if 'source_type' in kargs:
-                self['source_type'] = kargs['source_type']
-            else:
-                self['source_type'] = v4c.SOURCE_TOOL
-            if 'bus_type' in kargs:
-                self['bus_type'] = kargs['bus_type']
-            else:
-                self['bus_type'] = v4c.BUS_TYPE_NONE
+            self['source_type'] = kargs.get('source_type', v4c.SOURCE_TOOL)
+            self['bus_type'] = kargs.get('bus_type', v4c.BUS_TYPE_NONE)
             self['flags'] = 0
             self['reserved1'] = b'\x00' * 5
 
@@ -1663,14 +1582,7 @@ class TextBlock(dict):
             else:
                 padding = 8
 
-            if 'meta' in kargs:
-                if kargs['meta']:
-                    self['id'] = b'##MD'
-                else:
-                    self['id'] = b'##TX'
-            else:
-                self['id'] = b'##TX'
-
+            self['id'] = b'##MD' if kargs.get('meta', False) else b'##TX'
             self['reserved0'] = 0
             self['block_len'] = text_length + padding + v4c.COMMON_SIZE
             self['links_nr'] = 0

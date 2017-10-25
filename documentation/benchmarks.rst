@@ -21,7 +21,7 @@
 Intro
 -----
 
-The benchmarks were done using two test files (for mdf version 3 and 4) of around 170MB. 
+The benchmarks were done using two test files (available here https://github.com/danielhrisca/asammdf/issues/14) (for mdf version 3 and 4) of around 170MB. 
 The files contain 183 data groups and a total of 36424 channels.
 
 *asamdf 2.6.3* was compared against *mdfreader 0.2.6* (latest versions from PyPI). 
@@ -39,7 +39,7 @@ You will need the following packages to be able to run the benchmark script
 
 Usage
 -----
-Extract the test files from the archive.
+Extract the test files from the archive, or provide a folder that contains the files "test.mdf" and "test.mf4".
 Run the module *bench.py* ( see --help option for available options )
    
 
