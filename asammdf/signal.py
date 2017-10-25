@@ -43,7 +43,7 @@ class Signal(object):
                 samples = np.array(samples)
             if isinstance(timestamps, (list, tuple)):
                 timestamps = np.array(timestamps, dtype=np.float64)
-            if len(samples) != len(timestamps):
+            if not samples.shape[0] == timestamps.shape[0]:
                 raise MdfException('samples and timestamps lenght do not match ({} vs {})'.format(samples.size, timestamps.size))
             self.samples = samples
             self.timestamps = timestamps

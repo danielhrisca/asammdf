@@ -72,6 +72,36 @@ class MDF(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
+    def _excluded_channels(self, index):
+        group = self.groups[index]
+
+        excluded_channels = set()
+        if self.masters_db.get(index, None) is not None:
+            excluded_channels.add(self.masters_db[index])
+        channels = group['channels']
+
+        if self.version in MDF3_VERSIONS:
+            for dep in group['channel_dependencies']:
+                if dep is None:
+                    continue
+                for ch_nr, gp_nr in dep.referenced_channels:
+                    if gp_nr == index:
+                        excluded_channels.add(ch_nr)
+        else:
+            for dependencies in group['channel_dependencies']:
+                if dependencies is None:
+                    continue
+                if all(dep['id'] == b'##CN' for dep in dependencies):
+                    for ch in dependencies:
+                        excluded_channels.add(channels.index(ch))
+                else:
+                    for dep in dependencies:
+                        for ch_nr, gp_nr in dep.referenced_channels:
+                            if gp_nr == index:
+                                excluded_channels.add(ch_nr)
+
+        return excluded_channels
+
     def convert(self, to, load_measured_data=True):
         """convert MDF to other versions
 
@@ -104,31 +134,7 @@ class MDF(object):
             # walk through all groups and get all channels
             for i, gp in enumerate(self.groups):
                 sigs = []
-                if self.masters_db.get(i, None) is None:
-                    excluded_channels = []
-                else:
-                    excluded_channels = [self.masters_db[i], ]
-                channels = gp['channels']
-
-                if self.version in MDF3_VERSIONS:
-                    for dep in gp['channel_dependencies']:
-                        if dep is None:
-                            continue
-                        for ch_nr, gp_nr in dep.referenced_channels:
-                            if gp_nr == i:
-                                excluded_channels.append(ch_nr)
-                else:
-                    for dependencies in gp['channel_dependencies']:
-                        if dependencies is None:
-                            continue
-                        if all(dep['id'] == b'##CN' for dep in dependencies):
-                            for ch in dependencies:
-                                excluded_channels.append(channels.index(ch))
-                        else:
-                            for dep in dependencies:
-                                for ch_nr, gp_nr in dep.referenced_channels:
-                                    if gp_nr == i:
-                                        excluded_channels.append(ch_nr)
+                excluded_channels = self._excluded_channels(i)
 
                 for j, ch in enumerate(gp['channels']):
                     if j in excluded_channels:
@@ -185,31 +191,7 @@ class MDF(object):
         # walk through all groups and get all channels
         for i, gp in enumerate(self.groups):
             sigs = []
-            if self.masters_db.get(i, None) is None:
-                excluded_channels = []
-            else:
-                excluded_channels = [self.masters_db[i], ]
-            channels = gp['channels']
-
-            if self.version in MDF3_VERSIONS:
-                for dep in gp['channel_dependencies']:
-                    if dep is None:
-                        continue
-                    for ch_nr, gp_nr in dep.referenced_channels:
-                        if gp_nr == i:
-                            excluded_channels.append(ch_nr)
-            else:
-                for dependency_list in gp['channel_dependencies']:
-                    if dependency_list is None:
-                        continue
-                    if all(dep['id'] == b'##CN' for dep in dependency_list):
-                        for ch in dependency_list:
-                            excluded_channels.append(channels.index(ch))
-                    else:
-                        for dep in dependency_list:
-                            for ch_nr, gp_nr in dep.referenced_channels:
-                                if gp_nr == i:
-                                    excluded_channels.append(ch_nr)
+            excluded_channels = self._excluded_channels(i)
 
             for j, ch in enumerate(gp['channels']):
                 if j in excluded_channels:
@@ -531,35 +513,8 @@ class MDF(object):
                     raise MdfException(message.format(i))
 
                 signals = []
-
                 mdf = files[0]
-                if mdf.masters_db.get(i, None) is None:
-                    excluded_channels = []
-                else:
-                    excluded_channels = [mdf.masters_db[i], ]
-
-                group = groups[0]
-                channels = group['channels']
-
-                if mdf.version in MDF3_VERSIONS:
-                    for dep in group['channel_dependencies']:
-                        if dep is None:
-                            continue
-                        for ch_nr, gp_nr in dep.referenced_channels:
-                            if gp_nr == i:
-                                excluded_channels.append(ch_nr)
-                else:
-                    for dependencies in group['channel_dependencies']:
-                        if dependencies is None:
-                            continue
-                        if all(dep['id'] == b'##CN' for dep in dependencies):
-                            for ch in dependencies:
-                                excluded_channels.append(channels.index(ch))
-                        else:
-                            for dep in dependencies:
-                                for ch_nr, gp_nr in dep.referenced_channels:
-                                    if gp_nr == i:
-                                        excluded_channels.append(ch_nr)
+                excluded_channels = mdf._excluded_channels(i)
 
                 group_channels = [group['channels'] for group in groups]
                 for j, channels in enumerate(zip(*group_channels)):
