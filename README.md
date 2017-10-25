@@ -1,4 +1,4 @@
-[![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=stable)](http://asammdf.readthedocs.io/en/stable/?badge=stable) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger)
+[![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=stable)](http://asammdf.readthedocs.io/en/stable/?badge=stable) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) [![PyPI version](https://badge.fury.io/py/asammdf.svg)](https://badge.fury.io/py/asammdf)
 
 *asammdf* is a fast parser/editor for ASAM (Associtation for Standardisation of Automation and Measuring Systems) MDF (Measurement Data Format) files. 
 
