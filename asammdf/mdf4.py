@@ -1975,7 +1975,7 @@ class MDF4(object):
                     parent, bit_offset = parents[ch_nr]
                 except:
                     parent, bit_offset = None, None
-                    
+
                 if parent is not None:
                     if 'record' not in grp:
                         if dtypes.itemsize:
@@ -1992,7 +1992,7 @@ class MDF4(object):
                     bits = channel['bit_count']
                     size = vals.dtype.itemsize
                     data_type = channel['data_type']
-                    
+
                     if bit_offset:
                         dtype_= vals.dtype
                         if issubdtype(dtype_, signedinteger):
@@ -2021,7 +2021,7 @@ class MDF4(object):
             if conversion_type == v4c.CONVERSION_TYPE_NON:
                 # check if it is VLDS channel type with SDBLOCK
 
-                if channel['channel_type'] == v4c.CHANNEL_TYPE_VALUE:
+                if channel['channel_type'] in (v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD):
                     if v4c.DATA_TYPE_STRING_LATIN_1 <= channel['data_type'] <= v4c.DATA_TYPE_STRING_UTF_16_BE:
                         vals = [val.tobytes() for val in vals]
 
