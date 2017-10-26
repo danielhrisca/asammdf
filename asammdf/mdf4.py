@@ -18,7 +18,7 @@ import xml.etree.ElementTree as XML
 from numpy import (interp, linspace, dtype, array_equal, zeros, uint8,
                    array, searchsorted, clip, union1d, float64, frombuffer,
                    argwhere, arange, flip, unpackbits, packbits, roll,
-                   transpose, issubdtype, unsignedinteger, integer)
+                   transpose, issubdtype, unsignedinteger, integer, signedinteger)
 from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import encode
 from numexpr import evaluate
@@ -967,13 +967,10 @@ class MDF4(object):
         gp_texts['channel_group'][-1]['comment_addr'] = si_text
 
         #conversion for time channel
-        kargs = {'conversion_type': v4c.CONVERSION_TYPE_NON,
-                 'min_phy_value': t[0] if cycles_nr else 0,
-                 'max_phy_value': t[-1] if cycles_nr else 0}
-        gp_conv.append(ChannelConversion(**kargs))
+        gp_conv.append(None)
 
         #source for time
-        gp_source.append(SourceInformation(**kargs))
+        gp_source.append(SourceInformation())
 
         #time channel
         t_type, t_size = fmt_to_datatype(t.dtype)
@@ -1978,6 +1975,7 @@ class MDF4(object):
                     parent, bit_offset = parents[ch_nr]
                 except:
                     parent, bit_offset = None, None
+                    
                 if parent is not None:
                     if 'record' not in grp:
                         if dtypes.itemsize:
@@ -1992,26 +1990,29 @@ class MDF4(object):
 
                     vals = record[parent]
                     bits = channel['bit_count']
+                    size = vals.dtype.itemsize
                     data_type = channel['data_type']
-
+                    
                     if bit_offset:
-                        if data_type in v4c.SIGNED_INT:
-                            dtype_ = vals.dtype
-                            size = vals.dtype.itemsize
+                        dtype_= vals.dtype
+                        if issubdtype(dtype_, signedinteger):
                             vals = vals.astype(dtype('<u{}'.format(size)))
-
-                            vals = vals >> bit_offset
-
-                            vals = vals.astype(dtype_)
+                            vals >>= bit_offset
                         else:
                             vals = vals >> bit_offset
 
-                    if data_type <= 3:
-                        if bits not in v4c.STANDARD_INT_SIZES:
-                            dtype_= vals.dtype
-                            vals = vals & ((1<<bits) - 1)
-                            if data_type in v4c.SIGNED_INT:
-                                vals = vals.astype(dtype_)
+                    if not bits == size * 8:
+                        mask = (1<<bits) - 1
+                        if vals.flags.writeable:
+                            vals &= mask
+                        else:
+                            vals = vals & mask
+                        if data_type in v4c.SIGNED_INT:
+                            size = vals.dtype.itemsize * 8
+                            mask = (1 << size) - 1
+                            mask <<= bits
+                            vals |= mask
+                            vals = vals.astype('<i{}'.format(size), copy=False)
                 else:
                     vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 
@@ -2274,7 +2275,6 @@ class MDF4(object):
                     try:
                         unit = unit['text'].decode('utf-8').strip(' \n\t\x00')
                     except:
-                        print(unit['text'])
                         unit = ''
                 else:
                     unit = unit['text'].strip(' \n\t\x00')

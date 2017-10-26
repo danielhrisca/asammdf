@@ -1554,26 +1554,29 @@ class MDF3(object):
 
                 vals = record[parent]
                 bits = channel['bit_count']
+                size = vals.dtype.itemsize
                 data_type = channel['data_type']
-
+                
                 if bit_offset:
-                    if data_type in v3c.SIGNED_INT:
-                        dtype_ = vals.dtype
-                        size = vals.dtype.itemsize
+                    dtype_= vals.dtype
+                    if issubdtype(dtype_, signedinteger):
                         vals = vals.astype(dtype('<u{}'.format(size)))
-
-                        vals = vals >> bit_offset
-
-                        vals = vals.astype(dtype_)
+                        vals >>= bit_offset
                     else:
                         vals = vals >> bit_offset
 
-                if data_type in v3c.INT_TYPES:
-                    if bits not in v3c.STANDARD_INT_SIZES:
-                        dtype_= vals.dtype
-                        vals = vals & ((1<<bits) - 1)
-                        if data_type in v3c.SIGNED_INT:
-                            vals = vals.astype(dtype_)
+                if not bits == size * 8:
+                    mask = (1<<bits) - 1
+                    if vals.flags.writeable:
+                        vals &= mask
+                    else:
+                        vals = vals & mask
+                    if data_type in v4c.SIGNED_INT:
+                        size = vals.dtype.itemsize * 8
+                        mask = (1 << size) - 1
+                        mask <<= bits
+                        vals |= mask
+                        vals = vals.astype('<i{}'.format(size), copy=False)
             else:
                 vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 
