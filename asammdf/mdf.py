@@ -287,7 +287,7 @@ class MDF(object):
                         group_name = r'/' + 'DataGroup_{}'.format(i + 1)
                         group = f.create_group(group_name)
 
-                        master_index = self.masters_db[i]
+                        master_index = self.masters_db.get(i, -1)
 
                         for j, ch in enumerate(grp['channels']):
                             name = ch.name

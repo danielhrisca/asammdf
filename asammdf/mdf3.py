@@ -1572,9 +1572,9 @@ class MDF3(object):
                     else:
                         vals = vals & mask
                     if data_type in v3c.SIGNED_INT:
-                        size = vals.dtype.itemsize * 8
-                        mask = (1 << size) - 1
-                        mask <<= bits
+                        size = vals.dtype.itemsize
+                        mask = (1 << (size * 8) ) - 1
+                        mask = (mask << bits) & mask
                         vals |= mask
                         vals = vals.astype('<i{}'.format(size), copy=False)
             else:
