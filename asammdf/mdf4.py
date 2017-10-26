@@ -610,8 +610,10 @@ class MDF4(object):
                             return
                     address = data_list['next_dl_addr']
                 data = b''.join(data)
+            elif blk_id == b'##CN':
+                data = b''
             else:
-                warnings.warn('Expected SD, DL or DZ block at {} but found id="{}"'.format(hex(address), blk_id))
+                warnings.warn('Expected SD, DL, DZ or CN block at {} but found id="{}"'.format(hex(address), blk_id))
                 return
         else:
             data = b''
