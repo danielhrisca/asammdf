@@ -18,7 +18,7 @@ import xml.etree.ElementTree as XML
 from numpy import (interp, linspace, dtype, array_equal, zeros, uint8,
                    array, searchsorted, clip, union1d, float64, frombuffer,
                    argwhere, arange, flip, unpackbits, packbits, roll,
-                   transpose, issubdtype, unsignedinteger)
+                   transpose, issubdtype, unsignedinteger, integer)
 from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import encode
 from numexpr import evaluate
@@ -1012,7 +1012,7 @@ class MDF4(object):
         ch_cntr += 1
 
         if compact:
-            compacted_signals = [{'signal': sig} for sig in simple_signals if issubdtype(sig.samples.dtype, unsignedinteger)]
+            compacted_signals = [{'signal': sig} for sig in simple_signals if issubdtype(sig.samples.dtype, integer)]
 
             max_itemsize = 1
             dtype_ = dtype(uint8)
@@ -1031,9 +1031,6 @@ class MDF4(object):
                     dtype_ = dtype('<u{}'.format(itemsize))
                     max_itemsize = itemsize
 
-#            print(dtype_)
-#            input('ok?')
-
             compacted_signals.sort(key=lambda x: x['bit_count'])
             simple_signals = [sig for sig in simple_signals if not issubdtype(sig.samples.dtype, integer)]
             dtype_size = dtype_.itemsize * 8
@@ -1041,7 +1038,7 @@ class MDF4(object):
         else:
             compacted_signals = []
 
-         # first try to compact unsigned integers
+        # first try to compact unsigned integers
         while compacted_signals:
             # channels texts
 

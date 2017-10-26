@@ -19,7 +19,7 @@ from itertools import product
 from numpy import (interp, linspace, dtype, array_equal, column_stack,
                    array, searchsorted, log, exp, clip, union1d, float64,
                    flip, unpackbits, packbits, roll, zeros, uint8,
-                   issubdtype, unsignedinteger, arange)
+                   issubdtype, unsignedinteger, arange, integer)
 from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import encode
 from numexpr import evaluate
@@ -779,7 +779,7 @@ class MDF3(object):
             ch_cntr += 1
 
             if compact:
-                compacted_signals = [{'signal': sig} for sig in simple_signals if issubdtype(sig.samples.dtype, unsignedinteger)]
+                compacted_signals = [{'signal': sig} for sig in simple_signals if issubdtype(sig.samples.dtype, integer)]
 
                 max_itemsize = 1
                 dtype_ = dtype(uint8)
@@ -789,16 +789,17 @@ class MDF3(object):
 
                     signal['min'], signal['max'] = get_min_max(signal['signal'].samples)
                     minimum_bitlength = (itemsize // 2) * 8 + 1
-                    bit_length = int(signal['max']).bit_length()
+                    bit_length = max(int(signal['max']).bit_length(),
+                                     int(signal['min']).bit_length())
 
                     signal['bit_count'] = max(minimum_bitlength, bit_length)
 
                     if itemsize > max_itemsize:
-                        dtype_ = signal['signal'].samples.dtype
+                        dtype_ = dtype('<u{}'.format(itemsize))
                         max_itemsize = itemsize
 
                 compacted_signals.sort(key=lambda x: x['bit_count'])
-                simple_signals = [sig for sig in simple_signals if not issubdtype(sig.samples.dtype, unsignedinteger)]
+                simple_signals = [sig for sig in simple_signals if not issubdtype(sig.samples.dtype, integer)]
                 dtype_size = dtype_.itemsize * 8
 
             else:
@@ -894,7 +895,7 @@ class MDF3(object):
 
                     kargs = {'short_name': (name[:31] + '\x00').encode('latin-1') if len(name) >= 32 else name.encode('latin-1'),
                              'channel_type': v3c.CHANNEL_TYPE_VALUE,
-                             'data_type': v3c.DATA_TYPE_UNSIGNED_INTEL,
+                             'data_type': v3c.DATA_TYPE_UNSIGNED_INTEL if issubdtype(signal.samples.dtype, unsignedinteger) else v3c.DATA_TYPE_SIGNED_INTEL,
                              'min_raw_value': min_val if min_val <= max_val else 0,
                              'max_raw_value': max_val if min_val <= max_val else 0,
                              'start_offset': start_bit_offset,
