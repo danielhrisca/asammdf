@@ -19,7 +19,7 @@ from itertools import product
 from numpy import (interp, linspace, dtype, array_equal, column_stack,
                    array, searchsorted, log, exp, clip, union1d, float64,
                    flip, unpackbits, packbits, roll, zeros, uint8,
-                   issubdtype, unsignedinteger, arange, integer)
+                   issubdtype, unsignedinteger, arange, integer, signedinteger)
 from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import encode
 from numexpr import evaluate
@@ -1571,7 +1571,7 @@ class MDF3(object):
                         vals &= mask
                     else:
                         vals = vals & mask
-                    if data_type in v4c.SIGNED_INT:
+                    if data_type in v3c.SIGNED_INT:
                         size = vals.dtype.itemsize * 8
                         mask = (1 << size) - 1
                         mask <<= bits
