@@ -27,7 +27,7 @@ Features
 * export to Excel, HDF5, Matlab and CSV
 * merge multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
-* disk space savings by compacting unsigned channels
+* disk space savings by compacting 1-dimensional integer channels
 * full support (read, append, save) for the following map types (multidimensional array channels):
 
     * mdf version 3 channels with CDBLOCK

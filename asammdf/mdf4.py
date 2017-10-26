@@ -1022,19 +1022,20 @@ class MDF4(object):
 
                 signal['min'], signal['max'] = get_min_max(signal['signal'].samples)
                 minimum_bitlength = (itemsize // 2) * 8 + 1
-                bit_length = int(signal['max']).bit_length()
+                bit_length = max(int(signal['max']).bit_length(),
+                                 int(signal['min']).bit_length())
 
                 signal['bit_count'] = max(minimum_bitlength, bit_length)
 
                 if itemsize > max_itemsize:
-                    dtype_ = signal['signal'].samples.dtype
+                    dtype_ = dtype('<u{}'.format(itemsize))
                     max_itemsize = itemsize
 
 #            print(dtype_)
 #            input('ok?')
 
             compacted_signals.sort(key=lambda x: x['bit_count'])
-            simple_signals = [sig for sig in simple_signals if not issubdtype(sig.samples.dtype, unsignedinteger)]
+            simple_signals = [sig for sig in simple_signals if not issubdtype(sig.samples.dtype, integer)]
             dtype_size = dtype_.itemsize * 8
 
         else:
@@ -1058,8 +1059,6 @@ class MDF4(object):
                 else:
                     cluster.append(compacted_signals.pop(0))
                     size += head_size
-
-
 
             bit_offset = 0
             field_name = get_unique_name(field_names, 'COMPACT')
@@ -1133,7 +1132,7 @@ class MDF4(object):
                          'bit_count': bit_count,
                          'byte_offset': offset + bit_offset // 8,
                          'bit_offset' : bit_offset % 8,
-                         'data_type': v4c.DATA_TYPE_UNSIGNED_INTEL,
+                         'data_type': v4c.DATA_TYPE_UNSIGNED_INTEL if issubdtype(signal.samples.dtype, unsignedinteger) else v4c.DATA_TYPE_SIGNED_INTEL,
                          'min_raw_value': min_val if min_val<=max_val else 0,
                          'max_raw_value' : max_val if min_val<=max_val else 0,
                          'lower_limit' : min_val if min_val<=max_val else 0,
