@@ -1652,8 +1652,9 @@ class MDF3(object):
                 P4 = conversion['P4']
                 P5 = conversion['P5']
                 P6 = conversion['P6']
-                X = vals
-                vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
+                if not (P1, P2, P3, P4, P5, P6) == (0, 1, 0, 0, 0, 1):
+                    X = vals
+                    vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
 
             elif conversion_type == v3c.CONVERSION_TYPE_POLY:
                 P1 = conversion['P1']
@@ -1662,8 +1663,15 @@ class MDF3(object):
                 P4 = conversion['P4']
                 P5 = conversion['P5']
                 P6 = conversion['P6']
+                
                 X = vals
-                vals = evaluate('(P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)')
+                
+                coefs = (P2, P3, P5, P6)
+                if coefs == (0, 0, 0, 0):
+                    if not P1 == P4:
+                        vals = evaluate('P4 * X / P1')
+                else:
+                    vals = evaluate('(P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)')
 
             elif conversion_type == v3c.CONVERSION_TYPE_FORMULA:
                 formula = conversion['formula'].decode('latin-1').strip(' \n\t\x00')

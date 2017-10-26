@@ -2152,8 +2152,9 @@ class MDF4(object):
                 P4 = conversion['P4']
                 P5 = conversion['P5']
                 P6 = conversion['P6']
-                X = vals
-                vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
+                if not (P1, P2, P3, P4, P5, P6) == (0, 1, 0, 0, 0, 1):
+                    X = vals
+                    vals = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
 
             elif conversion_type == v4c.CONVERSION_TYPE_ALG:
                 formula = grp['texts']['conversions'][ch_nr]['formula_addr']['text'].decode('utf-8').strip(' \n\t\x00')
