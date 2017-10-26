@@ -294,8 +294,11 @@ class MDF(object):
                             sig = self.get(group=i, index=j)
                             if j == master_index:
                                 group.attrs['master'] = name
-                            dataset = group.create_dataset(name, sig.samples)
-                            dataset.attrs['unit'] = sig.unit
+                            dataset = group.create_dataset(name, data=sig.samples)
+                            if sig.unit:
+                                dataset.attrs['unit'] = sig.unit
+                            else:
+                                dataset.attrs['unit'] = '' 
                             if sig.comment:
                                 dataset.attrs['comment'] = sig.comment
                             else:
