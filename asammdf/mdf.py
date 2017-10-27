@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-common MDF file format module
+""" common MDF file format module """
 
-"""
 import csv
 import os
 from warnings import warn
@@ -280,7 +278,7 @@ class MDF(object):
                             group.attrs[item] = self.header[item]
 
                     # save each data group in a HDF5 group called
-                    # "DataGroup_xx" with the index starting from 1
+                    # "DataGroup_<cntr>" with the index starting from 1
                     # each HDF5 group will have a string attribute "master"
                     # that will hold the name of the master channel
                     for i, grp in enumerate(self.groups):
@@ -294,7 +292,8 @@ class MDF(object):
                             sig = self.get(group=i, index=j)
                             if j == master_index:
                                 group.attrs['master'] = name
-                            dataset = group.create_dataset(name, data=sig.samples)
+                            dataset = group.create_dataset(name,
+                                                           data=sig.samples)
                             if sig.unit:
                                 dataset.attrs['unit'] = sig.unit
                             else:
@@ -551,6 +550,7 @@ class MDF(object):
 
     def iter_to_pandas(self):
         """ generator that yields channel groups as pandas DataFrames"""
+
         try:
             from pandas import DataFrame
         except ImportError:

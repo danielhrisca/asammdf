@@ -867,7 +867,7 @@ class MDF4(object):
 
         return vals['vals']
 
-    def append(self, signals, source_info='Python', common_timebase=False, compact=True):
+    def append(self, signals, source_info='Python', common_timebase=False):
         """
         Appends a new data group.
 
@@ -881,9 +881,6 @@ class MDF4(object):
             source information; default 'Python'
         common_timebase : bool
             flag to hint that the signals have the same timebase
-        compact : bool
-            compact unsigned signals if possible; this can decrease the file
-            size but increases the execution time
 
         Examples
         --------

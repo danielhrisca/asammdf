@@ -2,6 +2,7 @@
 """
 asammdf *Signal* class module for time correct signal processing
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
@@ -36,7 +37,17 @@ class Signal(object):
         signal comment, default ''
 
     """
-    def __init__(self, samples=None, timestamps=None, unit='', name='', info=None, comment=''):
+
+    def __init__(
+            self,
+            samples=None,
+            timestamps=None,
+            unit='',
+            name='',
+            info=None,
+            comment='',
+            ):
+
         if samples is None or timestamps is None or name == '':
             raise MdfException('"samples", "timestamps" and "name" are mandatory arguments for Signal class instance')
         else:
@@ -82,88 +93,88 @@ class Signal(object):
             try:
                 names = self.samples.dtype.names
                 if self.samples.dtype.names is None or len(names) == 1:
-                    
+
                     if names:
                         samples = self.samples[names[0]]
                     else:
                         samples = self.samples
-                        
+
                     shape = samples.shape[1:]
-                        
+
                     fig = plt.figure()
                     fig.canvas.set_window_title(self.name)
                     fig.text(0.95, 0.05, 'asammdf {}'.format(__version__),
                          fontsize=8, color='red',
                          ha='right', va='top', alpha=0.5)
-                    
+
                     if self.comment:
                         plt.title('{}\n({})'.format(self.name, self.comment))
                     else:
                         plt.title(self.name)
-    
+
                     ax = fig.add_subplot(111, projection='3d')
-    
+
                     # Grab some test data.
                     X = np.array(range(shape[1]))
                     Y = np.array(range(shape[0]))
                     X, Y = np.meshgrid(X, Y)
-    
+
                     Z = samples[0]
-    
+
                     # Plot a basic wireframe.
                     self.l = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
-    
+
                     # Place Sliders on Graph
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
-    
+
                     # Create Sliders & Determine Range
                     sa = Slider(ax_a, 'Time [s]', self.timestamps[0], self.timestamps[-1], valinit=self.timestamps[0])
-    
+
                     def update(val):
                         self.l.remove()
                         idx = np.searchsorted(self.timestamps, sa.val, side='right')
                         Z = samples[idx-1]
                         self.l = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
                         fig.canvas.draw_idle()
-    
+
                     sa.on_changed(update)
-    
+
                     plt.show()
-    
+
                     del self.l
-                    
+
                 else:
                     fig = plt.figure()
                     fig.canvas.set_window_title(self.name)
                     fig.text(0.95, 0.05, 'asammdf {}'.format(__version__),
                          fontsize=8, color='red',
                          ha='right', va='top', alpha=0.5)
-                    
+
                     if self.comment:
                         plt.title('{}\n({})'.format(self.name, self.comment))
                     else:
                         plt.title(self.name)
-    
+
                     ax = fig.add_subplot(111, projection='3d')
-    
+
                     samples = self.samples[names[0]]
                     axis1 = self.samples[names[1]]
                     axis2 = self.samples[names[2]]
-                    
+
                     # Grab some test data.
                     X, Y = np.meshgrid(axis2[0], axis1[0])
-    
+
                     Z = samples[0]
-    
+
                     # Plot a basic wireframe.
                     self.l = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
-    
+
                     # Place Sliders on Graph
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
-    
+
                     # Create Sliders & Determine Range
                     sa = Slider(ax_a, 'Time [s]', self.timestamps[0], self.timestamps[-1], valinit=self.timestamps[0])
-    
+
                     def update(val):
                         self.l.remove()
                         idx = np.searchsorted(self.timestamps, sa.val, side='right')
@@ -171,11 +182,11 @@ class Signal(object):
                         X, Y = np.meshgrid(axis2[idx-1], axis1[idx-1])
                         self.l = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
                         fig.canvas.draw_idle()
-    
+
                     sa.on_changed(update)
-    
+
                     plt.show()
-    
+
                     del self.l
             except Exception as err:
                 print(err)
