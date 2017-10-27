@@ -108,6 +108,9 @@ class MDF4(object):
          is the master channel index
 
     """
+
+    _compact_integers_on_append = False
+
     def __init__(self, name=None, load_measured_data=True, version='4.10'):
         self.groups = []
         self.header = None
@@ -134,6 +137,18 @@ class MDF4(object):
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
+
+    @classmethod
+    def _enable_integer_compacting(cls, enable):
+        """ enable or disable compacting of integer channels when appending
+
+        Parameters
+        ----------
+        enable : bool
+
+        """
+
+        cls._compact_integers_on_append = enable
 
     def _check_finalised(self):
         unfinalised_stdandard_flags = self.identification['unfinalized_standard_flags']
@@ -1010,7 +1025,7 @@ class MDF4(object):
         offset += t_size // 8
         ch_cntr += 1
 
-        if compact:
+        if self._compact_integers_on_append:
             compacted_signals = [{'signal': sig} for sig in simple_signals if issubdtype(sig.samples.dtype, integer)]
 
             max_itemsize = 1
@@ -1459,7 +1474,7 @@ class MDF4(object):
                     # add channel dependency block for composed parent channel
                     dims_nr = len(shape)
                     names_nr = len(names)
-                    
+
                     if names_nr == 0:
                         kargs = {'dims': dims_nr,
                                  'ca_type': v4c.CA_TYPE_LOOKUP,
@@ -1468,7 +1483,7 @@ class MDF4(object):
                                  }
                         for i in range(dims_nr):
                             kargs['dim_size_{}'.format(i)] = shape[i]
-                            
+
                     elif len(names) == 1:
                         kargs = {'dims': dims_nr,
                                  'ca_type': v4c.CA_TYPE_ARRAY,
@@ -1477,7 +1492,7 @@ class MDF4(object):
                                  }
                         for i in range(dims_nr):
                             kargs['dim_size_{}'.format(i)] = shape[i]
-                            
+
                     else:
                         kargs = {'dims': dims_nr,
                                  'ca_type': v4c.CA_TYPE_LOOKUP,
@@ -1555,7 +1570,7 @@ class MDF4(object):
                 parents[ch_cntr] = name, 0
 
                 ch_cntr += 1
-       
+
                 for name in names[1:]:
                     field_name = get_unique_name(field_names, name)
                     field_names.add(field_name)

@@ -298,7 +298,7 @@ class MDF(object):
                             if sig.unit:
                                 dataset.attrs['unit'] = sig.unit
                             else:
-                                dataset.attrs['unit'] = '' 
+                                dataset.attrs['unit'] = ''
                             if sig.comment:
                                 dataset.attrs['comment'] = sig.comment
                             else:

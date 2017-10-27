@@ -21,7 +21,7 @@ import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-with open(os.path.join('..', 'asammdf', '__init__.py'), 'r') as f:
+with open(os.path.join('..', 'asammdf', 'version.py'), 'r') as f:
     for line in f:
         if line.startswith('__version__'):
             asam_version = line.split('=')[-1].strip().strip("'")
