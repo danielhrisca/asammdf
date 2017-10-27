@@ -1578,7 +1578,7 @@ class MDF3(object):
         if self.load_measured_data == False and self._tempfile is not None:
             self._tempfile.close()
 
-    def get(self, name=None, group=None, index=None, raster=None, samples_only=False):
+    def get(self, name=None, group=None, index=None, raster=None, samples_only=False, data=None):
         """Gets channel samples.
         Channel can be specified in two ways:
 
@@ -1656,7 +1656,8 @@ class MDF3(object):
         cycles_nr = grp['channel_group']['cycles_nr']
 
         # get data group record
-        data = self._load_group_data(grp)
+        if data is None:
+            data = self._load_group_data(grp)
 
         info = None
 

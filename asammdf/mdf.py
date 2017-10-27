@@ -138,10 +138,13 @@ class MDF(object):
                 sigs = []
                 excluded_channels = self._excluded_channels(i)
 
+                data = self._load_group_data(gp)
+
                 for j, ch in enumerate(gp['channels']):
                     if j in excluded_channels:
                         continue
-                    sigs.append(self.get(group=i, index=j))
+
+                    sigs.append(self.get(group=i, index=j, data=data))
                 if sigs:
                     source_info = 'Converted from {} to {}'
                     out.append(sigs,
@@ -195,10 +198,14 @@ class MDF(object):
             sigs = []
             excluded_channels = self._excluded_channels(i)
 
+            data = self._load_group_data(gp)
+
             for j, ch in enumerate(gp['channels']):
                 if j in excluded_channels:
                     continue
-                sig = self.get(group=i, index=j).cut(start=start, stop=stop)
+                sig = self.get(group=i,
+                               index=j,
+                               data=data).cut(start=start, stop=stop)
                 sigs.append(sig)
 
             if sigs:
@@ -287,9 +294,11 @@ class MDF(object):
 
                         master_index = self.masters_db.get(i, -1)
 
+                        data = self._load_group_data(grp)
+
                         for j, ch in enumerate(grp['channels']):
                             name = ch.name
-                            sig = self.get(group=i, index=j)
+                            sig = self.get(group=i, index=j, data=data)
                             if j == master_index:
                                 group.attrs['master'] = name
                             dataset = group.create_dataset(name,
@@ -314,6 +323,8 @@ class MDF(object):
                 nr = len(self.groups)
                 for i, grp in enumerate(self.groups):
                     print('Exporting group {} of {}'.format(i+1, nr))
+
+                    data = self._load_group_data(grp)
 
                     group_name = 'DataGroup_{}'.format(i + 1)
                     wb_name = '{}_{}.xlsx'.format(excel_name, group_name)
@@ -344,7 +355,7 @@ class MDF(object):
                             ws.write(j+3, 0, str(j))
 
                         for j, ch in enumerate(grp['channels']):
-                            sig = self.get(group=i, index=j)
+                            sig = self.get(group=i, index=j, data=data)
 
                             col = j + 1
                             sig_description = '{} [{}]'.format(sig.name,
@@ -363,13 +374,15 @@ class MDF(object):
             nr = len(self.groups)
             for i, grp in enumerate(self.groups):
                 print('Exporting group {} of {}'.format(i+1, nr))
+                data = self._load_group_data(grp)
+
                 group_name = 'DataGroup_{}'.format(i + 1)
                 group_csv_name = '{}_{}.csv'.format(csv_name, group_name)
                 with open(group_csv_name, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile, delimiter=';')
 
                     ch_nr = len(grp['channels'])
-                    channels = [self.get(group=i, index=j)
+                    channels = [self.get(group=i, index=j, data=data)
                                 for j in range(ch_nr)]
 
                     master_index = self.masters_db[i]
@@ -408,6 +421,7 @@ class MDF(object):
             channel = 'DataGroup_{}_{}'
 
             for i, grp in enumerate(self.groups):
+                data = self._load_group_data(grp)
                 for j, ch in enumerate(grp['channels']):
                     if j == master_index:
                         channel_name = master.format(i, ch.name)
@@ -415,7 +429,8 @@ class MDF(object):
                         channel_name = channel.format(i, ch.name)
                     mdict[channel_name] = self.get(group=i,
                                                    index=j,
-                                                   samples_only=True)
+                                                   samples_only=True,
+                                                   data=data)
 
             savemat(name,
                     mdict,
@@ -457,9 +472,11 @@ class MDF(object):
 
         # append filtered channels to new MDF
         for group in gps:
+            grp = self.groups[group]
+            data = self._load_group_data(grp)
             sigs = []
             for index in gps[group]:
-                sigs.append(self.get(group=group, index=index))
+                sigs.append(self.get(group=group, index=index, data=data))
             if sigs:
                 if self.name:
                     origin = os.path.basename(self.name)
@@ -523,6 +540,8 @@ class MDF(object):
                 mdf = files[0]
                 excluded_channels = mdf._excluded_channels(i)
 
+                groups_data = [files[index]._load_group_data(grp) for index, grp in enumerate(groups)]
+
                 group_channels = [group['channels'] for group in groups]
                 for j, channels in enumerate(zip(*group_channels)):
                     if not len(set(ch.name for ch in channels)) == 1:
@@ -533,7 +552,7 @@ class MDF(object):
                     if j in excluded_channels:
                         continue
 
-                    sigs = [file.get(group=i, index=j) for file in files]
+                    sigs = [file.get(group=i, index=j, data=data) for file, data in zip(files, groups_data)]
 
                     sig = sigs[0]
                     for s in sigs[1:]:
@@ -558,11 +577,13 @@ class MDF(object):
             return
         else:
             for i, gp in enumerate(self.groups):
+                data = self._load_group_data(gp)
                 master_index = self.masters_db[i]
                 master_name = gp['channels'][master_index].name
                 master = self.get(group=i,
                                   index=master_index,
-                                  samples_only=True)
+                                  samples_only=True,
+                                  data=data)
                 pandas_dict = {master_name: master}
                 for j, _ in (gp['channels']):
                     if j == master_index:
@@ -570,7 +591,8 @@ class MDF(object):
                     name = gp['channels'][j].name
                     pandas_dict[name] = self.get(group=i,
                                                  index=j,
-                                                 samples_only=True)
+                                                 samples_only=True,
+                                                 data=data)
                 yield DataFrame.from_dict(pandas_dict)
 
 

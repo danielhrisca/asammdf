@@ -1770,7 +1770,7 @@ class MDF4(object):
             os.chdir(current_path)
             warnings.warn('Exception during attachment extraction: ' + repr(err))
 
-    def get(self, name=None, group=None, index=None, raster=None, samples_only=False):
+    def get(self, name=None, group=None, index=None, raster=None, samples_only=False, data=None):
         """Gets channel samples.
         Channel can be specified in two ways:
 
@@ -1852,7 +1852,8 @@ class MDF4(object):
             parents, dtypes = grp['parents'], grp['types']
 
         # get group data
-        data = self._load_group_data(grp)
+        if data is None:
+            data = self._load_group_data(grp)
 
         info = None
 
