@@ -1967,7 +1967,7 @@ class MDF4(object):
                 vals = fromarrays(arrays, dtype(types))
         else:
             # get channel values
-            if channel['channel_type'] == v4c.CHANNEL_TYPE_VIRTUAL:
+            if channel['channel_type'] in (v4c.CHANNEL_TYPE_VIRTUAL, v4c.CHANNEL_TYPE_VIRTUAL_MASTER):
                 data_type = channel['data_type']
                 ch_dtype = dtype(get_fmt(data_type, 8))
                 cycles = grp['channel_group']['cycles_nr']
