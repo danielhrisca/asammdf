@@ -423,7 +423,7 @@ class ChannelArrayBlock(dict):
                         self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
                     for i in range(dims_nr):
                         for j in range(self['dim_size_{}'.format(i)]):
-                            self['axis_{}_value_{}'.format(i, j)] = kargs['axis_{}_value_{}'.format(i, j)]
+                            self['axis_{}_value_{}'.format(i, j)] = kargs.get('axis_{}_value_{}'.format(i, j), j)
                 else:
                     self['block_len'] = 48 + dims_nr * 5 * 8
                     self['links_nr'] = 1 + dims_nr * 4

@@ -1262,42 +1262,152 @@ class MDF4(object):
         canopen_date_fields = ('ms', 'min', 'hour', 'day', 'month', 'year', 'summer_time', 'day_of_week')
         for signal in composed_signals:
             names = signal.samples.dtype.names
+            if names is None:
+                names = []
             name = signal.name
 
-            if names:
-                if names in (canopen_time_fields, canopen_date_fields):
+            if names in (canopen_time_fields, canopen_date_fields):
+                field_name = get_unique_name(field_names, name)
+                field_names.add(field_name)
+
+                if names == canopen_time_fields:
+
+                    vals = signal.samples.tostring()
+
+                    fields.append(frombuffer(vals, dtype='V6'))
+                    types.append( (field_name, 'V6') )
+                    byte_size = 6
+                    s_type = v4c.DATA_TYPE_CANOPEN_TIME
+
+                else:
+                    vals = []
+                    for field in ('ms', 'min', 'hour', 'day', 'month', 'year'):
+                        vals.append(signal.samples[field])
+                    vals = fromarrays(vals).tostring()
+
+                    fields.append(frombuffer(vals, dtype='V7'))
+                    types.append( (field_name, 'V7') )
+                    byte_size = 7
+                    s_type = v4c.DATA_TYPE_CANOPEN_DATE
+
+
+                s_size = byte_size << 3
+
+                # add channel texts
+                for item in gp['texts'].values():
+                    item.append({})
+                gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
+                if signal.unit:
+                    gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
+                gp_texts['sources'][-1]['name_addr'] = si_text
+                gp_texts['sources'][-1]['path_addr'] = si_text
+
+                # add channel conversion
+                gp_conv.append(None)
+
+                # add channel source
+                gp_source.append(SourceInformation())
+
+                # there is no chanel dependency
+                gp_dep.append(None)
+
+                # add channel block
+                kargs = {'channel_type': v4c.CHANNEL_TYPE_VALUE,
+                         'bit_count': s_size,
+                         'byte_offset': offset,
+                         'bit_offset' : 0,
+                         'data_type': s_type,
+                         'min_raw_value': 0,
+                         'max_raw_value' : 0,
+                         'lower_limit' : 0,
+                         'upper_limit' : 0,
+                         'flags': 0}
+                ch = Channel(**kargs)
+                ch.name = name
+                gp_channels.append(ch)
+                gp['signal_data'].append(None)
+                offset += byte_size
+
+                if name in self.channels_db:
+                    self.channels_db[name].append((dg_cntr, ch_cntr))
+                else:
+                    self.channels_db[name] = []
+                    self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                # update the parents as well
+                parents[ch_cntr] = field_name, 0
+
+                ch_cntr += 1
+
+            elif names and names[0] != signal.name:
+                # here we have a structure channel composition
+
+                field_name = get_unique_name(field_names, name)
+                field_names.add(field_name)
+
+                # first we add the structure channel
+                # add channel texts
+                for item in gp['texts'].values():
+                    item.append({})
+                gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
+                if signal.unit:
+                    gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
+                gp_texts['sources'][-1]['name_addr'] = si_text
+                gp_texts['sources'][-1]['path_addr'] = si_text
+
+                # add channel conversion
+                gp_conv.append(None)
+
+                # add channel source
+                gp_source.append(SourceInformation())
+
+                # add channel block
+                kargs = {'channel_type': v4c.CHANNEL_TYPE_VALUE,
+                         'bit_count': 8,
+                         'byte_offset': offset,
+                         'bit_offset' : 0,
+                         'data_type': v4c.DATA_TYPE_BYTEARRAY,
+                         'min_raw_value': 0,
+                         'max_raw_value' : 0,
+                         'lower_limit' : 0,
+                         'upper_limit' : 0,
+                         'flags': 0}
+                ch = Channel(**kargs)
+                ch.name = name
+                gp_channels.append(ch)
+                gp['signal_data'].append(None)
+
+                if name not in self.channels_db:
+                    self.channels_db[name] = []
+                self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                # update the parents as well
+                parents[ch_cntr] = name, 0
+
+                ch_cntr += 1
+
+                dep_list = []
+                gp_dep.append(dep_list)
+
+                # then we add the fields
+
+                for name in names:
                     field_name = get_unique_name(field_names, name)
                     field_names.add(field_name)
 
-                    if names == canopen_time_fields:
+                    samples = signal.samples[name]
 
-                        vals = signal.samples.tostring()
+                    s_type, s_size = fmt_to_datatype(samples.dtype)
+                    byte_size = s_size >> 3
 
-                        fields.append(frombuffer(vals, dtype='V6'))
-                        types.append( (field_name, 'V6') )
-                        byte_size = 6
-                        s_type = v4c.DATA_TYPE_CANOPEN_TIME
-
-                    else:
-                        vals = []
-                        for field in ('ms', 'min', 'hour', 'day', 'month', 'year'):
-                            vals.append(signal.samples[field])
-                        vals = fromarrays(vals).tostring()
-
-                        fields.append(frombuffer(vals, dtype='V7'))
-                        types.append( (field_name, 'V7') )
-                        byte_size = 7
-                        s_type = v4c.DATA_TYPE_CANOPEN_DATE
-
-
-                    s_size = byte_size << 3
+                    fields.append(samples)
+                    types.append( (field_name, samples.dtype))
+                    types.append(vals.dtype)
 
                     # add channel texts
                     for item in gp['texts'].values():
                         item.append({})
                     gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
-                    if signal.unit:
-                        gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
                     gp_texts['sources'][-1]['name_addr'] = si_text
                     gp_texts['sources'][-1]['path_addr'] = si_text
 
@@ -1307,8 +1417,7 @@ class MDF4(object):
                     # add channel source
                     gp_source.append(SourceInformation())
 
-                    # there is no chanel dependency
-                    gp_dep.append(None)
+                    min_val, max_val = get_min_max(samples)
 
                     # add channel block
                     kargs = {'channel_type': v4c.CHANNEL_TYPE_VALUE,
@@ -1316,296 +1425,197 @@ class MDF4(object):
                              'byte_offset': offset,
                              'bit_offset' : 0,
                              'data_type': s_type,
-                             'min_raw_value': 0,
-                             'max_raw_value' : 0,
-                             'lower_limit' : 0,
-                             'upper_limit' : 0,
-                             'flags': 0}
+                             'min_raw_value': min_val,
+                             'max_raw_value' : max_val,
+                             'lower_limit' : min_val,
+                             'upper_limit' : max_val,
+                             'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK}
                     ch = Channel(**kargs)
+
+                    dep_list.append(ch)
                     ch.name = name
                     gp_channels.append(ch)
                     gp['signal_data'].append(None)
                     offset += byte_size
 
-                    if name in self.channels_db:
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-                    else:
+                    if name not in self.channels_db:
                         self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
+                    self.channels_db[name].append((dg_cntr, ch_cntr))
 
                     # update the parents as well
                     parents[ch_cntr] = field_name, 0
 
                     ch_cntr += 1
 
-                elif names[0] != signal.name:
-                    # here we have a structure channel composition
-
-                    field_name = get_unique_name(field_names, name)
-                    field_names.add(field_name)
-
-                    # first we add the structure channel
-                    # add channel texts
-                    for item in gp['texts'].values():
-                        item.append({})
-                    gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
-                    if signal.unit:
-                        gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
-                    gp_texts['sources'][-1]['name_addr'] = si_text
-                    gp_texts['sources'][-1]['path_addr'] = si_text
-
-                    # add channel conversion
-                    gp_conv.append(None)
-
-                    # add channel source
-                    gp_source.append(SourceInformation())
-
-#                    s_type, s_size = fmt_to_datatype()
-
-                    # add channel block
-                    kargs = {'channel_type': v4c.CHANNEL_TYPE_VALUE,
-                             'bit_count': 8,
-                             'byte_offset': offset,
-                             'bit_offset' : 0,
-                             'data_type': v4c.DATA_TYPE_BYTEARRAY,
-                             'min_raw_value': 0,
-                             'max_raw_value' : 0,
-                             'lower_limit' : 0,
-                             'upper_limit' : 0,
-                             'flags': 0}
-                    ch = Channel(**kargs)
-                    ch.name = name
-                    gp_channels.append(ch)
-                    gp['signal_data'].append(None)
-
-                    if name not in self.channels_db:
-                        self.channels_db[name] = []
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                    # update the parents as well
-                    parents[ch_cntr] = name, 0
-
-                    ch_cntr += 1
-
-                    dep_list = []
-                    gp_dep.append(dep_list)
-
-                    # then we add the fields
-
-                    for name in names:
-                        field_name = get_unique_name(field_names, name)
-                        field_names.add(field_name)
-
-                        samples = signal.samples[name]
-
-                        s_type, s_size = fmt_to_datatype(samples.dtype)
-                        byte_size = s_size >> 3
-
-                        fields.append(samples)
-                        types.append( (field_name, samples.dtype))
-                        types.append(vals.dtype)
-
-                        # add channel texts
-                        for item in gp['texts'].values():
-                            item.append({})
-                        gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
-                        gp_texts['sources'][-1]['name_addr'] = si_text
-                        gp_texts['sources'][-1]['path_addr'] = si_text
-
-                        # add channel conversion
-                        gp_conv.append(None)
-
-                        # add channel source
-                        gp_source.append(SourceInformation())
-
-                        min_val, max_val = get_min_max(samples)
-
-                        # add channel block
-                        kargs = {'channel_type': v4c.CHANNEL_TYPE_VALUE,
-                                 'bit_count': s_size,
-                                 'byte_offset': offset,
-                                 'bit_offset' : 0,
-                                 'data_type': s_type,
-                                 'min_raw_value': min_val,
-                                 'max_raw_value' : max_val,
-                                 'lower_limit' : min_val,
-                                 'upper_limit' : max_val,
-                                 'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK}
-                        ch = Channel(**kargs)
-
-                        dep_list.append(ch)
-                        ch.name = name
-                        gp_channels.append(ch)
-                        gp['signal_data'].append(None)
-                        offset += byte_size
-
-                        if name not in self.channels_db:
-                            self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                        # update the parents as well
-                        parents[ch_cntr] = field_name, 0
-
-                        ch_cntr += 1
-
-                else:
-                    # here we have channel arrays or mdf version 3 channel dependencies
+            else:
+                # here we have channel arrays or mdf version 3 channel dependencies
+                if names:
                     samples = signal.samples[names[0]]
-                    shape = samples.shape[1:]
+                else:
+                    samples = signal.samples
+                shape = samples.shape[1:]
 
-                    if len(shape) > 1:
-
-                        # add channel dependency block for composed parent channel
-                        dims_nr = len(shape)
-                        if len(names) == 1:
-                            kargs = {'dims': dims_nr,
-                                     'ca_type': v4c.CA_TYPE_ARRAY,
-                                     'flags': 0,
-                                     'byte_offset_base': samples.dtype.itemsize,
-                                     }
-                            for i in range(dims_nr):
-                                kargs['dim_size_{}'.format(i)] = shape[i]
-                        else:
-
-                            kargs = {'dims': dims_nr,
-                                     'ca_type': v4c.CA_TYPE_LOOKUP,
-                                     'flags': v4c.FLAG_CA_AXIS,
-                                     'byte_offset_base': samples.dtype.itemsize,
-                                     }
-                            for i in range(dims_nr):
-                                kargs['dim_size_{}'.format(i)] = shape[i]
-
-                        parent_dep = ChannelArrayBlock(**kargs)
-                        gp_dep.append([parent_dep,])
-
-
-
-                    else:
-                        # add channel dependency block for composed parent channel
-                        kargs = {'dims': 1,
-                                 'ca_type': v4c.CA_TYPE_SCALE_AXIS,
+                if len(shape) > 1:
+                    # add channel dependency block for composed parent channel
+                    dims_nr = len(shape)
+                    names_nr = len(names)
+                    
+                    if names_nr == 0:
+                        kargs = {'dims': dims_nr,
+                                 'ca_type': v4c.CA_TYPE_LOOKUP,
+                                 'flags': v4c.FLAG_CA_FIXED_AXIS,
+                                 'byte_offset_base': samples.dtype.itemsize,
+                                 }
+                        for i in range(dims_nr):
+                            kargs['dim_size_{}'.format(i)] = shape[i]
+                            
+                    elif len(names) == 1:
+                        kargs = {'dims': dims_nr,
+                                 'ca_type': v4c.CA_TYPE_ARRAY,
                                  'flags': 0,
                                  'byte_offset_base': samples.dtype.itemsize,
-                                 'dim_size_0': shape[0]}
-                        parent_dep = ChannelArrayBlock(**kargs)
-                        gp_dep.append([parent_dep,])
+                                 }
+                        for i in range(dims_nr):
+                            kargs['dim_size_{}'.format(i)] = shape[i]
+                            
+                    else:
+                        kargs = {'dims': dims_nr,
+                                 'ca_type': v4c.CA_TYPE_LOOKUP,
+                                 'flags': v4c.FLAG_CA_AXIS,
+                                 'byte_offset_base': samples.dtype.itemsize,
+                                 }
+                        for i in range(dims_nr):
+                            kargs['dim_size_{}'.format(i)] = shape[i]
 
+                    parent_dep = ChannelArrayBlock(**kargs)
+                    gp_dep.append([parent_dep,])
+
+                else:
+                    # add channel dependency block for composed parent channel
+                    kargs = {'dims': 1,
+                             'ca_type': v4c.CA_TYPE_SCALE_AXIS,
+                             'flags': 0,
+                             'byte_offset_base': samples.dtype.itemsize,
+                             'dim_size_0': shape[0]}
+                    parent_dep = ChannelArrayBlock(**kargs)
+                    gp_dep.append([parent_dep,])
+
+                field_name = get_unique_name(field_names, name)
+                field_names.add(field_name)
+
+                fields.append(samples)
+                types.append( (field_name, samples.dtype, shape) )
+
+
+                # first we add the structure channel
+                # add channel texts
+                for item in gp['texts'].values():
+                    item.append({})
+                gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
+                if signal.unit:
+                    gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
+                gp_texts['sources'][-1]['name_addr'] = si_text
+                gp_texts['sources'][-1]['path_addr'] = si_text
+
+                # add channel conversion
+                gp_conv.append(None)
+
+                # add channel source
+                gp_source.append(SourceInformation())
+
+
+                s_type, s_size = fmt_to_datatype(samples.dtype)
+
+                # add channel block
+                kargs = {'channel_type': v4c.CHANNEL_TYPE_VALUE,
+                         'bit_count': s_size,
+                         'byte_offset': offset,
+                         'bit_offset' : 0,
+                         'data_type': s_type,
+                         'min_raw_value': 0,
+                         'max_raw_value' : 0,
+                         'lower_limit' : 0,
+                         'upper_limit' : 0,
+                         'flags': 0}
+                ch = Channel(**kargs)
+                ch.name = name
+                gp_channels.append(ch)
+                gp['signal_data'].append(None)
+
+                size = s_size >> 3
+                for dim in shape:
+                    size *= dim
+                offset += size
+
+                if name not in self.channels_db:
+                    self.channels_db[name] = []
+                self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                # update the parents as well
+                parents[ch_cntr] = name, 0
+
+                ch_cntr += 1
+       
+                for name in names[1:]:
                     field_name = get_unique_name(field_names, name)
                     field_names.add(field_name)
 
+                    samples = signal.samples[name]
+                    shape = samples.shape[1:]
                     fields.append(samples)
                     types.append( (field_name, samples.dtype, shape) )
 
-
-                    # first we add the structure channel
-                    # add channel texts
+                    # add composed parent signal texts
                     for item in gp['texts'].values():
                         item.append({})
                     gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
-                    if signal.unit:
-                        gp_texts['channels'][-1]['unit_addr'] = TextBlock(text=signal.unit, meta=False)
                     gp_texts['sources'][-1]['name_addr'] = si_text
                     gp_texts['sources'][-1]['path_addr'] = si_text
 
-                    # add channel conversion
+                    # add channel conversion and source
                     gp_conv.append(None)
-
-                    # add channel source
                     gp_source.append(SourceInformation())
+                    # add channel dependency block
+                    kargs = {'dims': 1,
+                             'ca_type': v4c.CA_TYPE_SCALE_AXIS,
+                             'flags': 0,
+                             'byte_offset_base': samples.dtype.itemsize,
+                             'dim_size_0': shape[0]}
+                    gp_dep.append([ChannelArrayBlock(**kargs),])
 
-
+                    # add components channel
+                    min_val, max_val = get_min_max(samples)
                     s_type, s_size = fmt_to_datatype(samples.dtype)
-
-                    # add channel block
+                    byte_size = max(s_size // 8, 1)
                     kargs = {'channel_type': v4c.CHANNEL_TYPE_VALUE,
                              'bit_count': s_size,
                              'byte_offset': offset,
                              'bit_offset' : 0,
                              'data_type': s_type,
-                             'min_raw_value': 0,
-                             'max_raw_value' : 0,
-                             'lower_limit' : 0,
-                             'upper_limit' : 0,
-                             'flags': 0}
-                    ch = Channel(**kargs)
-                    ch.name = name
-                    gp_channels.append(ch)
-                    gp['signal_data'].append(None)
+                             'min_raw_value': min_val if min_val<=max_val else 0,
+                             'max_raw_value' : max_val if min_val<=max_val else 0,
+                             'lower_limit' : min_val if min_val<=max_val else 0,
+                             'upper_limit' : max_val if min_val<=max_val else 0,
+                             'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
+                             }
 
-                    size = s_size >> 3
+                    channel = Channel(**kargs)
+                    channel.name = name
+                    gp_channels.append(channel)
+                    parent_dep.referenced_channels.append((ch_cntr, dg_cntr))
+                    gp['signal_data'].append(None)
                     for dim in shape:
-                        size *= dim
-                    offset += size
+                        byte_size *= dim
+                    offset += byte_size
 
                     if name not in self.channels_db:
                         self.channels_db[name] = []
                     self.channels_db[name].append((dg_cntr, ch_cntr))
 
                     # update the parents as well
-                    parents[ch_cntr] = name, 0
+                    parents[ch_cntr] = field_name, 0
 
                     ch_cntr += 1
-
-                    for name in names[1:]:
-                        field_name = get_unique_name(field_names, name)
-                        field_names.add(field_name)
-
-                        samples = signal.samples[name]
-                        shape = samples.shape[1:]
-                        fields.append(samples)
-                        types.append( (field_name, samples.dtype, shape) )
-
-                        # add composed parent signal texts
-                        for item in gp['texts'].values():
-                            item.append({})
-                        gp_texts['channels'][-1]['name_addr'] = TextBlock(text=name, meta=False)
-                        gp_texts['sources'][-1]['name_addr'] = si_text
-                        gp_texts['sources'][-1]['path_addr'] = si_text
-
-                        # add channel conversion and source
-                        gp_conv.append(None)
-                        gp_source.append(SourceInformation())
-                        # add channel dependency block
-                        kargs = {'dims': 1,
-                                 'ca_type': v4c.CA_TYPE_SCALE_AXIS,
-                                 'flags': 0,
-                                 'byte_offset_base': samples.dtype.itemsize,
-                                 'dim_size_0': shape[0]}
-                        gp_dep.append([ChannelArrayBlock(**kargs),])
-
-                        # add components channel
-                        min_val, max_val = get_min_max(samples)
-                        s_type, s_size = fmt_to_datatype(samples.dtype)
-                        byte_size = max(s_size // 8, 1)
-                        kargs = {'channel_type': v4c.CHANNEL_TYPE_VALUE,
-                                 'bit_count': s_size,
-                                 'byte_offset': offset,
-                                 'bit_offset' : 0,
-                                 'data_type': s_type,
-                                 'min_raw_value': min_val if min_val<=max_val else 0,
-                                 'max_raw_value' : max_val if min_val<=max_val else 0,
-                                 'lower_limit' : min_val if min_val<=max_val else 0,
-                                 'upper_limit' : max_val if min_val<=max_val else 0,
-                                 'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
-                                 }
-
-                        channel = Channel(**kargs)
-                        channel.name = name
-                        gp_channels.append(channel)
-                        parent_dep.referenced_channels.append((ch_cntr, dg_cntr))
-                        gp['signal_data'].append(None)
-                        for dim in shape:
-                            byte_size *= dim
-                        offset += byte_size
-
-                        if name not in self.channels_db:
-                            self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                        # update the parents as well
-                        parents[ch_cntr] = field_name, 0
-
-                        ch_cntr += 1
 
         #channel group
         kargs = {'cycles_nr': cycles_nr,
