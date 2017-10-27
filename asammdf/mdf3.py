@@ -77,8 +77,11 @@ class MDF3(object):
         used for fast channel access by name; for each name key the value is a list of (group index, channel index) tuples
     masters_db : dict
         used for fast master channel access; for each group index key the value is the master channel index
+    compact_integers_on_append
 
     """
+    
+    _compact_integers_on_append = False
 
     def __init__(self, name=None, load_measured_data=True, version='3.30'):
         self.groups = []
@@ -101,6 +104,18 @@ class MDF3(object):
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
             self.header = HeaderBlock(version=self.version)
+            
+    @classmethod
+    def _enable_integer_compacting(cls, enable):
+        """ enable or disable compacting of integer channels when appending 
+        
+        Parameters
+        ----------
+        enable : bool
+        
+        """
+        
+        cls._compact_integers_on_append = enable
 
     def _load_group_data(self, group):
         """ get group's data block bytes"""
@@ -778,7 +793,7 @@ class MDF3(object):
             offset += t_size
             ch_cntr += 1
 
-            if compact:
+            if self._compact_integers_on_append:
                 compacted_signals = [{'signal': sig} for sig in simple_signals if issubdtype(sig.samples.dtype, integer)]
 
                 max_itemsize = 1
