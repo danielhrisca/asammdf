@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-asammdf *Signal* class module for time correct signal processing
-"""
+""" asammdf *Signal* class module for time correct signal processing """
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,14 +47,18 @@ class Signal(object):
             ):
 
         if samples is None or timestamps is None or name == '':
-            raise MdfException('"samples", "timestamps" and "name" are mandatory arguments for Signal class instance')
+            message = ('"samples", "timestamps" and "name" are mandatory '
+                       'for Signal class __init__')
+            raise MdfException(message)
         else:
             if isinstance(samples, (list, tuple)):
                 samples = np.array(samples)
             if isinstance(timestamps, (list, tuple)):
                 timestamps = np.array(timestamps, dtype=np.float64)
             if not samples.shape[0] == timestamps.shape[0]:
-                raise MdfException('samples and timestamps lenght do not match ({} vs {})'.format(samples.shape[0], timestamps.shape[0]))
+                message = 'samples and timestamps length missmatch ({} vs {})'
+                message = message.format(samples.shape[0], timestamps.shape[0])
+                raise MdfException(message)
             self.samples = samples
             self.timestamps = timestamps
             self.unit = unit
@@ -65,13 +67,25 @@ class Signal(object):
             self.comment = comment
 
     def __str__(self):
-        return '<Signal {}:\n\tsamples={}\n\ttimestamps={}\n\tunit="{}"\n\tinfo={}\n\tcomment="{}">\n'.format(self.name, self.samples, self.timestamps, self.unit, self.info, self.comment)
+        string = """<Signal {}:
+\tsamples={}
+\ttimestamps={}
+\tunit="{}"
+\tinfo={}
+\tcomment="{}">
+"""
+        return string.format(self.name,
+                             self.samples,
+                             self.timestamps,
+                             self.unit,
+                             self.info,
+                             self.comment)
 
     def __repr__(self):
         return str(self)
 
     def plot(self):
-        """plot Signal samples"""
+        """ plot Signal samples """
         if len(self.samples.shape) <= 1 and self.samples.dtype.names is None:
             fig = plt.figure()
             fig.canvas.set_window_title(self.name)
@@ -128,13 +142,23 @@ class Signal(object):
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
 
                     # Create Sliders & Determine Range
-                    sa = Slider(ax_a, 'Time [s]', self.timestamps[0], self.timestamps[-1], valinit=self.timestamps[0])
+                    sa = Slider(ax_a,
+                                'Time [s]',
+                                self.timestamps[0],
+                                self.timestamps[-1],
+                                valinit=self.timestamps[0])
 
                     def update(val):
                         self.l.remove()
-                        idx = np.searchsorted(self.timestamps, sa.val, side='right')
+                        idx = np.searchsorted(self.timestamps,
+                                              sa.val,
+                                              side='right')
                         Z = samples[idx-1]
-                        self.l = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
+                        self.l = ax.plot_wireframe(X,
+                                                   Y,
+                                                   Z,
+                                                   rstride=1,
+                                                   cstride=1)
                         fig.canvas.draw_idle()
 
                     sa.on_changed(update)
@@ -173,14 +197,24 @@ class Signal(object):
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
 
                     # Create Sliders & Determine Range
-                    sa = Slider(ax_a, 'Time [s]', self.timestamps[0], self.timestamps[-1], valinit=self.timestamps[0])
+                    sa = Slider(ax_a,
+                                'Time [s]',
+                                self.timestamps[0],
+                                self.timestamps[-1],
+                                valinit=self.timestamps[0])
 
                     def update(val):
                         self.l.remove()
-                        idx = np.searchsorted(self.timestamps, sa.val, side='right')
+                        idx = np.searchsorted(self.timestamps,
+                                              sa.val,
+                                              side='right')
                         Z = samples[idx-1]
                         X, Y = np.meshgrid(axis2[idx-1], axis1[idx-1])
-                        self.l = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
+                        self.l = ax.plot_wireframe(X,
+                                                   Y,
+                                                   Z,
+                                                   rstride=1,
+                                                   cstride=1)
                         fig.canvas.draw_idle()
 
                     sa.on_changed(update)
@@ -257,7 +291,12 @@ class Signal(object):
                 stop_ = np.searchsorted(self.timestamps, stop, side='right')
                 if stop_ == start_:
 
-                    if len(self.timestamps) and stop >= self.timestamps[0] and start <= self.timestamps[-1]:
+                    conditions = (
+                        len(self.timestamps),
+                        stop >= self.timestamps[0],
+                        start <= self.timestamps[-1],
+                    )
+                    if all(conditions):
                         # start and stop are found between 2 signal samples
                         # so return the previous sample
                         result = Signal(self.samples[start_ - 1: start_],
@@ -267,7 +306,8 @@ class Signal(object):
                                         self.info,
                                         self.comment)
                     else:
-                        # signal is empty or start and stop are outside the signal time base
+                        # signal is empty or start and stop are outside the
+                        # signal time base
                         result = Signal(np.array([]),
                                         np.array([]),
                                         self.unit,
@@ -315,11 +355,14 @@ class Signal(object):
         return result
 
     def interp(self, new_timestamps):
-        """ returns a new *Signal* interpolated using the *new_timestamps*"""
+        """ returns a new *Signal* interpolated using the *new_timestamps* """
         if self.samples.dtype in ('float64', 'float32'):
             s = np.interp(new_timestamps, self.timestamps, self.samples)
         else:
-            idx = np.searchsorted(self.timestamps, new_timestamps, side='right') - 1
+            idx = np.searchsorted(self.timestamps,
+                                  new_timestamps,
+                                  side='right')
+            idx -= 1
             idx = np.clip(idx, 0, idx[-1])
             s = self.samples[idx]
         return Signal(s, new_timestamps, self.unit, self.name, self.info)
@@ -339,16 +382,28 @@ class Signal(object):
             func = getattr(self.samples, func_name)
             s = func(other)
             time = self.timestamps
-        return Signal(s, time, self.unit, self.name, self.info)
+        return Signal(s,
+                      time,
+                      self.unit,
+                      self.name,
+                      self.info)
 
     def __pos__(self):
-        return Signal(self.samples, self.timestamps, self.unit, self.name, self.info)
+        return self
 
     def __neg__(self):
-        return Signal(np.negative(self.samples), self.timestamps, self.unit, self.name, self.info)
+        return Signal(np.negative(self.samples),
+                      self.timestamps,
+                      self.unit,
+                      self.name,
+                      self.info)
 
     def __round__(self, n):
-        return Signal(np.around(self.samples, n), self.timestamps, self.unit, self.name, self.info)
+        return Signal(np.around(self.samples, n),
+                      self.timestamps,
+                      self.unit,
+                      self.name,
+                      self.info)
 
     def __sub__(self, other):
         return self.__apply_func(other, '__sub__')
@@ -404,7 +459,11 @@ class Signal(object):
     def __invert__(self):
         s = ~self.samples
         time = self.timestamps
-        return Signal(s, time, self.unit, self.name, self.info)
+        return Signal(s,
+                      time,
+                      self.unit,
+                      self.name,
+                      self.info)
 
     def __lshift__(self, other):
         return self.__apply_func(other, '__lshift__')
@@ -440,7 +499,11 @@ class Signal(object):
         return len(self.samples)
 
     def __abs__(self):
-        return Signal(np.fabs(self.samples), self.timestamps, self.unit, self.name, self.info)
+        return Signal(np.fabs(self.samples),
+                      self.timestamps,
+                      self.unit,
+                      self.name,
+                      self.info)
 
     def __getitem__(self, val):
         return self.samples[val]
@@ -450,7 +513,11 @@ class Signal(object):
 
     def astype(self, np_type):
         """ returns new *Signal* with samples of dtype *np_type*"""
-        return Signal(self.samples.astype(np_type), self.timestamps, self.unit, self.name, self.info)
+        return Signal(self.samples.astype(np_type),
+                      self.timestamps,
+                      self.unit,
+                      self.name,
+                      self.info)
 
 
 if __name__ == '__main__':

@@ -143,8 +143,9 @@ class MDF(object):
                 for j, ch in enumerate(gp['channels']):
                     if j in excluded_channels:
                         continue
+                    else:
+                        sigs.append(self.get(group=i, index=j, data=data))
 
-                    sigs.append(self.get(group=i, index=j, data=data))
                 if sigs:
                     source_info = 'Converted from {} to {}'
                     out.append(sigs,

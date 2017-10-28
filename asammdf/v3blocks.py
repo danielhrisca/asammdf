@@ -2,6 +2,7 @@
 """
 classes that implement the blocks for MDF version 3
 """
+
 from __future__ import print_function, division
 import sys
 import time
@@ -18,19 +19,21 @@ SEEK_START = v3c.SEEK_START
 SEEK_END = v3c.SEEK_END
 
 
-__all__ = ['Channel',
-           'ChannelConversion',
-           'ChannelDependency',
-           'ChannelExtension',
-           'ChannelGroup',
-           'DataBlock',
-           'DataGroup',
-           'FileIdentificationBlock',
-           'HeaderBlock',
-           'ProgramBlock',
-           'SampleReduction',
-           'TextBlock',
-           'TriggerBlock']
+__all__ = [
+    'Channel',
+    'ChannelConversion',
+    'ChannelDependency',
+    'ChannelExtension',
+    'ChannelGroup',
+    'DataBlock',
+    'DataGroup',
+    'FileIdentificationBlock',
+    'HeaderBlock',
+    'ProgramBlock',
+    'SampleReduction',
+    'TextBlock',
+    'TriggerBlock',
+]
 
 
 class Channel(dict):
@@ -38,35 +41,55 @@ class Channel(dict):
 
     The Channel object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the *file_stream* and *address* keyword parameters - when reading
+    from file
     * using any of the following presented keys - when creating a new Channel
 
     The keys have the following meaning:
 
     * id - Block type identifier, always "CN"
     * block_len - Block size of this block in bytes (entire CNBLOCK)
-    * next_ch_addr - Pointer to next channel block (CNBLOCK) of this channel group (NIL allowed)
-    * conversion_addr - Pointer to the conversion formula (CCBLOCK) of this signal (NIL allowed)
-    * source_depend_addr - Pointer to the source-depending extensions (CEBLOCK) of this signal (NIL allowed)
-    * ch_depend_addr - Pointer to the dependency block (CDBLOCK) of this signal (NIL allowed)
-    * comment_addr - Pointer to the channel comment (TXBLOCK) of this signal (NIL allowed)
+    * next_ch_addr - Pointer to next channel block (CNBLOCK) of this channel
+    group (NIL allowed)
+    * conversion_addr - Pointer to the conversion formula (CCBLOCK) of this
+    signal (NIL allowed)
+    * source_depend_addr - Pointer to the source-depending extensions (CEBLOCK)
+    of this signal (NIL allowed)
+    * ch_depend_addr - Pointer to the dependency block (CDBLOCK) of this signal
+    (NIL allowed)
+    * comment_addr - Pointer to the channel comment (TXBLOCK) of this signal
+    (NIL allowed)
     * channel_type - Channel type
 
         * 0 = data channel
-        * 1 = time channel for all signals of this group (in each channel group, exactly one channel must be defined as time channel) The time stamps recording in a time channel are always relative to the start time of the measurement defined in HDBLOCK.
+        * 1 = time channel for all signals of this group (in each channel group,
+        exactly one channel must be defined as time channel). The time stamps
+        recording in a time channel are always relative to the start time of the
+        measurement defined in HDBLOCK.
 
-    * short_name - Short signal name, i.e. the first 31 characters of the ASAM-MCD name of the signal (end of text should be indicated by 0)
+    * short_name - Short signal name, i.e. the first 31 characters of the
+    ASAM-MCD name of the signal (end of text should be indicated by 0)
     * description - Signal description (end of text should be indicated by 0)
-    * start_offset - Start offset in bits to determine the first bit of the signal in the data record. The start offset N is divided into two parts: a "Byte offset" (= N div 8) and a "Bit offset" (= N mod 8). The channel block can define an "additional Byte offset" (see below) which must be added to the Byte offset.
-    * bit_count - Number of bits used to encode the value of this signal in a data record
+    * start_offset - Start offset in bits to determine the first bit of the
+    signal in the data record. The start offset N is divided into two parts: a
+    "Byte offset" (= N div 8) and a "Bit offset" (= N mod 8). The channel block
+    can define an "additional Byte offset" (see below) which must be added to
+    the Byte offset.
+    * bit_count - Number of bits used to encode the value of this signal in a
+    data record
     * data_type - Signal data type
     * range_flag - Value range valid flag
-    * min_raw_value - Minimum signal value that occurred for this signal (raw value)
-    * max_raw_value - Maximum signal value that occurred for this signal (raw value)
+    * min_raw_value - Minimum signal value that occurred for this signal
+    (raw value)
+    * max_raw_value - Maximum signal value that occurred for this signal
+    (raw value)
     * sampling_rate - Sampling rate for a virtual time channel. Unit [s]
-    * long_name_addr - Pointer to TXBLOCK that contains the ASAM-MCD long signal name
-    * display_name_addr - Pointer to TXBLOCK that contains the signal's display name (NIL allowed)
-    * aditional_byte_offset - Additional Byte offset of the signal in the data record (default value: 0).
+    * long_name_addr - Pointer to TXBLOCK that contains the ASAM-MCD long signal
+    name
+    * display_name_addr - Pointer to TXBLOCK that contains the signal's display
+    name (NIL allowed)
+    * aditional_byte_offset - Additional Byte offset of the signal in the data
+    record (default value: 0).
 
     Parameters
     ----------
@@ -140,8 +163,8 @@ class Channel(dict):
             self['ch_depend_addr'] = kargs.get('ch_depend_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
             self['channel_type'] = kargs.get('channel_type', 0)
-            self['short_name'] = kargs.get('short_name', ('\x00'*32).encode('latin-1'))
-            self['description'] = kargs.get('description', ('\x00'*32).encode('latin-1'))
+            self['short_name'] = kargs.get('short_name', (b'\0'*32))
+            self['description'] = kargs.get('description', (b'\0'*32))
             self['start_offset'] = kargs.get('start_offset', 0)
             self['bit_count'] = kargs.get('bit_count', 8)
             self['data_type'] = kargs.get('data_type', 0)
@@ -180,18 +203,23 @@ class ChannelConversion(dict):
 
     The ChannelConversion object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ChannelConversion
+    * using the *file_stream* and *address* keyword parameters - when reading
+    from file
+    * using any of the following presented keys - when creating a new
+    ChannelConversion
 
-    The first keys are common for all conversion types, and are followed by conversion specific keys. The keys have the following meaning:
+    The first keys are common for all conversion types, and are followed by
+    conversion specific keys. The keys have the following meaning:
 
     * common keys
 
         * id - Block type identifier, always "CC"
         * block_len - Block size of this block in bytes (entire CCBLOCK)
         * range_flag - Physical value range valid flag:
-        * min_phy_value - Minimum physical signal value that occurred for this signal
-        * max_phy_value - Maximum physical signal value that occurred for this signal
+        * min_phy_value - Minimum physical signal value that occurred for this
+        signal
+        * max_phy_value - Maximum physical signal value that occurred for this
+        signal
         * unit - Physical unit (string should be terminated with 0)
         * conversion_type - Conversion type (formula identifier)
         * ref_param_nr - Size information about additional conversion data
@@ -202,7 +230,8 @@ class ChannelConversion(dict):
 
             * b - offset
             * a - factor
-            * CANapeHiddenExtra - sometimes CANape appends extra information; not compliant with MDF specs
+            * CANapeHiddenExtra - sometimes CANape appends extra information;
+            not compliant with MDF specs
 
         * ASAM formula conversion
 
@@ -338,7 +367,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\x00'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = v3c.CONVERSION_TYPE_NONE
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
 
@@ -347,7 +376,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\x00'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = v3c.CONVERSION_TYPE_LINEAR
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['b'] = kargs.get('b', 0)
@@ -360,7 +389,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\x00'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_POLY)
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['P1'] = kargs.get('P1', 0)
@@ -375,7 +404,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\x00'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_EXPO)
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['P1'] = kargs.get('P1', 0)
@@ -391,10 +420,10 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\x00'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_FORMULA)
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
-                self['formula'] = kargs.get('formula', b'X1'+b'\x00'*254)
+                self['formula'] = kargs.get('formula', b'X1'+b'\0'*254)
 
             elif kargs['conversion_type'] in (v3c.CONVERSION_TYPE_TABI, v3c.CONVERSION_TYPE_TABX):
                 nr = kargs['ref_param_nr']
@@ -402,7 +431,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\x00'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_TABI)
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 for i in range(nr):
@@ -415,7 +444,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\x00'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = v3c.CONVERSION_TYPE_VTAB
                 self['ref_param_nr'] = nr
 
@@ -429,7 +458,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\x00'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = v3c.CONVERSION_TYPE_VTABR
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
 
@@ -690,15 +719,15 @@ class ChannelExtension(dict):
             if self['type'] == v3c.SOURCE_ECU:
                 self['module_nr'] = kargs.get('module_nr', 0)
                 self['module_address'] = kargs.get('module_address', 0)
-                self['description'] = kargs.get('description', '\x00'.encode('latin-1'))
-                self['ECU_identification'] = kargs.get('ECU_identification', '\x00'.encode('latin-1'))
-                self['reserved0'] = kargs.get('reserved0', '\x00'.encode('latin-1'))
+                self['description'] = kargs.get('description', '\0'.encode('latin-1'))
+                self['ECU_identification'] = kargs.get('ECU_identification', '\0'.encode('latin-1'))
+                self['reserved0'] = kargs.get('reserved0', '\0'.encode('latin-1'))
             elif self['type'] == v3c.SOURCE_VECTOR:
                 self['CAN_id'] = kargs.get('CAN_id', 0)
                 self['CAN_ch_index'] = kargs.get('CAN_ch_index', 0)
-                self['message_name'] = kargs.get('message_name', '\x00'.encode('latin-1'))
-                self['sender_name'] = kargs.get('sender_name', '\x00'.encode('latin-1'))
-                self['reserved0'] = kargs.get('reserved0', '\x00'.encode('latin-1'))
+                self['message_name'] = kargs.get('message_name', '\0'.encode('latin-1'))
+                self['sender_name'] = kargs.get('sender_name', '\0'.encode('latin-1'))
+                self['reserved0'] = kargs.get('reserved0', '\0'.encode('latin-1'))
 
     def __bytes__(self):
         typ = self['type']
@@ -919,7 +948,7 @@ class DataGroup(dict):
             self['cg_nr'] = kargs.get('cg_nr', 1)
             self['record_id_nr'] = kargs.get('record_id_nr', 0)
             if self['block_len'] == v3c.DG32_BLOCK_SIZE:
-                self['reserved0'] = b'\x00\x00\x00\x00'
+                self['reserved0'] = b'\0\0\0\0'
 
     def __bytes__(self):
         if self['block_len'] == v3c.DG32_BLOCK_SIZE:
@@ -994,14 +1023,14 @@ class FileIdentificationBlock(dict):
         except KeyError:
             version = kargs['version']
             self['file_identification'] = 'MDF     '.encode('latin-1')
-            self['version_str'] = version.encode('latin-1') + b'\x00' * 4
+            self['version_str'] = version.encode('latin-1') + b'\0' * 4
             self['program_identification'] = 'Python  '.encode('latin-1')
             self['byte_order'] = v3c.BYTE_ORDER_INTEL
             self['float_format'] = 0
             self['mdf_version'] = int(version.replace('.', ''))
             self['code_page'] = 0
-            self['reserved0'] = b'\x00' * 2
-            self['reserved1'] = b'\x00' * 26
+            self['reserved0'] = b'\0' * 2
+            self['reserved1'] = b'\0' * 26
             self['unfinalized_standard_flags'] = 0
             self['unfinalized_custom_flags'] = 0
 
@@ -1093,18 +1122,18 @@ class HeaderBlock(dict):
             self['dg_nr'] = 0
             t1 = time.time() * 10**9
             t2 = time.gmtime()
-            self['date'] = '{:\x00<10}'.format(time.strftime('%d:%m:%Y', t2)).encode('latin-1')
-            self['time'] = '{:\x00<8}'.format(time.strftime('%X', t2)).encode('latin-1')
-            self['author'] = '{:\x00<32}'.format(getuser()).encode('latin-1')
-            self['organization'] = '{:\x00<32}'.format('').encode('latin-1')
-            self['project'] = '{:\x00<32}'.format('').encode('latin-1')
-            self['subject'] = '{:\x00<32}'.format('').encode('latin-1')
+            self['date'] = '{:\0<10}'.format(time.strftime('%d:%m:%Y', t2)).encode('latin-1')
+            self['time'] = '{:\0<8}'.format(time.strftime('%X', t2)).encode('latin-1')
+            self['author'] = '{:\0<32}'.format(getuser()).encode('latin-1')
+            self['organization'] = '{:\0<32}'.format('').encode('latin-1')
+            self['project'] = '{:\0<32}'.format('').encode('latin-1')
+            self['subject'] = '{:\0<32}'.format('').encode('latin-1')
 
             if self['block_len'] > v3c.HEADER_COMMON_SIZE:
                 self['abs_time'] = int(t1)
                 self['tz_offset'] = 2
                 self['time_quality'] = 0
-                self['timer_identification'] = '{:\x00<32}'.format('Local PC Reference Time').encode('latin-1')
+                self['timer_identification'] = '{:\0<32}'.format('Local PC Reference Time').encode('latin-1')
 
     def __bytes__(self):
         fmt = v3c.HEADER_COMMON_FMT
@@ -1291,7 +1320,7 @@ class TextBlock(dict):
 
             self['id'] = b'TX'
             self['block_len'] = len(text) + 4 + 1
-            self['text'] = text + b'\x00'
+            self['text'] = text + b'\0'
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:

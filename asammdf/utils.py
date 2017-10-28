@@ -2,27 +2,32 @@
 '''
 asammdf utility functions and classes
 '''
+
 import itertools
 import re
 
-from numpy import (issubdtype,
-                   signedinteger,
-                   unsignedinteger,
-                   floating,
-                   flexible,
-                   amin,
-                   amax)
+from numpy import (
+    issubdtype,
+    signedinteger,
+    unsignedinteger,
+    floating,
+    flexible,
+    amin,
+    amax,
+)
 
 
 from . import v3constants as v3c
 from . import v4constants as v4c
 
 
-__all__ = ['MdfException',
-           'get_fmt',
-           'fmt_to_datatype',
-           'pair',
-           'bytes']
+__all__ = [
+    'MdfException',
+    'get_fmt',
+    'fmt_to_datatype',
+    'pair',
+    'bytes',
+]
 
 
 class MdfException(Exception):
