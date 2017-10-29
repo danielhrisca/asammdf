@@ -2153,7 +2153,7 @@ class MDF3(object):
 
         return info
 
-    def save(self, dst='', overwrite=False, compression=0):
+    def save(self, dst='', overwrite=False, **kargs):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -2257,7 +2257,7 @@ class MDF3(object):
                 dg['data_group']['next_dg_addr'] = address
             self.groups[-1]['data_group']['next_dg_addr'] = 0
 
-            for index, gp in enumerate(self.groups):
+            for gp in self.groups:
                 gp_texts = gp['texts']
 
                 # Texts
