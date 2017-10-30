@@ -1983,7 +1983,7 @@ class MDF4(object):
 
                 try:
                     parent, bit_offset = parents[ch_nr]
-                except:
+                except KeyError:
                     parent, bit_offset = None, None
 
                 if parent is not None:
@@ -2453,7 +2453,7 @@ class MDF4(object):
         """
         try:
             return self._master_channel_cache[index]
-        except:
+        except KeyError:
             pass
 
         group = self.groups[index]
@@ -2478,17 +2478,17 @@ class MDF4(object):
                 try:
                     parents, dtypes = group['parents'], group['types']
                 except KeyError:
-                    group['parents'], group['types'] = self._prepare_record(group)
-                    parents, dtypes = group['parents'], group['types']
+                    parents, dtypes = self._prepare_record(group)
+                    group['parents'], group['types'] = parents, dtypes
 
                 # get data
                 if data is None:
                     data = self._load_group_data(group)
 
                 try:
-                    parent, bit_offset = parents[time_ch_nr]
+                    parent, _ = parents[time_ch_nr]
                 except:
-                    parent, bit_offset = None, None
+                    parent = None
                 if parent is not None:
                     not_found = object()
                     record = group.get('record', not_found)
