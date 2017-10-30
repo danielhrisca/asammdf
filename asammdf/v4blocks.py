@@ -1220,10 +1220,17 @@ class DataList(dict):
             for i, addr in enumerate(links):
                 self['data_block_addr{}'.format(i)] = addr
 
-            (self['flags'],
-             self['reserved1'],
-             self['data_block_nr'],
-             self['data_block_len']) = unpack('<B3sIQ', stream.read(16))
+            self['flags'] = stream.read(1)[0]
+            if self['flags'] & v4c.FLAG_DL_EQUAL_LENGHT:
+                (self['reserved1'],
+                 self['data_block_nr'],
+                 self['data_block_len']) = unpack('<3sIQ', stream.read(15))
+            else:
+                (self['reserved1'],
+                 self['data_block_nr']) = unpack('<3sI', stream.read(7))
+                offsets = unpack('<{}Q'.format(self['links_nr'] - 1), stream.read((self['links_nr'] - 1)*8))
+                for i, offset in enumerate(offsets):
+                    self['offset_{}'.format(i)] = offset
 
         except KeyError:
 
@@ -1240,7 +1247,12 @@ class DataList(dict):
             self['flags'] = kargs.get('flags', 1)
             self['reserved1'] = kargs.get('reserved1', b'\00'*3)
             self['data_block_nr'] = kargs.get('data_block_nr', 1)
-            self['data_block_len'] = kargs.get('data_block_len', 1)
+            if self['flags'] & v4c.FLAG_DL_EQUAL_LENGHT:
+                 self['data_block_len'] = kargs['data_block_len']
+            else:
+                for i, offset in enumerate(self['links_nr'] - 1):
+                    self['offset_{}'.format(i)] = kargs['offset_{}'.format(i)]
+
 
     def __bytes__(self):
         fmt = v4c.FMT_DATA_LIST.format(self['links_nr'])
