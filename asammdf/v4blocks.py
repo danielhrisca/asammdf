@@ -23,22 +23,24 @@ SEEK_START = v4c.SEEK_START
 SEEK_END = v4c.SEEK_END
 
 
-__all__ = ['AttachmentBlock',
-           'Channel',
-           'ChannelArrayBlock',
-           'ChannelGroup',
-           'ChannelConversion',
-           'DataBlock',
-           'DataZippedBlock',
-           'FileIdentificationBlock',
-           'HeaderBlock',
-           'HeaderList',
-           'DataList',
-           'DataGroup',
-           'FileHistory',
-           'SignalDataBlock',
-           'SourceInformation',
-           'TextBlock']
+__all__ = [
+    'AttachmentBlock',
+    'Channel',
+    'ChannelArrayBlock',
+    'ChannelGroup',
+    'ChannelConversion',
+    'DataBlock',
+    'DataZippedBlock',
+    'FileIdentificationBlock',
+    'HeaderBlock',
+    'HeaderList',
+    'DataList',
+    'DataGroup',
+    'FileHistory',
+    'SignalDataBlock',
+    'SourceInformation',
+    'TextBlock',
+]
 
 
 class AttachmentBlock(dict):
@@ -376,7 +378,6 @@ class ChannelArrayBlock(dict):
             self['id'] = b'##CA'
             self['reserved0'] = 0
 
-
             ca_type = kargs['ca_type']
 
             if ca_type == v4c.CA_TYPE_ARRAY:
@@ -485,33 +486,36 @@ class ChannelArrayBlock(dict):
                         'block_len',
                         'links_nr',
                         'composition_addr')
-                keys += tuple('axis_conversion_{}'.format(i) for i in range(dims_nr))
+                keys += tuple('axis_conversion_{}'.format(i)
+                              for i in range(dims_nr))
                 keys += ('ca_type',
-                        'storage',
-                        'dims',
-                        'flags',
-                        'byte_offset_base',
-                        'invalidation_bit_base')
+                         'storage',
+                         'dims',
+                         'flags',
+                         'byte_offset_base',
+                         'invalidation_bit_base')
                 keys += tuple('dim_size_{}'.format(i) for i in range(dims_nr))
                 keys += tuple('axis_{}_value_{}'.format(i, j) for i in range(dims_nr) for j in range(self['dim_size_{}'.format(i)]))
-                fmt = '<4sI{}Q2BHIiI{}Q{}d'.format(self['links_nr'] + 2, dims_nr, nr)
+                fmt = '<4sI{}Q2BHIiI{}Q{}d'
+                fmt = fmt.format(self['links_nr'] + 2, dims_nr, nr)
             else:
                 keys = ('id',
                         'reserved0',
                         'block_len',
                         'links_nr',
                         'composition_addr')
-                keys += tuple('axis_conversion_{}'.format(i) for i in range(dims_nr))
+                keys += tuple('axis_conversion_{}'.format(i)
+                              for i in range(dims_nr))
                 for i in range(dims_nr):
                     keys += ('scale_axis_{}_dg_addr'.format(i),
                              'scale_axis_{}_cg_addr'.format(i),
                              'scale_axis_{}_ch_addr'.format(i))
                 keys += ('ca_type',
-                        'storage',
-                        'dims',
-                        'flags',
-                        'byte_offset_base',
-                        'invalidation_bit_base')
+                         'storage',
+                         'dims',
+                         'flags',
+                         'byte_offset_base',
+                         'invalidation_bit_base')
                 keys += tuple('dim_size_{}'.format(i) for i in range(dims_nr))
                 fmt = '<4sI{}Q2BHIiI{}Q'.format(self['links_nr'] + 2, dims_nr)
 
@@ -524,7 +528,9 @@ class ChannelArrayBlock(dict):
 
 class ChannelGroup(dict):
     """CGBLOCK class"""
-    __slots__ = ['address',]
+
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(ChannelGroup, self).__init__()
 
@@ -581,7 +587,9 @@ class ChannelGroup(dict):
 
 class ChannelConversion(dict):
     """CCBLOCK class"""
-    __slots__ = ['address',]
+
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
 
@@ -1248,7 +1256,7 @@ class DataList(dict):
             self['reserved1'] = kargs.get('reserved1', b'\00'*3)
             self['data_block_nr'] = kargs.get('data_block_nr', 1)
             if self['flags'] & v4c.FLAG_DL_EQUAL_LENGHT:
-                 self['data_block_len'] = kargs['data_block_len']
+                self['data_block_len'] = kargs['data_block_len']
             else:
                 for i, offset in enumerate(self['links_nr'] - 1):
                     self['offset_{}'.format(i)] = kargs['offset_{}'.format(i)]
@@ -1398,20 +1406,20 @@ class HeaderBlock(dict):
             self['block_len'] = kargs.get('block_len', v4c.HEADER_BLOCK_SIZE)
             self['links_nr'] = kargs.get('links_nr', 6)
             self['first_dg_addr'] = kargs.get('first_dg_addr', 0)
-            self['file_history_addr'] = kargs.get('file_history_addr' , 0)
-            self['channel_tree_addr'] = kargs.get('channel_tree_addr' , 0)
-            self['first_attachment_addr'] = kargs.get('first_attachment_addr' , 0)
-            self['first_event_addr'] = kargs.get('first_event_addr' , 0)
-            self['comment_addr'] = kargs.get('comment_addr' , 0)
-            self['abs_time'] = kargs.get('abs_time' , int(time.time()) * 10**9)
-            self['tz_offset'] = kargs.get('tz_offset' , 120)
-            self['daylight_save_time'] = kargs.get('daylight_save_time' , 60)
-            self['time_flags'] = kargs.get('time_flags' , 2)     #offset valid
-            self['time_quality'] = kargs.get('time_quality' , 0) #time source PC
-            self['flags'] = kargs.get('flags' , 0)
+            self['file_history_addr'] = kargs.get('file_history_addr', 0)
+            self['channel_tree_addr'] = kargs.get('channel_tree_addr', 0)
+            self['first_attachment_addr'] = kargs.get('first_attachment_addr', 0)
+            self['first_event_addr'] = kargs.get('first_event_addr', 0)
+            self['comment_addr'] = kargs.get('comment_addr', 0)
+            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10**9)
+            self['tz_offset'] = kargs.get('tz_offset', 120)
+            self['daylight_save_time'] = kargs.get('daylight_save_time', 60)
+            self['time_flags'] = kargs.get('time_flags', 2)
+            self['time_quality'] = kargs.get('time_quality', 0)
+            self['flags'] = kargs.get('flags', 0)
             self['reserved4'] = kargs.get('reserved4', 0)
-            self['start_angle'] = kargs.get('start_angle' , 0)
-            self['start_distance'] = kargs.get('start_distance' , 0)
+            self['start_angle'] = kargs.get('start_angle', 0)
+            self['start_distance'] = kargs.get('start_distance', 0)
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
@@ -1423,7 +1431,9 @@ class HeaderBlock(dict):
 
 class HeaderList(dict):
     """HLBLOCK class"""
-    __slots__ = ['address',]
+
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(HeaderList, self).__init__()
 
@@ -1463,7 +1473,9 @@ class HeaderList(dict):
 
 class SourceInformation(dict):
     """SIBLOCK class"""
-    __slots__ = ['address',]
+
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(SourceInformation, self).__init__()
 
