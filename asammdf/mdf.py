@@ -201,7 +201,7 @@ class MDF(object):
 
             data = self._load_group_data(gp)
 
-            for j, ch in enumerate(gp['channels']):
+            for j, _ in enumerate(gp['channels']):
                 if j in excluded_channels:
                     continue
                 sig = self.get(group=i,

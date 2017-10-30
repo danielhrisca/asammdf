@@ -2259,14 +2259,14 @@ class MDF3(object):
                 dg['data_group']['next_dg_addr'] = address
             self.groups[-1]['data_group']['next_dg_addr'] = 0
 
-            for index, _ in enumerate(self.groups):
+            for gp in self.groups:
                 gp_texts = gp['texts']
 
                 # Texts
                 for item_list in gp_texts.values():
                     for my_dict in item_list:
                         for key, tx_block in my_dict.items():
-                            #text blocks can be shared
+                            # text blocks can be shared
                             text = tx_block['text']
                             if text in defined_texts:
                                 tx_block.address = defined_texts[text]

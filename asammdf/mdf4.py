@@ -2071,14 +2071,14 @@ class MDF4(object):
                             arrays.append(axis_values)
                             types.append( (axis.name, axis_values.dtype, shape))
 
-
                 if PYVERSION == 2:
                     types = fix_dtype_fields(types)
 
                 vals = fromarrays(arrays, dtype(types))
         else:
             # get channel values
-            if channel['channel_type'] in (v4c.CHANNEL_TYPE_VIRTUAL, v4c.CHANNEL_TYPE_VIRTUAL_MASTER):
+            if channel['channel_type'] in (v4c.CHANNEL_TYPE_VIRTUAL,
+                                           v4c.CHANNEL_TYPE_VIRTUAL_MASTER):
                 data_type = channel['data_type']
                 ch_dtype = dtype(get_fmt(data_type, 8))
                 cycles = grp['channel_group']['cycles_nr']
@@ -2086,7 +2086,7 @@ class MDF4(object):
             else:
                 try:
                     parent, bit_offset = parents[ch_nr]
-                except:
+                except KeyError:
                     parent, bit_offset = None, None
 
                 if parent is not None:
@@ -2107,7 +2107,7 @@ class MDF4(object):
                     data_type = channel['data_type']
 
                     if bit_offset:
-                        dtype_= vals.dtype
+                        dtype_ = vals.dtype
                         if issubdtype(dtype_, signedinteger):
                             vals = vals.astype(dtype('<u{}'.format(size)))
                             vals >>= bit_offset
@@ -2115,7 +2115,7 @@ class MDF4(object):
                             vals = vals >> bit_offset
 
                     if not bits == size * 8:
-                        mask = (1<<bits) - 1
+                        mask = (1 << bits) - 1
                         if vals.flags.writeable:
                             vals &= mask
                         else:
