@@ -1460,7 +1460,7 @@ class HeaderList(dict):
             self['links_nr'] = 1
             self['first_dl_addr'] = kargs.get('first_dl_addr', 0)
             self['flags'] = 1
-            self['zip_type'] = 0
+            self['zip_type'] = kargs.get('zip_type', 0)
             self['reserved1'] = b'\x00' * 5
 
     def __bytes__(self):

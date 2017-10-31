@@ -36,15 +36,13 @@ class Signal(object):
 
     """
 
-    def __init__(
-            self,
-            samples=None,
-            timestamps=None,
-            unit='',
-            name='',
-            info=None,
-            comment='',
-            ):
+    def __init__(self,
+                 samples=None,
+                 timestamps=None,
+                 unit='',
+                 name='',
+                 info=None,
+                 comment=''):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
@@ -117,9 +115,16 @@ class Signal(object):
 
                     fig = plt.figure()
                     fig.canvas.set_window_title(self.name)
-                    fig.text(0.95, 0.05, 'asammdf {}'.format(__version__),
-                         fontsize=8, color='red',
-                         ha='right', va='top', alpha=0.5)
+                    fig.text(
+                        0.95,
+                        0.05,
+                        'asammdf {}'.format(__version__),
+                        fontsize=8,
+                        color='red',
+                        ha='right',
+                        va='top',
+                        alpha=0.5,
+                    )
 
                     if self.comment:
                         plt.title('{}\n({})'.format(self.name, self.comment))

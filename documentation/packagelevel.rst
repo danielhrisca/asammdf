@@ -21,7 +21,9 @@
 Package level
 =============
 
-.. autofunction:: asammdf.enable_integer_compacting
+.. autofunction:: asammdf.configure
 
 Enabling compacting of integer channels on append the file size of the resulting
 file can decrease up to a factor of ~0.5.
+Splitting the data blocks is usefull for large blocks. The recommended maximum
+threshold by ASAM is 4MB. *asammdf* uses a default of 2MB
