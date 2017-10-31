@@ -32,7 +32,8 @@ Features
 * export to Excel, HDF5, Matlab and CSV
 * merge multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
-* disk space savings by compacting 1-dimensional integer channels
+* split large data blocks (configurable size) for mdf version 4
+* disk space savings by compacting 1-dimensional integer channels (configurable)
 * full support (read, append, save) for the following map types (multidimensional array channels):
 
     * mdf version 3 channels with CDBLOCK
@@ -64,7 +65,7 @@ Major features not implemented (yet)
 
     * handling of bus logging measurements
     * handling of unfinnished measurements (mdf 4)
-    * full support mdf 4 channel arrays
+    * full support for remaining mdf 4 channel arrays types
     * xml schema for TXBLOCK and MDBLOCK
     * partial conversions
     * event blocks
