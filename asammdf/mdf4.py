@@ -15,6 +15,7 @@ from functools import reduce, partial
 from collections import defaultdict
 from hashlib import md5
 import xml.etree.ElementTree as XML
+from math import ceil
 
 from numpy import (
     interp,
@@ -3058,6 +3059,12 @@ class MDF4(object):
 
             original_data_addresses = []
 
+            _2MB = 1 << 21
+            if compression == 1:
+                zip_type = v4c.FLAG_DZ_DEFLATE
+            else:
+                zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+
             # write DataBlocks first
             for gp in self.groups:
 
@@ -3068,40 +3075,16 @@ class MDF4(object):
 
                 if self.load_measured_data:
                     data_block = gp['data_block']
-                    if compression and self.version != '4.00':
-                        if compression == 1:
-                            zip_type = v4c.FLAG_DZ_DEFLATE
-                        else:
-                            zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
-                        if compression == 1:
-                            param = 0
-                        else:
-                            param = gp['channel_group']['samples_byte_nr']
-                        kargs = {
-                            'data': data_block['data'],
-                            'zip_type': zip_type,
-                            'param': param,
-                        }
-                        data_block = DataZippedBlock(**kargs)
-                    write(bytes(data_block))
-
-                    align = data_block['block_len'] % 8
-                    if align:
-                        write(b'\0' * (8-align))
+                    chunks = (data_block['block_len'] - v4c.COMMON_SIZE) / _2MB
+                    chunks = ceil(chunks)
+                    data = data_block['data']
                 else:
-                    # trying to call bytes([gp, address]) will result in an
-                    # exception that be used as a flag for non existing data
-                    # block in case of load_measured_data=False, the address is
-                    # the actual address of the data group's data within the
-                    # original file this will only be executed for data blocks
-                    # when load_measured_data=False
-
                     data = self._load_group_data(gp)
+                    chunks = len(data) / _2MB
+                    chunks = ceil(chunks)
+
+                if chunks == 1:
                     if compression and self.version != '4.00':
-                        if compression == 1:
-                            zip_type = v4c.FLAG_DZ_DEFLATE
-                        else:
-                            zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
                         if compression == 1:
                             param = 0
                         else:
@@ -3112,18 +3095,73 @@ class MDF4(object):
                             'param': param,
                         }
                         data_block = DataZippedBlock(**kargs)
-                    else:
-                        data_block = DataBlock(data=data)
                     write(bytes(data_block))
 
                     align = data_block['block_len'] % 8
                     if align:
                         write(b'\0' * (8-align))
 
-                if gp['channel_group']['cycles_nr']:
-                    gp['data_group']['data_block_addr'] = address
+                    if gp['channel_group']['cycles_nr']:
+                        gp['data_group']['data_block_addr'] = address
+                    else:
+                        gp['data_group']['data_block_addr'] = 0
                 else:
-                    gp['data_group']['data_block_addr'] = 0
+                    kargs = {
+                        'flags': v4c.FLAG_DL_EQUAL_LENGHT,
+                        'zip_type': zip_type,
+                    }
+                    hl_block = HeaderList(**kargs)
+
+                    kargs = {
+                        'flags': v4c.FLAG_DL_EQUAL_LENGHT,
+                        'links_nr': chunks + 1,
+                        'data_block_nr': chunks,
+                        'data_block_len': _2MB,
+                    }
+                    dl_block = DataList(**kargs)
+
+                    data_blocks = []
+                    for i in range(chunks):
+                        data_ = data[i*_2MB: (i+1)*_2MB]
+                        if compression and self.version != '4.00':
+                            if compression == 1:
+                                zip_type = v4c.FLAG_DZ_DEFLATE
+                            else:
+                                zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                            if compression == 1:
+                                param = 0
+                            else:
+                                param = gp['channel_group']['samples_byte_nr']
+                            kargs = {
+                                'data': data_,
+                                'zip_type': zip_type,
+                                'param': param,
+                            }
+                            block = DataZippedBlock(**kargs)
+                        else:
+                            block = DataBlock(data=data_)
+                        address = tell()
+                        block.address = address
+                        data_blocks.append(block)
+
+                        write(bytes(block))
+
+                        align = block['block_len'] % 8
+                        if align:
+                            write(b'\0' * (8-align))
+                        dl_block['data_block_addr{}'.format(i)] = address
+
+                    address = tell()
+                    dl_block.address = address
+                    write(bytes(dl_block))
+
+                    if compression and self.version != '4.00':
+                        hl_block['first_dl_addr'] = address
+                        address = tell()
+                        hl_block.address = address
+                        write(bytes(hl_block))
+
+                    gp['data_group']['data_block_addr'] = address
 
             address = tell()
 
