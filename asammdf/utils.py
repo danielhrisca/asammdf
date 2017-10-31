@@ -36,6 +36,7 @@ class MdfException(Exception):
 
 
 def bytes(obj):
+    """ Python 2 compatibility function """
     try:
         return obj.__bytes__()
     except AttributeError:
@@ -280,7 +281,7 @@ def get_min_max(samples):
     if samples.shape[0]:
         try:
             min_val, max_val = amin(samples), amax(samples)
-        except:
+        except TypeError:
             min_val, max_val = 1, 0
     else:
         min_val, max_val = 0, 0
@@ -304,13 +305,13 @@ def load_dbc(dbc):
 
     pattern = r'(?P<msg>^BO_ (.+\n)+)'
 
-    with open(dbc, 'r') as f:
-        string = f.read()
+    with open(dbc, 'r') as dbc_file:
+        string = dbc_file.read()
 
     messages = {}
 
-    for match in re.finditer(pattern, string, flags=re.M):
-        msg = match.group('msg')
+    for match_ in re.finditer(pattern, string, flags=re.M):
+        msg = match_.group('msg')
 
         pattern = r'BO_ (?P<can_id>\d+) (?P<name>[^ :]+): (?P<dlc>\d).+'
         match = re.search(pattern, msg)

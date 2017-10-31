@@ -2060,7 +2060,7 @@ class MDF3(object):
                 if data is None:
                     data = self._load_group_data(group)
 
-                parent, bit_offset = parents.get(time_ch_nr, (None, None))
+                parent, _ = parents.get(time_ch_nr, (None, None))
                 if parent is not None:
                     not_found = object()
                     record = group.get('record', not_found)
@@ -2074,7 +2074,9 @@ class MDF3(object):
                             group['record'] = record
                     t = record[parent]
                 else:
-                    t = self._get_not_byte_aligned_data(data, group, time_ch_nr)
+                    t = self._get_not_byte_aligned_data(data,
+                                                        group,
+                                                        time_ch_nr)
 
                 # get timestamps
                 if time_conv is None:
@@ -2264,7 +2266,7 @@ class MDF3(object):
                 for item_list in gp_texts.values():
                     for my_dict in item_list:
                         for key, tx_block in my_dict.items():
-                            #text blocks can be shared
+                            # text blocks can be shared
                             text = tx_block['text']
                             if text in defined_texts:
                                 tx_block.address = defined_texts[text]
