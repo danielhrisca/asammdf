@@ -306,12 +306,8 @@ class MDF(object):
                                                            data=sig.samples)
                             if sig.unit:
                                 dataset.attrs['unit'] = sig.unit
-                            else:
-                                dataset.attrs['unit'] = ''
                             if sig.comment:
                                 dataset.attrs['comment'] = sig.comment
-                            else:
-                                dataset.attrs['comment'] = ''
 
         elif fmt == 'excel':
             try:
