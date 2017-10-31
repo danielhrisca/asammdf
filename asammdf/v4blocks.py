@@ -1229,6 +1229,8 @@ class DataList(dict):
                 self['data_block_addr{}'.format(i)] = addr
 
             self['flags'] = stream.read(1)[0]
+            if PYVERSION == 2:
+                self['flags'] = ord(self['flags'])
             if self['flags'] & v4c.FLAG_DL_EQUAL_LENGHT:
                 (self['reserved1'],
                  self['data_block_nr'],
