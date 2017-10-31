@@ -140,6 +140,8 @@ class MDF4(object):
     """
 
     _compact_integers_on_append = False
+    _split_data_block = False
+    _split_threshold = 1 << 21
 
     def __init__(self, name=None, load_measured_data=True, version='4.10'):
         self.groups = []
@@ -167,18 +169,6 @@ class MDF4(object):
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
-
-    @classmethod
-    def _enable_integer_compacting(cls, enable):
-        """ enable or disable compacting of integer channels when appending
-
-        Parameters
-        ----------
-        enable : bool
-
-        """
-
-        cls._compact_integers_on_append = enable
 
     def _check_finalised(self):
         flags = self.identification['unfinalized_standard_flags']
@@ -3059,7 +3049,6 @@ class MDF4(object):
 
             original_data_addresses = []
 
-            _2MB = 1 << 21
             if compression == 1:
                 zip_type = v4c.FLAG_DZ_DEFLATE
             else:
@@ -3073,15 +3062,19 @@ class MDF4(object):
                 )
                 address = tell()
 
-                if self.load_measured_data:
-                    data_block = gp['data_block']
-                    chunks = (data_block['block_len'] - v4c.COMMON_SIZE) / _2MB
-                    chunks = ceil(chunks)
-                    data = data_block['data']
+                if MDF4._split_data_block:
+                    split_size = MDF4._split_threshold
+                    if self.load_measured_data:
+                        data_block = gp['data_block']
+                        chunks = (data_block['block_len'] - v4c.COMMON_SIZE) / split_size
+                        chunks = ceil(chunks)
+                        data = data_block['data']
+                    else:
+                        data = self._load_group_data(gp)
+                        chunks = len(data) / split_size
+                        chunks = ceil(chunks)
                 else:
-                    data = self._load_group_data(gp)
-                    chunks = len(data) / _2MB
-                    chunks = ceil(chunks)
+                    chunks = 1
 
                 if chunks == 1:
                     if compression and self.version != '4.00':
@@ -3116,13 +3109,13 @@ class MDF4(object):
                         'flags': v4c.FLAG_DL_EQUAL_LENGHT,
                         'links_nr': chunks + 1,
                         'data_block_nr': chunks,
-                        'data_block_len': _2MB,
+                        'data_block_len': split_size,
                     }
                     dl_block = DataList(**kargs)
 
                     data_blocks = []
                     for i in range(chunks):
-                        data_ = data[i*_2MB: (i+1)*_2MB]
+                        data_ = data[i*split_size: (i+1)*split_size]
                         if compression and self.version != '4.00':
                             if compression == 1:
                                 zip_type = v4c.FLAG_DZ_DEFLATE

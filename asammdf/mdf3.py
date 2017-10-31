@@ -145,18 +145,6 @@ class MDF3(object):
             self.version = version
             self.header = HeaderBlock(version=self.version)
 
-    @classmethod
-    def _enable_integer_compacting(cls, enable):
-        """ enable or disable compacting of integer channels when appending
-
-        Parameters
-        ----------
-        enable : bool
-
-        """
-
-        cls._compact_integers_on_append = enable
-
     def _load_group_data(self, group):
         """ get group's data block bytes"""
 
