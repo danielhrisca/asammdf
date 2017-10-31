@@ -97,7 +97,7 @@ Use case
 * it is advised to avoid getting individual channels when using this ioption.
 
 Instead you can get performance close to load_measured_data=True if you use
-the *filter* method with the list of target channels.
+the *select* method with the list of target channels.
 
 .. note::
 

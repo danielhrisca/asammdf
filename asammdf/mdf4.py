@@ -140,7 +140,7 @@ class MDF4(object):
     """
 
     _compact_integers_on_append = False
-    _split_data_block = False
+    _split_data_blocks = False
     _split_threshold = 1 << 21
 
     def __init__(self, name=None, load_measured_data=True, version='4.10'):
@@ -3062,17 +3062,12 @@ class MDF4(object):
                 )
                 address = tell()
 
-                if MDF4._split_data_block:
+                data = self._load_group_data(gp)
+
+                if MDF4._split_data_blocks:
                     split_size = MDF4._split_threshold
-                    if self.load_measured_data:
-                        data_block = gp['data_block']
-                        chunks = (data_block['block_len'] - v4c.COMMON_SIZE) / split_size
-                        chunks = ceil(chunks)
-                        data = data_block['data']
-                    else:
-                        data = self._load_group_data(gp)
-                        chunks = len(data) / split_size
-                        chunks = ceil(chunks)
+                    chunks = len(data) / split_size
+                    chunks = ceil(chunks)
                 else:
                     chunks = 1
 
@@ -3083,11 +3078,13 @@ class MDF4(object):
                         else:
                             param = gp['channel_group']['samples_byte_nr']
                         kargs = {
-                            'data': data_block['data'],
+                            'data': data,
                             'zip_type': zip_type,
                             'param': param,
                         }
                         data_block = DataZippedBlock(**kargs)
+                    else:
+                        data_block = DataBlock(data=data)
                     write(bytes(data_block))
 
                     align = data_block['block_len'] % 8

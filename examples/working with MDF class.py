@@ -3,8 +3,13 @@
 *asammdf* MDF usage example
 """
 from __future__ import print_function, division
-from asammdf import MDF, Signal
+from asammdf import MDF, Signal, configure
 import numpy as np
+
+# configure asammdf to optimize disk space usage
+configure(integer_compacting=True)
+# configure asammdf to split data blocks on 10KB blocks
+configure(split_data_blocks=True, split_threshold=10*1024)
 
 
 # create 3 Signal objects
@@ -29,7 +34,7 @@ s_float64 = Signal(samples=np.array([-20, -10, 0, 10, 20], dtype=np.int32),
                    unit='f8')
 
 # create empty MDf version 4.00 file
-mdf4 = MDF(version='4.00')
+mdf4 = MDF(version='4.10')
 
 # append the 3 signals to the new file
 signals = [s_uint8, s_int32, s_float64]
@@ -56,3 +61,6 @@ mdf4_cut.get('Float64_Signal').plot()
 
 # filter some signals from the file
 mdf4 = mdf4.filter(['Int32_Signal', 'Uint8_Signal'])
+
+# save using zipped transpose deflate blocks
+mdf4.save('out.mf4', compression=2)

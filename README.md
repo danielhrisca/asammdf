@@ -80,7 +80,13 @@ Usage
    
    # convert to version 4.10 and save to disk
    short.convert('4.10').save('important signals.mf4')
- ```  
+   
+   # plot some channels from a huge file
+   efficient = MDF('huge.mf4', load_measured_data=False)
+   for signal in efficient.select(['Sensor1', 'Voltage3']):
+       signal.plot()
+   
+```  
  
 Check the *examples* folder for extended usage demo.
 

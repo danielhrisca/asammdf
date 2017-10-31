@@ -25,8 +25,14 @@ Working with MDF
 
 .. code-block:: python
 
-    from asammdf import MDF, Signal
+    from __future__ import print_function, division
+    from asammdf import MDF, Signal, configure
     import numpy as np
+
+    # configure asammdf to optimize disk space usage
+    configure(integer_compacting=True)
+    # configure asammdf to split data blocks on 10KB blocks
+    configure(split_data_blocks=True, split_threshold=10*1024)
 
 
     # create 3 Signal objects
@@ -51,31 +57,43 @@ Working with MDF
                        unit='f8')
 
     # create empty MDf version 4.00 file
-    mdf4 = MDF(version='4.00')
+    mdf4 = MDF(version='4.10')
 
     # append the 3 signals to the new file
     signals = [s_uint8, s_int32, s_float64]
     mdf4.append(signals, 'Created by Python')
 
     # save new file
-    mdf4.save('my_new_file.mf4')
+    mdf4.save('my_new_file.mf4', overwrite=True)
 
-    # convert new file to mdf version 3.10 with compression of raw channel data
-    mdf3 = mdf4.convert(to='3.10', compression=True)
+    # convert new file to mdf version 3.10 with load_measured_data=False
+    mdf3 = mdf4.convert(to='3.10', load_measured_data=False)
     print(mdf3.version)
-    # prints >>> 3.10
 
     # get the float signal
     sig = mdf3.get('Float64_Signal')
     print(sig)
-    # prints >>> Signal { name="Float64_Signal":	s=[-20 -10   0  10  20]	t=[ 0.1         0.2         0.30000001  0.40000001  0.5       ]	unit="f8"	conversion=None }
 
+    # cut measurement from 0.3s to end of measurement
+    mdf4_cut = mdf4.cut(start=0.3)
+    mdf4_cut.get('Float64_Signal').plot()
+
+    # cut measurement from start of measurement to 0.4s
+    mdf4_cut = mdf4.cut(stop=0.45)
+    mdf4_cut.get('Float64_Signal').plot()
+
+    # filter some signals from the file
+    mdf4 = mdf4.filter(['Int32_Signal', 'Uint8_Signal'])
+
+    # save using zipped transpose deflate blocks
+    mdf4.save('out.mf4', compression=2)                     
     
 Working with Signal
 -------------------
     
 .. code-block:: python
 
+    from __future__ import print_function, division
     from asammdf import Signal
     import numpy as np
 
@@ -103,6 +121,26 @@ Working with Signal
                        name='Float64_Signal',
                        unit='f8')
 
+    # map signals
+    xs = np.linspace(-1, 1, 50)
+    ys = np.linspace(-1, 1, 50)
+    X, Y = np.meshgrid(xs, ys)
+    vals = np.linspace(0, 180. / np.pi, 100)
+    phi = np.ones((len(vals), 50, 50), dtype=np.float64)
+    for i, val in enumerate(vals):
+        phi[i] *= val
+    R = 1 - np.sqrt(X**2 + Y**2)
+    samples = np.cos(2 * np.pi * X + phi) * R
+    print(phi.shape, samples.shape)
+    timestamps = np.arange(0, 2, 0.02)
+
+    s_map = Signal(samples=samples,
+                   timestamps=timestamps,
+                   name='Variable Map Signal',
+                   unit='dB')
+    s_map.plot()
+
+
     prod = s_float64 * s_uint8
     prod.name = 'Uint8_Signal * Float64_Signal'
     prod.unit = '*'
@@ -122,4 +160,9 @@ Working with Signal
     pow2 *= -1
     pow2.name = '- Uint8_Signal ^ 2'
     pow2.plot()
+
+    # cut signal
+    s_int32.plot()
+    cut_signal = s_int32.cut(start=0.2, stop=0.35)
+    cut_signal.plot()
 

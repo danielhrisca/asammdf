@@ -18,9 +18,9 @@ __all__ = [
 
 
 def configure(
-        integer_compacting=False,
-        split_data_block=False,
-        split_threshold=1<<21):
+        integer_compacting=None,
+        split_data_blocks=None,
+        split_threshold=None):
     """ configure asammdf parameters
 
     Parameters
@@ -29,7 +29,7 @@ def configure(
         enable/disable compacting of integer channels on append. This has the
         potential to greatly reduce file size, but append speed is slower and
         further loading of the resulting file will also be slower.
-    split_data_block : bool
+    split_data_blocks : bool
         enable/disable splitting of large data blocks using data lists for
         mdf version 4
     split_treshold : int
@@ -38,7 +38,12 @@ def configure(
 
     """
 
-    MDF3._compact_integers_on_append = integer_compacting
-    MDF4._compact_integers_on_append = integer_compacting
-    MDF4._split_threshold = split_threshold
-    MDF4._split_data_block = split_data_block
+    if integer_compacting is not None:
+        MDF3._compact_integers_on_append = integer_compacting
+        MDF4._compact_integers_on_append = integer_compacting
+
+    if split_threshold is not None:
+        MDF4._split_threshold = split_threshold
+
+    if split_data_blocks is not None:
+        MDF4._split_data_blocks = split_data_blocks

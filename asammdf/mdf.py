@@ -626,6 +626,42 @@ class MDF(object):
                     )
                 yield DataFrame.from_dict(pandas_dict)
 
+    def select(self, channels):
+        """ yields the channels listed in *channels* argument
+
+        Parameters
+        ----------
+        channels : list
+            list of channel names to be filtered
+
+        Returns
+        -------
+        signals : generator
+            Signal objects based on the input channel list
+
+        """
+
+        # group channels by group index
+        gps = {}
+        for ch in channels:
+            if ch in self.channels_db:
+                for group, index in self.channels_db[ch]:
+                    if group not in gps:
+                        gps[group] = []
+                    gps[group].append(index)
+            else:
+                message = ('MDF filter error: '
+                           'Channel "{}" not found, it will be ignored')
+                warn(message.format(ch))
+                continue
+
+        # append filtered channels to new MDF
+        for group in gps:
+            grp = self.groups[group]
+            data = self._load_group_data(grp)
+            for index in gps[group]:
+                yield self.get(group=group, index=index, data=data)
+
 
 if __name__ == '__main__':
     pass
