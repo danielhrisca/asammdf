@@ -54,11 +54,15 @@ class MDF(object):
                 raise MdfException('File "{}" does not exist'.format(name))
         else:
             if version in MDF3_VERSIONS:
-                self._file = MDF3(version=version,
-                                  load_measured_data=load_measured_data)
+                self._file = MDF3(
+                    version=version,
+                    load_measured_data=load_measured_data,
+                )
             elif version in MDF4_VERSIONS:
-                self._file = MDF4(version=version,
-                                  load_measured_data=load_measured_data)
+                self._file = MDF4(
+                    version=version,
+                    load_measured_data=load_measured_data,
+                )
 
         # link underlying _file attributes and methods to the new MDF object
         for attr in set(dir(self._file)) - set(dir(self)):
@@ -148,9 +152,11 @@ class MDF(object):
 
                 if sigs:
                     source_info = 'Converted from {} to {}'
-                    out.append(sigs,
-                               source_info.format(self.version, to),
-                               common_timebase=True)
+                    out.append(
+                        sigs,
+                        source_info.format(self.version, to),
+                        common_timebase=True,
+                    )
             return out
 
     def cut(self, start=None, stop=None, whence=0):
@@ -175,17 +181,21 @@ class MDF(object):
             new MDF object
 
         """
-        out = MDF(version=self.version,
-                  load_measured_data=self.load_measured_data)
+        out = MDF(
+            version=self.version,
+            load_measured_data=self.load_measured_data,
+        )
 
         if whence == 1:
             timestamps = []
             for i, _ in enumerate(self.groups):
                 master_index = self.masters_db.get(i, None)
                 if master_index is not None:
-                    master = self.get(group=i,
-                                      index=master_index,
-                                      samples_only=True)
+                    master = self.get(
+                        group=i,
+                        index=master_index,
+                        samples_only=True,
+                    )
                     if len(master):
                         timestamps.append(master[0])
             first_timestamp = np.amin(timestamps)
@@ -204,9 +214,11 @@ class MDF(object):
             for j, _ in enumerate(gp['channels']):
                 if j in excluded_channels:
                     continue
-                sig = self.get(group=i,
-                               index=j,
-                               data=data).cut(start=start, stop=stop)
+                sig = self.get(
+                    group=i,
+                    index=j,
+                    data=data
+                ).cut(start=start, stop=stop)
                 sigs.append(sig)
 
             if sigs:
@@ -218,9 +230,11 @@ class MDF(object):
                     stop_ = '{}s'.format(stop)
                 else:
                     stop_ = 'end of measurement'
-                out.append(sigs,
-                           'Cut from {} to {}'.format(start_, stop_),
-                           common_timebase=True)
+                out.append(
+                    sigs,
+                    'Cut from {} to {}'.format(start_, stop_),
+                    common_timebase=True,
+                )
         return out
 
     def export(self, fmt, filename=None):
@@ -424,15 +438,19 @@ class MDF(object):
                         channel_name = master.format(i, ch.name)
                     else:
                         channel_name = channel.format(i, ch.name)
-                    mdict[channel_name] = self.get(group=i,
-                                                   index=j,
-                                                   samples_only=True,
-                                                   data=data)
+                    mdict[channel_name] = self.get(
+                        group=i,
+                        index=j,
+                        samples_only=True,
+                        data=data,
+                    )
 
-            savemat(name,
-                    mdict,
-                    long_field_names=True,
-                    do_compression=True)
+            savemat(
+                name,
+                mdict,
+                long_field_names=True,
+                do_compression=True,
+            )
 
     def filter(self, channels):
         """ return new *MDF* object that contains only the channels listed in
@@ -464,8 +482,10 @@ class MDF(object):
                 warn(message.format(ch))
                 continue
 
-        mdf = MDF(version=self.version,
-                  load_measured_data=self.load_measured_data)
+        mdf = MDF(
+            version=self.version,
+            load_measured_data=self.load_measured_data,
+        )
 
         # append filtered channels to new MDF
         for group in gps:
@@ -480,9 +500,11 @@ class MDF(object):
                 else:
                     origin = 'New MDF'
                 source = 'Signals filtered from <{}>'.format(origin)
-                mdf.append(sigs,
-                           source,
-                           common_timebase=True)
+                mdf.append(
+                    sigs,
+                    source,
+                    common_timebase=True,
+                )
 
         return mdf
 
@@ -523,8 +545,10 @@ class MDF(object):
                            "difference in number of data groups")
                 raise MdfException(message)
 
-            merged = MDF(version=outversion,
-                         load_measured_data=load_measured_data)
+            merged = MDF(
+                version=outversion,
+                load_measured_data=load_measured_data,
+            )
 
             for i, groups in enumerate(zip(*(file.groups for file in files))):
                 channels_nr = set(len(group['channels']) for group in groups)
@@ -537,7 +561,10 @@ class MDF(object):
                 mdf = files[0]
                 excluded_channels = mdf._excluded_channels(i)
 
-                groups_data = [files[index]._load_group_data(grp) for index, grp in enumerate(groups)]
+                groups_data = [
+                    files[index]._load_group_data(grp)
+                    for index, grp in enumerate(groups)
+                ]
 
                 group_channels = [group['channels'] for group in groups]
                 for j, channels in enumerate(zip(*group_channels)):
@@ -549,7 +576,10 @@ class MDF(object):
                     if j in excluded_channels:
                         continue
 
-                    sigs = [file.get(group=i, index=j, data=data) for file, data in zip(files, groups_data)]
+                    sigs = [
+                        file.get(group=i, index=j, data=data)
+                        for file, data in zip(files, groups_data)
+                    ]
 
                     sig = sigs[0]
                     for s in sigs[1:]:
@@ -577,19 +607,23 @@ class MDF(object):
                 data = self._load_group_data(gp)
                 master_index = self.masters_db[i]
                 master_name = gp['channels'][master_index].name
-                master = self.get(group=i,
-                                  index=master_index,
-                                  samples_only=True,
-                                  data=data)
+                master = self.get(
+                    group=i,
+                    index=master_index,
+                    samples_only=True,
+                    data=data,
+                )
                 pandas_dict = {master_name: master}
                 for j, _ in (gp['channels']):
                     if j == master_index:
                         continue
                     name = gp['channels'][j].name
-                    pandas_dict[name] = self.get(group=i,
-                                                 index=j,
-                                                 samples_only=True,
-                                                 data=data)
+                    pandas_dict[name] = self.get(
+                        group=i,
+                        index=j,
+                        samples_only=True,
+                        data=data,
+                    )
                 yield DataFrame.from_dict(pandas_dict)
 
 
