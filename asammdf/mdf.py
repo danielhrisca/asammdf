@@ -246,20 +246,23 @@ class MDF(object):
         fmt : string
             can be one of the following:
 
-                * *csv* : CSV export that uses the ";" delimiter. This option
+                * `csv` : CSV export that uses the ";" delimiter. This option
                 will generate a new csv file for each data group
-                (<MDFNAME>_DataGroup_XX.csv).
-                * *hdf5* : HDF5 file output; each *MDF* data group is mapped to
-                a *HDF5* group with the name 'DataGroup_xx'
-                (where xx is the index)
-                * *excel* : Excel file output (very slow). This option will
+                (<MDFNAME>_DataGroup_<cntr>.csv)
+
+                * `hdf5` : HDF5 file output; each *MDF* data group is mapped to
+                a *HDF5* group with the name 'DataGroup_<cntr>'
+                (where <cntr> is the index)
+
+                * `excel` : Excel file output (very slow). This option will
                 generate a new excel file for each data group
-                (<MDFNAME>_DataGroup_XX.xlsx)
-                * *mat* : Matlab .mat version 5 export, for Matlab >= 7.6. In
+                (<MDFNAME>_DataGroup_<cntr>.xlsx)
+
+                * `mat` : Matlab .mat version 5 export, for Matlab >= 7.6. In
                 the mat file the channels will be renamed to
-                'DataGroup_xx_<channel name>'. The channel group master will be
-                renamed to 'DataGroup_xx_<channel name>_master'
-                ( *xx* is the data group index starting from 0).
+                'DataGroup_<cntr>_<channel name>'. The channel group master will
+                be renamed to 'DataGroup_<cntr>_<channel name>_master'
+                ( *<cntr>* is the data group index starting from 0)
 
         filename : string
             export file name
