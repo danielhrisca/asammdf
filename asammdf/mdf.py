@@ -627,7 +627,7 @@ class MDF(object):
                 yield DataFrame.from_dict(pandas_dict)
 
     def select(self, channels):
-        """ yields the channels listed in *channels* argument
+        """ return the channels listed in *channels* argument
 
         Parameters
         ----------
@@ -636,8 +636,8 @@ class MDF(object):
 
         Returns
         -------
-        signals : generator
-            Signal objects based on the input channel list
+        signals : list
+            lsit of *Signal* objects based on the input channel list
 
         """
 
@@ -656,12 +656,17 @@ class MDF(object):
                 continue
 
         # append filtered channels to new MDF
+        signals = {}
         for group in gps:
             grp = self.groups[group]
             data = self._load_group_data(grp)
             for index in gps[group]:
-                yield self.get(group=group, index=index, data=data)
+                signal = self.get(group=group, index=index, data=data)
+                signals[signal.name] = signal
+        
+        signals = [signals[channel] for channel in channels]
 
+        return signals
 
 if __name__ == '__main__':
     pass
