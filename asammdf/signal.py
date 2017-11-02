@@ -296,16 +296,13 @@ class Signal(object):
                 stop_ = np.searchsorted(self.timestamps, stop, side='right')
                 if stop_ == start_:
 
-                    conditions = (
-                        len(self.timestamps),
-                        stop >= self.timestamps[0],
-                        start <= self.timestamps[-1],
-                    )
-                    if all(conditions):
+                    if len(self.timestamps) and \
+                            stop >= self.timestamps[0] and \
+                            start <= self.timestamps[-1]:
                         # start and stop are found between 2 signal samples
                         # so return the previous sample
-                        result = Signal(self.samples[start_ - 1: start_],
-                                        self.timestamps[start_ - 1: start_],
+                        result = Signal(self.samples[start_: start_ + 1],
+                                        self.timestamps[start_: start_ + 1],
                                         self.unit,
                                         self.name,
                                         self.info,
