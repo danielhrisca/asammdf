@@ -663,7 +663,7 @@ class MDF(object):
             for index in gps[group]:
                 signal = self.get(group=group, index=index, data=data)
                 signals[signal.name] = signal
-        
+
         signals = [signals[channel] for channel in channels]
 
         return signals

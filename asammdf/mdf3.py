@@ -203,8 +203,11 @@ class MDF3(object):
             elif group['data_location'] == v3c.LOCATION_TEMPORARY_FILE:
                 read_size = group['size']
                 dat_addr = group['data_group']['data_block_addr']
-                self._tempfile.seek(dat_addr, v3c.SEEK_START)
-                data = self._tempfile.read(read_size)
+                if dat_addr >= 0:
+                    self._tempfile.seek(dat_addr, v3c.SEEK_START)
+                    data = self._tempfile.read(read_size)
+                else:
+                    data = b''
         else:
             data = group['data_block']['data']
         return data
@@ -1461,12 +1464,15 @@ class MDF3(object):
                 gp['data_block'] = DataBlock(**kargs)
             else:
                 gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
-                if self._tempfile is None:
-                    self._tempfile = TemporaryFile()
-                self._tempfile.seek(0, v3c.SEEK_END)
-                data_address = self._tempfile.tell()
-                gp['data_group']['data_block_addr'] = data_address
-                self._tempfile.write(block)
+                if cycles_nr:
+                    if self._tempfile is None:
+                        self._tempfile = TemporaryFile()
+                    self._tempfile.seek(0, v3c.SEEK_END)
+                    data_address = self._tempfile.tell()
+                    gp['data_group']['data_block_addr'] = data_address
+                    self._tempfile.write(block)
+                else:
+                    gp['data_group']['data_block_addr'] = -1
 
             # data group trigger
             gp['trigger'] = [None, None]
@@ -1681,13 +1687,17 @@ class MDF3(object):
                 kargs = {'data': block}
                 gp['data_block'] = DataBlock(**kargs)
             else:
-                gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
-                if self._tempfile is None:
-                    self._tempfile = TemporaryFile()
-                self._tempfile.seek(0, v3c.SEEK_END)
-                data_address = self._tempfile.tell()
-                gp['data_group']['data_block_addr'] = data_address
-                self._tempfile.write(block)
+                if cycles_nr:
+                    gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
+                    if self._tempfile is None:
+                        self._tempfile = TemporaryFile()
+                    self._tempfile.seek(0, v3c.SEEK_END)
+                    data_address = self._tempfile.tell()
+                    gp['data_group']['data_block_addr'] = data_address
+                    self._tempfile.write(block)
+                else:
+                    gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
+                    gp['data_group']['data_block_addr'] = -1
 
             # data group trigger
             gp['trigger'] = [None, None]
@@ -2298,11 +2308,13 @@ class MDF3(object):
                 blocks.append(dg)
                 dg.address = address
                 address += dg['block_len']
-            for i, dg in enumerate(self.groups[:-1]):
-                address = self.groups[i+1]['data_group'].address
-                dg['data_group']['next_dg_addr'] = address
-            self.groups[-1]['data_group']['next_dg_addr'] = 0
 
+            if self.groups:
+                for i, dg in enumerate(self.groups[:-1]):
+                    addr = self.groups[i+1]['data_group'].address
+                    dg['data_group']['next_dg_addr'] = addr
+                self.groups[-1]['data_group']['next_dg_addr'] = 0
+                
             for gp in self.groups:
                 gp_texts = gp['texts']
 
@@ -2319,6 +2331,7 @@ class MDF3(object):
                                 tx_block.address = address
                                 blocks.append(tx_block)
                                 address += tx_block['block_len']
+                                
 
                 # ChannelConversions
                 cc = gp['channel_conversions']
@@ -2392,8 +2405,8 @@ class MDF3(object):
                 cg['next_cg_addr'] = 0
                 cg_texts = gp['texts']['channel_group'][0]
                 if 'comment_addr' in cg_texts:
-                    address = cg_texts['comment_addr'].address
-                    cg['comment_addr'] = address
+                    addr = cg_texts['comment_addr'].address
+                    cg['comment_addr'] = addr
 
                 # TriggerBLock
                 trigger, trigger_text = gp['trigger']
@@ -2426,7 +2439,7 @@ class MDF3(object):
                     # the actual addressof the data group's data within the
                     # original file
                     blocks.append([gp, original_data_addr])
-
+                    
             # update referenced channels addresses in the channel dependecies
             for gp in self.groups:
                 for dep in gp['channel_dependencies']:
