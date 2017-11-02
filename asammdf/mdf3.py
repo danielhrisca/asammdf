@@ -1914,127 +1914,141 @@ class MDF3(object):
             else:
                 conversion_type = conversion['conversion_type']
 
-            if conversion_type == v3c.CONVERSION_TYPE_NONE:
+            if cycles_nr:
 
-                if channel['data_type'] == v3c.DATA_TYPE_STRING:
-                    vals = [val.tobytes() for val in vals]
-                    vals = [x.decode('latin-1').strip(' \n\t\0') for x in vals]
-                    vals = array(vals)
-                    vals = encode(vals, 'latin-1')
+                if conversion_type == v3c.CONVERSION_TYPE_NONE:
 
-                elif channel['data_type'] == v3c.DATA_TYPE_BYTEARRAY:
-                    arrays = [vals, ]
-                    types = [(channel.name, vals.dtype, vals.shape[1:]), ]
-                    if PYVERSION == 2:
-                        types = fix_dtype_fields(types)
-                    types = dtype(types)
-                    vals = fromarrays(arrays, dtype=types)
+                    if channel['data_type'] == v3c.DATA_TYPE_STRING:
+                        vals = [val.tobytes() for val in vals]
+                        vals = [
+                            x.decode('latin-1').strip(' \n\t\0')
+                            for x in vals
+                        ]
+                        vals = array(vals)
+                        vals = encode(vals, 'latin-1')
 
-            elif conversion_type == v3c.CONVERSION_TYPE_LINEAR:
-                a = conversion['a']
-                b = conversion['b']
-                if (a, b) != (1, 0):
-                    vals = vals * a
-                    if b:
-                        vals += b
+                    elif channel['data_type'] == v3c.DATA_TYPE_BYTEARRAY:
+                        arrays = [vals, ]
+                        types = [(channel.name, vals.dtype, vals.shape[1:]), ]
+                        if PYVERSION == 2:
+                            types = fix_dtype_fields(types)
+                        types = dtype(types)
+                        vals = fromarrays(arrays, dtype=types)
 
-            elif conversion_type in (v3c.CONVERSION_TYPE_TABI,
-                                     v3c.CONVERSION_TYPE_TABX):
-                nr = conversion['ref_param_nr']
+                elif conversion_type == v3c.CONVERSION_TYPE_LINEAR:
+                    a = conversion['a']
+                    b = conversion['b']
+                    if (a, b) != (1, 0):
+                        vals = vals * a
+                        if b:
+                            vals += b
 
-                raw = [conversion['raw_{}'.format(i)] for i in range(nr)]
-                raw = array(raw)
-                phys = [conversion['phys_{}'.format(i)] for i in range(nr)]
-                phys = array(phys)
-                if conversion_type == v3c.CONVERSION_TYPE_TABI:
-                    vals = interp(vals, raw, phys)
-                else:
-                    idx = searchsorted(raw, vals)
-                    idx = clip(idx, 0, len(raw) - 1)
-                    vals = phys[idx]
+                elif conversion_type in (v3c.CONVERSION_TYPE_TABI,
+                                         v3c.CONVERSION_TYPE_TABX):
+                    nr = conversion['ref_param_nr']
 
-            elif conversion_type == v3c.CONVERSION_TYPE_VTAB:
-                nr = conversion['ref_param_nr']
-                raw = [conversion['param_val_{}'.format(i)] for i in range(nr)]
-                raw = array(raw)
-                phys = [conversion['text_{}'.format(i)] for i in range(nr)]
-                phys = array(phys)
-                info = {'raw': raw, 'phys': phys}
-
-            elif conversion_type == v3c.CONVERSION_TYPE_VTABR:
-                nr = conversion['ref_param_nr']
-
-                conv_texts = grp['texts']['conversion_tab'][ch_nr]
-                texts = []
-                for i in range(nr):
-                    key = 'text_{}'.format(i),
-                    if key in conv_texts:
-                        text = conv_texts[key].get('text', b'')
-                        texts.append(text)
+                    raw = [conversion['raw_{}'.format(i)] for i in range(nr)]
+                    raw = array(raw)
+                    phys = [conversion['phys_{}'.format(i)] for i in range(nr)]
+                    phys = array(phys)
+                    if conversion_type == v3c.CONVERSION_TYPE_TABI:
+                        vals = interp(vals, raw, phys)
                     else:
-                        texts.append(b'')
+                        idx = searchsorted(raw, vals)
+                        idx = clip(idx, 0, len(raw) - 1)
+                        vals = phys[idx]
 
-                texts = array(texts)
-                lower = [conversion['lower_{}'.format(i)] for i in range(nr)]
-                lower = array(lower)
-                upper = [conversion['upper_{}'.format(i)] for i in range(nr)]
-                upper = array(upper)
-                info = {'lower': lower, 'upper': upper, 'phys': texts}
+                elif conversion_type == v3c.CONVERSION_TYPE_VTAB:
+                    nr = conversion['ref_param_nr']
+                    raw = [
+                        conversion['param_val_{}'.format(i)]
+                        for i in range(nr)
+                    ]
+                    raw = array(raw)
+                    phys = [conversion['text_{}'.format(i)] for i in range(nr)]
+                    phys = array(phys)
+                    info = {'raw': raw, 'phys': phys}
 
-            elif conversion_type in (v3c.CONVERSION_TYPE_EXPO,
-                                     v3c.CONVERSION_TYPE_LOGH):
-                if conversion_type == v3c.CONVERSION_TYPE_EXPO:
-                    func = log
-                else:
-                    func = exp
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                P7 = conversion['P7']
-                if P4 == 0:
-                    vals = func(((vals - P7) * P6 - P3) / P1) / P2
-                elif P1 == 0:
-                    vals = func((P3 / (vals - P7) - P6) / P4) / P5
-                else:
-                    message = 'wrong conversion {}'.format(conversion_type)
-                    raise ValueError(message)
+                elif conversion_type == v3c.CONVERSION_TYPE_VTABR:
+                    nr = conversion['ref_param_nr']
 
-            elif conversion_type == v3c.CONVERSION_TYPE_RAT:
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
+                    conv_texts = grp['texts']['conversion_tab'][ch_nr]
+                    texts = []
+                    for i in range(nr):
+                        key = 'text_{}'.format(i),
+                        if key in conv_texts:
+                            text = conv_texts[key].get('text', b'')
+                            texts.append(text)
+                        else:
+                            texts.append(b'')
+
+                    texts = array(texts)
+                    lower = [
+                        conversion['lower_{}'.format(i)]
+                        for i in range(nr)
+                    ]
+                    lower = array(lower)
+                    upper = [
+                        conversion['upper_{}'.format(i)]
+                        for i in range(nr)
+                    ]
+                    upper = array(upper)
+                    info = {'lower': lower, 'upper': upper, 'phys': texts}
+
+                elif conversion_type in (v3c.CONVERSION_TYPE_EXPO,
+                                         v3c.CONVERSION_TYPE_LOGH):
+                    if conversion_type == v3c.CONVERSION_TYPE_EXPO:
+                        func = log
+                    else:
+                        func = exp
+                    P1 = conversion['P1']
+                    P2 = conversion['P2']
+                    P3 = conversion['P3']
+                    P4 = conversion['P4']
+                    P5 = conversion['P5']
+                    P6 = conversion['P6']
+                    P7 = conversion['P7']
+                    if P4 == 0:
+                        vals = func(((vals - P7) * P6 - P3) / P1) / P2
+                    elif P1 == 0:
+                        vals = func((P3 / (vals - P7) - P6) / P4) / P5
+                    else:
+                        message = 'wrong conversion {}'.format(conversion_type)
+                        raise ValueError(message)
+
+                elif conversion_type == v3c.CONVERSION_TYPE_RAT:
+                    P1 = conversion['P1']
+                    P2 = conversion['P2']
+                    P3 = conversion['P3']
+                    P4 = conversion['P4']
+                    P5 = conversion['P5']
+                    P6 = conversion['P6']
+                    if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
+                        X = vals
+                        vals = evaluate(v3c.RAT_CONV_TEXT)
+
+                elif conversion_type == v3c.CONVERSION_TYPE_POLY:
+                    P1 = conversion['P1']
+                    P2 = conversion['P2']
+                    P3 = conversion['P3']
+                    P4 = conversion['P4']
+                    P5 = conversion['P5']
+                    P6 = conversion['P6']
+
                     X = vals
-                    vals = evaluate(v3c.RAT_CONV_TEXT)
 
-            elif conversion_type == v3c.CONVERSION_TYPE_POLY:
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
+                    coefs = (P2, P3, P5, P6)
+                    if coefs == (0, 0, 0, 0):
+                        if P1 != P4:
+                            vals = evaluate(v3c.POLY_CONV_SHORT_TEXT)
+                    else:
+                        vals = evaluate(v3c.POLY_CONV_LONG_TEXT)
 
-                X = vals
-
-                coefs = (P2, P3, P5, P6)
-                if coefs == (0, 0, 0, 0):
-                    if P1 != P4:
-                        vals = evaluate(v3c.POLY_CONV_SHORT_TEXT)
-                else:
-                    vals = evaluate(v3c.POLY_CONV_LONG_TEXT)
-
-            elif conversion_type == v3c.CONVERSION_TYPE_FORMULA:
-                formula = conversion['formula'].decode('latin-1')
-                formula = formula.strip(' \n\t\0')
-                X1 = vals
-                vals = evaluate(formula)
+                elif conversion_type == v3c.CONVERSION_TYPE_FORMULA:
+                    formula = conversion['formula'].decode('latin-1')
+                    formula = formula.strip(' \n\t\0')
+                    X1 = vals
+                    vals = evaluate(formula)
 
         if samples_only:
             res = vals

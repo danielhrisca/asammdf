@@ -2251,6 +2251,7 @@ class MDF4(object):
         channel = grp['channels'][ch_nr]
         conversion = grp['channel_conversions'][ch_nr]
         dependency_list = grp['channel_dependencies'][ch_nr]
+        cycles_nr = grp['channel_group']['cycles_nr']
 
         # get data group record
         try:
@@ -2430,8 +2431,8 @@ class MDF4(object):
                                            v4c.CHANNEL_TYPE_VIRTUAL_MASTER):
                 data_type = channel['data_type']
                 ch_dtype = dtype(get_fmt(data_type, 8))
-                cycles = grp['channel_group']['cycles_nr']
-                vals = arange(cycles, dtype=ch_dtype)
+
+                vals = arange(cycles_nr, dtype=ch_dtype)
             else:
                 try:
                     parent, bit_offset = parents[ch_nr]
@@ -2478,319 +2479,322 @@ class MDF4(object):
                 else:
                     vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 
-            if conversion is None:
-                conversion_type = v4c.CONVERSION_TYPE_NON
-            else:
-                conversion_type = conversion['conversion_type']
+            if cycles_nr:
+                if conversion is None:
+                    conversion_type = v4c.CONVERSION_TYPE_NON
+                else:
+                    conversion_type = conversion['conversion_type']
 
-            if conversion_type == v4c.CONVERSION_TYPE_NON:
-                # check if it is VLDS channel type with SDBLOCK
-                data_type = channel['data_type']
-                channel_type = channel['channel_type']
+                if conversion_type == v4c.CONVERSION_TYPE_NON:
+                    # check if it is VLDS channel type with SDBLOCK
+                    data_type = channel['data_type']
+                    channel_type = channel['channel_type']
 
-                if channel_type in (v4c.CHANNEL_TYPE_VALUE,
-                                    v4c.CHANNEL_TYPE_MLSD):
-                    if v4c.DATA_TYPE_STRING_LATIN_1 <= data_type <= v4c.DATA_TYPE_STRING_UTF_16_BE:
-                        vals = [val.tobytes() for val in vals]
+                    if channel_type in (v4c.CHANNEL_TYPE_VALUE,
+                                        v4c.CHANNEL_TYPE_MLSD):
+                        if v4c.DATA_TYPE_STRING_LATIN_1 \
+                                <= data_type \
+                                <= v4c.DATA_TYPE_STRING_UTF_16_BE:
+                            vals = [val.tobytes() for val in vals]
 
-                        if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                            encoding = 'utf-16-be'
+                            if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                                encoding = 'utf-16-be'
 
-                        elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                            encoding = 'utf-16-le'
+                            elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                                encoding = 'utf-16-le'
 
-                        elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                            encoding = 'utf-8'
+                            elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                                encoding = 'utf-8'
 
-                        elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                            encoding = 'latin-1'
+                            elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                                encoding = 'latin-1'
 
-                        vals = array(
-                            [x.decode(encoding).strip('\0') for x in vals]
-                        )
-                        vals = encode(vals, 'latin-1')
+                            vals = array(
+                                [x.decode(encoding).strip('\0') for x in vals]
+                            )
+                            vals = encode(vals, 'latin-1')
 
-                    # CANopen date
-                    elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
+                        # CANopen date
+                        elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
 
-                        vals = vals.tostring()
+                            vals = vals.tostring()
 
-                        types = dtype(
-                            [('ms', '<u2'),
-                             ('min', '<u1'),
-                             ('hour', '<u1'),
-                             ('day', '<u1'),
-                             ('month', '<u1'),
-                             ('year', '<u1')]
-                        )
-                        dates = fromstring(vals, types)
+                            types = dtype(
+                                [('ms', '<u2'),
+                                 ('min', '<u1'),
+                                 ('hour', '<u1'),
+                                 ('day', '<u1'),
+                                 ('month', '<u1'),
+                                 ('year', '<u1')]
+                            )
+                            dates = fromstring(vals, types)
 
-                        arrays = []
-                        arrays.append(dates['ms'])
-                        # bit 6 and 7 of minutes are reserved
-                        arrays.append(dates['min'] & 0x3F)
-                        # only firt 4 bits of hour are used
-                        arrays.append(dates['hour'] & 0xF)
-                        # the first 4 bits are the day number
-                        arrays.append(dates['day'] & 0xF)
-                        # bit 6 and 7 of month are reserved
-                        arrays.append(dates['month'] & 0x3F)
-                        # bit 7 of year is reserved
-                        arrays.append(dates['year'] & 0x7F)
-                        # add summer or standard time information for hour
-                        arrays.append((dates['hour'] & 0x80) >> 7)
-                        # add day of week information
-                        arrays.append((dates['day'] & 0xF0) >> 4)
+                            arrays = []
+                            arrays.append(dates['ms'])
+                            # bit 6 and 7 of minutes are reserved
+                            arrays.append(dates['min'] & 0x3F)
+                            # only firt 4 bits of hour are used
+                            arrays.append(dates['hour'] & 0xF)
+                            # the first 4 bits are the day number
+                            arrays.append(dates['day'] & 0xF)
+                            # bit 6 and 7 of month are reserved
+                            arrays.append(dates['month'] & 0x3F)
+                            # bit 7 of year is reserved
+                            arrays.append(dates['year'] & 0x7F)
+                            # add summer or standard time information for hour
+                            arrays.append((dates['hour'] & 0x80) >> 7)
+                            # add day of week information
+                            arrays.append((dates['day'] & 0xF0) >> 4)
 
-                        names = [
-                            'ms',
-                            'min',
-                            'hour',
-                            'day',
-                            'month',
-                            'year',
-                            'summer_time',
-                            'day_of_week',
-                        ]
-                        vals = fromarrays(arrays, names=names)
+                            names = [
+                                'ms',
+                                'min',
+                                'hour',
+                                'day',
+                                'month',
+                                'year',
+                                'summer_time',
+                                'day_of_week',
+                            ]
+                            vals = fromarrays(arrays, names=names)
 
-                    # CANopen time
-                    elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
-                        vals = vals.tostring()
+                        # CANopen time
+                        elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
+                            vals = vals.tostring()
 
-                        types = dtype(
-                            [('ms', '<u4'),
-                             ('days', '<u2')]
-                        )
-                        dates = fromstring(vals, types)
+                            types = dtype(
+                                [('ms', '<u4'),
+                                 ('days', '<u2')]
+                            )
+                            dates = fromstring(vals, types)
 
-                        arrays = []
-                        # bits 28 to 31 are reserverd for ms
-                        arrays.append(dates['ms'] & 0xFFFFFFF)
-                        arrays.append(dates['days'] & 0x3F)
+                            arrays = []
+                            # bits 28 to 31 are reserverd for ms
+                            arrays.append(dates['ms'] & 0xFFFFFFF)
+                            arrays.append(dates['days'] & 0x3F)
 
-                        names = ['ms', 'days']
-                        vals = fromarrays(arrays, names=names)
+                            names = ['ms', 'days']
+                            vals = fromarrays(arrays, names=names)
 
-                    # byte array
-                    elif data_type == v4c.DATA_TYPE_BYTEARRAY:
-                        vals = vals.tostring()
-                        size = max(bits >> 3, 1)
+                        # byte array
+                        elif data_type == v4c.DATA_TYPE_BYTEARRAY:
+                            vals = vals.tostring()
+                            size = max(bits >> 3, 1)
 
-                        vals = frombuffer(
-                            vals,
-                            dtype=dtype('({},)u1'.format(size)),
-                        )
-
-                        types = [(channel.name, vals.dtype, vals.shape[1:])]
-                        if PYVERSION == 2:
-                            types = fix_dtype_fields(types)
-
-                        types = dtype(types)
-                        arrays = [vals, ]
-
-                        vals = fromarrays(arrays, dtype=types)
-
-                elif channel_type == v4c.CHANNEL_TYPE_VLSD:
-                    if signal_data:
-                        values = []
-                        for offset in vals:
-                            offset = int(offset)
-                            str_size = unpack_from('<I', signal_data, offset)[0]
-                            values.append(
-                                signal_data[offset+4: offset+4+str_size]
+                            vals = frombuffer(
+                                vals,
+                                dtype=dtype('({},)u1'.format(size)),
                             )
 
-                        if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                            vals = [v.decode('utf-16-be') for v in values]
+                            types = [(channel.name, vals.dtype, vals.shape[1:])]
+                            if PYVERSION == 2:
+                                types = fix_dtype_fields(types)
 
-                        elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                            vals = [v.decode('utf-16-le') for v in values]
+                            types = dtype(types)
+                            arrays = [vals, ]
 
-                        elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                            vals = [v.decode('utf-8') for v in values]
+                            vals = fromarrays(arrays, dtype=types)
 
-                        elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                            vals = [v.decode('latin-1') for v in values]
+                    elif channel_type == v4c.CHANNEL_TYPE_VLSD:
+                        if signal_data:
+                            values = []
+                            for offset in vals:
+                                offset = int(offset)
+                                str_size = unpack_from('<I', signal_data, offset)[0]
+                                values.append(
+                                    signal_data[offset+4: offset+4+str_size]
+                                )
 
-                        if PYVERSION == 2:
-                            vals = array([str(val) for val in vals])
+                            if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                                vals = [v.decode('utf-16-be') for v in values]
+
+                            elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                                vals = [v.decode('utf-16-le') for v in values]
+
+                            elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                                vals = [v.decode('utf-8') for v in values]
+
+                            elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                                vals = [v.decode('latin-1') for v in values]
+
+                            if PYVERSION == 2:
+                                vals = array([str(val) for val in vals])
+                            else:
+                                vals = array(vals)
+
+                            vals = encode(vals, 'latin-1')
                         else:
-                            vals = array(vals)
+                            # no VLSD signal data samples
+                            vals = array([])
 
-                        vals = encode(vals, 'latin-1')
-                    else:
-                        # no VLSD signal data samples
-                        vals = array([])
+                elif conversion_type == v4c.CONVERSION_TYPE_LIN:
+                    a = conversion['a']
+                    b = conversion['b']
+                    if (a, b) != (1, 0):
+                        vals = vals * a
+                        if b:
+                            vals += b
 
-            elif conversion_type == v4c.CONVERSION_TYPE_LIN:
-                a = conversion['a']
-                b = conversion['b']
-                if (a, b) != (1, 0):
-                    vals = vals * a
-                    if b:
-                        vals += b
+                elif conversion_type == v4c.CONVERSION_TYPE_RAT:
+                    P1 = conversion['P1']
+                    P2 = conversion['P2']
+                    P3 = conversion['P3']
+                    P4 = conversion['P4']
+                    P5 = conversion['P5']
+                    P6 = conversion['P6']
+                    if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
+                        X = vals
+                        vals = evaluate(v4c.CONV_RAT_TEXT)
 
-            elif conversion_type == v4c.CONVERSION_TYPE_RAT:
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
+                elif conversion_type == v4c.CONVERSION_TYPE_ALG:
+                    block = grp['texts']['conversions'][ch_nr]['formula_addr']
+                    formula = block['text'].decode('utf-8').strip(' \n\t\0')
                     X = vals
-                    vals = evaluate(v4c.CONV_RAT_TEXT)
+                    vals = evaluate(formula)
 
-            elif conversion_type == v4c.CONVERSION_TYPE_ALG:
-                block = grp['texts']['conversions'][ch_nr]['formula_addr']
-                formula = block['text'].decode('utf-8').strip(' \n\t\0')
-                X = vals
-                vals = evaluate(formula)
-
-            elif conversion_type in (v4c.CONVERSION_TYPE_TABI,
-                                     v4c.CONVERSION_TYPE_TAB):
-                nr = conversion['val_param_nr'] // 2
-                raw = array(
-                    [conversion['raw_{}'.format(i)] for i in range(nr)]
-                )
-                phys = array(
-                    [conversion['phys_{}'.format(i)] for i in range(nr)]
-                )
-                if conversion_type == v4c.CONVERSION_TYPE_TABI:
-                    vals = interp(vals, raw, phys)
-                else:
-                    idx = searchsorted(raw, vals)
-                    idx = clip(idx, 0, len(raw) - 1)
-                    vals = phys[idx]
-
-            elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
-                nr = (conversion['val_param_nr'] - 1) // 3
-                lower = array(
-                    [conversion['lower_{}'.format(i)] for i in range(nr)]
-                )
-                upper = array(
-                    [conversion['upper_{}'.format(i)] for i in range(nr)]
-                )
-                phys = array(
-                    [conversion['phys_{}'.format(i)] for i in range(nr)]
-                )
-                default = conversion['default']
-
-                # INT channel
-                if channel['data_type'] <= 3:
-
-                    res = []
-                    for v in vals:
-                        for l, u, p in zip(lower, upper, phys):
-                            if l <= v <= u:
-                                res.append(p)
-                                break
-                        else:
-                            res.append(default)
-                    size = max(bits >> 3, 1)
-                    ch_fmt = get_fmt(channel['data_type'], size)
-                    vals = array(res).astype(ch_fmt)
-
-                # else FLOAT channel
-                else:
-                    res = []
-                    for v in vals:
-                        for l, u, p in zip(lower, upper, phys):
-                            if l <= v < u:
-                                res.append(p)
-                                break
-                        else:
-                            res.append(default)
-                    size = max(bits >> 3, 1)
-                    ch_fmt = get_fmt(channel['data_type'], size)
-                    vals = array(res).astype(ch_fmt)
-
-            elif conversion_type == v4c.CONVERSION_TYPE_TABX:
-                nr = conversion['val_param_nr']
-                raw = array(
-                    [conversion['val_{}'.format(i)] for i in range(nr)]
-                )
-                phys = array(
-                    [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
-                     for i in range(nr)]
-                )
-                default = grp['texts']['conversion_tab'][ch_nr]\
-                    .get('default_addr', {})\
-                    .get('text', b'')
-                info = {
-                    'raw': raw,
-                    'phys': phys,
-                    'default': default,
-                }
-
-            elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-                nr = conversion['val_param_nr'] // 2
-
-                phys = array(
-                    [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
-                     for i in range(nr)]
-                )
-                lower = array(
-                    [conversion['lower_{}'.format(i)] for i in range(nr)]
-                )
-                upper = array(
-                    [conversion['upper_{}'.format(i)] for i in range(nr)]
-                )
-                default = grp['texts']['conversion_tab'][ch_nr]\
-                    .get('default_addr', {})\
-                    .get('text', b'')
-                info = {
-                    'lower': lower,
-                    'upper': upper,
-                    'phys': phys,
-                    'default': default,
-                }
-
-            elif conversion == v4c.CONVERSION_TYPE_TTAB:
-                nr = conversion['val_param_nr'] - 1
-
-                raw = array(
-                    [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
-                     for i in range(nr)]
-                )
-                phys = array(
-                    [conversion['val_{}'.format(i)] for i in range(nr)]
-                )
-                default = conversion['val_default']
-                info = {
-                    'lower': lower,
-                    'upper': upper,
-                    'phys': phys,
-                    'default': default,
-                }
-
-            elif conversion == v4c.CONVERSION_TYPE_TRANS:
-                nr = (conversion['ref_param_nr'] - 1) // 2
-                in_ = array(
-                    [grp['texts']['conversion_tab'][ch_nr]['input_{}'.format(i)]['text']
-                     for i in range(nr)]
-                )
-                out_ = array(
-                    [grp['texts']['conversion_tab'][ch_nr]['output_{}'.format(i)]['text']
-                     for i in range(nr)]
-                )
-                default = grp['texts']['conversion_tab'][ch_nr]['default_addr']['text']
-
-                res = []
-                for v in vals:
-                    for i, o in zip(in_, out_):
-                        if v == i:
-                            res.append(o)
-                            break
+                elif conversion_type in (v4c.CONVERSION_TYPE_TABI,
+                                         v4c.CONVERSION_TYPE_TAB):
+                    nr = conversion['val_param_nr'] // 2
+                    raw = array(
+                        [conversion['raw_{}'.format(i)] for i in range(nr)]
+                    )
+                    phys = array(
+                        [conversion['phys_{}'.format(i)] for i in range(nr)]
+                    )
+                    if conversion_type == v4c.CONVERSION_TYPE_TABI:
+                        vals = interp(vals, raw, phys)
                     else:
-                        res.append(default)
-                vals = array(res)
-                info = {
-                    'input': in_,
-                    'output': out_,
-                    'default': default,
-                }
+                        idx = searchsorted(raw, vals)
+                        idx = clip(idx, 0, len(raw) - 1)
+                        vals = phys[idx]
+
+                elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
+                    nr = (conversion['val_param_nr'] - 1) // 3
+                    lower = array(
+                        [conversion['lower_{}'.format(i)] for i in range(nr)]
+                    )
+                    upper = array(
+                        [conversion['upper_{}'.format(i)] for i in range(nr)]
+                    )
+                    phys = array(
+                        [conversion['phys_{}'.format(i)] for i in range(nr)]
+                    )
+                    default = conversion['default']
+
+                    # INT channel
+                    if channel['data_type'] <= 3:
+
+                        res = []
+                        for v in vals:
+                            for l, u, p in zip(lower, upper, phys):
+                                if l <= v <= u:
+                                    res.append(p)
+                                    break
+                            else:
+                                res.append(default)
+                        size = max(bits >> 3, 1)
+                        ch_fmt = get_fmt(channel['data_type'], size)
+                        vals = array(res).astype(ch_fmt)
+
+                    # else FLOAT channel
+                    else:
+                        res = []
+                        for v in vals:
+                            for l, u, p in zip(lower, upper, phys):
+                                if l <= v < u:
+                                    res.append(p)
+                                    break
+                            else:
+                                res.append(default)
+                        size = max(bits >> 3, 1)
+                        ch_fmt = get_fmt(channel['data_type'], size)
+                        vals = array(res).astype(ch_fmt)
+
+                elif conversion_type == v4c.CONVERSION_TYPE_TABX:
+                    nr = conversion['val_param_nr']
+                    raw = array(
+                        [conversion['val_{}'.format(i)] for i in range(nr)]
+                    )
+                    phys = array(
+                        [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
+                         for i in range(nr)]
+                    )
+                    default = grp['texts']['conversion_tab'][ch_nr]\
+                        .get('default_addr', {})\
+                        .get('text', b'')
+                    info = {
+                        'raw': raw,
+                        'phys': phys,
+                        'default': default,
+                    }
+
+                elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
+                    nr = conversion['val_param_nr'] // 2
+
+                    phys = array(
+                        [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
+                         for i in range(nr)]
+                    )
+                    lower = array(
+                        [conversion['lower_{}'.format(i)] for i in range(nr)]
+                    )
+                    upper = array(
+                        [conversion['upper_{}'.format(i)] for i in range(nr)]
+                    )
+                    default = grp['texts']['conversion_tab'][ch_nr]\
+                        .get('default_addr', {})\
+                        .get('text', b'')
+                    info = {
+                        'lower': lower,
+                        'upper': upper,
+                        'phys': phys,
+                        'default': default,
+                    }
+
+                elif conversion == v4c.CONVERSION_TYPE_TTAB:
+                    nr = conversion['val_param_nr'] - 1
+
+                    raw = array(
+                        [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
+                         for i in range(nr)]
+                    )
+                    phys = array(
+                        [conversion['val_{}'.format(i)] for i in range(nr)]
+                    )
+                    default = conversion['val_default']
+                    info = {
+                        'lower': lower,
+                        'upper': upper,
+                        'phys': phys,
+                        'default': default,
+                    }
+
+                elif conversion == v4c.CONVERSION_TYPE_TRANS:
+                    nr = (conversion['ref_param_nr'] - 1) // 2
+                    in_ = array(
+                        [grp['texts']['conversion_tab'][ch_nr]['input_{}'.format(i)]['text']
+                         for i in range(nr)]
+                    )
+                    out_ = array(
+                        [grp['texts']['conversion_tab'][ch_nr]['output_{}'.format(i)]['text']
+                         for i in range(nr)]
+                    )
+                    default = grp['texts']['conversion_tab'][ch_nr]['default_addr']['text']
+
+                    res = []
+                    for v in vals:
+                        for i, o in zip(in_, out_):
+                            if v == i:
+                                res.append(o)
+                                break
+                        else:
+                            res.append(default)
+                    vals = array(res)
+                    info = {
+                        'input': in_,
+                        'output': out_,
+                        'default': default,
+                    }
 
         # in case of invalidation bits, valid_index will hold the valid indexes
         valid_index = None
