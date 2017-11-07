@@ -55,7 +55,7 @@ class AttachmentBlock(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -159,10 +159,10 @@ class Channel(dict):
 
         self.name = ''
 
-        if 'file_stream' in kargs:
+        if 'stream' in kargs:
 
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -174,6 +174,7 @@ class Channel(dict):
             block = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
             links_nr = self['links_nr']
+
 
             links = unpack_from('<{}Q'.format(links_nr), block)
             params = unpack_from(v4c.FMT_CHANNEL_PARAMS, block, links_nr * 8)
@@ -248,6 +249,7 @@ class Channel(dict):
             self['upper_limit'] = kargs.get('upper_limit', 100)
             self['lower_ext_limit'] = kargs.get('lower_ext_limit', 0)
             self['upper_ext_limit'] = kargs.get('upper_ext_limit', 0)
+
 
     def __bytes__(self):
 
@@ -324,7 +326,7 @@ class ChannelArrayBlock(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -536,7 +538,7 @@ class ChannelGroup(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -593,9 +595,9 @@ class ChannelConversion(dict):
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
 
-        if 'file_stream' in kargs:
+        if 'stream' in kargs:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -1018,7 +1020,7 @@ class DataBlock(dict):
     ----------
     address : int
         DTBLOCK address inside the file
-    file_stream : int
+    stream : int
         file handle
 
     """
@@ -1028,7 +1030,7 @@ class DataBlock(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -1062,7 +1064,7 @@ class DataZippedBlock(dict):
     ----------
     address : int
         DTBLOCK address inside the file
-    file_stream : int
+    stream : int
         file handle
 
     """
@@ -1073,7 +1075,7 @@ class DataZippedBlock(dict):
         self.prevent_data_setitem = True
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -1169,7 +1171,7 @@ class DataGroup(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -1213,7 +1215,7 @@ class DataList(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -1288,7 +1290,7 @@ class FileIdentificationBlock(dict):
 
         try:
 
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(self.address, SEEK_START)
 
             (self['file_identification'],
@@ -1334,7 +1336,7 @@ class FileHistory(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -1378,7 +1380,7 @@ class HeaderBlock(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -1441,7 +1443,7 @@ class HeaderList(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -1481,9 +1483,9 @@ class SourceInformation(dict):
     def __init__(self, **kargs):
         super(SourceInformation, self).__init__()
 
-        if 'file_stream' in kargs:
+        if 'stream' in kargs:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -1528,7 +1530,7 @@ class SignalDataBlock(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(address, SEEK_START)
 
             (self['id'],
@@ -1568,8 +1570,8 @@ class TextBlock(dict):
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
 
-        if 'file_stream' in kargs:
-            stream = kargs['file_stream']
+        if 'stream' in kargs:
+            stream = kargs['stream']
             self.address = address = kargs['address']
 
             stream.seek(address, SEEK_START)

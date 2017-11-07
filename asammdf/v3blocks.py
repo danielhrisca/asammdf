@@ -41,7 +41,7 @@ class Channel(dict):
 
     The Channel object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading
+    * using the *stream* and *address* keyword parameters - when reading
     from file
     * using any of the following presented keys - when creating a new Channel
 
@@ -93,7 +93,7 @@ class Channel(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     address : int
         block address inside mdf file
@@ -110,7 +110,7 @@ class Channel(dict):
     Examples
     --------
     >>> with open('test.mdf', 'rb') as mdf:
-    ...     ch1 = Channel(file_stream=mdf, address=0xBA52)
+    ...     ch1 = Channel(stream=mdf, address=0xBA52)
     >>> ch2 = Channel()
     >>> ch1.name
     'VehicleSpeed'
@@ -126,7 +126,7 @@ class Channel(dict):
         self.name = ''
 
         try:
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
             block = stream.read(v3c.CN_BLOCK_SIZE)
@@ -203,7 +203,7 @@ class ChannelConversion(dict):
 
     The ChannelConversion object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading
+    * using the *stream* and *address* keyword parameters - when reading
     from file
     * using any of the following presented keys - when creating a new
     ChannelConversion
@@ -263,7 +263,7 @@ class ChannelConversion(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     address : int
         block address inside mdf file
@@ -276,7 +276,7 @@ class ChannelConversion(dict):
     Examples
     --------
     >>> with open('test.mdf', 'rb') as mdf:
-    ...     cc1 = ChannelConversion(file_stream=mdf, address=0xBA52)
+    ...     cc1 = ChannelConversion(stream=mdf, address=0xBA52)
     >>> cc2 = ChannelConversion(conversion_type=0)
     >>> cc1['b'], cc1['a']
     0, 100.0
@@ -287,7 +287,7 @@ class ChannelConversion(dict):
         super(ChannelConversion, self).__init__()
 
         try:
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
             block = stream.read(4)
@@ -539,7 +539,7 @@ class ChannelConversion(dict):
 class ChannelDependency(dict):
     ''' CDBLOCK class derived from *dict*
 
-    Currently the ChannelDependency object can only be created using the *file_stream* and *address* keyword parameters when reading from file
+    Currently the ChannelDependency object can only be created using the *stream* and *address* keyword parameters when reading from file
 
     The keys have the following meaning:
 
@@ -559,7 +559,7 @@ class ChannelDependency(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     address : int
         block address inside mdf file
@@ -577,7 +577,7 @@ class ChannelDependency(dict):
         self.referenced_channels = []
 
         try:
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
 
@@ -643,7 +643,7 @@ class ChannelExtension(dict):
 
     The ChannelExtension object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from file
     * using any of the following presented keys - when creating a new ChannelExtension
 
     The first keys are common for all conversion types, and are followed by conversion specific keys. The keys have the following meaning:
@@ -674,7 +674,7 @@ class ChannelExtension(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     address : int
         block address inside mdf file
@@ -690,7 +690,7 @@ class ChannelExtension(dict):
         super(ChannelExtension, self).__init__()
 
         try:
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
             (self['id'],
@@ -750,7 +750,7 @@ class ChannelGroup(dict):
 
     The ChannelGroup object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from file
     * using any of the following presented keys - when creating a new ChannelGroup
 
     The keys have the following meaning:
@@ -768,7 +768,7 @@ class ChannelGroup(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     address : int
         block address inside mdf file
@@ -781,7 +781,7 @@ class ChannelGroup(dict):
     Examples
     --------
     >>> with open('test.mdf', 'rb') as mdf:
-    ...     cg1 = ChannelGroup(file_stream=mdf, address=0xBA52)
+    ...     cg1 = ChannelGroup(stream=mdf, address=0xBA52)
     >>> cg2 = ChannelGroup(sample_bytes_nr=32)
     >>> hex(cg1.address)
     0xBA52
@@ -795,7 +795,7 @@ class ChannelGroup(dict):
 
         try:
 
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
             block = stream.read(v3c.CG_BLOCK_SIZE)
@@ -842,7 +842,7 @@ class DataBlock(dict):
 
     The DataBlock object can be created in two modes:
 
-    * using the *file_stream*, *address* and *size* keyword parameters - when reading from file
+    * using the *stream*, *address* and *size* keyword parameters - when reading from file
     * using any of the following presented keys - when creating a new ChannelGroup
 
     The keys have the following meaning:
@@ -867,7 +867,7 @@ class DataBlock(dict):
         super(DataBlock, self).__init__()
 
         try:
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             size = kargs['size']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
@@ -887,7 +887,7 @@ class DataGroup(dict):
 
     The DataGroup object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from file
     * using any of the following presented keys - when creating a new DataGroup
 
     The keys have the following meaning:
@@ -904,7 +904,7 @@ class DataGroup(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     address : int
         block address inside mdf file
@@ -920,7 +920,7 @@ class DataGroup(dict):
         super(DataGroup, self).__init__()
 
         try:
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
             block = stream.read(v3c.DG31_BLOCK_SIZE)
@@ -969,7 +969,7 @@ class FileIdentificationBlock(dict):
 
     The TriggerBlock object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -988,7 +988,7 @@ class FileIdentificationBlock(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     version : int
         mdf version in case of new file
@@ -1006,7 +1006,7 @@ class FileIdentificationBlock(dict):
         self.address = 0
         try:
 
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(0, SEEK_START)
 
             (self['file_identification'],
@@ -1047,7 +1047,7 @@ class HeaderBlock(dict):
 
     The TriggerBlock object can be created in two modes:
 
-    * using the *file_stream* - when reading from file
+    * using the *stream* - when reading from file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1074,7 +1074,7 @@ class HeaderBlock(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
 
     Attributes
@@ -1090,7 +1090,7 @@ class HeaderBlock(dict):
         self.address = 64
         try:
 
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             stream.seek(64, SEEK_START)
 
             (self['id'],
@@ -1153,7 +1153,7 @@ class ProgramBlock(dict):
 
     The ProgramBlock object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from file
     * using any of the following presented keys - when creating a new ProgramBlock
 
     The keys have the following meaning:
@@ -1164,7 +1164,7 @@ class ProgramBlock(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     address : int
         block address inside mdf file
@@ -1180,7 +1180,7 @@ class ProgramBlock(dict):
         super(ProgramBlock, self).__init__()
 
         try:
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
 
@@ -1203,7 +1203,7 @@ class ProgramBlock(dict):
 class SampleReduction(dict):
     ''' SRBLOCK class derived from *dict*
 
-    Currently the SampleReduction object can only be created by using the *file_stream* and *address* keyword parameters - when reading from file
+    Currently the SampleReduction object can only be created by using the *stream* and *address* keyword parameters - when reading from file
 
     The keys have the following meaning:
 
@@ -1216,7 +1216,7 @@ class SampleReduction(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     address : int
         block address inside mdf file
@@ -1232,7 +1232,7 @@ class SampleReduction(dict):
         super(SampleReduction, self).__init__()
 
         try:
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
 
@@ -1256,7 +1256,7 @@ class TextBlock(dict):
 
     The ProgramBlock object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1267,7 +1267,7 @@ class TextBlock(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     address : int
         block address inside mdf file
@@ -1294,7 +1294,7 @@ class TextBlock(dict):
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
         try:
-            stream = kargs['file_stream']
+            stream = kargs['stream']
             self.address = address = kargs['address']
 
             stream.seek(address, SEEK_START)
@@ -1335,7 +1335,7 @@ class TriggerBlock(dict):
 
     The TriggerBlock object can be created in two modes:
 
-    * using the *file_stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1350,7 +1350,7 @@ class TriggerBlock(dict):
 
     Parameters
     ----------
-    file_stream : file handle
+    stream : file handle
         mdf file handle
     address : int
         block address inside mdf file
@@ -1367,7 +1367,7 @@ class TriggerBlock(dict):
 
         try:
             self.address = address = kargs['address']
-            stream = kargs['file_stream']
+            stream = kargs['stream']
 
             stream.seek(address + 2, SEEK_START)
             size = unpack('<H', stream.read(2))[0]

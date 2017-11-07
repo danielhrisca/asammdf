@@ -24,7 +24,7 @@ Working with MDF
 ----------------
 
 .. code-block:: python
-
+    
     from __future__ import print_function, division
     from asammdf import MDF, Signal, configure
     import numpy as np
@@ -51,7 +51,7 @@ Working with MDF
                      unit='i4')
 
     # float64
-    s_float64 = Signal(samples=np.array([-20, -10, 0, 10, 20], dtype=np.int32),
+    s_float64 = Signal(samples=np.array([-20, -10, 0, 10, 20], dtype=np.float64),
                        timestamps=timestamps,
                        name='Float64_Signal',
                        unit='f8')
@@ -66,8 +66,8 @@ Working with MDF
     # save new file
     mdf4.save('my_new_file.mf4', overwrite=True)
 
-    # convert new file to mdf version 3.10 with load_measured_data=False
-    mdf3 = mdf4.convert(to='3.10', load_measured_data=False)
+    # convert new file to mdf version 3.10 with lower possible RAM usage
+    mdf3 = mdf4.convert(to='3.10', memory='minimum')
     print(mdf3.version)
 
     # get the float signal
@@ -86,7 +86,8 @@ Working with MDF
     mdf4 = mdf4.filter(['Int32_Signal', 'Uint8_Signal'])
 
     # save using zipped transpose deflate blocks
-    mdf4.save('out.mf4', compression=2)                     
+    mdf4.save('out.mf4', compression=2, overwrite=True)
+                        
     
 Working with Signal
 -------------------

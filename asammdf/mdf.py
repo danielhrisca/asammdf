@@ -10,6 +10,9 @@ import numpy as np
 from .mdf3 import MDF3
 from .mdf4 import MDF4
 from .utils import MdfException
+from .v3blocks import TextBlock as TextBlockV3
+from .v3blocks import Channel as ChannelV3
+from .v4blocks import TextBlock as TextBlockV4
 
 
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
@@ -26,26 +29,29 @@ class MDF(object):
     ----------
     name : string
         mdf file name, if provided it must be a real file name
-    load_measured_data : bool
-        load data option; default *True*
+    memory : str
+        load data option; default `full`
 
-        * if *True* the data group binary data block will be loaded in RAM
-        * if *False* the channel data is read from disk on request
+        * if *full* the data group binary data block will be loaded in RAM
+        * if *low* the channel data is read from disk on request, and the
+        metadata is loaded into RAM
+        * if *minimum* only minimal data is loaded into RAM
+
     version : string
         mdf file version ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10',
         '4.11'); default '4.10'
 
     """
-    def __init__(self, name=None, load_measured_data=True, version='4.10'):
+    def __init__(self, name=None, memory='full', version='4.10'):
         if name:
             if os.path.isfile(name):
                 with open(name, 'rb') as file_stream:
                     file_stream.read(8)
                     version = file_stream.read(4).decode('ascii')
                 if version in MDF3_VERSIONS:
-                    self._file = MDF3(name, load_measured_data)
+                    self._mdf = MDF3(name, memory)
                 elif version in MDF4_VERSIONS:
-                    self._file = MDF4(name, load_measured_data)
+                    self._mdf = MDF4(name, memory)
                 else:
                     message = ('"{}" is not a supported MDF file; '
                                '"{}" file version was found')
@@ -54,19 +60,19 @@ class MDF(object):
                 raise MdfException('File "{}" does not exist'.format(name))
         else:
             if version in MDF3_VERSIONS:
-                self._file = MDF3(
+                self._mdf = MDF3(
                     version=version,
-                    load_measured_data=load_measured_data,
+                    memory=memory,
                 )
             elif version in MDF4_VERSIONS:
-                self._file = MDF4(
+                self._mdf = MDF4(
                     version=version,
-                    load_measured_data=load_measured_data,
+                    memory=memory,
                 )
 
         # link underlying _file attributes and methods to the new MDF object
-        for attr in set(dir(self._file)) - set(dir(self)):
-            setattr(self, attr, getattr(self._file, attr))
+        for attr in set(dir(self._mdf)) - set(dir(self)):
+            setattr(self, attr, getattr(self._mdf, attr))
 
     def __enter__(self):
         return self
@@ -108,7 +114,7 @@ class MDF(object):
 
         return excluded_channels
 
-    def convert(self, to, load_measured_data=True):
+    def convert(self, to, memory=True):
         """convert MDF to other versions
 
         Parameters
@@ -116,7 +122,7 @@ class MDF(object):
         to : str
             new mdf version from ('3.00', '3.10', '3.20', '3.30', '4.00',
             '4.10', '4.11')
-        load_measured_data : bool
+        memory : bool
             load data option; default *True*
 
             * if *True* the data group binary data block will be loaded in RAM
@@ -135,7 +141,7 @@ class MDF(object):
             warn(message.format(to, MDF4_VERSIONS + MDF3_VERSIONS))
             return
         else:
-            out = MDF(version=to, load_measured_data=load_measured_data)
+            out = MDF(version=to, memory=memory)
 
             # walk through all groups and get all channels
             for i, gp in enumerate(self.groups):
@@ -183,7 +189,7 @@ class MDF(object):
         """
         out = MDF(
             version=self.version,
-            load_measured_data=self.load_measured_data,
+            memory=self.memory,
         )
 
         if whence == 1:
@@ -314,9 +320,9 @@ class MDF(object):
 
                         data = self._load_group_data(grp)
 
-                        for j, ch in enumerate(grp['channels']):
-                            name = ch.name
+                        for j, _ in enumerate(grp['channels']):
                             sig = self.get(group=i, index=j, data=data)
+                            name = sig.name
                             if j == master_index:
                                 group.attrs['master'] = name
                             dataset = group.create_dataset(name,
@@ -368,7 +374,7 @@ class MDF(object):
                         for j in range(grp['channel_group']['cycles_nr']):
                             ws.write(j+3, 0, str(j))
 
-                        for j, ch in enumerate(grp['channels']):
+                        for j, _ in enumerate(grp['channels']):
                             sig = self.get(group=i, index=j, data=data)
 
                             col = j + 1
@@ -437,16 +443,16 @@ class MDF(object):
             for i, grp in enumerate(self.groups):
                 data = self._load_group_data(grp)
                 for j, ch in enumerate(grp['channels']):
-                    if j == master_index:
-                        channel_name = master.format(i, ch.name)
-                    else:
-                        channel_name = channel.format(i, ch.name)
-                    mdict[channel_name] = self.get(
+                    sig = self.get(
                         group=i,
                         index=j,
-                        samples_only=True,
                         data=data,
                     )
+                    if j == master_index:
+                        channel_name = master.format(i, sig.name)
+                    else:
+                        channel_name = channel.format(i, sig.name)
+                    mdict[channel_name] = sig.samples
 
             savemat(
                 name,
@@ -487,7 +493,7 @@ class MDF(object):
 
         mdf = MDF(
             version=self.version,
-            load_measured_data=self.load_measured_data,
+            memory=self.memory,
         )
 
         # append filtered channels to new MDF
@@ -512,7 +518,7 @@ class MDF(object):
         return mdf
 
     @staticmethod
-    def merge(files, outversion='4.10', load_measured_data=True):
+    def merge(files, outversion='4.10', memory=True):
         """ merge several files and return the merged MDF object. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -523,7 +529,7 @@ class MDF(object):
             list of MDF file names
         outversion : str
             merged file version
-        load_measured_data : bool
+        memory : bool
             load data option; default *True*
 
             * if *True* the data group binary data block will be loaded in RAM
@@ -541,7 +547,7 @@ class MDF(object):
             merged MDF object
         """
         if files:
-            files = [MDF(file, load_measured_data) for file in files]
+            files = [MDF(file, memory) for file in files]
 
             if not len(set(len(file.groups) for file in files)) == 1:
                 message = ("Can't merge files: "
@@ -550,7 +556,7 @@ class MDF(object):
 
             merged = MDF(
                 version=outversion,
-                load_measured_data=load_measured_data,
+                memory=memory,
             )
 
             for i, groups in enumerate(zip(*(file.groups for file in files))):
@@ -571,7 +577,50 @@ class MDF(object):
 
                 group_channels = [group['channels'] for group in groups]
                 for j, channels in enumerate(zip(*group_channels)):
-                    if not len(set(ch.name for ch in channels)) == 1:
+                    if memory == 'minimum':
+                        names = []
+                        for file in files:
+                            if file.version in MDF3_VERSIONS:
+                                grp = file.groups[i]
+                                if grp['data_location'] == 0:
+                                    stream = file._file
+                                else:
+                                    stream = file._tempfile
+
+                                if 'long_name_addr' in grp['texts']['channels'][j]:
+                                    address = grp['texts']['channels'][j]['long_name_addr']
+
+                                    block = TextBlockV3(
+                                        address=address,
+                                        stream=stream,
+                                    )
+                                    name = block['text'].decode('latin-1').strip(' \r\n\t\0')
+                                else:
+                                    channel = ChannelV3(
+                                        address=grp['channels'][j],
+                                        stream=stream,
+                                    )
+                                    name = channel['short_name'].decode('latin-1').strip(' \r\n\t\0')
+                            else:
+                                grp = file.groups[i]
+                                if grp['data_location'] == 0:
+                                    stream = file._file
+                                else:
+                                    stream = file._tempfile
+
+                                address = grp['texts']['channels'][j]['name_addr']
+
+                                block = TextBlockV4(
+                                    address=address,
+                                    stream=stream,
+                                )
+                                name = block['text'].decode('utf-8').strip(' \r\n\t\0')
+
+                            names.append(name)
+                        names = set(names)
+                    else:
+                        names = set(ch.name for ch in channels)
+                    if not len(names) == 1:
                         message = ("Can't merge files: "
                                    "different channel names for data group {}")
                         raise MdfException(message.format(i))
@@ -608,25 +657,25 @@ class MDF(object):
         else:
             for i, gp in enumerate(self.groups):
                 data = self._load_group_data(gp)
-                master_index = self.masters_db[i]
-                master_name = gp['channels'][master_index].name
-                master = self.get(
-                    group=i,
-                    index=master_index,
-                    samples_only=True,
-                    data=data,
-                )
-                pandas_dict = {master_name: master}
+                master_index = self.masters_db.get(i, None)
+                if master_index is None:
+                    pandas_dict = {}
+                else:
+                    master = self.get(
+                        group=i,
+                        index=master_index,
+                        data=data,
+                    )
+                    pandas_dict = {master.name: master.samples}
                 for j, _ in (gp['channels']):
                     if j == master_index:
                         continue
-                    name = gp['channels'][j].name
-                    pandas_dict[name] = self.get(
+                    sig = self.get(
                         group=i,
                         index=j,
-                        samples_only=True,
                         data=data,
                     )
+                    pandas_dict[sig.name] = sig.samples
                 yield DataFrame.from_dict(pandas_dict)
 
     def select(self, channels):

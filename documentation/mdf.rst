@@ -22,7 +22,7 @@ MDF
 ===
 
 This class acts as a proxy for the MDF3 and MDF4 classes. 
-All attribute access is delegated to the underlying *_file* attribute (MDF3 or MDF4 object). 
+All attribute access is delegated to the underlying *_mdf* attribute (MDF3 or MDF4 object). 
 See MDF3 and MDF4 for available extra methods.
 
 An empty MDF file is created if the *name* argument is not provided. 
@@ -51,15 +51,17 @@ MDF3 and MDF4 classes
 Notes about *load_measured_data* argument
 -----------------------------------------
 
-By default when the *MDF* object is created the raw channel data is loaded into RAM. 
+By default when the *MDF* object is created all data is loaded into RAM (memory=full).
 This will give you the best performance from *asammdf*. 
 
-However if you reach the physical memmory limit *asammdf* gives you the option use the *load_measured_data* flag. 
-In this case the raw channel data is not read. 
+However if you reach the physical memmory limit *asammdf* gives you two options:
+
+    * memory=low : only the metadata is loaded into RAM, the raw channel data is loaded when needed
+    * memory=minimum : only minimal data is loaded into RAM.
 
 
-*MDF* defaults 
-^^^^^^^^^^^^^^
+*MDF* created with memory=full
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Advantages
 
@@ -74,12 +76,12 @@ Use case
 * when data fits inside the system RAM
   
   
-*MDF* with *load_measured_data*
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*MDF* created with memory=low
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Advantages
 
-* lowest RAM usage  
+* lower RAM usage than memory=full
 * can handle files that do not fit in the available physical memory
     
 Disadvantages
@@ -98,6 +100,24 @@ Use case
 
 Instead you can get performance close to load_measured_data=True if you use
 the *select* method with the list of target channels.
+
+.. note::
+
+    See benchmarks for the effects of using the flag
+    
+*MDF* created with memory=minimum
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Advantages
+
+* lowest RAM usage
+* can handle files that do not fit in the available physical memory
+* handle big files on 32 bit Python
+    
+Disadvantages
+
+* slightly slower performance compared to momeory=low
+* must call *close* method to release the temporary file used in case of appending.
 
 .. note::
 

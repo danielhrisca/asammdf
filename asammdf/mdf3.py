@@ -89,11 +89,13 @@ class MDF3(object):
     ----------
     name : string
         mdf file name
-    load_measured_data : bool
-        load data option; default *True*
+    memory : str
+        memory optimization option; default `full`
 
-        * if *True* the data group binary data block will be loaded in RAM
-        * if *False* the channel data is read from disk on request
+        * if *full* the data group binary data block will be memoryed in RAM
+        * if *low* the channel data is read from disk on request, and the
+        metadata is memoryed into RAM
+        * if *minimum* only minimal data is memoryed into RAM
 
     version : string
         mdf file version ('3.00', '3.10', '3.20' or '3.30'); default '3.30'
@@ -108,7 +110,7 @@ class MDF3(object):
         mdf file header
     file_history : TextBlock
         file history text block; can be None
-    load_measured_data : bool
+    memory : bool
         load measured data option
     version : str
         mdf version
@@ -123,22 +125,25 @@ class MDF3(object):
 
     _compact_integers_on_append = False
 
-    def __init__(self, name=None, load_measured_data=True, version='3.30'):
+    def __init__(self, name=None, memory=2, version='3.30'):
         self.groups = []
         self.header = None
         self.identification = None
         self.file_history = None
         self.name = name
-        self.load_measured_data = load_measured_data
+        self.memory = memory
         self.channels_db = {}
         self.masters_db = {}
 
         self._master_channel_cache = {}
 
-        # used for appending to MDF created with load_measured_data=False
-        self._tempfile = None
+        # used for appending to MDF created with memory=False
+        self._tempfile = TemporaryFile()
+        self._tempfile.write(b'\0')
+        self._file = None
 
         if name:
+            self._file = open(self.name, 'rb')
             self._read()
         else:
             self.identification = FileIdentificationBlock(version=version)
@@ -148,7 +153,9 @@ class MDF3(object):
     def _load_group_data(self, group):
         """ get group's data block bytes"""
 
-        if self.load_measured_data is False:
+        if self.memory == 'full':
+            data = group['data_block']['data']
+        else:
             # could be an appended group
             # for now appended groups keep the measured data in the memory.
             # the plan is to use a temp file for appended groups, to keep the
@@ -156,60 +163,59 @@ class MDF3(object):
             if group['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
                 # this is a group from the source file
                 # so fetch the measured data from it
-                with open(self.name, 'rb') as file_stream:
-                    # go to the first data block of the current data group
-                    dat_addr = group['data_group']['data_block_addr']
+                stream = self._file
+                # go to the first data block of the current data group
+                dat_addr = group['data_group']['data_block_addr']
 
-                    if group['sorted']:
-                        read_size = group['size']
-                        data = DataBlock(
-                            file_stream=file_stream,
-                            address=dat_addr, size=read_size,
-                        )
-                        data = data['data']
+                if group['sorted']:
+                    read_size = group['size']
+                    data = DataBlock(
+                        stream=stream,
+                        address=dat_addr, size=read_size,
+                    )
+                    data = data['data']
 
+                else:
+                    read_size = group['size']
+                    record_id = group['channel_group']['record_id']
+                    cg_size = group['record_size']
+                    if group['data_group']['record_id_nr'] <= 2:
+                        record_id_nr = group['data_group']['record_id_nr']
                     else:
-                        read_size = group['size']
-                        record_id = group['channel_group']['record_id']
-                        cg_size = group['record_size']
-                        if group['data_group']['record_id_nr'] <= 2:
-                            record_id_nr = group['data_group']['record_id_nr']
+                        record_id_nr = 0
+                    cg_data = []
+
+                    data = DataBlock(
+                        stream=stream,
+                        address=dat_addr, size=read_size,
+                    )
+                    data = data['data']
+
+                    i = 0
+                    size = len(data)
+                    while i < size:
+                        rec_id = data[i]
+                        # skip redord id
+                        i += 1
+                        rec_size = cg_size[rec_id]
+                        if rec_id == record_id:
+                            rec_data = data[i: i+rec_size]
+                            cg_data.append(rec_data)
+                        # concider the second record ID if it exists
+                        if record_id_nr == 2:
+                            i += rec_size + 1
                         else:
-                            record_id_nr = 0
-                        cg_data = []
-
-                        data = DataBlock(
-                            file_stream=file_stream,
-                            address=dat_addr, size=read_size,
-                        )
-                        data = data['data']
-
-                        i = 0
-                        size = len(data)
-                        while i < size:
-                            rec_id = data[i]
-                            # skip redord id
-                            i += 1
-                            rec_size = cg_size[rec_id]
-                            if rec_id == record_id:
-                                rec_data = data[i: i+rec_size]
-                                cg_data.append(rec_data)
-                            # concider the second record ID if it exists
-                            if record_id_nr == 2:
-                                i += rec_size + 1
-                            else:
-                                i += rec_size
-                        data = b''.join(cg_data)
+                            i += rec_size
+                    data = b''.join(cg_data)
             elif group['data_location'] == v3c.LOCATION_TEMPORARY_FILE:
                 read_size = group['size']
                 dat_addr = group['data_group']['data_block_addr']
-                if dat_addr >= 0:
+                if dat_addr:
                     self._tempfile.seek(dat_addr, v3c.SEEK_START)
                     data = self._tempfile.read(read_size)
                 else:
                     data = b''
-        else:
-            data = group['data_block']['data']
+
         return data
 
     def _prepare_record(self, group):
@@ -227,6 +233,8 @@ class MDF3(object):
 
         """
 
+        memory = self.memory
+        stream = self._file
         grp = group
         record_size = grp['channel_group']['samples_byte_nr'] << 3
         next_byte_aligned_position = 0
@@ -235,6 +243,14 @@ class MDF3(object):
         parent_start_offset = 0
         parents = {}
         group_channels = set()
+
+        if memory != 'minimum':
+            channels = grp['channels']
+        else:
+            channels = [
+                Channel(address=ch_addr, stream=stream)
+                for ch_addr in grp['channels']
+            ]
 
         # the channels are first sorted ascending (see __lt__ method of Channel
         # class): a channel with lower start offset is smaller, when two
@@ -250,8 +266,8 @@ class MDF3(object):
         # size is adjusted to the first higher standard integer size (eq. uint
         # of 28bits will be adjusted to 32bits)
 
-        for original_index, new_ch in sorted(enumerate(grp['channels']),
-                                             key=lambda i: i[1]):
+        sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
+        for original_index, new_ch in sortedchannels:
             # skip channels with channel dependencies from the numpy record
             if new_ch['ch_depend_addr']:
                 continue
@@ -260,7 +276,19 @@ class MDF3(object):
             bit_offset = start_offset % 8
             data_type = new_ch['data_type']
             bit_count = new_ch['bit_count']
-            name = new_ch.name
+            if memory == 'minimum':
+                if 'long_name_addr' in grp['texts']['channels'][original_index]:
+                    address = grp['texts']['channels'][original_index]['long_name_addr']
+
+                    block = TextBlock(
+                        address=address,
+                        stream=stream,
+                    )
+                    name = block['text'].decode('latin-1').strip(' \r\n\t\0')
+                else:
+                    name = new_ch['short_name'].decode('latin-1').strip(' \r\n\t\0')
+            else:
+                name = new_ch.name
 
             # handle multiple occurance of same channel name
             name = get_unique_name(group_channels, name)
@@ -343,7 +371,13 @@ class MDF3(object):
 
         record_size = group['channel_group']['samples_byte_nr']
 
-        channel = group['channels'][ch_nr]
+        if self.memory != 'minimum':
+            channel = group['channels'][ch_nr]
+        else:
+            channel = Channel(
+                address=group['channels'][ch_nr],
+                stream=self._file,
+            )
 
         bit_offset = channel['start_offset'] % 8
         byte_offset = channel['start_offset'] // 8
@@ -424,294 +458,320 @@ class MDF3(object):
         return vals['vals']
 
     def _read(self):
-        with open(self.name, 'rb') as file_stream:
+        stream = self._file
+        memory = self.memory
 
-            # performance optimization
-            read = file_stream.read
-            seek = file_stream.seek
+        # performance optimization
+        read = stream.read
+        seek = stream.seek
 
-            dg_cntr = 0
-            seek(0, v3c.SEEK_START)
+        dg_cntr = 0
+        seek(0, v3c.SEEK_START)
 
-            self.identification = FileIdentificationBlock(
-                file_stream=file_stream,
-            )
-            self.header = HeaderBlock(file_stream=file_stream)
+        self.identification = FileIdentificationBlock(
+            stream=stream,
+        )
+        self.header = HeaderBlock(stream=stream)
 
-            self.version = self.identification['version_str']\
-                .decode('latin-1')\
-                .strip(' \n\t\0')
+        self.version = self.identification['version_str']\
+            .decode('latin-1')\
+            .strip(' \n\t\0')
 
-            self.file_history = TextBlock(
-                address=self.header['comment_addr'],
-                file_stream=file_stream,
-            )
+        self.file_history = TextBlock(
+            address=self.header['comment_addr'],
+            stream=stream,
+        )
 
-            # this will hold mapping from channel address to Channel object
-            # needed for linking dependecy blocks to refernced channels after
-            # the file is loaded
-            ch_map = {}
+        # this will hold mapping from channel address to Channel object
+        # needed for linking dependecy blocks to refernced channels after
+        # the file is loaded
+        ch_map = {}
 
-            # go to first date group
-            dg_addr = self.header['first_dg_addr']
-            # read each data group sequentially
-            while dg_addr:
-                gp = DataGroup(address=dg_addr, file_stream=file_stream)
-                cg_nr = gp['cg_nr']
-                cg_addr = gp['first_cg_addr']
-                data_addr = gp['data_block_addr']
+        # go to first date group
+        dg_addr = self.header['first_dg_addr']
+        # read each data group sequentially
+        while dg_addr:
+            gp = DataGroup(address=dg_addr, stream=stream)
+            cg_nr = gp['cg_nr']
+            cg_addr = gp['first_cg_addr']
+            data_addr = gp['data_block_addr']
 
-                # read trigger information if available
-                trigger_addr = gp['trigger_addr']
-                if trigger_addr:
-                    trigger = TriggerBlock(address=trigger_addr,
-                                           file_stream=file_stream)
-                    if trigger['text_addr']:
-                        trigger_text = TextBlock(
-                            address=trigger['text_addr'],
-                            file_stream=file_stream,
-                        )
-                    else:
-                        trigger_text = None
-                else:
-                    trigger = None
-                    trigger_text = None
-
-                new_groups = []
-                for i in range(cg_nr):
-
-                    new_groups.append({})
-                    grp = new_groups[-1]
-                    grp['channels'] = []
-                    grp['channel_conversions'] = []
-                    grp['channel_extensions'] = []
-                    grp['data_block'] = None
-                    grp['texts'] = {
-                        'channels': [],
-                        'conversion_tab': [],
-                        'channel_group': [],
-                    }
-                    grp['trigger'] = [trigger, trigger_text]
-                    grp['channel_dependencies'] = []
-
-                    if cg_nr > 1:
-                        grp['sorted'] = False
-                    else:
-                        grp['sorted'] = True
-
-                    kargs = {'first_cg_addr': cg_addr,
-                             'data_block_addr': data_addr}
-                    if self.version in ('3.20', '3.30'):
-                        kargs['block_len'] = v3c.DG32_BLOCK_SIZE
-                    else:
-                        kargs['block_len'] = v3c.DG31_BLOCK_SIZE
-
-                    grp['data_group'] = DataGroup(**kargs)
-
-                    # read each channel group sequentially
-                    grp['channel_group'] = ChannelGroup(
-                        address=cg_addr,
-                        file_stream=file_stream,
+            # read trigger information if available
+            trigger_addr = gp['trigger_addr']
+            if trigger_addr:
+                trigger = TriggerBlock(address=trigger_addr,
+                                       stream=stream)
+                if trigger['text_addr']:
+                    trigger_text = TextBlock(
+                        address=trigger['text_addr'],
+                        stream=stream,
                     )
+                else:
+                    trigger_text = None
+            else:
+                trigger = None
+                trigger_text = None
 
-                    # read name and comment for current channel group
-                    cg_texts = {}
-                    grp['texts']['channel_group'].append(cg_texts)
+            new_groups = []
+            for i in range(cg_nr):
 
-                    address = grp['channel_group']['comment_addr']
-                    if address:
+                new_groups.append({})
+                grp = new_groups[-1]
+                grp['channels'] = []
+                grp['channel_conversions'] = []
+                grp['channel_extensions'] = []
+                grp['data_block'] = None
+                grp['texts'] = {
+                    'channels': [],
+                    'conversion_tab': [],
+                    'channel_group': [],
+                }
+                grp['trigger'] = [trigger, trigger_text]
+                grp['channel_dependencies'] = []
+
+                if cg_nr > 1:
+                    grp['sorted'] = False
+                else:
+                    grp['sorted'] = True
+
+                kargs = {'first_cg_addr': cg_addr,
+                         'data_block_addr': data_addr}
+                if self.version in ('3.20', '3.30'):
+                    kargs['block_len'] = v3c.DG32_BLOCK_SIZE
+                else:
+                    kargs['block_len'] = v3c.DG31_BLOCK_SIZE
+
+                grp['data_group'] = DataGroup(**kargs)
+
+                # read each channel group sequentially
+                grp['channel_group'] = ChannelGroup(
+                    address=cg_addr,
+                    stream=stream,
+                )
+
+                # read name and comment for current channel group
+                cg_texts = {}
+                grp['texts']['channel_group'].append(cg_texts)
+
+                address = grp['channel_group']['comment_addr']
+                if address:
+                    if memory != 'minimum':
                         block = TextBlock(
                             address=address,
-                            file_stream=file_stream,
+                            stream=stream,
                         )
                         cg_texts['comment_addr'] = block
+                    else:
+                        cg_texts['comment_addr'] = address
 
-                    # go to first channel of the current channel group
-                    ch_addr = grp['channel_group']['first_ch_addr']
-                    ch_cntr = 0
-                    grp_chs = grp['channels']
-                    grp_conv = grp['channel_conversions']
-                    grp_ch_texts = grp['texts']['channels']
+                # go to first channel of the current channel group
+                ch_addr = grp['channel_group']['first_ch_addr']
+                ch_cntr = 0
+                grp_chs = grp['channels']
+                grp_conv = grp['channel_conversions']
+                grp_ch_texts = grp['texts']['channels']
 
-                    while ch_addr:
-                        # read channel block and create channel object
-                        new_ch = Channel(
-                            address=ch_addr,
-                            file_stream=file_stream,
+                while ch_addr:
+                    # read channel block and create channel object
+                    new_ch = Channel(
+                        address=ch_addr,
+                        stream=stream,
+                    )
+
+                    # check if it has channel dependencies
+                    if new_ch['ch_depend_addr']:
+                        dep = ChannelDependency(
+                            address=new_ch['ch_depend_addr'],
+                            stream=stream,
                         )
+                        grp['channel_dependencies'].append(dep)
+                    else:
+                        grp['channel_dependencies'].append(None)
 
-                        # check if it has channel dependencies
-                        if new_ch['ch_depend_addr']:
-                            dep = ChannelDependency(
-                                address=new_ch['ch_depend_addr'],
-                                file_stream=file_stream,
-                            )
-                            grp['channel_dependencies'].append(dep)
-                        else:
-                            grp['channel_dependencies'].append(None)
+                    # update channel map
+                    ch_map[ch_addr] = (ch_cntr, dg_cntr)
 
-                        # update channel map
-                        ch_map[ch_addr] = (ch_cntr, dg_cntr)
-
-                        # read conversion block
-                        address = new_ch['conversion_addr']
-                        if address:
-                            new_conv = ChannelConversion(
-                                address=address,
-                                file_stream=file_stream,
-                            )
+                    # read conversion block
+                    address = new_ch['conversion_addr']
+                    if address:
+                        new_conv = ChannelConversion(
+                            address=address,
+                            stream=stream,
+                        )
+                        if memory != 'minimum':
                             grp_conv.append(new_conv)
                         else:
-                            new_conv = None
+                            grp_conv.append(address)
+                    else:
+                        new_conv = None
+                        if memory != 'minimum':
                             grp_conv.append(None)
-
-                        vtab_texts = {}
-                        if new_conv:
-                            conv_type = new_conv['conversion_type']
                         else:
-                            conv_type = 0
-                        if conv_type == v3c.CONVERSION_TYPE_VTABR:
-                            for idx in range(new_conv['ref_param_nr']):
-                                address = new_conv['text_{}'.format(idx)]
-                                if address:
+                            grp_conv.append(0)
+
+                    vtab_texts = {}
+                    if new_conv:
+                        conv_type = new_conv['conversion_type']
+                    else:
+                        conv_type = 0
+                    if conv_type == v3c.CONVERSION_TYPE_VTABR:
+                        for idx in range(new_conv['ref_param_nr']):
+                            address = new_conv['text_{}'.format(idx)]
+                            if address:
+                                if memory != 'minimum':
                                     block = TextBlock(
                                         address=address,
-                                        file_stream=file_stream,
+                                        stream=stream,
                                     )
                                     vtab_texts['text_{}'.format(idx)] = block
-                        grp['texts']['conversion_tab'].append(vtab_texts)
+                                else:
+                                    vtab_texts['text_{}'.format(idx)] = address
+                    grp['texts']['conversion_tab'].append(vtab_texts)
 
-                        if self.load_measured_data:
-                            # read source block
-                            address = new_ch['source_depend_addr']
-                            if address:
-                                block = ChannelExtension(
-                                    address=address,
-                                    file_stream=file_stream,
-                                )
-                                grp['channel_extensions'].append(block)
-                            else:
-                                grp['channel_extensions'].append(None)
+                    address = new_ch['source_depend_addr']
+                    if memory != 'minimum':
+                        if address:
+                            block = ChannelExtension(
+                                address=address,
+                                stream=stream,
+                            )
+                            grp['channel_extensions'].append(block)
                         else:
                             grp['channel_extensions'].append(None)
+                    else:
+                        grp['channel_extensions'].append(address)
 
-                        # read text fields for channel
-                        ch_texts = {}
-                        for key in (
-                                'long_name_addr',
-                                'comment_addr',
-                                'display_name_addr'):
-                            address = new_ch[key]
-                            if address:
+                    # read text fields for channel
+                    ch_texts = {}
+                    for key in (
+                            'long_name_addr',
+                            'comment_addr',
+                            'display_name_addr'):
+                        address = new_ch[key]
+                        if address:
+                            if memory != 'minimum':
                                 ch_texts[key] = TextBlock(
                                     address=address,
-                                    file_stream=file_stream,
+                                    stream=stream,
                                 )
-                        grp_ch_texts.append(ch_texts)
+                            else:
+                                ch_texts[key] = address
+                    grp_ch_texts.append(ch_texts)
 
-                        # update channel object name and block_size attributes
-                        if new_ch['long_name_addr']:
+                    # update channel object name and block_size attributes
+                    if new_ch['long_name_addr']:
+                        if memory != 'minimum':
                             name = ch_texts['long_name_addr']['text']
                         else:
-                            name = new_ch['short_name']
-                        name = name.decode('latin-1').strip(' \n\t\0')
-                        new_ch.name = name
+                            block = TextBlock(
+                                address=ch_texts['long_name_addr'],
+                                stream=stream,
+                            )
+                            name = block['text']
+                    else:
+                        name = new_ch['short_name']
+                    name = name.decode('latin-1').strip(' \n\t\0')
+                    new_ch.name = name
 
-                        if name in self.channels_db:
-                            self.channels_db[name].append((dg_cntr, ch_cntr))
-                        else:
-                            self.channels_db[name] = []
-                            self.channels_db[name].append((dg_cntr, ch_cntr))
+                    if name in self.channels_db:
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
+                    else:
+                        self.channels_db[name] = []
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
 
-                        if new_ch['channel_type'] == v3c.CHANNEL_TYPE_MASTER:
-                            self.masters_db[dg_cntr] = ch_cntr
-                        # go to next channel of the current channel group
-                        ch_addr = new_ch['next_ch_addr']
-                        ch_cntr += 1
+                    if new_ch['channel_type'] == v3c.CHANNEL_TYPE_MASTER:
+                        self.masters_db[dg_cntr] = ch_cntr
+                    # go to next channel of the current channel group
+
+                    ch_cntr += 1
+                    if memory != 'minimum':
                         grp_chs.append(new_ch)
-
-                    cg_addr = grp['channel_group']['next_cg_addr']
-                    dg_cntr += 1
-
-                # store channel groups record sizes dict and data block size in
-                # each new group data belong to the initial unsorted group, and
-                # add the key 'sorted' with the value False to use a flag;
-                # this is used later if load_measured_data=False
-
-                if gp['record_id_nr'] <= 2:
-                    record_id_nr = gp['record_id_nr']
-                else:
-                    record_id_nr = 0
-
-                cg_size = {}
-                total_size = 0
-
-                for grp in new_groups:
-                    record_id = grp['channel_group']['record_id']
-                    cycles_nr = grp['channel_group']['cycles_nr']
-                    record_size = grp['channel_group']['samples_byte_nr']
-
-                    cg_size[record_id] = record_size
-
-                    record_size += record_id_nr
-                    total_size += record_size * cycles_nr
-
-                    grp['record_size'] = cg_size
-                    grp['size'] = total_size
-
-                if self.load_measured_data:
-                    # read data block of the current data group
-                    dat_addr = gp['data_block_addr']
-                    if dat_addr:
-                        seek(dat_addr, v3c.SEEK_START)
-                        data = read(total_size)
                     else:
-                        data = b''
-                    if cg_nr == 1:
-                        grp = new_groups[0]
-                        grp['data_location'] = v3c.LOCATION_MEMORY
-                        grp['data_block'] = DataBlock(data=data)
+                        grp_chs.append(ch_addr)
+                    ch_addr = new_ch['next_ch_addr']
 
-                    else:
-                        # agregate data for each record ID in the cg_data dict
-                        cg_data = defaultdict(list)
-                        i = 0
-                        size = len(data)
-                        while i < size:
-                            rec_id = data[i]
-                            # skip record id
-                            i += 1
-                            rec_size = cg_size[rec_id]
-                            rec_data = data[i: i+rec_size]
-                            cg_data[rec_id].append(rec_data)
-                            # possibly skip 2nd record id
-                            if record_id_nr == 2:
-                                i += rec_size + 1
-                            else:
-                                i += rec_size
-                        for grp in new_groups:
-                            grp['data_location'] = v3c.LOCATION_MEMORY
-                            data = cg_data[grp['channel_group']['record_id']]
-                            data = b''.join(data)
-                            grp['channel_group']['record_id'] = 1
-                            grp['data_block'] = DataBlock(data=data)
+                cg_addr = grp['channel_group']['next_cg_addr']
+                dg_cntr += 1
+
+            # store channel groups record sizes dict and data block size in
+            # each new group data belong to the initial unsorted group, and
+            # add the key 'sorted' with the value False to use a flag;
+            # this is used later if memory=False
+
+            if gp['record_id_nr'] <= 2:
+                record_id_nr = gp['record_id_nr']
+            else:
+                record_id_nr = 0
+
+            cg_size = {}
+            total_size = 0
+
+            for grp in new_groups:
+                record_id = grp['channel_group']['record_id']
+                cycles_nr = grp['channel_group']['cycles_nr']
+                record_size = grp['channel_group']['samples_byte_nr']
+
+                cg_size[record_id] = record_size
+
+                record_size += record_id_nr
+                total_size += record_size * cycles_nr
+
+                grp['record_size'] = cg_size
+                grp['size'] = total_size
+
+            if memory == 'full':
+                # read data block of the current data group
+                dat_addr = gp['data_block_addr']
+                if dat_addr:
+                    seek(dat_addr, v3c.SEEK_START)
+                    data = read(total_size)
                 else:
+                    data = b''
+                if cg_nr == 1:
+                    grp = new_groups[0]
+                    grp['data_location'] = v3c.LOCATION_MEMORY
+                    grp['data_block'] = DataBlock(data=data)
+
+                else:
+                    # agregate data for each record ID in the cg_data dict
+                    cg_data = defaultdict(list)
+                    i = 0
+                    size = len(data)
+                    while i < size:
+                        rec_id = data[i]
+                        # skip record id
+                        i += 1
+                        rec_size = cg_size[rec_id]
+                        rec_data = data[i: i+rec_size]
+                        cg_data[rec_id].append(rec_data)
+                        # possibly skip 2nd record id
+                        if record_id_nr == 2:
+                            i += rec_size + 1
+                        else:
+                            i += rec_size
                     for grp in new_groups:
-                        grp['data_location'] = v3c.LOCATION_ORIGINAL_FILE
+                        grp['data_location'] = v3c.LOCATION_MEMORY
+                        data = cg_data[grp['channel_group']['record_id']]
+                        data = b''.join(data)
+                        grp['channel_group']['record_id'] = 1
+                        grp['data_block'] = DataBlock(data=data)
+            else:
+                for grp in new_groups:
+                    grp['data_location'] = v3c.LOCATION_ORIGINAL_FILE
 
-                self.groups.extend(new_groups)
+            self.groups.extend(new_groups)
 
-                # go to next data group
-                dg_addr = gp['next_dg_addr']
+            # go to next data group
+            dg_addr = gp['next_dg_addr']
 
-            # finally update the channel depency references
-            for grp in self.groups:
-                for dep in grp['channel_dependencies']:
-                    if dep:
-                        for i in range(dep['sd_nr']):
-                            ref_channel_addr = dep['ch_{}'.format(i)]
-                            channel = ch_map[ref_channel_addr]
-                            dep.referenced_channels.append(channel)
+        # finally update the channel depency references
+        for grp in self.groups:
+            for dep in grp['channel_dependencies']:
+                if dep:
+                    for i in range(dep['sd_nr']):
+                        ref_channel_addr = dep['ch_{}'.format(i)]
+                        channel = ch_map[ref_channel_addr]
+                        dep.referenced_channels.append(channel)
 
     def add_trigger(self,
                     group,
@@ -830,6 +890,11 @@ class MDF3(object):
         else:
             t = t_
 
+        memory = self.memory
+        file = self._tempfile
+        write = file.write
+        tell = file.tell
+
         # split regular from composed signals. Composed signals have recarray
         # samples or multimendional ndarray.
         # The regular signals will be first added to the group.
@@ -889,7 +954,12 @@ class MDF3(object):
                 item.append({})
 
             block = TextBlock(text=acquisition_info)
-            gp_texts['channel_group'][-1]['comment_addr'] = block
+            if memory != 'minimum':
+                gp_texts['channel_group'][-1]['comment_addr'] = block
+            else:
+                address = tell()
+                gp_texts['channel_group'][-1]['comment_addr'] = address
+                write(bytes(block))
 
             # conversion for time channel
             kargs = {
@@ -898,7 +968,13 @@ class MDF3(object):
                 'min_phy_value': t[0] if cycles_nr else 0,
                 'max_phy_value': t[-1] if cycles_nr else 0,
             }
-            gp_conv.append(ChannelConversion(**kargs))
+            block = ChannelConversion(**kargs)
+            if memory != 'minimum':
+                gp_conv.append(block)
+            else:
+                address = tell()
+                gp_conv.append(address)
+                write(bytes(block))
 
             # source for time
             kargs = {
@@ -907,7 +983,13 @@ class MDF3(object):
                 'type': v3c.SOURCE_ECU,
                 'description': b'Channel inserted by Python Script',
             }
-            gp_source.append(ChannelExtension(**kargs))
+            block = ChannelExtension(**kargs)
+            if memory != 'minimum':
+                gp_source.append(block)
+            else:
+                address = tell()
+                gp_source.append(address)
+                write(bytes(block))
 
             # time channel
             t_type, t_size = fmt_to_datatype(t.dtype)
@@ -922,7 +1004,12 @@ class MDF3(object):
             }
             channel = Channel(**kargs)
             channel.name = name = 't'
-            gp_channels.append(channel)
+            if memory != 'minimum':
+                gp_channels.append(channel)
+            else:
+                address = tell()
+                gp_channels.append(address)
+                write(bytes(channel))
 
             if name not in self.channels_db:
                 self.channels_db[name] = []
@@ -1017,7 +1104,12 @@ class MDF3(object):
                         item.append({})
                     if len(name) >= 32:
                         block = TextBlock(text=name)
-                        gp_texts['channels'][-1]['long_name_addr'] = block
+                        if memory != 'minimum':
+                            gp_texts['channels'][-1]['long_name_addr'] = block
+                        else:
+                            address = tell()
+                            gp_texts['channels'][-1]['long_name_addr'] = address
+                            write(bytes(block))
 
                     info = signal.info
                     if info and 'raw' in info:
@@ -1047,7 +1139,12 @@ class MDF3(object):
 
                             key = 'text_{}'.format(i)
                             block = TextBlock(text=t_)
-                            gp_texts['conversion_tab'][-1][key] = block
+                            if memory != 'minimum':
+                                gp_texts['conversion_tab'][-1][key] = block
+                            else:
+                                address = tell()
+                                gp_texts['conversion_tab'][-1][key] = address
+                                write(bytes(block))
 
                     else:
                         if min_val <= max_val:
@@ -1062,7 +1159,13 @@ class MDF3(object):
                             'min_phy_value': min_phy_value,
                             'max_phy_value': max_phy_value,
                         }
-                    gp_conv.append(ChannelConversion(**kargs))
+                    block = ChannelConversion(**kargs)
+                    if memory != 'minimum':
+                        gp_conv.append(block)
+                    else:
+                        address = tell()
+                        gp_conv.append(address)
+                        write(bytes(block))
 
                     # source for channel
                     kargs = {
@@ -1071,7 +1174,13 @@ class MDF3(object):
                         'type': v3c.SOURCE_ECU,
                         'description': b'Channel inserted by Python Script',
                     }
-                    gp_source.append(ChannelExtension(**kargs))
+                    block = ChannelExtension(**kargs)
+                    if memory != 'minimum':
+                        gp_source.append(block)
+                    else:
+                        address = tell()
+                        gp_source.append(address)
+                        write(bytes(block))
 
                     # compute additional byte offset for large records size
                     current_offset = offset + bit_offset
@@ -1111,7 +1220,12 @@ class MDF3(object):
 
                     channel = Channel(**kargs)
                     channel.name = name
-                    gp_channels.append(channel)
+                    if memory != 'minimum':
+                        gp_channels.append(channel)
+                    else:
+                        address = tell()
+                        gp_channels.append(address)
+                        write(bytes(channel))
 
                     if name not in self.channels_db:
                         self.channels_db[name] = []
@@ -1128,9 +1242,6 @@ class MDF3(object):
 
                     ch_cntr += 1
 
-                    # simple channels don't have channel dependencies
-                    gp_dep.append(None)
-
                 offset += dtype_.itemsize * 8
                 fields.append(values)
 
@@ -1142,7 +1253,12 @@ class MDF3(object):
                     item.append({})
                 if len(name) >= 32:
                     block = TextBlock(text=name)
-                    gp_texts['channels'][-1]['long_name_addr'] = block
+                    if memory != 'minimum':
+                        gp_texts['channels'][-1]['long_name_addr'] = block
+                    else:
+                        address = tell()
+                        gp_texts['channels'][-1]['long_name_addr'] = address
+                        write(bytes(block))
 
                 # conversions for channel
                 min_val, max_val = get_min_max(signal.samples)
@@ -1174,7 +1290,12 @@ class MDF3(object):
 
                         key = 'text_{}'.format(i)
                         block = TextBlock(text=t_)
-                        gp_texts['conversion_tab'][-1][key] = block
+                        if memory != 'minimum':
+                            gp_texts['conversion_tab'][-1][key] = block
+                        else:
+                            address = tell()
+                            gp_texts['conversion_tab'][-1][key] = address
+                            write(bytes(block))
 
                 else:
                     if min_val <= max_val:
@@ -1189,7 +1310,13 @@ class MDF3(object):
                         'min_phy_value': min_phy_value,
                         'max_phy_value': max_phy_value,
                     }
-                gp_conv.append(ChannelConversion(**kargs))
+                block = ChannelConversion(**kargs)
+                if memory != 'minimum':
+                    gp_conv.append(block)
+                else:
+                    address = tell()
+                    gp_conv.append(address)
+                    write(bytes(block))
 
                 # source for channel
                 kargs = {
@@ -1198,7 +1325,13 @@ class MDF3(object):
                     'type': v3c.SOURCE_ECU,
                     'description': b'Channel inserted by Python Script',
                 }
-                gp_source.append(ChannelExtension(**kargs))
+                block = ChannelExtension(**kargs)
+                if memory != 'minimum':
+                    gp_source.append(block)
+                else:
+                    address = tell()
+                    gp_source.append(address)
+                    write(bytes(block))
 
                 # compute additional byte offset for large records size
                 if offset > v3c.MAX_UINT16:
@@ -1233,7 +1366,12 @@ class MDF3(object):
 
                 channel = Channel(**kargs)
                 channel.name = name
-                gp_channels.append(channel)
+                if memory != 'minimum':
+                    gp_channels.append(channel)
+                else:
+                    address = tell()
+                    gp_channels.append(address)
+                    write(bytes(channel))
                 offset += s_size
 
                 if name not in self.channels_db:
@@ -1296,10 +1434,18 @@ class MDF3(object):
                     item.append({})
                 if len(name) >= 32:
                     block = TextBlock(text=name)
-                    gp_texts['channels'][-1]['long_name_addr'] = block
+                    if memory != 'minimum':
+                        gp_texts['channels'][-1]['long_name_addr'] = block
+                    else:
+                        address = tell()
+                        gp_texts['channels'][-1]['long_name_addr'] = address
+                        write(bytes(block))
 
                 # composed parent has no conversion
-                gp_conv.append(None)
+                if memory != 'minimum':
+                    gp_conv.append(None)
+                else:
+                    gp_conv.append(0)
 
                 # add parent and components sources
                 kargs = {
@@ -1308,7 +1454,13 @@ class MDF3(object):
                     'type': v3c.SOURCE_ECU,
                     'description': b'Channel inserted by Python Script',
                 }
-                gp_source.append(ChannelExtension(**kargs))
+                block = ChannelExtension(**kargs)
+                if memory != 'minimum':
+                    gp_source.append(block)
+                else:
+                    address = tell()
+                    gp_source.append(address)
+                    write(bytes(block))
 
                 min_val, max_val = get_min_max(samples)
 
@@ -1345,7 +1497,13 @@ class MDF3(object):
 
                 channel = Channel(**kargs)
                 channel.name = name
-                gp_channels.append(channel)
+                channel.name = name
+                if memory != 'minimum':
+                    gp_channels.append(channel)
+                else:
+                    address = tell()
+                    gp_channels.append(address)
+                    write(bytes(channel))
 
                 if name not in self.channels_db:
                     self.channels_db[name] = []
@@ -1359,7 +1517,12 @@ class MDF3(object):
                         item.append({})
                     if len(name) >= 32:
                         block = TextBlock(text=name)
-                        gp_texts['channels'][-1]['long_name_addr'] = block
+                        if memory != 'minimum':
+                            gp_texts['channels'][-1]['long_name_addr'] = block
+                        else:
+                            address = tell()
+                            gp_texts['channels'][-1]['long_name_addr'] = address
+                            write(bytes(block))
 
                     min_val, max_val = get_min_max(samples)
                     s_type, s_size = fmt_to_datatype(samples.dtype)
@@ -1371,9 +1534,18 @@ class MDF3(object):
                         'type': v3c.SOURCE_ECU,
                         'description': b'Channel inserted by Python Script',
                     }
-                    gp_source.append(ChannelExtension(**kargs))
+                    block = ChannelExtension(**kargs)
+                    if memory != 'minimum':
+                        gp_source.append(block)
+                    else:
+                        address = tell()
+                        gp_source.append(address)
+                        write(bytes(block))
 
-                    gp_conv.append(None)
+                    if memory != 'minimum':
+                        gp_conv.append(None)
+                    else:
+                        gp_conv.append(0)
 
                     # compute additional byte offset for large records size
                     if offset > v3c.MAX_UINT16:
@@ -1400,7 +1572,12 @@ class MDF3(object):
 
                     channel = Channel(**kargs)
                     channel.name = name
-                    gp_channels.append(channel)
+                    if memory != 'minimum':
+                        gp_channels.append(channel)
+                    else:
+                        address = tell()
+                        gp_channels.append(address)
+                        write(bytes(channel))
                     size = s_size
                     for dim in shape:
                         size *= dim
@@ -1458,21 +1635,19 @@ class MDF3(object):
             samples = fromarrays(fields, dtype=types)
             block = samples.tostring()
 
-            if self.load_measured_data:
+            if memory == 'full':
                 gp['data_location'] = v3c.LOCATION_MEMORY
                 kargs = {'data': block}
                 gp['data_block'] = DataBlock(**kargs)
             else:
                 gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
                 if cycles_nr:
-                    if self._tempfile is None:
-                        self._tempfile = TemporaryFile()
-                    self._tempfile.seek(0, v3c.SEEK_END)
-                    data_address = self._tempfile.tell()
+
+                    data_address = tell()
                     gp['data_group']['data_block_addr'] = data_address
                     self._tempfile.write(block)
                 else:
-                    gp['data_group']['data_block_addr'] = -1
+                    gp['data_group']['data_block_addr'] = 0
 
             # data group trigger
             gp['trigger'] = [None, None]
@@ -1682,7 +1857,7 @@ class MDF3(object):
             samples = fromarrays(fields, dtype=types)
             block = samples.tostring()
 
-            if self.load_measured_data:
+            if memory == 'full':
                 gp['data_location'] = v3c.LOCATION_MEMORY
                 kargs = {'data': block}
                 gp['data_block'] = DataBlock(**kargs)
@@ -1697,19 +1872,21 @@ class MDF3(object):
                     self._tempfile.write(block)
                 else:
                     gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
-                    gp['data_group']['data_block_addr'] = -1
+                    gp['data_group']['data_block_addr'] = 0
 
             # data group trigger
             gp['trigger'] = [None, None]
 
     def close(self):
-        """ if the MDF was created with load_measured_data=False and new
+        """ if the MDF was created with memory=False and new
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file
 
         """
-        if self.load_measured_data is False and self._tempfile is not None:
+        if self._tempfile is not None:
             self._tempfile.close()
+        if self._file is not None:
+            self._file.close()
 
     def get(self,
             name=None,
@@ -1808,9 +1985,47 @@ class MDF3(object):
                         message = message.format(group, name, name, gp_nr)
                         warnings.warn(message)
 
+        memory = self.memory
         grp = self.groups[gp_nr]
+
+        if grp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
         channel = grp['channels'][ch_nr]
         conversion = grp['channel_conversions'][ch_nr]
+
+        if memory != 'minimum':
+            channel = grp['channels'][ch_nr]
+            conversion = grp['channel_conversions'][ch_nr]
+            name = channel.name
+        else:
+            channel = Channel(
+                address=grp['channels'][ch_nr],
+                stream=stream,
+            )
+            addr = grp['channel_conversions'][ch_nr]
+            if addr:
+                conversion = ChannelConversion(
+                    address=addr,
+                    stream=stream,
+                )
+            else:
+                conversion = None
+            if name is None:
+                if channel['long_name_addr']:
+                    name = TextBlock(
+                        address=channel['long_name_addr'],
+                        stream=stream,
+                    )
+                    name = name['text']
+                else:
+                    name = channel['short_name']
+                name = name.decode('utf-8').strip(' \r\t\n\0')
+
+            channel.name = name
+
         dep = grp['channel_dependencies'][ch_nr]
         cycles_nr = grp['channel_group']['cycles_nr']
 
@@ -1876,7 +2091,7 @@ class MDF3(object):
                     else:
                         record = None
 
-                    if self.load_measured_data:
+                    if memory == 'full':
                         grp['record'] = record
                 else:
                     record = grp['record']
@@ -2097,6 +2312,12 @@ class MDF3(object):
             return self._master_channel_cache[index]
         group = self.groups[index]
 
+        if group['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+        memory = self.memory
+
         time_ch_nr = self.masters_db.get(index, None)
         cycles_nr = group['channel_group']['cycles_nr']
 
@@ -2104,7 +2325,20 @@ class MDF3(object):
             t = arange(cycles_nr, dtype=float64)
         else:
             time_conv = group['channel_conversions'][time_ch_nr]
-            time_ch = group['channels'][time_ch_nr]
+            if memory == 'minimum':
+                if time_conv:
+                    time_conv = ChannelConversion(
+                        address=group['channel_conversions'][time_ch_nr],
+                        stream=stream,
+                    )
+                else:
+                    time_conv = None
+                time_ch = Channel(
+                    address=group['channels'][time_ch_nr],
+                    stream=stream,
+                )
+            else:
+                time_ch = group['channels'][time_ch_nr]
 
             if time_ch['bit_count'] == 0:
                 if time_ch['sampling_rate']:
@@ -2134,7 +2368,7 @@ class MDF3(object):
                         else:
                             record = None
 
-                        if self.load_measured_data:
+                        if memory == 'full':
                             group['record'] = record
                     t = record[parent]
                 else:
@@ -2221,7 +2455,52 @@ class MDF3(object):
 
         return info
 
-    def save(self, dst='', overwrite=False, **kargs):
+    def save(self, dst='', overwrite=False, compression=0):
+        """Save MDF to *dst*. If *dst* is not provided the the destination file
+        name is the MDF name. If overwrite is *True* then the destination file
+        is overwritten, otherwise the file name is appened with '_<cntr>', were
+        '<cntr>' is the first conter that produces a new file name (that does
+        not already exist in the filesystem).
+
+        Parameters
+        ----------
+        dst : str
+            destination file name, Default ''
+        overwrite : bool
+            overwrite flag, default *False*
+        compression : int
+            does nothing for mdf version3; introduced here to share the same
+            API as mdf version 4 files
+
+        """
+
+        if self.name is None and dst == '':
+            message = ('Must specify a destination file name '
+                       'for MDF created from scratch')
+            raise MdfException(message)
+
+        dst = dst if dst else self.name
+        if overwrite is False:
+            if os.path.isfile(dst):
+                cntr = 0
+                while True:
+                    name = os.path.splitext(dst)[0] + '_{}.mdf'.format(cntr)
+                    if not os.path.isfile(name):
+                        break
+                    else:
+                        cntr += 1
+                message = ('Destination file "{}" already exists '
+                           'and "overwrite" is False. Saving MDF file as "{}"')
+                message = message.format(dst, name)
+                warnings.warn(message)
+                dst = name
+
+        if self.memory != 'minimum':
+            self._save_with_metadata(dst, overwrite, compression)
+        else:
+            self._save_without_metadata(dst, overwrite, compression)
+
+    def _save_with_metadata(self, dst='', overwrite=False, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -2285,12 +2564,12 @@ class MDF3(object):
         # relevant block links are updated so that once all blocks have been
         # added to the list they can be written using the bytes protocol.
         # DataGroup blocks are written first after the identification and
-        # header blocks. When load_measured_data=False we need to restore the
+        # header blocks. When memory=False we need to restore the
         # original data block addresses within the data group block. This is
         # needed to allow further work with the object after the save method
         # call (eq. new calls to get method). Since the data group blocks are
         # written first, it is safe to restor the original links when the data
-        # blocks are written. For load_measured_data=False the blocks list will
+        # blocks are written. For memory=False the blocks list will
         # contain a tuple instead of a DataBlock instance; the tuple will have
         # the reference to the data group object and the original link to the
         # data block in the soource MDF file.
@@ -2315,7 +2594,7 @@ class MDF3(object):
 
             # DataGroup
             # put them first in the block list so they will be written first to
-            # disk this way, in case of load_measured_data=False, we can safely
+            # disk this way, in case of memory=False, we can safely
             # restore he original data block address
             for gp in self.groups:
                 dg = gp['data_group']
@@ -2328,7 +2607,7 @@ class MDF3(object):
                     addr = self.groups[i+1]['data_group'].address
                     dg['data_group']['next_dg_addr'] = addr
                 self.groups[-1]['data_group']['next_dg_addr'] = 0
-                
+
             for gp in self.groups:
                 gp_texts = gp['texts']
 
@@ -2345,7 +2624,6 @@ class MDF3(object):
                                 tx_block.address = address
                                 blocks.append(tx_block)
                                 address += tx_block['block_len']
-                                
 
                 # ChannelConversions
                 cc = gp['channel_conversions']
@@ -2444,16 +2722,16 @@ class MDF3(object):
                 else:
                     gp['data_group']['data_block_addr'] = 0
                 address += gp['size']
-                if self.load_measured_data:
+                if self.memory == 'full':
                     blocks.append(gp['data_block'])
                 else:
                     # trying to call bytes([gp, address]) will result in an
                     # exceptionthat be used as a flag for non existing data
-                    # block in caseof load_measured_data=False, the address is
+                    # block in caseof memory=False, the address is
                     # the actual addressof the data group's data within the
                     # original file
                     blocks.append([gp, original_data_addr])
-                    
+
             # update referenced channels addresses in the channel dependecies
             for gp in self.groups:
                 for dep in gp['channel_dependencies']:
@@ -2489,13 +2767,301 @@ class MDF3(object):
                     write(bytes(block))
                 except:
                     # this will only be executed for data blocks when
-                    # load_measured_data=False
+                    # memory=False
                     gp, address = block
                     # restore data block address from original file so that
                     # future calls to get will still work after the save
                     gp['data_group']['data_block_addr'] = address
                     data = self._load_group_data(gp)
                     write(data)
+
+    def _save_without_metadata(self, dst='', overwrite=False, compression=0):
+        """Save MDF to *dst*. If *dst* is not provided the the destination file
+        name is the MDF name. If overwrite is *True* then the destination file
+        is overwritten, otherwise the file name is appened with '_<cntr>', were
+        '<cntr>' is the first conter that produces a new file name (that does
+        not already exist in the filesystem).
+
+        Parameters
+        ----------
+        dst : str
+            destination file name, Default ''
+        overwrite : bool
+            overwrite flag, default *False*
+        compression : int
+            does nothing for mdf version3; introduced here to share the same
+            API as mdf version 4 files
+
+        """
+
+        if self.file_history is None:
+            self.file_history = TextBlock(text='''<FHcomment>
+<TX>created</TX>
+<tool_id>asammdf</tool_id>
+<tool_vendor> </tool_vendor>
+<tool_version>{}</tool_version>
+</FHcomment>'''.format(__version__))
+        else:
+            text = '{}\n{}: updated by asammdf {}'
+            old_history = self.file_history['text'].decode('latin-1')
+            timestamp = time.asctime().encode('latin-1')
+
+            text = text.format(
+                old_history,
+                timestamp,
+                __version__,
+            )
+            self.file_history = TextBlock(text=text)
+
+        # all MDF blocks are appended to the blocks list in the order in which
+        # they will be written to disk. While creating this list, all the
+        # relevant block links are updated so that once all blocks have been
+        # added to the list they can be written using the bytes protocol.
+        # DataGroup blocks are written first after the identification and
+        # header blocks. When memory=False we need to restore the
+        # original data block addresses within the data group block. This is
+        # needed to allow further work with the object after the save method
+        # call (eq. new calls to get method). Since the data group blocks are
+        # written first, it is safe to restor the original links when the data
+        # blocks are written. For memory=False the blocks list will
+        # contain a tuple instead of a DataBlock instance; the tuple will have
+        # the reference to the data group object and the original link to the
+        # data block in the soource MDF file.
+
+        with open(dst, 'wb') as dst:
+            # store unique texts and their addresses
+            defined_texts = {}
+            # list of all blocks
+            blocks = []
+
+            write = dst.write
+            tell = dst.tell
+            seek = dst.seek
+
+            address = 0
+
+            write(bytes(self.identification))
+
+            write(bytes(self.header))
+
+            address = tell()
+            self.file_history.address = address
+            write(bytes(self.file_history))
+
+            # DataGroup
+            # put them first in the block list so they will be written first to
+            # disk this way, in case of memory=False, we can safely
+            # restore he original data block address
+
+            data_address = []
+
+            for gp in self.groups:
+                gp_texts = gp['texts']
+                if gp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+                    stream = self._file
+                else:
+                    stream = self._tempfile
+
+                # Texts
+                for item_list in gp_texts.values():
+                    for my_dict in item_list:
+                        if my_dict is None:
+                            continue
+                        for key, tx_block in my_dict.items():
+
+                            # text blocks can be shared
+                            block = TextBlock(
+                                address=tx_block,
+                                stream=stream,
+                            )
+                            text = block['text']
+                            if text in defined_texts:
+                                my_dict[key] = defined_texts[text]
+                            else:
+                                address = tell()
+                                defined_texts[text] = address
+                                my_dict[key] = address
+                                write(bytes(block))
+
+                # ChannelConversions
+                cc = gp['temp_channel_conversions'] = []
+                for i, conv in enumerate(gp['channel_conversions']):
+                    if not conv:
+                        gp['temp_channel_conversions'].append(0)
+                        continue
+
+                    address = tell()
+                    gp['temp_channel_conversions'].append(address)
+                    conv = ChannelConversion(
+                        address=conv,
+                        stream=stream,
+                    )
+                    if conv['conversion_type'] == v3c.CONVERSION_TYPE_VTABR:
+                        pairs = gp_texts['conversion_tab'][i].items()
+                        for key, item in pairs:
+                            conv[key] = item
+
+                    write(bytes(conv))
+
+                # Channel Extension
+                cs = gp['temp_channel_extensions'] = []
+                for source in gp['channel_extensions']:
+                    if source:
+                        address = tell()
+                        gp['temp_channel_extensions'].append(address)
+                        source = ChannelExtension(
+                            address=source,
+                            stream=stream,
+                        )
+                        write(bytes(source))
+                    else:
+                        gp['temp_channel_extensions'].append(0)
+
+                # Channel Dependency
+                cd = gp['temp_channel_dependencies'] = []
+                for dep in gp['channel_dependencies']:
+                    if dep:
+                        address = tell()
+                        gp['temp_channel_dependencies'].append(address)
+                        dep.address = address
+                        write(bytes(dep))
+                    else:
+                        gp['temp_channel_dependencies'].append(0)
+
+                # Channels
+                blocks = []
+                address = tell()
+                ch_texts = gp_texts['channels']
+                gp['temp_channels'] = ch_addrs = []
+                gp['channel_group']['first_ch_addr'] = address
+                for i, channel in enumerate(gp['channels']):
+                    channel = Channel(
+                        address=channel,
+                        stream=stream,
+                    )
+                    channel.address = address
+                    channel_texts = ch_texts[i]
+
+                    ch_addrs.append(address)
+
+                    address += channel['block_len']
+                    blocks.append(channel)
+
+                    for key in ('long_name_addr',
+                                'comment_addr',
+                                'display_name_addr'):
+                        if key in channel_texts:
+                            channel[key] = channel_texts[key]
+                        else:
+                            channel[key] = 0
+
+                    channel['conversion_addr'] = cc[i]
+                    channel['source_depend_addr'] = cs[i]
+                    channel['ch_depend_addr'] = cd[i]
+
+                group_channels = gp['channels']
+                if group_channels:
+                    for j, channel in enumerate(blocks[:-1]):
+                        channel['next_ch_addr'] = blocks[j+1].address
+                    blocks[-1]['next_ch_addr'] = 0
+                for block in blocks:
+                    write(bytes(block))
+
+                blocks = None
+
+                address = tell()
+
+                # ChannelGroup
+                cg = gp['channel_group']
+                cg.address = address
+
+                cg['next_cg_addr'] = 0
+                cg_texts = gp['texts']['channel_group'][0]
+                if 'comment_addr' in cg_texts:
+                    addr = cg_texts['comment_addr']
+                    cg['comment_addr'] = addr
+                write(bytes(cg))
+
+                address = tell()
+
+                # TriggerBLock
+                trigger, trigger_text = gp['trigger']
+                if trigger:
+                    if trigger_text:
+                        trigger_text.address = address
+                        write(bytes(trigger_text))
+                        trigger['comment_addr'] = trigger_text.address
+                    else:
+                        trigger['comment_addr'] = 0
+
+                    address = tell()
+                    trigger.address = address
+                    write(bytes(trigger))
+
+                address = tell()
+
+                # DataBlock
+                data = self._load_group_data(gp)
+
+                if data:
+                    data_address.append(address)
+                    write(bytes(data))
+                else:
+                    data_address.append(0)
+
+                del gp['temp_channel_conversions']
+                del gp['temp_channel_extensions']
+
+            orig_addr = [gp['data_group']['data_block_addr'] for gp in self.groups]
+            address = tell()
+            for i, gp in enumerate(self.groups):
+                dg = gp['data_group']
+                dg['data_block_addr'] = data_address[i]
+                dg.address = address
+                address += dg['block_len']
+                gp['data_group']['first_cg_addr'] = gp['channel_group'].address
+                if gp['trigger'][0]:
+                    gp['data_group']['trigger_addr'] = gp['trigger'][0].address
+                else:
+                    gp['data_group']['trigger_addr'] = 0
+
+            if self.groups:
+                for i, gp in enumerate(self.groups[:-1]):
+                    addr = self.groups[i+1]['data_group'].address
+                    gp['data_group']['next_dg_addr'] = addr
+                self.groups[-1]['data_group']['next_dg_addr'] = 0
+
+            for i, gp in enumerate(self.groups):
+                write(bytes(gp['data_group']))
+                gp['data_block_addr'] = orig_addr[i]
+
+            if self.groups:
+                address = self.groups[0]['data_group'].address
+                self.header['first_dg_addr'] = address
+                self.header['dg_nr'] = len(self.groups)
+                self.header['comment_addr'] = self.file_history.address
+                self.header['program_addr'] = 0
+
+            # update referenced channels addresses in the channel dependecies
+            for gp in self.groups:
+                for dep in gp['channel_dependencies']:
+                    if not dep:
+                        continue
+
+                    for i, pair_ in enumerate(dep.referenced_channels):
+                        ch_nr, dg_nr = pair_
+                        grp = self.groups[dg_nr]
+                        dep['ch_{}'.format(i)] = grp['temp_channels'][i]
+                        dep['cg_{}'.format(i)] = grp['channel_group'].address
+                        dep['dg_{}'.format(i)] = grp['data_group'].address
+                    seek(dep.address, v3c.SEEK_START)
+                    write(bytes(dep))
+
+            seek(v3c.ID_BLOCK_SIZE, v3c.SEEK_START)
+            write(bytes(self.header))
+
+            for gp in self.groups:
+                del gp['temp_channels']
 
 
 if __name__ == '__main__':
