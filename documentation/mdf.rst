@@ -48,8 +48,8 @@ MDF3 and MDF4 classes
    mdf3
    mdf4
 
-Notes about *load_measured_data* argument
------------------------------------------
+Notes about *memory* argument
+-----------------------------
 
 By default when the *MDF* object is created all data is loaded into RAM (memory=full).
 This will give you the best performance from *asammdf*. 
@@ -60,8 +60,8 @@ However if you reach the physical memmory limit *asammdf* gives you two options:
     * memory=minimum : only minimal data is loaded into RAM.
 
 
-*MDF* created with memory=full
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*MDF* created with *memory='full'*
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Advantages
 
@@ -76,8 +76,8 @@ Use case
 * when data fits inside the system RAM
   
   
-*MDF* created with memory=low
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*MDF* created with *memory='low'*
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Advantages
 
@@ -105,8 +105,8 @@ the *select* method with the list of target channels.
 
     See benchmarks for the effects of using the flag
     
-*MDF* created with memory=minimum
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*MDF* created with *memory='minimum'*
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Advantages
 

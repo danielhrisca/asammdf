@@ -88,9 +88,6 @@ MASTER_CHANNELS = (
     v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
 )
 
-EMPTY_DICT = {}
-EMPTY_LIST = []
-
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
     from .utils import bytes
@@ -593,13 +590,13 @@ class MDF4(object):
                 if source_texts:
                     grp['texts']['sources'].append(source_texts)
                 else:
-                    grp['texts']['sources'].append(EMPTY_DICT)
+                    grp['texts']['sources'].append(None)
             else:
                 if memory == 'minimum':
                     grp['channel_sources'].append(0)
                 else:
                     grp['channel_sources'].append(None)
-                grp['texts']['sources'].append(EMPTY_DICT)
+                grp['texts']['sources'].append(None)
 
             # read text fields for channel
             channel_texts = {}
@@ -1221,7 +1218,6 @@ class MDF4(object):
             'conversion_tab': [],
             'channel_group': [],
         }
-        gp['signal_data'] = []
 
         self.groups.append(gp)
 
@@ -1236,8 +1232,10 @@ class MDF4(object):
         # setup all blocks related to the time master channel
 
         # time channel texts
-        for _, item in gp_texts.items():
-            item.append({})
+        for key in ('channels', 'sources', 'channel_group', 'conversions'):
+            gp['texts'][key].append({})
+        for key in ('conversion_tab', ):
+            gp['texts'][key].append(None)
 
         memory = self.memory
         file = self._tempfile
@@ -1400,8 +1398,10 @@ class MDF4(object):
                 max_val = signal_d['max']
 
                 name = signal.name
-                for _, item in gp['texts'].items():
-                    item.append({})
+                for key in ('channels', 'sources'):
+                    gp['texts'][key].append({})
+                for key in ('conversion_tab', 'conversions'):
+                    gp['texts'][key].append(None)
 
                 block = TextBlock(text=name, meta=False)
                 if memory == 'minimum':
@@ -1425,7 +1425,7 @@ class MDF4(object):
 
                 # conversions for channel
                 info = signal.info
-                conv_texts_tab = gp_texts['conversion_tab'][-1]
+                conv_texts_tab = {}
                 if info and 'raw' in info:
                     kargs = {}
                     kargs['conversion_type'] = v4c.CONVERSION_TYPE_TABX
@@ -1516,8 +1516,10 @@ class MDF4(object):
                     else:
                         gp_conv.append(0)
 
-                # source for channel
+                if conv_texts_tab:
+                    gp['texts']['conversion_tab'][-1] = conv_texts_tab
 
+                # source for channel
                 if memory != 'minimum':
                     gp_source.append(SourceInformation())
                 else:
@@ -1555,11 +1557,6 @@ class MDF4(object):
                     write(bytes(ch))
                     gp_channels.append(address)
 
-                if memory != 'minimum':
-                    gp['signal_data'].append(None)
-                else:
-                    gp['signal_data'].append(0)
-
                 if name not in self.channels_db:
                     self.channels_db[name] = []
                 self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -1582,8 +1579,11 @@ class MDF4(object):
         # first add the signals in the simple signal list
         for signal in simple_signals:
             name = signal.name
-            for _, item in gp['texts'].items():
-                item.append({})
+            for key in ('channels', 'sources'):
+                gp['texts'][key].append({})
+            for key in ('conversion_tab', 'conversions'):
+                gp['texts'][key].append(None)
+
             block = TextBlock(text=name, meta=False)
             if memory != 'minimum':
                 gp_texts['channels'][-1]['name_addr'] = block
@@ -1612,7 +1612,7 @@ class MDF4(object):
 
             # conversions for channel
             info = signal.info
-            conv_texts_tab = gp_texts['conversion_tab'][-1]
+            conv_texts_tab = {}
             if info and 'raw' in info:
                 kargs = {}
                 kargs['conversion_type'] = v4c.CONVERSION_TYPE_TABX
@@ -1703,6 +1703,9 @@ class MDF4(object):
                 else:
                     gp_conv.append(0)
 
+            if conv_texts_tab:
+                gp['texts']['conversion_tab'][-1] = conv_texts_tab
+
             # source for channel
             if memory != 'minimum':
                 gp_source.append(SourceInformation())
@@ -1739,10 +1742,7 @@ class MDF4(object):
                 address = tell()
                 write(bytes(ch))
                 gp_channels.append(address)
-            if memory != 'minimum':
-                gp['signal_data'].append(None)
-            else:
-                gp['signal_data'].append(0)
+
             offset += byte_size
 
             if name not in self.channels_db:
@@ -1809,8 +1809,11 @@ class MDF4(object):
                 s_size = byte_size << 3
 
                 # add channel texts
-                for item in gp['texts'].values():
-                    item.append({})
+                for key in ('channels', 'sources'):
+                    gp['texts'][key].append({})
+                for key in ('conversion_tab', 'conversions'):
+                    gp['texts'][key].append(None)
+
                 block = TextBlock(text=name, meta=False)
                 if memory != 'minimum':
                     gp_texts['channels'][-1]['name_addr'] = block
@@ -1877,10 +1880,6 @@ class MDF4(object):
                     write(bytes(ch))
                     gp_channels.append(address)
 
-                if memory != 'minimum':
-                    gp['signal_data'].append(None)
-                else:
-                    gp['signal_data'].append(0)
                 offset += byte_size
 
                 if name in self.channels_db:
@@ -1902,8 +1901,11 @@ class MDF4(object):
 
                 # first we add the structure channel
                 # add channel texts
-                for item in gp['texts'].values():
-                    item.append({})
+                for key in ('channels', 'sources'):
+                    gp['texts'][key].append({})
+                for key in ('conversion_tab', 'conversions'):
+                    gp['texts'][key].append(None)
+
                 block = TextBlock(text=name, meta=False)
                 if memory != 'minimum':
                     gp_texts['channels'][-1]['name_addr'] = block
@@ -1967,11 +1969,6 @@ class MDF4(object):
                     write(bytes(ch))
                     gp_channels.append(address)
 
-                if memory != 'minimum':
-                    gp['signal_data'].append(None)
-                else:
-                    gp['signal_data'].append(0)
-
                 if name not in self.channels_db:
                     self.channels_db[name] = []
                 self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -2000,8 +1997,11 @@ class MDF4(object):
                     types.append(vals.dtype)
 
                     # add channel texts
-                    for item in gp['texts'].values():
-                        item.append({})
+                    for key in ('channels', 'sources'):
+                        gp['texts'][key].append({})
+                    for key in ('conversion_tab', 'conversions'):
+                        gp['texts'][key].append(None)
+
                     block = TextBlock(text=name, meta=False)
                     if memory != 'minimum':
                         gp_texts['channels'][-1]['name_addr'] = block
@@ -2058,10 +2058,6 @@ class MDF4(object):
                         gp_channels.append(address)
                         dep_list.append(address)
 
-                    if memory != 'minimum':
-                        gp['signal_data'].append(None)
-                    else:
-                        gp['signal_data'].append(0)
                     offset += byte_size
 
                     if name not in self.channels_db:
@@ -2141,8 +2137,11 @@ class MDF4(object):
 
                 # first we add the structure channel
                 # add channel texts
-                for item in gp['texts'].values():
-                    item.append({})
+                for key in ('channels', 'sources'):
+                    gp['texts'][key].append({})
+                for key in ('conversion_tab', 'conversions'):
+                    gp['texts'][key].append(None)
+
                 block = TextBlock(text=name, meta=False)
                 if memory != 'minimum':
                     gp_texts['channels'][-1]['name_addr'] = block
@@ -2208,11 +2207,6 @@ class MDF4(object):
                     write(bytes(ch))
                     gp_channels.append(address)
 
-                if memory != 'minimum':
-                    gp['signal_data'].append(None)
-                else:
-                    gp['signal_data'].append(0)
-
                 size = s_size >> 3
                 for dim in shape:
                     size *= dim
@@ -2237,8 +2231,11 @@ class MDF4(object):
                     types.append((field_name, samples.dtype, shape))
 
                     # add composed parent signal texts
-                    for item in gp['texts'].values():
-                        item.append({})
+                    for key in ('channels', 'sources'):
+                        gp['texts'][key].append({})
+                    for key in ('conversion_tab', 'conversions'):
+                        gp['texts'][key].append(None)
+
                     block = TextBlock(text=name, meta=False)
                     if memory != 'minimum':
                         gp_texts['channels'][-1]['name_addr'] = block
@@ -2307,10 +2304,6 @@ class MDF4(object):
                         write(bytes(channel))
                         gp_channels.append(address)
 
-                    if memory != 'minimum':
-                        gp['signal_data'].append(None)
-                    else:
-                        gp['signal_data'].append(0)
                     parent_dep.referenced_channels.append((ch_cntr, dg_cntr))
                     for dim in shape:
                         byte_size *= dim
