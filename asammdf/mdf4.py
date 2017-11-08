@@ -3845,8 +3845,9 @@ class MDF4(object):
                 gp['channel_group'].address = address
                 gp['channel_group']['first_ch_addr'] = gp['channels'][0].address
                 gp['channel_group']['next_cg_addr'] = 0
+                cg_texts = gp['texts']['channel_group'][0]
                 for key in ('acq_name_addr', 'comment_addr'):
-                    if key in gp['texts']['channel_group'][0]:
+                    if cg_texts and key in cg_texts:
                         addr_ = gp['texts']['channel_group'][0][key].address
                         gp['channel_group'][key] = addr_
                 gp['channel_group']['acq_source_addr'] = 0
@@ -4276,8 +4277,9 @@ class MDF4(object):
                 gp['channel_group'].address = address
 #                gp['channel_group']['first_ch_addr'] = gp['channels'][0]
                 gp['channel_group']['next_cg_addr'] = 0
+                cg_texts = gp['texts']['channel_group'][0]
                 for key in ('acq_name_addr', 'comment_addr'):
-                    if key in gp['texts']['channel_group'][0]:
+                    if cg_texts and key in cg_texts:
                         addr_ = gp['texts']['channel_group'][0][key]
                         gp['channel_group'][key] = addr_
                 gp['channel_group']['acq_source_addr'] = 0
