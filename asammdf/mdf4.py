@@ -328,7 +328,7 @@ class MDF4(object):
                 if channel_group_texts:
                     grp['texts']['channel_group'].append(channel_group_texts)
                 else:
-                    grp['texts']['channel_group'].append(EMPTY_DICT)
+                    grp['texts']['channel_group'].append(None)
 
                 # go to first channel of the current channel group
                 ch_addr = channel_group['first_ch_addr']
@@ -3770,9 +3770,9 @@ class MDF4(object):
                         source_texts = gp['texts']['sources'][j]
 
                         for key in ('name_addr', 'path_addr', 'comment_addr'):
-                            try:
+                            if source_texts and key in source_texts:
                                 source[key] = source_texts[key].address
-                            except KeyError:
+                            else:
                                 source[key] = 0
 
                         address += source['block_len']
@@ -4196,9 +4196,9 @@ class MDF4(object):
                         )
 
                         for key in ('name_addr', 'path_addr', 'comment_addr'):
-                            try:
+                            if source_texts and key in source_texts:
                                 source[key] = source_texts[key]
-                            except KeyError:
+                            else:
                                 source[key] = 0
 
                         write(bytes(source))
