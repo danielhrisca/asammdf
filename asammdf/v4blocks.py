@@ -579,6 +579,9 @@ class ChannelGroup(dict):
             self['samples_byte_nr'] = kargs.get('samples_byte_nr', 0)
             self['invalidation_bytes_nr'] = kargs.get('invalidation_bytes_nr', 0)
 
+        # sample reduction blocks are not supported yet
+        self['first_sample_reduction_addr'] = 0
+
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
             result = pack(v4c.FMT_CHANNEL_GROUP, *self.values())
@@ -1582,7 +1585,7 @@ class TextBlock(dict):
 
             size = self['block_len'] - v4c.COMMON_SIZE
 
-            self['text'] = stream.read(size)
+            self['text'] = text = stream.read(size)
 
         else:
 
@@ -1600,24 +1603,19 @@ class TextBlock(dict):
                 except (AttributeError, UnicodeDecodeError):
                     pass
 
-
-            text_length = len(text)
-            align = text_length % 8
-            if align:
-                padding = 8 - align
-            elif text and text[-1] in (0, b'\x00'):
-                padding = 0
-            else:
-                padding = 8
+            text_length = size = len(text)
 
             self['id'] = b'##MD' if kargs.get('meta', False) else b'##TX'
             self['reserved0'] = 0
-            self['block_len'] = text_length + padding + v4c.COMMON_SIZE
+            self['block_len'] = text_length + v4c.COMMON_SIZE
             self['links_nr'] = 0
-            if padding:
-                self['text'] = text + b'\00' * padding
-            else:
-                self['text'] = text
+            self['text'] = text
+
+        align = size % 8
+        if align:
+            self['block_len'] = size + v4c.COMMON_SIZE + 8 - align
+        elif text and text[-1] not in (0, b'\0'):
+            self['block_len'] = size + v4c.COMMON_SIZE + 8
 
     def __bytes__(self):
         fmt = v4c.FMT_TEXT_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)
