@@ -18,6 +18,29 @@ from hashlib import md5
 import xml.etree.ElementTree as XML
 from math import ceil
 
+
+import sys
+
+def get_size(obj, seen=None):
+    """Recursively finds size of objects"""
+    size = sys.getsizeof(obj)
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+    # Important mark as seen *before* entering recursion to gracefully handle
+    # self-referential objects
+    seen.add(obj_id)
+    if isinstance(obj, dict):
+        size += sum([get_size(v, seen) for v in obj.values()])
+        size += sum([get_size(k, seen) for k in obj.keys()])
+    elif hasattr(obj, '__dict__'):
+        size += get_size(obj.__dict__, seen)
+    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
+        size += sum([get_size(i, seen) for i in obj])
+    return round(size / 1024 / 1024, 1)
+
 from numpy import (
     interp,
     linspace,
@@ -2339,17 +2362,32 @@ class MDF4(object):
         gp['parents'] = parents
 
         samples = fromarrays(fields, dtype=types)
-        block = samples.tostring()
 
-        if memory == 'full':
-            gp['data_location'] = v4c.LOCATION_MEMORY
-            gp['data_block'] = DataBlock(data=block)
-        else:
-            gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
+        signals = None
+        del signals
 
-            data_address = self._tempfile.tell()
-            gp['data_group']['data_block_addr'] = data_address
-            self._tempfile.write(bytes(block))
+        try:
+            block = samples.tostring()
+
+            if memory == 'full':
+                gp['data_location'] = v4c.LOCATION_MEMORY
+                gp['data_block'] = DataBlock(data=block)
+            else:
+                gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
+
+                data_address = self._tempfile.tell()
+                gp['data_group']['data_block_addr'] = data_address
+                self._tempfile.write(bytes(block))
+        except MemoryError:
+            if memory == 'full':
+                raise
+            else:
+                gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
+
+                data_address = self._tempfile.tell()
+                gp['data_group']['data_block_addr'] = data_address
+                for sample in samples:
+                    self._tempfile.write(sample.tostring())
 
     def attach(self,
                data,
@@ -2653,7 +2691,7 @@ class MDF4(object):
                 if memory == 'minimum':
                     names = []
                     # TODO : get exactly he group and chanenl
-                    for address in dependecy_list:
+                    for address in dependency_list:
                         channel = Channel(
                             address=address,
                             stream=stream,
@@ -2670,7 +2708,7 @@ class MDF4(object):
                     for name_ in names
                 ]
 
-                types = [(name, arr.dtype) for name, arr in zip(names, arrays)]
+                types = [(name_, arr.dtype) for name_, arr in zip(names, arrays)]
                 if PYVERSION == 2:
                     types = fix_dtype_fields(types)
                 types = dtype(types)

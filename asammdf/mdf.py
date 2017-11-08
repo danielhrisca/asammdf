@@ -210,6 +210,8 @@ class MDF(object):
             if stop is not None:
                 stop += first_timestamp
 
+            timestamps = None
+
         # walk through all groups and get all channels
         for i, gp in enumerate(self.groups):
             sigs = []
@@ -226,6 +228,10 @@ class MDF(object):
                     data=data
                 ).cut(start=start, stop=stop)
                 sigs.append(sig)
+
+            data = None
+            del data
+            del timestamps
 
             if sigs:
                 if start:

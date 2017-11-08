@@ -36,6 +36,15 @@ class Signal(object):
 
     """
 
+    __slots__ = [
+        'samples',
+        'timestamps',
+        'unit',
+        'name',
+        'info',
+        'comment',
+    ]
+
     def __init__(self,
                  samples=None,
                  timestamps=None,
