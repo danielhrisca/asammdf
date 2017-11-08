@@ -593,7 +593,8 @@ class MDF(object):
                                 else:
                                     stream = file._tempfile
 
-                                if 'long_name_addr' in grp['texts']['channels'][j]:
+                                channel_texts = grp['texts']['channels'][j]
+                                if channel_texts and 'long_name_addr' in channel_texts:
                                     address = grp['texts']['channels'][j]['long_name_addr']
 
                                     block = TextBlockV3(
