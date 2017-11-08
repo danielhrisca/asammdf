@@ -1543,6 +1543,7 @@ class SignalDataBlock(dict):
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
         except KeyError:
+
             self.address = 0
             self['id'] = b'##SD'
             self['reserved0'] = 0
@@ -1558,10 +1559,6 @@ class SignalDataBlock(dict):
             res = pack(fmt, *self.values())
         else:
             res = pack(fmt, *[self[key] for key in keys])
-        # 8 byte alignment
-        size = len(res)
-        if size % 8:
-            res += b'\x00' * (8 - size%8)
         return res
 
 

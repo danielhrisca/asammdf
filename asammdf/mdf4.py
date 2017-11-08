@@ -9,7 +9,6 @@ import time
 import warnings
 import os
 
-from array import array as carray
 from tempfile import TemporaryFile
 from struct import unpack, unpack_from
 from functools import reduce, partial
@@ -17,29 +16,6 @@ from collections import defaultdict
 from hashlib import md5
 import xml.etree.ElementTree as XML
 from math import ceil
-
-
-import sys
-
-def get_size(obj, seen=None):
-    """Recursively finds size of objects"""
-    size = sys.getsizeof(obj)
-    if seen is None:
-        seen = set()
-    obj_id = id(obj)
-    if obj_id in seen:
-        return 0
-    # Important mark as seen *before* entering recursion to gracefully handle
-    # self-referential objects
-    seen.add(obj_id)
-    if isinstance(obj, dict):
-        size += sum([get_size(v, seen) for v in obj.values()])
-        size += sum([get_size(k, seen) for k in obj.keys()])
-    elif hasattr(obj, '__dict__'):
-        size += get_size(obj.__dict__, seen)
-    elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
-        size += sum([get_size(i, seen) for i in obj])
-    return round(size / 1024 / 1024, 1)
 
 from numpy import (
     interp,
@@ -3722,7 +3698,9 @@ class MDF4(object):
                     # append 8vyte alignemnt bytes for attachments
                     if align % 8:
                         blocks.append(b'\0' * (8 - align))
-                    address += at_block['block_len'] + align
+                        address += at_block['block_len'] + 8 - align
+                    else:
+                        address += at_block['block_len']
 
                 for i, (at_block, text) in enumerate(self.attachments[:-1]):
                     at_block['next_at_addr'] = self.attachments[i+1][0].address
@@ -3825,6 +3803,10 @@ class MDF4(object):
                         signal_data.address = address
                         address += signal_data['block_len']
                         blocks.append(signal_data)
+                        align = signal_data['block_len'] % 8
+                        if align % 8:
+                            blocks.append(b'\0' * (8 - align))
+                            address +=  8 - align
                         gp_sd.append(signal_data)
                     else:
                         gp_sd.append(None)
@@ -3838,6 +3820,9 @@ class MDF4(object):
                                 dep.address = address
                                 address += dep['block_len']
                                 blocks.append(dep)
+                            for k, dep in enumerate(dep_list[:-1]):
+                                dep['composition_addr'] = dep_list[k+1].address
+                            dep_list[-1]['composition_addr'] = 0
 
                 # channels
                 for j, (channel, signal_data) in enumerate(zip(gp['channels'], gp['signal_data'])):
@@ -4132,7 +4117,9 @@ class MDF4(object):
                     # append 8vyte alignemnt bytes for attachments
                     if align % 8:
                         blocks.append(b'\0' * (8 - align))
-                    address += at_block['block_len'] + align
+                        address += at_block['block_len'] + 8 - align
+                    else:
+                        address += at_block['block_len']
 
                 for i, (at_block, text) in enumerate(self.attachments[:-1]):
                     at_block['next_at_addr'] = self.attachments[i+1][0].address
@@ -4253,6 +4240,9 @@ class MDF4(object):
                                 address = tell()
                                 dep.address = address
                                 write(bytes(dep))
+                            for k, dep in enumerate(dep_list[:-1]):
+                                dep['composition_addr'] = dep_list[k+1].address
+                            dep_list[-1]['composition_addr'] = 0
 
                 # channels
                 blocks = []
@@ -4289,6 +4279,10 @@ class MDF4(object):
                         blocks.append(signal_data)
                         channel['data_block_addr'] = address
                         address += signal_data['block_len']
+                        align = signal_data['block_len'] % 8
+                        if align % 8:
+                            blocks.append(b'\0' * (8 - align))
+                            address +=  8 - align
                     else:
                         channel['data_block_addr'] = 0
 
