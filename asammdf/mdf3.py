@@ -974,7 +974,7 @@ class MDF3(object):
             # conversion for time channel
             kargs = {
                 'conversion_type': v3c.CONVERSION_TYPE_NONE,
-                'unit': 's'.encode('latin-1'),
+                'unit': b's',
                 'min_phy_value': t[0] if cycles_nr else 0,
                 'max_phy_value': t[-1] if cycles_nr else 0,
             }
@@ -1004,7 +1004,7 @@ class MDF3(object):
             # time channel
             t_type, t_size = fmt_to_datatype(t.dtype)
             kargs = {
-                'short_name': 't'.encode('latin-1'),
+                'short_name': b't',
                 'channel_type': v3c.CHANNEL_TYPE_MASTER,
                 'data_type': t_type,
                 'start_offset': 0,
@@ -1692,7 +1692,6 @@ class MDF3(object):
             else:
                 gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
                 if cycles_nr:
-
                     data_address = tell()
                     gp['data_group']['data_block_addr'] = data_address
                     self._tempfile.write(block)
@@ -1733,11 +1732,17 @@ class MDF3(object):
             # conversion for time channel
             kargs = {
                 'conversion_type': v3c.CONVERSION_TYPE_NONE,
-                'unit': 's'.encode('latin-1'),
+                'unit': b's',
                 'min_phy_value': t[0] if cycles_nr else 0,
                 'max_phy_value': t[-1] if cycles_nr else 0,
             }
-            gp_conv.append(ChannelConversion(**kargs))
+            block = ChannelConversion(**kargs)
+            if memory == 'minimum':
+                address = tell()
+                write(bytes(block))
+                gp_conv.append(address)
+            else:
+                gp_conv.append(ChannelConversion(**kargs))
 
             # source for time
             kargs = {
@@ -1746,7 +1751,13 @@ class MDF3(object):
                 'type': v3c.SOURCE_ECU,
                 'description': b'Channel inserted by Python Script',
             }
-            gp_source.append(ChannelExtension(**kargs))
+            block = ChannelExtension(**kargs)
+            if memory != 'minimum':
+                gp_source.append(block)
+            else:
+                address = tell()
+                gp_source.append(address)
+                write(bytes(block))
 
             # time channel
             t_type, t_size = fmt_to_datatype(t.dtype)
@@ -1758,11 +1769,15 @@ class MDF3(object):
                 'min_raw_value': t[0] if cycles_nr else 0,
                 'max_raw_value': t[-1] if cycles_nr else 0,
                 'bit_count': t_size,
-                'unit': b's',
             }
             channel = Channel(**kargs)
             channel.name = name = 't'
-            gp_channels.append(channel)
+            if memory != 'minimum':
+                gp_channels.append(channel)
+            else:
+                address = tell()
+                gp_channels.append(address)
+                write(bytes(channel))
 
             if name not in self.channels_db:
                 self.channels_db[name] = []
@@ -1840,7 +1855,13 @@ class MDF3(object):
                     'min_phy_value': min_val if min_val <= max_val else 0,
                     'max_phy_value': max_val if min_val <= max_val else 0,
                 }
-                gp_conv.append(ChannelConversion(**kargs))
+                block = ChannelConversion(**kargs)
+                if memory != 'minimum':
+                    gp_conv.append(block)
+                else:
+                    address = tell()
+                    gp_conv.append(address)
+                    write(bytes(block))
 
                 # source for channel
                 kargs = {
@@ -1849,7 +1870,13 @@ class MDF3(object):
                     'type': v3c.SOURCE_ECU,
                     'description': b'Channel inserted by Python Script',
                 }
-                gp_source.append(ChannelExtension(**kargs))
+                block = ChannelExtension(**kargs)
+                if memory != 'minimum':
+                    gp_source.append(block)
+                else:
+                    address = tell()
+                    gp_source.append(address)
+                    write(bytes(block))
 
                 # compute additional byte offset for large records size
                 if offset > v3c.MAX_UINT16:
@@ -1876,7 +1903,12 @@ class MDF3(object):
 
                 channel = Channel(**kargs)
                 channel.name = name
-                gp_channels.append(channel)
+                if memory != 'minimum':
+                    gp_channels.append(channel)
+                else:
+                    address = tell()
+                    gp_channels.append(address)
+                    write(bytes(channel))
                 offset += s_size
 
                 if name not in self.channels_db:
@@ -1929,16 +1961,12 @@ class MDF3(object):
                 kargs = {'data': block}
                 gp['data_block'] = DataBlock(**kargs)
             else:
+                gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
                 if cycles_nr:
-                    gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
-                    if self._tempfile is None:
-                        self._tempfile = TemporaryFile()
-                    self._tempfile.seek(0, v3c.SEEK_END)
-                    data_address = self._tempfile.tell()
+                    data_address = tell()
                     gp['data_group']['data_block_addr'] = data_address
                     self._tempfile.write(block)
                 else:
-                    gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
                     gp['data_group']['data_block_addr'] = 0
 
             # data group trigger
