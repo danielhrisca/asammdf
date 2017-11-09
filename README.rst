@@ -38,7 +38,7 @@ Features
         
 * add and extract attachments for mdf version 4
 * files are loaded in RAM for fast operations
-* handle large files (exceeding the available RAM) using *load_measured_data* = *False* argument
+* handle large files (exceeding the available RAM) using *memory* = *minimum* argument
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
 * time domain operation using the *Signal* class
 
