@@ -249,7 +249,11 @@ class Channel(dict):
             self['upper_limit'] = kargs.get('upper_limit', 100)
             self['lower_ext_limit'] = kargs.get('lower_ext_limit', 0)
             self['upper_ext_limit'] = kargs.get('upper_ext_limit', 0)
-
+            
+        # ignore MLSD signal data
+        if self['channel_type'] == v4c.CHANNEL_TYPE_MLSD:
+            self['data_block_addr'] = 0
+            self['channel_type'] = v4c.CHANNEL_TYPE_VALUE
 
     def __bytes__(self):
 
@@ -811,7 +815,7 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack_from('<2B3H2d', block, 32 + links_nr * 8)
+                 self['max_phy_value']) = unpack_from('<2B3H2d', block, 32 + links_nr * 8)       
 
         else:
 
@@ -907,7 +911,27 @@ class ChannelConversion(dict):
                 for i in range(kargs['links_nr'] - 5):
                     self['lower_{}'.format(i)] = kargs['lower_{}'.format(i)]
                     self['upper_{}'.format(i)] = kargs['upper_{}'.format(i)]
-
+                    
+            elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_TTAB:
+                self['block_len'] = ((kargs['links_nr'] - 4) * 8 * 2) + 88
+                self['links_nr'] = kargs['links_nr']
+                self['name_addr'] = kargs.get('name_addr', 0)
+                self['unit_addr'] = kargs.get('unit_addr', 0)
+                self['comment_addr'] = kargs.get('comment_addr', 0)
+                self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
+                for i in range(kargs['links_nr'] - 4):
+                    self['text_{}'.format(i)] = kargs.get('text_{}'.format(i), 0)
+                self['conversion_type'] = v4c.CONVERSION_TYPE_TTAB
+                self['precision'] = kargs.get('precision', 0)
+                self['flags'] = kargs.get('flags', 0)
+                self['ref_param_nr'] = kargs['links_nr'] - 4
+                self['val_param_nr'] = kargs['links_nr'] - 4 + 1
+                self['min_phy_value'] = kargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kargs.get('max_phy_value', 0)
+                for i in range(kargs['links_nr'] - 4):
+                    self['val_{}'.format(i)] = kargs['val_{}'.format(i)]
+                self['val_default'] = kargs['val_default']
+                    
     def __bytes__(self):
         fmt = '<4sI{}Q2B3H{}d'.format(self['links_nr'] + 2, self['val_param_nr'] + 2)
 

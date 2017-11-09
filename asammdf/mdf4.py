@@ -16,6 +16,7 @@ from collections import defaultdict
 from hashlib import md5
 import xml.etree.ElementTree as XML
 from math import ceil
+from copy import deepcopy
 
 from numpy import (
     interp,
@@ -485,8 +486,11 @@ class MDF4(object):
                             conv_texts['formula_addr'] = None
 
                 if conv['conversion_type'] in v4c.TABULAR_CONVERSIONS:
-                    # link_nr - common links (4) - default text link (1)
-                    for i in range(conv['links_nr'] - 4 - 1):
+                    if conv['conversion_type'] == v4c.CONVERSION_TYPE_TTAB:
+                        tabs = conv['links_nr'] - 4 
+                    else:
+                        tabs = conv['links_nr'] - 4 - 1
+                    for i in range(tabs):
                         address = conv['text_{}'.format(i)]
                         if memory == 'minimum':
                             conv_tabx_texts['text_{}'.format(i)] = address
@@ -499,31 +503,32 @@ class MDF4(object):
                                 conv_tabx_texts['text_{}'.format(i)] = block
                             else:
                                 conv_tabx_texts['text_{}'.format(i)] = None
-                    address = conv.get('default_addr', 0)
-                    if address:
-                        if memory == 'minimum':
-                            conv_tabx_texts['default_addr'] = address
-                        else:
-                            stream.seek(address, v4c.SEEK_START)
-                            blk_id = stream.read(4)
-
-                            if blk_id == b'##TX':
-                                block = TextBlock(
-                                    address=address,
-                                    stream=stream,
-                                )
-                                conv_tabx_texts['default_addr'] = block
-                            elif blk_id == b'##CC':
-                                block = ChannelConversion(
-                                    address=address,
-                                    stream=stream,
-                                )
-                                text = str(time.clock()).encode('utf-8')
-                                default_text = block
-                                default_text['text'] = text
-
-                                conv['unit_addr'] = default_text['unit_addr']
-                                default_text['unit_addr'] = 0
+                    if not conv['conversion_type'] == v4c.CONVERSION_TYPE_TTAB:
+                        address = conv.get('default_addr', 0)
+                        if address:
+                            if memory == 'minimum':
+                                conv_tabx_texts['default_addr'] = address
+                            else:
+                                stream.seek(address, v4c.SEEK_START)
+                                blk_id = stream.read(4)
+    
+                                if blk_id == b'##TX':
+                                    block = TextBlock(
+                                        address=address,
+                                        stream=stream,
+                                    )
+                                    conv_tabx_texts['default_addr'] = block
+                                elif blk_id == b'##CC':
+                                    block = ChannelConversion(
+                                        address=address,
+                                        stream=stream,
+                                    )
+                                    text = str(time.clock()).encode('utf-8')
+                                    default_text = block
+                                    default_text['text'] = text
+    
+                                    conv['unit_addr'] = default_text['unit_addr']
+                                    default_text['unit_addr'] = 0
 
                 elif conv['conversion_type'] == v4c.CONVERSION_TYPE_TRANS:
                     # link_nr - common links (4) - default text link (1)
@@ -1427,36 +1432,55 @@ class MDF4(object):
                 conv_texts_tab = {}
                 if info and 'raw' in info:
                     kargs = {}
-                    kargs['conversion_type'] = v4c.CONVERSION_TYPE_TABX
                     raw = info['raw']
                     phys = info['phys']
-                    for i, (r_, p_) in enumerate(zip(raw, phys)):
-                        kargs['text_{}'.format(i)] = 0
-                        kargs['val_{}'.format(i)] = r_
-
-                        block = TextBlock(
-                            text=p_,
-                            meta=False,
-                        )
-                        if memory != 'minimum':
-                            conv_texts_tab['text_{}'.format(i)] = block
-                        else:
-                            address = tell()
-                            conv_texts_tab['text_{}'.format(i)] = address
-                            write(bytes(block))
-                    if info.get('default', b''):
-                        block = TextBlock(
-                            text=info['default'],
-                            meta=False,
-                        )
-                        if memory != 'minimum':
-                            conv_texts_tab['default_addr'] = block
-                        else:
-                            address = tell()
-                            conv_texts_tab['default_addr'] = address
-                            write(bytes(block))
-                    kargs['default_addr'] = 0
-                    kargs['links_nr'] = len(raw) + 5
+                    if raw.dtype.kind == 'S':
+                        kargs['conversion_type'] = v4c.CONVERSION_TYPE_TTAB
+                        for i, (r_, p_) in enumerate(zip(raw, phys)):
+                            kargs['text_{}'.format(i)] = 0
+                            kargs['val_{}'.format(i)] = p_
+        
+                            block = TextBlock(
+                                text=r_,
+                                meta=False,
+                            )
+                            if memory != 'minimum':
+                                conv_texts_tab['text_{}'.format(i)] = block
+                            else:
+                                address = tell()
+                                conv_texts_tab['text_{}'.format(i)] = address
+                                write(bytes(block))
+                        kargs['val_default'] = info['default']
+                        kargs['links_nr'] = len(raw) + 4
+                    else:
+                        kargs['conversion_type'] = v4c.CONVERSION_TYPE_TABX
+                        for i, (r_, p_) in enumerate(zip(raw, phys)):
+                            kargs['text_{}'.format(i)] = 0
+                            kargs['val_{}'.format(i)] = r_
+        
+                            block = TextBlock(
+                                text=p_,
+                                meta=False,
+                            )
+                            if memory != 'minimum':
+                                conv_texts_tab['text_{}'.format(i)] = block
+                            else:
+                                address = tell()
+                                conv_texts_tab['text_{}'.format(i)] = address
+                                write(bytes(block))
+                        if info.get('default', b''):
+                            block = TextBlock(
+                                text=info['default'],
+                                meta=False,
+                            )
+                            if memory != 'minimum':
+                                conv_texts_tab['default_addr'] = block
+                            else:
+                                address = tell()
+                                conv_texts_tab['default_addr'] = address
+                                write(bytes(block))
+                        kargs['default_addr'] = 0
+                        kargs['links_nr'] = len(raw) + 5
                     block = ChannelConversion(**kargs)
                     if memory != 'minimum':
                         gp_conv.append(block)
@@ -1614,36 +1638,55 @@ class MDF4(object):
             conv_texts_tab = {}
             if info and 'raw' in info:
                 kargs = {}
-                kargs['conversion_type'] = v4c.CONVERSION_TYPE_TABX
                 raw = info['raw']
                 phys = info['phys']
-                for i, (r_, p_) in enumerate(zip(raw, phys)):
-                    kargs['text_{}'.format(i)] = 0
-                    kargs['val_{}'.format(i)] = r_
-
-                    block = TextBlock(
-                        text=p_,
-                        meta=False,
-                    )
-                    if memory != 'minimum':
-                        conv_texts_tab['text_{}'.format(i)] = block
-                    else:
-                        address = tell()
-                        conv_texts_tab['text_{}'.format(i)] = address
-                        write(bytes(block))
-                if info.get('default', b''):
-                    block = TextBlock(
-                        text=info['default'],
-                        meta=False,
-                    )
-                    if memory != 'minimum':
-                        conv_texts_tab['default_addr'] = block
-                    else:
-                        address = tell()
-                        conv_texts_tab['default_addr'] = address
-                        write(bytes(block))
-                kargs['default_addr'] = 0
-                kargs['links_nr'] = len(raw) + 5
+                if raw.dtype.kind == 'S':
+                    kargs['conversion_type'] = v4c.CONVERSION_TYPE_TTAB
+                    for i, (r_, p_) in enumerate(zip(raw, phys)):
+                        kargs['text_{}'.format(i)] = 0
+                        kargs['val_{}'.format(i)] = p_
+    
+                        block = TextBlock(
+                            text=r_,
+                            meta=False,
+                        )
+                        if memory != 'minimum':
+                            conv_texts_tab['text_{}'.format(i)] = block
+                        else:
+                            address = tell()
+                            conv_texts_tab['text_{}'.format(i)] = address
+                            write(bytes(block))
+                    kargs['val_default'] = info['default']
+                    kargs['links_nr'] = len(raw) + 4
+                else:
+                    kargs['conversion_type'] = v4c.CONVERSION_TYPE_TABX
+                    for i, (r_, p_) in enumerate(zip(raw, phys)):
+                        kargs['text_{}'.format(i)] = 0
+                        kargs['val_{}'.format(i)] = r_
+    
+                        block = TextBlock(
+                            text=p_,
+                            meta=False,
+                        )
+                        if memory != 'minimum':
+                            conv_texts_tab['text_{}'.format(i)] = block
+                        else:
+                            address = tell()
+                            conv_texts_tab['text_{}'.format(i)] = address
+                            write(bytes(block))
+                    if info.get('default', b''):
+                        block = TextBlock(
+                            text=info['default'],
+                            meta=False,
+                        )
+                        if memory != 'minimum':
+                            conv_texts_tab['default_addr'] = block
+                        else:
+                            address = tell()
+                            conv_texts_tab['default_addr'] = address
+                            write(bytes(block))
+                    kargs['default_addr'] = 0
+                    kargs['links_nr'] = len(raw) + 5
                 block = ChannelConversion(**kargs)
                 if memory != 'minimum':
                     gp_conv.append(block)
@@ -2887,7 +2930,7 @@ class MDF4(object):
                 if conversion is None:
                     conversion_type = v4c.CONVERSION_TYPE_NON
                 else:
-                    conversion_type = conversion['conversion_type']
+                    conversion_type = conversion['conversion_type']   
 
                 if conversion_type == v4c.CONVERSION_TYPE_NON:
                     # check if it is VLDS channel type with SDBLOCK
@@ -3201,25 +3244,34 @@ class MDF4(object):
                         'default': default,
                     }
 
-                elif conversion == v4c.CONVERSION_TYPE_TTAB:
+                elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
                     nr = conversion['val_param_nr'] - 1
-
-                    raw = array(
-                        [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
-                         for i in range(nr)]
-                    )
+                    
+                    if memory == 'minimum':
+                        raw = []
+                        for i in range(nr):
+                            block = TextBlock(
+                                address=grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)],
+                                stream=stream,
+                            )
+                            raw.append(block['text'])
+                        raw = array(raw)
+                    else:
+                        raw = array(
+                            [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
+                             for i in range(nr)]
+                        )
                     phys = array(
                         [conversion['val_{}'.format(i)] for i in range(nr)]
                     )
                     default = conversion['val_default']
                     info = {
-                        'lower': lower,
-                        'upper': upper,
+                        'raw': raw,
                         'phys': phys,
                         'default': default,
                     }
 
-                elif conversion == v4c.CONVERSION_TYPE_TRANS:
+                elif conversion_type == v4c.CONVERSION_TYPE_TRANS:
                     nr = (conversion['ref_param_nr'] - 1) // 2
                     in_ = array(
                         [grp['texts']['conversion_tab'][ch_nr]['input_{}'.format(i)]['text']
@@ -3775,7 +3827,7 @@ class MDF4(object):
                         if conv['conversion_type'] in tab_conversion:
                             for key in gp['texts']['conversion_tab'][j]:
                                 conv[key] = gp['texts']['conversion_tab'][j][key].address
-
+                                
                         address += conv['block_len']
                         blocks.append(conv)
 
@@ -4160,8 +4212,10 @@ class MDF4(object):
                     stream = self._file
                 else:
                     stream = self._tempfile
+
+                temp_texts = deepcopy(gp['texts'])
                 # write TXBLOCK's
-                for item_list in gp['texts'].values():
+                for item_list in temp_texts.values():
                     for dict_ in item_list:
                         if dict_ is None:
                             continue
@@ -4192,7 +4246,7 @@ class MDF4(object):
                         )
 
                         conv.address = address
-                        conv_texts = gp['texts']['conversions'][j]
+                        conv_texts = temp_texts['conversions'][j]
 
                         if conv_texts:
 
@@ -4201,8 +4255,8 @@ class MDF4(object):
                             conv['inv_conv_addr'] = 0
 
                             if conv['conversion_type'] in tab_conversion:
-                                for key in gp['texts']['conversion_tab'][j]:
-                                    conv[key] = gp['texts']['conversion_tab'][j][key]
+                                for key in temp_texts['conversion_tab'][j]:
+                                    conv[key] = temp_texts['conversion_tab'][j][key]
 
                         write(bytes(conv))
                     else:
@@ -4214,7 +4268,7 @@ class MDF4(object):
                     if source:
                         address = tell()
                         gp['temp_channel_sources'].append(address)
-                        source_texts = gp['texts']['sources'][j]
+                        source_texts = temp_texts['sources'][j]
 
                         source = SourceInformation(
                             address=source,
@@ -4256,7 +4310,7 @@ class MDF4(object):
                             stream=stream,
                         )
                     channel.address = address
-                    channel_texts = gp['texts']['channels'][j]
+                    channel_texts = temp_texts['channels'][j]
 
                     ch_addrs.append(address)
 
@@ -4309,10 +4363,10 @@ class MDF4(object):
                 gp['channel_group'].address = address
 #                gp['channel_group']['first_ch_addr'] = gp['channels'][0]
                 gp['channel_group']['next_cg_addr'] = 0
-                cg_texts = gp['texts']['channel_group'][0]
+                cg_texts = temp_texts['channel_group'][0]
                 for key in ('acq_name_addr', 'comment_addr'):
                     if cg_texts and key in cg_texts:
-                        addr_ = gp['texts']['channel_group'][0][key]
+                        addr_ = temp_texts['channel_group'][0][key]
                         gp['channel_group'][key] = addr_
                 gp['channel_group']['acq_source_addr'] = 0
 
@@ -4323,6 +4377,8 @@ class MDF4(object):
 
                 del gp['temp_channel_sources']
                 del gp['temp_channel_conversions']
+
+            temp_texts = None
 
             blocks = []
             address = tell()

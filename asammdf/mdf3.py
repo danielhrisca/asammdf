@@ -13,6 +13,7 @@ from collections import defaultdict
 from functools import reduce, partial
 from tempfile import TemporaryFile
 from itertools import product
+from copy import deepcopy
 
 from numpy import (
     interp,
@@ -1127,7 +1128,7 @@ class MDF3(object):
 
                     texts = {}
                     info = signal.info
-                    if info and 'raw' in info:
+                    if info and 'raw' in info and not info['raw'].dtype.kind == 'S':
                         kargs = {}
                         kargs['conversion_type'] = v3c.CONVERSION_TYPE_VTAB
                         raw = info['raw']
@@ -1302,7 +1303,7 @@ class MDF3(object):
 
                 texts = {}
                 info = signal.info
-                if info and 'raw' in info:
+                if info and 'raw' in info and not info['raw'].dtype.kind == 'S':
                     kargs = {}
                     kargs['conversion_type'] = v3c.CONVERSION_TYPE_VTAB
                     raw = info['raw']
@@ -1847,7 +1848,7 @@ class MDF3(object):
                     gp_texts['channels'][-1] = texts
 
                 # conversions for channel
-                min_val, max_val = get_min_max(signal.samples)
+                min_val, max_val = get_min_max(samples)
 
                 kargs = {
                     'conversion_type': v3c.CONVERSION_TYPE_NONE,
@@ -2954,7 +2955,7 @@ class MDF3(object):
             data_address = []
 
             for gp in self.groups:
-                gp_texts = gp['texts']
+                gp_texts = deepcopy(gp['texts'])
                 if gp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
                     stream = self._file
                 else:
@@ -3081,7 +3082,7 @@ class MDF3(object):
                 cg.address = address
 
                 cg['next_cg_addr'] = 0
-                cg_texts = gp['texts']['channel_group'][0]
+                cg_texts = gp_texts['channel_group'][0]
                 if 'comment_addr' in cg_texts:
                     addr = cg_texts['comment_addr']
                     cg['comment_addr'] = addr
