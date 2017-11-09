@@ -30,7 +30,7 @@ class MDF(object):
     name : string
         mdf file name, if provided it must be a real file name
     memory : str
-        load data option; default `full`
+        memory option; default `full`
 
             * if *full* the data group binary data block will be loaded in RAM
             * if *low* the channel data is read from disk on request, and the
@@ -115,7 +115,7 @@ class MDF(object):
 
         return excluded_channels
 
-    def convert(self, to, memory=True):
+    def convert(self, to, memory='full'):
         """convert MDF to other versions
 
         Parameters
@@ -123,12 +123,8 @@ class MDF(object):
         to : str
             new mdf version from ('3.00', '3.10', '3.20', '3.30', '4.00',
             '4.10', '4.11')
-        memory : bool
-            load data option; default *True*
-
-            * if *True* the data group binary data block will be loaded in RAM
-            * if *False* the channel data is stored to a temporary file and
-            read from disk on request
+        memory : str
+            memory option; default `full`
 
         Returns
         -------
@@ -468,7 +464,7 @@ class MDF(object):
                 do_compression=True,
             )
 
-    def filter(self, channels):
+    def filter(self, channels, memory=None):
         """ return new *MDF* object that contains only the channels listed in
         *channels* argument
 
@@ -476,6 +472,9 @@ class MDF(object):
         ----------
         channels : list
             list of channel names to be filtered
+        memory : str
+            memory option for filtered mdf; default None in which case the
+            original file's memory option is used
 
         Returns
         -------
@@ -497,10 +496,14 @@ class MDF(object):
                            'Channel "{}" not found, it will be ignored')
                 warn(message.format(ch))
                 continue
+            
+        if memory is not None:
+            if memory not in ('full', 'low', 'minimum'):
+                memory = self.memory
 
         mdf = MDF(
             version=self.version,
-            memory=self.memory,
+            memory=memory,
         )
 
         # append filtered channels to new MDF
@@ -525,7 +528,7 @@ class MDF(object):
         return mdf
 
     @staticmethod
-    def merge(files, outversion='4.10', memory=True):
+    def merge(files, outversion='4.10', memory='full'):
         """ merge several files and return the merged MDF object. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -536,12 +539,8 @@ class MDF(object):
             list of MDF file names
         outversion : str
             merged file version
-        memory : bool
-            load data option; default *True*
-
-            * if *True* the data group binary data block will be loaded in RAM
-            * if *False* the channel data is stored to a temporary file and
-            read from disk on request
+        memory : str
+            memory option; default `full`
 
         Returns
         -------
