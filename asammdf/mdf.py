@@ -211,6 +211,7 @@ class MDF(object):
                 stop += first_timestamp
 
             timestamps = None
+            del timestamps
 
         # walk through all groups and get all channels
         for i, gp in enumerate(self.groups):
@@ -231,7 +232,6 @@ class MDF(object):
 
             data = None
             del data
-            del timestamps
 
             if sigs:
                 if start:

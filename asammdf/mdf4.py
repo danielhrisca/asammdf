@@ -3273,16 +3273,41 @@ class MDF4(object):
 
                 elif conversion_type == v4c.CONVERSION_TYPE_TRANS:
                     nr = (conversion['ref_param_nr'] - 1) // 2
-                    in_ = array(
-                        [grp['texts']['conversion_tab'][ch_nr]['input_{}'.format(i)]['text']
-                         for i in range(nr)]
-                    )
-                    out_ = array(
-                        [grp['texts']['conversion_tab'][ch_nr]['output_{}'.format(i)]['text']
-                         for i in range(nr)]
-                    )
-                    default = grp['texts']['conversion_tab'][ch_nr]['default_addr']['text']
-
+                    if memory == 'minimum':
+                        in_ = []
+                        for i in range(nr):
+                            block = TextBlock(
+                                address=grp['texts']['conversion_tab'][ch_nr]['input_{}_addr'.format(i)],
+                                stream=stream,
+                            )
+                            in_.append(block['text'])
+                        in_ = array(in_)
+                        
+                        out_ = []
+                        for i in range(nr):
+                            block = TextBlock(
+                                address=grp['texts']['conversion_tab'][ch_nr]['output_{}_addr'.format(i)],
+                                stream=stream,
+                            )
+                            out_.append(block['text'])
+                        out_ = array(out_)
+                        
+                        block = TextBlock(
+                            address=grp['texts']['conversion_tab'][ch_nr]['default_addr'],
+                            stream=stream,
+                        )
+                        default = block['text']
+                    else:
+                        in_ = array(
+                            [grp['texts']['conversion_tab'][ch_nr]['input_{}_addr'.format(i)]['text']
+                             for i in range(nr)]
+                        )
+                        out_ = array(
+                            [grp['texts']['conversion_tab'][ch_nr]['output_{}_addr'.format(i)]['text']
+                             for i in range(nr)]
+                        )
+                        default = grp['texts']['conversion_tab'][ch_nr]['default_addr']['text']
+    
                     res = []
                     for v in vals:
                         for i, o in zip(in_, out_):
