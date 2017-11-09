@@ -126,4 +126,4 @@ optional dependencies needed for exports
 Benchmarks
 ==========
 
-http://asammdf.readthedocs.io/en/stable/benchmarks.html
+http://asammdf.readthedocs.io/en/latest/benchmarks.html

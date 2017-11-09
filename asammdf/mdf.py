@@ -32,10 +32,11 @@ class MDF(object):
     memory : str
         load data option; default `full`
 
-        * if *full* the data group binary data block will be loaded in RAM
-        * if *low* the channel data is read from disk on request, and the
-        metadata is loaded into RAM
-        * if *minimum* only minimal data is loaded into RAM
+            * if *full* the data group binary data block will be loaded in RAM
+            * if *low* the channel data is read from disk on request, and the
+            metadata is loaded into RAM
+            
+            * if *minimum* only minimal data is loaded into RAM
 
     version : string
         mdf file version ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10',

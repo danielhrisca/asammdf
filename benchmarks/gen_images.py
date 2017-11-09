@@ -41,9 +41,9 @@ def generate_graphs(result, topic, aspect, for_doc=False):
 
     start, stop = table_spans[topic.lower()]
 
-    items = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    items = [l[:50].strip(' \t\r\n\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\r\n\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\r\n\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         array = ram
@@ -53,7 +53,7 @@ def generate_graphs(result, topic, aspect, for_doc=False):
     y_pos = list(range(len(items)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(items) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(items) + 1.2)
 
     asam_pos = [i for i, c in enumerate(items) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(items) if c.startswith('mdfreader')]
@@ -93,8 +93,8 @@ def generate_graphs(result, topic, aspect, for_doc=False):
     else:
         plt.savefig(name, dpi=300)
 
-files = (r'e:\02__PythonWorkspace\asammdf\benchmarks\results\x64_asammdf_2.6.3_mdfreader_0.2.6.txt',
-         r'e:\02__PythonWorkspace\asammdf\benchmarks\results\x86_asammdf_2.6.3_mdfreader_0.2.6.txt')
+files = (r'e:\02__PythonWorkspace\asammdf\benchmarks\results\x64_asammdf_2.7.0_mdfreader_0.2.7.txt',
+         r'e:\02__PythonWorkspace\asammdf\benchmarks\results\x86_asammdf_2.7.0_mdfreader_0.2.7.txt')
 
 for file in files:
     for topic in ('Open', 'Save', 'Get', 'Convert', 'Merge'):

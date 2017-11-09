@@ -24,7 +24,7 @@ Intro
 The benchmarks were done using two test files (available here https://github.com/danielhrisca/asammdf/issues/14) (for mdf version 3 and 4) of around 170MB. 
 The files contain 183 data groups and a total of 36424 channels.
 
-*asamdf 2.6.5* was compared against *mdfreader 0.2.6* (latest versions from PyPI). 
+*asamdf 2.7.0* was compared against *mdfreader 0.2.7* (latest versions from PyPI). 
 *mdfreader* seems to be the most used Python package to handle MDF files, and it also supports both version 3 and 4 of the standard.
 
 The three benchmark cathegories are file open, file save and extracting the data for all channels inside the file(36424 calls).
@@ -47,15 +47,17 @@ x64 Python results
 ------------------
 Benchmark environment
 
-* 3.6.2 (v3.6.2:5fd33b5, Jul  8 2017, 04:57:36) [MSC v.1900 64 bit (AMD64)]
+* 3.6.1 (v3.6.1:69c0db5, Mar 21 2017, 18:41:36) [MSC v.1900 64 bit (AMD64)]
 * Windows-10-10.0.14393-SP0
 * Intel64 Family 6 Model 94 Stepping 3, GenuineIntel
 * 16GB installed RAM
 
 Notations used in the results
 
-* nodata = asammdf MDF object created with load_measured_data=False (raw channel data not loaded into RAM)
-* compression = mdfreader mdf object created with compression=blosc
+* full =  asammdf MDF object created with memory=full (everything loaded into RAM)
+* low =  asammdf MDF object created with memory=low (raw channel data not loaded into RAM, but metadata loaded to RAM)
+* minimum =  asammdf MDF object created with memory=full (lowest possible RAM usage)
+* compress = mdfreader mdf object created with compression=blosc
 * compression bcolz 6 = mdfreader mdf object created with compression=6
 * noDataLoading = mdfreader mdf object read with noDataLoading=True
 
@@ -71,70 +73,86 @@ Raw data
 ================================================== ========= ========
 Open file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.6.5 mdfv3                                      779      364
-asammdf 2.6.5 nodata mdfv3                               551      187
-mdfreader 0.2.6 mdfv3                                   2672      545
-mdfreader 0.2.6 compress mdfv3                          3844      267
-mdfreader 0.2.6 compress bcolz 6 mdfv3                  3886     1040
-mdfreader 0.2.6 noDataLoading mdfv3                     1400      198
-asammdf 2.6.5 mdfv4                                     1883      435
-asammdf 2.6.5 nodata mdfv4                              1457      244
-mdfreader 0.2.6 mdfv4                                   5371     1307
-mdfreader 0.2.6 compress mdfv4                          6470     1023
-mdfreader 0.2.6 compress bcolz 6 mdfv4                  6894     1746
-mdfreader 0.2.6 noDataLoading mdfv4                     4078      943
+asammdf 2.7.0 full mdfv3                                 737      339
+asammdf 2.7.0 low mdfv3                                  648      187
+asammdf 2.7.0 minimum mdfv3                              395       98
+mdfreader 0.2.7 mdfv3                                   2310      465
+mdfreader 0.2.7 compress mdfv3                          3565      200
+mdfreader 0.2.7 compress bcolz 6 mdfv3                  3706     1535
+mdfreader 0.2.7 noDataLoading mdfv3                      658      188
+asammdf 2.7.0 full mdfv4                                1840      403
+asammdf 2.7.0 low mdfv4                                 1765      238
+asammdf 2.7.0 minimum mdfv4                             1261      110
+mdfreader 0.2.7 mdfv4                                   4660      467
+mdfreader 0.2.7 compress mdfv4                          5813      181
+mdfreader 0.2.7 compress bcolz 6 mdfv4                  6113     1433
+mdfreader 0.2.7 noDataLoading mdfv4                     3226      211
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Save file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.6.5 mdfv3                                      356      366
-asammdf 2.6.5 nodata mdfv3                               398      195
-mdfreader 0.2.6 mdfv3                                  10164      577
-mdfreader 0.2.6 compress mdfv3                         12341      542
-mdfreader 0.2.6 compress bcolz 6 mdfv3                 11427      958
-asammdf 2.6.5 mdfv4                                      805      440
-asammdf 2.6.5 nodata mdfv4                               522      255
-mdfreader 0.2.6 mdfv4                                   7256     1328
-mdfreader 0.2.6 compress mdfv4                          7010     1288
-mdfreader 0.2.6 compress bcolz6 mdfv4                   6688     1763
+asammdf 2.7.0 full mdfv3                                 329      342
+asammdf 2.7.0 low mdfv3                                  383      194
+asammdf 2.7.0 minimum mdfv3                              926      107
+mdfreader 0.2.7 mdfv3                                   8053      482
+mdfreader 0.2.7 noDataLoading mdfv3                     8762      566
+mdfreader 0.2.7 compress mdfv3                          7975      451
+mdfreader 0.2.7 compress bcolz 6 mdfv3                  7875     1534
+asammdf 2.7.0 full mdfv4                                 412      408
+asammdf 2.7.0 low mdfv4                                  464      248
+asammdf 2.7.0 minimum mdfv4                             2003      118
+mdfreader 0.2.7 mdfv4                                   7498      485
+mdfreader 0.2.7 noDataLoading mdfv4                     6767      595
+mdfreader 0.2.7 compress mdfv4                          7701      441
+mdfreader 0.2.7 compress bcolz6 mdfv4                   7517     1444
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Get all channels (36424 calls)                     Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.6.5 mdfv3                                      657      370
-asammdf 2.6.5 nodata mdfv3                              9647      200
-mdfreader 0.2.6 mdfv3                                     67      544
-mdfreader 0.2.6 compress mdfv3                           698      270
-mdfreader 0.2.6 compress bcolz 6 mdfv3                   267     1042
-asammdf 2.6.5 mdfv4                                      736      443
-asammdf 2.6.5 nodata mdfv4                             13552      254
-mdfreader 0.2.6 mdfv4                                     64     1307
-mdfreader 0.2.6 compress mdfv4                           631     1031
-mdfreader 0.2.6 compress bcolz 6 mdfv4                   304     1753
+asammdf 2.7.0 full mdfv3                                 635      346
+asammdf 2.7.0 low mdfv3                                 3222      199
+asammdf 2.7.0 minimum mdfv3                             4347      113
+mdfreader 0.2.7 mdfv3                                     58      464
+mdfreader 0.2.7 nodata mdfv3                            1117      403
+mdfreader 0.2.7 compress mdfv3                           599      199
+mdfreader 0.2.7 compress bcolz 6 mdfv3                   248     1534
+asammdf 2.7.0 full mdfv4                                 687      410
+asammdf 2.7.0 low mdfv4                                 6612      248
+asammdf 2.7.0 minimum mdfv4                             8661      122
+mdfreader 0.2.7 mdfv4                                     56      467
+mdfreader 0.2.7 nodata mdfv4                            1506      444
+mdfreader 0.2.7 compress mdfv4                           598      187
+mdfreader 0.2.7 compress bcolz 6 mdfv4                   278     1439
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Convert file                                       Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.6.5 v3 to v4                                  3675      823
-asammdf 2.6.5 v3 to v4 nodata                           4607      379
-asammdf 2.6.5 v4 to v3                                  4442      831
-asammdf 2.6.5 v4 to v3 nodata                           5105      366
+asammdf 2.7.0 full v3 to v4                             3505      498
+asammdf 2.7.0 low v3 to v4                              3697      352
+asammdf 2.7.0 minimum v3 to v4                          4426      267
+asammdf 2.7.0 full v4 to v3                             3788      497
+asammdf 2.7.0 low v4 to v3                              4225      334
+asammdf 2.7.0 minimum v4 to v3                          6625      210
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Merge files                                        Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.6.5 v3                                        8605     1449
-asammdf 2.6.5 v3 nodata                                11089      544
-asammdf 2.6.5 v4                                       13469     1536
-asammdf 2.6.5 v4 nodata                                15565      600
+asammdf 2.7.0 full v3                                   7828     1333
+asammdf 2.7.0 low v3                                    9350      476
+asammdf 2.7.0 minimum v3                               11020      249
+mdfreader 0.2.7 v3                                     11437     2963
+asammdf 2.7.0 full v4                                  11869     1455
+asammdf 2.7.0 low v4                                   12764      571
+asammdf 2.7.0 minimum v4                               16559      249
+mdfreader 0.2.7 v4                                     16126     2966
 ================================================== ========= ========
 
 
@@ -147,7 +165,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
     
-    res = '../benchmarks/results/x64_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x64_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Open'
     aspect = 'time'
     for_doc = True
@@ -168,9 +186,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
 
     arr = ram if aspect == 'ram' else time
@@ -179,7 +197,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -217,7 +235,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x64_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Open'
     aspect = 'ram'
     for_doc = True
@@ -238,9 +256,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -250,7 +268,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -287,7 +305,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x64_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Save'
     aspect = 'time'
     for_doc = True
@@ -308,9 +326,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -320,7 +338,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -358,7 +376,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x64_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Save'
     aspect = 'ram'
     for_doc = True
@@ -379,9 +397,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -391,7 +409,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -428,7 +446,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x64_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Get'
     aspect = 'time'
     for_doc = True
@@ -449,9 +467,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -461,7 +479,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -499,7 +517,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x64_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Get'
     aspect = 'ram'
     for_doc = True
@@ -520,9 +538,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -532,7 +550,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -570,7 +588,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x64_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Convert'
     aspect = 'time'
     for_doc = True
@@ -591,9 +609,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -603,7 +621,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -641,7 +659,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x64_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Convert'
     aspect = 'ram'
     for_doc = True
@@ -662,9 +680,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -674,7 +692,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -712,7 +730,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x64_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Merge'
     aspect = 'time'
     for_doc = True
@@ -733,9 +751,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -745,7 +763,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -783,7 +801,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x64_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Merge'
     aspect = 'ram'
     for_doc = True
@@ -804,9 +822,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -816,7 +834,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -879,73 +897,89 @@ Raw data
 ================================================== ========= ========
 Open file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.6.5 mdfv3                                      916      286
-asammdf 2.6.5 nodata mdfv3                               623      118
-mdfreader 0.2.6 mdfv3                                   3373      458
-mdfreader 0.2.6 compress mdfv3                          4526      184
-mdfreader 0.2.6 compress bcolz 6 mdfv3                  4518      940
-mdfreader 0.2.6 noDataLoading mdfv3                     1833      120
-asammdf 2.6.5 mdfv4                                     2214      330
-asammdf 2.6.5 nodata mdfv4                              1695      150
-mdfreader 0.2.6 mdfv4                                   6348      870
-mdfreader 0.2.6 compress mdfv4                          7262      586
-mdfreader 0.2.6 compress bcolz 6 mdfv4                  7552     1294
-mdfreader 0.2.6 noDataLoading mdfv4                     4797      522
+asammdf 2.7.0 full mdfv3                                 892      279
+asammdf 2.7.0 low mdfv3                                  794      126
+asammdf 2.7.0 minimum mdfv3                              523       71
+mdfreader 0.2.7 mdfv3                                   2978      421
+mdfreader 0.2.7 compress mdfv3                          4625      152
+mdfreader 0.2.7 compress bcolz 6 mdfv3                  4308     1307
+mdfreader 0.2.7 noDataLoading mdfv3                      812      121
+asammdf 2.7.0 full mdfv4                                2296      318
+asammdf 2.7.0 low mdfv4                                 2139      152
+asammdf 2.7.0 minimum mdfv4                             1599       77
+mdfreader 0.2.7 mdfv4                                   5662      421
+mdfreader 0.2.7 compress mdfv4                          6847      137
+mdfreader 0.2.7 compress bcolz 6 mdfv4                  7033     1200
+mdfreader 0.2.7 noDataLoading mdfv4                     3759      134
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Save file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.6.5 mdfv3                                      462      290
-asammdf 2.6.5 nodata mdfv3                               521      125
-mdfreader 0.2.6 mdfv3                                   9175      481
-mdfreader 0.2.6 compress mdfv3                          9727      452
-mdfreader 0.2.6 compress bcolz 6 mdfv3                  9284      940
-asammdf 2.6.5 mdfv4                                      657      334
-asammdf 2.6.5 nodata mdfv4                               710      159
-mdfreader 0.2.6 mdfv4                                   6706      891
-mdfreader 0.2.6 compress mdfv4                          7030      851
-mdfreader 0.2.6 compress bcolz6 mdfv4                   6693     1311
+asammdf 2.7.0 full mdfv3                                 395      282
+asammdf 2.7.0 low mdfv3                                  492      133
+asammdf 2.7.0 minimum mdfv3                             1197       78
+mdfreader 0.2.7 mdfv3                                   9073      435
+mdfreader 0.2.7 noDataLoading mdfv3                    10121      464
+mdfreader 0.2.7 compress mdfv3                          9323      407
+mdfreader 0.2.7 compress bcolz 6 mdfv3                  9053     1307
+asammdf 2.7.0 full mdfv4                                 550      322
+asammdf 2.7.0 low mdfv4                                  639      162
+asammdf 2.7.0 minimum mdfv4                             2672       86
+mdfreader 0.2.7 mdfv4                                   8705      440
+mdfreader 0.2.7 noDataLoading mdfv4                     7930      500
+mdfreader 0.2.7 compress mdfv4                          8836      401
+mdfreader 0.2.7 compress bcolz6 mdfv4                   8609     1214
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Get all channels (36424 calls)                     Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.6.5 mdfv3                                      791      291
-asammdf 2.6.5 nodata mdfv3                             18430      128
-mdfreader 0.2.6 mdfv3                                     78      457
-mdfreader 0.2.6 compress mdfv3                           738      187
-mdfreader 0.2.6 compress bcolz 6 mdfv3                   299      941
-asammdf 2.6.5 mdfv4                                      863      334
-asammdf 2.6.5 nodata mdfv4                             20637      157
-mdfreader 0.2.6 mdfv4                                     77      869
-mdfreader 0.2.6 compress mdfv4                           653      593
-mdfreader 0.2.6 compress bcolz 6 mdfv4                   313     1301
+asammdf 2.7.0 full mdfv3                                 854      284
+asammdf 2.7.0 low mdfv3                                12495      136
+asammdf 2.7.0 minimum mdfv3                            13589       82
+mdfreader 0.2.7 mdfv3                                     76      421
+mdfreader 0.2.7 nodata mdfv3                            1419      327
+mdfreader 0.2.7 compress mdfv3                           699      153
+mdfreader 0.2.7 compress bcolz 6 mdfv3                   294     1307
+asammdf 2.7.0 full mdfv4                                 885      323
+asammdf 2.7.0 low mdfv4                                15095      160
+asammdf 2.7.0 minimum mdfv4                            18019       85
+mdfreader 0.2.7 mdfv4                                     72      421
+mdfreader 0.2.7 nodata mdfv4                            1914      351
+mdfreader 0.2.7 compress mdfv4                           706      142
+mdfreader 0.2.7 compress bcolz 6 mdfv4                   314     1205
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Convert file                                       Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.6.5 v3 to v4                                  3843      680
-asammdf 2.6.5 v3 to v4 nodata                           4656      242
-asammdf 2.6.5 v4 to v3                                  4261      681
-asammdf 2.6.5 v4 to v3 nodata                           5231      225
+asammdf 2.7.0 full v3 to v4                             3997      383
+asammdf 2.7.0 low v3 to v4                              4474      234
+asammdf 2.7.0 minimum v3 to v4                          5185      182
+asammdf 2.7.0 full v4 to v3                             4634      378
+asammdf 2.7.0 low v4 to v3                              5111      213
+asammdf 2.7.0 minimum v4 to v3                          7996      140
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Merge files                                        Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 2.6.5 v3                                       10058     1248
-asammdf 2.6.5 v3 nodata                                11174      363
-asammdf 2.6.5 v4                                       14232     1282
-asammdf 2.6.5 v4 nodata                                14629      380
+asammdf 2.7.0 full v3                                  10048     1184
+asammdf 2.7.0 low v3                                   11128      339
+asammdf 2.7.0 minimum v3                               13078      201
+mdfreader 0.2.7 v3                                        0*       0*
+asammdf 2.7.0 full v4                                  14038     1241
+asammdf 2.7.0 low v4                                   15429      371
+asammdf 2.7.0 minimum v4                               20086      185
+mdfreader 0.2.7 v4                                        0*       0*
 ================================================== ========= ========
 
-
+* mdfreader got a MemoryError
 
 Graphical results
 ^^^^^^^^^^^^^^^^^
@@ -955,7 +989,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x86_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Open'
     aspect = 'time'
     for_doc = True
@@ -976,9 +1010,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -988,7 +1022,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -1026,7 +1060,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x86_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Open'
     aspect = 'ram'
     for_doc = True
@@ -1047,9 +1081,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -1059,7 +1093,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -1097,7 +1131,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x86_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Save'
     aspect = 'time'
     for_doc = True
@@ -1118,9 +1152,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -1130,7 +1164,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -1168,7 +1202,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x86_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Save'
     aspect = 'ram'
     for_doc = True
@@ -1189,9 +1223,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -1201,7 +1235,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -1239,7 +1273,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x86_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Get'
     aspect = 'time'
     for_doc = True
@@ -1260,9 +1294,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -1272,7 +1306,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -1310,7 +1344,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x86_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Get'
     aspect = 'ram'
     for_doc = True
@@ -1331,9 +1365,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -1343,7 +1377,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -1381,7 +1415,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x86_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Convert'
     aspect = 'time'
     for_doc = True
@@ -1402,9 +1436,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -1414,7 +1448,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -1452,7 +1486,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x86_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Convert'
     aspect = 'ram'
     for_doc = True
@@ -1473,9 +1507,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -1485,7 +1519,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -1523,7 +1557,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x86_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Merge'
     aspect = 'time'
     for_doc = True
@@ -1544,9 +1578,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -1556,7 +1590,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]
@@ -1594,7 +1628,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x86_asammdf_2.6.5_mdfreader_0.2.6.txt'
+    res = '../benchmarks/results/x86_asammdf_2.7.0_mdfreader_0.2.7.txt'
     topic = 'Merge'
     aspect = 'ram'
     for_doc = True
@@ -1615,9 +1649,9 @@ Graphical results
 
     start, stop = table_spans[topic.lower()]
 
-    cat = [l[:50].strip() for l in lines[start: stop]]
-    time = np.array([int(l[50:61].strip()) for l in lines[start: stop]])
-    ram = np.array([int(l[61:].strip()) for l in lines[start: stop]])
+    cat = [l[:50].strip(' \t\n\r\0*') for l in lines[start: stop]]
+    time = np.array([int(l[50:61].strip(' \t\n\r\0*')) for l in lines[start: stop]])
+    ram = np.array([int(l[61:].strip(' \t\n\r\0*')) for l in lines[start: stop]])
 
     if aspect == 'ram':
         arr = ram
@@ -1627,7 +1661,7 @@ Graphical results
     y_pos = list(range(len(cat)))
 
     fig, ax = plt.subplots()
-    fig.set_size_inches(9, 3.4 / 12 * len(cat) + 1.2)
+    fig.set_size_inches(15, 3.8 / 12 * len(cat) + 1.2)
 
     asam_pos = [i for i, c in enumerate(cat) if c.startswith('asam')]
     mdfreader_pos = [i for i, c in enumerate(cat) if c.startswith('mdfreader')]

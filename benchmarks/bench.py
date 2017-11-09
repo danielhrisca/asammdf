@@ -85,21 +85,35 @@ class Timer():
             ram_usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
             ram_usage = int(ram_usage / 1024)
 
-        if self.fmt == 'rst':
-            self.output = '{:<50} {:>9} {:>8}'.format(self.message,
-                                                      elapsed_time,
-                                                      ram_usage)
-        elif self.fmt == 'md':
-            self.output = '|{:<50}|{:>9}|{:>8}|'.format(self.message,
-                                                        elapsed_time,
-                                                        ram_usage)
-
         if tracebackobj:
             info = StringIO()
             traceback.print_tb(tracebackobj, None, info)
             info.seek(0)
             info = info.read()
-            self.error = '{} : {}\n{}'.format(self.topic, self.message, info)
+            self.error = '{} : {}\n{}\t \n{}{}'.format(
+                self.topic,
+                self.message,
+                type_,
+                value,
+                info,
+            )
+            if self.fmt == 'rst':
+                self.output = '{:<50} {:>9} {:>8}'.format(self.message,
+                                                          '0*',
+                                                          '0*')
+            elif self.fmt == 'md':
+                self.output = '|{:<50}|{:>9}|{:>8}|'.format(self.message,
+                                                            '0*',
+                                                            '0*')
+        else:
+            if self.fmt == 'rst':
+                self.output = '{:<50} {:>9} {:>8}'.format(self.message,
+                                                          elapsed_time,
+                                                          ram_usage)
+            elif self.fmt == 'md':
+                self.output = '|{:<50}|{:>9}|{:>8}|'.format(self.message,
+                                                            elapsed_time,
+                                                            ram_usage)
 
         return True
 
@@ -457,6 +471,62 @@ def get_all_reader4_compression_bcolz(path, output, fmt):
             x.getChannelData(s)
     output.send([timer.output, timer.error])
 
+
+def merge_reader_v3(path, output, fmt):
+    os.chdir(path)
+    files = [r'test.mdf', ] * 2
+    with Timer('Merge files',
+               'mdfreader {} v3'.format(mdfreader_version),
+               fmt) as timer:
+        x1 = MDFreader(files[0])
+        x1.resample(0.01)
+        x2 = MDFreader(files[1])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
+    output.send([timer.output, timer.error])
+    
+    
+def merge_reader_v3_compress(path, output, fmt):
+    os.chdir(path)
+    files = [r'test.mdf', ] * 2
+    with Timer('Merge files',
+               'mdfreader {} compress v3'.format(mdfreader_version),
+               fmt) as timer:
+        x1 = MDFreader(files[0], compression='blosc')
+        x1.resample(0.01)
+        x2 = MDFreader(files[1], compression='blosc')
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
+    output.send([timer.output, timer.error])
+
+
+def merge_reader_v4(path, output, fmt):
+    files = [r'test.mf4', ] * 2
+    os.chdir(path)
+    with Timer('Merge files',
+               'mdfreader {} v4'.format(mdfreader_version),
+               fmt) as timer:
+        x1 = MDFreader(files[0])
+        x1.resample(0.01)
+        x2 = MDFreader(files[1])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
+    output.send([timer.output, timer.error])
+    
+    
+def merge_reader_v4_compress(path, output, fmt):
+    os.chdir(path)
+    files = [r'test.mf4', ] * 2
+    with Timer('Merge files',
+               'mdfreader {} compress v4'.format(mdfreader_version),
+               fmt) as timer:
+        x1 = MDFreader(files[0], compression='blosc')
+        x1.resample(0.01)
+        x2 = MDFreader(files[1], compression='blosc')
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
+    output.send([timer.output, timer.error])
+
 #
 # utility functions
 #
@@ -629,9 +699,13 @@ def main(path, text_output, fmt):
         partial(merge_v3, memory='full'),
         partial(merge_v3, memory='low'),
         partial(merge_v3, memory='minimum'),
+        merge_reader_v3,
+#        merge_reader_v4_compress,
         partial(merge_v4, memory='full'),
         partial(merge_v4, memory='low'),
-        partial(merge_v4, memory='minimum')
+        partial(merge_v4, memory='minimum'),
+        merge_reader_v4,
+#        merge_reader_v4_compress,
     )
 
     if tests:

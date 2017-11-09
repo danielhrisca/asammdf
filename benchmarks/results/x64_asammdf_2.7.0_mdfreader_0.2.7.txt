@@ -1,0 +1,107 @@
+Benchmark environment
+
+* 3.6.1 (v3.6.1:69c0db5, Mar 21 2017, 18:41:36) [MSC v.1900 64 bit (AMD64)]
+* Windows-10-10.0.14393-SP0
+* Intel64 Family 6 Model 94 Stepping 3, GenuineIntel
+* 16GB installed RAM
+
+Notations used in the results
+
+* full =  asammdf MDF object created with memory=full (everything loaded into RAM)
+* low =  asammdf MDF object created with memory=low (raw channel data not loaded into RAM, but metadata loaded to RAM)
+* minimum =  asammdf MDF object created with memory=full (lowest possible RAM usage)
+* compress = mdfreader mdf object created with compression=blosc
+* compression bcolz 6 = mdfreader mdf object created with compression=6
+* noDataLoading = mdfreader mdf object read with noDataLoading=True
+
+Files used for benchmark:
+
+* 183 groups
+* 36424 channels
+
+
+
+================================================== ========= ========
+Open file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.7.0 full mdfv3                                 737      339
+asammdf 2.7.0 low mdfv3                                  648      187
+asammdf 2.7.0 minimum mdfv3                              395       98
+mdfreader 0.2.7 mdfv3                                   2310      465
+mdfreader 0.2.7 compress mdfv3                          3565      200
+mdfreader 0.2.7 compress bcolz 6 mdfv3                  3706     1535
+mdfreader 0.2.7 noDataLoading mdfv3                      658      188
+asammdf 2.7.0 full mdfv4                                1840      403
+asammdf 2.7.0 low mdfv4                                 1765      238
+asammdf 2.7.0 minimum mdfv4                             1261      110
+mdfreader 0.2.7 mdfv4                                   4660      467
+mdfreader 0.2.7 compress mdfv4                          5813      181
+mdfreader 0.2.7 compress bcolz 6 mdfv4                  6113     1433
+mdfreader 0.2.7 noDataLoading mdfv4                     3226      211
+================================================== ========= ========
+
+
+================================================== ========= ========
+Save file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.7.0 full mdfv3                                 329      342
+asammdf 2.7.0 low mdfv3                                  383      194
+asammdf 2.7.0 minimum mdfv3                              926      107
+mdfreader 0.2.7 mdfv3                                   8053      482
+mdfreader 0.2.7 noDataLoading mdfv3                     8762      566
+mdfreader 0.2.7 compress mdfv3                          7975      451
+mdfreader 0.2.7 compress bcolz 6 mdfv3                  7875     1534
+asammdf 2.7.0 full mdfv4                                 412      408
+asammdf 2.7.0 low mdfv4                                  464      248
+asammdf 2.7.0 minimum mdfv4                             2003      118
+mdfreader 0.2.7 mdfv4                                   7498      485
+mdfreader 0.2.7 noDataLoading mdfv4                     6767      595
+mdfreader 0.2.7 compress mdfv4                          7701      441
+mdfreader 0.2.7 compress bcolz6 mdfv4                   7517     1444
+================================================== ========= ========
+
+
+================================================== ========= ========
+Get all channels (36424 calls)                     Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.7.0 full mdfv3                                 635      346
+asammdf 2.7.0 low mdfv3                                 3222      199
+asammdf 2.7.0 minimum mdfv3                             4347      113
+mdfreader 0.2.7 mdfv3                                     58      464
+mdfreader 0.2.7 nodata mdfv3                            1117      403
+mdfreader 0.2.7 compress mdfv3                           599      199
+mdfreader 0.2.7 compress bcolz 6 mdfv3                   248     1534
+asammdf 2.7.0 full mdfv4                                 687      410
+asammdf 2.7.0 low mdfv4                                 6612      248
+asammdf 2.7.0 minimum mdfv4                             8661      122
+mdfreader 0.2.7 mdfv4                                     56      467
+mdfreader 0.2.7 nodata mdfv4                            1506      444
+mdfreader 0.2.7 compress mdfv4                           598      187
+mdfreader 0.2.7 compress bcolz 6 mdfv4                   278     1439
+================================================== ========= ========
+
+
+================================================== ========= ========
+Convert file                                       Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.7.0 full v3 to v4                             3505      498
+asammdf 2.7.0 low v3 to v4                              3697      352
+asammdf 2.7.0 minimum v3 to v4                          4426      267
+asammdf 2.7.0 full v4 to v3                             3788      497
+asammdf 2.7.0 low v4 to v3                              4225      334
+asammdf 2.7.0 minimum v4 to v3                          6625      210
+================================================== ========= ========
+
+
+================================================== ========= ========
+Merge files                                        Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.7.0 full v3                                   7828     1333
+asammdf 2.7.0 low v3                                    9350      476
+asammdf 2.7.0 minimum v3                               11020      249
+mdfreader 0.2.7 v3                                     11437     2963
+asammdf 2.7.0 full v4                                  11869     1455
+asammdf 2.7.0 low v4                                   12764      571
+asammdf 2.7.0 minimum v4                               16559      249
+mdfreader 0.2.7 v4                                     16126     2966
+================================================== ========= ========
