@@ -40,7 +40,7 @@ for i, val in enumerate(vals):
     phi[i] *= val
 R = 1 - np.sqrt(X**2 + Y**2)
 samples = np.cos(2 * np.pi * X + phi) * R
-print(phi.shape, samples.shape)
+
 timestamps = np.arange(0, 2, 0.02)
 
 s_map = Signal(samples=samples,

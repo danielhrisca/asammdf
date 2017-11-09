@@ -43,6 +43,7 @@ class Signal(object):
         'name',
         'info',
         'comment',
+        '_plot_axis',
     ]
 
     def __init__(self,
@@ -72,6 +73,7 @@ class Signal(object):
             self.name = name
             self.info = info
             self.comment = comment
+            self._plot_axis = None
 
     def __str__(self):
         string = """<Signal {}:
@@ -150,7 +152,7 @@ class Signal(object):
                     Z = samples[0]
 
                     # Plot a basic wireframe.
-                    self.l = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
+                    self._plot_axis = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
 
                     # Place Sliders on Graph
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
@@ -163,12 +165,12 @@ class Signal(object):
                                 valinit=self.timestamps[0])
 
                     def update(val):
-                        self.l.remove()
+                        self._plot_axis.remove()
                         idx = np.searchsorted(self.timestamps,
                                               sa.val,
                                               side='right')
                         Z = samples[idx-1]
-                        self.l = ax.plot_wireframe(X,
+                        self._plot_axis = ax.plot_wireframe(X,
                                                    Y,
                                                    Z,
                                                    rstride=1,
@@ -178,8 +180,6 @@ class Signal(object):
                     sa.on_changed(update)
 
                     plt.show()
-
-                    del self.l
 
                 else:
                     fig = plt.figure()
@@ -205,7 +205,7 @@ class Signal(object):
                     Z = samples[0]
 
                     # Plot a basic wireframe.
-                    self.l = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
+                    self._plot_axis = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
 
                     # Place Sliders on Graph
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
@@ -218,13 +218,13 @@ class Signal(object):
                                 valinit=self.timestamps[0])
 
                     def update(val):
-                        self.l.remove()
+                        self._plot_axis.remove()
                         idx = np.searchsorted(self.timestamps,
                                               sa.val,
                                               side='right')
                         Z = samples[idx-1]
                         X, Y = np.meshgrid(axis2[idx-1], axis1[idx-1])
-                        self.l = ax.plot_wireframe(X,
+                        self._plot_axis = ax.plot_wireframe(X,
                                                    Y,
                                                    Z,
                                                    rstride=1,
@@ -235,7 +235,6 @@ class Signal(object):
 
                     plt.show()
 
-                    del self.l
             except Exception as err:
                 print(err)
 
