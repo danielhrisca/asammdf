@@ -63,6 +63,8 @@ Major features not implemented (yet)
     * full support for remaining mdf 4 channel arrays types
     * partial conversions
     * event blocks
+    * channels with default X axis
+    * chanenls with reference to attachment
 
 Usage
 =====

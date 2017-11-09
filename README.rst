@@ -61,6 +61,8 @@ Major features not implemented (yet)
     * xml schema for TXBLOCK and MDBLOCK
     * partial conversions
     * event blocks
+    * channels with default X axis
+    * chanenls with reference to attachment
 
 Usage
 =====
