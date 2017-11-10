@@ -684,6 +684,60 @@ class MDF(object):
                     )
                     pandas_dict[sig.name] = sig.samples
                 yield DataFrame.from_dict(pandas_dict)
+                
+    def resample(self, raster, memory=None):
+        """ resample all channels to given raster 
+        
+        Parameters
+        ----------
+        raster : float
+            time raster is seconds
+        memory : str
+            memory option; default `None`
+            
+        Returns
+        -------
+        mdf : MDF
+            new MDF with resampled channels
+            
+        """
+        
+        if memory is None:
+            memory = self.memory
+            
+        mdf = MDF(
+            version=self.version,
+            memory=memory,
+        )
+
+        # walk through all groups and get all channels
+        for i, gp in enumerate(self.groups):
+            sigs = []
+            excluded_channels = self._excluded_channels(i)
+
+            data = self._load_group_data(gp)
+
+            for j, _ in enumerate(gp['channels']):
+                if j in excluded_channels:
+                    continue
+                sig = self.get(
+                    group=i,
+                    index=j,
+                    data=data,
+                    raster=raster,
+                )
+                sigs.append(sig)
+
+            data = None
+            del data
+
+            if sigs:
+                mdf.append(
+                    sigs,
+                    'Resampled to {}s'.format(raster),
+                    common_timebase=True,
+                )
+        return mdf
 
     def select(self, channels):
         """ return the channels listed in *channels* argument
