@@ -620,6 +620,7 @@ class MDF4(object):
                 name = block['text'].decode('utf-8')
             else:
                 name = channel_texts['name_addr']['text'].decode('utf-8')
+            name = name.split('\\')[0]
 
             name = name.strip(' \t\n\r\0')
             channel.name = name
@@ -905,11 +906,12 @@ class MDF4(object):
             dependency_list = grp['channel_dependencies'][original_index]
             if memory == 'minimum':
                 block = TextBlock(
-                    address=grp['texts']['channels']\
-                        [original_index]['name_addr'],
+                    address=grp['texts']['channels']
+                               [original_index]['name_addr'],
                     stream=stream,
                 )
                 name = block['text'].decode('utf-8').strip(' \r\n\t\0')
+                name = name.split('\\')[0]
             else:
                 name = new_ch.name
 
@@ -2613,6 +2615,7 @@ class MDF4(object):
                 if index > len(self.groups[gp_nr]['channels']) - 1:
                     raise MdfException('Channel index out of range')
         else:
+            name = name.split('\\')[0]
             if name not in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
@@ -2668,7 +2671,7 @@ class MDF4(object):
                     stream=stream,
                 )
                 name = name['text'].decode('utf-8').strip(' \r\t\n\0')
-
+                name = name.split('\\')[0]
             channel.name = name
         else:
             channel = grp['channels'][ch_nr]

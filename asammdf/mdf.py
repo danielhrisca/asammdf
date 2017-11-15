@@ -35,7 +35,7 @@ class MDF(object):
             * if *full* the data group binary data block will be loaded in RAM
             * if *low* the channel data is read from disk on request, and the
             metadata is loaded into RAM
-            
+
             * if *minimum* only minimal data is loaded into RAM
 
     version : string
@@ -269,8 +269,8 @@ class MDF(object):
 
                 * `mat` : Matlab .mat version 5 export, for Matlab >= 7.6. In
                 the mat file the channels will be renamed to
-                'DataGroup_<cntr>_<channel name>'. The channel group master will
-                be renamed to 'DataGroup_<cntr>_<channel name>_master'
+                'DataGroup_<cntr>_<channel name>'. The channel group master
+                will be renamed to 'DataGroup_<cntr>_<channel name>_master'
                 ( *<cntr>* is the data group index starting from 0)
 
         filename : string
@@ -496,7 +496,7 @@ class MDF(object):
                            'Channel "{}" not found, it will be ignored')
                 warn(message.format(ch))
                 continue
-            
+
         if memory is not None:
             if memory not in ('full', 'low', 'minimum'):
                 memory = self.memory
@@ -552,106 +552,109 @@ class MDF(object):
         MdfException : if there are inconsistances between the files
             merged MDF object
         """
-        if files:
-            files = [MDF(file, memory) for file in files]
+        if not files:
+            raise MdfException('No files given for merge')
 
-            if not len(set(len(file.groups) for file in files)) == 1:
+        files = [MDF(file, memory) for file in files]
+
+        if not len(set(len(file.groups) for file in files)) == 1:
+            message = ("Can't merge files: "
+                       "difference in number of data groups")
+            raise MdfException(message)
+
+        merged = MDF(
+            version=outversion,
+            memory=memory,
+        )
+
+        for i, groups in enumerate(zip(*(file.groups for file in files))):
+            channels_nr = set(len(group['channels']) for group in groups)
+            if not len(channels_nr) == 1:
                 message = ("Can't merge files: "
-                           "difference in number of data groups")
-                raise MdfException(message)
+                           "different channel number for data groups {}")
+                raise MdfException(message.format(i))
 
-            merged = MDF(
-                version=outversion,
-                memory=memory,
-            )
+            signals = []
+            mdf = files[0]
+            excluded_channels = mdf._excluded_channels(i)
 
-            for i, groups in enumerate(zip(*(file.groups for file in files))):
-                channels_nr = set(len(group['channels']) for group in groups)
-                if not len(channels_nr) == 1:
-                    message = ("Can't merge files: "
-                               "different channel number for data groups {}")
-                    raise MdfException(message.format(i))
+            groups_data = [
+                files[index]._load_group_data(grp)
+                for index, grp in enumerate(groups)
+            ]
 
-                signals = []
-                mdf = files[0]
-                excluded_channels = mdf._excluded_channels(i)
-
-                groups_data = [
-                    files[index]._load_group_data(grp)
-                    for index, grp in enumerate(groups)
-                ]
-
-                group_channels = [group['channels'] for group in groups]
-                for j, channels in enumerate(zip(*group_channels)):
-                    if memory == 'minimum':
-                        names = []
-                        for file in files:
-                            if file.version in MDF3_VERSIONS:
-                                grp = file.groups[i]
-                                if grp['data_location'] == 0:
-                                    stream = file._file
-                                else:
-                                    stream = file._tempfile
-
-                                channel_texts = grp['texts']['channels'][j]
-                                if channel_texts and 'long_name_addr' in channel_texts:
-                                    address = grp['texts']['channels'][j]['long_name_addr']
-
-                                    block = TextBlockV3(
-                                        address=address,
-                                        stream=stream,
-                                    )
-                                    name = block['text'].decode('latin-1').strip(' \r\n\t\0')
-                                else:
-                                    channel = ChannelV3(
-                                        address=grp['channels'][j],
-                                        stream=stream,
-                                    )
-                                    name = channel['short_name'].decode('latin-1').strip(' \r\n\t\0')
+            group_channels = [group['channels'] for group in groups]
+            for j, channels in enumerate(zip(*group_channels)):
+                if memory == 'minimum':
+                    names = []
+                    for file in files:
+                        if file.version in MDF3_VERSIONS:
+                            grp = file.groups[i]
+                            if grp['data_location'] == 0:
+                                stream = file._file
                             else:
-                                grp = file.groups[i]
-                                if grp['data_location'] == 0:
-                                    stream = file._file
-                                else:
-                                    stream = file._tempfile
+                                stream = file._tempfile
 
-                                address = grp['texts']['channels'][j]['name_addr']
+                            channel_texts = grp['texts']['channels'][j]
+                            if channel_texts and \
+                                    'long_name_addr' in channel_texts:
+                                address = grp['texts']['channels'][j]['long_name_addr']
 
-                                block = TextBlockV4(
+                                block = TextBlockV3(
                                     address=address,
                                     stream=stream,
                                 )
-                                name = block['text'].decode('utf-8').strip(' \r\n\t\0')
+                                name = block['text']
+                            else:
+                                channel = ChannelV3(
+                                    address=grp['channels'][j],
+                                    stream=stream,
+                                )
+                                name = channel['short_name']
+                            name = name.decode('latin-1').strip(' \r\n\t\0')
+                        else:
+                            grp = file.groups[i]
+                            if grp['data_location'] == 0:
+                                stream = file._file
+                            else:
+                                stream = file._tempfile
 
-                            names.append(name)
-                        names = set(names)
-                    else:
-                        names = set(ch.name for ch in channels)
-                    if not len(names) == 1:
-                        message = ("Can't merge files: "
-                                   "different channel names for data group {}")
-                        raise MdfException(message.format(i))
+                            address = grp['texts']['channels'][j]['name_addr']
 
-                    if j in excluded_channels:
-                        continue
+                            block = TextBlockV4(
+                                address=address,
+                                stream=stream,
+                            )
+                            name = block['text']
+                            name = name.decode('utf-8').strip(' \r\n\t\0')
+                        name = name.split('\\')[0]
+                        names.append(name)
+                    names = set(names)
+                else:
+                    names = set(ch.name for ch in channels)
+                if not len(names) == 1:
+                    message = ("Can't merge files: "
+                               "different channel names for data group {}")
+                    raise MdfException(message.format(i))
 
-                    sigs = [
-                        file.get(group=i, index=j, data=data)
-                        for file, data in zip(files, groups_data)
-                    ]
+                if j in excluded_channels:
+                    continue
 
-                    sig = sigs[0]
-                    for s in sigs[1:]:
-                        sig = sig.extend(s)
+                sigs = [
+                    file.get(group=i, index=j, data=data)
+                    for file, data in zip(files, groups_data)
+                ]
 
-                    signals.append(sig)
+                sig = sigs[0]
+                for s in sigs[1:]:
+                    sig = sig.extend(s)
 
-                if signals:
-                    merged.append(signals, common_timebase=True)
+                signals.append(sig)
 
-            return merged
-        else:
-            raise MdfException('No files given for merge')
+            if signals:
+                merged.append(signals, common_timebase=True)
+
+        return merged
 
     def iter_to_pandas(self):
         """ generator that yields channel groups as pandas DataFrames"""
@@ -684,27 +687,27 @@ class MDF(object):
                     )
                     pandas_dict[sig.name] = sig.samples
                 yield DataFrame.from_dict(pandas_dict)
-                
+
     def resample(self, raster, memory=None):
-        """ resample all channels to given raster 
-        
+        """ resample all channels to given raster
+
         Parameters
         ----------
         raster : float
             time raster is seconds
         memory : str
             memory option; default `None`
-            
+
         Returns
         -------
         mdf : MDF
             new MDF with resampled channels
-            
+
         """
-        
+
         if memory is None:
             memory = self.memory
-            
+
         mdf = MDF(
             version=self.version,
             memory=memory,

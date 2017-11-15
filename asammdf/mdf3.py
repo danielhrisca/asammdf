@@ -285,6 +285,7 @@ class MDF3(object):
                     name = block['text'].decode('latin-1').strip(' \r\n\t\0')
                 else:
                     name = new_ch['short_name'].decode('latin-1').strip(' \r\n\t\0')
+                name = name.split('\\')[0]
             else:
                 name = new_ch.name
 
@@ -677,6 +678,7 @@ class MDF3(object):
                     else:
                         name = new_ch['short_name']
                     name = name.decode('latin-1').strip(' \n\t\0')
+                    name = name.split('\\')[0]
                     new_ch.name = name
 
                     if name in self.channels_db:
@@ -1970,7 +1972,7 @@ class MDF3(object):
             gp['trigger'] = [None, None]
 
     def close(self):
-        """ if the MDF was created with memory=False and new
+        """ if the MDF was created with memory='minimum' and new
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file
 
@@ -2052,6 +2054,7 @@ class MDF3(object):
                 if index > len(self.groups[gp_nr]['channels']) - 1:
                     raise MdfException('Channel index out of range')
         else:
+            name = name.split('\\')[0]
             if name not in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
@@ -2115,7 +2118,7 @@ class MDF3(object):
                 else:
                     name = channel['short_name']
                 name = name.decode('utf-8').strip(' \r\t\n\0')
-
+            name = name.split('\\')[0]
             channel.name = name
 
         dep = grp['channel_dependencies'][ch_nr]
@@ -2656,7 +2659,7 @@ class MDF3(object):
         # relevant block links are updated so that once all blocks have been
         # added to the list they can be written using the bytes protocol.
         # DataGroup blocks are written first after the identification and
-        # header blocks. When memory=False we need to restore the
+        # header blocks. When memory='low' we need to restore the
         # original data block addresses within the data group block. This is
         # needed to allow further work with the object after the save method
         # call (eq. new calls to get method). Since the data group blocks are
