@@ -38,10 +38,6 @@ from numpy import (
     packbits,
     roll,
     transpose,
-    issubdtype,
-    unsignedinteger,
-    integer,
-    signedinteger,
 )
 from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import encode
@@ -1334,7 +1330,7 @@ class MDF4(object):
             compacted_signals = [
                 {'signal': sig}
                 for sig in simple_signals
-                if issubdtype(sig.samples.dtype, integer)
+                if sig.samples.dtype.kind in 'ui'
             ]
 
             max_itemsize = 1
@@ -1361,7 +1357,7 @@ class MDF4(object):
             simple_signals = [
                 sig
                 for sig in simple_signals
-                if not issubdtype(sig.samples.dtype, integer)
+                if sig.samples.dtype.kind not in 'ui'
             ]
             dtype_size = dtype_.itemsize * 8
 
@@ -1552,7 +1548,7 @@ class MDF4(object):
                     gp_source.append(address)
 
                 # compute additional byte offset for large records size
-                if issubdtype(signal.samples.dtype, unsignedinteger):
+                if signal.samples.dtype.kind == 'u':
                     data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
                 else:
                     data_type = v4c.DATA_TYPE_SIGNED_INTEL
@@ -2905,7 +2901,7 @@ class MDF4(object):
 
                     if bit_offset:
                         dtype_ = vals.dtype
-                        if issubdtype(dtype_, signedinteger):
+                        if dtype_.kind == 'i':
                             vals = vals.astype(dtype('<u{}'.format(size)))
                             vals >>= bit_offset
                         else:

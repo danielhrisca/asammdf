@@ -34,11 +34,7 @@ from numpy import (
     roll,
     zeros,
     uint8,
-    issubdtype,
-    unsignedinteger,
     arange,
-    integer,
-    signedinteger,
 )
 from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import encode
@@ -1043,7 +1039,7 @@ class MDF3(object):
                 compacted_signals = [
                     {'signal': sig}
                     for sig in simple_signals
-                    if issubdtype(sig.samples.dtype, integer)
+                    if sig.samples.dtype.kind in 'ui'
                 ]
 
                 max_itemsize = 1
@@ -1070,7 +1066,7 @@ class MDF3(object):
                 simple_signals = [
                     sig
                     for sig in simple_signals
-                    if not issubdtype(sig.samples.dtype, integer)
+                    if sig.samples.dtype.kind not in 'ui'
                 ]
                 dtype_size = dtype_.itemsize * 8
 
@@ -1213,7 +1209,7 @@ class MDF3(object):
                         start_bit_offset = current_offset
                         additional_byte_offset = 0
 
-                    if issubdtype(signal.samples.dtype, unsignedinteger):
+                    if signal.samples.dtype.kind == 'u':
                         data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
                     else:
                         data_type = v3c.DATA_TYPE_SIGNED_INTEL
@@ -2199,7 +2195,7 @@ class MDF3(object):
 
                 if bit_offset:
                     dtype_ = vals.dtype
-                    if issubdtype(dtype_, signedinteger):
+                    if dtype_.kind == 'i':
                         vals = vals.astype(dtype('<u{}'.format(size)))
                         vals >>= bit_offset
                     else:

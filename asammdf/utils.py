@@ -7,11 +7,6 @@ import itertools
 import re
 
 from numpy import (
-    issubdtype,
-    signedinteger,
-    unsignedinteger,
-    floating,
-    flexible,
     amin,
     amax,
 )
@@ -200,29 +195,29 @@ def fmt_to_datatype(fmt, version=3):
     size = fmt.itemsize * 8
 
     if version == 3:
-        if issubdtype(fmt, unsignedinteger):
+        if fmt.kind == 'u':
             data_type = v3c.DATA_TYPE_UNSIGNED
-        elif issubdtype(fmt, signedinteger):
+        elif fmt.kind == 'i':
             data_type = v3c.DATA_TYPE_SIGNED
-        elif issubdtype(fmt, floating):
+        elif fmt.kind == 'f':
             if size == 32:
                 data_type = v3c.DATA_TYPE_FLOAT
             else:
                 data_type = v3c.DATA_TYPE_DOUBLE
-        elif issubdtype(fmt, flexible):
+        elif fmt.kind in 'SV':
             data_type = v3c.DATA_TYPE_STRING
         else:
             # here we have arrays
             data_type = v3c.DATA_TYPE_BYTEARRAY
 
     elif version == 4:
-        if issubdtype(fmt, unsignedinteger):
+        if fmt.kind == 'u':
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
-        elif issubdtype(fmt, signedinteger):
+        elif fmt.kind == 'i':
             data_type = v4c.DATA_TYPE_SIGNED_INTEL
-        elif issubdtype(fmt, floating):
+        elif fmt.kind == 'f':
             data_type = v4c.DATA_TYPE_REAL_INTEL
-        elif issubdtype(fmt, flexible):
+        elif fmt.kind in 'SV':
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
         else:
             # here we have arrays
