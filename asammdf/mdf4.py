@@ -2718,7 +2718,9 @@ class MDF4(object):
                             address=channel['name_addr'],
                             stream=stream,
                         )
-                        names.append(block['text'].decode('utf-8').strip(' \n\r\t\0'))
+                        name_ = block['text'].decode('utf-8')
+                        name_ = name_.split('\\')[0].strip(' \n\r\t\0')
+                        names.append(name_)
                 else:
                     names = [ch.name for ch in dependency_list]
                 arrays = [
@@ -2811,6 +2813,7 @@ class MDF4(object):
                                     block = TextBlock(address=axisname,
                                                       stream=self._file)
                                     axisname = block['text'].decode('utf-8').strip(' \t\n\r\0')
+                                    axisname = axisname.split('\\')[0]
                                 else:
                                     axisname = self.groups[dg_nr]['channels'][ch_nr].name
                                 shape = (ca_block['dim_size_{}'.format(i)], )
@@ -2855,6 +2858,7 @@ class MDF4(object):
                                 block = TextBlock(address=axisname,
                                                   stream=self._file)
                                 axisname = block['text'].decode('utf-8').strip(' \t\n\r\0')
+                                axisname = axisname.split('\\')[0]
                             else:
                                 axisname = self.groups[dg_nr]['channels'][ch_nr].name
                             shape = (ca_block['dim_size_{}'.format(i)], )
