@@ -1953,20 +1953,32 @@ class MDF3(object):
             gp['sorted'] = True
 
             samples = fromarrays(fields, dtype=types)
-            block = samples.tostring()
+            try:
+                block = samples.tostring()
 
-            if memory == 'full':
-                gp['data_location'] = v3c.LOCATION_MEMORY
-                kargs = {'data': block}
-                gp['data_block'] = DataBlock(**kargs)
-            else:
-                gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
-                if cycles_nr:
+                if memory == 'full':
+                    gp['data_location'] = v3c.LOCATION_MEMORY
+                    kargs = {'data': block}
+                    gp['data_block'] = DataBlock(**kargs)
+                else:
+                    gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
+                    if cycles_nr:
+                        data_address = tell()
+                        gp['data_group']['data_block_addr'] = data_address
+                        self._tempfile.write(block)
+                    else:
+                        gp['data_group']['data_block_addr'] = 0
+            except MemoryError:
+                if memory == 'full':
+                    raise
+                else:
+                    gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
+
                     data_address = tell()
                     gp['data_group']['data_block_addr'] = data_address
-                    self._tempfile.write(block)
-                else:
-                    gp['data_group']['data_block_addr'] = 0
+                    for sample in samples:
+                        self._tempfile.write(sample.tostring())
+
 
             # data group trigger
             gp['trigger'] = [None, None]
