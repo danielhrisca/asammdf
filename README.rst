@@ -89,7 +89,8 @@ Usage
    
 
  
-Check the *examples* folder for extended usage demo.
+Check the *examples* folder for extended usage demo, or the documentation
+http://asammdf.readthedocs.io/en/latest/examples.html
 
 Documentation
 =============
