@@ -121,6 +121,7 @@ class MDF3(object):
     """
 
     _compact_integers_on_append = False
+    _overwrite = False
 
     def __init__(self, name=None, memory=2, version='3.30'):
         self.groups = []
@@ -2753,7 +2754,7 @@ class MDF3(object):
 
         return info
 
-    def save(self, dst='', overwrite=False, compression=0):
+    def save(self, dst='', overwrite=None, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -2771,6 +2772,9 @@ class MDF3(object):
             API as mdf version 4 files
 
         """
+
+        if overwrite is None:
+            overwrite = self._overwrite
 
         if self.name is None and dst == '':
             message = ('Must specify a destination file name '
@@ -2798,7 +2802,7 @@ class MDF3(object):
         else:
             self._save_without_metadata(dst, overwrite, compression)
 
-    def _save_with_metadata(self, dst='', overwrite=False, compression=0):
+    def _save_with_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -3076,7 +3080,7 @@ class MDF3(object):
                     data = self._load_group_data(gp)
                     write(data)
 
-    def _save_without_metadata(self, dst='', overwrite=False, compression=0):
+    def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -3356,7 +3360,7 @@ class MDF3(object):
                         continue
 
                     for i, pair_ in enumerate(dep.referenced_channels):
-                        ch_nr, dg_nr = pair_
+                        _, dg_nr = pair_
                         grp = self.groups[dg_nr]
                         dep['ch_{}'.format(i)] = grp['temp_channels'][i]
                         dep['cg_{}'.format(i)] = grp['channel_group'].address

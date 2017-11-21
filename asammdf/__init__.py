@@ -20,7 +20,8 @@ __all__ = [
 def configure(
         integer_compacting=None,
         split_data_blocks=None,
-        split_threshold=None):
+        split_threshold=None,
+        overwrite=None):
     """ configure asammdf parameters
 
     Parameters
@@ -35,15 +36,21 @@ def configure(
     split_treshold : int
         size of splitted data blocks, default 2MB; if the initial size is
         smaller then no data list is used
+    overwrite : bool
+        default option for save method's overwrite argument
 
     """
 
     if integer_compacting is not None:
-        MDF3._compact_integers_on_append = integer_compacting
-        MDF4._compact_integers_on_append = integer_compacting
+        MDF3._compact_integers_on_append = bool(integer_compacting)
+        MDF4._compact_integers_on_append = bool(integer_compacting)
 
     if split_threshold is not None:
-        MDF4._split_threshold = split_threshold
+        MDF4._split_threshold = int(split_threshold)
 
     if split_data_blocks is not None:
-        MDF4._split_data_blocks = split_data_blocks
+        MDF4._split_data_blocks = bool(split_data_blocks)
+
+    if overwrite is not None:
+        MDF3._overwrite = bool(overwrite)
+        MDF4._overwrite = bool(overwrite)

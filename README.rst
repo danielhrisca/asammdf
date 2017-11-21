@@ -56,7 +56,7 @@ Major features not implemented (yet)
 * for version 4
 
     * handling of bus logging measurements
-    * handling of unfinnished measurements (mdf 4)
+    * handling of unfinished measurements (mdf 4)
     * full support for remaining mdf 4 channel arrays types
     * xml schema for TXBLOCK and MDBLOCK
     * partial conversions

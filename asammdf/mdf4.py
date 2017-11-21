@@ -141,6 +141,7 @@ class MDF4(object):
     _compact_integers_on_append = False
     _split_data_blocks = False
     _split_threshold = 1 << 21
+    _overwrite = False
 
     def __init__(self, name=None, memory='full', version='4.10'):
         self.groups = []
@@ -215,7 +216,7 @@ class MDF4(object):
         version = self.identification['version_str']
         self.version = version.decode('utf-8').strip(' \n\t\0')
 
-        if self.version == '4.10':
+        if self.version in ('4.10', '4.11'):
             self._check_finalised()
 
         self.header = HeaderBlock(address=0x40, stream=stream)
@@ -3762,7 +3763,7 @@ class MDF4(object):
 
         return info
 
-    def save(self, dst='', overwrite=False, compression=0):
+    def save(self, dst='', overwrite=None, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -3784,6 +3785,9 @@ class MDF4(object):
             files)
 
         """
+        if overwrite is None:
+            overwrite = self._overwrite
+
         if self.name is None and dst == '':
             message = ('Must specify a destination file name '
                        'for MDF created from scratch')
@@ -3794,7 +3798,7 @@ class MDF4(object):
             else:
                 self._save_with_metadata(dst, overwrite, compression)
 
-    def _save_with_metadata(self, dst='', overwrite=False, compression=0):
+    def _save_with_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -4212,7 +4216,7 @@ class MDF4(object):
             for orig_addr, gp in zip(original_data_addresses, self.groups):
                 gp['data_group']['data_block_addr'] = orig_addr
 
-    def _save_without_metadata(self, dst='', overwrite=False, compression=0):
+    def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were

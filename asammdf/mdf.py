@@ -445,7 +445,7 @@ class MDF(object):
 
             for i, grp in enumerate(self.groups):
                 data = self._load_group_data(grp)
-                for j, ch in enumerate(grp['channels']):
+                for j, _ in enumerate(grp['channels']):
                     sig = self.get(
                         group=i,
                         index=j,
