@@ -2554,9 +2554,10 @@ class MDF4(object):
         """ if the MDF was created with memory=False and new
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file"""
-
-        self._tempfile.close()
-        self._file.close()
+        if self._tempfile is not None:
+            self._tempfile.close()
+        if self._file is not None:
+            self._file.close()
 
     def extract_attachment(self, index):
         """ extract attachemnt *index* data. If it is an embedded attachment,
@@ -3857,12 +3858,18 @@ class MDF4(object):
             [FileHistory(),
              TextBlock(text=text, meta=True)]
         )
-        with open(dst, 'wb+') as dst:
+
+        if self.memory == 'low' and dst == self.name:
+            destination = dst + '.temp'
+        else:
+            destination = dst
+
+        with open(destination, 'wb+') as dst_:
             defined_texts = {}
 
-            write = dst.write
-            tell = dst.tell
-            seek = dst.seek
+            write = dst_.write
+            tell = dst_.tell
+            seek = dst_.seek
 
             write(bytes(self.identification))
             write(bytes(self.header))
@@ -4216,6 +4223,27 @@ class MDF4(object):
             for orig_addr, gp in zip(original_data_addresses, self.groups):
                 gp['data_group']['data_block_addr'] = orig_addr
 
+        if self.memory == 'low' and dst == self.name:
+            self.close()
+            os.remove(self.name)
+            os.rename(destination, self.name)
+
+            self.groups = []
+            self.header = None
+            self.identification = None
+            self.file_history = []
+            self.channels_db = {}
+            self.masters_db = {}
+            self.attachments = []
+            self.file_comment = None
+
+            self._ch_map = {}
+            self._master_channel_cache = {}
+
+            self._tempfile = TemporaryFile()
+            self._file = open(self.name, 'rb')
+            self._read()
+
     def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
@@ -4276,12 +4304,17 @@ class MDF4(object):
              TextBlock(text=text, meta=True)]
         )
 
-        with open(dst, 'wb+') as dst:
+        if dst == self.name:
+            destination = dst + '.temp'
+        else:
+            destination = dst
+
+        with open(destination, 'wb+') as dst_:
             defined_texts = {}
 
-            write = dst.write
-            tell = dst.tell
-            seek = dst.seek
+            write = dst_.write
+            tell = dst_.tell
+            seek = dst_.seek
 
             write(bytes(self.identification))
             write(bytes(self.header))
@@ -4685,6 +4718,27 @@ class MDF4(object):
 
             for gp in self.groups:
                 del gp['temp_channels']
+
+        if dst == self.name:
+            self.close()
+            os.remove(self.name)
+            os.rename(destination, self.name)
+
+            self.groups = []
+            self.header = None
+            self.identification = None
+            self.file_history = []
+            self.channels_db = {}
+            self.masters_db = {}
+            self.attachments = []
+            self.file_comment = None
+
+            self._ch_map = {}
+            self._master_channel_cache = {}
+
+            self._tempfile = TemporaryFile()
+            self._file = open(self.name, 'rb')
+            self._read()
 
 if __name__ == '__main__':
     pass

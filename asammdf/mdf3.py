@@ -2876,9 +2876,15 @@ class MDF3(object):
         # the reference to the data group object and the original link to the
         # data block in the soource MDF file.
 
-        with open(dst, 'wb') as dst:
-            # store unique texts and their addresses
+        if self.memory == 'low' and dst == self.name:
+            destination = dst + '.temp'
+        else:
+            destination = dst
+
+        with open(destination, 'wb+') as dst_:
             defined_texts = {}
+
+            write = dst_.write
             # list of all blocks
             blocks = []
 
@@ -3066,7 +3072,6 @@ class MDF3(object):
                 self.header['comment_addr'] = self.file_history.address
                 self.header['program_addr'] = 0
 
-            write = dst.write
             for block in blocks:
                 try:
                     write(bytes(block))
@@ -3079,6 +3084,27 @@ class MDF3(object):
                     gp['data_group']['data_block_addr'] = address
                     data = self._load_group_data(gp)
                     write(data)
+
+        if self.memory == 'low' and dst == self.name:
+            self.close()
+            os.remove(self.name)
+            os.rename(destination, self.name)
+
+            self.groups = []
+            self.header = None
+            self.identification = None
+            self.file_history = []
+            self.channels_db = {}
+            self.masters_db = {}
+            self.attachments = []
+            self.file_comment = None
+
+            self._ch_map = {}
+            self._master_channel_cache = {}
+
+            self._tempfile = TemporaryFile()
+            self._file = open(self.name, 'rb')
+            self._read()
 
     def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
@@ -3133,15 +3159,19 @@ class MDF3(object):
         # the reference to the data group object and the original link to the
         # data block in the soource MDF file.
 
-        with open(dst, 'wb') as dst:
-            # store unique texts and their addresses
+        if dst == self.name:
+            destination = dst + '.temp'
+        else:
+            destination = dst
+
+        with open(destination, 'wb+') as dst_:
             defined_texts = {}
+
+            write = dst_.write
+            tell = dst_.tell
+            seek = dst_.seek
             # list of all blocks
             blocks = []
-
-            write = dst.write
-            tell = dst.tell
-            seek = dst.seek
 
             address = 0
 
@@ -3373,6 +3403,27 @@ class MDF3(object):
 
             for gp in self.groups:
                 del gp['temp_channels']
+
+        if dst == self.name:
+            self.close()
+            os.remove(self.name)
+            os.rename(destination, self.name)
+
+            self.groups = []
+            self.header = None
+            self.identification = None
+            self.file_history = []
+            self.channels_db = {}
+            self.masters_db = {}
+            self.attachments = []
+            self.file_comment = None
+
+            self._ch_map = {}
+            self._master_channel_cache = {}
+
+            self._tempfile = TemporaryFile()
+            self._file = open(self.name, 'rb')
+            self._read()
 
 
 if __name__ == '__main__':
