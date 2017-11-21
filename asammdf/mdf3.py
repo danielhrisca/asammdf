@@ -3262,7 +3262,6 @@ class MDF3(object):
                                     'display_name_addr'):
                             channel[key] = 0
 
-
                     channel['conversion_addr'] = cc[i]
                     channel['source_depend_addr'] = cs[i]
                     channel['ch_depend_addr'] = cd[i]
