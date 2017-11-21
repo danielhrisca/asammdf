@@ -483,7 +483,7 @@ class MDF4(object):
 
                 if conv['conversion_type'] in v4c.TABULAR_CONVERSIONS:
                     if conv['conversion_type'] == v4c.CONVERSION_TYPE_TTAB:
-                        tabs = conv['links_nr'] - 4 
+                        tabs = conv['links_nr'] - 4
                     else:
                         tabs = conv['links_nr'] - 4 - 1
                     for i in range(tabs):
@@ -507,7 +507,7 @@ class MDF4(object):
                             else:
                                 stream.seek(address, v4c.SEEK_START)
                                 blk_id = stream.read(4)
-    
+
                                 if blk_id == b'##TX':
                                     block = TextBlock(
                                         address=address,
@@ -522,7 +522,7 @@ class MDF4(object):
                                     text = str(time.clock()).encode('utf-8')
                                     default_text = block
                                     default_text['text'] = text
-    
+
                                     conv['unit_addr'] = default_text['unit_addr']
                                     default_text['unit_addr'] = 0
 
@@ -1125,6 +1125,101 @@ class MDF4(object):
 
         return vals['vals']
 
+    def _validate_channel_selection(self, name=None, group=None, index=None):
+        """Gets channel comment.
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+            * if there are multiple occurances for this channel and either the
+            *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+        number (keyword argument *index*). Use *info* method for group and
+        channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        group_index, channel_index : (int, int)
+            selected channel's group and channel index
+
+        """
+        if name is None:
+            if group is None or index is None:
+                message = ('Invalid arguments for channel selection: '
+                           'must give "name" or, "group" and "index"')
+                raise MdfException(message)
+            else:
+                gp_nr, ch_nr = group, index
+                if gp_nr > len(self.groups) - 1:
+                    raise MdfException('Group index out of range')
+                if index > len(self.groups[gp_nr]['channels']) - 1:
+                    raise MdfException('Channel index out of range')
+        else:
+            name = name.split('\\')[0]
+            if name not in self.channels_db:
+                raise MdfException('Channel "{}" not found'.format(name))
+            else:
+                if group is None:
+                    gp_nr, ch_nr = self.channels_db[name][0]
+                    if len(self.channels_db[name]) > 1:
+                        message = ('Multiple occurances for channel "{}". '
+                                   'Using first occurance from data group {}. '
+                                   'Provide both "group" and "index" arguments'
+                                   ' to select another data group')
+                        message = message.format(name, gp_nr)
+                        warnings.warn(message)
+                else:
+                    group_valid = False
+                    for gp_nr, ch_nr in self.channels_db[name]:
+                        if gp_nr == group:
+                            group_valid = True
+                            if index is None:
+                                break
+                            elif index == ch_nr:
+                                break
+                    else:
+                        if group_valid:
+                            gp_nr, ch_nr = self.channels_db[name][group]
+                            message = ('You have selected channel index "{}"'
+                                       'of group "{}" for channel "{}", but '
+                                       'this channel index is invalid. Using '
+                                       'first occurance of "{}" in this group'
+                                       ' at index "{}"')
+                            message = message.format(
+                                index,
+                                group,
+                                name,
+                                name,
+                                ch_nr,
+                            )
+                        else:
+                            gp_nr, ch_nr = self.channels_db[name][0]
+                            message = ('You have selected group "{}" for '
+                                       'channel "{}", but this channel was not'
+                                       ' found in this group, or this group '
+                                       'index does not exist. Using first '
+                                       'occurance of "{}" from group "{}"')
+                            message = message.format(group, name, name, gp_nr)
+                        warnings.warn(message)
+        return gp_nr, ch_nr
+
     def append(self, signals, source_info='Python', common_timebase=False):
         """
         Appends a new data group.
@@ -1437,7 +1532,7 @@ class MDF4(object):
                         for i, (r_, p_) in enumerate(zip(raw, phys)):
                             kargs['text_{}'.format(i)] = 0
                             kargs['val_{}'.format(i)] = p_
-        
+
                             block = TextBlock(
                                 text=r_,
                                 meta=False,
@@ -1455,7 +1550,7 @@ class MDF4(object):
                         for i, (r_, p_) in enumerate(zip(raw, phys)):
                             kargs['text_{}'.format(i)] = 0
                             kargs['val_{}'.format(i)] = r_
-        
+
                             block = TextBlock(
                                 text=p_,
                                 meta=False,
@@ -1643,7 +1738,7 @@ class MDF4(object):
                     for i, (r_, p_) in enumerate(zip(raw, phys)):
                         kargs['text_{}'.format(i)] = 0
                         kargs['val_{}'.format(i)] = p_
-    
+
                         block = TextBlock(
                             text=r_,
                             meta=False,
@@ -1661,7 +1756,7 @@ class MDF4(object):
                     for i, (r_, p_) in enumerate(zip(raw, phys)):
                         kargs['text_{}'.format(i)] = 0
                         kargs['val_{}'.format(i)] = r_
-    
+
                         block = TextBlock(
                             text=p_,
                             meta=False,
@@ -2543,6 +2638,163 @@ class MDF4(object):
             message = 'Exception during attachment extraction: ' + repr(err)
             warnings.warn(message)
 
+    def get_channel_unit(self, name=None, group=None, index=None):
+        """Gets channel unit.
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+            * if there are multiple occurances for this channel and either the
+            *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+        number (keyword argument *index*). Use *info* method for group and
+        channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        unit : str
+            found channel unit
+
+        """
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+
+        if grp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        conv_texts = grp['texts']['conversions'][ch_nr]
+        channel_texts = grp['texts']['channels'][ch_nr]
+
+        if conv_texts and 'unit_addr' in conv_texts:
+            if not self.memory == 'minimum':
+                unit = conv_texts['unit_addr']
+            else:
+                unit = TextBlock(
+                    address=conv_texts['unit_addr'],
+                    stream=stream,
+                )
+            if PYVERSION == 3:
+                try:
+                    unit = unit['text'].decode('utf-8').strip(' \n\t\0')
+                except UnicodeDecodeError:
+                    unit = ''
+            else:
+                unit = unit['text'].strip(' \n\t\0')
+        else:
+            # search for physical unit in channel texts
+            if 'unit_addr' in channel_texts:
+                if not self.memory == 'minimum':
+                    unit = channel_texts['unit_addr']
+                else:
+                    unit = TextBlock(
+                        address=channel_texts['unit_addr'],
+                        stream=stream,
+                    )
+                if PYVERSION == 3:
+                    unit = unit['text'].decode('utf-8').strip(' \n\t\0')
+                else:
+                    unit = unit['text'].strip(' \n\t\0')
+            else:
+                unit = ''
+
+        return unit
+
+    def get_channel_comment(self, name=None, group=None, index=None):
+        """Gets channel comment.
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+            * if there are multiple occurances for this channel and either the
+            *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+        number (keyword argument *index*). Use *info* method for group and
+        channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        comment : str
+            found channel comment
+
+        """
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+
+        channel_texts = grp['texts']['channels'][ch_nr]
+
+        if grp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        if 'comment_addr' in channel_texts:
+            if self.memory == 'minimum':
+                comment = TextBlock(
+                    address=channel_texts['comment_addr'],
+                    stream=stream,
+                )
+            else:
+                comment = channel_texts['comment_addr']
+
+            if comment['id'] == b'##MD':
+                comment = comment['text'].decode('utf-8').strip(' \n\t\0')
+                try:
+                    comment = XML.fromstring(comment).find('TX').text
+                except:
+                    comment = ''
+            else:
+                comment = comment['text'].decode('utf-8')
+        else:
+            comment = ''
+
+        return comment
+
     def get(self,
             name=None,
             group=None,
@@ -2603,48 +2855,11 @@ class MDF4(object):
         * if the channel index is out of range
 
         """
-        if name is None:
-            if group is None or index is None:
-                message = ('Invalid arguments for "get" method: '
-                           'must give "name" or, "group" and "index"')
-                raise MdfException(message)
-            else:
-                gp_nr, ch_nr = group, index
-                if gp_nr > len(self.groups) - 1:
-                    raise MdfException('Group index out of range')
-                if index > len(self.groups[gp_nr]['channels']) - 1:
-                    raise MdfException('Channel index out of range')
-        else:
-            name = name.split('\\')[0]
-            if name not in self.channels_db:
-                raise MdfException('Channel "{}" not found'.format(name))
-            else:
-                if group is None or index is None:
-                    gp_nr, ch_nr = self.channels_db[name][0]
-                    if len(self.channels_db[name]) > 1:
-                        message = ('Multiple occurances for channel "{}". '
-                                   'Using first occurance from data group {}. '
-                                   'Provide both "group" and "index" arguments'
-                                   ' to select another data group')
-                        message = message.format(name, gp_nr)
-                        warnings.warn(message)
-                else:
-                    for gp_nr, ch_nr in self.channels_db[name]:
-                        if (gp_nr, ch_nr) == (group, index):
-                            break
-                    else:
-                        gp_nr, ch_nr = self.channels_db[name][0]
-                        message = ('You have selected group "{}" for channel '
-                                   '"{}", but this channel was not found in '
-                                   'this group. Using first occurance of "{}" '
-                                   'from group "{}"')
-                        message = message.format(
-                            group,
-                            name,
-                            name,
-                            gp_nr,
-                        )
-                        warnings.warn(message)
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
 
         memory = self.memory
         grp = self.groups[gp_nr]
@@ -2933,7 +3148,7 @@ class MDF4(object):
                 if conversion is None:
                     conversion_type = v4c.CONVERSION_TYPE_NON
                 else:
-                    conversion_type = conversion['conversion_type']   
+                    conversion_type = conversion['conversion_type']
 
                 if conversion_type == v4c.CONVERSION_TYPE_NON:
                     # check if it is VLDS channel type with SDBLOCK
@@ -3249,7 +3464,7 @@ class MDF4(object):
 
                 elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
                     nr = conversion['val_param_nr'] - 1
-                    
+
                     if memory == 'minimum':
                         raw = []
                         for i in range(nr):
@@ -3285,7 +3500,7 @@ class MDF4(object):
                             )
                             in_.append(block['text'])
                         in_ = array(in_)
-                        
+
                         out_ = []
                         for i in range(nr):
                             block = TextBlock(
@@ -3294,7 +3509,7 @@ class MDF4(object):
                             )
                             out_.append(block['text'])
                         out_ = array(out_)
-                        
+
                         block = TextBlock(
                             address=grp['texts']['conversion_tab'][ch_nr]['default_addr'],
                             stream=stream,
@@ -3310,7 +3525,7 @@ class MDF4(object):
                              for i in range(nr)]
                         )
                         default = grp['texts']['conversion_tab'][ch_nr]['default_addr']['text']
-    
+
                     res = []
                     for v in vals:
                         for i, o in zip(in_, out_):
@@ -3855,7 +4070,7 @@ class MDF4(object):
                         if conv['conversion_type'] in tab_conversion:
                             for key in gp['texts']['conversion_tab'][j]:
                                 conv[key] = gp['texts']['conversion_tab'][j][key].address
-                                
+
                         address += conv['block_len']
                         blocks.append(conv)
 

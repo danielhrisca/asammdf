@@ -456,6 +456,101 @@ class MDF3(object):
 
         return vals['vals']
 
+    def _validate_channel_selection(self, name=None, group=None, index=None):
+        """Gets channel comment.
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+            * if there are multiple occurances for this channel and either the
+            *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+        number (keyword argument *index*). Use *info* method for group and
+        channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        group_index, channel_index : (int, int)
+            selected channel's group and channel index
+
+        """
+        if name is None:
+            if group is None or index is None:
+                message = ('Invalid arguments for channel selection: '
+                           'must give "name" or, "group" and "index"')
+                raise MdfException(message)
+            else:
+                gp_nr, ch_nr = group, index
+                if gp_nr > len(self.groups) - 1:
+                    raise MdfException('Group index out of range')
+                if index > len(self.groups[gp_nr]['channels']) - 1:
+                    raise MdfException('Channel index out of range')
+        else:
+            name = name.split('\\')[0]
+            if name not in self.channels_db:
+                raise MdfException('Channel "{}" not found'.format(name))
+            else:
+                if group is None:
+                    gp_nr, ch_nr = self.channels_db[name][0]
+                    if len(self.channels_db[name]) > 1:
+                        message = ('Multiple occurances for channel "{}". '
+                                   'Using first occurance from data group {}. '
+                                   'Provide both "group" and "index" arguments'
+                                   ' to select another data group')
+                        message = message.format(name, gp_nr)
+                        warnings.warn(message)
+                else:
+                    group_valid = False
+                    for gp_nr, ch_nr in self.channels_db[name]:
+                        if gp_nr == group:
+                            group_valid = True
+                            if index is None:
+                                break
+                            elif index == ch_nr:
+                                break
+                    else:
+                        if group_valid:
+                            gp_nr, ch_nr = self.channels_db[name][group]
+                            message = ('You have selected channel index "{}"'
+                                       'of group "{}" for channel "{}", but '
+                                       'this channel index is invalid. Using '
+                                       'first occurance of "{}" in this group'
+                                       ' at index "{}"')
+                            message = message.format(
+                                index,
+                                group,
+                                name,
+                                name,
+                                ch_nr,
+                            )
+                        else:
+                            gp_nr, ch_nr = self.channels_db[name][0]
+                            message = ('You have selected group "{}" for '
+                                       'channel "{}", but this channel was not'
+                                       ' found in this group, or this group '
+                                       'index does not exist. Using first '
+                                       'occurance of "{}" from group "{}"')
+                            message = message.format(group, name, name, gp_nr)
+                        warnings.warn(message)
+        return gp_nr, ch_nr
+
     def _read(self):
         stream = self._file
         memory = self.memory
@@ -1979,7 +2074,6 @@ class MDF3(object):
                     for sample in samples:
                         self._tempfile.write(sample.tostring())
 
-
             # data group trigger
             gp['trigger'] = [None, None]
 
@@ -1993,6 +2087,133 @@ class MDF3(object):
             self._tempfile.close()
         if self._file is not None:
             self._file.close()
+
+    def get_channel_unit(self, name=None, group=None, index=None):
+        """Gets channel unit.
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+            * if there are multiple occurances for this channel and either the
+            *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+        number (keyword argument *index*). Use *info* method for group and
+        channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        unit : str
+            found channel unit
+
+        """
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+        if grp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        if self.memory == 'minimum':
+            addr = grp['channel_conversions'][ch_nr]
+            if addr:
+                conversion = ChannelConversion(
+                    address=addr,
+                    stream=stream,
+                )
+            else:
+                conversion = None
+
+        else:
+            conversion = grp['channel_conversions'][ch_nr]
+
+        if conversion:
+            unit = conversion['unit'].decode('latin-1').strip(' \n\t\0')
+        else:
+            unit = ''
+
+        return unit
+
+    def get_channel_comment(self, name=None, group=None, index=None):
+        """Gets channel comment.
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+            * if there are multiple occurances for this channel and either the
+            *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+        number (keyword argument *index*). Use *info* method for group and
+        channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        comment : str
+            found channel comment
+
+        """
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+        if grp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        if self.memory == 'minimum':
+            channel = Channel(
+                address=grp['channels'][ch_nr],
+                stream=stream,
+            )
+        else:
+            channel = grp['channels'][ch_nr]
+
+        comment = channel['description'].decode('latin-1')
+        comment = comment.strip(' \t\n\0')
+
+        return comment
 
     def get(self,
             name=None,
@@ -2054,43 +2275,11 @@ class MDF3(object):
         * if the channel index is out of range
 
         """
-        if name is None:
-            if group is None or index is None:
-                message = ('Invalid arguments for "get" method: '
-                           'must give "name" or, "group" and "index"')
-                raise MdfException(message)
-            else:
-                gp_nr, ch_nr = group, index
-                if gp_nr > len(self.groups) - 1:
-                    raise MdfException('Group index out of range')
-                if index > len(self.groups[gp_nr]['channels']) - 1:
-                    raise MdfException('Channel index out of range')
-        else:
-            name = name.split('\\')[0]
-            if name not in self.channels_db:
-                raise MdfException('Channel "{}" not found'.format(name))
-            else:
-                if group is None or index is None:
-                    gp_nr, ch_nr = self.channels_db[name][0]
-                    if len(self.channels_db[name]) > 1:
-                        message = ('Multiple occurances for channel "{}". '
-                                   'Using first occurance from data group {}. '
-                                   'Provide both "group" and "index" arguments'
-                                   ' to select another data group')
-                        message = message.format(name, gp_nr)
-                        warnings.warn(message)
-                else:
-                    for gp_nr, ch_nr in self.channels_db[name]:
-                        if (gp_nr, ch_nr) == (group, index):
-                            break
-                    else:
-                        gp_nr, ch_nr = self.channels_db[name][0]
-                        message = ('You have selected group "{}" for channel '
-                                   '"{}", but this channel was not found in '
-                                   'this group. Using first occurance of "{}" '
-                                   'from group "{}"')
-                        message = message.format(group, name, name, gp_nr)
-                        warnings.warn(message)
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
 
         memory = self.memory
         grp = self.groups[gp_nr]
@@ -2496,7 +2685,9 @@ class MDF3(object):
                     t = t * time_a
                     if time_b:
                         t += time_b
+
         self._master_channel_cache[index] = t
+
         return t
 
     def iter_get_triggers(self):
