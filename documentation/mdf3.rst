@@ -50,7 +50,7 @@ The *groups* attribute is a dictionary list with the following keys:
     
         * text_{n} : n-th text of the VTABR conversion
        
-* sorted : bool flag to indicate if the source file was sorted; it is used when *load_measured_data* = *False*
+* sorted : bool flag to indicate if the source file was sorted; it is used when `memory` is `low` or `minimum`
 * size : data block size; used for lazy laoding of measured data
 * record_size : dict of record ID -> record size pairs 
         

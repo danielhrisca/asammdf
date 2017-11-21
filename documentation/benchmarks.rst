@@ -878,9 +878,10 @@ Benchmark environment
 
 Notations used in the results
 
-* nodata = asammdf MDF object created with load_measured_data=False (raw channel data not loaded into RAM)
-* compression = mdfreader mdf object created with compression=blosc
-* compression bcolz 6 = mdfreader mdf object created with compression=6
+* full =  asammdf MDF object created with memory=full (everything loaded into RAM)
+* low =  asammdf MDF object created with memory=low (raw channel data not loaded into RAM, but metadata loaded to RAM)
+* minimum =  asammdf MDF object created with memory=full (lowest possible RAM usage)
+* compress = mdfreader mdf object created with compression=blosc
 * noDataLoading = mdfreader mdf object read with noDataLoading=True
 
 Files used for benchmark:
