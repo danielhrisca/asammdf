@@ -2,9 +2,7 @@
 """ asammdf *Signal* class module for time correct signal processing """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
-from matplotlib.widgets import Slider
+import warnings
 
 from .utils import MdfException
 from .version import __version__
@@ -95,6 +93,14 @@ class Signal(object):
 
     def plot(self):
         """ plot Signal samples """
+        try:
+            import matplotlib.pyplot as plt
+            from mpl_toolkits.mplot3d import axes3d
+            from matplotlib.widgets import Slider
+        except ImportError:
+            warnings.warn("Signal plotting requires matplotlib")
+            return
+
         if len(self.samples.shape) <= 1 and self.samples.dtype.names is None:
             fig = plt.figure()
             fig.canvas.set_window_title(self.name)

@@ -196,6 +196,11 @@ class Channel(dict):
                  self['default_X_cg_addr'],
                  self['default_X_ch_addr']) = links[-3:]
 
+                # default X not supported yet
+                (self['default_X_dg_addr'],
+                 self['default_X_cg_addr'],
+                 self['default_X_ch_addr']) = (0, 0, 0)
+
             (self['channel_type'],
              self['sync_type'],
              self['data_type'],
@@ -217,7 +222,6 @@ class Channel(dict):
                                                     links_nr * 8)
 
         else:
-
             self.address = 0
 
             self['id'] = b'##CN'

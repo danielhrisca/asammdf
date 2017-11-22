@@ -3123,26 +3123,29 @@ class MDF4(object):
                     size = vals.dtype.itemsize
                     data_type = channel['data_type']
 
-                    if bit_offset:
-                        dtype_ = vals.dtype
-                        if dtype_.kind == 'i':
-                            vals = vals.astype(dtype('<u{}'.format(size)))
-                            vals >>= bit_offset
-                        else:
-                            vals = vals >> bit_offset
+                    if vals.dtype.kind not in 'ui' and (bit_offset or not bits == size * 8):
+                        vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
+                    else:
+                        if bit_offset:
+                            dtype_ = vals.dtype
+                            if dtype_.kind == 'i':
+                                vals = vals.astype(dtype('<u{}'.format(size)))
+                                vals >>= bit_offset
+                            else:
+                                vals = vals >> bit_offset
 
-                    if not bits == size * 8:
-                        mask = (1 << bits) - 1
-                        if vals.flags.writeable:
-                            vals &= mask
-                        else:
-                            vals = vals & mask
-                        if data_type in v4c.SIGNED_INT:
-                            size = vals.dtype.itemsize
-                            mask = (1 << (size * 8)) - 1
-                            mask = (mask << bits) & mask
-                            vals |= mask
-                            vals = vals.astype('<i{}'.format(size), copy=False)
+                        if not bits == size * 8:
+                            mask = (1 << bits) - 1
+                            if vals.flags.writeable:
+                                vals &= mask
+                            else:
+                                vals = vals & mask
+                            if data_type in v4c.SIGNED_INT:
+                                size = vals.dtype.itemsize
+                                mask = (1 << (size * 8)) - 1
+                                mask = (mask << bits) & mask
+                                vals |= mask
+                                vals = vals.astype('<i{}'.format(size), copy=False)
                 else:
                     vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 
