@@ -677,7 +677,7 @@ class MDF(object):
                         data=data,
                     )
                     pandas_dict = {master.name: master.samples}
-                for j, _ in (gp['channels']):
+                for j, _ in enumerate(gp['channels']):
                     if j == master_index:
                         continue
                     sig = self.get(
