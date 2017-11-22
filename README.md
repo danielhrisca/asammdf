@@ -116,10 +116,10 @@ asammdf uses the following libraries
 * numexpr : for algebraic and rational channel conversions
 * matplotlib : for Signal plotting
 * wheel : for installation in virtual environments
+* pandas : for DataFrame export
 
 optional dependencies needed for exports
 
-* pandas : for DataFrame export
 * h5py : for HDF5 export
 * xlsxwriter : for Excel export
 * scipy : for Matlab .mat export

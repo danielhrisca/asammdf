@@ -4,8 +4,10 @@
 import csv
 import os
 from warnings import warn
+from functools import reduce
 
 import numpy as np
+from pandas import DataFrame
 
 from .mdf3 import MDF3
 from .mdf4 import MDF4
@@ -659,34 +661,28 @@ class MDF(object):
     def iter_to_pandas(self):
         """ generator that yields channel groups as pandas DataFrames"""
 
-        try:
-            from pandas import DataFrame
-        except ImportError:
-            warn('pandas not found; export to pandas DataFrame is unavailable')
-            return
-        else:
-            for i, gp in enumerate(self.groups):
-                data = self._load_group_data(gp)
-                master_index = self.masters_db.get(i, None)
-                if master_index is None:
-                    pandas_dict = {}
-                else:
-                    master = self.get(
-                        group=i,
-                        index=master_index,
-                        data=data,
-                    )
-                    pandas_dict = {master.name: master.samples}
-                for j, _ in enumerate(gp['channels']):
-                    if j == master_index:
-                        continue
-                    sig = self.get(
-                        group=i,
-                        index=j,
-                        data=data,
-                    )
-                    pandas_dict[sig.name] = sig.samples
-                yield DataFrame.from_dict(pandas_dict)
+        for i, gp in enumerate(self.groups):
+            data = self._load_group_data(gp)
+            master_index = self.masters_db.get(i, None)
+            if master_index is None:
+                pandas_dict = {}
+            else:
+                master = self.get(
+                    group=i,
+                    index=master_index,
+                    data=data,
+                )
+                pandas_dict = {master.name: master.samples}
+            for j, _ in enumerate(gp['channels']):
+                if j == master_index:
+                    continue
+                sig = self.get(
+                    group=i,
+                    index=j,
+                    data=data,
+                )
+                pandas_dict[sig.name] = sig.samples
+            yield DataFrame.from_dict(pandas_dict)
 
     def resample(self, raster, memory=None):
         """ resample all channels to given raster
@@ -742,13 +738,17 @@ class MDF(object):
                 )
         return mdf
 
-    def select(self, channels):
+    def select(self, channels, dataframe=False):
         """ return the channels listed in *channels* argument
 
         Parameters
         ----------
         channels : list
             list of channel names to be filtered
+        dataframe: bool
+            return a pandas DataFrame instead of a list of Signals; in this
+            case the signals will be interpolated using the union of all
+            timestamps
 
         Returns
         -------
@@ -781,6 +781,18 @@ class MDF(object):
                 signals[signal.name] = signal
 
         signals = [signals[channel] for channel in channels]
+
+        if dataframe:
+            times = [s.timestamps for s in signals]
+            t = reduce(np.union1d, times).flatten().astype(np.float64)
+            signals = [s.interp(t) for s in signals]
+            times = None
+
+            pandas_dict = {'t': t}
+            for sig in signals:
+                pandas_dict[sig.name] = sig.samples
+
+            signals = DataFrame.from_dict(pandas_dict)
 
         return signals
 
