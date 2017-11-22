@@ -3758,12 +3758,32 @@ class MDF4(object):
             .strip(' \n\t\0')
         info['groups'] = len(self.groups)
         for i, gp in enumerate(self.groups):
+            if gp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+                stream = self._file
+            elif gp['data_location'] == v4c.LOCATION_TEMPORARY_FILE:
+                stream = self._tempfile
             inf = {}
             info['group {}'.format(i)] = inf
             inf['cycles'] = gp['channel_group']['cycles_nr']
             inf['channels count'] = len(gp['channels'])
-            for j, ch in enumerate(gp['channels']):
-                inf['channel {}'.format(j)] = (ch.name, ch['channel_type'])
+            for j, channel in enumerate(gp['channels']):
+                if self.memory == 'minimum':
+                    channel = Channel(
+                        address=channel,
+                        stream=stream,
+                    )
+                    name = TextBlock(
+                        address=gp['texts']['channels'][j]['name_addr'],
+                        stream=stream,
+                    )
+                    name = name['text'].decode('utf-8').strip(' \r\t\n\0')
+                    name = name.split('\\')[0]
+                    channel.name = name
+                else:
+                    name = channel.name
+
+                ch_type = v4c.CHANNEL_TYPE_TO_DESCRIPTION[channel['channel_type']]
+                inf['channel {}'.format(j)] = 'name="{}" type={}'.format(name, ch_type)
 
         return info
 

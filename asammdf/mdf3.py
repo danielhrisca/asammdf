@@ -2740,7 +2740,7 @@ class MDF3(object):
         """
         info = {}
         for key in ('author',
-                    'organisation',
+                    'organization',
                     'project',
                     'subject'):
             value = self.header[key].decode('latin-1').strip(' \n\t\0')
@@ -2748,12 +2748,38 @@ class MDF3(object):
         info['version'] = self.version
         info['groups'] = len(self.groups)
         for i, gp in enumerate(self.groups):
+            if gp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+                stream = self._file
+            elif gp['data_location'] == v3c.LOCATION_TEMPORARY_FILE:
+                stream = self._tempfile
             inf = {}
             info['group {}'.format(i)] = inf
             inf['cycles'] = gp['channel_group']['cycles_nr']
             inf['channels count'] = len(gp['channels'])
-            for j, ch in enumerate(gp['channels']):
-                inf['channel {}'.format(j)] = (ch.name, ch['channel_type'])
+            for j, channel in enumerate(gp['channels']):
+                if self.memory != 'minimum':
+                    name = channel.name
+                else:
+                    channel = Channel(
+                        address=channel,
+                        stream=stream,
+                    )
+                    if channel['long_name_addr']:
+                        name = TextBlock(
+                            address=channel['long_name_addr'],
+                            stream=stream,
+                        )
+                        name = name['text']
+                    else:
+                        name = channel['short_name']
+                    name = name.decode('utf-8').strip(' \r\t\n\0')
+                    name = name.split('\\')[0]
+
+                if channel['channel_type'] == v3c.CHANNEL_TYPE_MASTER:
+                    ch_type = 'master'
+                else:
+                    ch_type = 'value'
+                inf['channel {}'.format(j)] = 'name="{}" type={}'.format(name, ch_type)
 
         return info
 
