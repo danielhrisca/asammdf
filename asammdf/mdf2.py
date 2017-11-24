@@ -667,7 +667,6 @@ class MDF2(object):
                 grp_ch_texts = grp['texts']['channels']
 
                 while ch_addr:
-                    print(hex(ch_addr))
                     # read channel block and create channel object
                     new_ch = Channel(
                         address=ch_addr,

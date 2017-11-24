@@ -1109,9 +1109,9 @@ class HeaderBlock(dict):
                  self['timer_identification']) = unpack(v2c.HEADER_POST_320_EXTRA_FMT, stream.read(v2c.HEADER_POST_320_EXTRA_SIZE))
 
         except KeyError:
-            version = kargs.get('version', '3.20')
+            version = kargs.get('version', '2.14')
             self['id'] = 'HD'.encode('latin-1')
-            self['block_len'] = 208 if version in ('3.20', '3.30') else 164
+            self['block_len'] = 164
             self['first_dg_addr'] = 0
             self['comment_addr'] = 0
             self['program_addr'] = 0
@@ -1293,7 +1293,6 @@ class TextBlock(dict):
 
             stream = kargs['stream']
             self.address = address = kargs['address']
-            print(hex(address))
 
             stream.seek(address, SEEK_START)
             (self['id'],

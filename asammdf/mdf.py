@@ -5,10 +5,12 @@ import csv
 import os
 from warnings import warn
 from functools import reduce
+from struct import unpack
 
 import numpy as np
 from pandas import DataFrame
 
+from .mdf2 import MDF2
 from .mdf3 import MDF3
 from .mdf4 import MDF4
 from .utils import MdfException
@@ -17,8 +19,10 @@ from .v3blocks import Channel as ChannelV3
 from .v4blocks import TextBlock as TextBlockV4
 
 
+MDF2_VERSIONS = ('2.14',)
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
 MDF4_VERSIONS = ('4.00', '4.10', '4.11')
+SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 
 __all__ = ['MDF', ]
@@ -50,11 +54,18 @@ class MDF(object):
             if os.path.isfile(name):
                 with open(name, 'rb') as file_stream:
                     file_stream.read(8)
-                    version = file_stream.read(4).decode('ascii')
+                    version = file_stream.read(4).decode('ascii').strip(' \0')
+                    if not version:
+                        file_stream.read(16)
+                        version = unpack('<H', file_stream.read(2))[0]
+                        version = str(version)
+                        version = '{}.{}'.format(version[0], version[1:])
                 if version in MDF3_VERSIONS:
                     self._mdf = MDF3(name, memory)
                 elif version in MDF4_VERSIONS:
                     self._mdf = MDF4(name, memory)
+                elif version in MDF2_VERSIONS:
+                    self._mdf = MDF2(name, memory)
                 else:
                     message = ('"{}" is not a supported MDF file; '
                                '"{}" file version was found')
@@ -69,6 +80,11 @@ class MDF(object):
                 )
             elif version in MDF4_VERSIONS:
                 self._mdf = MDF4(
+                    version=version,
+                    memory=memory,
+                )
+            elif version in MDF2_VERSIONS:
+                self._mdf = MDF2(
                     version=version,
                     memory=memory,
                 )
@@ -95,7 +111,7 @@ class MDF(object):
 
         channels = group['channels']
 
-        if self.version in MDF3_VERSIONS:
+        if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
             for dep in group['channel_dependencies']:
                 if dep is None:
                     continue
@@ -134,10 +150,10 @@ class MDF(object):
             new MDF object
 
         """
-        if to not in MDF3_VERSIONS + MDF4_VERSIONS:
+        if to not in SUPPORTED_VERSIONS:
             message = ('Unknown output mdf version "{}".'
                        ' Available versions are {}')
-            warn(message.format(to, MDF4_VERSIONS + MDF3_VERSIONS))
+            warn(message.format(to, SUPPORTED_VERSIONS))
             return
         else:
             out = MDF(version=to, memory=memory)
@@ -309,7 +325,7 @@ class MDF(object):
                     # header information
                     group = f.create_group(os.path.basename(name))
 
-                    if self.version in MDF3_VERSIONS:
+                    if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
                             group.attrs[item] = self.header[item]
 
@@ -358,7 +374,7 @@ class MDF(object):
 
                     ws = workbook.add_worksheet("Information")
 
-                    if self.version in MDF3_VERSIONS:
+                    if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for j, item in enumerate(header_items):
 
                             ws.write(j, 0, item.title(), bold)

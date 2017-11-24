@@ -1294,9 +1294,9 @@ class TextBlock(dict):
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
         try:
+
             stream = kargs['stream']
             self.address = address = kargs['address']
-
             stream.seek(address, SEEK_START)
             (self['id'],
              self['block_len']) = unpack('<2sH', stream.read(4))
