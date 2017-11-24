@@ -255,6 +255,7 @@ class MDF4(object):
         while dg_addr:
             new_groups = []
             group = DataGroup(address=dg_addr, stream=stream)
+            record_id_nr = group['record_id_len']
 
             # go to first channel group of the current data group
             cg_addr = group['first_cg_addr']
@@ -302,7 +303,7 @@ class MDF4(object):
                     record_id = channel_group['record_id']
                     cg_size[record_id] = 0
 
-                if cg_nr > 1:
+                if record_id_nr:
                     grp['sorted'] = False
                 else:
                     grp['sorted'] = True
@@ -354,16 +355,13 @@ class MDF4(object):
                 dat_addr = group['data_block_addr']
                 data = self._read_data_block(address=dat_addr, stream=stream)
 
-                if cg_nr == 1:
+                if record_id_nr == 0:
                     grp = new_groups[0]
                     grp['data_location'] = v4c.LOCATION_MEMORY
                     grp['data_block'] = DataBlock(data=data)
                 else:
                     cg_data = defaultdict(list)
-                    if group['record_id_len'] <= 2:
-                        record_id_nr = group['record_id_len']
-                    else:
-                        record_id_nr = 0
+
                     i = 0
                     size = len(data)
                     while i < size:

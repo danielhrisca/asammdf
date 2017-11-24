@@ -587,6 +587,7 @@ class MDF2(object):
         # read each data group sequentially
         while dg_addr:
             gp = DataGroup(address=dg_addr, stream=stream)
+            record_id_nr = gp['record_id_nr']
             cg_nr = gp['cg_nr']
             cg_addr = gp['first_cg_addr']
             data_addr = gp['data_block_addr']
@@ -624,7 +625,7 @@ class MDF2(object):
                 grp['trigger'] = [trigger, trigger_text]
                 grp['channel_dependencies'] = []
 
-                if cg_nr > 1:
+                if record_id_nr:
                     grp['sorted'] = False
                 else:
                     grp['sorted'] = True
@@ -801,11 +802,6 @@ class MDF2(object):
             # add the key 'sorted' with the value False to use a flag;
             # this is used later if memory=False
 
-            if gp['record_id_nr'] <= 2:
-                record_id_nr = gp['record_id_nr']
-            else:
-                record_id_nr = 0
-
             cg_size = {}
             total_size = 0
 
@@ -830,7 +826,7 @@ class MDF2(object):
                     data = read(total_size)
                 else:
                     data = b''
-                if cg_nr == 1:
+                if record_id_nr == 0:
                     grp = new_groups[0]
                     grp['data_location'] = v2c.LOCATION_MEMORY
                     grp['data_block'] = DataBlock(data=data)
