@@ -432,6 +432,8 @@ class MDF3(object):
             size = 4
         elif bit_count <= 64:
             size = 8
+        else:
+            size = bit_count // 8
 
         if size > byte_count:
             extra_bytes = size - byte_count
