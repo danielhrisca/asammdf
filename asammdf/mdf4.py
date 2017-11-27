@@ -3915,7 +3915,9 @@ class MDF4(object):
                 data = self._load_group_data(gp)
 
                 if MDF4._split_data_blocks:
-                    split_size = MDF4._split_threshold
+                    samples_size = gp['channel_group']['samples_byte_nr']
+                    split_size = MDF4._split_threshold // samples_size
+                    split_size *= samples_size
                     chunks = len(data) / split_size
                     chunks = ceil(chunks)
                 else:
@@ -4360,7 +4362,9 @@ class MDF4(object):
                 data = self._load_group_data(gp)
 
                 if MDF4._split_data_blocks:
-                    split_size = MDF4._split_threshold
+                    samples_size = gp['channel_group']['samples_byte_nr']
+                    split_size = MDF4._split_threshold // samples_size
+                    split_size *= samples_size
                     chunks = len(data) / split_size
                     chunks = ceil(chunks)
                 else:
