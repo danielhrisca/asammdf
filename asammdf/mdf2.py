@@ -874,6 +874,9 @@ class MDF2(object):
                         channel = ch_map[ref_channel_addr]
                         dep.referenced_channels.append(channel)
 
+        if self.memory == 'full':
+            self.close()
+
     def add_trigger(self,
                     group,
                     timestamp,

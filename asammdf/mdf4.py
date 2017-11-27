@@ -417,6 +417,9 @@ class MDF4(object):
                             ref_channel = self._ch_map[ch_addr]
                             dep.referenced_channels.append(ref_channel)
 
+        if self.memory == 'full':
+            self.close()
+
     def _read_channels(
             self,
             ch_addr,
