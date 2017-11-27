@@ -3,6 +3,7 @@
 from .mdf3 import MDF3
 from .mdf4 import MDF4
 from .mdf import MDF
+from .recorder import Recorder, ChannelDescriptor
 from .signal import Signal
 from .version import __version__
 
@@ -10,9 +11,11 @@ from .version import __version__
 __all__ = [
     '__version__',
     'configure',
+    'ChannelDescriptor',
     'MDF',
     'MDF3',
     'MDF4',
+    'Recorder',
     'Signal',
 ]
 
