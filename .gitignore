@@ -99,3 +99,7 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# MDF Data Files
+*.mf4
+*.mdf
