@@ -98,7 +98,7 @@ Use case
 * when *default* data exceeds available RAM
 * it is advised to avoid getting individual channels when using this ioption.
 
-Instead you can get performance close to load_measured_data=True if you use
+Instead you can get performance close to memory=`full` if you use
 the *select* method with the list of target channels.
 
 .. note::

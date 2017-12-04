@@ -4,8 +4,10 @@
 import csv
 import os
 from warnings import warn
+from functools import reduce
 
 import numpy as np
+from pandas import DataFrame
 
 from .mdf3 import MDF3
 from .mdf4 import MDF4
@@ -30,12 +32,12 @@ class MDF(object):
     name : string
         mdf file name, if provided it must be a real file name
     memory : str
-        load data option; default `full`
+        memory option; default `full`
 
             * if *full* the data group binary data block will be loaded in RAM
             * if *low* the channel data is read from disk on request, and the
             metadata is loaded into RAM
-            
+
             * if *minimum* only minimal data is loaded into RAM
 
     version : string
@@ -115,7 +117,7 @@ class MDF(object):
 
         return excluded_channels
 
-    def convert(self, to, memory=True):
+    def convert(self, to, memory='full'):
         """convert MDF to other versions
 
         Parameters
@@ -123,12 +125,8 @@ class MDF(object):
         to : str
             new mdf version from ('3.00', '3.10', '3.20', '3.30', '4.00',
             '4.10', '4.11')
-        memory : bool
-            load data option; default *True*
-
-            * if *True* the data group binary data block will be loaded in RAM
-            * if *False* the channel data is stored to a temporary file and
-            read from disk on request
+        memory : str
+            memory option; default `full`
 
         Returns
         -------
@@ -273,8 +271,8 @@ class MDF(object):
 
                 * `mat` : Matlab .mat version 5 export, for Matlab >= 7.6. In
                 the mat file the channels will be renamed to
-                'DataGroup_<cntr>_<channel name>'. The channel group master will
-                be renamed to 'DataGroup_<cntr>_<channel name>_master'
+                'DataGroup_<cntr>_<channel name>'. The channel group master
+                will be renamed to 'DataGroup_<cntr>_<channel name>_master'
                 ( *<cntr>* is the data group index starting from 0)
 
         filename : string
@@ -449,7 +447,7 @@ class MDF(object):
 
             for i, grp in enumerate(self.groups):
                 data = self._load_group_data(grp)
-                for j, ch in enumerate(grp['channels']):
+                for j, _ in enumerate(grp['channels']):
                     sig = self.get(
                         group=i,
                         index=j,
@@ -468,7 +466,7 @@ class MDF(object):
                 do_compression=True,
             )
 
-    def filter(self, channels):
+    def filter(self, channels, memory=None):
         """ return new *MDF* object that contains only the channels listed in
         *channels* argument
 
@@ -476,6 +474,9 @@ class MDF(object):
         ----------
         channels : list
             list of channel names to be filtered
+        memory : str
+            memory option for filtered mdf; default None in which case the
+            original file's memory option is used
 
         Returns
         -------
@@ -498,9 +499,13 @@ class MDF(object):
                 warn(message.format(ch))
                 continue
 
+        if memory is not None:
+            if memory not in ('full', 'low', 'minimum'):
+                memory = self.memory
+
         mdf = MDF(
             version=self.version,
-            memory=self.memory,
+            memory=memory,
         )
 
         # append filtered channels to new MDF
@@ -525,7 +530,7 @@ class MDF(object):
         return mdf
 
     @staticmethod
-    def merge(files, outversion='4.10', memory=True):
+    def merge(files, outversion='4.10', memory='full'):
         """ merge several files and return the merged MDF object. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -536,12 +541,8 @@ class MDF(object):
             list of MDF file names
         outversion : str
             merged file version
-        memory : bool
-            load data option; default *True*
-
-            * if *True* the data group binary data block will be loaded in RAM
-            * if *False* the channel data is stored to a temporary file and
-            read from disk on request
+        memory : str
+            memory option; default `full`
 
         Returns
         -------
@@ -553,146 +554,201 @@ class MDF(object):
         MdfException : if there are inconsistances between the files
             merged MDF object
         """
-        if files:
-            files = [MDF(file, memory) for file in files]
+        if not files:
+            raise MdfException('No files given for merge')
 
-            if not len(set(len(file.groups) for file in files)) == 1:
+        files = [MDF(file, memory) for file in files]
+
+        if not len(set(len(file.groups) for file in files)) == 1:
+            message = ("Can't merge files: "
+                       "difference in number of data groups")
+            raise MdfException(message)
+
+        merged = MDF(
+            version=outversion,
+            memory=memory,
+        )
+
+        for i, groups in enumerate(zip(*(file.groups for file in files))):
+            channels_nr = set(len(group['channels']) for group in groups)
+            if not len(channels_nr) == 1:
                 message = ("Can't merge files: "
-                           "difference in number of data groups")
-                raise MdfException(message)
+                           "different channel number for data groups {}")
+                raise MdfException(message.format(i))
 
-            merged = MDF(
-                version=outversion,
-                memory=memory,
-            )
+            signals = []
+            mdf = files[0]
+            excluded_channels = mdf._excluded_channels(i)
 
-            for i, groups in enumerate(zip(*(file.groups for file in files))):
-                channels_nr = set(len(group['channels']) for group in groups)
-                if not len(channels_nr) == 1:
-                    message = ("Can't merge files: "
-                               "different channel number for data groups {}")
-                    raise MdfException(message.format(i))
+            groups_data = [
+                files[index]._load_group_data(grp)
+                for index, grp in enumerate(groups)
+            ]
 
-                signals = []
-                mdf = files[0]
-                excluded_channels = mdf._excluded_channels(i)
-
-                groups_data = [
-                    files[index]._load_group_data(grp)
-                    for index, grp in enumerate(groups)
-                ]
-
-                group_channels = [group['channels'] for group in groups]
-                for j, channels in enumerate(zip(*group_channels)):
-                    if memory == 'minimum':
-                        names = []
-                        for file in files:
-                            if file.version in MDF3_VERSIONS:
-                                grp = file.groups[i]
-                                if grp['data_location'] == 0:
-                                    stream = file._file
-                                else:
-                                    stream = file._tempfile
-
-                                channel_texts = grp['texts']['channels'][j]
-                                if channel_texts and 'long_name_addr' in channel_texts:
-                                    address = grp['texts']['channels'][j]['long_name_addr']
-
-                                    block = TextBlockV3(
-                                        address=address,
-                                        stream=stream,
-                                    )
-                                    name = block['text'].decode('latin-1').strip(' \r\n\t\0')
-                                else:
-                                    channel = ChannelV3(
-                                        address=grp['channels'][j],
-                                        stream=stream,
-                                    )
-                                    name = channel['short_name'].decode('latin-1').strip(' \r\n\t\0')
+            group_channels = [group['channels'] for group in groups]
+            for j, channels in enumerate(zip(*group_channels)):
+                if memory == 'minimum':
+                    names = []
+                    for file in files:
+                        if file.version in MDF3_VERSIONS:
+                            grp = file.groups[i]
+                            if grp['data_location'] == 0:
+                                stream = file._file
                             else:
-                                grp = file.groups[i]
-                                if grp['data_location'] == 0:
-                                    stream = file._file
-                                else:
-                                    stream = file._tempfile
+                                stream = file._tempfile
 
-                                address = grp['texts']['channels'][j]['name_addr']
+                            channel_texts = grp['texts']['channels'][j]
+                            if channel_texts and \
+                                    'long_name_addr' in channel_texts:
+                                address = grp['texts']['channels'][j]['long_name_addr']
 
-                                block = TextBlockV4(
+                                block = TextBlockV3(
                                     address=address,
                                     stream=stream,
                                 )
-                                name = block['text'].decode('utf-8').strip(' \r\n\t\0')
+                                name = block['text']
+                            else:
+                                channel = ChannelV3(
+                                    address=grp['channels'][j],
+                                    stream=stream,
+                                )
+                                name = channel['short_name']
+                            name = name.decode('latin-1').strip(' \r\n\t\0')
+                        else:
+                            grp = file.groups[i]
+                            if grp['data_location'] == 0:
+                                stream = file._file
+                            else:
+                                stream = file._tempfile
 
-                            names.append(name)
-                        names = set(names)
-                    else:
-                        names = set(ch.name for ch in channels)
-                    if not len(names) == 1:
-                        message = ("Can't merge files: "
-                                   "different channel names for data group {}")
-                        raise MdfException(message.format(i))
+                            address = grp['texts']['channels'][j]['name_addr']
 
-                    if j in excluded_channels:
-                        continue
+                            block = TextBlockV4(
+                                address=address,
+                                stream=stream,
+                            )
+                            name = block['text']
+                            name = name.decode('utf-8').strip(' \r\n\t\0')
+                        name = name.split('\\')[0]
+                        names.append(name)
+                    names = set(names)
+                else:
+                    names = set(ch.name for ch in channels)
+                if not len(names) == 1:
+                    message = ("Can't merge files: "
+                               "different channel names for data group {}")
+                    raise MdfException(message.format(i))
 
-                    sigs = [
-                        file.get(group=i, index=j, data=data)
-                        for file, data in zip(files, groups_data)
-                    ]
+                if j in excluded_channels:
+                    continue
 
-                    sig = sigs[0]
-                    for s in sigs[1:]:
-                        sig = sig.extend(s)
+                sigs = [
+                    file.get(group=i, index=j, data=data)
+                    for file, data in zip(files, groups_data)
+                ]
 
-                    signals.append(sig)
+                sig = sigs[0]
+                for s in sigs[1:]:
+                    sig = sig.extend(s)
 
-                if signals:
-                    merged.append(signals, common_timebase=True)
+                signals.append(sig)
 
-            return merged
-        else:
-            raise MdfException('No files given for merge')
+            if signals:
+                merged.append(signals, common_timebase=True)
+
+        return merged
 
     def iter_to_pandas(self):
         """ generator that yields channel groups as pandas DataFrames"""
 
-        try:
-            from pandas import DataFrame
-        except ImportError:
-            warn('pandas not found; export to pandas DataFrame is unavailable')
-            return
-        else:
-            for i, gp in enumerate(self.groups):
-                data = self._load_group_data(gp)
-                master_index = self.masters_db.get(i, None)
-                if master_index is None:
-                    pandas_dict = {}
-                else:
-                    master = self.get(
-                        group=i,
-                        index=master_index,
-                        data=data,
-                    )
-                    pandas_dict = {master.name: master.samples}
-                for j, _ in (gp['channels']):
-                    if j == master_index:
-                        continue
-                    sig = self.get(
-                        group=i,
-                        index=j,
-                        data=data,
-                    )
-                    pandas_dict[sig.name] = sig.samples
-                yield DataFrame.from_dict(pandas_dict)
+        for i, gp in enumerate(self.groups):
+            data = self._load_group_data(gp)
+            master_index = self.masters_db.get(i, None)
+            if master_index is None:
+                pandas_dict = {}
+            else:
+                master = self.get(
+                    group=i,
+                    index=master_index,
+                    data=data,
+                )
+                pandas_dict = {master.name: master.samples}
+            for j, _ in enumerate(gp['channels']):
+                if j == master_index:
+                    continue
+                sig = self.get(
+                    group=i,
+                    index=j,
+                    data=data,
+                )
+                pandas_dict[sig.name] = sig.samples
+            yield DataFrame.from_dict(pandas_dict)
 
-    def select(self, channels):
+    def resample(self, raster, memory=None):
+        """ resample all channels to given raster
+
+        Parameters
+        ----------
+        raster : float
+            time raster is seconds
+        memory : str
+            memory option; default `None`
+
+        Returns
+        -------
+        mdf : MDF
+            new MDF with resampled channels
+
+        """
+
+        if memory is None:
+            memory = self.memory
+
+        mdf = MDF(
+            version=self.version,
+            memory=memory,
+        )
+
+        # walk through all groups and get all channels
+        for i, gp in enumerate(self.groups):
+            sigs = []
+            excluded_channels = self._excluded_channels(i)
+
+            data = self._load_group_data(gp)
+
+            for j, _ in enumerate(gp['channels']):
+                if j in excluded_channels:
+                    continue
+                sig = self.get(
+                    group=i,
+                    index=j,
+                    data=data,
+                    raster=raster,
+                )
+                sigs.append(sig)
+
+            data = None
+            del data
+
+            if sigs:
+                mdf.append(
+                    sigs,
+                    'Resampled to {}s'.format(raster),
+                    common_timebase=True,
+                )
+        return mdf
+
+    def select(self, channels, dataframe=False):
         """ return the channels listed in *channels* argument
 
         Parameters
         ----------
         channels : list
             list of channel names to be filtered
+        dataframe: bool
+            return a pandas DataFrame instead of a list of Signals; in this
+            case the signals will be interpolated using the union of all
+            timestamps
 
         Returns
         -------
@@ -725,6 +781,18 @@ class MDF(object):
                 signals[signal.name] = signal
 
         signals = [signals[channel] for channel in channels]
+
+        if dataframe:
+            times = [s.timestamps for s in signals]
+            t = reduce(np.union1d, times).flatten().astype(np.float64)
+            signals = [s.interp(t) for s in signals]
+            times = None
+
+            pandas_dict = {'t': t}
+            for sig in signals:
+                pandas_dict[sig.name] = sig.samples
+
+            signals = DataFrame.from_dict(pandas_dict)
 
         return signals
 

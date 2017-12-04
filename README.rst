@@ -56,7 +56,7 @@ Major features not implemented (yet)
 * for version 4
 
     * handling of bus logging measurements
-    * handling of unfinnished measurements (mdf 4)
+    * handling of unfinished measurements (mdf 4)
     * full support for remaining mdf 4 channel arrays types
     * xml schema for TXBLOCK and MDBLOCK
     * partial conversions
@@ -83,13 +83,14 @@ Usage
    short.convert('4.10').save('important signals.mf4')
    
    # plot some channels from a huge file
-   efficient = MDF('huge.mf4', load_measured_data=False)
+   efficient = MDF('huge.mf4', memory='minimum')
    for signal in efficient.select(['Sensor1', 'Voltage3']):
        signal.plot()
    
 
  
-Check the *examples* folder for extended usage demo.
+Check the *examples* folder for extended usage demo, or the documentation
+http://asammdf.readthedocs.io/en/latest/examples.html
 
 Documentation
 =============
@@ -115,10 +116,10 @@ asammdf uses the following libraries
 * numexpr : for algebraic and rational channel conversions
 * matplotlib : for Signal plotting
 * wheel : for installation in virtual environments
+* pandas : for DataFrame export
 
 optional dependencies needed for exports
 
-* pandas : for DataFrame export
 * h5py : for HDF5 export
 * xlsxwriter : for Excel export
 * scipy : for Matlab .mat export

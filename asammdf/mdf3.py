@@ -34,11 +34,7 @@ from numpy import (
     roll,
     zeros,
     uint8,
-    issubdtype,
-    unsignedinteger,
     arange,
-    integer,
-    signedinteger,
 )
 from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import encode
@@ -125,6 +121,7 @@ class MDF3(object):
     """
 
     _compact_integers_on_append = False
+    _overwrite = False
 
     def __init__(self, name=None, memory=2, version='3.30'):
         self.groups = []
@@ -289,6 +286,7 @@ class MDF3(object):
                     name = block['text'].decode('latin-1').strip(' \r\n\t\0')
                 else:
                     name = new_ch['short_name'].decode('latin-1').strip(' \r\n\t\0')
+                name = name.split('\\')[0]
             else:
                 name = new_ch.name
 
@@ -458,6 +456,101 @@ class MDF3(object):
         vals = fromstring(vals, dtype=dtype(types))
 
         return vals['vals']
+
+    def _validate_channel_selection(self, name=None, group=None, index=None):
+        """Gets channel comment.
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+            * if there are multiple occurances for this channel and either the
+            *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+        number (keyword argument *index*). Use *info* method for group and
+        channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        group_index, channel_index : (int, int)
+            selected channel's group and channel index
+
+        """
+        if name is None:
+            if group is None or index is None:
+                message = ('Invalid arguments for channel selection: '
+                           'must give "name" or, "group" and "index"')
+                raise MdfException(message)
+            else:
+                gp_nr, ch_nr = group, index
+                if gp_nr > len(self.groups) - 1:
+                    raise MdfException('Group index out of range')
+                if index > len(self.groups[gp_nr]['channels']) - 1:
+                    raise MdfException('Channel index out of range')
+        else:
+            name = name.split('\\')[0]
+            if name not in self.channels_db:
+                raise MdfException('Channel "{}" not found'.format(name))
+            else:
+                if group is None:
+                    gp_nr, ch_nr = self.channels_db[name][0]
+                    if len(self.channels_db[name]) > 1:
+                        message = ('Multiple occurances for channel "{}". '
+                                   'Using first occurance from data group {}. '
+                                   'Provide both "group" and "index" arguments'
+                                   ' to select another data group')
+                        message = message.format(name, gp_nr)
+                        warnings.warn(message)
+                else:
+                    group_valid = False
+                    for gp_nr, ch_nr in self.channels_db[name]:
+                        if gp_nr == group:
+                            group_valid = True
+                            if index is None:
+                                break
+                            elif index == ch_nr:
+                                break
+                    else:
+                        if group_valid:
+                            gp_nr, ch_nr = self.channels_db[name][group]
+                            message = ('You have selected channel index "{}"'
+                                       'of group "{}" for channel "{}", but '
+                                       'this channel index is invalid. Using '
+                                       'first occurance of "{}" in this group'
+                                       ' at index "{}"')
+                            message = message.format(
+                                index,
+                                group,
+                                name,
+                                name,
+                                ch_nr,
+                            )
+                        else:
+                            gp_nr, ch_nr = self.channels_db[name][0]
+                            message = ('You have selected group "{}" for '
+                                       'channel "{}", but this channel was not'
+                                       ' found in this group, or this group '
+                                       'index does not exist. Using first '
+                                       'occurance of "{}" from group "{}"')
+                            message = message.format(group, name, name, gp_nr)
+                        warnings.warn(message)
+        return gp_nr, ch_nr
 
     def _read(self):
         stream = self._file
@@ -681,6 +774,7 @@ class MDF3(object):
                     else:
                         name = new_ch['short_name']
                     name = name.decode('latin-1').strip(' \n\t\0')
+                    name = name.split('\\')[0]
                     new_ch.name = name
 
                     if name in self.channels_db:
@@ -1043,7 +1137,7 @@ class MDF3(object):
                 compacted_signals = [
                     {'signal': sig}
                     for sig in simple_signals
-                    if issubdtype(sig.samples.dtype, integer)
+                    if sig.samples.dtype.kind in 'ui'
                 ]
 
                 max_itemsize = 1
@@ -1070,7 +1164,7 @@ class MDF3(object):
                 simple_signals = [
                     sig
                     for sig in simple_signals
-                    if not issubdtype(sig.samples.dtype, integer)
+                    if sig.samples.dtype.kind not in 'ui'
                 ]
                 dtype_size = dtype_.itemsize * 8
 
@@ -1213,7 +1307,7 @@ class MDF3(object):
                         start_bit_offset = current_offset
                         additional_byte_offset = 0
 
-                    if issubdtype(signal.samples.dtype, unsignedinteger):
+                    if signal.samples.dtype.kind == 'u':
                         data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
                     else:
                         data_type = v3c.DATA_TYPE_SIGNED_INTEL
@@ -1955,26 +2049,37 @@ class MDF3(object):
             gp['sorted'] = True
 
             samples = fromarrays(fields, dtype=types)
-            block = samples.tostring()
+            try:
+                block = samples.tostring()
 
-            if memory == 'full':
-                gp['data_location'] = v3c.LOCATION_MEMORY
-                kargs = {'data': block}
-                gp['data_block'] = DataBlock(**kargs)
-            else:
-                gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
-                if cycles_nr:
+                if memory == 'full':
+                    gp['data_location'] = v3c.LOCATION_MEMORY
+                    kargs = {'data': block}
+                    gp['data_block'] = DataBlock(**kargs)
+                else:
+                    gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
+                    if cycles_nr:
+                        data_address = tell()
+                        gp['data_group']['data_block_addr'] = data_address
+                        self._tempfile.write(block)
+                    else:
+                        gp['data_group']['data_block_addr'] = 0
+            except MemoryError:
+                if memory == 'full':
+                    raise
+                else:
+                    gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
+
                     data_address = tell()
                     gp['data_group']['data_block_addr'] = data_address
-                    self._tempfile.write(block)
-                else:
-                    gp['data_group']['data_block_addr'] = 0
+                    for sample in samples:
+                        self._tempfile.write(sample.tostring())
 
             # data group trigger
             gp['trigger'] = [None, None]
 
     def close(self):
-        """ if the MDF was created with memory=False and new
+        """ if the MDF was created with memory='minimum' and new
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file
 
@@ -1983,6 +2088,133 @@ class MDF3(object):
             self._tempfile.close()
         if self._file is not None:
             self._file.close()
+
+    def get_channel_unit(self, name=None, group=None, index=None):
+        """Gets channel unit.
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+            * if there are multiple occurances for this channel and either the
+            *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+        number (keyword argument *index*). Use *info* method for group and
+        channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        unit : str
+            found channel unit
+
+        """
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+        if grp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        if self.memory == 'minimum':
+            addr = grp['channel_conversions'][ch_nr]
+            if addr:
+                conversion = ChannelConversion(
+                    address=addr,
+                    stream=stream,
+                )
+            else:
+                conversion = None
+
+        else:
+            conversion = grp['channel_conversions'][ch_nr]
+
+        if conversion:
+            unit = conversion['unit'].decode('latin-1').strip(' \n\t\0')
+        else:
+            unit = ''
+
+        return unit
+
+    def get_channel_comment(self, name=None, group=None, index=None):
+        """Gets channel comment.
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurances for this channel then the
+            *group* and *index* arguments can be used to select a specific
+            group.
+            * if there are multiple occurances for this channel and either the
+            *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+        number (keyword argument *index*). Use *info* method for group and
+        channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        comment : str
+            found channel comment
+
+        """
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+        if grp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        if self.memory == 'minimum':
+            channel = Channel(
+                address=grp['channels'][ch_nr],
+                stream=stream,
+            )
+        else:
+            channel = grp['channels'][ch_nr]
+
+        comment = channel['description'].decode('latin-1')
+        comment = comment.strip(' \t\n\0')
+
+        return comment
 
     def get(self,
             name=None,
@@ -2044,42 +2276,11 @@ class MDF3(object):
         * if the channel index is out of range
 
         """
-        if name is None:
-            if group is None or index is None:
-                message = ('Invalid arguments for "get" method: '
-                           'must give "name" or, "group" and "index"')
-                raise MdfException(message)
-            else:
-                gp_nr, ch_nr = group, index
-                if gp_nr > len(self.groups) - 1:
-                    raise MdfException('Group index out of range')
-                if index > len(self.groups[gp_nr]['channels']) - 1:
-                    raise MdfException('Channel index out of range')
-        else:
-            if name not in self.channels_db:
-                raise MdfException('Channel "{}" not found'.format(name))
-            else:
-                if group is None or index is None:
-                    gp_nr, ch_nr = self.channels_db[name][0]
-                    if len(self.channels_db[name]) > 1:
-                        message = ('Multiple occurances for channel "{}". '
-                                   'Using first occurance from data group {}. '
-                                   'Provide both "group" and "index" arguments'
-                                   ' to select another data group')
-                        message = message.format(name, gp_nr)
-                        warnings.warn(message)
-                else:
-                    for gp_nr, ch_nr in self.channels_db[name]:
-                        if (gp_nr, ch_nr) == (group, index):
-                            break
-                    else:
-                        gp_nr, ch_nr = self.channels_db[name][0]
-                        message = ('You have selected group "{}" for channel '
-                                   '"{}", but this channel was not found in '
-                                   'this group. Using first occurance of "{}" '
-                                   'from group "{}"')
-                        message = message.format(group, name, name, gp_nr)
-                        warnings.warn(message)
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
 
         memory = self.memory
         grp = self.groups[gp_nr]
@@ -2119,7 +2320,7 @@ class MDF3(object):
                 else:
                     name = channel['short_name']
                 name = name.decode('utf-8').strip(' \r\t\n\0')
-
+            name = name.split('\\')[0]
             channel.name = name
 
         dep = grp['channel_dependencies'][ch_nr]
@@ -2197,26 +2398,29 @@ class MDF3(object):
                 size = vals.dtype.itemsize
                 data_type = channel['data_type']
 
-                if bit_offset:
-                    dtype_ = vals.dtype
-                    if issubdtype(dtype_, signedinteger):
-                        vals = vals.astype(dtype('<u{}'.format(size)))
-                        vals >>= bit_offset
-                    else:
-                        vals = vals >> bit_offset
+                if vals.dtype.kind not in 'ui' and (bit_offset or not bits == size * 8):
+                    vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
+                else:
+                    if bit_offset:
+                        dtype_ = vals.dtype
+                        if dtype_.kind == 'i':
+                            vals = vals.astype(dtype('<u{}'.format(size)))
+                            vals >>= bit_offset
+                        else:
+                            vals = vals >> bit_offset
 
-                if not bits == size * 8:
-                    mask = (1 << bits) - 1
-                    if vals.flags.writeable:
-                        vals &= mask
-                    else:
-                        vals = vals & mask
-                    if data_type in v3c.SIGNED_INT:
-                        size = vals.dtype.itemsize
-                        mask = (1 << (size * 8)) - 1
-                        mask = (mask << bits) & mask
-                        vals |= mask
-                        vals = vals.astype('<i{}'.format(size), copy=False)
+                    if not bits == size * 8:
+                        mask = (1 << bits) - 1
+                        if vals.flags.writeable:
+                            vals &= mask
+                        else:
+                            vals = vals & mask
+                        if data_type in v3c.SIGNED_INT:
+                            size = vals.dtype.itemsize
+                            mask = (1 << (size * 8)) - 1
+                            mask = (mask << bits) & mask
+                            vals |= mask
+                            vals = vals.astype('<i{}'.format(size), copy=False)
             else:
                 vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 
@@ -2485,7 +2689,9 @@ class MDF3(object):
                     t = t * time_a
                     if time_b:
                         t += time_b
+
         self._master_channel_cache[index] = t
+
         return t
 
     def iter_get_triggers(self):
@@ -2534,7 +2740,7 @@ class MDF3(object):
         """
         info = {}
         for key in ('author',
-                    'organisation',
+                    'organization',
                     'project',
                     'subject'):
             value = self.header[key].decode('latin-1').strip(' \n\t\0')
@@ -2542,16 +2748,42 @@ class MDF3(object):
         info['version'] = self.version
         info['groups'] = len(self.groups)
         for i, gp in enumerate(self.groups):
+            if gp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+                stream = self._file
+            elif gp['data_location'] == v3c.LOCATION_TEMPORARY_FILE:
+                stream = self._tempfile
             inf = {}
             info['group {}'.format(i)] = inf
             inf['cycles'] = gp['channel_group']['cycles_nr']
             inf['channels count'] = len(gp['channels'])
-            for j, ch in enumerate(gp['channels']):
-                inf['channel {}'.format(j)] = (ch.name, ch['channel_type'])
+            for j, channel in enumerate(gp['channels']):
+                if self.memory != 'minimum':
+                    name = channel.name
+                else:
+                    channel = Channel(
+                        address=channel,
+                        stream=stream,
+                    )
+                    if channel['long_name_addr']:
+                        name = TextBlock(
+                            address=channel['long_name_addr'],
+                            stream=stream,
+                        )
+                        name = name['text']
+                    else:
+                        name = channel['short_name']
+                    name = name.decode('utf-8').strip(' \r\t\n\0')
+                    name = name.split('\\')[0]
+
+                if channel['channel_type'] == v3c.CHANNEL_TYPE_MASTER:
+                    ch_type = 'master'
+                else:
+                    ch_type = 'value'
+                inf['channel {}'.format(j)] = 'name="{}" type={}'.format(name, ch_type)
 
         return info
 
-    def save(self, dst='', overwrite=False, compression=0):
+    def save(self, dst='', overwrite=None, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -2569,6 +2801,9 @@ class MDF3(object):
             API as mdf version 4 files
 
         """
+
+        if overwrite is None:
+            overwrite = self._overwrite
 
         if self.name is None and dst == '':
             message = ('Must specify a destination file name '
@@ -2596,7 +2831,7 @@ class MDF3(object):
         else:
             self._save_without_metadata(dst, overwrite, compression)
 
-    def _save_with_metadata(self, dst='', overwrite=False, compression=0):
+    def _save_with_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -2660,7 +2895,7 @@ class MDF3(object):
         # relevant block links are updated so that once all blocks have been
         # added to the list they can be written using the bytes protocol.
         # DataGroup blocks are written first after the identification and
-        # header blocks. When memory=False we need to restore the
+        # header blocks. When memory='low' we need to restore the
         # original data block addresses within the data group block. This is
         # needed to allow further work with the object after the save method
         # call (eq. new calls to get method). Since the data group blocks are
@@ -2670,9 +2905,15 @@ class MDF3(object):
         # the reference to the data group object and the original link to the
         # data block in the soource MDF file.
 
-        with open(dst, 'wb') as dst:
-            # store unique texts and their addresses
+        if self.memory == 'low' and dst == self.name:
+            destination = dst + '.temp'
+        else:
+            destination = dst
+
+        with open(destination, 'wb+') as dst_:
             defined_texts = {}
+
+            write = dst_.write
             # list of all blocks
             blocks = []
 
@@ -2860,7 +3101,6 @@ class MDF3(object):
                 self.header['comment_addr'] = self.file_history.address
                 self.header['program_addr'] = 0
 
-            write = dst.write
             for block in blocks:
                 try:
                     write(bytes(block))
@@ -2874,7 +3114,28 @@ class MDF3(object):
                     data = self._load_group_data(gp)
                     write(data)
 
-    def _save_without_metadata(self, dst='', overwrite=False, compression=0):
+        if self.memory == 'low' and dst == self.name:
+            self.close()
+            os.remove(self.name)
+            os.rename(destination, self.name)
+
+            self.groups = []
+            self.header = None
+            self.identification = None
+            self.file_history = []
+            self.channels_db = {}
+            self.masters_db = {}
+            self.attachments = []
+            self.file_comment = None
+
+            self._ch_map = {}
+            self._master_channel_cache = {}
+
+            self._tempfile = TemporaryFile()
+            self._file = open(self.name, 'rb')
+            self._read()
+
+    def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -2927,15 +3188,19 @@ class MDF3(object):
         # the reference to the data group object and the original link to the
         # data block in the soource MDF file.
 
-        with open(dst, 'wb') as dst:
-            # store unique texts and their addresses
+        if dst == self.name:
+            destination = dst + '.temp'
+        else:
+            destination = dst
+
+        with open(destination, 'wb+') as dst_:
             defined_texts = {}
+
+            write = dst_.write
+            tell = dst_.tell
+            seek = dst_.seek
             # list of all blocks
             blocks = []
-
-            write = dst.write
-            tell = dst.tell
-            seek = dst.seek
 
             address = 0
 
@@ -3060,7 +3325,6 @@ class MDF3(object):
                                     'display_name_addr'):
                             channel[key] = 0
 
-
                     channel['conversion_addr'] = cc[i]
                     channel['source_depend_addr'] = cs[i]
                     channel['ch_depend_addr'] = cd[i]
@@ -3155,7 +3419,7 @@ class MDF3(object):
                         continue
 
                     for i, pair_ in enumerate(dep.referenced_channels):
-                        ch_nr, dg_nr = pair_
+                        _, dg_nr = pair_
                         grp = self.groups[dg_nr]
                         dep['ch_{}'.format(i)] = grp['temp_channels'][i]
                         dep['cg_{}'.format(i)] = grp['channel_group'].address
@@ -3168,6 +3432,27 @@ class MDF3(object):
 
             for gp in self.groups:
                 del gp['temp_channels']
+
+        if dst == self.name:
+            self.close()
+            os.remove(self.name)
+            os.rename(destination, self.name)
+
+            self.groups = []
+            self.header = None
+            self.identification = None
+            self.file_history = []
+            self.channels_db = {}
+            self.masters_db = {}
+            self.attachments = []
+            self.file_comment = None
+
+            self._ch_map = {}
+            self._master_channel_cache = {}
+
+            self._tempfile = TemporaryFile()
+            self._file = open(self.name, 'rb')
+            self._read()
 
 
 if __name__ == '__main__':

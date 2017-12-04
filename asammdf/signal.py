@@ -2,9 +2,7 @@
 """ asammdf *Signal* class module for time correct signal processing """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
-from matplotlib.widgets import Slider
+import warnings
 
 from .utils import MdfException
 from .version import __version__
@@ -95,6 +93,14 @@ class Signal(object):
 
     def plot(self):
         """ plot Signal samples """
+        try:
+            import matplotlib.pyplot as plt
+            from mpl_toolkits.mplot3d import axes3d
+            from matplotlib.widgets import Slider
+        except ImportError:
+            warnings.warn("Signal plotting requires matplotlib")
+            return
+
         if len(self.samples.shape) <= 1 and self.samples.dtype.names is None:
             fig = plt.figure()
             fig.canvas.set_window_title(self.name)
@@ -103,7 +109,8 @@ class Signal(object):
                      ha='right', va='top', alpha=0.5)
 
             if self.comment:
-                plt.title('{}\n({})'.format(self.name, self.comment))
+                comment = self.comment.replace('$', '')
+                plt.title('{}\n({})'.format(self.name, comment))
             else:
                 plt.title(self.name)
             plt.xlabel('Time [s]')
@@ -138,7 +145,8 @@ class Signal(object):
                     )
 
                     if self.comment:
-                        plt.title('{}\n({})'.format(self.name, self.comment))
+                        comment = self.comment.replace('$', '')
+                        plt.title('{}\n({})'.format(self.name, comment))
                     else:
                         plt.title(self.name)
 
@@ -189,7 +197,8 @@ class Signal(object):
                          ha='right', va='top', alpha=0.5)
 
                     if self.comment:
-                        plt.title('{}\n({})'.format(self.name, self.comment))
+                        comment = self.comment.replace('$', '')
+                        plt.title('{}\n({})'.format(self.name, comment))
                     else:
                         plt.title(self.name)
 
@@ -366,7 +375,7 @@ class Signal(object):
 
     def interp(self, new_timestamps):
         """ returns a new *Signal* interpolated using the *new_timestamps* """
-        if self.samples.dtype in ('float64', 'float32'):
+        if self.samples.dtype.kind == 'f':
             s = np.interp(new_timestamps, self.timestamps, self.samples)
         else:
             idx = np.searchsorted(self.timestamps,

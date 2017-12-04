@@ -259,15 +259,6 @@ def open_reader3_compression(path, output, fmt):
     output.send([timer.output, timer.error])
 
 
-def open_reader3_compression_bcolz(path, output, fmt):
-    os.chdir(path)
-    with Timer('Open file',
-               'mdfreader {} compress bcolz 6 mdfv3'.format(mdfreader_version),
-               fmt) as timer:
-        MDFreader(r'test.mdf', compression=6)
-    output.send([timer.output, timer.error])
-
-
 def open_reader4(path, output, fmt):
     os.chdir(path)
     with Timer('Open file',
@@ -292,15 +283,6 @@ def open_reader4_compression(path, output, fmt):
                'mdfreader {} compress mdfv4'.format(mdfreader_version),
                fmt) as timer:
         MDFreader(r'test.mf4', compression='blosc')
-    output.send([timer.output, timer.error])
-
-
-def open_reader4_compression_bcolz(path, output, fmt):
-    os.chdir(path)
-    with Timer('Open file',
-               'mdfreader {} compress bcolz 6 mdfv4'.format(mdfreader_version),
-               fmt) as timer:
-        MDFreader(r'test.mf4', compression=6)
     output.send([timer.output, timer.error])
 
 
@@ -329,16 +311,6 @@ def save_reader3_compression(path, output, fmt):
     x = MDFreader(r'test.mdf', compression='blosc')
     with Timer('Save file',
                'mdfreader {} compress mdfv3'.format(mdfreader_version),
-               fmt) as timer:
-        x.write(r'x.mdf')
-    output.send([timer.output, timer.error])
-
-
-def save_reader3_compression_bcolz(path, output, fmt):
-    os.chdir(path)
-    x = MDFreader(r'test.mdf', compression=6)
-    with Timer('Save file',
-               'mdfreader {} compress bcolz 6 mdfv3'.format(mdfreader_version),
                fmt) as timer:
         x.write(r'x.mdf')
     output.send([timer.output, timer.error])
@@ -374,16 +346,6 @@ def save_reader4_compression(path, output, fmt):
     output.send([timer.output, timer.error])
 
 
-def save_reader4_compression_bcolz(path, output, fmt):
-    os.chdir(path)
-    x = MDFreader(r'test.mf4', compression=6)
-    with Timer('Save file',
-               'mdfreader {} compress bcolz6 mdfv4'.format(mdfreader_version),
-               fmt) as timer:
-        x.write(r'x.mf4')
-    output.send([timer.output, timer.error])
-
-
 def get_all_reader3(path, output, fmt):
     os.chdir(path)
     x = MDFreader(r'test.mdf')
@@ -411,17 +373,6 @@ def get_all_reader3_compression(path, output, fmt):
     x = MDFreader(r'test.mdf', compression='blosc')
     with Timer('Get all channels',
                'mdfreader {} compress mdfv3'.format(mdfreader_version),
-               fmt) as timer:
-        for s in x:
-            x.getChannelData(s)
-    output.send([timer.output, timer.error])
-
-
-def get_all_reader3_compression_bcolz(path, output, fmt):
-    os.chdir(path)
-    x = MDFreader(r'test.mdf', compression=6)
-    with Timer('Get all channels',
-               'mdfreader {} compress bcolz 6 mdfv3'.format(mdfreader_version),
                fmt) as timer:
         for s in x:
             x.getChannelData(s)
@@ -461,17 +412,6 @@ def get_all_reader4_compression(path, output, fmt):
     output.send([timer.output, timer.error])
 
 
-def get_all_reader4_compression_bcolz(path, output, fmt):
-    os.chdir(path)
-    x = MDFreader(r'test.mf4', compression=6)
-    with Timer('Get all channels',
-               'mdfreader {} compress bcolz 6 mdfv4'.format(mdfreader_version),
-               fmt) as timer:
-        for s in x:
-            x.getChannelData(s)
-    output.send([timer.output, timer.error])
-
-
 def merge_reader_v3(path, output, fmt):
     os.chdir(path)
     files = [r'test.mdf', ] * 2
@@ -483,17 +423,29 @@ def merge_reader_v3(path, output, fmt):
         x2 = MDFreader(files[1])
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[1])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
+        x2 = MDFreader(files[1])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
-    
-    
+
+
 def merge_reader_v3_compress(path, output, fmt):
     os.chdir(path)
-    files = [r'test.mdf', ] * 2
+    files = [r'test.mdf', ] * 3
     with Timer('Merge files',
                'mdfreader {} compress v3'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], compression='blosc')
         x1.resample(0.01)
+        x2 = MDFreader(files[1], compression='blosc')
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
+        x2 = MDFreader(files[1], compression='blosc')
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.mergeMdf(x2)
@@ -512,8 +464,8 @@ def merge_reader_v4(path, output, fmt):
         x2.resample(0.01)
         x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
-    
-    
+
+
 def merge_reader_v4_compress(path, output, fmt):
     os.chdir(path)
     files = [r'test.mf4', ] * 2
@@ -583,8 +535,6 @@ def main(path, text_output, fmt):
                    '(lowest possible RAM usage)'))
     output.append(('* compress = mdfreader mdf object created with '
                    'compression=blosc'))
-    output.append(('* compression bcolz 6 = mdfreader mdf object created with '
-                   'compression=6'))
     output.append(('* noDataLoading = mdfreader mdf object read with '
                    'noDataLoading=True'))
     output.append('\nFiles used for benchmark:\n')
@@ -592,20 +542,18 @@ def main(path, text_output, fmt):
     output.append('* 36424 channels\n\n')
 
     tests = (
-        partial(open_mdf3, memory='full'),
-        partial(open_mdf3, memory='low'),
-        partial(open_mdf3, memory='minimum'),
-        open_reader3,
-        open_reader3_compression,
-        open_reader3_compression_bcolz,
-        open_reader3_nodata,
-        partial(open_mdf4, memory='full'),
-        partial(open_mdf4, memory='low'),
-        partial(open_mdf4, memory='minimum'),
-        open_reader4,
-        open_reader4_compression,
-        open_reader4_compression_bcolz,
-        open_reader4_nodata,
+#        partial(open_mdf3, memory='full'),
+#        partial(open_mdf3, memory='low'),
+#        partial(open_mdf3, memory='minimum'),
+#        open_reader3,
+#        open_reader3_compression,
+#        open_reader3_nodata,
+#        partial(open_mdf4, memory='full'),
+#        partial(open_mdf4, memory='low'),
+#        partial(open_mdf4, memory='minimum'),
+#        open_reader4,
+#        open_reader4_compression,
+#        open_reader4_nodata,
     )
 
     if tests:
@@ -620,20 +568,18 @@ def main(path, text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        partial(save_mdf3, memory='full'),
-        partial(save_mdf3, memory='low'),
-        partial(save_mdf3, memory='minimum'),
-        save_reader3,
-        save_reader3_nodata,
-        save_reader3_compression,
-        save_reader3_compression_bcolz,
-        partial(save_mdf4, memory='full'),
-        partial(save_mdf4, memory='low'),
-        partial(save_mdf4, memory='minimum'),
-        save_reader4,
-        save_reader4_nodata,
-        save_reader4_compression,
-        save_reader4_compression_bcolz,
+#        partial(save_mdf3, memory='full'),
+#        partial(save_mdf3, memory='low'),
+#        partial(save_mdf3, memory='minimum'),
+#        save_reader3,
+#        save_reader3_nodata,
+#        save_reader3_compression,
+#        partial(save_mdf4, memory='full'),
+#        partial(save_mdf4, memory='low'),
+#        partial(save_mdf4, memory='minimum'),
+#        save_reader4,
+#        save_reader4_nodata,
+#        save_reader4_compression,
     )
 
     if tests:
@@ -648,20 +594,18 @@ def main(path, text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        partial(get_all_mdf3, memory='full'),
-        partial(get_all_mdf3, memory='low'),
-        partial(get_all_mdf3, memory='minimum'),
-        get_all_reader3,
-        get_all_reader3_nodata,
-        get_all_reader3_compression,
-        get_all_reader3_compression_bcolz,
-        partial(get_all_mdf4, memory='full'),
-        partial(get_all_mdf4, memory='low'),
-        partial(get_all_mdf4, memory='minimum'),
-        get_all_reader4,
-        get_all_reader4_nodata,
-        get_all_reader4_compression,
-        get_all_reader4_compression_bcolz,
+#        partial(get_all_mdf3, memory='full'),
+#        partial(get_all_mdf3, memory='low'),
+#        partial(get_all_mdf3, memory='minimum'),
+#        get_all_reader3,
+#        get_all_reader3_nodata,
+#        get_all_reader3_compression,
+#        partial(get_all_mdf4, memory='full'),
+#        partial(get_all_mdf4, memory='low'),
+#        partial(get_all_mdf4, memory='minimum'),
+#        get_all_reader4,
+#        get_all_reader4_nodata,
+#        get_all_reader4_compression,
     )
 
     if tests:
@@ -699,12 +643,12 @@ def main(path, text_output, fmt):
         partial(merge_v3, memory='full'),
         partial(merge_v3, memory='low'),
         partial(merge_v3, memory='minimum'),
-        merge_reader_v3,
-#        merge_reader_v4_compress,
+#        merge_reader_v3,
+#        merge_reader_v3_compress,
         partial(merge_v4, memory='full'),
         partial(merge_v4, memory='low'),
         partial(merge_v4, memory='minimum'),
-        merge_reader_v4,
+#        merge_reader_v4,
 #        merge_reader_v4_compress,
     )
 

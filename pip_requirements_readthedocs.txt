@@ -1,6 +1,7 @@
 numpydoc
 numexpr
 numpy
+pandas
 matplotlib
 wheel
 sphinx-argparse
