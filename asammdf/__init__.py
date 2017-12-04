@@ -34,8 +34,9 @@ def configure(
         enable/disable splitting of large data blocks using data lists for
         mdf version 4
     split_treshold : int
-        size of splitted data blocks, default 2MB; if the initial size is
-        smaller then no data list is used
+        size hint of splitted data blocks, default 2MB; if the initial size is
+        smaller then no data list is used. The actual split size depends on
+        the data groups' records size
     overwrite : bool
         default option for save method's overwrite argument
 

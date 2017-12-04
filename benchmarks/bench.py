@@ -182,27 +182,27 @@ def get_all_mdf4(path, output, fmt, memory):
 
 def convert_v3_v4(path, output, fmt, memory):
     os.chdir(path)
-    with MDF(r'test.mdf', memory=memory) as x:
+    with MDF(r'test.mdf', memory=memory,) as x:
         with Timer('Convert file',
                    'asammdf {} {} v3 to v4'.format(
                          asammdf_version,
                          memory,
                     ),
                    fmt) as timer:
-            x.convert('4.10', memory=memory)
+            x.convert('4.10')
     output.send([timer.output, timer.error])
 
 
 def convert_v4_v3(path, output, fmt, memory):
     os.chdir(path)
-    with MDF(r'test.mf4', memory=memory) as x:
+    with MDF(r'test.mf4', memory=memory,) as x:
         with Timer('Convert file',
                    'asammdf {} {} v4 to v3'.format(
                          asammdf_version,
                          memory,
                     ),
                    fmt) as timer:
-            y = x.convert('3.30', memory=memory)
+            y = x.convert('3.30')
             y.close()
     output.send([timer.output, timer.error])
 
@@ -423,17 +423,29 @@ def merge_reader_v3(path, output, fmt):
         x2 = MDFreader(files[1])
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[1])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
+        x2 = MDFreader(files[1])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
 
 def merge_reader_v3_compress(path, output, fmt):
     os.chdir(path)
-    files = [r'test.mdf', ] * 2
+    files = [r'test.mdf', ] * 3
     with Timer('Merge files',
                'mdfreader {} compress v3'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], compression='blosc')
         x1.resample(0.01)
+        x2 = MDFreader(files[1], compression='blosc')
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
+        x2 = MDFreader(files[1], compression='blosc')
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.mergeMdf(x2)
@@ -560,13 +572,13 @@ def main(path, text_output, fmt):
         partial(save_mdf3, memory='low'),
         partial(save_mdf3, memory='minimum'),
         save_reader3,
-#        save_reader3_nodata,
+        save_reader3_nodata,
 #        save_reader3_compression,
         partial(save_mdf4, memory='full'),
         partial(save_mdf4, memory='low'),
         partial(save_mdf4, memory='minimum'),
         save_reader4,
-#        save_reader4_nodata,
+        save_reader4_nodata,
 #        save_reader4_compression,
     )
 
@@ -587,13 +599,13 @@ def main(path, text_output, fmt):
         partial(get_all_mdf3, memory='minimum'),
         get_all_reader3,
         get_all_reader3_nodata,
-        get_all_reader3_compression,
+#        get_all_reader3_compression,
         partial(get_all_mdf4, memory='full'),
         partial(get_all_mdf4, memory='low'),
         partial(get_all_mdf4, memory='minimum'),
         get_all_reader4,
         get_all_reader4_nodata,
-        get_all_reader4_compression,
+#        get_all_reader4_compression,
     )
 
     if tests:
@@ -631,12 +643,12 @@ def main(path, text_output, fmt):
         partial(merge_v3, memory='full'),
         partial(merge_v3, memory='low'),
         partial(merge_v3, memory='minimum'),
-#        merge_reader_v3,
+        merge_reader_v3,
 #        merge_reader_v3_compress,
         partial(merge_v4, memory='full'),
         partial(merge_v4, memory='low'),
         partial(merge_v4, memory='minimum'),
-#        merge_reader_v4,
+        merge_reader_v4,
 #        merge_reader_v4_compress,
     )
 
@@ -688,7 +700,7 @@ def _cmd_line_parser():
                         default='rst',
                         nargs='?',
                         choices=['rst', 'md'],
-                        help='text fmtting')
+                        help='text formatting')
 
     return parser
 

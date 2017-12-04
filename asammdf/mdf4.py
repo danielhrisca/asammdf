@@ -255,6 +255,7 @@ class MDF4(object):
         while dg_addr:
             new_groups = []
             group = DataGroup(address=dg_addr, stream=stream)
+            record_id_nr = group['record_id_len']
 
             # go to first channel group of the current data group
             cg_addr = group['first_cg_addr']
@@ -302,7 +303,7 @@ class MDF4(object):
                     record_id = channel_group['record_id']
                     cg_size[record_id] = 0
 
-                if cg_nr > 1:
+                if record_id_nr:
                     grp['sorted'] = False
                 else:
                     grp['sorted'] = True
@@ -354,16 +355,13 @@ class MDF4(object):
                 dat_addr = group['data_block_addr']
                 data = self._read_data_block(address=dat_addr, stream=stream)
 
-                if cg_nr == 1:
+                if record_id_nr == 0:
                     grp = new_groups[0]
                     grp['data_location'] = v4c.LOCATION_MEMORY
                     grp['data_block'] = DataBlock(data=data)
                 else:
                     cg_data = defaultdict(list)
-                    if group['record_id_len'] <= 2:
-                        record_id_nr = group['record_id_len']
-                    else:
-                        record_id_nr = 0
+
                     i = 0
                     size = len(data)
                     while i < size:
@@ -418,6 +416,9 @@ class MDF4(object):
                             ch_addr = dep['scale_axis_{}_ch_addr'.format(i)]
                             ref_channel = self._ch_map[ch_addr]
                             dep.referenced_channels.append(ref_channel)
+
+        if self.memory == 'full':
+            self.close()
 
     def _read_channels(
             self,
@@ -1105,6 +1106,8 @@ class MDF4(object):
             size = 4
         elif bit_count <= 64:
             size = 8
+        else:
+            size = bit_count // 8
 
         if size > byte_count:
             extra_bytes = size - byte_count
@@ -3919,7 +3922,9 @@ class MDF4(object):
                 data = self._load_group_data(gp)
 
                 if MDF4._split_data_blocks:
-                    split_size = MDF4._split_threshold
+                    samples_size = gp['channel_group']['samples_byte_nr']
+                    split_size = MDF4._split_threshold // samples_size
+                    split_size *= samples_size
                     chunks = len(data) / split_size
                     chunks = ceil(chunks)
                 else:
@@ -4364,7 +4369,9 @@ class MDF4(object):
                 data = self._load_group_data(gp)
 
                 if MDF4._split_data_blocks:
-                    split_size = MDF4._split_threshold
+                    samples_size = gp['channel_group']['samples_byte_nr']
+                    split_size = MDF4._split_threshold // samples_size
+                    split_size *= samples_size
                     chunks = len(data) / split_size
                     chunks = ceil(chunks)
                 else:

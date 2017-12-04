@@ -1,6 +1,6 @@
 *asammdf* is a fast parser/editor for ASAM (Associtation for Standardisation of Automation and Measuring Systems) MDF (Measurement Data Format) files. 
 
-*asammdf* supports both MDF version 3 and 4 formats. 
+*asammdf* supports MDF versions 2 (.dat), 3 (.mdf) and 4 (.mf4). 
 
 *asammdf* works on Python 2.7, and Python >= 3.4
 

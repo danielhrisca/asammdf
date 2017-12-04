@@ -51,8 +51,8 @@ from .utils import (
 )
 from .signal import Signal
 from .version import __version__
-from . import v3constants as v3c
-from .v3blocks import (
+from . import v2constants as v2c
+from .v2blocks import (
     Channel,
     ChannelConversion,
     ChannelDependency,
@@ -75,10 +75,10 @@ if PYVERSION == 2:
     from .utils import bytes
 
 
-__all__ = ['MDF3', ]
+__all__ = ['MDF2', ]
 
 
-class MDF3(object):
+class MDF2(object):
     """If the *name* exist it will be loaded otherwise an empty file will be
     created that can be later saved to disk
 
@@ -158,7 +158,7 @@ class MDF3(object):
             # for now appended groups keep the measured data in the memory.
             # the plan is to use a temp file for appended groups, to keep the
             # memory usage low.
-            if group['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+            if group['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
                 # this is a group from the source file
                 # so fetch the measured data from it
                 stream = self._file
@@ -205,11 +205,11 @@ class MDF3(object):
                         else:
                             i += rec_size
                     data = b''.join(cg_data)
-            elif group['data_location'] == v3c.LOCATION_TEMPORARY_FILE:
+            elif group['data_location'] == v2c.LOCATION_TEMPORARY_FILE:
                 read_size = group['size']
                 dat_addr = group['data_group']['data_block_addr']
                 if dat_addr:
-                    self._tempfile.seek(dat_addr, v3c.SEEK_START)
+                    self._tempfile.seek(dat_addr, v2c.SEEK_START)
                     data = self._tempfile.read(read_size)
                 else:
                     data = b''
@@ -304,7 +304,7 @@ class MDF3(object):
 
                 # adjust size to 1, 2, 4 or 8 bytes for nonstandard integers
                 size = bit_offset + bit_count
-                if data_type == v3c.DATA_TYPE_STRING:
+                if data_type == v2c.DATA_TYPE_STRING:
                     next_byte_aligned_position = parent_start_offset + size
                     size = size // 8
                     if next_byte_aligned_position <= record_size:
@@ -312,7 +312,7 @@ class MDF3(object):
                         types.append(dtype_pair)
                         parents[original_index] = name, bit_offset
 
-                elif data_type == v3c.DATA_TYPE_BYTEARRAY:
+                elif data_type == v2c.DATA_TYPE_BYTEARRAY:
                     size = size // 8
                     next_byte_aligned_position = parent_start_offset + size
                     if next_byte_aligned_position <= record_size:
@@ -363,10 +363,10 @@ class MDF3(object):
     def _get_not_byte_aligned_data(self, data, group, ch_nr):
 
         big_endian_types = (
-            v3c.DATA_TYPE_UNSIGNED_MOTOROLA,
-            v3c.DATA_TYPE_FLOAT_MOTOROLA,
-            v3c.DATA_TYPE_DOUBLE_MOTOROLA,
-            v3c.DATA_TYPE_SIGNED_MOTOROLA,
+            v2c.DATA_TYPE_UNSIGNED_MOTOROLA,
+            v2c.DATA_TYPE_FLOAT_MOTOROLA,
+            v2c.DATA_TYPE_DOUBLE_MOTOROLA,
+            v2c.DATA_TYPE_SIGNED_MOTOROLA,
         )
 
         record_size = group['channel_group']['samples_byte_nr']
@@ -563,7 +563,7 @@ class MDF3(object):
         seek = stream.seek
 
         dg_cntr = 0
-        seek(0, v3c.SEEK_START)
+        seek(0, v2c.SEEK_START)
 
         self.identification = FileIdentificationBlock(
             stream=stream,
@@ -635,9 +635,9 @@ class MDF3(object):
                 kargs = {'first_cg_addr': cg_addr,
                          'data_block_addr': data_addr}
                 if self.version in ('3.20', '3.30'):
-                    kargs['block_len'] = v3c.DG32_BLOCK_SIZE
+                    kargs['block_len'] = v2c.DG32_BLOCK_SIZE
                 else:
-                    kargs['block_len'] = v3c.DG31_BLOCK_SIZE
+                    kargs['block_len'] = v2c.DG31_BLOCK_SIZE
 
                 grp['data_group'] = DataGroup(**kargs)
 
@@ -712,7 +712,7 @@ class MDF3(object):
                         conv_type = new_conv['conversion_type']
                     else:
                         conv_type = 0
-                    if conv_type == v3c.CONVERSION_TYPE_VTABR:
+                    if conv_type == v2c.CONVERSION_TYPE_VTABR:
                         for idx in range(new_conv['ref_param_nr']):
                             address = new_conv['text_{}'.format(idx)]
                             if address:
@@ -747,8 +747,7 @@ class MDF3(object):
                     ch_texts = {}
                     for key in (
                             'long_name_addr',
-                            'comment_addr',
-                            'display_name_addr'):
+                            'comment_addr'):
                         address = new_ch[key]
                         if address:
                             if memory != 'minimum':
@@ -786,7 +785,7 @@ class MDF3(object):
                         self.channels_db[name] = []
                         self.channels_db[name].append((dg_cntr, ch_cntr))
 
-                    if new_ch['channel_type'] == v3c.CHANNEL_TYPE_MASTER:
+                    if new_ch['channel_type'] == v2c.CHANNEL_TYPE_MASTER:
                         self.masters_db[dg_cntr] = ch_cntr
                     # go to next channel of the current channel group
 
@@ -825,13 +824,13 @@ class MDF3(object):
                 # read data block of the current data group
                 dat_addr = gp['data_block_addr']
                 if dat_addr:
-                    seek(dat_addr, v3c.SEEK_START)
+                    seek(dat_addr, v2c.SEEK_START)
                     data = read(total_size)
                 else:
                     data = b''
                 if record_id_nr == 0:
                     grp = new_groups[0]
-                    grp['data_location'] = v3c.LOCATION_MEMORY
+                    grp['data_location'] = v2c.LOCATION_MEMORY
                     grp['data_block'] = DataBlock(data=data)
 
                 else:
@@ -852,14 +851,14 @@ class MDF3(object):
                         else:
                             i += rec_size
                     for grp in new_groups:
-                        grp['data_location'] = v3c.LOCATION_MEMORY
+                        grp['data_location'] = v2c.LOCATION_MEMORY
                         data = cg_data[grp['channel_group']['record_id']]
                         data = b''.join(data)
                         grp['channel_group']['record_id'] = 1
                         grp['data_block'] = DataBlock(data=data)
             else:
                 for grp in new_groups:
-                    grp['data_location'] = v3c.LOCATION_ORIGINAL_FILE
+                    grp['data_location'] = v2c.LOCATION_ORIGINAL_FILE
 
             self.groups.extend(new_groups)
 
@@ -1069,7 +1068,7 @@ class MDF3(object):
 
             # conversion for time channel
             kargs = {
-                'conversion_type': v3c.CONVERSION_TYPE_NONE,
+                'conversion_type': v2c.CONVERSION_TYPE_NONE,
                 'unit': b's',
                 'min_phy_value': t[0] if cycles_nr else 0,
                 'max_phy_value': t[-1] if cycles_nr else 0,
@@ -1086,7 +1085,7 @@ class MDF3(object):
             kargs = {
                 'module_nr': 0,
                 'module_address': 0,
-                'type': v3c.SOURCE_ECU,
+                'type': v2c.SOURCE_ECU,
                 'description': b'Channel inserted by Python Script',
             }
             block = ChannelExtension(**kargs)
@@ -1101,7 +1100,7 @@ class MDF3(object):
             t_type, t_size = fmt_to_datatype(t.dtype)
             kargs = {
                 'short_name': b't',
-                'channel_type': v3c.CHANNEL_TYPE_MASTER,
+                'channel_type': v2c.CHANNEL_TYPE_MASTER,
                 'data_type': t_type,
                 'start_offset': 0,
                 'min_raw_value': t[0] if cycles_nr else 0,
@@ -1225,7 +1224,7 @@ class MDF3(object):
                     info = signal.info
                     if info and 'raw' in info and not info['raw'].dtype.kind == 'S':
                         kargs = {}
-                        kargs['conversion_type'] = v3c.CONVERSION_TYPE_VTAB
+                        kargs['conversion_type'] = v2c.CONVERSION_TYPE_VTAB
                         raw = info['raw']
                         phys = info['phys']
                         for i, (r_, p_) in enumerate(zip(raw, phys)):
@@ -1235,7 +1234,7 @@ class MDF3(object):
                         kargs['unit'] = signal.unit.encode('latin-1')
                     elif info and 'lower' in info:
                         kargs = {}
-                        kargs['conversion_type'] = v3c.CONVERSION_TYPE_VTABR
+                        kargs['conversion_type'] = v2c.CONVERSION_TYPE_VTABR
                         lower = info['lower']
                         upper = info['upper']
                         texts = info['phys']
@@ -1265,7 +1264,7 @@ class MDF3(object):
                             min_phy_value = 0
                             max_phy_value = 0
                         kargs = {
-                            'conversion_type': v3c.CONVERSION_TYPE_NONE,
+                            'conversion_type': v2c.CONVERSION_TYPE_NONE,
                             'unit': signal.unit.encode('latin-1'),
                             'min_phy_value': min_phy_value,
                             'max_phy_value': max_phy_value,
@@ -1286,7 +1285,7 @@ class MDF3(object):
                     kargs = {
                         'module_nr': 0,
                         'module_address': 0,
-                        'type': v3c.SOURCE_ECU,
+                        'type': v2c.SOURCE_ECU,
                         'description': b'Channel inserted by Python Script',
                     }
                     block = ChannelExtension(**kargs)
@@ -1299,9 +1298,9 @@ class MDF3(object):
 
                     # compute additional byte offset for large records size
                     current_offset = offset + bit_offset
-                    if current_offset > v3c.MAX_UINT16:
+                    if current_offset > v2c.MAX_UINT16:
                         additional_byte_offset = \
-                            (current_offset - v3c.MAX_UINT16) >> 3
+                            (current_offset - v2c.MAX_UINT16) >> 3
                         start_bit_offset = \
                             current_offset - additional_byte_offset << 3
                     else:
@@ -1309,9 +1308,9 @@ class MDF3(object):
                         additional_byte_offset = 0
 
                     if signal.samples.dtype.kind == 'u':
-                        data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
+                        data_type = v2c.DATA_TYPE_UNSIGNED_INTEL
                     else:
-                        data_type = v3c.DATA_TYPE_SIGNED_INTEL
+                        data_type = v2c.DATA_TYPE_SIGNED_INTEL
 
                     texts = {}
                     if len(name) >= 32:
@@ -1332,7 +1331,7 @@ class MDF3(object):
 
                     kargs = {
                         'short_name': short_name,
-                        'channel_type': v3c.CHANNEL_TYPE_VALUE,
+                        'channel_type': v2c.CHANNEL_TYPE_VALUE,
                         'data_type': data_type,
                         'min_raw_value': min_val if min_val <= max_val else 0,
                         'max_raw_value': max_val if min_val <= max_val else 0,
@@ -1400,7 +1399,7 @@ class MDF3(object):
                 info = signal.info
                 if info and 'raw' in info and not info['raw'].dtype.kind == 'S':
                     kargs = {}
-                    kargs['conversion_type'] = v3c.CONVERSION_TYPE_VTAB
+                    kargs['conversion_type'] = v2c.CONVERSION_TYPE_VTAB
                     raw = info['raw']
                     phys = info['phys']
                     for i, (r_, p_) in enumerate(zip(raw, phys)):
@@ -1410,7 +1409,7 @@ class MDF3(object):
                     kargs['unit'] = signal.unit.encode('latin-1')
                 elif info and 'lower' in info:
                     kargs = {}
-                    kargs['conversion_type'] = v3c.CONVERSION_TYPE_VTABR
+                    kargs['conversion_type'] = v2c.CONVERSION_TYPE_VTABR
                     lower = info['lower']
                     upper = info['upper']
                     texts_ = info['phys']
@@ -1439,7 +1438,7 @@ class MDF3(object):
                         min_phy_value = 0
                         max_phy_value = 0
                     kargs = {
-                        'conversion_type': v3c.CONVERSION_TYPE_NONE,
+                        'conversion_type': v2c.CONVERSION_TYPE_NONE,
                         'unit': signal.unit.encode('latin-1'),
                         'min_phy_value': min_phy_value,
                         'max_phy_value': max_phy_value,
@@ -1460,7 +1459,7 @@ class MDF3(object):
                 kargs = {
                     'module_nr': 0,
                     'module_address': 0,
-                    'type': v3c.SOURCE_ECU,
+                    'type': v2c.SOURCE_ECU,
                     'description': b'Channel inserted by Python Script',
                 }
                 block = ChannelExtension(**kargs)
@@ -1472,8 +1471,8 @@ class MDF3(object):
                     write(bytes(block))
 
                 # compute additional byte offset for large records size
-                if offset > v3c.MAX_UINT16:
-                    additional_byte_offset = (offset - v3c.MAX_UINT16) >> 3
+                if offset > v2c.MAX_UINT16:
+                    additional_byte_offset = (offset - v2c.MAX_UINT16) >> 3
                     start_bit_offset = offset - additional_byte_offset << 3
                 else:
                     start_bit_offset = offset
@@ -1486,7 +1485,7 @@ class MDF3(object):
                     short_name = name.encode('latin-1')
                 kargs = {
                     'short_name': short_name,
-                    'channel_type': v3c.CHANNEL_TYPE_VALUE,
+                    'channel_type': v2c.CHANNEL_TYPE_VALUE,
                     'data_type': s_type,
                     'min_raw_value': min_val if min_val <= max_val else 0,
                     'max_raw_value': max_val if min_val <= max_val else 0,
@@ -1593,7 +1592,7 @@ class MDF3(object):
                 kargs = {
                     'module_nr': 0,
                     'module_address': 0,
-                    'type': v3c.SOURCE_ECU,
+                    'type': v2c.SOURCE_ECU,
                     'description': b'Channel inserted by Python Script',
                 }
                 block = ChannelExtension(**kargs)
@@ -1608,8 +1607,8 @@ class MDF3(object):
 
                 s_type, s_size = fmt_to_datatype(samples.dtype)
                 # compute additional byte offset for large records size
-                if offset > v3c.MAX_UINT16:
-                    additional_byte_offset = (offset - v3c.MAX_UINT16) >> 3
+                if offset > v2c.MAX_UINT16:
+                    additional_byte_offset = (offset - v2c.MAX_UINT16) >> 3
                     start_bit_offset = offset - additional_byte_offset << 3
                 else:
                     start_bit_offset = offset
@@ -1621,7 +1620,7 @@ class MDF3(object):
                     short_name = name.encode('latin-1')
                 kargs = {
                     'short_name': short_name,
-                    'channel_type': v3c.CHANNEL_TYPE_VALUE,
+                    'channel_type': v2c.CHANNEL_TYPE_VALUE,
                     'data_type': s_type,
                     'min_raw_value': min_val if min_val <= max_val else 0,
                     'max_raw_value': max_val if min_val <= max_val else 0,
@@ -1677,7 +1676,7 @@ class MDF3(object):
                     kargs = {
                         'module_nr': 0,
                         'module_address': 0,
-                        'type': v3c.SOURCE_ECU,
+                        'type': v2c.SOURCE_ECU,
                         'description': b'Channel inserted by Python Script',
                     }
                     block = ChannelExtension(**kargs)
@@ -1694,8 +1693,8 @@ class MDF3(object):
                         gp_conv.append(0)
 
                     # compute additional byte offset for large records size
-                    if offset > v3c.MAX_UINT16:
-                        additional_byte_offset = (offset - v3c.MAX_UINT16) >> 3
+                    if offset > v2c.MAX_UINT16:
+                        additional_byte_offset = (offset - v2c.MAX_UINT16) >> 3
                         start_bit_offset = offset - additional_byte_offset << 3
                     else:
                         start_bit_offset = offset
@@ -1707,7 +1706,7 @@ class MDF3(object):
                         short_name = name.encode('latin-1')
                     kargs = {
                         'short_name': short_name,
-                        'channel_type': v3c.CHANNEL_TYPE_VALUE,
+                        'channel_type': v2c.CHANNEL_TYPE_VALUE,
                         'data_type': s_type,
                         'min_raw_value': min_val if min_val <= max_val else 0,
                         'max_raw_value': max_val if min_val <= max_val else 0,
@@ -1764,9 +1763,9 @@ class MDF3(object):
 
             # data group
             if self.version in ('3.20', '3.30'):
-                block_len = v3c.DG32_BLOCK_SIZE
+                block_len = v2c.DG32_BLOCK_SIZE
             else:
-                block_len = v3c.DG31_BLOCK_SIZE
+                block_len = v2c.DG31_BLOCK_SIZE
             gp['data_group'] = DataGroup(block_len=block_len)
 
             # data block
@@ -1782,11 +1781,11 @@ class MDF3(object):
             block = samples.tostring()
 
             if memory == 'full':
-                gp['data_location'] = v3c.LOCATION_MEMORY
+                gp['data_location'] = v2c.LOCATION_MEMORY
                 kargs = {'data': block}
                 gp['data_block'] = DataBlock(**kargs)
             else:
-                gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
+                gp['data_location'] = v2c.LOCATION_TEMPORARY_FILE
                 if cycles_nr:
                     data_address = tell()
                     gp['data_group']['data_block_addr'] = data_address
@@ -1827,7 +1826,7 @@ class MDF3(object):
 
             # conversion for time channel
             kargs = {
-                'conversion_type': v3c.CONVERSION_TYPE_NONE,
+                'conversion_type': v2c.CONVERSION_TYPE_NONE,
                 'unit': b's',
                 'min_phy_value': t[0] if cycles_nr else 0,
                 'max_phy_value': t[-1] if cycles_nr else 0,
@@ -1844,7 +1843,7 @@ class MDF3(object):
             kargs = {
                 'module_nr': 0,
                 'module_address': 0,
-                'type': v3c.SOURCE_ECU,
+                'type': v2c.SOURCE_ECU,
                 'description': b'Channel inserted by Python Script',
             }
             block = ChannelExtension(**kargs)
@@ -1859,7 +1858,7 @@ class MDF3(object):
             t_type, t_size = fmt_to_datatype(t.dtype)
             kargs = {
                 'short_name': b't',
-                'channel_type': v3c.CHANNEL_TYPE_MASTER,
+                'channel_type': v2c.CHANNEL_TYPE_MASTER,
                 'data_type': t_type,
                 'start_offset': 0,
                 'min_raw_value': t[0] if cycles_nr else 0,
@@ -1946,7 +1945,7 @@ class MDF3(object):
                 min_val, max_val = get_min_max(samples)
 
                 kargs = {
-                    'conversion_type': v3c.CONVERSION_TYPE_NONE,
+                    'conversion_type': v2c.CONVERSION_TYPE_NONE,
                     'unit': signal.unit.encode('latin-1'),
                     'min_phy_value': min_val if min_val <= max_val else 0,
                     'max_phy_value': max_val if min_val <= max_val else 0,
@@ -1963,7 +1962,7 @@ class MDF3(object):
                 kargs = {
                     'module_nr': 0,
                     'module_address': 0,
-                    'type': v3c.SOURCE_ECU,
+                    'type': v2c.SOURCE_ECU,
                     'description': b'Channel inserted by Python Script',
                 }
                 block = ChannelExtension(**kargs)
@@ -1975,8 +1974,8 @@ class MDF3(object):
                     write(bytes(block))
 
                 # compute additional byte offset for large records size
-                if offset > v3c.MAX_UINT16:
-                    additional_byte_offset = (offset - v3c.MAX_UINT16) >> 3
+                if offset > v2c.MAX_UINT16:
+                    additional_byte_offset = (offset - v2c.MAX_UINT16) >> 3
                     start_bit_offset = offset - additional_byte_offset << 3
                 else:
                     start_bit_offset = offset
@@ -1988,7 +1987,7 @@ class MDF3(object):
                     short_name = name.encode('latin-1')
                 kargs = {
                     'short_name': short_name,
-                    'channel_type': v3c.CHANNEL_TYPE_VALUE,
+                    'channel_type': v2c.CHANNEL_TYPE_VALUE,
                     'data_type': s_type,
                     'min_raw_value': min_val if min_val <= max_val else 0,
                     'max_raw_value': max_val if min_val <= max_val else 0,
@@ -2035,9 +2034,9 @@ class MDF3(object):
 
             # data group
             if self.version in ('3.20', '3.30'):
-                block_len = v3c.DG32_BLOCK_SIZE
+                block_len = v2c.DG32_BLOCK_SIZE
             else:
-                block_len = v3c.DG31_BLOCK_SIZE
+                block_len = v2c.DG31_BLOCK_SIZE
             gp['data_group'] = DataGroup(block_len=block_len)
 
             # data block
@@ -2054,11 +2053,11 @@ class MDF3(object):
                 block = samples.tostring()
 
                 if memory == 'full':
-                    gp['data_location'] = v3c.LOCATION_MEMORY
+                    gp['data_location'] = v2c.LOCATION_MEMORY
                     kargs = {'data': block}
                     gp['data_block'] = DataBlock(**kargs)
                 else:
-                    gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
+                    gp['data_location'] = v2c.LOCATION_TEMPORARY_FILE
                     if cycles_nr:
                         data_address = tell()
                         gp['data_group']['data_block_addr'] = data_address
@@ -2069,7 +2068,7 @@ class MDF3(object):
                 if memory == 'full':
                     raise
                 else:
-                    gp['data_location'] = v3c.LOCATION_TEMPORARY_FILE
+                    gp['data_location'] = v2c.LOCATION_TEMPORARY_FILE
 
                     data_address = tell()
                     gp['data_group']['data_block_addr'] = data_address
@@ -2132,7 +2131,7 @@ class MDF3(object):
         )
 
         grp = self.groups[gp_nr]
-        if grp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+        if grp['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -2199,7 +2198,7 @@ class MDF3(object):
         )
 
         grp = self.groups[gp_nr]
-        if grp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+        if grp['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -2286,7 +2285,7 @@ class MDF3(object):
         memory = self.memory
         grp = self.groups[gp_nr]
 
-        if grp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+        if grp['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -2335,9 +2334,9 @@ class MDF3(object):
 
         # check if this is a channel array
         if dep:
-            if dep['dependency_type'] == v3c.DEPENDENCY_TYPE_VECTOR:
+            if dep['dependency_type'] == v2c.DEPENDENCY_TYPE_VECTOR:
                 shape = [dep['sd_nr'], ]
-            elif dep['dependency_type'] >= v3c.DEPENDENCY_TYPE_NDIM:
+            elif dep['dependency_type'] >= v2c.DEPENDENCY_TYPE_NDIM:
                 shape = []
                 i = 0
                 while True:
@@ -2416,7 +2415,7 @@ class MDF3(object):
                             vals &= mask
                         else:
                             vals = vals & mask
-                        if data_type in v3c.SIGNED_INT:
+                        if data_type in v2c.SIGNED_INT:
                             size = vals.dtype.itemsize
                             mask = (1 << (size * 8)) - 1
                             mask = (mask << bits) & mask
@@ -2426,15 +2425,15 @@ class MDF3(object):
                 vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 
             if conversion is None:
-                conversion_type = v3c.CONVERSION_TYPE_NONE
+                conversion_type = v2c.CONVERSION_TYPE_NONE
             else:
                 conversion_type = conversion['conversion_type']
 
             if cycles_nr:
 
-                if conversion_type == v3c.CONVERSION_TYPE_NONE:
+                if conversion_type == v2c.CONVERSION_TYPE_NONE:
 
-                    if channel['data_type'] == v3c.DATA_TYPE_STRING:
+                    if channel['data_type'] == v2c.DATA_TYPE_STRING:
                         vals = [val.tobytes() for val in vals]
                         vals = [
                             x.decode('latin-1').strip(' \n\t\0')
@@ -2443,7 +2442,7 @@ class MDF3(object):
                         vals = array(vals)
                         vals = encode(vals, 'latin-1')
 
-                    elif channel['data_type'] == v3c.DATA_TYPE_BYTEARRAY:
+                    elif channel['data_type'] == v2c.DATA_TYPE_BYTEARRAY:
                         arrays = [vals, ]
                         types = [(channel.name, vals.dtype, vals.shape[1:]), ]
                         if PYVERSION == 2:
@@ -2451,7 +2450,7 @@ class MDF3(object):
                         types = dtype(types)
                         vals = fromarrays(arrays, dtype=types)
 
-                elif conversion_type == v3c.CONVERSION_TYPE_LINEAR:
+                elif conversion_type == v2c.CONVERSION_TYPE_LINEAR:
                     a = conversion['a']
                     b = conversion['b']
                     if (a, b) != (1, 0):
@@ -2459,22 +2458,22 @@ class MDF3(object):
                         if b:
                             vals += b
 
-                elif conversion_type in (v3c.CONVERSION_TYPE_TABI,
-                                         v3c.CONVERSION_TYPE_TABX):
+                elif conversion_type in (v2c.CONVERSION_TYPE_TABI,
+                                         v2c.CONVERSION_TYPE_TABX):
                     nr = conversion['ref_param_nr']
 
                     raw = [conversion['raw_{}'.format(i)] for i in range(nr)]
                     raw = array(raw)
                     phys = [conversion['phys_{}'.format(i)] for i in range(nr)]
                     phys = array(phys)
-                    if conversion_type == v3c.CONVERSION_TYPE_TABI:
+                    if conversion_type == v2c.CONVERSION_TYPE_TABI:
                         vals = interp(vals, raw, phys)
                     else:
                         idx = searchsorted(raw, vals)
                         idx = clip(idx, 0, len(raw) - 1)
                         vals = phys[idx]
 
-                elif conversion_type == v3c.CONVERSION_TYPE_VTAB:
+                elif conversion_type == v2c.CONVERSION_TYPE_VTAB:
                     nr = conversion['ref_param_nr']
                     raw = [
                         conversion['param_val_{}'.format(i)]
@@ -2485,7 +2484,7 @@ class MDF3(object):
                     phys = array(phys)
                     info = {'raw': raw, 'phys': phys}
 
-                elif conversion_type == v3c.CONVERSION_TYPE_VTABR:
+                elif conversion_type == v2c.CONVERSION_TYPE_VTABR:
                     nr = conversion['ref_param_nr']
 
                     conv_texts = grp['texts']['conversion_tab'][ch_nr]
@@ -2511,9 +2510,9 @@ class MDF3(object):
                     upper = array(upper)
                     info = {'lower': lower, 'upper': upper, 'phys': texts}
 
-                elif conversion_type in (v3c.CONVERSION_TYPE_EXPO,
-                                         v3c.CONVERSION_TYPE_LOGH):
-                    if conversion_type == v3c.CONVERSION_TYPE_EXPO:
+                elif conversion_type in (v2c.CONVERSION_TYPE_EXPO,
+                                         v2c.CONVERSION_TYPE_LOGH):
+                    if conversion_type == v2c.CONVERSION_TYPE_EXPO:
                         func = log
                     else:
                         func = exp
@@ -2532,7 +2531,7 @@ class MDF3(object):
                         message = 'wrong conversion {}'.format(conversion_type)
                         raise ValueError(message)
 
-                elif conversion_type == v3c.CONVERSION_TYPE_RAT:
+                elif conversion_type == v2c.CONVERSION_TYPE_RAT:
                     P1 = conversion['P1']
                     P2 = conversion['P2']
                     P3 = conversion['P3']
@@ -2541,9 +2540,9 @@ class MDF3(object):
                     P6 = conversion['P6']
                     if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
                         X = vals
-                        vals = evaluate(v3c.RAT_CONV_TEXT)
+                        vals = evaluate(v2c.RAT_CONV_TEXT)
 
-                elif conversion_type == v3c.CONVERSION_TYPE_POLY:
+                elif conversion_type == v2c.CONVERSION_TYPE_POLY:
                     P1 = conversion['P1']
                     P2 = conversion['P2']
                     P3 = conversion['P3']
@@ -2556,11 +2555,11 @@ class MDF3(object):
                     coefs = (P2, P3, P5, P6)
                     if coefs == (0, 0, 0, 0):
                         if P1 != P4:
-                            vals = evaluate(v3c.POLY_CONV_SHORT_TEXT)
+                            vals = evaluate(v2c.POLY_CONV_SHORT_TEXT)
                     else:
-                        vals = evaluate(v3c.POLY_CONV_LONG_TEXT)
+                        vals = evaluate(v2c.POLY_CONV_LONG_TEXT)
 
-                elif conversion_type == v3c.CONVERSION_TYPE_FORMULA:
+                elif conversion_type == v2c.CONVERSION_TYPE_FORMULA:
                     formula = conversion['formula'].decode('latin-1')
                     formula = formula.strip(' \n\t\0')
                     X1 = vals
@@ -2613,7 +2612,7 @@ class MDF3(object):
             return self._master_channel_cache[index]
         group = self.groups[index]
 
-        if group['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+        if group['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -2681,10 +2680,10 @@ class MDF3(object):
 
                 # get timestamps
                 if time_conv is None:
-                    time_conv_type = v3c.CONVERSION_TYPE_NONE
+                    time_conv_type = v2c.CONVERSION_TYPE_NONE
                 else:
                     time_conv_type = time_conv['conversion_type']
-                if time_conv_type == v3c.CONVERSION_TYPE_LINEAR:
+                if time_conv_type == v2c.CONVERSION_TYPE_LINEAR:
                     time_a = time_conv['a']
                     time_b = time_conv['b']
                     t = t * time_a
@@ -2749,9 +2748,9 @@ class MDF3(object):
         info['version'] = self.version
         info['groups'] = len(self.groups)
         for i, gp in enumerate(self.groups):
-            if gp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+            if gp['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
                 stream = self._file
-            elif gp['data_location'] == v3c.LOCATION_TEMPORARY_FILE:
+            elif gp['data_location'] == v2c.LOCATION_TEMPORARY_FILE:
                 stream = self._tempfile
             inf = {}
             info['group {}'.format(i)] = inf
@@ -2776,7 +2775,7 @@ class MDF3(object):
                     name = name.decode('utf-8').strip(' \r\t\n\0')
                     name = name.split('\\')[0]
 
-                if channel['channel_type'] == v3c.CHANNEL_TYPE_MASTER:
+                if channel['channel_type'] == v2c.CHANNEL_TYPE_MASTER:
                     ch_type = 'master'
                 else:
                     ch_type = 'value'
@@ -2921,7 +2920,7 @@ class MDF3(object):
             address = 0
 
             blocks.append(self.identification)
-            address += v3c.ID_BLOCK_SIZE
+            address += v2c.ID_BLOCK_SIZE
 
             blocks.append(self.header)
             address += self.header['block_len']
@@ -2972,7 +2971,7 @@ class MDF3(object):
                         continue
 
                     conv.address = address
-                    if conv['conversion_type'] == v3c.CONVERSION_TYPE_VTABR:
+                    if conv['conversion_type'] == v2c.CONVERSION_TYPE_VTABR:
                         pairs = gp_texts['conversion_tab'][i].items()
                         for key, item in pairs:
                             conv[key] = item.address
@@ -3003,12 +3002,11 @@ class MDF3(object):
                     channel_texts = ch_texts[i]
 
                     blocks.append(channel)
-                    address += v3c.CN_BLOCK_SIZE
+                    address += v2c.CN_BLOCK_SIZE
 
                     if channel_texts:
                         for key in ('long_name_addr',
-                                    'comment_addr',
-                                    'display_name_addr'):
+                                    'comment_addr'):
                             if key in channel_texts:
                                 channel[key] = channel_texts[key].address
                             else:
@@ -3222,7 +3220,7 @@ class MDF3(object):
 
             for gp in self.groups:
                 gp_texts = deepcopy(gp['texts'])
-                if gp['data_location'] == v3c.LOCATION_ORIGINAL_FILE:
+                if gp['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
                     stream = self._file
                 else:
                     stream = self._tempfile
@@ -3261,7 +3259,7 @@ class MDF3(object):
                         address=conv,
                         stream=stream,
                     )
-                    if conv['conversion_type'] == v3c.CONVERSION_TYPE_VTABR:
+                    if conv['conversion_type'] == v2c.CONVERSION_TYPE_VTABR:
                         pairs = gp_texts['conversion_tab'][i].items()
                         for key, item in pairs:
                             conv[key] = item
@@ -3314,16 +3312,14 @@ class MDF3(object):
 
                     if channel_texts:
                         for key in ('long_name_addr',
-                                    'comment_addr',
-                                    'display_name_addr'):
+                                    'comment_addr'):
                             if key in channel_texts:
                                 channel[key] = channel_texts[key]
                             else:
                                 channel[key] = 0
                     else:
                         for key in ('long_name_addr',
-                                    'comment_addr',
-                                    'display_name_addr'):
+                                    'comment_addr'):
                             channel[key] = 0
 
                     channel['conversion_addr'] = cc[i]
@@ -3425,10 +3421,10 @@ class MDF3(object):
                         dep['ch_{}'.format(i)] = grp['temp_channels'][i]
                         dep['cg_{}'.format(i)] = grp['channel_group'].address
                         dep['dg_{}'.format(i)] = grp['data_group'].address
-                    seek(dep.address, v3c.SEEK_START)
+                    seek(dep.address, v2c.SEEK_START)
                     write(bytes(dep))
 
-            seek(v3c.ID_BLOCK_SIZE, v3c.SEEK_START)
+            seek(v2c.ID_BLOCK_SIZE, v2c.SEEK_START)
             write(bytes(self.header))
 
             for gp in self.groups:

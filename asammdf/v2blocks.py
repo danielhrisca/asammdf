@@ -10,13 +10,13 @@ import time
 from struct import unpack, pack, unpack_from
 from getpass import getuser
 
-from . import v3constants as v3c
+from . import v2constants as v2c
 
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
-SEEK_START = v3c.SEEK_START
-SEEK_END = v3c.SEEK_END
+SEEK_START = v2c.SEEK_START
+SEEK_END = v2c.SEEK_END
 
 
 __all__ = [
@@ -129,7 +129,7 @@ class Channel(dict):
             stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
-            block = stream.read(v3c.CN_BLOCK_SIZE)
+            block = stream.read(v2c.CN_BLOCK_SIZE)
 
             (self['id'],
              self['block_len'],
@@ -148,15 +148,13 @@ class Channel(dict):
              self['min_raw_value'],
              self['max_raw_value'],
              self['sampling_rate'],
-             self['long_name_addr'],
-             self['display_name_addr'],
-             self['aditional_byte_offset']) = unpack(v3c.FMT_CHANNEL, block)
+             self['long_name_addr']) = unpack(v2c.FMT_CHANNEL, block)
 
         except KeyError:
 
             self.address = 0
             self['id'] = b'CN'
-            self['block_len'] = kargs.get('block_len', v3c.CN_BLOCK_SIZE)
+            self['block_len'] = kargs.get('block_len', v2c.CN_BLOCK_SIZE)
             self['next_ch_addr'] = kargs.get('next_ch_addr', 0)
             self['conversion_addr'] = kargs.get('conversion_addr', 0)
             self['source_depend_addr'] = kargs.get('source_depend_addr', 0)
@@ -173,14 +171,12 @@ class Channel(dict):
             self['max_raw_value'] = kargs.get('max_raw_value', 0)
             self['sampling_rate'] = kargs.get('sampling_rate', 0)
             self['long_name_addr'] = kargs.get('long_name_addr', 0)
-            self['display_name_addr'] = kargs.get('display_name_addr', 0)
-            self['aditional_byte_offset'] = kargs.get('aditional_byte_offset', 0)
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            result = pack(v3c.FMT_CHANNEL, *self.values())
+            result = pack(v2c.FMT_CHANNEL, *self.values())
         else:
-            result = pack(v3c.FMT_CHANNEL, *[self[key] for key in v3c.KEYS_CHANNEL])
+            result = pack(v2c.FMT_CHANNEL, *[self[key] for key in v2c.KEYS_CHANNEL])
         return result
 
     def __lt__(self, other):
@@ -301,30 +297,30 @@ class ChannelConversion(dict):
              self['max_phy_value'],
              self['unit'],
              self['conversion_type'],
-             self['ref_param_nr']) = unpack_from(v3c.FMT_CONVERSION_COMMON_SHORT, block)
+             self['ref_param_nr']) = unpack_from(v2c.FMT_CONVERSION_COMMON_SHORT, block)
 
             conv_type = self['conversion_type']
 
-            if conv_type == v3c.CONVERSION_TYPE_LINEAR:
+            if conv_type == v2c.CONVERSION_TYPE_LINEAR:
                 (self['b'],
-                 self['a']) = unpack_from('<2d', block, v3c.CC_COMMON_SHORT_SIZE)
-                if not size == v3c.CC_LIN_BLOCK_SIZE:
-                    self['CANapeHiddenExtra'] = block[v3c.CC_LIN_BLOCK_SIZE - 4:]
+                 self['a']) = unpack_from('<2d', block, v2c.CC_COMMON_SHORT_SIZE)
+                if not size == v2c.CC_LIN_BLOCK_SIZE:
+                    self['CANapeHiddenExtra'] = block[v2c.CC_LIN_BLOCK_SIZE - 4:]
 
-            elif conv_type == v3c.CONVERSION_TYPE_NONE:
+            elif conv_type == v2c.CONVERSION_TYPE_NONE:
                 pass
 
-            elif conv_type == v3c.CONVERSION_TYPE_FORMULA:
-                self['formula'] = block[v3c.CC_COMMON_SHORT_SIZE:]
+            elif conv_type == v2c.CONVERSION_TYPE_FORMULA:
+                self['formula'] = block[v2c.CC_COMMON_SHORT_SIZE:]
 
-            elif conv_type in (v3c.CONVERSION_TYPE_TABI, v3c.CONVERSION_TYPE_TABX):
+            elif conv_type in (v2c.CONVERSION_TYPE_TABI, v2c.CONVERSION_TYPE_TABX):
                 nr = self['ref_param_nr']
-                values = unpack_from('<{}d'.format(2*nr), block, v3c.CC_COMMON_SHORT_SIZE)
+                values = unpack_from('<{}d'.format(2*nr), block, v2c.CC_COMMON_SHORT_SIZE)
                 for i in range(nr):
                     (self['raw_{}'.format(i)],
                      self['phys_{}'.format(i)]) = values[i*2], values[2*i+1]
 
-            elif conv_type in (v3c.CONVERSION_TYPE_POLY, v3c.CONVERSION_TYPE_RAT):
+            elif conv_type in (v2c.CONVERSION_TYPE_POLY, v2c.CONVERSION_TYPE_RAT):
                 (self['P1'],
                  self['P2'],
                  self['P3'],
@@ -332,28 +328,28 @@ class ChannelConversion(dict):
                  self['P5'],
                  self['P6']) = unpack_from('<6d', block)
 
-            elif conv_type in (v3c.CONVERSION_TYPE_EXPO, v3c.CONVERSION_TYPE_LOGH):
+            elif conv_type in (v2c.CONVERSION_TYPE_EXPO, v2c.CONVERSION_TYPE_LOGH):
                 (self['P1'],
                  self['P2'],
                  self['P3'],
                  self['P4'],
                  self['P5'],
                  self['P6'],
-                 self['P7']) = unpack_from('<7d', block, v3c.CC_COMMON_SHORT_SIZE)
+                 self['P7']) = unpack_from('<7d', block, v2c.CC_COMMON_SHORT_SIZE)
 
-            elif conv_type == v3c.CONVERSION_TYPE_VTAB:
+            elif conv_type == v2c.CONVERSION_TYPE_VTAB:
                 nr = self['ref_param_nr']
 
-                values = unpack_from('<' + 'd32s' * nr, block, v3c.CC_COMMON_SHORT_SIZE)
+                values = unpack_from('<' + 'd32s' * nr, block, v2c.CC_COMMON_SHORT_SIZE)
 
                 for i in range(nr):
                     (self['param_val_{}'.format(i)],
                      self['text_{}'.format(i)]) = values[i*2], values[2*i+1]
 
-            elif conv_type == v3c.CONVERSION_TYPE_VTABR:
+            elif conv_type == v2c.CONVERSION_TYPE_VTABR:
                 nr = self['ref_param_nr']
 
-                values = unpack_from('<' + '2dI' * nr, block, v3c.CC_COMMON_SHORT_SIZE)
+                values = unpack_from('<' + '2dI' * nr, block, v2c.CC_COMMON_SHORT_SIZE)
                 for i in range(nr):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
@@ -362,35 +358,35 @@ class ChannelConversion(dict):
             self.address = 0
             self['id'] = 'CC'.encode('latin-1')
 
-            if kargs['conversion_type'] == v3c.CONVERSION_TYPE_NONE:
-                self['block_len'] = kargs.get('block_len', v3c.CC_COMMON_BLOCK_SIZE)
+            if kargs['conversion_type'] == v2c.CONVERSION_TYPE_NONE:
+                self['block_len'] = kargs.get('block_len', v2c.CC_COMMON_BLOCK_SIZE)
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = v3c.CONVERSION_TYPE_NONE
+                self['conversion_type'] = v2c.CONVERSION_TYPE_NONE
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
 
-            elif kargs['conversion_type'] == v3c.CONVERSION_TYPE_LINEAR:
-                self['block_len'] = kargs.get('block_len', v3c.CC_LIN_BLOCK_SIZE)
+            elif kargs['conversion_type'] == v2c.CONVERSION_TYPE_LINEAR:
+                self['block_len'] = kargs.get('block_len', v2c.CC_LIN_BLOCK_SIZE)
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = v3c.CONVERSION_TYPE_LINEAR
+                self['conversion_type'] = v2c.CONVERSION_TYPE_LINEAR
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['b'] = kargs.get('b', 0)
                 self['a'] = kargs.get('a', 1)
-                if not self['block_len'] == v3c.CC_LIN_BLOCK_SIZE:
+                if not self['block_len'] == v2c.CC_LIN_BLOCK_SIZE:
                     self['CANapeHiddenExtra'] = kargs['CANapeHiddenExtra']
 
-            elif kargs['conversion_type'] in (v3c.CONVERSION_TYPE_POLY, v3c.CONVERSION_TYPE_RAT):
-                self['block_len'] = kargs.get('block_len', v3c.CC_POLY_BLOCK_SIZE)
+            elif kargs['conversion_type'] in (v2c.CONVERSION_TYPE_POLY, v2c.CONVERSION_TYPE_RAT):
+                self['block_len'] = kargs.get('block_len', v2c.CC_POLY_BLOCK_SIZE)
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_POLY)
+                self['conversion_type'] = kargs.get('conversion_type', v2c.CONVERSION_TYPE_POLY)
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['P1'] = kargs.get('P1', 0)
                 self['P2'] = kargs.get('P2', 0)
@@ -399,13 +395,13 @@ class ChannelConversion(dict):
                 self['P5'] = kargs.get('P5', 0)
                 self['P6'] = kargs.get('P6', 0)
 
-            elif kargs['conversion_type'] in (v3c.CONVERSION_TYPE_EXPO, v3c.CONVERSION_TYPE_LOGH):
-                self['block_len'] = kargs.get('block_len', v3c.CC_EXPO_BLOCK_SIZE)
+            elif kargs['conversion_type'] in (v2c.CONVERSION_TYPE_EXPO, v2c.CONVERSION_TYPE_LOGH):
+                self['block_len'] = kargs.get('block_len', v2c.CC_EXPO_BLOCK_SIZE)
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_EXPO)
+                self['conversion_type'] = kargs.get('conversion_type', v2c.CONVERSION_TYPE_EXPO)
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['P1'] = kargs.get('P1', 0)
                 self['P2'] = kargs.get('P2', 0)
@@ -415,51 +411,51 @@ class ChannelConversion(dict):
                 self['P6'] = kargs.get('P6', 0)
                 self['P7'] = kargs.get('P7', 0)
 
-            elif kargs['conversion_type'] == v3c.CONVERSION_TYPE_FORMULA:
-                self['block_len'] = kargs.get('block_len', v3c.CC_POLY_BLOCK_SIZE)
+            elif kargs['conversion_type'] == v2c.CONVERSION_TYPE_FORMULA:
+                self['block_len'] = kargs.get('block_len', v2c.CC_POLY_BLOCK_SIZE)
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_FORMULA)
+                self['conversion_type'] = kargs.get('conversion_type', v2c.CONVERSION_TYPE_FORMULA)
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['formula'] = kargs.get('formula', b'X1'+b'\0'*254)
 
-            elif kargs['conversion_type'] in (v3c.CONVERSION_TYPE_TABI, v3c.CONVERSION_TYPE_TABX):
+            elif kargs['conversion_type'] in (v2c.CONVERSION_TYPE_TABI, v2c.CONVERSION_TYPE_TABX):
                 nr = kargs['ref_param_nr']
                 self['block_len'] = kargs['block_len']
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_TABI)
+                self['conversion_type'] = kargs.get('conversion_type', v2c.CONVERSION_TYPE_TABI)
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 for i in range(nr):
                     self['raw_{}'.format(i)] = kargs['raw_{}'.format(i)]
                     self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
 
-            elif kargs['conversion_type'] == v3c.CONVERSION_TYPE_VTAB:
+            elif kargs['conversion_type'] == v2c.CONVERSION_TYPE_VTAB:
                 nr = kargs['ref_param_nr']
-                self['block_len'] = kargs.get('block_len', v3c.CC_COMMON_BLOCK_SIZE + 40*nr)
+                self['block_len'] = kargs.get('block_len', v2c.CC_COMMON_BLOCK_SIZE + 40*nr)
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = v3c.CONVERSION_TYPE_VTAB
+                self['conversion_type'] = v2c.CONVERSION_TYPE_VTAB
                 self['ref_param_nr'] = nr
 
                 for i in range(nr):
                     self['param_val_{}'.format(i)] = kargs['param_val_{}'.format(i)]
                     self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
 
-            elif kargs['conversion_type'] == v3c.CONVERSION_TYPE_VTABR:
+            elif kargs['conversion_type'] == v2c.CONVERSION_TYPE_VTABR:
                 nr = kargs.get('ref_param_nr', 0)
-                self['block_len'] = kargs.get('block_len', v3c.CC_COMMON_BLOCK_SIZE + 20*nr)
+                self['block_len'] = kargs.get('block_len', v2c.CC_COMMON_BLOCK_SIZE + 20*nr)
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = v3c.CONVERSION_TYPE_VTABR
+                self['conversion_type'] = v2c.CONVERSION_TYPE_VTABR
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
 
                 for i in range(self['ref_param_nr']):
@@ -473,58 +469,58 @@ class ChannelConversion(dict):
         conv = self['conversion_type']
 
         # compute the fmt
-        if conv == v3c.CONVERSION_TYPE_NONE:
-            fmt = v3c.FMT_CONVERSION_COMMON
-        elif conv == v3c.CONVERSION_TYPE_FORMULA:
-            fmt = v3c.FMT_CONVERSION_FORMULA
-        elif conv == v3c.CONVERSION_TYPE_LINEAR:
-            fmt = v3c.FMT_CONVERSION_LINEAR
-            if not self['block_len'] == v3c.CC_LIN_BLOCK_SIZE:
-                fmt += '{}s'.format(self['block_len'] - v3c.CC_LIN_BLOCK_SIZE)
-        elif conv in (v3c.CONVERSION_TYPE_POLY, v3c.CONVERSION_TYPE_RAT):
-            fmt = v3c.FMT_CONVERSION_POLY_RAT
-        elif conv in (v3c.CONVERSION_TYPE_EXPO, v3c.CONVERSION_TYPE_LOGH):
-            fmt = v3c.FMT_CONVERSION_EXPO_LOGH
-        elif conv in (v3c.CONVERSION_TYPE_TABI, v3c.CONVERSION_TYPE_TABX):
+        if conv == v2c.CONVERSION_TYPE_NONE:
+            fmt = v2c.FMT_CONVERSION_COMMON
+        elif conv == v2c.CONVERSION_TYPE_FORMULA:
+            fmt = v2c.FMT_CONVERSION_FORMULA
+        elif conv == v2c.CONVERSION_TYPE_LINEAR:
+            fmt = v2c.FMT_CONVERSION_LINEAR
+            if not self['block_len'] == v2c.CC_LIN_BLOCK_SIZE:
+                fmt += '{}s'.format(self['block_len'] - v2c.CC_LIN_BLOCK_SIZE)
+        elif conv in (v2c.CONVERSION_TYPE_POLY, v2c.CONVERSION_TYPE_RAT):
+            fmt = v2c.FMT_CONVERSION_POLY_RAT
+        elif conv in (v2c.CONVERSION_TYPE_EXPO, v2c.CONVERSION_TYPE_LOGH):
+            fmt = v2c.FMT_CONVERSION_EXPO_LOGH
+        elif conv in (v2c.CONVERSION_TYPE_TABI, v2c.CONVERSION_TYPE_TABX):
             nr = self['ref_param_nr']
-            fmt = v3c.FMT_CONVERSION_COMMON + '{}d'.format(nr * 2)
-        elif conv == v3c.CONVERSION_TYPE_VTABR:
+            fmt = v2c.FMT_CONVERSION_COMMON + '{}d'.format(nr * 2)
+        elif conv == v2c.CONVERSION_TYPE_VTABR:
             nr = self['ref_param_nr']
-            fmt = v3c.FMT_CONVERSION_COMMON + '2dI' * nr
-        elif conv == v3c.CONVERSION_TYPE_VTAB:
+            fmt = v2c.FMT_CONVERSION_COMMON + '2dI' * nr
+        elif conv == v2c.CONVERSION_TYPE_VTAB:
             nr = self['ref_param_nr']
-            fmt = v3c.FMT_CONVERSION_COMMON + 'd32s' * nr
+            fmt = v2c.FMT_CONVERSION_COMMON + 'd32s' * nr
 
         # compute the keys only for Python < 3.6
         if PYVERSION_MAJOR < 36:
-            if conv == v3c.CONVERSION_TYPE_NONE:
-                keys = v3c.KEYS_CONVESION_NONE
-            elif conv == v3c.CONVERSION_TYPE_FORMULA:
-                keys = v3c.KEYS_CONVESION_FORMULA
-            elif conv == v3c.CONVERSION_TYPE_LINEAR:
-                keys = v3c.KEYS_CONVESION_LINEAR
-                if not self['block_len'] == v3c.CC_LIN_BLOCK_SIZE:
+            if conv == v2c.CONVERSION_TYPE_NONE:
+                keys = v2c.KEYS_CONVESION_NONE
+            elif conv == v2c.CONVERSION_TYPE_FORMULA:
+                keys = v2c.KEYS_CONVESION_FORMULA
+            elif conv == v2c.CONVERSION_TYPE_LINEAR:
+                keys = v2c.KEYS_CONVESION_LINEAR
+                if not self['block_len'] == v2c.CC_LIN_BLOCK_SIZE:
                     keys += ('CANapeHiddenExtra',)
-            elif conv in (v3c.CONVERSION_TYPE_POLY, v3c.CONVERSION_TYPE_RAT):
-                keys = v3c.KEYS_CONVESION_POLY_RAT
-            elif conv in (v3c.CONVERSION_TYPE_EXPO, v3c.CONVERSION_TYPE_LOGH):
-                keys = v3c.KEYS_CONVESION_EXPO_LOGH
-            elif conv in (v3c.CONVERSION_TYPE_TABI, v3c.CONVERSION_TYPE_TABX):
+            elif conv in (v2c.CONVERSION_TYPE_POLY, v2c.CONVERSION_TYPE_RAT):
+                keys = v2c.KEYS_CONVESION_POLY_RAT
+            elif conv in (v2c.CONVERSION_TYPE_EXPO, v2c.CONVERSION_TYPE_LOGH):
+                keys = v2c.KEYS_CONVESION_EXPO_LOGH
+            elif conv in (v2c.CONVERSION_TYPE_TABI, v2c.CONVERSION_TYPE_TABX):
                 nr = self['ref_param_nr']
-                keys = list(v3c.KEYS_CONVESION_NONE)
+                keys = list(v2c.KEYS_CONVESION_NONE)
                 for i in range(nr):
                     keys.append('raw_{}'.format(i))
                     keys.append('phys_{}'.format(i))
-            elif conv == v3c.CONVERSION_TYPE_VTABR:
+            elif conv == v2c.CONVERSION_TYPE_VTABR:
                 nr = self['ref_param_nr']
-                keys = list(v3c.KEYS_CONVESION_NONE)
+                keys = list(v2c.KEYS_CONVESION_NONE)
                 for i in range(nr):
                     keys.append('lower_{}'.format(i))
                     keys.append('upper_{}'.format(i))
                     keys.append('text_{}'.format(i))
-            elif conv == v3c.CONVERSION_TYPE_VTAB:
+            elif conv == v2c.CONVERSION_TYPE_VTAB:
                 nr = self['ref_param_nr']
-                keys = list(v3c.KEYS_CONVESION_NONE)
+                keys = list(v2c.KEYS_CONVESION_NONE)
                 for i in range(nr):
                     keys.append('param_val_{}'.format(i))
                     keys.append('text_{}'.format(i))
@@ -695,34 +691,34 @@ class ChannelExtension(dict):
             stream.seek(address, SEEK_START)
             (self['id'],
              self['block_len'],
-             self['type']) = unpack(v3c.FMT_SOURCE_COMMON, stream.read(6))
+             self['type']) = unpack(v2c.FMT_SOURCE_COMMON, stream.read(6))
             block = stream.read(self['block_len'] - 6)
 
-            if self['type'] == v3c.SOURCE_ECU:
+            if self['type'] == v2c.SOURCE_ECU:
                 (self['module_nr'],
                  self['module_address'],
                  self['description'],
                  self['ECU_identification'],
-                 self['reserved0']) = unpack(v3c.FMT_SOURCE_EXTRA_ECU, block)
-            elif self['type'] == v3c.SOURCE_VECTOR:
+                 self['reserved0']) = unpack(v2c.FMT_SOURCE_EXTRA_ECU, block)
+            elif self['type'] == v2c.SOURCE_VECTOR:
                 (self['CAN_id'],
                  self['CAN_ch_index'],
                  self['message_name'],
                  self['sender_name'],
-                 self['reserved0']) = unpack(v3c.FMT_SOURCE_EXTRA_VECTOR, block)
+                 self['reserved0']) = unpack(v2c.FMT_SOURCE_EXTRA_VECTOR, block)
         except KeyError:
 
             self.address = 0
             self['id'] = kargs.get('id', 'CE'.encode('latin-1'))
-            self['block_len'] = kargs.get('block_len', v3c.CE_BLOCK_SIZE)
+            self['block_len'] = kargs.get('block_len', v2c.CE_BLOCK_SIZE)
             self['type'] = kargs.get('type', 2)
-            if self['type'] == v3c.SOURCE_ECU:
+            if self['type'] == v2c.SOURCE_ECU:
                 self['module_nr'] = kargs.get('module_nr', 0)
                 self['module_address'] = kargs.get('module_address', 0)
                 self['description'] = kargs.get('description', '\0'.encode('latin-1'))
                 self['ECU_identification'] = kargs.get('ECU_identification', '\0'.encode('latin-1'))
                 self['reserved0'] = kargs.get('reserved0', '\0'.encode('latin-1'))
-            elif self['type'] == v3c.SOURCE_VECTOR:
+            elif self['type'] == v2c.SOURCE_VECTOR:
                 self['CAN_id'] = kargs.get('CAN_id', 0)
                 self['CAN_ch_index'] = kargs.get('CAN_ch_index', 0)
                 self['message_name'] = kargs.get('message_name', '\0'.encode('latin-1'))
@@ -731,12 +727,12 @@ class ChannelExtension(dict):
 
     def __bytes__(self):
         typ = self['type']
-        if typ == v3c.SOURCE_ECU:
-            fmt = v3c.FMT_SOURCE_ECU
-            keys = v3c.KEYS_SOURCE_ECU
+        if typ == v2c.SOURCE_ECU:
+            fmt = v2c.FMT_SOURCE_ECU
+            keys = v2c.KEYS_SOURCE_ECU
         else:
-            fmt = v3c.FMT_SOURCE_VECTOR
-            keys = v3c.KEYS_SOURCE_VECTOR
+            fmt = v2c.FMT_SOURCE_VECTOR
+            keys = v2c.KEYS_SOURCE_VECTOR
 
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
@@ -798,7 +794,7 @@ class ChannelGroup(dict):
             stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
-            block = stream.read(v3c.CG_BLOCK_SIZE)
+            block = stream.read(v2c.CG_BLOCK_SIZE)
 
             (self['id'],
              self['block_len'],
@@ -808,13 +804,13 @@ class ChannelGroup(dict):
              self['record_id'],
              self['ch_nr'],
              self['samples_byte_nr'],
-             self['cycles_nr']) = unpack(v3c.FMT_CHANNEL_GROUP, block)
-            if self['block_len'] == v3c.CG33_BLOCK_SIZE:
+             self['cycles_nr']) = unpack(v2c.FMT_CHANNEL_GROUP, block)
+            if self['block_len'] == v2c.CG33_BLOCK_SIZE:
                 self['sample_reduction_addr'] = unpack('<I', stream.read(4))[0]
         except KeyError:
             self.address = 0
             self['id'] = kargs.get('id', 'CG'.encode('latin-1'))
-            self['block_len'] = kargs.get('block_len', v3c.CG_BLOCK_SIZE)
+            self['block_len'] = kargs.get('block_len', v2c.CG_BLOCK_SIZE)
             self['next_cg_addr'] = kargs.get('next_cg_addr', 0)
             self['first_ch_addr'] = kargs.get('first_ch_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
@@ -822,13 +818,13 @@ class ChannelGroup(dict):
             self['ch_nr'] = kargs.get('ch_nr', 0)
             self['samples_byte_nr'] = kargs.get('samples_byte_nr', 0)
             self['cycles_nr'] = kargs.get('cycles_nr', 0)
-            if self['block_len'] == v3c.CG33_BLOCK_SIZE:
+            if self['block_len'] == v2c.CG33_BLOCK_SIZE:
                 self['sample_reduction_addr'] = 0
 
     def __bytes__(self):
-        fmt = v3c.FMT_CHANNEL_GROUP
-        keys = v3c.KEYS_CHANNEL_GROUP
-        if self['block_len'] == v3c.CG33_BLOCK_SIZE:
+        fmt = v2c.FMT_CHANNEL_GROUP
+        keys = v2c.KEYS_CHANNEL_GROUP
+        if self['block_len'] == v2c.CG33_BLOCK_SIZE:
             fmt += 'I'
             keys += ('sample_reduction_addr',)
         if PYVERSION_MAJOR >= 36:
@@ -923,7 +919,7 @@ class DataGroup(dict):
             stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
-            block = stream.read(v3c.DG31_BLOCK_SIZE)
+            block = stream.read(v2c.DG31_BLOCK_SIZE)
 
             (self['id'],
              self['block_len'],
@@ -932,31 +928,31 @@ class DataGroup(dict):
              self['trigger_addr'],
              self['data_block_addr'],
              self['cg_nr'],
-             self['record_id_nr']) = unpack(v3c.FMT_DATA_GROUP, block)
+             self['record_id_nr']) = unpack(v2c.FMT_DATA_GROUP, block)
 
-            if self['block_len'] == v3c.DG32_BLOCK_SIZE:
+            if self['block_len'] == v2c.DG32_BLOCK_SIZE:
                 self['reserved0'] = stream.read(4)
 
         except KeyError:
             self.address = 0
             self['id'] = kargs.get('id', 'DG'.encode('latin-1'))
-            self['block_len'] = kargs.get('block_len', v3c. DG32_BLOCK_SIZE)
+            self['block_len'] = kargs.get('block_len', v2c. DG32_BLOCK_SIZE)
             self['next_dg_addr'] = kargs.get('next_dg_addr', 0)
             self['first_cg_addr'] = kargs.get('first_cg_addr', 0)
             self['trigger_addr'] = kargs.get('comment_addr', 0)
             self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['cg_nr'] = kargs.get('cg_nr', 1)
             self['record_id_nr'] = kargs.get('record_id_nr', 0)
-            if self['block_len'] == v3c.DG32_BLOCK_SIZE:
+            if self['block_len'] == v2c.DG32_BLOCK_SIZE:
                 self['reserved0'] = b'\0\0\0\0'
 
     def __bytes__(self):
-        if self['block_len'] == v3c.DG32_BLOCK_SIZE:
-            fmt = v3c.FMT_DATA_GROUP_32
-            keys = v3c.KEYS_DATA_GROUP_32
+        if self['block_len'] == v2c.DG32_BLOCK_SIZE:
+            fmt = v2c.FMT_DATA_GROUP_32
+            keys = v2c.KEYS_DATA_GROUP_32
         else:
-            fmt = v3c.FMT_DATA_GROUP
-            keys = v3c.KEYS_DATA_GROUP
+            fmt = v2c.FMT_DATA_GROUP
+            keys = v2c.KEYS_DATA_GROUP
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
@@ -1019,13 +1015,13 @@ class FileIdentificationBlock(dict):
              self['reserved0'],
              self['reserved1'],
              self['unfinalized_standard_flags'],
-             self['unfinalized_custom_flags']) = unpack(v3c.ID_FMT, stream.read(v3c.ID_BLOCK_SIZE))
+             self['unfinalized_custom_flags']) = unpack(v2c.ID_FMT, stream.read(v2c.ID_BLOCK_SIZE))
         except KeyError:
             version = kargs['version']
             self['file_identification'] = 'MDF     '.encode('latin-1')
             self['version_str'] = version.encode('latin-1') + b'\0' * 4
             self['program_identification'] = 'Python  '.encode('latin-1')
-            self['byte_order'] = v3c.BYTE_ORDER_INTEL
+            self['byte_order'] = v2c.BYTE_ORDER_INTEL
             self['float_format'] = 0
             self['mdf_version'] = int(version.replace('.', ''))
             self['code_page'] = 0
@@ -1036,9 +1032,9 @@ class FileIdentificationBlock(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            result = pack(v3c.ID_FMT, *self.values())
+            result = pack(v2c.ID_FMT, *self.values())
         else:
-            result = pack(v3c.ID_FMT, *[self[key] for key in v3c.ID_KEYS])
+            result = pack(v2c.ID_FMT, *[self[key] for key in v2c.ID_KEYS])
         return result
 
 
@@ -1104,18 +1100,18 @@ class HeaderBlock(dict):
              self['author'],
              self['organization'],
              self['project'],
-             self['subject']) = unpack(v3c.HEADER_COMMON_FMT, stream.read(v3c.HEADER_COMMON_SIZE))
+             self['subject']) = unpack(v2c.HEADER_COMMON_FMT, stream.read(v2c.HEADER_COMMON_SIZE))
 
-            if self['block_len'] > v3c.HEADER_COMMON_SIZE:
+            if self['block_len'] > v2c.HEADER_COMMON_SIZE:
                 (self['abs_time'],
                  self['tz_offset'],
                  self['time_quality'],
-                 self['timer_identification']) = unpack(v3c.HEADER_POST_320_EXTRA_FMT, stream.read(v3c.HEADER_POST_320_EXTRA_SIZE))
+                 self['timer_identification']) = unpack(v2c.HEADER_POST_320_EXTRA_FMT, stream.read(v2c.HEADER_POST_320_EXTRA_SIZE))
 
         except KeyError:
-            version = kargs.get('version', '3.20')
+            version = kargs.get('version', '2.14')
             self['id'] = 'HD'.encode('latin-1')
-            self['block_len'] = 208 if version in ('3.20', '3.30') else 164
+            self['block_len'] = 164
             self['first_dg_addr'] = 0
             self['comment_addr'] = 0
             self['program_addr'] = 0
@@ -1129,18 +1125,18 @@ class HeaderBlock(dict):
             self['project'] = '{:\0<32}'.format('').encode('latin-1')
             self['subject'] = '{:\0<32}'.format('').encode('latin-1')
 
-            if self['block_len'] > v3c.HEADER_COMMON_SIZE:
+            if self['block_len'] > v2c.HEADER_COMMON_SIZE:
                 self['abs_time'] = int(t1)
                 self['tz_offset'] = 2
                 self['time_quality'] = 0
                 self['timer_identification'] = '{:\0<32}'.format('Local PC Reference Time').encode('latin-1')
 
     def __bytes__(self):
-        fmt = v3c.HEADER_COMMON_FMT
-        keys = v3c.HEADER_COMMON_KEYS
-        if self['block_len'] > v3c.HEADER_COMMON_SIZE:
-            fmt += v3c.HEADER_POST_320_EXTRA_FMT
-            keys += v3c.HEADER_POST_320_EXTRA_KEYS
+        fmt = v2c.HEADER_COMMON_FMT
+        keys = v2c.HEADER_COMMON_KEYS
+        if self['block_len'] > v2c.HEADER_COMMON_SIZE:
+            fmt += v2c.HEADER_POST_320_EXTRA_FMT
+            keys += v2c.HEADER_POST_320_EXTRA_KEYS
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
@@ -1192,11 +1188,11 @@ class ProgramBlock(dict):
             pass
 
     def __bytes__(self):
-        fmt = v3c.FMT_PROGRAM_BLOCK.format(self['block_len'])
+        fmt = v2c.FMT_PROGRAM_BLOCK.format(self['block_len'])
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
-            result = pack(fmt, *[self[key] for key in v3c.KEYS_PROGRAM_BLOCK])
+            result = pack(fmt, *[self[key] for key in v2c.KEYS_PROGRAM_BLOCK])
         return result
 
 
@@ -1241,13 +1237,13 @@ class SampleReduction(dict):
              self['next_sr_addr'],
              self['data_block_addr'],
              self['cycles_nr'],
-             self['time_interval']) = unpack(v3c.FMT_SAMPLE_REDUCTION_BLOCK, stream.read(v3c.SR_BLOCK_SIZE))
+             self['time_interval']) = unpack(v2c.FMT_SAMPLE_REDUCTION_BLOCK, stream.read(v2c.SR_BLOCK_SIZE))
 
         except KeyError:
             pass
 
     def __bytes__(self):
-        result = pack(v3c.FMT_SAMPLE_REDUCTION_BLOCK, *[self[key] for key in v3c.KEYS_SAMPLE_REDUCTION_BLOCK])
+        result = pack(v2c.FMT_SAMPLE_REDUCTION_BLOCK, *[self[key] for key in v2c.KEYS_SAMPLE_REDUCTION_BLOCK])
         return result
 
 
@@ -1297,6 +1293,7 @@ class TextBlock(dict):
 
             stream = kargs['stream']
             self.address = address = kargs['address']
+
             stream.seek(address, SEEK_START)
             (self['id'],
              self['block_len']) = unpack('<2sH', stream.read(4))
@@ -1326,7 +1323,7 @@ class TextBlock(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack('<2sH{}s'.format(self['block_len']-4), *self.values())
         else:
-            result = pack('<2sH{}s'.format(self['block_len']-4), *[self[key] for key in v3c.KEYS_TEXT_BLOCK])
+            result = pack('<2sH{}s'.format(self['block_len']-4), *[self[key] for key in v2c.KEYS_TEXT_BLOCK])
         return result
 
 
