@@ -808,6 +808,8 @@ class MDF4(object):
         """
 
         if address:
+            if self._file.closed:
+                self._file = open(self.name, 'rb')
             stream = self._file
             stream.seek(address, v4c.SEEK_START)
             blk_id = stream.read(4)
@@ -856,6 +858,8 @@ class MDF4(object):
                 message = message.format(hex(address), blk_id)
                 warnings.warn(message)
                 data = b''
+            if self.memory == 'full':
+                self.close()
         else:
             data = b''
 
