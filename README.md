@@ -1,4 +1,4 @@
-[![PyPI version](https://badge.fury.io/py/asammdf.svg)](https://badge.fury.io/py/asammdf) [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=stable)](http://asammdf.readthedocs.io/en/stable/?badge=stable) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) 
+[![PyPI version](https://badge.fury.io/py/asammdf.svg)](https://badge.fury.io/py/asammdf) [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=master)](http://asammdf.readthedocs.io/en/master/?badge=stable) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) 
 
 *asammdf* is a fast parser/editor for ASAM (Associtation for Standardisation of Automation and Measuring Systems) MDF (Measurement Data Format) files. 
 
@@ -91,11 +91,11 @@ Usage
 ```  
  
 Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/latest/examples.html
+http://asammdf.readthedocs.io/en/master/examples.html
 
 Documentation
 =============
-http://asammdf.readthedocs.io/en/latest
+http://asammdf.readthedocs.io/en/master
 
 Installation
 ============
@@ -127,5 +127,5 @@ optional dependencies needed for exports
 Benchmarks
 ==========
 
-http://asammdf.readthedocs.io/en/latest/benchmarks.html
+http://asammdf.readthedocs.io/en/master/benchmarks.html
 

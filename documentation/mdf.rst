@@ -39,12 +39,13 @@ Best practice is to use the MDF as a context manager. This way all resources are
 .. autoclass:: asammdf.mdf.MDF
     :members:
     
-MDF3 and MDF4 classes
----------------------
+MDF2, MDF3 and MDF4 classes
+---------------------------
 
 .. toctree::
    :maxdepth: 1
    
+   mdf2
    mdf3
    mdf4
 
