@@ -67,8 +67,8 @@ from .v2blocks import (
 )
 
 
-get_fmt = partial(get_fmt, version=3)
-fmt_to_datatype = partial(fmt_to_datatype, version=3)
+get_fmt = partial(get_fmt, version=2)
+fmt_to_datatype = partial(fmt_to_datatype, version=2)
 
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
@@ -95,7 +95,7 @@ class MDF2(object):
         * if *minimum* only minimal data is memoryed into RAM
 
     version : string
-        mdf file version ('3.00', '3.10', '3.20' or '3.30'); default '3.30'
+        mdf file version ('2.00' or '2.14'); default '2.14'
 
     Attributes
     ----------
@@ -123,7 +123,7 @@ class MDF2(object):
     _compact_integers_on_append = False
     _overwrite = False
 
-    def __init__(self, name=None, memory=2, version='3.30'):
+    def __init__(self, name=None, memory=2, version='2.14'):
         self.groups = []
         self.header = None
         self.identification = None
