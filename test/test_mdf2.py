@@ -8,9 +8,9 @@ from asammdf import MDF2
 
 
 
-class TestMDF3(unittest.TestCase):
+class TestMDF2(unittest.TestCase):
 
-    def test_measurement(self):
+    def test_mdf2_exists(self):
         self.assertTrue(MDF2)
 
     def test_read_mdf2_00(self):
