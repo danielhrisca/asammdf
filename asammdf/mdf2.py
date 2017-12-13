@@ -958,14 +958,14 @@ class MDF2(object):
         >>> s1 = Signal(samples=s1, timstamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timstamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timstamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF3('new.mdf')
+        >>> mdf = MDF2('new.mdf')
         >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
         >>> # case 2: VTAB conversions from channels inside another file
-        >>> mdf1 = MDF3('in.mdf')
+        >>> mdf1 = MDF2('in.mdf')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
         >>> sigs = [ch1, ch2]
-        >>> mdf2 = MDF3('out.mdf')
+        >>> mdf2 = MDF2('out.mdf')
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
 
         """
@@ -2734,7 +2734,7 @@ class MDF2(object):
 
         Examples
         --------
-        >>> mdf = MDF3('test.mdf')
+        >>> mdf = MDF2('test.mdf')
         >>> mdf.info()
 
         """
