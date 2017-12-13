@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import os
-import sys
 import unittest
 
 from utils import get_test_data
