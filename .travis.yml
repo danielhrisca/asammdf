@@ -13,7 +13,7 @@ script:
   - python --version
   - python -m coverage run test/run_all.py
   - python -m coverage xml -i --include *\\asammdf\\*
-  - python -m pylint --rcfile pylint.cfg -f parseable asammdf || exit 0
-  
+
 after_success:
   - coveralls
+  - python -m pylint --rcfile pylint.cfg -f parseable asammdf

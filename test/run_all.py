@@ -16,7 +16,7 @@ def main():
     tests = unittest.TestLoader().discover('.', 'test_*.py')
     testResult = xmlrunner.XMLTestRunner(output='test-reports').run(tests)
 
-    return int(not testResult.wasSuccessful())
+    return not testResult.wasSuccessful()
 
 if __name__ == '__main__':
     sys.exit(main())
