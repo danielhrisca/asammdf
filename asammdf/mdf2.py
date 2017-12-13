@@ -67,8 +67,8 @@ from .v2blocks import (
 )
 
 
-get_fmt = partial(get_fmt, version=3)
-fmt_to_datatype = partial(fmt_to_datatype, version=3)
+get_fmt = partial(get_fmt, version=2)
+fmt_to_datatype = partial(fmt_to_datatype, version=2)
 
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
@@ -95,7 +95,7 @@ class MDF2(object):
         * if *minimum* only minimal data is memoryed into RAM
 
     version : string
-        mdf file version ('3.00', '3.10', '3.20' or '3.30'); default '3.30'
+        mdf file version ('2.00' or '2.14'); default '2.14'
 
     Attributes
     ----------
@@ -123,7 +123,7 @@ class MDF2(object):
     _compact_integers_on_append = False
     _overwrite = False
 
-    def __init__(self, name=None, memory=2, version='3.30'):
+    def __init__(self, name=None, memory=2, version='2.14'):
         self.groups = []
         self.header = None
         self.identification = None
@@ -958,14 +958,14 @@ class MDF2(object):
         >>> s1 = Signal(samples=s1, timstamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timstamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timstamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF3('new.mdf')
+        >>> mdf = MDF2('new.mdf')
         >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
         >>> # case 2: VTAB conversions from channels inside another file
-        >>> mdf1 = MDF3('in.mdf')
+        >>> mdf1 = MDF2('in.mdf')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
         >>> sigs = [ch1, ch2]
-        >>> mdf2 = MDF3('out.mdf')
+        >>> mdf2 = MDF2('out.mdf')
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
 
         """
@@ -2734,7 +2734,7 @@ class MDF2(object):
 
         Examples
         --------
-        >>> mdf = MDF3('test.mdf')
+        >>> mdf = MDF2('test.mdf')
         >>> mdf.info()
 
         """

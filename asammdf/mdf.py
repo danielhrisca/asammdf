@@ -19,7 +19,7 @@ from .v3blocks import Channel as ChannelV3
 from .v4blocks import TextBlock as TextBlockV4
 
 
-MDF2_VERSIONS = ('2.14',)
+MDF2_VERSIONS = ('2.00', '2.14')
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
 MDF4_VERSIONS = ('4.00', '4.10', '4.11')
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
@@ -45,8 +45,8 @@ class MDF(object):
             * if *minimum* only minimal data is loaded into RAM
 
     version : string
-        mdf file version ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10',
-        '4.11'); default '4.10'
+        mdf file version from ('2.00', '2.14', '3.00', '3.10', '3.20', '3.30',
+        '4.00', '4.10', '4.11'); default '4.10'
 
     """
     def __init__(self, name=None, memory='full', version='4.10'):
@@ -139,8 +139,8 @@ class MDF(object):
         Parameters
         ----------
         to : str
-            new mdf version from ('3.00', '3.10', '3.20', '3.30', '4.00',
-            '4.10', '4.11')
+            new mdf version from ('2.00', '2.14', '3.00', '3.10', '3.20',
+            '3.30', '4.00', '4.10', '4.11')
         memory : str
             memory option; default `full`
 

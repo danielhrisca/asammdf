@@ -10,10 +10,6 @@ class TestMDF3(unittest.TestCase):
 
     def test_measurement(self):
         self.assertTrue(MDF3)
-    
-    @unittest.skip
-    def test_read_mdf2_00(self):
-        self.assertTrue(MDF3(get_test_data('test_meas_2.00.mdf')))
 
     def test_read_mdf3_00(self):
         self.assertTrue(MDF3(get_test_data('test_meas_3.00.mdf')))
