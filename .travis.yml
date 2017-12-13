@@ -10,6 +10,7 @@ install:
   - pip install -r pip_requirements_tests.txt
 # command to run tests
 script:
+  - set -e
   - python --version
   - python -m coverage run test/run_all.py
   - python -m coverage xml -i --include *\\asammdf\\*
