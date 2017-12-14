@@ -1302,8 +1302,7 @@ class MDF4(object):
         # be saved as new signals.
         simple_signals = [
             sig for sig in signals
-            if len(sig.samples.shape) <= 1 and
-            sig.samples.dtype.names is None
+            if len(sig.samples.shape) <= 1 and sig.samples.dtype.names is None
         ]
         composed_signals = [
             sig for sig in signals
@@ -2129,90 +2128,99 @@ class MDF4(object):
                 # then we add the fields
 
                 for name in names:
-                    field_name = get_unique_name(field_names, name)
-                    field_names.add(field_name)
+                    if (name not in self.channels_db) or all([
+                            occurence[0] != dg_cntr
+                            for occurence in self.channels_db[name]
+                    ]):
+                        field_name = get_unique_name(field_names, name)
+                        field_names.add(field_name)
 
-                    samples = signal.samples[name]
+                        samples = signal.samples[name]
 
-                    s_type, s_size = fmt_to_datatype(samples.dtype)
-                    byte_size = s_size >> 3
+                        s_type, s_size = fmt_to_datatype(samples.dtype)
+                        byte_size = s_size >> 3
 
-                    fields.append(samples)
-                    types.append((field_name, samples.dtype))
+                        fields.append(samples)
+                        types.append((field_name, samples.dtype))
 
-                    # add channel texts
-                    for key in ('channels', 'sources'):
-                        gp['texts'][key].append({})
-                    for key in ('conversion_tab', 'conversions'):
-                        gp['texts'][key].append(None)
+                        # add channel texts
+                        for key in ('channels', 'sources'):
+                            gp['texts'][key].append({})
+                        for key in ('conversion_tab', 'conversions'):
+                            gp['texts'][key].append(None)
 
-                    block = TextBlock(text=name, meta=False)
-                    if memory != 'minimum':
-                        gp_texts['channels'][-1]['name_addr'] = block
-                    else:
-                        address = tell()
-                        write(bytes(block))
-                        gp_texts['channels'][-1]['name_addr'] = address
+                        block = TextBlock(text=name, meta=False)
+                        if memory != 'minimum':
+                            gp_texts['channels'][-1]['name_addr'] = block
+                        else:
+                            address = tell()
+                            write(bytes(block))
+                            gp_texts['channels'][-1]['name_addr'] = address
 
-                    if memory != 'minimum':
-                        gp_texts['sources'][-1]['name_addr'] = si_text
-                        gp_texts['sources'][-1]['path_addr'] = si_text
-                    else:
-                        gp_texts['sources'][-1]['name_addr'] = si_text.address
-                        gp_texts['sources'][-1]['path_addr'] = si_text.address
+                        if memory != 'minimum':
+                            gp_texts['sources'][-1]['name_addr'] = si_text
+                            gp_texts['sources'][-1]['path_addr'] = si_text
+                        else:
+                            gp_texts['sources'][-1]['name_addr'] = si_text.address
+                            gp_texts['sources'][-1]['path_addr'] = si_text.address
 
-                    # add channel conversion
-                    if memory != 'minimum':
-                        gp_conv.append(None)
-                    else:
-                        gp_conv.append(0)
+                        # add channel conversion
+                        if memory != 'minimum':
+                            gp_conv.append(None)
+                        else:
+                            gp_conv.append(0)
 
-                    # source for time
-                    if memory != 'minimum':
-                        gp_source.append(SourceInformation())
-                    else:
-                        address = tell()
-                        block = SourceInformation()
-                        write(bytes(block))
-                        gp_source.append(address)
+                        # source for time
+                        if memory != 'minimum':
+                            gp_source.append(SourceInformation())
+                        else:
+                            address = tell()
+                            block = SourceInformation()
+                            write(bytes(block))
+                            gp_source.append(address)
 
-                    # add channel block
-                    min_val, max_val = get_min_max(signal.samples)
-                    kargs = {
-                        'channel_type': v4c.CHANNEL_TYPE_VALUE,
-                        'bit_count': s_size,
-                        'byte_offset': offset,
-                        'bit_offset': 0,
-                        'data_type': s_type,
-                        'min_raw_value': min_val if min_val <= max_val else 0,
-                        'max_raw_value': max_val if min_val <= max_val else 0,
-                        'lower_limit': min_val if min_val <= max_val else 0,
-                        'upper_limit': max_val if min_val <= max_val else 0,
-                        'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
-                    }
-                    ch = Channel(**kargs)
+                        # add channel block
+                        min_val, max_val = get_min_max(signal.samples)
+                        kargs = {
+                            'channel_type': v4c.CHANNEL_TYPE_VALUE,
+                            'bit_count': s_size,
+                            'byte_offset': offset,
+                            'bit_offset': 0,
+                            'data_type': s_type,
+                            'min_raw_value': min_val
+                            if min_val <= max_val else 0,
+                            'max_raw_value': max_val
+                            if min_val <= max_val else 0,
+                            'lower_limit': min_val
+                            if min_val <= max_val else 0,
+                            'upper_limit': max_val
+                            if min_val <= max_val else 0,
+                            'flags':
+                            v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
+                        }
+                        ch = Channel(**kargs)
 
-                    ch.name = name
-                    if memory != 'minimum':
-                        gp_channels.append(ch)
-                        dep_list.append(ch)
-                    else:
-                        address = tell()
-                        write(bytes(ch))
-                        gp_channels.append(address)
-                        dep_list.append(address)
+                        ch.name = name
+                        if memory != 'minimum':
+                            gp_channels.append(ch)
+                            dep_list.append(ch)
+                        else:
+                            address = tell()
+                            write(bytes(ch))
+                            gp_channels.append(address)
+                            dep_list.append(address)
 
-                    offset += byte_size
+                        offset += byte_size
 
-                    if name not in self.channels_db:
-                        self.channels_db[name] = []
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
+                        if name not in self.channels_db:
+                            self.channels_db[name] = []
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
 
-                    # update the parents as well
-                    parents[ch_cntr] = field_name, 0
+                        # update the parents as well
+                        parents[ch_cntr] = field_name, 0
 
-                    ch_cntr += 1
-                    gp_dep.append(None)
+                        ch_cntr += 1
+                        gp_dep.append(None)
 
             else:
                 # here we have channel arrays or mdf v3 channel dependencies
