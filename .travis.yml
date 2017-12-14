@@ -13,7 +13,7 @@ script:
   - set -e
   - python --version
   - python -m coverage run test/run_all.py
-  - python -m coverage xml -i --include *\\asammdf\\*
+  - python -m coverage xml -i --include */asammdf/*
 
 after_success:
   - coveralls
