@@ -3,6 +3,7 @@ import os
 import unittest
 
 from asammdf import MDF
+from vectors import signals
 
 
 class TestMDF(unittest.TestCase):
