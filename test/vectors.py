@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+
 from asammdf.signal import Signal
+
+
 # create 3 Signal objects
 timestamps = np.array([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float32)
 

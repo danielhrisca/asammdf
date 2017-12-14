@@ -2,7 +2,6 @@
 import os
 import sys
 import unittest
-import numpy as np
 
 from utils import get_test_data
 from asammdf import MDF3
@@ -44,7 +43,7 @@ class TestMDF3(unittest.TestCase):
             # mdf3_20
             if os.path.isfile('mdf3_20.mdf'):
                 os.remove('mdf3_20.mdf')
-        except:
+        except Exception as ex:
             pass
 
     def test_mdf3_exists(self):

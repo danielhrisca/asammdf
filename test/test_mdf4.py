@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import unittest
-import numpy as np
 
 from utils import get_test_data
 from asammdf import MDF4
@@ -33,7 +32,7 @@ class TestMDF4(unittest.TestCase):
             # mdf4_10
             if os.path.isfile('mdf4_10.mf4'):
                 os.remove('mdf4_10.mf4')
-        except:
+        except Exception as ex:
             pass
 
     def test_mdf4_exists(self):
