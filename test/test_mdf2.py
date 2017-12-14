@@ -1,11 +1,10 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import os
 import sys
 import unittest
 
 from utils import get_test_data
 from asammdf import MDF2
-
 
 
 class TestMDF2(unittest.TestCase):
