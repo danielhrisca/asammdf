@@ -2139,7 +2139,6 @@ class MDF4(object):
 
                     fields.append(samples)
                     types.append((field_name, samples.dtype))
-                    types.append(vals.dtype)
 
                     # add channel texts
                     for key in ('channels', 'sources'):
