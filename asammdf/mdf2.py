@@ -748,7 +748,7 @@ class MDF2(object):
                     for key in (
                             'long_name_addr',
                             'comment_addr'):
-                        address = new_ch[key]
+                        address = new_ch.get(key, 0)
                         if address:
                             if memory != 'minimum':
                                 ch_texts[key] = TextBlock(
@@ -764,7 +764,7 @@ class MDF2(object):
                         grp_ch_texts.append(None)
 
                     # update channel object name and block_size attributes
-                    if new_ch['long_name_addr']:
+                    if new_ch.get('long_name_addr', 0):
                         if memory != 'minimum':
                             name = ch_texts['long_name_addr']['text']
                         else:
@@ -1107,6 +1107,10 @@ class MDF2(object):
                 'max_raw_value': t[-1] if cycles_nr else 0,
                 'bit_count': t_size,
             }
+            if self.vesion == '2.00':
+                kargs['block_len'] = v2c.CN20_BLOCK_LEN
+            else:
+                kargs['block_len'] = v2c.CN21_BLOCK_LEN
             channel = Channel(**kargs)
             channel.name = name = 't'
             if memory != 'minimum':
@@ -1209,7 +1213,7 @@ class MDF2(object):
                         item.append(None)
 
                     texts = {}
-                    if len(name) >= 32:
+                    if len(name) >= 32 and self.version == '2.14':
                         block = TextBlock(text=name)
                         if memory != 'minimum':
                             texts['long_name_addr'] = block
@@ -1313,7 +1317,7 @@ class MDF2(object):
                         data_type = v2c.DATA_TYPE_SIGNED_INTEL
 
                     texts = {}
-                    if len(name) >= 32:
+                    if len(name) >= 32 and self.version == '2.14':
                         short_name = (name[:31] + '\0').encode('latin-1')
                         if memory != 'minimum':
                             texts['long_name_addr'] = TextBlock(texts=name)
@@ -1339,6 +1343,10 @@ class MDF2(object):
                         'bit_count': bit_count,
                         'aditional_byte_offset': additional_byte_offset,
                     }
+                    if self.vesion == '2.00':
+                        kargs['block_len'] = v2c.CN20_BLOCK_LEN
+                    else:
+                        kargs['block_len'] = v2c.CN21_BLOCK_LEN
                     comment = signal.comment
                     if comment:
                         comment = comment.encode('latin-1')
@@ -1381,7 +1389,7 @@ class MDF2(object):
                     item.append(None)
 
                 texts = {}
-                if len(name) >= 32:
+                if len(name) >= 32 and self.version == '2.14':
                     block = TextBlock(text=name)
                     if memory != 'minimum':
                         texts['long_name_addr'] = block
@@ -1493,6 +1501,10 @@ class MDF2(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                 }
+                if self.vesion == '2.00':
+                    kargs['block_len'] = v2c.CN20_BLOCK_LEN
+                else:
+                    kargs['block_len'] = v2c.CN21_BLOCK_LEN
                 comment = signal.comment
                 if comment:
                     if len(comment) >= 128:
@@ -1571,7 +1583,7 @@ class MDF2(object):
                     item.append(None)
 
                 texts = {}
-                if len(name) >= 32:
+                if len(name) >= 32 and self.version == '2.14':
                     block = TextBlock(text=name)
                     if memory != 'minimum':
                         texts['long_name_addr'] = block
@@ -1628,6 +1640,10 @@ class MDF2(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                 }
+                if self.vesion == '2.00':
+                    kargs['block_len'] = v2c.CN20_BLOCK_LEN
+                else:
+                    kargs['block_len'] = v2c.CN21_BLOCK_LEN
                 comment = signal.comment
                 if comment:
                     if len(comment) >= 128:
@@ -1658,7 +1674,7 @@ class MDF2(object):
                         item.append(None)
 
                     texts = {}
-                    if len(name) >= 32:
+                    if len(name) >= 32 and self.version == '2.14':
                         block = TextBlock(text=name)
                         if memory != 'minimum':
                             texts['long_name_addr'] = block
@@ -1714,6 +1730,10 @@ class MDF2(object):
                         'bit_count': s_size,
                         'aditional_byte_offset': additional_byte_offset,
                     }
+                    if self.vesion == '2.00':
+                        kargs['block_len'] = v2c.CN20_BLOCK_LEN
+                    else:
+                        kargs['block_len'] = v2c.CN21_BLOCK_LEN
 
                     channel = Channel(**kargs)
                     channel.name = name
@@ -1865,6 +1885,10 @@ class MDF2(object):
                 'max_raw_value': t[-1] if cycles_nr else 0,
                 'bit_count': t_size,
             }
+            if self.vesion == '2.00':
+                kargs['block_len'] = v2c.CN20_BLOCK_LEN
+            else:
+                kargs['block_len'] = v2c.CN21_BLOCK_LEN
             channel = Channel(**kargs)
             channel.name = name = 't'
             if memory != 'minimum':
@@ -1935,7 +1959,7 @@ class MDF2(object):
                     item.append(None)
 
                 texts = {}
-                if len(name) >= 32:
+                if len(name) >= 32 and self.version == '2.14':
                     block = TextBlock(text=name)
                     texts['long_name_addr'] = block
                 if texts:
@@ -1995,6 +2019,10 @@ class MDF2(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                 }
+                if self.vesion == '2.00':
+                    kargs['block_len'] = v2c.CN20_BLOCK_LEN
+                else:
+                    kargs['block_len'] = v2c.CN21_BLOCK_LEN
 
                 channel = Channel(**kargs)
                 channel.name = name
@@ -2311,7 +2339,7 @@ class MDF2(object):
             else:
                 conversion = None
             if name is None:
-                if channel['long_name_addr']:
+                if channel.get('long_name_addr', 0):
                     name = TextBlock(
                         address=channel['long_name_addr'],
                         stream=stream,
@@ -2764,7 +2792,7 @@ class MDF2(object):
                         address=channel,
                         stream=stream,
                     )
-                    if channel['long_name_addr']:
+                    if channel.get('long_name_addr', 0):
                         name = TextBlock(
                             address=channel['long_name_addr'],
                             stream=stream,
@@ -3002,7 +3030,10 @@ class MDF2(object):
                     channel_texts = ch_texts[i]
 
                     blocks.append(channel)
-                    address += v2c.CN_BLOCK_SIZE
+                    if self.vesion == '2.00':
+                        address += v2c.CN20_BLOCK_LEN
+                    else:
+                        address += v2c.CN21_BLOCK_LEN
 
                     if channel_texts:
                         for key in ('long_name_addr',
@@ -3321,6 +3352,8 @@ class MDF2(object):
                         for key in ('long_name_addr',
                                     'comment_addr'):
                             channel[key] = 0
+                            if self.version == '2.00':
+                                del channel['long_name_addr']
 
                     channel['conversion_addr'] = cc[i]
                     channel['source_depend_addr'] = cs[i]
