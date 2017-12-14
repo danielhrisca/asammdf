@@ -5,7 +5,7 @@ import unittest
 from utils import get_test_data
 from asammdf import MDF4
 
-from vectors import s_uint8, s_int32, s_float64, signals
+from vectors import s_uint8, s_int32, signals
 
 
 class TestMDF4(unittest.TestCase):
@@ -32,7 +32,7 @@ class TestMDF4(unittest.TestCase):
             # mdf4_10
             if os.path.isfile('mdf4_10.mf4'):
                 os.remove('mdf4_10.mf4')
-        except Exception as ex:
+        except Exception:
             pass
 
     def test_mdf4_exists(self):

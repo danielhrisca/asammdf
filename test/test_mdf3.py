@@ -43,7 +43,7 @@ class TestMDF3(unittest.TestCase):
             # mdf3_20
             if os.path.isfile('mdf3_20.mdf'):
                 os.remove('mdf3_20.mdf')
-        except Exception as ex:
+        except Exception:
             pass
 
     def test_mdf3_exists(self):
