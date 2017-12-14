@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-import os
-import sys
 import unittest
 
 from utils import get_test_data
@@ -9,7 +7,7 @@ from asammdf import MDF4
 
 class TestMDF4(unittest.TestCase):
 
-    def test_measurement(self):
+    def test_mdf4_exists(self):
         self.assertTrue(MDF4)
 
     def test_read_mdf4_00(self):
