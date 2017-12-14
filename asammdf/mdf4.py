@@ -640,6 +640,8 @@ class MDF4(object):
                 stream.seek(channel['component_addr'], v4c.SEEK_START)
                 blk_id = stream.read(4)
                 if blk_id == b'##CN':
+                    index = ch_cntr - 1
+                    grp['channel_dependencies'].append(None)
                     ch_cntr, composition = self._read_channels(
                         channel['component_addr'],
                         grp,
@@ -648,7 +650,7 @@ class MDF4(object):
                         ch_cntr,
                         True,
                     )
-                    grp['channel_dependencies'].append(composition)
+                    grp['channel_dependencies'][index] = composition
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are
                     # supported so far
@@ -2137,7 +2139,6 @@ class MDF4(object):
 
                     fields.append(samples)
                     types.append((field_name, samples.dtype))
-                    types.append(vals.dtype)
 
                     # add channel texts
                     for key in ('channels', 'sources'):
@@ -4675,7 +4676,7 @@ class MDF4(object):
 
                 # channel group
                 gp['channel_group'].address = address
-#                gp['channel_group']['first_ch_addr'] = gp['channels'][0]
+                #                gp['channel_group']['first_ch_addr'] = gp['channels'][0]
                 gp['channel_group']['next_cg_addr'] = 0
                 cg_texts = temp_texts['channel_group'][0]
                 for key in ('acq_name_addr', 'comment_addr'):

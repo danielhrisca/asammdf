@@ -128,33 +128,54 @@ class Channel(dict):
         try:
             stream = kargs['stream']
             self.address = address = kargs['address']
+            stream.seek(address + 2, SEEK_START)
+            size = unpack('<H', stream.read(2))[0]
             stream.seek(address, SEEK_START)
-            block = stream.read(v2c.CN_BLOCK_SIZE)
+            block = stream.read(size)
 
-            (self['id'],
-             self['block_len'],
-             self['next_ch_addr'],
-             self['conversion_addr'],
-             self['source_depend_addr'],
-             self['ch_depend_addr'],
-             self['comment_addr'],
-             self['channel_type'],
-             self['short_name'],
-             self['description'],
-             self['start_offset'],
-             self['bit_count'],
-             self['data_type'],
-             self['range_flag'],
-             self['min_raw_value'],
-             self['max_raw_value'],
-             self['sampling_rate'],
-             self['long_name_addr']) = unpack(v2c.FMT_CHANNEL, block)
+            if size == v2c.CN20_BLOCK_SIZE:
+                (self['id'],
+                 self['block_len'],
+                 self['next_ch_addr'],
+                 self['conversion_addr'],
+                 self['source_depend_addr'],
+                 self['ch_depend_addr'],
+                 self['comment_addr'],
+                 self['channel_type'],
+                 self['short_name'],
+                 self['description'],
+                 self['start_offset'],
+                 self['bit_count'],
+                 self['data_type'],
+                 self['range_flag'],
+                 self['min_raw_value'],
+                 self['max_raw_value'],
+                 self['sampling_rate']) = unpack(v2c.FMT_CHANNEL_20, block)
+            else:
+                (self['id'],
+                 self['block_len'],
+                 self['next_ch_addr'],
+                 self['conversion_addr'],
+                 self['source_depend_addr'],
+                 self['ch_depend_addr'],
+                 self['comment_addr'],
+                 self['channel_type'],
+                 self['short_name'],
+                 self['description'],
+                 self['start_offset'],
+                 self['bit_count'],
+                 self['data_type'],
+                 self['range_flag'],
+                 self['min_raw_value'],
+                 self['max_raw_value'],
+                 self['sampling_rate'],
+                 self['long_name_addr']) = unpack(v2c.FMT_CHANNEL_21, block)
 
         except KeyError:
 
             self.address = 0
             self['id'] = b'CN'
-            self['block_len'] = kargs.get('block_len', v2c.CN_BLOCK_SIZE)
+            self['block_len'] = kargs.get('block_len', v2c.CN21_BLOCK_SIZE)
             self['next_ch_addr'] = kargs.get('next_ch_addr', 0)
             self['conversion_addr'] = kargs.get('conversion_addr', 0)
             self['source_depend_addr'] = kargs.get('source_depend_addr', 0)
@@ -170,7 +191,8 @@ class Channel(dict):
             self['min_raw_value'] = kargs.get('min_raw_value', 0)
             self['max_raw_value'] = kargs.get('max_raw_value', 0)
             self['sampling_rate'] = kargs.get('sampling_rate', 0)
-            self['long_name_addr'] = kargs.get('long_name_addr', 0)
+            if self['block_len'] == v2c.CN21_BLOCK_SIZE:
+                self['long_name_addr'] = kargs.get('long_name_addr', 0)
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
@@ -1290,7 +1312,6 @@ class TextBlock(dict):
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
         try:
-
             stream = kargs['stream']
             self.address = address = kargs['address']
 
