@@ -16,5 +16,5 @@ script:
   - python -m coverage xml -i --include */asammdf/*
 
 after_success:
-  - coveralls
   - python -m pylint --rcfile pylint.cfg -f parseable asammdf
+#  - coveralls
