@@ -17,4 +17,3 @@ script:
 
 after_success:
   - python -m pylint --rcfile pylint.cfg -f parseable asammdf
-#  - coveralls
