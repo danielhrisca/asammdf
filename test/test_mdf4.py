@@ -32,7 +32,7 @@ class TestMDF4(unittest.TestCase):
             # mdf4_10
             if os.path.isfile('mdf4_10.mf4'):
                 os.remove('mdf4_10.mf4')
-        except Exception:
+        except FileNotFoundError:
             pass
 
     def test_mdf4_exists(self):
