@@ -640,6 +640,8 @@ class MDF4(object):
                 stream.seek(channel['component_addr'], v4c.SEEK_START)
                 blk_id = stream.read(4)
                 if blk_id == b'##CN':
+                    index = ch_cntr - 1
+                    grp['channel_dependencies'].append(None)
                     ch_cntr, composition = self._read_channels(
                         channel['component_addr'],
                         grp,
@@ -648,7 +650,7 @@ class MDF4(object):
                         ch_cntr,
                         True,
                     )
-                    grp['channel_dependencies'].append(composition)
+                    grp['channel_dependencies'][index] = composition
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are
                     # supported so far
@@ -1300,8 +1302,7 @@ class MDF4(object):
         # be saved as new signals.
         simple_signals = [
             sig for sig in signals
-            if len(sig.samples.shape) <= 1 and
-            sig.samples.dtype.names is None
+            if len(sig.samples.shape) <= 1 and sig.samples.dtype.names is None
         ]
         composed_signals = [
             sig for sig in signals
@@ -2137,7 +2138,6 @@ class MDF4(object):
 
                     fields.append(samples)
                     types.append((field_name, samples.dtype))
-                    types.append(vals.dtype)
 
                     # add channel texts
                     for key in ('channels', 'sources'):
@@ -2176,20 +2176,20 @@ class MDF4(object):
                         gp_source.append(address)
 
                     # add channel block
+                    min_val, max_val = get_min_max(signal.samples)
                     kargs = {
                         'channel_type': v4c.CHANNEL_TYPE_VALUE,
                         'bit_count': s_size,
                         'byte_offset': offset,
                         'bit_offset': 0,
                         'data_type': s_type,
-                        'min_raw_value': min_val,
-                        'max_raw_value': max_val,
-                        'lower_limit': min_val,
-                        'upper_limit': max_val,
+                        'min_raw_value': min_val if min_val <= max_val else 0,
+                        'max_raw_value': max_val if min_val <= max_val else 0,
+                        'lower_limit': min_val if min_val <= max_val else 0,
+                        'upper_limit': max_val if min_val <= max_val else 0,
                         'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
                     }
                     ch = Channel(**kargs)
-
 
                     ch.name = name
                     if memory != 'minimum':
@@ -2211,6 +2211,7 @@ class MDF4(object):
                     parents[ch_cntr] = field_name, 0
 
                     ch_cntr += 1
+                    gp_dep.append(None)
 
             else:
                 # here we have channel arrays or mdf v3 channel dependencies
@@ -4675,7 +4676,7 @@ class MDF4(object):
 
                 # channel group
                 gp['channel_group'].address = address
-#                gp['channel_group']['first_ch_addr'] = gp['channels'][0]
+                #                gp['channel_group']['first_ch_addr'] = gp['channels'][0]
                 gp['channel_group']['next_cg_addr'] = 0
                 cg_texts = temp_texts['channel_group'][0]
                 for key in ('acq_name_addr', 'comment_addr'):
@@ -4773,6 +4774,3 @@ class MDF4(object):
             self._tempfile = TemporaryFile()
             self._file = open(self.name, 'rb')
             self._read()
-
-if __name__ == '__main__':
-    pass

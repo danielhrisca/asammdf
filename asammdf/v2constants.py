@@ -91,7 +91,8 @@ FH_BLOCK_SIZE = 56
 DG31_BLOCK_SIZE = 24
 DG32_BLOCK_SIZE = 28
 HD_BLOCK_SIZE = 104
-CN_BLOCK_SIZE = 222
+CN20_BLOCK_SIZE = 218
+CN21_BLOCK_SIZE = 222
 CG_BLOCK_SIZE = 26
 CG33_BLOCK_SIZE = 30
 DT_BLOCK_SIZE = 24
@@ -149,8 +150,9 @@ HEADER_POST_320_EXTRA_KEYS = ('abs_time',
                               'time_quality',
                               'timer_identification')
 
-FMT_CHANNEL = '<2sH5IH32s128s4H3dI'
-KEYS_CHANNEL = ('id',
+FMT_CHANNEL_20 = '<2sH5IH32s128s4H3d'
+FMT_CHANNEL_21 = FMT_CHANNEL_20 + 'I'
+KEYS_CHANNEL_20 = ('id',
                 'block_len',
                 'next_ch_addr',
                 'conversion_addr',
@@ -166,8 +168,8 @@ KEYS_CHANNEL = ('id',
                 'range_flag',
                 'min_raw_value',
                 'max_raw_value',
-                'sampling_rate',
-                'long_name_addr',)
+                'sampling_rate')
+KEYS_CHANNEL_21 = KEYS_CHANNEL_20 + ('long_name_addr',)
 
 FMT_CHANNEL_GROUP = '<2sH3I3HI'
 KEYS_CHANNEL_GROUP = ('id',

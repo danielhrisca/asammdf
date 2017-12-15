@@ -3,6 +3,7 @@
 
 import csv
 import os
+from collections import defaultdict
 from warnings import warn
 from functools import reduce
 from struct import unpack
@@ -19,7 +20,7 @@ from .v3blocks import Channel as ChannelV3
 from .v4blocks import TextBlock as TextBlockV4
 
 
-MDF2_VERSIONS = ('2.14',)
+MDF2_VERSIONS = ('2.00', '2.14')
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
 MDF4_VERSIONS = ('4.00', '4.10', '4.11')
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
@@ -45,8 +46,8 @@ class MDF(object):
             * if *minimum* only minimal data is loaded into RAM
 
     version : string
-        mdf file version ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10',
-        '4.11'); default '4.10'
+        mdf file version from ('2.00', '2.14', '3.00', '3.10', '3.20', '3.30',
+        '4.00', '4.10', '4.11'); default '4.10'
 
     """
     def __init__(self, name=None, memory='full', version='4.10'):
@@ -139,8 +140,8 @@ class MDF(object):
         Parameters
         ----------
         to : str
-            new mdf version from ('3.00', '3.10', '3.20', '3.30', '4.00',
-            '4.10', '4.11')
+            new mdf version from ('2.00', '2.14', '3.00', '3.10', '3.20',
+            '3.30', '4.00', '4.10', '4.11')
         memory : str
             memory option; default `full`
 
@@ -503,17 +504,45 @@ class MDF(object):
 
         # group channels by group index
         gps = {}
+        excluded_channels = defaultdict(list)
         for ch in channels:
             if ch in self.channels_db:
                 for group, index in self.channels_db[ch]:
                     if group not in gps:
-                        gps[group] = []
-                    gps[group].append(index)
+                        gps[group] = set()
+                    gps[group].add(index)
+                    if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
+                        dep = group['channel_dependencies'][index]
+                        if dep:
+                            for ch_nr, gp_nr in dep.referenced_channels:
+                                if gp_nr == group:
+                                    excluded_channels[group].append(ch_nr)
+                    else:
+                        grp = self.groups[group]
+                        dependencies = grp['channel_dependencies'][index]
+                        if dependencies is None:
+                            continue
+                        if all(dep['id'] == b'##CN' for dep in dependencies):
+                            channels = grp['channels']
+                            for ch in dependencies:
+                                excluded_channels[group].append(channels.index(ch))
+                        else:
+                            for dep in dependencies:
+                                for ch_nr, gp_nr in dep.referenced_channels:
+                                    if gp_nr == group:
+                                        excluded_channels[group].append(ch_nr)
             else:
                 message = ('MDF filter error: '
                            'Channel "{}" not found, it will be ignored')
                 warn(message.format(ch))
                 continue
+
+        for group in excluded_channels:
+            excluded_indexes = excluded_channels[group]
+            if group in gps:
+                for index in excluded_indexes:
+                    if index in gps[group]:
+                        gps[group].remove(index)
 
         if memory is not None:
             if memory not in ('full', 'low', 'minimum'):
