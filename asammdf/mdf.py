@@ -3,6 +3,7 @@
 
 import csv
 import os
+from collections import defaultdict
 from warnings import warn
 from functools import reduce
 from struct import unpack
@@ -503,17 +504,44 @@ class MDF(object):
 
         # group channels by group index
         gps = {}
+        excluded_channels = defaultdict(list)
         for ch in channels:
             if ch in self.channels_db:
                 for group, index in self.channels_db[ch]:
                     if group not in gps:
-                        gps[group] = []
-                    gps[group].append(index)
+                        gps[group] = set()
+                    gps[group].add(index)
+                    if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
+                        dep = group['channel_dependencies'][index]
+                        if dep:
+                            for ch_nr, gp_nr in dep.referenced_channels:
+                                if gp_nr == group:
+                                    excluded_channels[group].append(ch_nr)
+                    else:
+                        dependencies = group['channel_dependencies'][index]
+                        if dependencies is None:
+                            continue
+                        if all(dep['id'] == b'##CN' for dep in dependencies):
+                            channels = self.groups[group]['channels']
+                            for ch in dependencies:
+                                excluded_channels[group].append(channels.index(ch))
+                        else:
+                            for dep in dependencies:
+                                for ch_nr, gp_nr in dep.referenced_channels:
+                                    if gp_nr == group:
+                                        excluded_channels[group].append(ch_nr)
             else:
                 message = ('MDF filter error: '
                            'Channel "{}" not found, it will be ignored')
                 warn(message.format(ch))
                 continue
+
+        for group in excluded_channels:
+            exluded_indexes = excluded_channels[group]
+            if group in gps:
+                for index in exluded_indexes:
+                    if index in gps[group]:
+                        gps[group].remove(index)
 
         if memory is not None:
             if memory not in ('full', 'low', 'minimum'):
