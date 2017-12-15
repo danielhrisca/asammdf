@@ -518,11 +518,12 @@ class MDF(object):
                                 if gp_nr == group:
                                     excluded_channels[group].append(ch_nr)
                     else:
-                        dependencies = group['channel_dependencies'][index]
+                        grp = self.groups[group]
+                        dependencies = grp['channel_dependencies'][index]
                         if dependencies is None:
                             continue
                         if all(dep['id'] == b'##CN' for dep in dependencies):
-                            channels = self.groups[group]['channels']
+                            channels = grp['channels']
                             for ch in dependencies:
                                 excluded_channels[group].append(channels.index(ch))
                         else:
@@ -537,9 +538,9 @@ class MDF(object):
                 continue
 
         for group in excluded_channels:
-            exluded_indexes = excluded_channels[group]
+            excluded_indexes = excluded_channels[group]
             if group in gps:
-                for index in exluded_indexes:
+                for index in excluded_indexes:
                     if index in gps[group]:
                         gps[group].remove(index)
 

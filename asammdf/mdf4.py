@@ -1302,8 +1302,7 @@ class MDF4(object):
         # be saved as new signals.
         simple_signals = [
             sig for sig in signals
-            if len(sig.samples.shape) <= 1 and
-            sig.samples.dtype.names is None
+            if len(sig.samples.shape) <= 1 and sig.samples.dtype.names is None
         ]
         composed_signals = [
             sig for sig in signals
@@ -2177,20 +2176,20 @@ class MDF4(object):
                         gp_source.append(address)
 
                     # add channel block
+                    min_val, max_val = get_min_max(signal.samples)
                     kargs = {
                         'channel_type': v4c.CHANNEL_TYPE_VALUE,
                         'bit_count': s_size,
                         'byte_offset': offset,
                         'bit_offset': 0,
                         'data_type': s_type,
-                        'min_raw_value': min_val,
-                        'max_raw_value': max_val,
-                        'lower_limit': min_val,
-                        'upper_limit': max_val,
+                        'min_raw_value': min_val if min_val <= max_val else 0,
+                        'max_raw_value': max_val if min_val <= max_val else 0,
+                        'lower_limit': min_val if min_val <= max_val else 0,
+                        'upper_limit': max_val if min_val <= max_val else 0,
                         'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
                     }
                     ch = Channel(**kargs)
-
 
                     ch.name = name
                     if memory != 'minimum':
@@ -2212,6 +2211,7 @@ class MDF4(object):
                     parents[ch_cntr] = field_name, 0
 
                     ch_cntr += 1
+                    gp_dep.append(None)
 
             else:
                 # here we have channel arrays or mdf v3 channel dependencies
@@ -4774,6 +4774,3 @@ class MDF4(object):
             self._tempfile = TemporaryFile()
             self._file = open(self.name, 'rb')
             self._read()
-
-if __name__ == '__main__':
-    pass
