@@ -3,7 +3,7 @@ import os
 import unittest
 
 from asammdf import MDF
-from vectors import signals
+from vectors_mdf import signals
 
 
 class TestMDF(unittest.TestCase):
@@ -30,6 +30,7 @@ class TestMDF(unittest.TestCase):
         self.assertTrue(MDF)
 
     # convert from mdf3 to mdf4
+    @unittest.skip
     def test_convert_from_mdf3_20_to_mdf4_10(self):
         meas = MDF('mdf3_20.mdf')
         converted = meas.convert(to='4.10', memory='minimum')

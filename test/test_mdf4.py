@@ -5,7 +5,7 @@ import unittest
 from utils import get_test_data
 from asammdf import MDF4
 
-from vectors import s_uint8, s_int32, signals
+from vectors_mdf import s_uint8, s_int32, signals
 
 
 class TestMDF4(unittest.TestCase):
