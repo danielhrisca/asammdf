@@ -23,7 +23,7 @@ Examples
 Working with MDF
 ----------------
 
-Test vectors below are considered in examples below (extracted from ``test/vectors_mdf.py``):
+Test vectors are considered in examples below (extracted from ``test/vectors_mdf.py``):
 
 .. literalinclude:: ../test/vectors_mdf.py
     :language: python
@@ -80,7 +80,7 @@ Examples (add code above after imports):
 
 Working with Signal
 -------------------
-Test vectors below are considered in the examples below (extracted from ``test/vectors_signal.py``):
+Test vectors are considered in the examples below (extracted from ``test/vectors_signal.py``):
 
 .. literalinclude:: ../test/vectors_signal.py
     :language: python
