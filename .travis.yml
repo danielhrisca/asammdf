@@ -10,10 +10,10 @@ install:
   - pip install -r pip_requirements_tests.txt
 # command to run tests
 script:
+  - set -e
   - python --version
   - python -m coverage run test/run_all.py
-  - python -m coverage xml -i --include *\\asammdf\\*
-  - python -m pylint --rcfile pylint.cfg -f parseable asammdf || exit 0
-  
+  - python -m coverage xml -i --include */asammdf/*
+
 after_success:
-  - coveralls
+  - python -m pylint --rcfile pylint.cfg -f parseable asammdf || exit 0

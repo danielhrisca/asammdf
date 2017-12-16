@@ -7,7 +7,7 @@
     <style> .magenta {color:magenta} </style>
     <style> .orange {color:orange} </style>
     <style> .brown {color:brown} </style>
-    
+
 .. role:: red
 .. role:: blue
 .. role:: green
@@ -23,8 +23,19 @@ Examples
 Working with MDF
 ----------------
 
+Test vectors are considered in examples below (extracted from ``test/vectors_mdf.py``):
+
+.. literalinclude:: ../test/vectors_mdf.py
+    :language: python
+    :emphasize-lines: 7,33
+    :linenos:
+    :lines: 7-34
+
+Examples (add code above after imports):
+
 .. code-block:: python
-    
+    :linenos:
+
     from __future__ import print_function, division
     from asammdf import MDF, Signal, configure
     import numpy as np
@@ -35,32 +46,10 @@ Working with MDF
     configure(split_data_blocks=True, split_threshold=10*1024)
 
 
-    # create 3 Signal objects
-
-    timestamps = np.array([0.1, 0.2, 0.3, 0.4, 0.5], dtype=np.float32)
-
-    # unit8
-    s_uint8 = Signal(samples=np.array([0, 1, 2, 3, 4], dtype=np.uint8),
-                     timestamps=timestamps,
-                     name='Uint8_Signal',
-                     unit='u1')
-    # int32
-    s_int32 = Signal(samples=np.array([-20, -10, 0, 10, 20], dtype=np.int32),
-                     timestamps=timestamps,
-                     name='Int32_Signal',
-                     unit='i4')
-
-    # float64
-    s_float64 = Signal(samples=np.array([-20, -10, 0, 10, 20], dtype=np.float64),
-                       timestamps=timestamps,
-                       name='Float64_Signal',
-                       unit='f8')
-
     # create empty MDf version 4.00 file
     mdf4 = MDF(version='4.10')
 
     # append the 3 signals to the new file
-    signals = [s_uint8, s_int32, s_float64]
     mdf4.append(signals, 'Created by Python')
 
     # save new file
@@ -87,40 +76,27 @@ Working with MDF
 
     # save using zipped transpose deflate blocks
     mdf4.save('out.mf4', compression=2, overwrite=True)
-                        
-    
+
+
 Working with Signal
 -------------------
-    
-.. code-block:: python
+Test vectors are considered in the examples below (extracted from ``test/vectors_signal.py``):
 
+.. literalinclude:: ../test/vectors_signal.py
+    :language: python
+    :emphasize-lines: 7,33
+    :linenos:
+    :lines: 7-34
+
+Examples (add code above after imports):
+
+.. code-block:: python
+    :linenos:
+    
     from __future__ import print_function, division
     from asammdf import Signal
     import numpy as np
 
-
-    # create 3 Signal objects with different time stamps
-
-    # unit8 with 100ms time raster
-    timestamps = np.array([0.1 * t for t in range(5)], dtype=np.float32)
-    s_uint8 = Signal(samples=np.array([t for t in range(5)], dtype=np.uint8),
-                     timestamps=timestamps,
-                     name='Uint8_Signal',
-                     unit='u1')
-
-    # int32 with 50ms time raster
-    timestamps = np.array([0.05 * t for t in range(10)], dtype=np.float32)
-    s_int32 = Signal(samples=np.array(list(range(-500, 500, 100)), dtype=np.int32),
-                     timestamps=timestamps,
-                     name='Int32_Signal',
-                     unit='i4')
-
-    # float64 with 300ms time raster
-    timestamps = np.array([0.3 * t for t in range(3)], dtype=np.float32)
-    s_float64 = Signal(samples=np.array(list(range(2000, -1000, -1000)), dtype=np.int32),
-                       timestamps=timestamps,
-                       name='Float64_Signal',
-                       unit='f8')
 
     # map signals
     xs = np.linspace(-1, 1, 50)
