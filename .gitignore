@@ -104,3 +104,4 @@ test-reports/
 canape*.ini
 
 _build/
+debug/

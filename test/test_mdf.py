@@ -4,7 +4,7 @@ import os
 import sys
 import unittest
 import shutil
-import urllib.request
+import urllib
 from zipfile import ZipFile
 
 import numpy as np
