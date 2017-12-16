@@ -3,3 +3,4 @@ coverage
 pylint
 xmlrunner
 numpy>=1.13.1
+pyunpack

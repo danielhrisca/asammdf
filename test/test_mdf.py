@@ -5,9 +5,15 @@ import sys
 import unittest
 import shutil
 import urllib
-from zipfile import ZipFile
 
 import numpy as np
+
+PYVERSION = sys.version_info[0]
+if PYVERSION == 2:
+    from pyunpack import Archive as ZipFile
+else:
+    from zipfile import ZipFile
+
 
 from utils import MEMORY
 from asammdf import MDF, SUPPORTED_VERSIONS
@@ -22,14 +28,13 @@ class TestMDF(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        PYVERSION = sys.version_info[0]
 
         url = 'https://github.com/danielhrisca/asammdf/files/1562572/test.files.zip'
         if PYVERSION == 3:
             urllib.request.urlretrieve(url, 'test.zip')
         else:
             urllib.urlretrieve(url, 'test.zip')
-        ZipFile(r'test.zip').extractall('tmpdir')
+        ZipFile(r'd:\uidl9955\gh\umihai1@yahoo.com\asammdf\debug\debug.zip').extractall('tmpdir')
 
     @classmethod
     def tearDownClass(cls):
