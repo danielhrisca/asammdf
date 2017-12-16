@@ -1,2 +1,0 @@
-*.mdf filter=lfs diff=lfs merge=lfs -text
-*.mf4 filter=lfs diff=lfs merge=lfs -text

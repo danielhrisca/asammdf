@@ -15,6 +15,7 @@ from .mdf2 import MDF2
 from .mdf3 import MDF3
 from .mdf4 import MDF4
 from .utils import MdfException
+from .v3blocks import Channel as ChannelV2
 from .v3blocks import TextBlock as TextBlockV3
 from .v3blocks import Channel as ChannelV3
 from .v4blocks import TextBlock as TextBlockV4
@@ -26,7 +27,7 @@ MDF4_VERSIONS = ('4.00', '4.10', '4.11')
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 
-__all__ = ['MDF', ]
+__all__ = ['MDF', 'SUPPORTED_VERSIONS']
 
 
 class MDF(object):
@@ -635,7 +636,7 @@ class MDF(object):
                 if memory == 'minimum':
                     names = []
                     for file in files:
-                        if file.version in MDF3_VERSIONS:
+                        if file.version in MDF2_VERSIONS + MDF3_VERSIONS:
                             grp = file.groups[i]
                             if grp['data_location'] == 0:
                                 stream = file._file
@@ -653,10 +654,16 @@ class MDF(object):
                                 )
                                 name = block['text']
                             else:
-                                channel = ChannelV3(
-                                    address=grp['channels'][j],
-                                    stream=stream,
-                                )
+                                if file.version in MDF2_VERSIONS:
+                                    channel = ChannelV2(
+                                        address=grp['channels'][j],
+                                        stream=stream,
+                                    )
+                                else:
+                                    channel = ChannelV3(
+                                        address=grp['channels'][j],
+                                        stream=stream,
+                                    )
                                 name = channel['short_name']
                             name = name.decode('latin-1').strip(' \r\n\t\0')
                         else:

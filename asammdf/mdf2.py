@@ -1107,10 +1107,10 @@ class MDF2(object):
                 'max_raw_value': t[-1] if cycles_nr else 0,
                 'bit_count': t_size,
             }
-            if self.vesion == '2.00':
-                kargs['block_len'] = v2c.CN20_BLOCK_LEN
+            if self.version == '2.00':
+                kargs['block_len'] = v2c.CN20_BLOCK_SIZE
             else:
-                kargs['block_len'] = v2c.CN21_BLOCK_LEN
+                kargs['block_len'] = v2c.CN21_BLOCK_SIZE
             channel = Channel(**kargs)
             channel.name = name = 't'
             if memory != 'minimum':
@@ -1343,10 +1343,10 @@ class MDF2(object):
                         'bit_count': bit_count,
                         'aditional_byte_offset': additional_byte_offset,
                     }
-                    if self.vesion == '2.00':
-                        kargs['block_len'] = v2c.CN20_BLOCK_LEN
+                    if self.version == '2.00':
+                        kargs['block_len'] = v2c.CN20_BLOCK_SIZE
                     else:
-                        kargs['block_len'] = v2c.CN21_BLOCK_LEN
+                        kargs['block_len'] = v2c.CN21_BLOCK_SIZE
                     comment = signal.comment
                     if comment:
                         comment = comment.encode('latin-1')
@@ -1501,10 +1501,10 @@ class MDF2(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                 }
-                if self.vesion == '2.00':
-                    kargs['block_len'] = v2c.CN20_BLOCK_LEN
+                if self.version == '2.00':
+                    kargs['block_len'] = v2c.CN20_BLOCK_SIZE
                 else:
-                    kargs['block_len'] = v2c.CN21_BLOCK_LEN
+                    kargs['block_len'] = v2c.CN21_BLOCK_SIZE
                 comment = signal.comment
                 if comment:
                     if len(comment) >= 128:
@@ -1640,10 +1640,10 @@ class MDF2(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                 }
-                if self.vesion == '2.00':
-                    kargs['block_len'] = v2c.CN20_BLOCK_LEN
+                if self.version == '2.00':
+                    kargs['block_len'] = v2c.CN20_BLOCK_SIZE
                 else:
-                    kargs['block_len'] = v2c.CN21_BLOCK_LEN
+                    kargs['block_len'] = v2c.CN21_BLOCK_SIZE
                 comment = signal.comment
                 if comment:
                     if len(comment) >= 128:
@@ -1730,10 +1730,10 @@ class MDF2(object):
                         'bit_count': s_size,
                         'aditional_byte_offset': additional_byte_offset,
                     }
-                    if self.vesion == '2.00':
-                        kargs['block_len'] = v2c.CN20_BLOCK_LEN
+                    if self.version == '2.00':
+                        kargs['block_len'] = v2c.CN20_BLOCK_SIZE
                     else:
-                        kargs['block_len'] = v2c.CN21_BLOCK_LEN
+                        kargs['block_len'] = v2c.CN21_BLOCK_SIZE
 
                     channel = Channel(**kargs)
                     channel.name = name
@@ -1885,10 +1885,10 @@ class MDF2(object):
                 'max_raw_value': t[-1] if cycles_nr else 0,
                 'bit_count': t_size,
             }
-            if self.vesion == '2.00':
-                kargs['block_len'] = v2c.CN20_BLOCK_LEN
+            if self.version == '2.00':
+                kargs['block_len'] = v2c.CN20_BLOCK_SIZE
             else:
-                kargs['block_len'] = v2c.CN21_BLOCK_LEN
+                kargs['block_len'] = v2c.CN21_BLOCK_SIZE
             channel = Channel(**kargs)
             channel.name = name = 't'
             if memory != 'minimum':
@@ -2019,10 +2019,10 @@ class MDF2(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                 }
-                if self.vesion == '2.00':
-                    kargs['block_len'] = v2c.CN20_BLOCK_LEN
+                if self.version == '2.00':
+                    kargs['block_len'] = v2c.CN20_BLOCK_SIZE
                 else:
-                    kargs['block_len'] = v2c.CN21_BLOCK_LEN
+                    kargs['block_len'] = v2c.CN21_BLOCK_SIZE
 
                 channel = Channel(**kargs)
                 channel.name = name
@@ -3030,10 +3030,10 @@ class MDF2(object):
                     channel_texts = ch_texts[i]
 
                     blocks.append(channel)
-                    if self.vesion == '2.00':
-                        address += v2c.CN20_BLOCK_LEN
+                    if self.version == '2.00':
+                        address += v2c.CN20_BLOCK_SIZE
                     else:
-                        address += v2c.CN21_BLOCK_LEN
+                        address += v2c.CN21_BLOCK_SIZE
 
                     if channel_texts:
                         for key in ('long_name_addr',
@@ -3352,7 +3352,7 @@ class MDF2(object):
                         for key in ('long_name_addr',
                                     'comment_addr'):
                             channel[key] = 0
-                            if self.version == '2.00':
+                            if self.version == '2.00' and 'long_name_addr' in channel:
                                 del channel['long_name_addr']
 
                     channel['conversion_addr'] = cc[i]
