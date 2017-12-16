@@ -9,8 +9,8 @@ from zipfile import ZipFile
 
 import numpy as np
 
-from utils import get_test_data, MEMORY
-from asammdf import MDF, Signal, SUPPORTED_VERSIONS
+from utils import MEMORY
+from asammdf import MDF, SUPPORTED_VERSIONS
 
 CHANNEL_LEN = 100000
 
@@ -22,8 +22,13 @@ class TestMDF(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        PYVERSION = sys.version_info[0]
+
         url = 'https://github.com/danielhrisca/asammdf/files/1562572/test.files.zip'
-        urllib.request.urlretrieve(url, 'test.zip')
+        if PYVERSION == 3:
+            urllib.request.urlretrieve(url, 'test.zip')
+        else:
+            urllib.urlretrieve(url, 'test.zip')
         ZipFile(r'test.zip').extractall('tmpdir')
 
     @classmethod
