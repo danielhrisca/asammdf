@@ -3412,11 +3412,15 @@ class MDF4(object):
                     else:
                         phys = []
                         for i in range(nr):
-                            block = TextBlock(
-                                address=grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)],
-                                stream=self._file,
-                            )
-                            phys.append(block['text'])
+                            address=grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]
+                            if address:
+                                block = TextBlock(
+                                    address=address,
+                                    stream=self._file,
+                                )
+                                phys.append(block['text'])
+                            else:
+                                phys.append(b'')
                         phys = array(phys)
 
                         if grp['texts']['conversion_tab'][ch_nr].get('default_addr', 0):
@@ -3447,11 +3451,15 @@ class MDF4(object):
                     else:
                         phys = []
                         for i in range(nr):
-                            block = TextBlock(
-                                address=grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)],
-                                stream=self._file,
-                            )
-                            phys.append(block['text'])
+                            address=grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]
+                            if address:
+                                block = TextBlock(
+                                    address=address,
+                                    stream=self._file,
+                                )
+                                phys.append(block['text'])
+                            else:
+                                phys.append(b'')
                         phys = array(phys)
                         if grp['texts']['conversion_tab'][ch_nr].get('default_addr', 0):
                             block = TextBlock(

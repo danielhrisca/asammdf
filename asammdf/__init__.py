@@ -3,7 +3,7 @@
 from .mdf2 import MDF2
 from .mdf3 import MDF3
 from .mdf4 import MDF4
-from .mdf import MDF
+from .mdf import MDF, SUPPORTED_VERSIONS
 from .signal import Signal
 from .version import __version__
 
@@ -16,6 +16,7 @@ __all__ = [
     'MDF3',
     'MDF4',
     'Signal',
+    'SUPPORTED_VERSIONS',
 ]
 
 

@@ -195,10 +195,16 @@ class Channel(dict):
                 self['long_name_addr'] = kargs.get('long_name_addr', 0)
 
     def __bytes__(self):
-        if PYVERSION_MAJOR >= 36:
-            result = pack(v2c.FMT_CHANNEL, *self.values())
+        if self['block_len'] == v2c.CN20_BLOCK_SIZE:
+            fmt = v2c.FMT_CHANNEL_20
+            keys = v2c.KEYS_CHANNEL_20
         else:
-            result = pack(v2c.FMT_CHANNEL, *[self[key] for key in v2c.KEYS_CHANNEL])
+            fmt = v2c.FMT_CHANNEL_21
+            keys = v2c.KEYS_CHANNEL_21
+        if PYVERSION_MAJOR >= 36:
+            result = pack(fmt, *self.values())
+        else:
+            result = pack(fmt, *[self[key] for key in keys])
         return result
 
     def __lt__(self, other):

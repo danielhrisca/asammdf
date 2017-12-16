@@ -106,7 +106,7 @@ def get_fmt(data_type, size, version=3):
         numpy compatible data type format string
 
     """
-    if version == 3:
+    if version <= 3:
         if size == 0:
             fmt = 'b'
         if data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED):
