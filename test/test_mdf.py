@@ -5,10 +5,9 @@ import sys
 import unittest
 import shutil
 import urllib
-
-import numpy as np
 from zipfile import ZipFile
 
+import numpy as np
 
 from utils import MEMORY
 from asammdf import MDF, SUPPORTED_VERSIONS
@@ -25,6 +24,7 @@ class TestMDF(unittest.TestCase):
     def setUpClass(cls):
 
         url = 'https://github.com/danielhrisca/asammdf/files/1565090/test.files.zip'
+
         PYVERSION = sys.version_info[0]
         if PYVERSION == 3:
             urllib.request.urlretrieve(url, 'test.zip')

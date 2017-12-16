@@ -18,9 +18,8 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
-import sys
-BASE_DIR = os.path.abspath('..')
-sys.path.insert(0, BASE_DIR)
+# import sys
+# sys.path.insert(0, os.path.abspath('.'))
 
 with open(os.path.join('..', 'asammdf', 'version.py'), 'r') as f:
     for line in f:
@@ -44,10 +43,9 @@ extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.imgmath',
     'sphinx.ext.githubpages',
-    'sphinx.ext.viewcode',
     'matplotlib.sphinxext.plot_directive',
     'sphinxarg.ext',
-    'numpydoc']
+	'numpydoc']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
