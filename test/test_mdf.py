@@ -34,7 +34,7 @@ class TestMDF(unittest.TestCase):
             urllib.request.urlretrieve(url, 'test.zip')
         else:
             urllib.urlretrieve(url, 'test.zip')
-        ZipFile(r'd:\uidl9955\gh\umihai1@yahoo.com\asammdf\debug\debug.zip').extractall('tmpdir')
+        ZipFile(r'test.zip').extractall('tmpdir')
 
     @classmethod
     def tearDownClass(cls):
