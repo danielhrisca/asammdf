@@ -7,12 +7,7 @@ import shutil
 import urllib
 
 import numpy as np
-
-PYVERSION = sys.version_info[0]
-if PYVERSION == 2:
-    from pyunpack import Archive as ZipFile
-else:
-    from zipfile import ZipFile
+from zipfile import ZipFile
 
 
 from utils import MEMORY
@@ -29,7 +24,8 @@ class TestMDF(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        url = 'https://github.com/danielhrisca/asammdf/files/1562572/test.files.zip'
+        url = 'https://github.com/danielhrisca/asammdf/files/1565090/test.files.zip'
+        PYVERSION = sys.version_info[0]
         if PYVERSION == 3:
             urllib.request.urlretrieve(url, 'test.zip')
         else:

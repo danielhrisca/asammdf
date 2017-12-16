@@ -12,8 +12,6 @@ install:
 script:
   - set -e
   - python --version
-  - python -m coverage run test/run_all.py
-  - python -m coverage xml -i --include */asammdf/*
+  - python -m test/run_all.py
 
 after_success:
-  - python -m pylint --rcfile pylint.cfg -f parseable asammdf || exit 0
