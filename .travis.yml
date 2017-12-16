@@ -12,6 +12,6 @@ install:
 script:
   - set -e
   - python --version
-  - python -m test/run_all.py
+  - python test/run_all.py
 
 after_success:
