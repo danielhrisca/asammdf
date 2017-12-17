@@ -42,7 +42,7 @@ class Channel(dict):
     The Channel object can be created in two modes:
 
     * using the *stream* and *address* keyword parameters - when reading
-    from file
+        from file
     * using any of the following presented keys - when creating a new Channel
 
     The keys have the following meaning:
@@ -50,46 +50,46 @@ class Channel(dict):
     * id - Block type identifier, always "CN"
     * block_len - Block size of this block in bytes (entire CNBLOCK)
     * next_ch_addr - Pointer to next channel block (CNBLOCK) of this channel
-    group (NIL allowed)
+        group (NIL allowed)
     * conversion_addr - Pointer to the conversion formula (CCBLOCK) of this
-    signal (NIL allowed)
+        signal (NIL allowed)
     * source_depend_addr - Pointer to the source-depending extensions (CEBLOCK)
-    of this signal (NIL allowed)
+        of this signal (NIL allowed)
     * ch_depend_addr - Pointer to the dependency block (CDBLOCK) of this signal
-    (NIL allowed)
+        (NIL allowed)
     * comment_addr - Pointer to the channel comment (TXBLOCK) of this signal
-    (NIL allowed)
+        (NIL allowed)
     * channel_type - Channel type
 
         * 0 = data channel
         * 1 = time channel for all signals of this group (in each channel group,
-        exactly one channel must be defined as time channel). The time stamps
-        recording in a time channel are always relative to the start time of the
-        measurement defined in HDBLOCK.
+            exactly one channel must be defined as time channel).
+            The time stamps recording in a time channel are always relative
+            to the start time of the measurement defined in HDBLOCK.
 
     * short_name - Short signal name, i.e. the first 31 characters of the
-    ASAM-MCD name of the signal (end of text should be indicated by 0)
+        ASAM-MCD name of the signal (end of text should be indicated by 0)
     * description - Signal description (end of text should be indicated by 0)
     * start_offset - Start offset in bits to determine the first bit of the
-    signal in the data record. The start offset N is divided into two parts: a
-    "Byte offset" (= N div 8) and a "Bit offset" (= N mod 8). The channel block
-    can define an "additional Byte offset" (see below) which must be added to
-    the Byte offset.
+        signal in the data record. The start offset N is divided into two parts:
+        a "Byte offset" (= N div 8) and a "Bit offset" (= N mod 8).
+        The channel block can define an "additional Byte offset" (see below)
+        which must be added to the Byte offset.
     * bit_count - Number of bits used to encode the value of this signal in a
-    data record
+        data record
     * data_type - Signal data type
     * range_flag - Value range valid flag
     * min_raw_value - Minimum signal value that occurred for this signal
-    (raw value)
+        (raw value)
     * max_raw_value - Maximum signal value that occurred for this signal
-    (raw value)
+        (raw value)
     * sampling_rate - Sampling rate for a virtual time channel. Unit [s]
     * long_name_addr - Pointer to TXBLOCK that contains the ASAM-MCD long signal
-    name
+        name
     * display_name_addr - Pointer to TXBLOCK that contains the signal's display
-    name (NIL allowed)
+        name (NIL allowed)
     * aditional_byte_offset - Additional Byte offset of the signal in the data
-    record (default value: 0).
+        record (default value: 0).
 
     Parameters
     ----------
@@ -204,9 +204,9 @@ class ChannelConversion(dict):
     The ChannelConversion object can be created in two modes:
 
     * using the *stream* and *address* keyword parameters - when reading
-    from file
+        from file
     * using any of the following presented keys - when creating a new
-    ChannelConversion
+        ChannelConversion
 
     The first keys are common for all conversion types, and are followed by
     conversion specific keys. The keys have the following meaning:
@@ -217,9 +217,9 @@ class ChannelConversion(dict):
         * block_len - Block size of this block in bytes (entire CCBLOCK)
         * range_flag - Physical value range valid flag:
         * min_phy_value - Minimum physical signal value that occurred for this
-        signal
+            signal
         * max_phy_value - Maximum physical signal value that occurred for this
-        signal
+            signal
         * unit - Physical unit (string should be terminated with 0)
         * conversion_type - Conversion type (formula identifier)
         * ref_param_nr - Size information about additional conversion data
@@ -231,7 +231,7 @@ class ChannelConversion(dict):
             * b - offset
             * a - factor
             * CANapeHiddenExtra - sometimes CANape appends extra information;
-            not compliant with MDF specs
+                not compliant with MDF specs
 
         * ASAM formula conversion
 
@@ -539,7 +539,8 @@ class ChannelConversion(dict):
 class ChannelDependency(dict):
     ''' CDBLOCK class derived from *dict*
 
-    Currently the ChannelDependency object can only be created using the *stream* and *address* keyword parameters when reading from file
+    Currently the ChannelDependency object can only be created using the
+    *stream* and *address* keyword parameters when reading from file
 
     The keys have the following meaning:
 
@@ -549,11 +550,15 @@ class ChannelDependency(dict):
     * sd_nr - Total number of signals dependencies (m)
     * for each dependency there is a group of three keys:
 
-        * dg_{n} - Pointer to the data group block (DGBLOCK) of signal dependency *n*
-        * cg_{n} - Pointer to the channel group block (DGBLOCK) of signal dependency *n*
-        * ch_{n} - Pointer to the channel block (DGBLOCK) of signal dependency *n*
+        * dg_{n} - Pointer to the data group block (DGBLOCK) of
+            signal dependency *n*
+        * cg_{n} - Pointer to the channel group block (DGBLOCK) of
+            signal dependency *n*
+        * ch_{n} - Pointer to the channel block (DGBLOCK) of
+            signal dependency *n*
 
-    * there can also be optional keys which decribe dimensions for the N-dimensional dependencies:
+    * there can also be optional keys which decribe dimensions for
+        the N-dimensional dependencies:
 
         * dim_{n} - Optional: size of dimension *n* for N-dimensional dependency
 
@@ -643,10 +648,13 @@ class ChannelExtension(dict):
 
     The ChannelExtension object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ChannelExtension
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
+    * using any of the following presented keys - when creating
+        a new ChannelExtension
 
-    The first keys are common for all conversion types, and are followed by conversion specific keys. The keys have the following meaning:
+    The first keys are common for all conversion types, and are followed
+    by conversion specific keys. The keys have the following meaning:
 
     * common keys
 
@@ -750,8 +758,10 @@ class ChannelGroup(dict):
 
     The ChannelGroup object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ChannelGroup
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
+    * using any of the following presented keys - when creating
+        a new ChannelGroup
 
     The keys have the following meaning:
 
@@ -759,12 +769,17 @@ class ChannelGroup(dict):
     * block_len - Block size of this block in bytes (entire CGBLOCK)
     * next_cg_addr - Pointer to next channel group block (CGBLOCK) (NIL allowed)
     * first_ch_addr - Pointer to first channel block (CNBLOCK) (NIL allowed)
-    * comment_addr - Pointer to channel group comment text (TXBLOCK) (NIL allowed)
-    * record_id - Record ID, i.e. value of the identifier for a record if the DGBLOCK defines a number of record IDs > 0
+    * comment_addr - Pointer to channel group comment text (TXBLOCK)
+        (NIL allowed)
+    * record_id - Record ID, i.e. value of the identifier for a record if
+        the DGBLOCK defines a number of record IDs > 0
     * ch_nr - Number of channels (redundant information)
-    * samples_byte_nr - Size of data record in Bytes (without record ID), i.e. size of plain data for a each recorded sample of this channel group
-    * cycles_nr - Number of records of this type in the data block i.e. number of samples for this channel group
-    * sample_reduction_addr - only since version 3.3. Pointer to first sample reduction block (SRBLOCK) (NIL allowed) Default value: NIL.
+    * samples_byte_nr - Size of data record in Bytes (without record ID),
+        i.e. size of plain data for a each recorded sample of this channel group
+    * cycles_nr - Number of records of this type in the data block
+        i.e. number of samples for this channel group
+    * sample_reduction_addr - only since version 3.3. Pointer to
+        first sample reduction block (SRBLOCK) (NIL allowed) Default value: NIL.
 
     Parameters
     ----------
@@ -842,8 +857,10 @@ class DataBlock(dict):
 
     The DataBlock object can be created in two modes:
 
-    * using the *stream*, *address* and *size* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ChannelGroup
+    * using the *stream*, *address* and *size* keyword parameters - when reading
+        from file
+    * using any of the following presented keys - when creating
+        a new ChannelGroup
 
     The keys have the following meaning:
 
@@ -887,7 +904,8 @@ class DataGroup(dict):
 
     The DataGroup object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
     * using any of the following presented keys - when creating a new DataGroup
 
     The keys have the following meaning:
@@ -895,9 +913,11 @@ class DataGroup(dict):
     * id - Block type identifier, always "DG"
     * block_len - Block size of this block in bytes (entire DGBLOCK)
     * next_dg_addr - Pointer to next data group block (DGBLOCK) (NIL allowed)
-    * first_cg_addr - Pointer to first channel group block (CGBLOCK) (NIL allowed)
+    * first_cg_addr - Pointer to first channel group block (CGBLOCK)
+        (NIL allowed)
     * trigger_addr - Pointer to trigger block (TRBLOCK) (NIL allowed)
-    * data_block_addr - Pointer to the data block (see separate chapter on data storage)
+    * data_block_addr - Pointer to the data block (see separate chapter
+        on data storage)
     * cg_nr - Number of channel groups (redundant information)
     * record_id_nr - Number of record IDs in the data block
     * reserved0 - since version 3.2; Reserved
@@ -969,7 +989,8 @@ class FileIdentificationBlock(dict):
 
     The TriggerBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1055,7 +1076,8 @@ class HeaderBlock(dict):
     * id - Block type identifier, always "HD"
     * block_len - Block size of this block in bytes (entire HDBLOCK)
     * first_dg_addr - Pointer to the first data group block (DGBLOCK)
-    * comment_addr - Pointer to the measurement file comment text (TXBLOCK) (NIL allowed)
+    * comment_addr - Pointer to the measurement file comment text (TXBLOCK)
+        (NIL allowed)
     * program_addr - Pointer to program block (PRBLOCK) (NIL allowed)
     * dg_nr - Number of data groups (redundant information)
     * date - Date at which the recording was started in "DD:MM:YYYY" format
@@ -1153,8 +1175,10 @@ class ProgramBlock(dict):
 
     The ProgramBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ProgramBlock
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
+    * using any of the following presented keys - when creating
+        a new ProgramBlock
 
     The keys have the following meaning:
 
@@ -1203,16 +1227,19 @@ class ProgramBlock(dict):
 class SampleReduction(dict):
     ''' SRBLOCK class derived from *dict*
 
-    Currently the SampleReduction object can only be created by using the *stream* and *address* keyword parameters - when reading from file
+    Currently the SampleReduction object can only be created by using
+    the *stream* and *address* keyword parameters - when reading from file
 
     The keys have the following meaning:
 
     * id - Block type identifier, always "SR"
     * block_len - Block size of this block in bytes (entire SRBLOCK)
-    * next_sr_addr - Pointer to next sample reduction block (SRBLOCK) (NIL allowed)
+    * next_sr_addr - Pointer to next sample reduction block (SRBLOCK)
+        (NIL allowed)
     * data_block_addr - Pointer to the data block for this sample reduction
     * cycles_nr - Number of reduced samples in the data block.
-    * time_interval - Length of time interval [s] used to calculate the reduced samples.
+    * time_interval - Length of time interval [s] used to calculate
+        the reduced samples.
 
     Parameters
     ----------
@@ -1256,7 +1283,8 @@ class TextBlock(dict):
 
     The ProgramBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1335,7 +1363,8 @@ class TriggerBlock(dict):
 
     The TriggerBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
     * using the classmethod *from_text*
 
     The keys have the following meaning:

@@ -7,7 +7,7 @@
     <style> .magenta {color:magenta} </style>
     <style> .orange {color:orange} </style>
     <style> .brown {color:brown} </style>
-    
+
 .. role:: red
 .. role:: blue
 .. role:: green
@@ -21,10 +21,10 @@
 Intro
 -----
 
-The benchmarks were done using two test files (available here https://github.com/danielhrisca/asammdf/issues/14) (for mdf version 3 and 4) of around 170MB. 
+The benchmarks were done using two test files (available here https://github.com/danielhrisca/asammdf/issues/14) (for mdf version 3 and 4) of around 170MB.
 The files contain 183 data groups and a total of 36424 channels.
 
-*asamdf 2.8.0* was compared against *mdfreader 2.7.2* (latest versions from PyPI). 
+*asamdf 2.8.0* was compared against *mdfreader 2.7.2* (latest versions from PyPI).
 *mdfreader* seems to be the most used Python package to handle MDF files, and it also supports both version 3 and 4 of the standard.
 
 The three benchmark cathegories are file open, file save and extracting the data for all channels inside the file(36424 calls).
@@ -41,7 +41,7 @@ Usage
 -----
 Extract the test files from the archive, or provide a folder that contains the files "test.mdf" and "test.mf4".
 Run the module *bench.py* ( see --help option for available options )
-   
+
 
 x64 Python results
 ------------------
@@ -157,7 +157,7 @@ Graphical results
 
     import matplotlib.pyplot as plt
     import numpy as np
-    
+
     res = '../benchmarks/results/x64_asammdf_2.8.0_mdfreader_2.7.2.txt'
     topic = 'Open'
     aspect = 'time'
@@ -221,8 +221,8 @@ Graphical results
             name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
-    
-    
+
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -292,7 +292,7 @@ Graphical results
             name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
-    
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -363,7 +363,7 @@ Graphical results
 
     plt.show()
 
-    
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -433,7 +433,7 @@ Graphical results
             name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
-    
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -504,7 +504,7 @@ Graphical results
 
     plt.show()
 
-    
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -575,7 +575,7 @@ Graphical results
 
     plt.show()
 
-   
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -646,7 +646,7 @@ Graphical results
 
     plt.show()
 
-    
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -716,8 +716,8 @@ Graphical results
             name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
-    
-    
+
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -787,8 +787,8 @@ Graphical results
             name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
-    
-    
+
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -858,7 +858,7 @@ Graphical results
             name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
-    
+
 
 x86 Python results
 ------------------
@@ -960,6 +960,7 @@ asammdf 2.8.0 full v4                                  14144     1226
 asammdf 2.8.0 low v4                                   15410      355
 asammdf 2.8.0 minimum v4                               21417      170
 ================================================== ========= ========
+
 * mdfreader got a MemoryError
 
 Graphical results
@@ -1036,7 +1037,7 @@ Graphical results
     plt.show()
 
 
-.. plot::   
+.. plot::
 
     import matplotlib.pyplot as plt
     import numpy as np
@@ -1177,7 +1178,7 @@ Graphical results
 
     plt.show()
 
-    
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -1247,7 +1248,7 @@ Graphical results
             name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
-    
+
 
 .. plot::
 
@@ -1319,7 +1320,7 @@ Graphical results
 
     plt.show()
 
-    
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -1389,8 +1390,8 @@ Graphical results
             name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
-    
-   
+
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -1461,7 +1462,7 @@ Graphical results
 
     plt.show()
 
-    
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -1531,8 +1532,8 @@ Graphical results
             name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
-    
-    
+
+
 .. plot::
 
     import matplotlib.pyplot as plt
@@ -1602,8 +1603,8 @@ Graphical results
             name = '{}_{}_ram_usage.png'.format(platform, topic.lower())
 
     plt.show()
-    
-    
+
+
 .. plot::
 
     import matplotlib.pyplot as plt

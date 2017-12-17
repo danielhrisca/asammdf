@@ -89,10 +89,10 @@ class MDF2(object):
     memory : str
         memory optimization option; default `full`
 
-        * if *full* the data group binary data block will be memoryed in RAM
+        * if *full* the data group binary data block will be memorised in RAM
         * if *low* the channel data is read from disk on request, and the
-        metadata is memoryed into RAM
-        * if *minimum* only minimal data is memoryed into RAM
+            metadata is memorised into RAM
+        * if *minimum* only minimal data is memorised into RAM
 
     version : string
         mdf file version ('2.00' or '2.14'); default '2.14'
@@ -193,13 +193,13 @@ class MDF2(object):
                     size = len(data)
                     while i < size:
                         rec_id = data[i]
-                        # skip redord id
+                        # skip record id
                         i += 1
                         rec_size = cg_size[rec_id]
                         if rec_id == record_id:
                             rec_data = data[i: i+rec_size]
                             cg_data.append(rec_data)
-                        # concider the second record ID if it exists
+                        # consider the second record ID if it exists
                         if record_id_nr == 2:
                             i += rec_size + 1
                         else:
@@ -461,19 +461,20 @@ class MDF2(object):
 
     def _validate_channel_selection(self, name=None, group=None, index=None):
         """Gets channel comment.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+            * if there are multiple occurrences for this channel then the
+                *group* and *index* arguments can be used to select a specific
+                group.
+            * if there are multiple occurrences for this channel and either the
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -580,7 +581,7 @@ class MDF2(object):
         )
 
         # this will hold mapping from channel address to Channel object
-        # needed for linking dependecy blocks to refernced channels after
+        # needed for linking dependency blocks to referenced channels after
         # the file is loaded
         ch_map = {}
 
@@ -932,7 +933,7 @@ class MDF2(object):
         """
         Appends a new data group.
 
-        For channel depencies type Signals, the *samples* attribute must be a
+        For channel dependencies type Signals, the *samples* attribute must be a
         numpy.recarray
 
         Parameters
@@ -2107,9 +2108,9 @@ class MDF2(object):
             gp['trigger'] = [None, None]
 
     def close(self):
-        """ if the MDF was created with memory='minimum' and new
-        channels have been appended, then this must be called just before the
-        object is not used anymore to clean-up the temporary file
+        """if the MDF was created with memory='minimum' and new
+           channels have been appended, then this must be called just before the
+           object is not used anymore to clean-up the temporary file
 
         """
         if self._tempfile is not None:
@@ -2119,19 +2120,20 @@ class MDF2(object):
 
     def get_channel_unit(self, name=None, group=None, index=None):
         """Gets channel unit.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+            * if there are multiple occurrences for this channel then the
+                *group* and *index* arguments can be used to select a specific
+                group.
+            * if there are multiple occurrences for this channel and either the
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2186,19 +2188,20 @@ class MDF2(object):
 
     def get_channel_comment(self, name=None, group=None, index=None):
         """Gets channel comment.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+            * if there are multiple occurrences for this channel then the
+                *group* and *index* arguments can be used to select a specific
+                group.
+            * if there are multiple occurrences for this channel and either the
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2252,19 +2255,20 @@ class MDF2(object):
             samples_only=False,
             data=None):
         """Gets channel samples.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+            * if there are multiple occurrences for this channel then the
+                *group* and *index* arguments can be used to select a specific
+                group.
+            * if there are multiple occurrences for this channel and either the
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2292,7 +2296,7 @@ class MDF2(object):
             The *Signal* samples are:
 
                 * numpy recarray for channels that have CDBLOCK or BYTEARRAY
-                type channels
+                    type channels
                 * numpy array for all the rest
 
         Raises
@@ -2814,8 +2818,8 @@ class MDF2(object):
     def save(self, dst='', overwrite=None, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '_<cntr>', were
-        '<cntr>' is the first conter that produces a new file name (that does
+        is overwritten, otherwise the file name is appended with '_<cntr>', were
+        '<cntr>' is the first counter that produces a new file name (that does
         not already exist in the filesystem).
 
         Parameters
@@ -2862,8 +2866,8 @@ class MDF2(object):
     def _save_with_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '_<cntr>', were
-        '<cntr>' is the first conter that produces a new file name (that does
+        is overwritten, otherwise the file name is appended with '_<cntr>', were
+        '<cntr>' is the first counter that produces a new file name (that does
         not already exist in the filesystem).
 
         Parameters
@@ -3168,8 +3172,8 @@ class MDF2(object):
     def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '_<cntr>', were
-        '<cntr>' is the first conter that produces a new file name (that does
+        is overwritten, otherwise the file name is appended with '_<cntr>', were
+        '<cntr>' is the first counter that produces a new file name (that does
         not already exist in the filesystem).
 
         Parameters
