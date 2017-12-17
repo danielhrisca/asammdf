@@ -13,6 +13,6 @@ script:
   - set -e
   - python --version
   - python test/run_all.py
-  - cd documentation && Makefile html && cd ..
+  - python -m sphinx -nW -b html documentation documentation/_build/html
 
 after_success:
