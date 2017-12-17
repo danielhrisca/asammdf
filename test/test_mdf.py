@@ -24,7 +24,7 @@ class TestMDF(unittest.TestCase):
     def setUpClass(cls):
         PYVERSION = sys.version_info[0]
 
-        url = 'https://github.com/danielhrisca/asammdf/files/1565090/test.files.zip'
+        url = 'https://github.com/danielhrisca/asammdf/files/1565237/test.files.zip'
         if PYVERSION == 3:
             urllib.request.urlretrieve(url, 'test.zip')
         else:
@@ -99,7 +99,6 @@ class TestMDF(unittest.TestCase):
                                         np.tile(original.samples, 4),
                                         converted.samples):
                                     equal = False
-                                    print(input_file, i, j, np.tile(original.samples, 4), converted.samples)
 
                     self.assertTrue(equal)
 
