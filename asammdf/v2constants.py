@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""
-MDF v3 constants
-"""
+""" MDF v2 constants """
+
 # byte order
 BYTE_ORDER_INTEL = 0
 BYTE_ORDER_MOTOROLA = 1
@@ -118,191 +117,229 @@ LOCATION_MEMORY = 2
 
 # blocks struct fmts and keys
 ID_FMT = '<8s8s8s4H2s26s2H'
-ID_KEYS = ('file_identification',
-           'version_str',
-           'program_identification',
-           'byte_order',
-           'float_format',
-           'mdf_version',
-           'code_page',
-           'reserved0',
-           'reserved1',
-           'unfinalized_standard_flags',
-           'unfinalized_custom_flags')
+ID_KEYS = (
+    'file_identification',
+    'version_str',
+    'program_identification',
+    'byte_order',
+    'float_format',
+    'mdf_version',
+    'code_page',
+    'reserved0',
+    'reserved1',
+    'unfinalized_standard_flags',
+    'unfinalized_custom_flags',
+)
 
 HEADER_COMMON_FMT = '<2sH3IH10s8s32s32s32s32s'
-HEADER_COMMON_KEYS = ('id',
-                      'block_len',
-                      'first_dg_addr',
-                      'comment_addr',
-                      'program_addr',
-                      'dg_nr',
-                      'date',
-                      'time',
-                      'author',
-                      'organization',
-                      'project',
-                      'subject')
+HEADER_COMMON_KEYS = (
+    'id',
+    'block_len',
+    'first_dg_addr',
+    'comment_addr',
+    'program_addr',
+    'dg_nr',
+    'date',
+    'time',
+    'author',
+    'organization',
+    'project',
+    'subject',
+)
 
 HEADER_POST_320_EXTRA_FMT = 'Q2H32s'
-HEADER_POST_320_EXTRA_KEYS = ('abs_time',
-                              'tz_offset',
-                              'time_quality',
-                              'timer_identification')
+HEADER_POST_320_EXTRA_KEYS = (
+    'abs_time',
+    'tz_offset',
+    'time_quality',
+    'timer_identification',
+)
 
 FMT_CHANNEL_20 = '<2sH5IH32s128s4H3d'
 FMT_CHANNEL_21 = FMT_CHANNEL_20 + 'I'
-KEYS_CHANNEL_20 = ('id',
-                'block_len',
-                'next_ch_addr',
-                'conversion_addr',
-                'source_depend_addr',
-                'ch_depend_addr',
-                'comment_addr',
-                'channel_type',
-                'short_name',
-                'description',
-                'start_offset',
-                'bit_count',
-                'data_type',
-                'range_flag',
-                'min_raw_value',
-                'max_raw_value',
-                'sampling_rate')
-KEYS_CHANNEL_21 = KEYS_CHANNEL_20 + ('long_name_addr',)
+KEYS_CHANNEL_20 = (
+    'id',
+    'block_len',
+    'next_ch_addr',
+    'conversion_addr',
+    'source_depend_addr',
+    'ch_depend_addr',
+    'comment_addr',
+    'channel_type',
+    'short_name',
+    'description',
+    'start_offset',
+    'bit_count',
+    'data_type',
+    'range_flag',
+    'min_raw_value',
+    'max_raw_value',
+    'sampling_rate',
+)
+KEYS_CHANNEL_21 = KEYS_CHANNEL_20 + ('long_name_addr', )
 
 FMT_CHANNEL_GROUP = '<2sH3I3HI'
-KEYS_CHANNEL_GROUP = ('id',
-                      'block_len',
-                      'next_cg_addr',
-                      'first_ch_addr',
-                      'comment_addr',
-                      'record_id',
-                      'ch_nr',
-                      'samples_byte_nr',
-                      'cycles_nr')
+KEYS_CHANNEL_GROUP = (
+    'id',
+    'block_len',
+    'next_cg_addr',
+    'first_ch_addr',
+    'comment_addr',
+    'record_id',
+    'ch_nr',
+    'samples_byte_nr',
+    'cycles_nr',
+)
 
 FMT_DATA_GROUP_32 = '<2sH4I2H4s'
-KEYS_DATA_GROUP_32 = ('id',
-                      'block_len',
-                      'next_dg_addr',
-                      'first_cg_addr',
-                      'trigger_addr',
-                      'data_block_addr',
-                      'cg_nr',
-                      'record_id_nr',
-                      'reserved0')
+KEYS_DATA_GROUP_32 = (
+    'id',
+    'block_len',
+    'next_dg_addr',
+    'first_cg_addr',
+    'trigger_addr',
+    'data_block_addr',
+    'cg_nr',
+    'record_id_nr',
+    'reserved0',
+)
 
 FMT_DATA_GROUP = '<2sH4I2H'
-KEYS_DATA_GROUP = ('id',
-                   'block_len',
-                   'next_dg_addr',
-                   'first_cg_addr',
-                   'trigger_addr',
-                   'data_block_addr',
-                   'cg_nr',
-                   'record_id_nr')
+KEYS_DATA_GROUP = (
+    'id',
+    'block_len',
+    'next_dg_addr',
+    'first_cg_addr',
+    'trigger_addr',
+    'data_block_addr',
+    'cg_nr',
+    'record_id_nr',
+)
 
 FMT_SOURCE_COMMON = '<2s2H'
 FMT_SOURCE_ECU = '<2s3HI80s32s4s'
 FMT_SOURCE_EXTRA_ECU = '<HI80s32s4s'
-KEYS_SOURCE_ECU = ('id',
-                   'block_len',
-                   'type',
-                   'module_nr',
-                   'module_address',
-                   'description',
-                   'ECU_identification',
-                   'reserved0')
+KEYS_SOURCE_ECU = (
+    'id',
+    'block_len',
+    'type',
+    'module_nr',
+    'module_address',
+    'description',
+    'ECU_identification',
+    'reserved0',
+)
 
 FMT_SOURCE_VECTOR = '<2s2H2I36s36s42s'
 FMT_SOURCE_EXTRA_VECTOR = '<2I36s36s42s'
-KEYS_SOURCE_VECTOR = ('id',
-                      'block_len',
-                      'type',
-                      'CAN_id',
-                      'CAN_ch_index',
-                      'message_name',
-                      'sender_name',
-                      'reserved0')
+KEYS_SOURCE_VECTOR = (
+    'id',
+    'block_len',
+    'type',
+    'CAN_id',
+    'CAN_ch_index',
+    'message_name',
+    'sender_name',
+    'reserved0',
+)
 
-KEYS_TEXT_BLOCK = ('id', 'block_len', 'text')
+KEYS_TEXT_BLOCK = (
+    'id',
+    'block_len',
+    'text',
+)
 
 FMT_CONVERSION_COMMON = FMT_CONVERSION_NONE = '<2s2H2d20s2H'
 FMT_CONVERSION_COMMON_SHORT = '<H2d20s2H'
 
-KEYS_CONVESION_NONE = ('id',
-                       'block_len',
-                       'range_flag',
-                       'min_phy_value',
-                       'max_phy_value',
-                       'unit',
-                       'conversion_type',
-                       'ref_param_nr')
+KEYS_CONVESION_NONE = (
+    'id',
+    'block_len',
+    'range_flag',
+    'min_phy_value',
+    'max_phy_value',
+    'unit',
+    'conversion_type',
+    'ref_param_nr',
+)
 
 FMT_CONVERSION_FORMULA = '<2s2H2d20s2H256s'
-KEYS_CONVESION_FORMULA = ('id',
-                          'block_len',
-                          'range_flag',
-                          'min_phy_value',
-                          'max_phy_value',
-                          'unit',
-                          'conversion_type',
-                          'ref_param_nr',
-                          'formula')
+KEYS_CONVESION_FORMULA = (
+    'id',
+    'block_len',
+    'range_flag',
+    'min_phy_value',
+    'max_phy_value',
+    'unit',
+    'conversion_type',
+    'ref_param_nr',
+    'formula',
+)
 
 FMT_CONVERSION_LINEAR = '<2s2H2d20s2H2d'
-KEYS_CONVESION_LINEAR = ('id',
-                         'block_len',
-                         'range_flag',
-                         'min_phy_value',
-                         'max_phy_value',
-                         'unit',
-                         'conversion_type',
-                         'ref_param_nr',
-                         'b',
-                         'a')
+KEYS_CONVESION_LINEAR = (
+    'id',
+    'block_len',
+    'range_flag',
+    'min_phy_value',
+    'max_phy_value',
+    'unit',
+    'conversion_type',
+    'ref_param_nr',
+    'b',
+    'a',
+)
 
 FMT_CONVERSION_POLY_RAT = '<2s2H2d20s2H6d'
-KEYS_CONVESION_POLY_RAT = ('id',
-                           'block_len',
-                           'range_flag',
-                           'min_phy_value',
-                           'max_phy_value',
-                           'unit',
-                           'conversion_type',
-                           'ref_param_nr',
-                           'P1',
-                           'P2',
-                           'P3',
-                           'P4',
-                           'P5',
-                           'P6')
+KEYS_CONVESION_POLY_RAT = (
+    'id',
+    'block_len',
+    'range_flag',
+    'min_phy_value',
+    'max_phy_value',
+    'unit',
+    'conversion_type',
+    'ref_param_nr',
+    'P1',
+    'P2',
+    'P3',
+    'P4',
+    'P5',
+    'P6',
+)
 
 FMT_CONVERSION_EXPO_LOGH = '<2s2H2d20s2H7d'
-KEYS_CONVESION_EXPO_LOGH = ('id',
-                            'block_len',
-                            'range_flag',
-                            'min_phy_value',
-                            'max_phy_value',
-                            'unit',
-                            'conversion_type',
-                            'ref_param_nr',
-                            'P1',
-                            'P2',
-                            'P3',
-                            'P4',
-                            'P5',
-                            'P6',
-                            'P7')
+KEYS_CONVESION_EXPO_LOGH = (
+    'id',
+    'block_len',
+    'range_flag',
+    'min_phy_value',
+    'max_phy_value',
+    'unit',
+    'conversion_type',
+    'ref_param_nr',
+    'P1',
+    'P2',
+    'P3',
+    'P4',
+    'P5',
+    'P6',
+    'P7',
+)
 
 FMT_PROGRAM_BLOCK = '<2sH{}s'
-KEYS_PROGRAM_BLOCK = ('id', 'block_len', 'data')
+KEYS_PROGRAM_BLOCK = (
+    'id',
+    'block_len',
+    'data',
+)
 
 FMT_SAMPLE_REDUCTION_BLOCK = '<2sH3Id'
-KEYS_SAMPLE_REDUCTION_BLOCK = ('id',
-                               'block_len',
-                               'next_sr_addr',
-                               'data_block_addr',
-                               'cycles_nr',
-                               'time_interval')
+KEYS_SAMPLE_REDUCTION_BLOCK = (
+    'id',
+    'block_len',
+    'next_sr_addr',
+    'data_block_addr',
+    'cycles_nr',
+    'time_interval',
+)

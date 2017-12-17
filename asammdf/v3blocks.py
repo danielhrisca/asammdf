@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-classes that implement the blocks for MDF version 3
-"""
+""" classes that implement the blocks for MDF version 3 """
 
 from __future__ import print_function, division
 import sys
@@ -174,13 +172,19 @@ class Channel(dict):
             self['sampling_rate'] = kargs.get('sampling_rate', 0)
             self['long_name_addr'] = kargs.get('long_name_addr', 0)
             self['display_name_addr'] = kargs.get('display_name_addr', 0)
-            self['aditional_byte_offset'] = kargs.get('aditional_byte_offset', 0)
+            self['aditional_byte_offset'] = kargs.get(
+                'aditional_byte_offset',
+                0,
+            )
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
             result = pack(v3c.FMT_CHANNEL, *self.values())
         else:
-            result = pack(v3c.FMT_CHANNEL, *[self[key] for key in v3c.KEYS_CHANNEL])
+            result = pack(
+                v3c.FMT_CHANNEL,
+                *[self[key] for key in v3c.KEYS_CHANNEL]
+            )
         return result
 
     def __lt__(self, other):
@@ -301,13 +305,20 @@ class ChannelConversion(dict):
              self['max_phy_value'],
              self['unit'],
              self['conversion_type'],
-             self['ref_param_nr']) = unpack_from(v3c.FMT_CONVERSION_COMMON_SHORT, block)
+             self['ref_param_nr']) = unpack_from(
+                v3c.FMT_CONVERSION_COMMON_SHORT,
+                block,
+            )
 
             conv_type = self['conversion_type']
 
             if conv_type == v3c.CONVERSION_TYPE_LINEAR:
                 (self['b'],
-                 self['a']) = unpack_from('<2d', block, v3c.CC_COMMON_SHORT_SIZE)
+                 self['a']) = unpack_from(
+                    '<2d',
+                    block,
+                    v3c.CC_COMMON_SHORT_SIZE,
+                )
                 if not size == v3c.CC_LIN_BLOCK_SIZE:
                     self['CANapeHiddenExtra'] = block[v3c.CC_LIN_BLOCK_SIZE - 4:]
 
@@ -317,14 +328,22 @@ class ChannelConversion(dict):
             elif conv_type == v3c.CONVERSION_TYPE_FORMULA:
                 self['formula'] = block[v3c.CC_COMMON_SHORT_SIZE:]
 
-            elif conv_type in (v3c.CONVERSION_TYPE_TABI, v3c.CONVERSION_TYPE_TABX):
+            elif conv_type in (
+                    v3c.CONVERSION_TYPE_TABI,
+                    v3c.CONVERSION_TYPE_TABX):
                 nr = self['ref_param_nr']
-                values = unpack_from('<{}d'.format(2*nr), block, v3c.CC_COMMON_SHORT_SIZE)
+                values = unpack_from(
+                    '<{}d'.format(2*nr),
+                    block,
+                    v3c.CC_COMMON_SHORT_SIZE,
+                )
                 for i in range(nr):
                     (self['raw_{}'.format(i)],
                      self['phys_{}'.format(i)]) = values[i*2], values[2*i+1]
 
-            elif conv_type in (v3c.CONVERSION_TYPE_POLY, v3c.CONVERSION_TYPE_RAT):
+            elif conv_type in (
+                    v3c.CONVERSION_TYPE_POLY,
+                    v3c.CONVERSION_TYPE_RAT):
                 (self['P1'],
                  self['P2'],
                  self['P3'],
@@ -332,19 +351,29 @@ class ChannelConversion(dict):
                  self['P5'],
                  self['P6']) = unpack_from('<6d', block)
 
-            elif conv_type in (v3c.CONVERSION_TYPE_EXPO, v3c.CONVERSION_TYPE_LOGH):
+            elif conv_type in (
+                    v3c.CONVERSION_TYPE_EXPO,
+                    v3c.CONVERSION_TYPE_LOGH):
                 (self['P1'],
                  self['P2'],
                  self['P3'],
                  self['P4'],
                  self['P5'],
                  self['P6'],
-                 self['P7']) = unpack_from('<7d', block, v3c.CC_COMMON_SHORT_SIZE)
+                 self['P7']) = unpack_from(
+                    '<7d',
+                    block,
+                    v3c.CC_COMMON_SHORT_SIZE,
+                )
 
             elif conv_type == v3c.CONVERSION_TYPE_VTAB:
                 nr = self['ref_param_nr']
 
-                values = unpack_from('<' + 'd32s' * nr, block, v3c.CC_COMMON_SHORT_SIZE)
+                values = unpack_from(
+                    '<' + 'd32s' * nr,
+                    block,
+                    v3c.CC_COMMON_SHORT_SIZE,
+                )
 
                 for i in range(nr):
                     (self['param_val_{}'.format(i)],
@@ -353,7 +382,11 @@ class ChannelConversion(dict):
             elif conv_type == v3c.CONVERSION_TYPE_VTABR:
                 nr = self['ref_param_nr']
 
-                values = unpack_from('<' + '2dI' * nr, block, v3c.CC_COMMON_SHORT_SIZE)
+                values = unpack_from(
+                    '<' + '2dI' * nr,
+                    block,
+                    v3c.CC_COMMON_SHORT_SIZE,
+                )
                 for i in range(nr):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
@@ -363,7 +396,10 @@ class ChannelConversion(dict):
             self['id'] = 'CC'.encode('latin-1')
 
             if kargs['conversion_type'] == v3c.CONVERSION_TYPE_NONE:
-                self['block_len'] = kargs.get('block_len', v3c.CC_COMMON_BLOCK_SIZE)
+                self['block_len'] = kargs.get(
+                    'block_len',
+                    v3c.CC_COMMON_BLOCK_SIZE,
+                )
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
@@ -372,7 +408,10 @@ class ChannelConversion(dict):
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
 
             elif kargs['conversion_type'] == v3c.CONVERSION_TYPE_LINEAR:
-                self['block_len'] = kargs.get('block_len', v3c.CC_LIN_BLOCK_SIZE)
+                self['block_len'] = kargs.get(
+                    'block_len',
+                    v3c.CC_LIN_BLOCK_SIZE,
+                )
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
@@ -384,13 +423,21 @@ class ChannelConversion(dict):
                 if not self['block_len'] == v3c.CC_LIN_BLOCK_SIZE:
                     self['CANapeHiddenExtra'] = kargs['CANapeHiddenExtra']
 
-            elif kargs['conversion_type'] in (v3c.CONVERSION_TYPE_POLY, v3c.CONVERSION_TYPE_RAT):
-                self['block_len'] = kargs.get('block_len', v3c.CC_POLY_BLOCK_SIZE)
+            elif kargs['conversion_type'] in (
+                    v3c.CONVERSION_TYPE_POLY,
+                    v3c.CONVERSION_TYPE_RAT):
+                self['block_len'] = kargs.get(
+                    'block_len',
+                    v3c.CC_POLY_BLOCK_SIZE,
+                )
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_POLY)
+                self['conversion_type'] = kargs.get(
+                    'conversion_type',
+                    v3c.CONVERSION_TYPE_POLY,
+                )
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['P1'] = kargs.get('P1', 0)
                 self['P2'] = kargs.get('P2', 0)
@@ -399,13 +446,21 @@ class ChannelConversion(dict):
                 self['P5'] = kargs.get('P5', 0)
                 self['P6'] = kargs.get('P6', 0)
 
-            elif kargs['conversion_type'] in (v3c.CONVERSION_TYPE_EXPO, v3c.CONVERSION_TYPE_LOGH):
-                self['block_len'] = kargs.get('block_len', v3c.CC_EXPO_BLOCK_SIZE)
+            elif kargs['conversion_type'] in (
+                    v3c.CONVERSION_TYPE_EXPO,
+                    v3c.CONVERSION_TYPE_LOGH):
+                self['block_len'] = kargs.get(
+                    'block_len',
+                    v3c.CC_EXPO_BLOCK_SIZE,
+                )
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_EXPO)
+                self['conversion_type'] = kargs.get(
+                    'conversion_type',
+                    v3c.CONVERSION_TYPE_EXPO,
+                )
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['P1'] = kargs.get('P1', 0)
                 self['P2'] = kargs.get('P2', 0)
@@ -416,23 +471,34 @@ class ChannelConversion(dict):
                 self['P7'] = kargs.get('P7', 0)
 
             elif kargs['conversion_type'] == v3c.CONVERSION_TYPE_FORMULA:
-                self['block_len'] = kargs.get('block_len', v3c.CC_POLY_BLOCK_SIZE)
+                self['block_len'] = kargs.get(
+                    'block_len',
+                    v3c.CC_POLY_BLOCK_SIZE,
+                )
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_FORMULA)
+                self['conversion_type'] = kargs.get(
+                    'conversion_type',
+                    v3c.CONVERSION_TYPE_FORMULA,
+                )
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['formula'] = kargs.get('formula', b'X1'+b'\0'*254)
 
-            elif kargs['conversion_type'] in (v3c.CONVERSION_TYPE_TABI, v3c.CONVERSION_TYPE_TABX):
+            elif kargs['conversion_type'] in (
+                    v3c.CONVERSION_TYPE_TABI,
+                    v3c.CONVERSION_TYPE_TABX):
                 nr = kargs['ref_param_nr']
                 self['block_len'] = kargs['block_len']
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = kargs.get('conversion_type', v3c.CONVERSION_TYPE_TABI)
+                self['conversion_type'] = kargs.get(
+                    'conversion_type',
+                    v3c.CONVERSION_TYPE_TABI,
+                )
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 for i in range(nr):
                     self['raw_{}'.format(i)] = kargs['raw_{}'.format(i)]
@@ -440,7 +506,10 @@ class ChannelConversion(dict):
 
             elif kargs['conversion_type'] == v3c.CONVERSION_TYPE_VTAB:
                 nr = kargs['ref_param_nr']
-                self['block_len'] = kargs.get('block_len', v3c.CC_COMMON_BLOCK_SIZE + 40*nr)
+                self['block_len'] = kargs.get(
+                    'block_len',
+                    v3c.CC_COMMON_BLOCK_SIZE + 40*nr,
+                )
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
@@ -454,7 +523,10 @@ class ChannelConversion(dict):
 
             elif kargs['conversion_type'] == v3c.CONVERSION_TYPE_VTABR:
                 nr = kargs.get('ref_param_nr', 0)
-                self['block_len'] = kargs.get('block_len', v3c.CC_COMMON_BLOCK_SIZE + 20*nr)
+                self['block_len'] = kargs.get(
+                    'block_len',
+                    v3c.CC_COMMON_BLOCK_SIZE + 20*nr,
+                )
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
@@ -467,7 +539,9 @@ class ChannelConversion(dict):
                     self['upper_{}'.format(i)] = kargs['upper_{}'.format(i)]
                     self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
             else:
-                raise Exception('Conversion type "{}" not implemented'.format(kargs['conversion_type']))
+                message = 'Conversion type "{}" not implemented'
+                message = message.format(kargs['conversion_type'])
+                raise Exception(message)
 
     def __bytes__(self):
         conv = self['conversion_type']
@@ -539,7 +613,8 @@ class ChannelConversion(dict):
 class ChannelDependency(dict):
     ''' CDBLOCK class derived from *dict*
 
-    Currently the ChannelDependency object can only be created using the *stream* and *address* keyword parameters when reading from file
+    Currently the ChannelDependency object can only be created using the
+    *stream* and *address* keyword parameters when reading from file
 
     The keys have the following meaning:
 
@@ -549,11 +624,14 @@ class ChannelDependency(dict):
     * sd_nr - Total number of signals dependencies (m)
     * for each dependency there is a group of three keys:
 
-        * dg_{n} - Pointer to the data group block (DGBLOCK) of signal dependency *n*
-        * cg_{n} - Pointer to the channel group block (DGBLOCK) of signal dependency *n*
+        * dg_{n} - Pointer to the data group block (DGBLOCK) of signal
+        dependency *n*
+        * cg_{n} - Pointer to the channel group block (DGBLOCK) of signal
+        dependency *n*
         * ch_{n} - Pointer to the channel block (DGBLOCK) of signal dependency *n*
 
-    * there can also be optional keys which decribe dimensions for the N-dimensional dependencies:
+    * there can also be optional keys which decribe dimensions for the
+    N-dimensional dependencies:
 
         * dim_{n} - Optional: size of dimension *n* for N-dimensional dependency
 
@@ -587,7 +665,10 @@ class ChannelDependency(dict):
              self['sd_nr']) = unpack('<2s3H', stream.read(8))
 
             links_size = 3 * 4 * self['sd_nr']
-            links = unpack('<{}I'.format(3 * self['sd_nr']), stream.read(links_size))
+            links = unpack(
+                '<{}I'.format(3 * self['sd_nr']),
+                stream.read(links_size),
+            )
 
             for i in range(self['sd_nr']):
                 self['dg_{}'.format(i)] = links[3*i]
@@ -596,7 +677,10 @@ class ChannelDependency(dict):
 
             optional_dims_nr = (self['block_len'] - 8 - links_size) // 2
             if optional_dims_nr:
-                dims = unpack('<{}H'.format(optional_dims_nr), stream.read(optional_dims_nr * 2))
+                dims = unpack(
+                    '<{}H'.format(optional_dims_nr),
+                    stream.read(optional_dims_nr * 2),
+                )
                 for i, dim in enumerate(dims):
                     self['dim_{}'.format(i)] = dim
 
@@ -643,10 +727,13 @@ class ChannelExtension(dict):
 
     The ChannelExtension object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ChannelExtension
+    * using the *stream* and *address* keyword parameters - when reading from
+    file
+    * using any of the following presented keys - when creating a new
+    ChannelExtension
 
-    The first keys are common for all conversion types, and are followed by conversion specific keys. The keys have the following meaning:
+    The first keys are common for all conversion types, and are followed by
+    conversion specific keys. The keys have the following meaning:
 
     * common keys
 
@@ -719,15 +806,18 @@ class ChannelExtension(dict):
             if self['type'] == v3c.SOURCE_ECU:
                 self['module_nr'] = kargs.get('module_nr', 0)
                 self['module_address'] = kargs.get('module_address', 0)
-                self['description'] = kargs.get('description', '\0'.encode('latin-1'))
-                self['ECU_identification'] = kargs.get('ECU_identification', '\0'.encode('latin-1'))
-                self['reserved0'] = kargs.get('reserved0', '\0'.encode('latin-1'))
+                self['description'] = kargs.get('description', b'\0')
+                self['ECU_identification'] = kargs.get(
+                    'ECU_identification',
+                    b'\0',
+                )
+                self['reserved0'] = kargs.get('reserved0', b'\0')
             elif self['type'] == v3c.SOURCE_VECTOR:
                 self['CAN_id'] = kargs.get('CAN_id', 0)
                 self['CAN_ch_index'] = kargs.get('CAN_ch_index', 0)
-                self['message_name'] = kargs.get('message_name', '\0'.encode('latin-1'))
-                self['sender_name'] = kargs.get('sender_name', '\0'.encode('latin-1'))
-                self['reserved0'] = kargs.get('reserved0', '\0'.encode('latin-1'))
+                self['message_name'] = kargs.get('message_name', b'\0')
+                self['sender_name'] = kargs.get('sender_name', b'\0')
+                self['reserved0'] = kargs.get('reserved0', b'\0')
 
     def __bytes__(self):
         typ = self['type']
@@ -750,8 +840,10 @@ class ChannelGroup(dict):
 
     The ChannelGroup object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ChannelGroup
+    * using the *stream* and *address* keyword parameters - when reading from
+    file
+    * using any of the following presented keys - when creating a new
+    ChannelGroup
 
     The keys have the following meaning:
 
@@ -759,12 +851,17 @@ class ChannelGroup(dict):
     * block_len - Block size of this block in bytes (entire CGBLOCK)
     * next_cg_addr - Pointer to next channel group block (CGBLOCK) (NIL allowed)
     * first_ch_addr - Pointer to first channel block (CNBLOCK) (NIL allowed)
-    * comment_addr - Pointer to channel group comment text (TXBLOCK) (NIL allowed)
-    * record_id - Record ID, i.e. value of the identifier for a record if the DGBLOCK defines a number of record IDs > 0
+    * comment_addr - Pointer to channel group comment text (TXBLOCK) (NIL
+    allowed)
+    * record_id - Record ID, i.e. value of the identifier for a record if the
+    DGBLOCK defines a number of record IDs > 0
     * ch_nr - Number of channels (redundant information)
-    * samples_byte_nr - Size of data record in Bytes (without record ID), i.e. size of plain data for a each recorded sample of this channel group
-    * cycles_nr - Number of records of this type in the data block i.e. number of samples for this channel group
-    * sample_reduction_addr - only since version 3.3. Pointer to first sample reduction block (SRBLOCK) (NIL allowed) Default value: NIL.
+    * samples_byte_nr - Size of data record in Bytes (without record ID), i.e.
+    size of plain data for a each recorded sample of this channel group
+    * cycles_nr - Number of records of this type in the data block i.e. number
+    of samples for this channel group
+    * sample_reduction_addr - only since version 3.3. Pointer to first sample
+    reduction block (SRBLOCK) (NIL allowed) Default value: NIL.
 
     Parameters
     ----------
@@ -842,8 +939,10 @@ class DataBlock(dict):
 
     The DataBlock object can be created in two modes:
 
-    * using the *stream*, *address* and *size* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ChannelGroup
+    * using the *stream*, *address* and *size* keyword parameters - when reading
+    from file
+    * using any of the following presented keys - when creating a new
+    ChannelGroup
 
     The keys have the following meaning:
 
@@ -887,7 +986,8 @@ class DataGroup(dict):
 
     The DataGroup object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from
+    file
     * using any of the following presented keys - when creating a new DataGroup
 
     The keys have the following meaning:
@@ -895,9 +995,10 @@ class DataGroup(dict):
     * id - Block type identifier, always "DG"
     * block_len - Block size of this block in bytes (entire DGBLOCK)
     * next_dg_addr - Pointer to next data group block (DGBLOCK) (NIL allowed)
-    * first_cg_addr - Pointer to first channel group block (CGBLOCK) (NIL allowed)
+    * first_cg_addr - Pointer to first channel group block (CGBLOCK) (NIL
+    allowed)
     * trigger_addr - Pointer to trigger block (TRBLOCK) (NIL allowed)
-    * data_block_addr - Pointer to the data block (see separate chapter on data storage)
+    * data_block_addr - Pointer to the data block
     * cg_nr - Number of channel groups (redundant information)
     * record_id_nr - Number of record IDs in the data block
     * reserved0 - since version 3.2; Reserved
@@ -969,7 +1070,8 @@ class FileIdentificationBlock(dict):
 
     The TriggerBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from
+    file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1019,7 +1121,10 @@ class FileIdentificationBlock(dict):
              self['reserved0'],
              self['reserved1'],
              self['unfinalized_standard_flags'],
-             self['unfinalized_custom_flags']) = unpack(v3c.ID_FMT, stream.read(v3c.ID_BLOCK_SIZE))
+             self['unfinalized_custom_flags']) = unpack(
+                v3c.ID_FMT,
+                stream.read(v3c.ID_BLOCK_SIZE),
+            )
         except KeyError:
             version = kargs['version']
             self['file_identification'] = 'MDF     '.encode('latin-1')
@@ -1055,7 +1160,8 @@ class HeaderBlock(dict):
     * id - Block type identifier, always "HD"
     * block_len - Block size of this block in bytes (entire HDBLOCK)
     * first_dg_addr - Pointer to the first data group block (DGBLOCK)
-    * comment_addr - Pointer to the measurement file comment text (TXBLOCK) (NIL allowed)
+    * comment_addr - Pointer to the measurement file comment text (TXBLOCK) (NIL
+    allowed)
     * program_addr - Pointer to program block (PRBLOCK) (NIL allowed)
     * dg_nr - Number of data groups (redundant information)
     * date - Date at which the recording was started in "DD:MM:YYYY" format
@@ -1104,13 +1210,19 @@ class HeaderBlock(dict):
              self['author'],
              self['organization'],
              self['project'],
-             self['subject']) = unpack(v3c.HEADER_COMMON_FMT, stream.read(v3c.HEADER_COMMON_SIZE))
+             self['subject']) = unpack(
+                v3c.HEADER_COMMON_FMT,
+                stream.read(v3c.HEADER_COMMON_SIZE),
+            )
 
             if self['block_len'] > v3c.HEADER_COMMON_SIZE:
                 (self['abs_time'],
                  self['tz_offset'],
                  self['time_quality'],
-                 self['timer_identification']) = unpack(v3c.HEADER_POST_320_EXTRA_FMT, stream.read(v3c.HEADER_POST_320_EXTRA_SIZE))
+                 self['timer_identification']) = unpack(
+                    v3c.HEADER_POST_320_EXTRA_FMT,
+                    stream.read(v3c.HEADER_POST_320_EXTRA_SIZE),
+                )
 
         except KeyError:
             version = kargs.get('version', '3.20')
@@ -1153,8 +1265,10 @@ class ProgramBlock(dict):
 
     The ProgramBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
-    * using any of the following presented keys - when creating a new ProgramBlock
+    * using the *stream* and *address* keyword parameters - when reading from
+    file
+    * using any of the following presented keys - when creating a new
+    ProgramBlock
 
     The keys have the following meaning:
 
@@ -1203,16 +1317,19 @@ class ProgramBlock(dict):
 class SampleReduction(dict):
     ''' SRBLOCK class derived from *dict*
 
-    Currently the SampleReduction object can only be created by using the *stream* and *address* keyword parameters - when reading from file
+    Currently the SampleReduction object can only be created by using the
+    *stream* and *address* keyword parameters - when reading from file
 
     The keys have the following meaning:
 
     * id - Block type identifier, always "SR"
     * block_len - Block size of this block in bytes (entire SRBLOCK)
-    * next_sr_addr - Pointer to next sample reduction block (SRBLOCK) (NIL allowed)
+    * next_sr_addr - Pointer to next sample reduction block (SRBLOCK) (NIL
+    allowed)
     * data_block_addr - Pointer to the data block for this sample reduction
     * cycles_nr - Number of reduced samples in the data block.
-    * time_interval - Length of time interval [s] used to calculate the reduced samples.
+    * time_interval - Length of time interval [s] used to calculate the reduced
+    samples.
 
     Parameters
     ----------
@@ -1241,13 +1358,19 @@ class SampleReduction(dict):
              self['next_sr_addr'],
              self['data_block_addr'],
              self['cycles_nr'],
-             self['time_interval']) = unpack(v3c.FMT_SAMPLE_REDUCTION_BLOCK, stream.read(v3c.SR_BLOCK_SIZE))
+             self['time_interval']) = unpack(
+                v3c.FMT_SAMPLE_REDUCTION_BLOCK,
+                stream.read(v3c.SR_BLOCK_SIZE),
+            )
 
         except KeyError:
             pass
 
     def __bytes__(self):
-        result = pack(v3c.FMT_SAMPLE_REDUCTION_BLOCK, *[self[key] for key in v3c.KEYS_SAMPLE_REDUCTION_BLOCK])
+        result = pack(
+            v3c.FMT_SAMPLE_REDUCTION_BLOCK,
+            *[self[key] for key in v3c.KEYS_SAMPLE_REDUCTION_BLOCK]
+        )
         return result
 
 
@@ -1256,7 +1379,8 @@ class TextBlock(dict):
 
     The ProgramBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from
+    file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1326,7 +1450,10 @@ class TextBlock(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack('<2sH{}s'.format(self['block_len']-4), *self.values())
         else:
-            result = pack('<2sH{}s'.format(self['block_len']-4), *[self[key] for key in v3c.KEYS_TEXT_BLOCK])
+            result = pack(
+                '<2sH{}s'.format(self['block_len']-4),
+                *[self[key] for key in v3c.KEYS_TEXT_BLOCK]
+            )
         return result
 
 
@@ -1335,7 +1462,8 @@ class TriggerBlock(dict):
 
     The TriggerBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from file
+    * using the *stream* and *address* keyword parameters - when reading from
+    file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1402,9 +1530,18 @@ class TriggerBlock(dict):
     def __bytes__(self):
         triggers_nr = self['trigger_events_nr']
         fmt = '<2sHIH{}d'.format(triggers_nr * 3)
-        keys = ('id', 'block_len', 'text_addr', 'trigger_events_nr')
+        keys = (
+            'id',
+            'block_len',
+            'text_addr',
+            'trigger_events_nr',
+        )
         for i in range(triggers_nr):
-            keys += ('trigger_{}_time'.format(i), 'trigger_{}_pretime'.format(i), 'trigger_{}_posttime'.format(i))
+            keys += (
+                'trigger_{}_time'.format(i),
+                'trigger_{}_pretime'.format(i),
+                'trigger_{}_posttime'.format(i),
+            )
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
