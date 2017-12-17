@@ -99,7 +99,6 @@ class TestMDF(unittest.TestCase):
                                         np.tile(original.samples, 4),
                                         converted.samples):
                                     equal = False
-                                    print(input_file, i, j, np.tile(original.samples, 4), converted.samples)
 
                     self.assertTrue(equal)
 

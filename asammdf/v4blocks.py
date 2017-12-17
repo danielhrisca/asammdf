@@ -71,8 +71,10 @@ class AttachmentBlock(dict):
              self['reserved1'],
              self['md5_sum'],
              self['original_size'],
-             self['embedded_size']) = unpack(v4c.FMT_AT_COMMON,
-                                             stream.read(v4c.AT_COMMON_SIZE))
+             self['embedded_size']) = unpack(
+                v4c.FMT_AT_COMMON,
+                stream.read(v4c.AT_COMMON_SIZE),
+            )
 
             self['embedded_data'] = stream.read(self['embedded_size'])
 
@@ -139,7 +141,7 @@ class AttachmentBlock(dict):
                                ' and embedded data md5sum="{}"')
                     warnings.warn(message.format(self['md5_sum'], md5_sum))
         else:
-            warnings.warn('extarnal attachments not supported')
+            warnings.warn('external attachments not supported')
 
     def __bytes__(self):
         fmt = v4c.FMT_AT_COMMON + '{}s'.format(self['embedded_size'])
@@ -168,8 +170,10 @@ class Channel(dict):
             (self['id'],
              self['reserved0'],
              self['block_len'],
-             self['links_nr']) = unpack(v4c.FMT_COMMON,
-                                        stream.read(v4c.COMMON_SIZE))
+             self['links_nr']) = unpack(
+                v4c.FMT_COMMON,
+                stream.read(v4c.COMMON_SIZE),
+            )
 
             block = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
@@ -217,9 +221,11 @@ class Channel(dict):
              self['lower_limit'],
              self['upper_limit'],
              self['lower_ext_limit'],
-             self['upper_ext_limit']) = unpack_from(v4c.FMT_CHANNEL_PARAMS,
-                                                    block,
-                                                    links_nr * 8)
+             self['upper_ext_limit']) = unpack_from(
+                v4c.FMT_CHANNEL_PARAMS,
+                block,
+                links_nr * 8,
+            )
 
         else:
             self.address = 0
@@ -266,41 +272,47 @@ class Channel(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
-            keys = ['id',
-                    'reserved0',
-                    'block_len',
-                    'links_nr',
-                    'next_ch_addr',
-                    'component_addr',
-                    'name_addr',
-                    'source_addr',
-                    'conversion_addr',
-                    'data_block_addr',
-                    'unit_addr',
-                    'comment_addr']
+            keys = [
+                'id',
+                'reserved0',
+                'block_len',
+                'links_nr',
+                'next_ch_addr',
+                'component_addr',
+                'name_addr',
+                'source_addr',
+                'conversion_addr',
+                'data_block_addr',
+                'unit_addr',
+                'comment_addr',
+            ]
             for i in range(self['attachment_nr']):
                 keys.append('attachment_{}_addr'.format(i))
             if self['flags'] & v4c.FLAG_CN_DEFAULT_X:
-                keys += ['default_X_dg_addr',
-                         'default_X_cg_addr',
-                         'default_X_ch_addr']
-            keys += ['channel_type',
-                     'sync_type',
-                     'data_type',
-                     'bit_offset',
-                     'byte_offset',
-                     'bit_count',
-                     'flags',
-                     'pos_invalidation_bit',
-                     'precision',
-                     'reserved1',
-                     'attachment_nr',
-                     'min_raw_value',
-                     'max_raw_value',
-                     'lower_limit',
-                     'upper_limit',
-                     'lower_ext_limit',
-                     'upper_ext_limit']
+                keys += [
+                    'default_X_dg_addr',
+                    'default_X_cg_addr',
+                    'default_X_ch_addr',
+                ]
+            keys += [
+                'channel_type',
+                'sync_type',
+                'data_type',
+                'bit_offset',
+                'byte_offset',
+                'bit_count',
+                'flags',
+                'pos_invalidation_bit',
+                'precision',
+                'reserved1',
+                'attachment_nr',
+                'min_raw_value',
+                'max_raw_value',
+                'lower_limit',
+                'upper_limit',
+                'lower_ext_limit',
+                'upper_ext_limit',
+            ]
             result = pack(fmt, *[self[key] for key in keys])
         return result
 
@@ -400,7 +412,10 @@ class ChannelArrayBlock(dict):
                 self['dims'] = dims_nr
                 self['flags'] = 0
                 self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
-                self['invalidation_bit_base'] = kargs.get('invalidation_bit_base', 0)
+                self['invalidation_bit_base'] = kargs.get(
+                    'invalidation_bit_base',
+                    0,
+                )
                 for i in range(dims_nr):
                     self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
             elif ca_type == v4c.CA_TYPE_SCALE_AXIS:
@@ -412,7 +427,10 @@ class ChannelArrayBlock(dict):
                 self['dims'] = 1
                 self['flags'] = 0
                 self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
-                self['invalidation_bit_base'] = kargs.get('invalidation_bit_base', 0)
+                self['invalidation_bit_base'] = kargs.get(
+                    'invalidation_bit_base',
+                    0,
+                )
                 self['dim_size_0'] = kargs['dim_size_0']
             elif ca_type == v4c.CA_TYPE_LOOKUP:
                 flags = kargs['flags']
@@ -429,12 +447,18 @@ class ChannelArrayBlock(dict):
                     self['dims'] = dims_nr
                     self['flags'] = v4c.FLAG_CA_FIXED_AXIS | v4c.FLAG_CA_AXIS
                     self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
-                    self['invalidation_bit_base'] = kargs.get('invalidation_bit_base', 0)
+                    self['invalidation_bit_base'] = kargs.get(
+                        'invalidation_bit_base',
+                        0,
+                    )
                     for i in range(dims_nr):
                         self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
                     for i in range(dims_nr):
                         for j in range(self['dim_size_{}'.format(i)]):
-                            self['axis_{}_value_{}'.format(i, j)] = kargs.get('axis_{}_value_{}'.format(i, j), j)
+                            self['axis_{}_value_{}'.format(i, j)] = kargs.get(
+                                'axis_{}_value_{}'.format(i, j),
+                                j,
+                            )
                 else:
                     self['block_len'] = 48 + dims_nr * 5 * 8
                     self['links_nr'] = 1 + dims_nr * 4
@@ -450,7 +474,10 @@ class ChannelArrayBlock(dict):
                     self['dims'] = dims_nr
                     self['flags'] = v4c.FLAG_CA_AXIS
                     self['byte_offset_base'] = kargs.get('byte_offset_base', 1)
-                    self['invalidation_bit_base'] = kargs.get('invalidation_bit_base', 0)
+                    self['invalidation_bit_base'] = kargs.get(
+                        'invalidation_bit_base',
+                        0,
+                    )
                     for i in range(dims_nr):
                         self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
 
@@ -461,71 +488,91 @@ class ChannelArrayBlock(dict):
         dims_nr = self['dims']
 
         if ca_type == v4c.CA_TYPE_ARRAY:
-            keys = ('id',
-                    'reserved0',
-                    'block_len',
-                    'links_nr',
-                    'composition_addr',
-                    'ca_type',
-                    'storage',
-                    'dims',
-                    'flags',
-                    'byte_offset_base',
-                    'invalidation_bit_base')
+            keys = (
+                'id',
+                'reserved0',
+                'block_len',
+                'links_nr',
+                'composition_addr',
+                'ca_type',
+                'storage',
+                'dims',
+                'flags',
+                'byte_offset_base',
+                'invalidation_bit_base',
+            )
             keys += tuple('dim_size_{}'.format(i) for i in range(dims_nr))
             fmt = '<4sI3Q2BHIiI{}Q'.format(dims_nr)
         elif ca_type == v4c.CA_TYPE_SCALE_AXIS:
-            keys = ('id',
+            keys = (
+                'id',
+                'reserved0',
+                'block_len',
+                'links_nr',
+                'composition_addr',
+                'ca_type',
+                'storage',
+                'dims',
+                'flags',
+                'byte_offset_base',
+                'invalidation_bit_base',
+                'dim_size_0',
+            )
+            fmt = '<4sI3Q2BHIiIQ'
+        elif ca_type == v4c.CA_TYPE_LOOKUP:
+            if flags & v4c.FLAG_CA_FIXED_AXIS:
+                nr = sum(self['dim_size_{}'.format(i)] for i in range(dims_nr))
+                keys = (
+                    'id',
                     'reserved0',
                     'block_len',
                     'links_nr',
                     'composition_addr',
+                )
+                keys += tuple(
+                    'axis_conversion_{}'.format(i)
+                    for i in range(dims_nr)
+                )
+                keys += (
+                    'ca_type',
+                     'storage',
+                     'dims',
+                     'flags',
+                     'byte_offset_base',
+                     'invalidation_bit_base',
+                )
+                keys += tuple('dim_size_{}'.format(i) for i in range(dims_nr))
+                keys += tuple(
+                    'axis_{}_value_{}'.format(i, j)
+                    for i in range(dims_nr)
+                    for j in range(self['dim_size_{}'.format(i)])
+                )
+                fmt = '<4sI{}Q2BHIiI{}Q{}d'
+                fmt = fmt.format(self['links_nr'] + 2, dims_nr, nr)
+            else:
+                keys = (
+                    'id',
+                    'reserved0',
+                    'block_len',
+                    'links_nr',
+                    'composition_addr',
+                )
+                keys += tuple('axis_conversion_{}'.format(i)
+                              for i in range(dims_nr))
+                for i in range(dims_nr):
+                    keys += (
+                        'scale_axis_{}_dg_addr'.format(i),
+                        'scale_axis_{}_cg_addr'.format(i),
+                        'scale_axis_{}_ch_addr'.format(i),
+                    )
+                keys += (
                     'ca_type',
                     'storage',
                     'dims',
                     'flags',
                     'byte_offset_base',
                     'invalidation_bit_base',
-                    'dim_size_0')
-            fmt = '<4sI3Q2BHIiIQ'
-        elif ca_type == v4c.CA_TYPE_LOOKUP:
-            if flags & v4c.FLAG_CA_FIXED_AXIS:
-                nr = sum(self['dim_size_{}'.format(i)] for i in range(dims_nr))
-                keys = ('id',
-                        'reserved0',
-                        'block_len',
-                        'links_nr',
-                        'composition_addr')
-                keys += tuple('axis_conversion_{}'.format(i)
-                              for i in range(dims_nr))
-                keys += ('ca_type',
-                         'storage',
-                         'dims',
-                         'flags',
-                         'byte_offset_base',
-                         'invalidation_bit_base')
-                keys += tuple('dim_size_{}'.format(i) for i in range(dims_nr))
-                keys += tuple('axis_{}_value_{}'.format(i, j) for i in range(dims_nr) for j in range(self['dim_size_{}'.format(i)]))
-                fmt = '<4sI{}Q2BHIiI{}Q{}d'
-                fmt = fmt.format(self['links_nr'] + 2, dims_nr, nr)
-            else:
-                keys = ('id',
-                        'reserved0',
-                        'block_len',
-                        'links_nr',
-                        'composition_addr')
-                keys += tuple('axis_conversion_{}'.format(i)
-                              for i in range(dims_nr))
-                for i in range(dims_nr):
-                    keys += ('scale_axis_{}_dg_addr'.format(i),
-                             'scale_axis_{}_cg_addr'.format(i),
-                             'scale_axis_{}_ch_addr'.format(i))
-                keys += ('ca_type',
-                         'storage',
-                         'dims',
-                         'flags',
-                         'byte_offset_base',
-                         'invalidation_bit_base')
+                )
                 keys += tuple('dim_size_{}'.format(i) for i in range(dims_nr))
                 fmt = '<4sI{}Q2BHIiI{}Q'.format(self['links_nr'] + 2, dims_nr)
 
@@ -565,7 +612,10 @@ class ChannelGroup(dict):
              self['path_separator'],
              self['reserved1'],
              self['samples_byte_nr'],
-             self['invalidation_bytes_nr']) = unpack(v4c.FMT_CHANNEL_GROUP, stream.read(v4c.CG_BLOCK_SIZE))
+             self['invalidation_bytes_nr']) = unpack(
+                v4c.FMT_CHANNEL_GROUP,
+                stream.read(v4c.CG_BLOCK_SIZE),
+            )
 
         except KeyError:
             self.address = 0
@@ -577,7 +627,10 @@ class ChannelGroup(dict):
             self['first_ch_addr'] = kargs.get('first_ch_addr', 0)
             self['acq_name_addr'] = kargs.get('acq_name_addr', 0)
             self['acq_source_addr'] = kargs.get('acq_source_addr', 0)
-            self['first_sample_reduction_addr'] = kargs.get('first_sample_reduction_addr', 0)
+            self['first_sample_reduction_addr'] = kargs.get(
+                'first_sample_reduction_addr',
+                0,
+            )
             self['comment_addr'] = kargs.get('comment_addr', 0)
             self['record_id'] = kargs.get('record_id', 1)
             self['cycles_nr'] = kargs.get('cycles_nr', 0)
@@ -585,7 +638,10 @@ class ChannelGroup(dict):
             self['path_separator'] = kargs.get('path_separator', 0)
             self['reserved1'] = kargs.get('reserved1', 0)
             self['samples_byte_nr'] = kargs.get('samples_byte_nr', 0)
-            self['invalidation_bytes_nr'] = kargs.get('invalidation_bytes_nr', 0)
+            self['invalidation_bytes_nr'] = kargs.get(
+                'invalidation_bytes_nr',
+                0,
+            )
 
         # sample reduction blocks are not supported yet
         self['first_sample_reduction_addr'] = 0
@@ -594,7 +650,10 @@ class ChannelGroup(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack(v4c.FMT_CHANNEL_GROUP, *self.values())
         else:
-            result = pack(v4c.FMT_CHANNEL_GROUP, *[self[key] for key in v4c.KEYS_CHANNEL_GROUP])
+            result = pack(
+                v4c.FMT_CHANNEL_GROUP,
+                *[self[key] for key in v4c.KEYS_CHANNEL_GROUP],
+            )
         return result
 
 
@@ -614,7 +673,10 @@ class ChannelConversion(dict):
             (self['id'],
              self['reserved0'],
              self['block_len'],
-             self['links_nr']) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
+             self['links_nr']) = unpack(
+                v4c.FMT_COMMON,
+                stream.read(v4c.COMMON_SIZE),
+            )
 
             block = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
@@ -631,7 +693,10 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack(v4c.FMT_CONVERSION_NONE_INIT, block)
+                 self['max_phy_value']) = unpack(
+                    v4c.FMT_CONVERSION_NONE_INIT,
+                    block,
+                )
 
             elif conv == v4c.CONVERSION_TYPE_LIN:
                 (self['name_addr'],
@@ -679,7 +744,10 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack(v4c.FMT_CONVERSION_ALGEBRAIC_INIT, block)
+                 self['max_phy_value']) = unpack(
+                    v4c.FMT_CONVERSION_ALGEBRAIC_INIT,
+                    block,
+                )
 
             elif conv in (v4c.CONVERSION_TYPE_TABI, v4c.CONVERSION_TYPE_TAB):
                 (self['name_addr'],
@@ -692,7 +760,10 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack_from(v4c.FMT_CONVERSION_NONE_INIT, block)
+                 self['max_phy_value']) = unpack_from(
+                    v4c.FMT_CONVERSION_NONE_INIT,
+                    block,
+                )
 
                 nr = self['val_param_nr']
                 values = unpack('<{}d'.format(nr), block[56:])
@@ -711,7 +782,10 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack_from(v4c.FMT_CONVERSION_NONE_INIT, block)
+                 self['max_phy_value']) = unpack_from(
+                    v4c.FMT_CONVERSION_NONE_INIT,
+                    block,
+                )
                 nr = self['val_param_nr']
                 values = unpack('<{}d'.format(nr), block[56:])
                 for i in range((nr - 1) // 3):
@@ -739,9 +813,16 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack_from('<2B3H2d', block, 32 + links_nr * 8)
+                 self['max_phy_value']) = unpack_from(
+                    '<2B3H2d', block,
+                    32 + links_nr * 8,
+                )
 
-                values = unpack_from('<{}d'.format(links_nr - 1), block, 32 + links_nr * 8 + 24)
+                values = unpack_from(
+                    '<{}d'.format(links_nr - 1),
+                    block,
+                    32 + links_nr * 8 + 24,
+                )
                 for i, val in enumerate(values):
                     self['val_{}'.format(i)] = val
 
@@ -764,9 +845,16 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack_from('<2B3H2d', block, 32 + links_nr * 8)
+                 self['max_phy_value']) = unpack_from(
+                    '<2B3H2d', block,
+                    32 + links_nr * 8,
+                )
 
-                values = unpack_from('<{}d'.format( (links_nr - 1) * 2 ), block, 32 + links_nr * 8 + 24)
+                values = unpack_from(
+                    '<{}d'.format( (links_nr - 1) * 2 ),
+                    block,
+                    32 + links_nr * 8 + 24,
+                )
                 for i in range(self['val_param_nr'] // 2):
                     j = 2 * i
                     self['lower_{}'.format(i)] = values[j]
@@ -790,9 +878,16 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack_from('<2B3H2d', block, 32 + links_nr * 8)
+                 self['max_phy_value']) = unpack_from(
+                    '<2B3H2d', block,
+                    32 + links_nr * 8,
+                )
 
-                values = unpack_from('<{}d'.format(self['val_param_nr']), block, 32 + links_nr * 8 + 24)
+                values = unpack_from(
+                    '<{}d'.format(self['val_param_nr']),
+                    block,
+                    32 + links_nr * 8 + 24,
+                )
                 for i, val in enumerate(values[:-1]):
                     self['val_{}'.format(i)] = val
                 self['val_default'] = values[-1]
@@ -819,7 +914,10 @@ class ChannelConversion(dict):
                  self['ref_param_nr'],
                  self['val_param_nr'],
                  self['min_phy_value'],
-                 self['max_phy_value']) = unpack_from('<2B3H2d', block, 32 + links_nr * 8)
+                 self['max_phy_value']) = unpack_from(
+                    '<2B3H2d', block,
+                    32 + links_nr * 8,
+                )
 
         else:
 
@@ -860,7 +958,10 @@ class ChannelConversion(dict):
                 self['a'] = kargs['a']
 
             elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_ALG:
-                self['block_len'] = kargs.get('block_len', v4c.CC_ALG_BLOCK_SIZE)
+                self['block_len'] = kargs.get(
+                    'block_len',
+                    v4c.CC_ALG_BLOCK_SIZE,
+                )
                 self['links_nr'] = kargs.get('links_nr', 5)
                 self['name_addr'] = kargs.get('name_addr', 0)
                 self['unit_addr'] = kargs.get('unit_addr', 0)
@@ -888,8 +989,14 @@ class ChannelConversion(dict):
                 self['conversion_type'] = v4c.CONVERSION_TYPE_TABX
                 self['precision'] = kargs.get('precision', 0)
                 self['flags'] = kargs.get('flags', 0)
-                self['ref_param_nr'] = kargs.get('ref_param_nr', kargs['links_nr'] - 4)
-                self['val_param_nr'] = kargs.get('val_param_nr', kargs['links_nr'] - 5)
+                self['ref_param_nr'] = kargs.get(
+                    'ref_param_nr',
+                    kargs['links_nr'] - 4,
+                )
+                self['val_param_nr'] = kargs.get(
+                    'val_param_nr',
+                    kargs['links_nr'] - 5,
+                )
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 for i in range(kargs['links_nr'] - 5):
@@ -924,7 +1031,10 @@ class ChannelConversion(dict):
                 self['comment_addr'] = kargs.get('comment_addr', 0)
                 self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
                 for i in range(kargs['links_nr'] - 4):
-                    self['text_{}'.format(i)] = kargs.get('text_{}'.format(i), 0)
+                    self['text_{}'.format(i)] = kargs.get(
+                        'text_{}'.format(i),
+                        0,
+                    )
                 self['conversion_type'] = v4c.CONVERSION_TYPE_TTAB
                 self['precision'] = kargs.get('precision', 0)
                 self['flags'] = kargs.get('flags', 0)
@@ -937,7 +1047,10 @@ class ChannelConversion(dict):
                 self['val_default'] = kargs['val_default']
 
     def __bytes__(self):
-        fmt = '<4sI{}Q2B3H{}d'.format(self['links_nr'] + 2, self['val_param_nr'] + 2)
+        fmt = '<4sI{}Q2B3H{}d'.format(
+            self['links_nr'] + 2,
+            self['val_param_nr'] + 2,
+        )
 
         # only compute keys for Python < 3.6
         if PYVERSION_MAJOR < 36:
@@ -949,93 +1062,139 @@ class ChannelConversion(dict):
                 keys = v4c.KEYS_CONVERSION_RAT
             elif self['conversion_type'] == v4c.CONVERSION_TYPE_ALG:
                 keys = v4c.KEYS_CONVERSION_ALGEBRAIC
-            elif self['conversion_type'] in (v4c.CONVERSION_TYPE_TABI, v4c.CONVERSION_TYPE_TAB):
+            elif self['conversion_type'] in (
+                    v4c.CONVERSION_TYPE_TABI,
+                    v4c.CONVERSION_TYPE_TAB):
                 keys = v4c.KEYS_CONVERSION_NONE
                 for i in range(self['val_param_nr'] // 2):
                     keys += ('raw_{}'.format(i), 'phys_{}'.format(i))
             elif self['conversion_type'] == v4c.CONVERSION_TYPE_RTAB:
                 keys = v4c.KEYS_CONVERSION_NONE
                 for i in range(self['val_param_nr'] // 3):
-                    keys += ('lower_{}'.format(i), 'upper_{}'.format(i), 'phys_{}'.format(i))
+                    keys += (
+                        'lower_{}'.format(i),
+                        'upper_{}'.format(i),
+                        'phys_{}'.format(i),
+                    )
                 keys += ('default',)
             elif self['conversion_type'] == v4c.CONVERSION_TYPE_TABX:
-                keys = ('id',
-                        'reserved0',
-                        'block_len',
-                        'links_nr',
-                        'name_addr',
-                        'unit_addr',
-                        'comment_addr',
-                        'inv_conv_addr')
-                keys += tuple('text_{}'.format(i) for i in range(self['links_nr'] - 4 - 1))
+                keys = (
+                    'id',
+                    'reserved0',
+                    'block_len',
+                    'links_nr',
+                    'name_addr',
+                    'unit_addr',
+                    'comment_addr',
+                    'inv_conv_addr',
+                )
+                keys += tuple(
+                    'text_{}'.format(i)
+                    for i in range(self['links_nr'] - 4 - 1)
+                )
                 keys += ('default_addr',)
-                keys += ('conversion_type',
-                         'precision',
-                         'flags',
-                         'ref_param_nr',
-                         'val_param_nr',
-                         'min_phy_value',
-                         'max_phy_value')
-                keys += tuple('val_{}'.format(i) for i in range(self['val_param_nr']))
+                keys += (
+                    'conversion_type',
+                    'precision',
+                    'flags',
+                    'ref_param_nr',
+                    'val_param_nr',
+                    'min_phy_value',
+                    'max_phy_value',
+                )
+                keys += tuple(
+                    'val_{}'.format(i)
+                    for i in range(self['val_param_nr'])
+                )
             elif self['conversion_type'] == v4c.CONVERSION_TYPE_RTABX:
-                keys = ('id',
-                        'reserved0',
-                        'block_len',
-                        'links_nr',
-                        'name_addr',
-                        'unit_addr',
-                        'comment_addr',
-                        'inv_conv_addr')
-                keys += tuple('text_{}'.format(i) for i in range(self['links_nr'] - 4 - 1))
+                keys = (
+                    'id',
+                    'reserved0',
+                    'block_len',
+                    'links_nr',
+                    'name_addr',
+                    'unit_addr',
+                    'comment_addr',
+                    'inv_conv_addr',
+                )
+                keys += tuple(
+                    'text_{}'.format(i)
+                    for i in range(self['links_nr'] - 4 - 1)
+                )
                 keys += ('default_addr',)
-                keys += ('conversion_type',
-                         'precision',
-                         'flags',
-                         'ref_param_nr',
-                         'val_param_nr',
-                         'min_phy_value',
-                         'max_phy_value')
+                keys += (
+                    'conversion_type',
+                    'precision',
+                    'flags',
+                    'ref_param_nr',
+                    'val_param_nr',
+                    'min_phy_value',
+                    'max_phy_value',
+                )
                 for i in range(self['val_param_nr'] // 2):
-                    keys += ('lower_{}'.format(i), 'upper_{}'.format(i))
+                    keys += (
+                        'lower_{}'.format(i),
+                        'upper_{}'.format(i),
+                    )
             elif self['conversion_type'] == v4c.CONVERSION_TYPE_TTAB:
-                keys = ('id',
-                        'reserved0',
-                        'block_len',
-                        'links_nr',
-                        'name_addr',
-                        'unit_addr',
-                        'comment_addr',
-                        'inv_conv_addr')
-                keys += tuple('text_{}'.format(i) for i in range(self['links_nr'] - 4))
-                keys += ('conversion_type',
-                         'precision',
-                         'flags',
-                         'ref_param_nr',
-                         'val_param_nr',
-                         'min_phy_value',
-                         'max_phy_value')
-                keys += tuple('val_{}'.format(i) for i in range(self['val_param_nr'] -1))
+                keys = (
+                    'id',
+                    'reserved0',
+                    'block_len',
+                    'links_nr',
+                    'name_addr',
+                    'unit_addr',
+                    'comment_addr',
+                    'inv_conv_addr',
+                )
+                keys += tuple(
+                    'text_{}'.format(i)
+                    for i in range(self['links_nr'] - 4)
+                )
+                keys += (
+                    'conversion_type',
+                    'precision',
+                    'flags',
+                    'ref_param_nr',
+                    'val_param_nr',
+                    'min_phy_value',
+                    'max_phy_value',
+                )
+                keys += tuple(
+                    'val_{}'.format(i)
+                    for i in range(self['val_param_nr'] -1)
+                )
                 keys += ('val_default',)
             elif self['conversion_type'] == v4c.CONVERSION_TYPE_TRANS:
-                keys = ('id',
-                        'reserved0',
-                        'block_len',
-                        'links_nr',
-                        'name_addr',
-                        'unit_addr',
-                        'comment_addr',
-                        'inv_conv_addr')
+                keys = (
+                    'id',
+                    'reserved0',
+                    'block_len',
+                    'links_nr',
+                    'name_addr',
+                    'unit_addr',
+                    'comment_addr',
+                    'inv_conv_addr',
+                )
                 for i in range((self['links_nr'] - 4 -1) // 2):
-                    keys += ('input_{}_addr'.format(i), 'output_{}_addr'.format(i))
-                keys += ('default_addr',
-                         'conversion_type',
-                         'precision',
-                         'flags',
-                         'ref_param_nr',
-                         'val_param_nr',
-                         'min_phy_value',
-                         'max_phy_value')
-                keys += tuple('val_{}'.format(i) for i in range(self['val_param_nr'] -1))
+                    keys += (
+                        'input_{}_addr'.format(i),
+                        'output_{}_addr'.format(i),
+                    )
+                keys += (
+                    'default_addr',
+                    'conversion_type',
+                    'precision',
+                    'flags',
+                    'ref_param_nr',
+                    'val_param_nr',
+                    'min_phy_value',
+                    'max_phy_value',
+                )
+                keys += tuple(
+                    'val_{}'.format(i)
+                    for i in range(self['val_param_nr'] -1)
+                )
 
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
@@ -1067,7 +1226,10 @@ class DataBlock(dict):
             (self['id'],
              self['reserved0'],
              self['block_len'],
-             self['links_nr']) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
+             self['links_nr']) = unpack(
+                v4c.FMT_COMMON,
+                stream.read(v4c.COMMON_SIZE),
+            )
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
         except KeyError:
@@ -1118,7 +1280,10 @@ class DataZippedBlock(dict):
              self['reserved1'],
              self['param'],
              self['original_size'],
-             self['zip_size'],) = unpack(v4c.FMT_DZ_COMMON, stream.read(v4c.DZ_COMMON_SIZE))
+             self['zip_size'],) = unpack(
+                v4c.FMT_DZ_COMMON,
+                stream.read(v4c.DZ_COMMON_SIZE),
+            )
 
             self['data'] = stream.read(self['zip_size'])
 
@@ -1135,9 +1300,13 @@ class DataZippedBlock(dict):
             self['original_type'] = kargs.get('original_type', b'DT')
             self['zip_type'] = kargs.get('zip_type', v4c.FLAG_DZ_DEFLATE)
             self['reserved1'] = 0
-            self['param'] = 0 if self['zip_type'] == v4c.FLAG_DZ_DEFLATE else kargs['param']
+            if self['zip_type'] == v4c.FLAG_DZ_DEFLATE:
+                self['param'] = 0
+            else:
+                self['param'] = kargs['param']
 
-            # since prevent_data_setitem is False the rest of the keys will be handled by __setitem__
+            # since prevent_data_setitem is False the rest of the keys will be
+            # handled by __setitem__
             self['data'] = data
 
         self.prevent_data_setitem = False
@@ -1154,7 +1323,8 @@ class DataZippedBlock(dict):
                 cols = self['param']
                 lines = self['original_size'] // cols
 
-                nd = np.fromstring(data[:lines*cols], dtype=np.uint8).reshape((lines, cols))
+                nd = np.fromstring(data[:lines*cols], dtype=np.uint8)
+                nd = nd.reshape((lines, cols))
                 data = nd.transpose().tostring() + data[lines*cols:]
 
                 data = compress(data)
@@ -1174,7 +1344,8 @@ class DataZippedBlock(dict):
                     cols = self['param']
                     lines = self['original_size'] // cols
 
-                    nd = np.fromstring(data[:lines*cols], dtype=np.uint8).reshape((cols, lines))
+                    nd = np.fromstring(data[:lines*cols], dtype=np.uint8)
+                    nd = nd.reshape((cols, lines))
                     data = nd.transpose().tostring() + data[lines*cols:]
             else:
                 data = super(DataZippedBlock, self).__getitem__(item)
@@ -1214,7 +1385,10 @@ class DataGroup(dict):
              self['data_block_addr'],
              self['comment_addr'],
              self['record_id_len'],
-             self['reserved1']) = unpack(v4c.FMT_DATA_GROUP, stream.read(v4c.DG_BLOCK_SIZE))
+             self['reserved1']) = unpack(
+                v4c.FMT_DATA_GROUP,
+                stream.read(v4c.DG_BLOCK_SIZE),
+            )
 
         except KeyError:
 
@@ -1234,7 +1408,10 @@ class DataGroup(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack(v4c.FMT_DATA_GROUP, *self.values())
         else:
-            result = pack(v4c.FMT_DATA_GROUP, *[self[key] for key in v4c.KEYS_DATA_GROUP])
+            result = pack(
+                v4c.FMT_DATA_GROUP,
+                *[self[key] for key in v4c.KEYS_DATA_GROUP],
+            )
         return result
 
 
@@ -1252,11 +1429,17 @@ class DataList(dict):
             (self['id'],
              self['reserved0'],
              self['block_len'],
-             self['links_nr']) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
+             self['links_nr']) = unpack(
+                v4c.FMT_COMMON,
+                stream.read(v4c.COMMON_SIZE),
+            )
 
             self['next_dl_addr'] = unpack('<Q', stream.read(8))[0]
 
-            links = unpack('<{}Q'.format(self['links_nr'] - 1), stream.read( (self['links_nr'] - 1) * 8 ))
+            links = unpack(
+                '<{}Q'.format(self['links_nr'] - 1),
+                stream.read( (self['links_nr'] - 1) * 8 ),
+            )
 
             for i, addr in enumerate(links):
                 self['data_block_addr{}'.format(i)] = addr
@@ -1271,7 +1454,10 @@ class DataList(dict):
             else:
                 (self['reserved1'],
                  self['data_block_nr']) = unpack('<3sI', stream.read(7))
-                offsets = unpack('<{}Q'.format(self['links_nr'] - 1), stream.read((self['links_nr'] - 1)*8))
+                offsets = unpack(
+                    '<{}Q'.format(self['links_nr'] - 1),
+                    stream.read((self['links_nr'] - 1)*8),
+                )
                 for i, offset in enumerate(offsets):
                     self['offset_{}'.format(i)] = offset
 
@@ -1285,10 +1471,13 @@ class DataList(dict):
             self['next_dl_addr'] = 0
 
             for i in range(self['links_nr'] - 1):
-                self['data_block_addr{}'.format(i)] = kargs.get('data_block_addr{}'.format(i), 0)
+                self['data_block_addr{}'.format(i)] = kargs.get(
+                    'data_block_addr{}'.format(i),
+                    0,
+                )
 
             self['flags'] = kargs.get('flags', 1)
-            self['reserved1'] = kargs.get('reserved1', b'\00'*3)
+            self['reserved1'] = kargs.get('reserved1', b'\0\0\0')
             self['data_block_nr'] = kargs.get('data_block_nr', 1)
             if self['flags'] & v4c.FLAG_DL_EQUAL_LENGHT:
                 self['data_block_len'] = kargs['data_block_len']
@@ -1300,9 +1489,23 @@ class DataList(dict):
     def __bytes__(self):
         fmt = v4c.FMT_DATA_LIST.format(self['links_nr'])
         if PYVERSION_MAJOR < 36:
-            keys = ('id', 'reserved0', 'block_len', 'links_nr', 'next_dl_addr')
-            keys += tuple('data_block_addr{}'.format(i) for i in range(self['links_nr'] - 1))
-            keys += ('flags', 'reserved1', 'data_block_nr', 'data_block_len')
+            keys = (
+                'id',
+                'reserved0',
+                'block_len',
+                'links_nr',
+                'next_dl_addr',
+            )
+            keys += tuple(
+                'data_block_addr{}'.format(i)
+                for i in range(self['links_nr'] - 1)
+            )
+            keys += (
+                'flags',
+                'reserved1',
+                'data_block_nr',
+                'data_block_len',
+            )
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
@@ -1334,7 +1537,10 @@ class FileIdentificationBlock(dict):
              self['check_block'],
              self['fill'],
              self['unfinalized_standard_flags'],
-             self['unfinalized_custom_flags']) = unpack(v4c.FMT_IDENTIFICATION_BLOCK, stream.read(v4c.IDENTIFICATION_BLOCK_SIZE))
+             self['unfinalized_custom_flags']) = unpack(
+                v4c.FMT_IDENTIFICATION_BLOCK,
+                stream.read(v4c.IDENTIFICATION_BLOCK_SIZE),
+            )
 
         except KeyError:
 
@@ -1355,7 +1561,10 @@ class FileIdentificationBlock(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack(v4c.FMT_IDENTIFICATION_BLOCK, *self.values())
         else:
-            result = pack(v4c.FMT_IDENTIFICATION_BLOCK, *[self[key] for key in v4c.KEYS_IDENTIFICATION_BLOCK])
+            result = pack(
+                v4c.FMT_IDENTIFICATION_BLOCK,
+                *[self[key] for key in v4c.KEYS_IDENTIFICATION_BLOCK],
+            )
         return result
 
 
@@ -1380,7 +1589,10 @@ class FileHistory(dict):
              self['tz_offset'],
              self['daylight_save_time'],
              self['time_flags'],
-             self['reserved1']) = unpack(v4c.FMT_FILE_HISTORY, stream.read(v4c.FH_BLOCK_SIZE))
+             self['reserved1']) = unpack(
+                v4c.FMT_FILE_HISTORY,
+                stream.read(v4c.FH_BLOCK_SIZE),
+            )
 
         except KeyError:
             self['id'] = kargs.get('id', '##FH'.encode('utf-8'))
@@ -1399,7 +1611,10 @@ class FileHistory(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack(v4c.FMT_FILE_HISTORY, *self.values())
         else:
-            result = pack(v4c.FMT_FILE_HISTORY, *[self[key] for key in v4c.KEYS_FILE_HISTORY])
+            result = pack(
+                v4c.FMT_FILE_HISTORY,
+                *[self[key] for key in v4c.KEYS_FILE_HISTORY],
+            )
         return result
 
 
@@ -1432,7 +1647,10 @@ class HeaderBlock(dict):
              self['flags'],
              self['reserved4'],
              self['start_angle'],
-             self['start_distance']) = unpack(v4c.FMT_HEADER_BLOCK, stream.read(v4c.HEADER_BLOCK_SIZE))
+             self['start_distance']) = unpack(
+                v4c.FMT_HEADER_BLOCK,
+                stream.read(v4c.HEADER_BLOCK_SIZE),
+            )
 
         except KeyError:
 
@@ -1443,7 +1661,10 @@ class HeaderBlock(dict):
             self['first_dg_addr'] = kargs.get('first_dg_addr', 0)
             self['file_history_addr'] = kargs.get('file_history_addr', 0)
             self['channel_tree_addr'] = kargs.get('channel_tree_addr', 0)
-            self['first_attachment_addr'] = kargs.get('first_attachment_addr', 0)
+            self['first_attachment_addr'] = kargs.get(
+                'first_attachment_addr',
+                0,
+            )
             self['first_event_addr'] = kargs.get('first_event_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
             self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10**9)
@@ -1460,7 +1681,10 @@ class HeaderBlock(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack(v4c.FMT_HEADER_BLOCK, *self.values())
         else:
-            result = pack(v4c.FMT_HEADER_BLOCK, *[self[key] for key in v4c.KEYS_HEADER_BLOCK])
+            result = pack(
+                v4c.FMT_HEADER_BLOCK,
+                *[self[key] for key in v4c.KEYS_HEADER_BLOCK],
+            )
         return result
 
 
@@ -1484,7 +1708,10 @@ class HeaderList(dict):
              self['first_dl_addr'],
              self['flags'],
              self['zip_type'],
-             self['reserved1']) = unpack(v4c.FMT_HL_BLOCK, stream.read(v4c.HL_BLOCK_SIZE))
+             self['reserved1']) = unpack(
+                v4c.FMT_HL_BLOCK,
+                stream.read(v4c.HL_BLOCK_SIZE),
+            )
 
         except KeyError:
 
@@ -1502,7 +1729,10 @@ class HeaderList(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack(v4c.FMT_HL_BLOCK, *self.values())
         else:
-            result = pack(v4c.FMT_HL_BLOCK, *[self[key] for key in v4c.KEYS_HL_BLOCK])
+            result = pack(
+                v4c.FMT_HL_BLOCK,
+                *[self[key] for key in v4c.KEYS_HL_BLOCK],
+            )
         return result
 
 
@@ -1529,7 +1759,10 @@ class SourceInformation(dict):
              self['source_type'],
              self['bus_type'],
              self['flags'],
-             self['reserved1']) = unpack(v4c.FMT_SOURCE_INFORMATION, stream.read(v4c.SI_BLOCK_SIZE))
+             self['reserved1']) = unpack(
+                v4c.FMT_SOURCE_INFORMATION,
+                stream.read(v4c.SI_BLOCK_SIZE),
+            )
 
         else:
             self.address = 0
@@ -1549,7 +1782,10 @@ class SourceInformation(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack(v4c.FMT_SOURCE_INFORMATION, *self.values())
         else:
-            result = pack(v4c.FMT_SOURCE_INFORMATION, *[self[key] for key in v4c.KEYS_SOURCE_INFORMATION])
+            result = pack(
+                v4c.FMT_SOURCE_INFORMATION,
+                *[self[key] for key in v4c.KEYS_SOURCE_INFORMATION],
+            )
         return result
 
 
@@ -1567,7 +1803,10 @@ class SignalDataBlock(dict):
             (self['id'],
              self['reserved0'],
              self['block_len'],
-             self['links_nr']) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
+             self['links_nr']) = unpack(
+                v4c.FMT_COMMON,
+                stream.read(v4c.COMMON_SIZE),
+            )
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
         except KeyError:
@@ -1606,7 +1845,10 @@ class TextBlock(dict):
             (self['id'],
              self['reserved0'],
              self['block_len'],
-             self['links_nr']) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
+             self['links_nr']) = unpack(
+                v4c.FMT_COMMON,
+                stream.read(v4c.COMMON_SIZE),
+            )
 
             size = self['block_len'] - v4c.COMMON_SIZE
 
