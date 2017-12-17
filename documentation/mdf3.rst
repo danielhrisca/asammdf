@@ -7,7 +7,7 @@
     <style> .magenta {color:magenta} </style>
     <style> .orange {color:orange} </style>
     <style> .brown {color:brown} </style>
-    
+
 .. role:: red
 .. role:: blue
 .. role:: green
@@ -37,23 +37,23 @@ The *groups* attribute is a dictionary list with the following keys:
 * texts : dictionay containing TextBlock objects used throughout the mdf
 
     * channels : list of dictionaries that contain TextBlock objects ralated to each channel
-    
+
         * long_name_addr : channel long name
         * comment_addr : channel comment
         * display_name_addr : channel display name
-        
+
     * channel group : list of dictionaries that contain TextBlock objects ralated to each channel group
-    
+
         * comment_addr : channel group comment
-        
+
     * conversion_tab : list of dictionaries that contain TextBlock objects ralated to VATB and VTABR channel conversions
-    
+
         * text_{n} : n-th text of the VTABR conversion
-       
+
 * sorted : bool flag to indicate if the source file was sorted; it is used when `memory` is `low` or `minimum`
 * size : data block size; used for lazy laoding of measured data
-* record_size : dict of record ID -> record size pairs 
-        
+* record_size : dict of record ID -> record size pairs
+
 The *file_history* attribute is a TextBlock object.
 
 The *channel_db* attibute is a dictionary that holds the *(data group index, channel index)* pair for all signals. This is used to speed up the *get_signal_by_name* method.
@@ -65,11 +65,12 @@ API
 
 .. autoclass:: asammdf.mdf3.MDF3
     :members:
-    
+    :noindex:
+
 MDF version 3 blocks
 --------------------
-    
+
 .. toctree::
    :maxdepth: 2
-   
+
    v3blocks

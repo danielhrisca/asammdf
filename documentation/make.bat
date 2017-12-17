@@ -11,7 +11,21 @@ set SOURCEDIR=.
 set BUILDDIR=_build
 set SPHINXPROJ=asammdf
 
+set ALLSPHINXOPTS=-d %BUILDDIR%/doctrees %SPHINXOPTS% .
+if NOT "%PAPER%" == "" (
+    set ALLSPHINXOPTS=-D latex_paper_size=%PAPER% %ALLSPHINXOPTS%
+)
+
 if "%1" == "" goto help
+
+if "%1" == "livehtml" (
+    sphinx-autobuild  -B -s 1 -b html %ALLSPHINXOPTS% %BUILDDIR%/html
+    if errorlevel 1 exit /b 1
+    echo.
+    echo.Testing of doctests in the sources finished, look at the ^
+results in %BUILDDIR%/html/output.txt.
+    goto end
+)
 
 %SPHINXBUILD% >NUL 2>NUL
 if errorlevel 9009 (

@@ -89,10 +89,10 @@ class MDF3(object):
     memory : str
         memory optimization option; default `full`
 
-        * if *full* the data group binary data block will be memoryed in RAM
+        * if *full* the data group binary data block will be memorised in RAM
         * if *low* the channel data is read from disk on request, and the
-        metadata is memoryed into RAM
-        * if *minimum* only minimal data is memoryed into RAM
+            metadata is memorised into RAM
+        * if *minimum* only minimal data is memorised into RAM
 
     version : string
         mdf file version ('3.00', '3.10', '3.20' or '3.30'); default '3.30'
@@ -465,15 +465,15 @@ class MDF3(object):
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
+            * if there are multiple occurrences for this channel then the
             *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
+                group.
+            * if there are multiple occurrences for this channel and either the
             *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -930,10 +930,9 @@ class MDF3(object):
                signals,
                acquisition_info='Python',
                common_timebase=False):
-        """
-        Appends a new data group.
+        """Appends a new data group.
 
-        For channel depencies type Signals, the *samples* attribute must be a
+        For channel dependencies type Signals, the *samples* attribute must be a
         numpy.recarray
 
         Parameters
@@ -2092,19 +2091,20 @@ class MDF3(object):
 
     def get_channel_unit(self, name=None, group=None, index=None):
         """Gets channel unit.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
             * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
+                *group* and *index* arguments can be used to select a specific
+                group.
             * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2164,14 +2164,14 @@ class MDF3(object):
         * using the first positional argument *name*
 
             * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
+                *group* and *index* arguments can be used to select a specific
+                group.
             * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2230,14 +2230,14 @@ class MDF3(object):
         * using the first positional argument *name*
 
             * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
+                *group* and *index* arguments can be used to select a specific
+                group.
             * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2265,7 +2265,7 @@ class MDF3(object):
             The *Signal* samples are:
 
                 * numpy recarray for channels that have CDBLOCK or BYTEARRAY
-                type channels
+                    type channels
                 * numpy array for all the rest
 
         Raises
@@ -2835,8 +2835,8 @@ class MDF3(object):
     def _save_with_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '_<cntr>', were
-        '<cntr>' is the first conter that produces a new file name (that does
+        is overwritten, otherwise the file name is appended with '_<cntr>', were
+        '<cntr>' is the first counter that produces a new file name (that does
         not already exist in the filesystem).
 
         Parameters
@@ -3139,8 +3139,8 @@ class MDF3(object):
     def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '_<cntr>', were
-        '<cntr>' is the first conter that produces a new file name (that does
+        is overwritten, otherwise the file name is appended with '_<cntr>', were
+        '<cntr>' is the first counter that produces a new file name (that does
         not already exist in the filesystem).
 
         Parameters

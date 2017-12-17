@@ -5,8 +5,4 @@ pandas
 matplotlib
 wheel
 sphinx-argparse
-# test
-coveralls
-coverage
-pylint
-xmlrunner
+sphinx_autobuild
