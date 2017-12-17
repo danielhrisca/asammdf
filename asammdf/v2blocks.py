@@ -1164,7 +1164,10 @@ class FileIdentificationBlock(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack(v2c.ID_FMT, *self.values())
         else:
-            result = pack(v2c.ID_FMT, *[self[key] for key in v2c.ID_KEYS])
+            result = pack(
+                v2c.ID_FMT,
+                *[self[key] for key in v2c.ID_KEYS],
+            )
         return result
 
 
@@ -1389,7 +1392,7 @@ class SampleReduction(dict):
     def __bytes__(self):
         result = pack(
             v2c.FMT_SAMPLE_REDUCTION_BLOCK,
-            *[self[key] for key in v2c.KEYS_SAMPLE_REDUCTION_BLOCK],
+            *[self[key] for key in v2c.KEYS_SAMPLE_REDUCTION_BLOCK]
         )
         return result
 
