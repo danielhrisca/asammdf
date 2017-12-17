@@ -13,5 +13,6 @@ script:
   - python --version
   - python -m coverage run test/run_all.py
   - python -m coverage xml -i --include */asammdf/*
+  - python-codacy-coverage -r coverage.xml
 
 after_success:
