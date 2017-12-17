@@ -1473,7 +1473,7 @@ class TextBlock(dict):
         if PYVERSION_MAJOR >= 36:
             result = pack(
                 '<2sH{}s'.format(self['block_len']-4),
-                *self.values(),
+                *self.values()
             )
         else:
             result = pack(
