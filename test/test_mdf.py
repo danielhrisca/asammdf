@@ -4,7 +4,7 @@ import os
 import sys
 import unittest
 import shutil
-import urllib.request
+import urllib
 from zipfile import ZipFile
 
 import numpy as np
@@ -24,7 +24,7 @@ class TestMDF(unittest.TestCase):
     def setUpClass(cls):
         PYVERSION = sys.version_info[0]
 
-        url = 'https://github.com/danielhrisca/asammdf/files/1562572/test.files.zip'
+        url = 'https://github.com/danielhrisca/asammdf/files/1565237/test.files.zip'
         if PYVERSION == 3:
             urllib.request.urlretrieve(url, 'test.zip')
         else:
