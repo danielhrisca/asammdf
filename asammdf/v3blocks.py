@@ -183,7 +183,7 @@ class Channel(dict):
         else:
             result = pack(
                 v3c.FMT_CHANNEL,
-                *[self[key] for key in v3c.KEYS_CHANNEL],
+                *[self[key] for key in v3c.KEYS_CHANNEL]
             )
         return result
 
@@ -1369,7 +1369,7 @@ class SampleReduction(dict):
     def __bytes__(self):
         result = pack(
             v3c.FMT_SAMPLE_REDUCTION_BLOCK,
-            *[self[key] for key in v3c.KEYS_SAMPLE_REDUCTION_BLOCK],
+            *[self[key] for key in v3c.KEYS_SAMPLE_REDUCTION_BLOCK]
         )
         return result
 
@@ -1452,7 +1452,7 @@ class TextBlock(dict):
         else:
             result = pack(
                 '<2sH{}s'.format(self['block_len']-4),
-                *[self[key] for key in v3c.KEYS_TEXT_BLOCK],
+                *[self[key] for key in v3c.KEYS_TEXT_BLOCK]
             )
         return result
 

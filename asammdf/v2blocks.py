@@ -1166,7 +1166,7 @@ class FileIdentificationBlock(dict):
         else:
             result = pack(
                 v2c.ID_FMT,
-                *[self[key] for key in v2c.ID_KEYS],
+                *[self[key] for key in v2c.ID_KEYS]
             )
         return result
 
@@ -1478,7 +1478,7 @@ class TextBlock(dict):
         else:
             result = pack(
                 '<2sH{}s'.format(self['block_len']-4),
-                *[self[key] for key in v2c.KEYS_TEXT_BLOCK],
+                *[self[key] for key in v2c.KEYS_TEXT_BLOCK]
             )
         return result
 

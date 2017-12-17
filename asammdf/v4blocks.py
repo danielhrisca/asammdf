@@ -652,7 +652,7 @@ class ChannelGroup(dict):
         else:
             result = pack(
                 v4c.FMT_CHANNEL_GROUP,
-                *[self[key] for key in v4c.KEYS_CHANNEL_GROUP],
+                *[self[key] for key in v4c.KEYS_CHANNEL_GROUP]
             )
         return result
 
@@ -1410,7 +1410,7 @@ class DataGroup(dict):
         else:
             result = pack(
                 v4c.FMT_DATA_GROUP,
-                *[self[key] for key in v4c.KEYS_DATA_GROUP],
+                *[self[key] for key in v4c.KEYS_DATA_GROUP]
             )
         return result
 
@@ -1563,7 +1563,7 @@ class FileIdentificationBlock(dict):
         else:
             result = pack(
                 v4c.FMT_IDENTIFICATION_BLOCK,
-                *[self[key] for key in v4c.KEYS_IDENTIFICATION_BLOCK],
+                *[self[key] for key in v4c.KEYS_IDENTIFICATION_BLOCK]
             )
         return result
 
@@ -1613,7 +1613,7 @@ class FileHistory(dict):
         else:
             result = pack(
                 v4c.FMT_FILE_HISTORY,
-                *[self[key] for key in v4c.KEYS_FILE_HISTORY],
+                *[self[key] for key in v4c.KEYS_FILE_HISTORY]
             )
         return result
 
@@ -1683,7 +1683,7 @@ class HeaderBlock(dict):
         else:
             result = pack(
                 v4c.FMT_HEADER_BLOCK,
-                *[self[key] for key in v4c.KEYS_HEADER_BLOCK],
+                *[self[key] for key in v4c.KEYS_HEADER_BLOCK]
             )
         return result
 
@@ -1731,7 +1731,7 @@ class HeaderList(dict):
         else:
             result = pack(
                 v4c.FMT_HL_BLOCK,
-                *[self[key] for key in v4c.KEYS_HL_BLOCK],
+                *[self[key] for key in v4c.KEYS_HL_BLOCK]
             )
         return result
 
@@ -1784,7 +1784,7 @@ class SourceInformation(dict):
         else:
             result = pack(
                 v4c.FMT_SOURCE_INFORMATION,
-                *[self[key] for key in v4c.KEYS_SOURCE_INFORMATION],
+                *[self[key] for key in v4c.KEYS_SOURCE_INFORMATION]
             )
         return result
 
