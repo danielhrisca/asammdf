@@ -7,7 +7,7 @@
     <style> .magenta {color:magenta} </style>
     <style> .orange {color:orange} </style>
     <style> .brown {color:brown} </style>
-    
+
 .. role:: red
 .. role:: blue
 .. role:: green
@@ -88,11 +88,11 @@ Working with MDF
 
     # save using zipped transpose deflate blocks
     mdf4.save('out.mf4', compression=2, overwrite=True)
-                        
-    
+
+
 Working with Signal
 -------------------
-    
+
 .. code-block:: python
 
     from __future__ import print_function, division
