@@ -3,6 +3,7 @@
 
 import csv
 import os
+from collections import defaultdict
 from warnings import warn
 from functools import reduce
 from struct import unpack
@@ -14,18 +15,19 @@ from .mdf2 import MDF2
 from .mdf3 import MDF3
 from .mdf4 import MDF4
 from .utils import MdfException
+from .v2blocks import Channel as ChannelV2
 from .v3blocks import TextBlock as TextBlockV3
 from .v3blocks import Channel as ChannelV3
 from .v4blocks import TextBlock as TextBlockV4
 
 
-MDF2_VERSIONS = ('2.14',)
+MDF2_VERSIONS = ('2.00', '2.14')
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
 MDF4_VERSIONS = ('4.00', '4.10', '4.11')
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 
-__all__ = ['MDF', ]
+__all__ = ['MDF', 'SUPPORTED_VERSIONS']
 
 
 class MDF(object):
@@ -40,13 +42,13 @@ class MDF(object):
 
             * if *full* the data group binary data block will be loaded in RAM
             * if *low* the channel data is read from disk on request, and the
-            metadata is loaded into RAM
+                metadata is loaded into RAM
 
             * if *minimum* only minimal data is loaded into RAM
 
     version : string
-        mdf file version ('3.00', '3.10', '3.20', '3.30', '4.00', '4.10',
-        '4.11'); default '4.10'
+        mdf file version from ('2.00', '2.14', '3.00', '3.10', '3.20', '3.30',
+        '4.00', '4.10', '4.11'); default '4.10'
 
     """
     def __init__(self, name=None, memory='full', version='4.10'):
@@ -139,8 +141,8 @@ class MDF(object):
         Parameters
         ----------
         to : str
-            new mdf version from ('3.00', '3.10', '3.20', '3.30', '4.00',
-            '4.10', '4.11')
+            new mdf version from ('2.00', '2.14', '3.00', '3.10', '3.20',
+            '3.30', '4.00', '4.10', '4.11')
         memory : str
             memory option; default `full`
 
@@ -274,22 +276,22 @@ class MDF(object):
             can be one of the following:
 
                 * `csv` : CSV export that uses the ";" delimiter. This option
-                will generate a new csv file for each data group
-                (<MDFNAME>_DataGroup_<cntr>.csv)
+                    will generate a new csv file for each data group
+                    (<MDFNAME>_DataGroup_<cntr>.csv)
 
                 * `hdf5` : HDF5 file output; each *MDF* data group is mapped to
-                a *HDF5* group with the name 'DataGroup_<cntr>'
-                (where <cntr> is the index)
+                    a *HDF5* group with the name 'DataGroup_<cntr>'
+                    (where <cntr> is the index)
 
                 * `excel` : Excel file output (very slow). This option will
-                generate a new excel file for each data group
-                (<MDFNAME>_DataGroup_<cntr>.xlsx)
+                    generate a new excel file for each data group
+                    (<MDFNAME>_DataGroup_<cntr>.xlsx)
 
                 * `mat` : Matlab .mat version 5 export, for Matlab >= 7.6. In
-                the mat file the channels will be renamed to
-                'DataGroup_<cntr>_<channel name>'. The channel group master
-                will be renamed to 'DataGroup_<cntr>_<channel name>_master'
-                ( *<cntr>* is the data group index starting from 0)
+                    the mat file the channels will be renamed to
+                    'DataGroup_<cntr>_<channel name>'. The channel group master
+                    will be renamed to 'DataGroup_<cntr>_<channel name>_master'
+                    ( *<cntr>* is the data group index starting from 0)
 
         filename : string
             export file name
@@ -503,17 +505,45 @@ class MDF(object):
 
         # group channels by group index
         gps = {}
+        excluded_channels = defaultdict(list)
         for ch in channels:
             if ch in self.channels_db:
                 for group, index in self.channels_db[ch]:
                     if group not in gps:
-                        gps[group] = []
-                    gps[group].append(index)
+                        gps[group] = set()
+                    gps[group].add(index)
+                    if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
+                        dep = group['channel_dependencies'][index]
+                        if dep:
+                            for ch_nr, gp_nr in dep.referenced_channels:
+                                if gp_nr == group:
+                                    excluded_channels[group].append(ch_nr)
+                    else:
+                        grp = self.groups[group]
+                        dependencies = grp['channel_dependencies'][index]
+                        if dependencies is None:
+                            continue
+                        if all(dep['id'] == b'##CN' for dep in dependencies):
+                            channels = grp['channels']
+                            for ch in dependencies:
+                                excluded_channels[group].append(channels.index(ch))
+                        else:
+                            for dep in dependencies:
+                                for ch_nr, gp_nr in dep.referenced_channels:
+                                    if gp_nr == group:
+                                        excluded_channels[group].append(ch_nr)
             else:
                 message = ('MDF filter error: '
                            'Channel "{}" not found, it will be ignored')
                 warn(message.format(ch))
                 continue
+
+        for group in excluded_channels:
+            excluded_indexes = excluded_channels[group]
+            if group in gps:
+                for index in excluded_indexes:
+                    if index in gps[group]:
+                        gps[group].remove(index)
 
         if memory is not None:
             if memory not in ('full', 'low', 'minimum'):
@@ -567,7 +597,7 @@ class MDF(object):
 
         Raises
         ------
-        MdfException : if there are inconsistances between the files
+        MdfException : if there are inconsistencies between the files
             merged MDF object
         """
         if not files:
@@ -606,7 +636,7 @@ class MDF(object):
                 if memory == 'minimum':
                     names = []
                     for file in files:
-                        if file.version in MDF3_VERSIONS:
+                        if file.version in MDF2_VERSIONS + MDF3_VERSIONS:
                             grp = file.groups[i]
                             if grp['data_location'] == 0:
                                 stream = file._file
@@ -624,10 +654,16 @@ class MDF(object):
                                 )
                                 name = block['text']
                             else:
-                                channel = ChannelV3(
-                                    address=grp['channels'][j],
-                                    stream=stream,
-                                )
+                                if file.version in MDF2_VERSIONS:
+                                    channel = ChannelV2(
+                                        address=grp['channels'][j],
+                                        stream=stream,
+                                    )
+                                else:
+                                    channel = ChannelV3(
+                                        address=grp['channels'][j],
+                                        stream=stream,
+                                    )
                                 name = channel['short_name']
                             name = name.decode('latin-1').strip(' \r\n\t\0')
                         else:

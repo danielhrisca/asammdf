@@ -106,7 +106,7 @@ def get_fmt(data_type, size, version=3):
         numpy compatible data type format string
 
     """
-    if version == 3:
+    if version <= 3:
         if size == 0:
             fmt = 'b'
         if data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED):
@@ -184,7 +184,7 @@ def fmt_to_datatype(fmt, version=3):
     fmt : numpy.dtype
         numpy data type
     version : int
-        MDF version; default is 3
+        MDF version (2, 3 or 4); default is 3
 
     Returns
     -------
@@ -194,7 +194,7 @@ def fmt_to_datatype(fmt, version=3):
     """
     size = fmt.itemsize * 8
 
-    if version == 3:
+    if version < 4:
         if fmt.kind == 'u':
             data_type = v3c.DATA_TYPE_UNSIGNED
         elif fmt.kind == 'i':
@@ -222,6 +222,7 @@ def fmt_to_datatype(fmt, version=3):
         else:
             # here we have arrays
             data_type = v4c.DATA_TYPE_BYTEARRAY
+
     return data_type, size
 
 

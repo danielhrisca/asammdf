@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-MDF v4 constants
-"""
+""" MDF v4 constants """
 
 DATA_TYPE_UNSIGNED_INTEL = 0
 DATA_TYPE_UNSIGNED_MOTOROLA = 1
@@ -99,6 +97,8 @@ AT_COMMON_SIZE = 96
 DZ_COMMON_SIZE = 48
 CC_COMMON_BLOCK_SIZE = 80
 HL_BLOCK_SIZE = 40
+IDENTIFICATION_BLOCK_SIZE = 64
+HEADER_BLOCK_SIZE = 104
 
 FLAG_ALL_SAMPLES_VALID = 1
 FLAG_INVALIDATION_BIT_VALID = 2
@@ -126,96 +126,110 @@ FMT_CHANNEL = '<4sI2Q{}Q4B4I2BH6d'
 FMT_CHANNEL_PARAMS = '<4B4I2BH6d'
 
 FMT_TEXT_BLOCK = '<4sIQQ{}s'
-KEYS_TEXT_BLOCK = ('id',
-                   'reserved0',
-                   'block_len',
-                   'links_nr',
-                   'text')
+KEYS_TEXT_BLOCK = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'text',
+)
 
 FMT_SOURCE_INFORMATION = '<4sI5Q3B5s'
-KEYS_SOURCE_INFORMATION = ('id',
-                           'reserved0',
-                           'block_len',
-                           'links_nr',
-                           'name_addr',
-                           'path_addr',
-                           'comment_addr',
-                           'source_type',
-                           'bus_type',
-                           'flags',
-                           'reserved1')
+KEYS_SOURCE_INFORMATION = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'name_addr',
+    'path_addr',
+    'comment_addr',
+    'source_type',
+    'bus_type',
+    'flags',
+    'reserved1',
+)
 
 FMT_CHANNEL_GROUP = '<4sI10Q2H3I'
-KEYS_CHANNEL_GROUP = ('id',
-                      'reserved0',
-                      'block_len',
-                      'links_nr',
-                      'next_cg_addr',
-                      'first_ch_addr',
-                      'acq_name_addr',
-                      'acq_source_addr',
-                      'first_sample_reduction_addr',
-                      'comment_addr',
-                      'record_id',
-                      'cycles_nr',
-                      'flags',
-                      'path_separator',
-                      'reserved1',
-                      'samples_byte_nr',
-                      'invalidation_bytes_nr')
+KEYS_CHANNEL_GROUP = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'next_cg_addr',
+    'first_ch_addr',
+    'acq_name_addr',
+    'acq_source_addr',
+    'first_sample_reduction_addr',
+    'comment_addr',
+    'record_id',
+    'cycles_nr',
+    'flags',
+    'path_separator',
+    'reserved1',
+    'samples_byte_nr',
+    'invalidation_bytes_nr',
+)
 
 FMT_DATA_BLOCK = '<4sI2Q{}s'
-KEYS_DATA_BLOCK = ('id',
-                   'reserved0',
-                   'block_len',
-                   'links_nr',
-                   'data')
+KEYS_DATA_BLOCK = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'data',
+)
 
 FMT_COMMON = '<4sI2Q'
 
 FMT_FILE_HISTORY = '<4sI5Q2HB3s'
-KEYS_FILE_HISTORY = ('id',
-                     'reserved0',
-                     'block_len',
-                     'links_nr',
-                     'next_fh_addr',
-                     'comment_addr',
-                     'abs_time',
-                     'tz_offset',
-                     'daylight_save_time',
-                     'time_flags',
-                     'reserved1')
+KEYS_FILE_HISTORY = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'next_fh_addr',
+    'comment_addr',
+    'abs_time',
+    'tz_offset',
+    'daylight_save_time',
+    'time_flags',
+    'reserved1',
+)
 
 FMT_DATA_GROUP = '<4sI6QB7s'
-KEYS_DATA_GROUP = ('id',
-                   'reserved0',
-                   'block_len',
-                   'links_nr',
-                   'next_dg_addr',
-                   'first_cg_addr',
-                   'data_block_addr',
-                   'comment_addr',
-                   'record_id_len',
-                   'reserved1')
+KEYS_DATA_GROUP = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'next_dg_addr',
+    'first_cg_addr',
+    'data_block_addr',
+    'comment_addr',
+    'record_id_len',
+    'reserved1',
+)
 
 FMT_DATA_LIST = '<4sI2Q{}QB3sIQ'
 
 FMT_CONVERSION_NONE = '<4sI6Q2B3H2d'
-KEYS_CONVERSION_NONE = ('id',
-                        'reserved0',
-                        'block_len',
-                        'links_nr',
-                        'name_addr',
-                        'unit_addr',
-                        'comment_addr',
-                        'inv_conv_addr',
-                        'conversion_type',
-                        'precision',
-                        'flags',
-                        'ref_param_nr',
-                        'val_param_nr',
-                        'min_phy_value',
-                        'max_phy_value')
+KEYS_CONVERSION_NONE = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'name_addr',
+    'unit_addr',
+    'comment_addr',
+    'inv_conv_addr',
+    'conversion_type',
+    'precision',
+    'flags',
+    'ref_param_nr',
+    'val_param_nr',
+    'min_phy_value',
+    'max_phy_value',
+)
 FMT_CONVERSION_NONE_INIT = '<4Q2B3H2d'
 
 FMT_CONVERSION_LINEAR = FMT_CONVERSION_NONE + '2d'
@@ -233,7 +247,7 @@ KEYS_CONVERSION_RAT = KEYS_CONVERSION_NONE + (
     'P3',
     'P4',
     'P5',
-    'P6'
+    'P6',
 )
 
 FMT_CONVERSION_RAT_INIT = '<4Q2B3H8d'
@@ -243,75 +257,85 @@ FMT_CONVERSION_RAT_INIT = '<4Q2B3H8d'
 
 FMT_HEADER_BLOCK = '<4sI9Q2H4B2Q'
 FMT_IDENTIFICATION_BLOCK = '<8s8s8s5H26s2H'
-IDENTIFICATION_BLOCK_SIZE = 64
-HEADER_BLOCK_SIZE = 104
-KEYS_HEADER_BLOCK = ('id',
-                     'reserved3',
-                     'block_len',
-                     'links_nr',
-                     'first_dg_addr',
-                     'file_history_addr',
-                     'channel_tree_addr',
-                     'first_attachment_addr',
-                     'first_event_addr',
-                     'comment_addr',
-                     'abs_time',
-                     'tz_offset',
-                     'daylight_save_time',
-                     'time_flags',
-                     'time_quality',
-                     'flags',
-                     'reserved4',
-                     'start_angle',
-                     'start_distance')
-KEYS_IDENTIFICATION_BLOCK = ('file_identification',
-                             'version_str',
-                             'program_identification',
-                             'reserved0',
-                             'reserved1',
-                             'mdf_version',
-                             'reserved2',
-                             'check_block',
-                             'fill',
-                             'unfinalized_standard_flags',
-                             'unfinalized_custom_flags')
+
+KEYS_HEADER_BLOCK = (
+    'id',
+    'reserved3',
+    'block_len',
+    'links_nr',
+    'first_dg_addr',
+    'file_history_addr',
+    'channel_tree_addr',
+    'first_attachment_addr',
+    'first_event_addr',
+    'comment_addr',
+    'abs_time',
+    'tz_offset',
+    'daylight_save_time',
+    'time_flags',
+    'time_quality',
+    'flags',
+    'reserved4',
+    'start_angle',
+    'start_distance',
+)
+
+KEYS_IDENTIFICATION_BLOCK = (
+    'file_identification',
+    'version_str',
+    'program_identification',
+    'reserved0',
+    'reserved1',
+    'mdf_version',
+    'reserved2',
+    'check_block',
+    'fill',
+    'unfinalized_standard_flags',
+    'unfinalized_custom_flags',
+)
 
 FMT_AT_COMMON = '<4sI6Q2HI16s2Q'
-KEYS_AT_BLOCK = ('id',
-                 'reserved0',
-                 'block_len',
-                 'links_nr',
-                 'next_at_addr',
-                 'file_name_addr',
-                 'mime_addr',
-                 'comment_addr',
-                 'flags',
-                 'creator_index',
-                 'reserved1',
-                 'md5_sum',
-                 'original_size',
-                 'embedded_size',
-                 'embedded_data')
+KEYS_AT_BLOCK = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'next_at_addr',
+    'file_name_addr',
+    'mime_addr',
+    'comment_addr',
+    'flags',
+    'creator_index',
+    'reserved1',
+    'md5_sum',
+    'original_size',
+    'embedded_size',
+    'embedded_data',
+)
 
 FMT_DZ_COMMON = '<4sI2Q2s2BI2Q'
-KEYS_DZ_BLOCK = ('id',
-                 'reserved0',
-                 'block_len',
-                 'links_nr',
-                 'original_type',
-                 'zip_type',
-                 'reserved1',
-                 'param',
-                 'original_size',
-                 'zip_size',
-                 'data')
+KEYS_DZ_BLOCK = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'original_type',
+    'zip_type',
+    'reserved1',
+    'param',
+    'original_size',
+    'zip_size',
+    'data',
+)
 
 FMT_HL_BLOCK = '<4sI3QHB5s'
-KEYS_HL_BLOCK = ('id',
-                 'reserved0',
-                 'block_len',
-                 'links_nr',
-                 'first_dl_addr',
-                 'flags',
-                 'zip_type',
-                 'reserved1')
+KEYS_HL_BLOCK = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'first_dl_addr',
+    'flags',
+    'zip_type',
+    'reserved1',
+)

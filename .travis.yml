@@ -1,0 +1,17 @@
+language: python
+python:
+  - "2.7"
+  - "3.5"
+  - "3.6"
+# command to install dependencies
+install:
+  - pip install -r pip_requirements_readthedocs.txt
+  - pip install -r pip_requirements_tests.txt
+# command to run tests
+script:
+  - set -e
+  - python --version
+  - python test/run_all.py
+  - python -m sphinx -nW -b html documentation documentation/_build/html
+
+after_success:

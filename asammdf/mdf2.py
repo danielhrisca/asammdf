@@ -67,8 +67,8 @@ from .v2blocks import (
 )
 
 
-get_fmt = partial(get_fmt, version=3)
-fmt_to_datatype = partial(fmt_to_datatype, version=3)
+get_fmt = partial(get_fmt, version=2)
+fmt_to_datatype = partial(fmt_to_datatype, version=2)
 
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
@@ -89,13 +89,13 @@ class MDF2(object):
     memory : str
         memory optimization option; default `full`
 
-        * if *full* the data group binary data block will be memoryed in RAM
+        * if *full* the data group binary data block will be memorised in RAM
         * if *low* the channel data is read from disk on request, and the
-        metadata is memoryed into RAM
-        * if *minimum* only minimal data is memoryed into RAM
+            metadata is memorised into RAM
+        * if *minimum* only minimal data is memorised into RAM
 
     version : string
-        mdf file version ('3.00', '3.10', '3.20' or '3.30'); default '3.30'
+        mdf file version ('2.00' or '2.14'); default '2.14'
 
     Attributes
     ----------
@@ -123,7 +123,7 @@ class MDF2(object):
     _compact_integers_on_append = False
     _overwrite = False
 
-    def __init__(self, name=None, memory=2, version='3.30'):
+    def __init__(self, name=None, memory=2, version='2.14'):
         self.groups = []
         self.header = None
         self.identification = None
@@ -193,13 +193,13 @@ class MDF2(object):
                     size = len(data)
                     while i < size:
                         rec_id = data[i]
-                        # skip redord id
+                        # skip record id
                         i += 1
                         rec_size = cg_size[rec_id]
                         if rec_id == record_id:
                             rec_data = data[i: i+rec_size]
                             cg_data.append(rec_data)
-                        # concider the second record ID if it exists
+                        # consider the second record ID if it exists
                         if record_id_nr == 2:
                             i += rec_size + 1
                         else:
@@ -461,19 +461,20 @@ class MDF2(object):
 
     def _validate_channel_selection(self, name=None, group=None, index=None):
         """Gets channel comment.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+            * if there are multiple occurrences for this channel then the
+                *group* and *index* arguments can be used to select a specific
+                group.
+            * if there are multiple occurrences for this channel and either the
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -580,7 +581,7 @@ class MDF2(object):
         )
 
         # this will hold mapping from channel address to Channel object
-        # needed for linking dependecy blocks to refernced channels after
+        # needed for linking dependency blocks to referenced channels after
         # the file is loaded
         ch_map = {}
 
@@ -748,7 +749,7 @@ class MDF2(object):
                     for key in (
                             'long_name_addr',
                             'comment_addr'):
-                        address = new_ch[key]
+                        address = new_ch.get(key, 0)
                         if address:
                             if memory != 'minimum':
                                 ch_texts[key] = TextBlock(
@@ -764,7 +765,7 @@ class MDF2(object):
                         grp_ch_texts.append(None)
 
                     # update channel object name and block_size attributes
-                    if new_ch['long_name_addr']:
+                    if new_ch.get('long_name_addr', 0):
                         if memory != 'minimum':
                             name = ch_texts['long_name_addr']['text']
                         else:
@@ -932,7 +933,7 @@ class MDF2(object):
         """
         Appends a new data group.
 
-        For channel depencies type Signals, the *samples* attribute must be a
+        For channel dependencies type Signals, the *samples* attribute must be a
         numpy.recarray
 
         Parameters
@@ -958,14 +959,14 @@ class MDF2(object):
         >>> s1 = Signal(samples=s1, timstamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timstamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timstamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF3('new.mdf')
+        >>> mdf = MDF2('new.mdf')
         >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
         >>> # case 2: VTAB conversions from channels inside another file
-        >>> mdf1 = MDF3('in.mdf')
+        >>> mdf1 = MDF2('in.mdf')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
         >>> sigs = [ch1, ch2]
-        >>> mdf2 = MDF3('out.mdf')
+        >>> mdf2 = MDF2('out.mdf')
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
 
         """
@@ -1107,6 +1108,10 @@ class MDF2(object):
                 'max_raw_value': t[-1] if cycles_nr else 0,
                 'bit_count': t_size,
             }
+            if self.version == '2.00':
+                kargs['block_len'] = v2c.CN20_BLOCK_SIZE
+            else:
+                kargs['block_len'] = v2c.CN21_BLOCK_SIZE
             channel = Channel(**kargs)
             channel.name = name = 't'
             if memory != 'minimum':
@@ -1209,7 +1214,7 @@ class MDF2(object):
                         item.append(None)
 
                     texts = {}
-                    if len(name) >= 32:
+                    if len(name) >= 32 and self.version == '2.14':
                         block = TextBlock(text=name)
                         if memory != 'minimum':
                             texts['long_name_addr'] = block
@@ -1313,7 +1318,7 @@ class MDF2(object):
                         data_type = v2c.DATA_TYPE_SIGNED_INTEL
 
                     texts = {}
-                    if len(name) >= 32:
+                    if len(name) >= 32 and self.version == '2.14':
                         short_name = (name[:31] + '\0').encode('latin-1')
                         if memory != 'minimum':
                             texts['long_name_addr'] = TextBlock(texts=name)
@@ -1339,6 +1344,10 @@ class MDF2(object):
                         'bit_count': bit_count,
                         'aditional_byte_offset': additional_byte_offset,
                     }
+                    if self.version == '2.00':
+                        kargs['block_len'] = v2c.CN20_BLOCK_SIZE
+                    else:
+                        kargs['block_len'] = v2c.CN21_BLOCK_SIZE
                     comment = signal.comment
                     if comment:
                         comment = comment.encode('latin-1')
@@ -1381,7 +1390,7 @@ class MDF2(object):
                     item.append(None)
 
                 texts = {}
-                if len(name) >= 32:
+                if len(name) >= 32 and self.version == '2.14':
                     block = TextBlock(text=name)
                     if memory != 'minimum':
                         texts['long_name_addr'] = block
@@ -1493,6 +1502,10 @@ class MDF2(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                 }
+                if self.version == '2.00':
+                    kargs['block_len'] = v2c.CN20_BLOCK_SIZE
+                else:
+                    kargs['block_len'] = v2c.CN21_BLOCK_SIZE
                 comment = signal.comment
                 if comment:
                     if len(comment) >= 128:
@@ -1571,7 +1584,7 @@ class MDF2(object):
                     item.append(None)
 
                 texts = {}
-                if len(name) >= 32:
+                if len(name) >= 32 and self.version == '2.14':
                     block = TextBlock(text=name)
                     if memory != 'minimum':
                         texts['long_name_addr'] = block
@@ -1628,6 +1641,10 @@ class MDF2(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                 }
+                if self.version == '2.00':
+                    kargs['block_len'] = v2c.CN20_BLOCK_SIZE
+                else:
+                    kargs['block_len'] = v2c.CN21_BLOCK_SIZE
                 comment = signal.comment
                 if comment:
                     if len(comment) >= 128:
@@ -1658,7 +1675,7 @@ class MDF2(object):
                         item.append(None)
 
                     texts = {}
-                    if len(name) >= 32:
+                    if len(name) >= 32 and self.version == '2.14':
                         block = TextBlock(text=name)
                         if memory != 'minimum':
                             texts['long_name_addr'] = block
@@ -1714,6 +1731,10 @@ class MDF2(object):
                         'bit_count': s_size,
                         'aditional_byte_offset': additional_byte_offset,
                     }
+                    if self.version == '2.00':
+                        kargs['block_len'] = v2c.CN20_BLOCK_SIZE
+                    else:
+                        kargs['block_len'] = v2c.CN21_BLOCK_SIZE
 
                     channel = Channel(**kargs)
                     channel.name = name
@@ -1865,6 +1886,10 @@ class MDF2(object):
                 'max_raw_value': t[-1] if cycles_nr else 0,
                 'bit_count': t_size,
             }
+            if self.version == '2.00':
+                kargs['block_len'] = v2c.CN20_BLOCK_SIZE
+            else:
+                kargs['block_len'] = v2c.CN21_BLOCK_SIZE
             channel = Channel(**kargs)
             channel.name = name = 't'
             if memory != 'minimum':
@@ -1935,7 +1960,7 @@ class MDF2(object):
                     item.append(None)
 
                 texts = {}
-                if len(name) >= 32:
+                if len(name) >= 32 and self.version == '2.14':
                     block = TextBlock(text=name)
                     texts['long_name_addr'] = block
                 if texts:
@@ -1995,6 +2020,10 @@ class MDF2(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                 }
+                if self.version == '2.00':
+                    kargs['block_len'] = v2c.CN20_BLOCK_SIZE
+                else:
+                    kargs['block_len'] = v2c.CN21_BLOCK_SIZE
 
                 channel = Channel(**kargs)
                 channel.name = name
@@ -2079,9 +2108,9 @@ class MDF2(object):
             gp['trigger'] = [None, None]
 
     def close(self):
-        """ if the MDF was created with memory='minimum' and new
-        channels have been appended, then this must be called just before the
-        object is not used anymore to clean-up the temporary file
+        """if the MDF was created with memory='minimum' and new
+           channels have been appended, then this must be called just before the
+           object is not used anymore to clean-up the temporary file
 
         """
         if self._tempfile is not None:
@@ -2091,19 +2120,20 @@ class MDF2(object):
 
     def get_channel_unit(self, name=None, group=None, index=None):
         """Gets channel unit.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+            * if there are multiple occurrences for this channel then the
+                *group* and *index* arguments can be used to select a specific
+                group.
+            * if there are multiple occurrences for this channel and either the
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2158,19 +2188,20 @@ class MDF2(object):
 
     def get_channel_comment(self, name=None, group=None, index=None):
         """Gets channel comment.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+            * if there are multiple occurrences for this channel then the
+                *group* and *index* arguments can be used to select a specific
+                group.
+            * if there are multiple occurrences for this channel and either the
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2224,19 +2255,20 @@ class MDF2(object):
             samples_only=False,
             data=None):
         """Gets channel samples.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+            * if there are multiple occurrences for this channel then the
+                *group* and *index* arguments can be used to select a specific
+                group.
+            * if there are multiple occurrences for this channel and either the
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2264,7 +2296,7 @@ class MDF2(object):
             The *Signal* samples are:
 
                 * numpy recarray for channels that have CDBLOCK or BYTEARRAY
-                type channels
+                    type channels
                 * numpy array for all the rest
 
         Raises
@@ -2311,7 +2343,7 @@ class MDF2(object):
             else:
                 conversion = None
             if name is None:
-                if channel['long_name_addr']:
+                if channel.get('long_name_addr', 0):
                     name = TextBlock(
                         address=channel['long_name_addr'],
                         stream=stream,
@@ -2734,7 +2766,7 @@ class MDF2(object):
 
         Examples
         --------
-        >>> mdf = MDF3('test.mdf')
+        >>> mdf = MDF2('test.mdf')
         >>> mdf.info()
 
         """
@@ -2764,7 +2796,7 @@ class MDF2(object):
                         address=channel,
                         stream=stream,
                     )
-                    if channel['long_name_addr']:
+                    if channel.get('long_name_addr', 0):
                         name = TextBlock(
                             address=channel['long_name_addr'],
                             stream=stream,
@@ -2786,8 +2818,8 @@ class MDF2(object):
     def save(self, dst='', overwrite=None, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '_<cntr>', were
-        '<cntr>' is the first conter that produces a new file name (that does
+        is overwritten, otherwise the file name is appended with '_<cntr>', were
+        '<cntr>' is the first counter that produces a new file name (that does
         not already exist in the filesystem).
 
         Parameters
@@ -2834,8 +2866,8 @@ class MDF2(object):
     def _save_with_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '_<cntr>', were
-        '<cntr>' is the first conter that produces a new file name (that does
+        is overwritten, otherwise the file name is appended with '_<cntr>', were
+        '<cntr>' is the first counter that produces a new file name (that does
         not already exist in the filesystem).
 
         Parameters
@@ -3002,7 +3034,10 @@ class MDF2(object):
                     channel_texts = ch_texts[i]
 
                     blocks.append(channel)
-                    address += v2c.CN_BLOCK_SIZE
+                    if self.version == '2.00':
+                        address += v2c.CN20_BLOCK_SIZE
+                    else:
+                        address += v2c.CN21_BLOCK_SIZE
 
                     if channel_texts:
                         for key in ('long_name_addr',
@@ -3137,8 +3172,8 @@ class MDF2(object):
     def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '_<cntr>', were
-        '<cntr>' is the first conter that produces a new file name (that does
+        is overwritten, otherwise the file name is appended with '_<cntr>', were
+        '<cntr>' is the first counter that produces a new file name (that does
         not already exist in the filesystem).
 
         Parameters
@@ -3321,6 +3356,8 @@ class MDF2(object):
                         for key in ('long_name_addr',
                                     'comment_addr'):
                             channel[key] = 0
+                            if self.version == '2.00' and 'long_name_addr' in channel:
+                                del channel['long_name_addr']
 
                     channel['conversion_addr'] = cc[i]
                     channel['source_depend_addr'] = cs[i]
