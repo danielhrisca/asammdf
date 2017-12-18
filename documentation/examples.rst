@@ -17,6 +17,7 @@
 .. role:: brown
 
 .. _examples:
+
 Examples
 ========
 
@@ -24,7 +25,7 @@ Working with MDF
 ----------------
 
 .. code-block:: python
-    
+
     from __future__ import print_function, division
     from asammdf import MDF, Signal, configure
     import numpy as np

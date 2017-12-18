@@ -7,7 +7,7 @@
     <style> .magenta {color:magenta} </style>
     <style> .orange {color:orange} </style>
     <style> .brown {color:brown} </style>
-    
+
 .. role:: red
 .. role:: blue
 .. role:: green
@@ -21,11 +21,11 @@
 MDF
 ===
 
-This class acts as a proxy for the MDF3 and MDF4 classes. 
-All attribute access is delegated to the underlying *_mdf* attribute (MDF3 or MDF4 object). 
+This class acts as a proxy for the MDF3 and MDF4 classes.
+All attribute access is delegated to the underlying *_mdf* attribute (MDF3 or MDF4 object).
 See MDF3 and MDF4 for available extra methods.
 
-An empty MDF file is created if the *name* argument is not provided. 
+An empty MDF file is created if the *name* argument is not provided.
 If the *name* argument is provided then the file must exist in the filesystem, otherwise an exception is raised.
 
 Best practice is to use the MDF as a context manager. This way all resources are released correctly in case of exceptions.
@@ -34,17 +34,18 @@ Best practice is to use the MDF as a context manager. This way all resources are
 
     with MDF(r'test.mdf') as mdf_file:
         # do something
-        
+
 
 .. autoclass:: asammdf.mdf.MDF
     :members:
-    
+
+
 MDF2, MDF3 and MDF4 classes
 ---------------------------
 
 .. toctree::
    :maxdepth: 1
-   
+
    mdf2
    mdf3
    mdf4
@@ -53,9 +54,9 @@ Notes about *memory* argument
 -----------------------------
 
 By default when the *MDF* object is created all data is loaded into RAM (memory=full).
-This will give you the best performance from *asammdf*. 
+This will give you the best performance from *asammdf*.
 
-However if you reach the physical memmory limit *asammdf* gives you two options:
+However if you reach the physical memory limit *asammdf* gives you two options:
 
     * memory=low : only the metadata is loaded into RAM, the raw channel data is loaded when needed
     * memory=minimum : only minimal data is loaded into RAM.
@@ -67,16 +68,16 @@ However if you reach the physical memmory limit *asammdf* gives you two options:
 Advantages
 
 * best performance
-    
+
 Disadvantages
 
 * higher RAM usage, there is the chance the file will exceed available RAM
-    
-Use case 
+
+Use case
 
 * when data fits inside the system RAM
-  
-  
+
+
 *MDF* created with *memory='low'*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -84,7 +85,7 @@ Advantages
 
 * lower RAM usage than memory=full
 * can handle files that do not fit in the available physical memory
-    
+
 Disadvantages
 
 * slow performance for getting channel data
@@ -93,8 +94,8 @@ Disadvantages
 .. note::
 
     it is advised to use the MDF context manager in this case
- 
-Use case 
+
+Use case
 
 * when *default* data exceeds available RAM
 * it is advised to avoid getting individual channels when using this ioption.
@@ -105,7 +106,7 @@ the *select* method with the list of target channels.
 .. note::
 
     See benchmarks for the effects of using the flag
-    
+
 *MDF* created with *memory='minimum'*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -114,7 +115,7 @@ Advantages
 * lowest RAM usage
 * can handle files that do not fit in the available physical memory
 * handle big files on 32 bit Python
-    
+
 Disadvantages
 
 * slightly slower performance compared to momeory=low

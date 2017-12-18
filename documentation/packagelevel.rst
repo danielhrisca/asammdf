@@ -7,7 +7,7 @@
     <style> .magenta {color:magenta} </style>
     <style> .orange {color:orange} </style>
     <style> .brown {color:brown} </style>
-    
+
 .. role:: red
 .. role:: blue
 .. role:: green
@@ -16,7 +16,7 @@
 .. role:: orange
 .. role:: brown
 
-.. _mdf:
+.. _packagelevel:
 
 Package level
 =============
