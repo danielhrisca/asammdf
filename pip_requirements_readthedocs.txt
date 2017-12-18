@@ -5,3 +5,4 @@ pandas
 matplotlib
 wheel
 sphinx-argparse
+sphinx_autobuild

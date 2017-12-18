@@ -17,6 +17,7 @@
 .. role:: brown
 
 .. _examples:
+
 Examples
 ========
 

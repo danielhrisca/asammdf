@@ -92,7 +92,7 @@ __all__ = ['MDF4', ]
 
 
 class MDF4(object):
-    """If the *name* exist it will be memoryed otherwise an empty file will be
+    """If the *name* exist it will be memorised otherwise an empty file will be
     created that can be later saved to disk
 
     Parameters
@@ -102,10 +102,10 @@ class MDF4(object):
     memory : str
         memory optimization option; default `full`
 
-        * if *full* the data group binary data block will be memoryed in RAM
+        * if *full* the data group binary data block will be memorised in RAM
         * if *low* the channel data is read from disk on request, and the
-        metadata is memoryed into RAM
-        * if *minimum* only minimal data is memoryed into RAM
+            metadata is memorized into RAM
+        * if *minimum* only minimal data is memorized into RAM
 
     version : string
         mdf file version ('4.00', '4.10', '4.11'); default '4.10'
@@ -678,12 +678,12 @@ class MDF4(object):
         return ch_cntr, composition
 
     def _read_data_block(self, address, stream):
-        """read and agregate data blocks for a given data group
+        """read and aggregate data blocks for a given data group
 
         Returns
         -------
         data : bytes
-            agregated raw data
+            aggregated raw data
         """
         if address:
             stream.seek(address, v4c.SEEK_START)
@@ -879,7 +879,7 @@ class MDF4(object):
         Returns
         -------
         parents, dtypes : dict, numpy.dtype
-            mapping of channels to records fields, records fiels dtype
+            mapping of channels to records fields, records fields dtype
 
         """
         grp = group
@@ -1141,10 +1141,10 @@ class MDF4(object):
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
+            * if there are multiple occurrences for this channel then the
             *group* and *index* arguments can be used to select a specific
             group.
-            * if there are multiple occurances for this channel and either the
+            * if there are multiple occurrences for this channel and either the
             *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
@@ -1234,7 +1234,7 @@ class MDF4(object):
         """
         Appends a new data group.
 
-        For channel depencies type Signals, the *samples* attribute must be a
+        For channel dependencies type Signals, the *samples* attribute must be a
         numpy.recarray
 
         Parameters
@@ -2568,8 +2568,8 @@ class MDF4(object):
             self._file.close()
 
     def extract_attachment(self, index):
-        """ extract attachemnt *index* data. If it is an embedded attachment,
-        then this method creates the new file according to the attachemnt file
+        """ extract attachment *index* data. If it is an embedded attachment,
+        then this method creates the new file according to the attachment file
         name information
 
         Parameters
@@ -2607,7 +2607,7 @@ class MDF4(object):
 
                 return data
             else:
-                # for external attachemnts read the file and return the content
+                # for external attachments read the file and return the content
                 if flags & v4c.FLAG_AT_MD5_VALID:
                     file_path = texts['file_name_addr']['text']\
                         .decode('utf-8')\
@@ -2650,19 +2650,20 @@ class MDF4(object):
 
     def get_channel_unit(self, name=None, group=None, index=None):
         """Gets channel unit.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+            * if there are multiple occurrences for this channel then the
+                *group* and *index* arguments can be used to select a specific
+                group.
+            * if there are multiple occurrences for this channel and either the
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2735,19 +2736,20 @@ class MDF4(object):
 
     def get_channel_comment(self, name=None, group=None, index=None):
         """Gets channel comment.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
-            * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+            * if there are multiple occurrences for this channel then the
+                *group* and *index* arguments can be used to select a specific
+                group.
+            * if there are multiple occurrences for this channel and either the
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2818,14 +2820,14 @@ class MDF4(object):
         * using the first positional argument *name*
 
             * if there are multiple occurances for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
+                *group* and *index* arguments can be used to select a specific
+                group.
             * if there are multiple occurances for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+                *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+            number (keyword argument *index*). Use *info* method for group and
+            channel numbers
 
         If the *raster* keyword argument is not *None* the output is
         interpolated accordingly
@@ -2842,7 +2844,7 @@ class MDF4(object):
             time raster in seconds
         samples_only : bool
             if *True* return only the channel samples as numpy array; if
-            *False* return a *Signal* object
+                *False* return a *Signal* object
 
         Returns
         -------
@@ -2852,8 +2854,8 @@ class MDF4(object):
             The *Signal* samples are:
 
                 * numpy recarray for channels that have composition/channel
-                array address or for channel of type BYTEARRAY, CANOPENDATE,
-                CANOPENTIME
+                    array address or for channel of type BYTEARRAY, CANOPENDATE,
+                    CANOPENTIME
                 * numpy array for all the rest
 
         Raises
@@ -3821,8 +3823,8 @@ class MDF4(object):
 
             * 0 - no compression
             * 1 - deflate (slower, but produces smaller files)
-            * 2 - transposition + deflate (slowest, but produces the smallest
-            files)
+            * 2 - transposition + deflate (slowest, but produces
+                the smallest files)
 
         """
         if overwrite is None:
@@ -3856,8 +3858,8 @@ class MDF4(object):
 
             * 0 - no compression
             * 1 - deflate (slower, but produces smaller files)
-            * 2 - transposition + deflate (slowest, but produces the smallest
-            files)
+            * 2 - transposition + deflate (slowest, but produces
+                the smallest files)
 
         """
         if self.name is None and dst == '':
@@ -4303,8 +4305,8 @@ class MDF4(object):
 
             * 0 - no compression
             * 1 - deflate (slower, but produces smaller files)
-            * 2 - transposition + deflate (slowest, but produces the smallest
-            files)
+            * 2 - transposition + deflate (slowest, but produces
+                the smallest files)
 
         """
         if self.name is None and dst == '':
