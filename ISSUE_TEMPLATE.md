@@ -1,4 +1,3 @@
-# Pyhton version 
 Please write here the output of printing ``sys.version``
 
 # Platform information

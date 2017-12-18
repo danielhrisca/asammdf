@@ -15,7 +15,7 @@ from .mdf2 import MDF2
 from .mdf3 import MDF3
 from .mdf4 import MDF4
 from .utils import MdfException
-from .v3blocks import Channel as ChannelV2
+from .v2blocks import Channel as ChannelV2
 from .v3blocks import TextBlock as TextBlockV3
 from .v3blocks import Channel as ChannelV3
 from .v4blocks import TextBlock as TextBlockV4
