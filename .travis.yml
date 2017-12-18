@@ -13,7 +13,7 @@ script:
   - python --version
   - python -m coverage run test/run_all.py
   - python -m coverage xml -i --include */asammdf/*
-  - python-codacy-coverage -r coverage.xml
+  - $TRAVIS_BRANCH == "master" && python-codacy-coverage -r coverage.xml
   - python -m sphinx -nW -b html documentation documentation/_build/html
 
 after_success:
