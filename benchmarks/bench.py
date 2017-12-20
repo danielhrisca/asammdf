@@ -533,18 +533,18 @@ def main(path, text_output, fmt):
     output.append('* 36424 channels\n\n')
 
     tests = (
-        partial(open_mdf3, memory='full'),
-        partial(open_mdf3, memory='low'),
-        partial(open_mdf3, memory='minimum'),
-        open_reader3,
-#        open_reader3_compression,
-        open_reader3_nodata,
-        partial(open_mdf4, memory='full'),
-        partial(open_mdf4, memory='low'),
-        partial(open_mdf4, memory='minimum'),
-        open_reader4,
-#        open_reader4_compression,
-        open_reader4_nodata,
+#        partial(open_mdf3, memory='full'),
+#        partial(open_mdf3, memory='low'),
+#        partial(open_mdf3, memory='minimum'),
+#        open_reader3,
+##        open_reader3_compression,
+#        open_reader3_nodata,
+#        partial(open_mdf4, memory='full'),
+#        partial(open_mdf4, memory='low'),
+#        partial(open_mdf4, memory='minimum'),
+#        open_reader4,
+##        open_reader4_compression,
+#        open_reader4_nodata,
     )
 
     if tests:
@@ -559,18 +559,18 @@ def main(path, text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        partial(save_mdf3, memory='full'),
-        partial(save_mdf3, memory='low'),
-        partial(save_mdf3, memory='minimum'),
-        save_reader3,
-        save_reader3_nodata,
-#        save_reader3_compression,
-        partial(save_mdf4, memory='full'),
-        partial(save_mdf4, memory='low'),
-        partial(save_mdf4, memory='minimum'),
-        save_reader4,
-        save_reader4_nodata,
-#        save_reader4_compression,
+#        partial(save_mdf3, memory='full'),
+#        partial(save_mdf3, memory='low'),
+#        partial(save_mdf3, memory='minimum'),
+#        save_reader3,
+#        save_reader3_nodata,
+##        save_reader3_compression,
+#        partial(save_mdf4, memory='full'),
+#        partial(save_mdf4, memory='low'),
+#        partial(save_mdf4, memory='minimum'),
+#        save_reader4,
+#        save_reader4_nodata,
+##        save_reader4_compression,
     )
 
     if tests:
@@ -585,17 +585,17 @@ def main(path, text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        partial(get_all_mdf3, memory='full'),
-        partial(get_all_mdf3, memory='low'),
-        partial(get_all_mdf3, memory='minimum'),
-        get_all_reader3,
+#        partial(get_all_mdf3, memory='full'),
+#        partial(get_all_mdf3, memory='low'),
+#        partial(get_all_mdf3, memory='minimum'),
+#        get_all_reader3,
 #        get_all_reader3_nodata,
 #        get_all_reader3_compression,
         partial(get_all_mdf4, memory='full'),
-        partial(get_all_mdf4, memory='low'),
+#        partial(get_all_mdf4, memory='low'),
         partial(get_all_mdf4, memory='minimum'),
-        get_all_reader4,
-#        get_all_reader4_nodata,
+#        get_all_reader4,
+        get_all_reader4_nodata,
 #        get_all_reader4_compression,
     )
 

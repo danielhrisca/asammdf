@@ -369,7 +369,11 @@ class ChannelConversion(dict):
                  self['P3'],
                  self['P4'],
                  self['P5'],
-                 self['P6']) = unpack_from('<6d', block)
+                 self['P6']) = unpack_from(
+                    '<6d',
+                    block,
+                    v2c.CC_COMMON_SHORT_SIZE,
+                )
 
             elif conv_type in (
                     v2c.CONVERSION_TYPE_EXPO,
