@@ -18,12 +18,10 @@ from .v2_v3_blocks import TextBlock as TextBlockV3
 from .v2_v3_blocks import Channel as ChannelV3
 from .v4_blocks import TextBlock as TextBlockV4
 
-
 MDF2_VERSIONS = ('2.00', '2.14')
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
 MDF4_VERSIONS = ('4.00', '4.10', '4.11')
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
-
 
 __all__ = ['MDF', 'SUPPORTED_VERSIONS']
 
@@ -49,6 +47,7 @@ class MDF(object):
         '4.00', '4.10', '4.11'); default '4.10'
 
     """
+
     def __init__(self, name=None, memory='full', version='4.10'):
         if name:
             if os.path.isfile(name):
@@ -363,7 +362,7 @@ class MDF(object):
                 excel_name = os.path.splitext(name)[0]
                 nr = len(self.groups)
                 for i, grp in enumerate(self.groups):
-                    print('Exporting group {} of {}'.format(i+1, nr))
+                    print('Exporting group {} of {}'.format(i + 1, nr))
 
                     data = self._load_group_data(grp)
 
@@ -376,7 +375,6 @@ class MDF(object):
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for j, item in enumerate(header_items):
-
                             ws.write(j, 0, item.title(), bold)
                             ws.write(j, 1, self.header[item].decode('latin-1'))
 
@@ -393,7 +391,7 @@ class MDF(object):
                         master_index = self.masters_db[i]
 
                         for j in range(grp['channel_group']['cycles_nr']):
-                            ws.write(j+3, 0, str(j))
+                            ws.write(j + 3, 0, str(j))
 
                         for j, _ in enumerate(grp['channels']):
                             sig = self.get(group=i, index=j, data=data)
@@ -414,7 +412,7 @@ class MDF(object):
             csv_name = os.path.splitext(name)[0]
             nr = len(self.groups)
             for i, grp in enumerate(self.groups):
-                print('Exporting group {} of {}'.format(i+1, nr))
+                print('Exporting group {} of {}'.format(i + 1, nr))
                 data = self._load_group_data(grp)
 
                 group_name = 'DataGroup_{}'.format(i + 1)
@@ -839,6 +837,7 @@ class MDF(object):
             signals = DataFrame.from_dict(pandas_dict)
 
         return signals
+
 
 if __name__ == '__main__':
     pass

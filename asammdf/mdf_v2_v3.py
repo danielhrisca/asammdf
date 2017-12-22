@@ -1,57 +1,27 @@
 # -*- coding: utf-8 -*-
 """ ASAM MDF version 3 file format module """
 
-from __future__ import print_function, division
-import sys
-
+from __future__ import division, print_function
 
 import os
+import sys
 import time
 import warnings
-
 from collections import defaultdict
-from functools import reduce, partial
-from tempfile import TemporaryFile
-from itertools import product
 from copy import deepcopy
+from functools import partial, reduce
+from itertools import product
+from tempfile import TemporaryFile
 
-from numpy import (
-    interp,
-    linspace,
-    dtype,
-    array_equal,
-    column_stack,
-    array,
-    searchsorted,
-    log,
-    exp,
-    clip,
-    union1d,
-    float64,
-    flip,
-    unpackbits,
-    packbits,
-    roll,
-    zeros,
-    uint8,
-    arange,
-)
-from numpy.core.records import fromstring, fromarrays
-from numpy.core.defchararray import encode
 from numexpr import evaluate
+from numpy import (arange, array, array_equal, clip, column_stack, dtype, exp, flip, float64, interp, linspace, log,
+                   packbits, roll, searchsorted, uint8, union1d, unpackbits, zeros)
+from numpy.core.defchararray import encode
+from numpy.core.records import fromarrays, fromstring
 
-from .utils import (
-    MdfException,
-    get_fmt,
-    pair,
-    fmt_to_datatype,
-    get_unique_name,
-    get_min_max,
-    fix_dtype_fields,
-)
-from .signal import Signal
-from .version import __version__
 from . import v2_v3_constants as v23c
+from .signal import Signal
+from .utils import (MdfException, fix_dtype_fields, fmt_to_datatype, get_fmt, get_min_max, get_unique_name, pair)
 from .v2_v3_blocks import (
     Channel,
     ChannelConversion,
@@ -65,7 +35,7 @@ from .v2_v3_blocks import (
     TextBlock,
     TriggerBlock,
 )
-
+from .version import __version__
 
 get_fmt = partial(get_fmt, version=3)
 fmt_to_datatype = partial(fmt_to_datatype, version=3)
@@ -73,7 +43,6 @@ fmt_to_datatype = partial(fmt_to_datatype, version=3)
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
     from .utils import bytes
-
 
 __all__ = ['MDF23', ]
 
@@ -197,7 +166,7 @@ class MDF23(object):
                         i += 1
                         rec_size = cg_size[rec_id]
                         if rec_id == record_id:
-                            rec_data = data[i: i+rec_size]
+                            rec_data = data[i: i + rec_size]
                             cg_data.append(rec_data)
                         # consider the second record ID if it exists
                         if record_id_nr == 2:
@@ -570,8 +539,8 @@ class MDF23(object):
         )
         self.header = HeaderBlock(stream=stream)
 
-        self.version = self.identification['version_str']\
-            .decode('latin-1')\
+        self.version = self.identification['version_str'] \
+            .decode('latin-1') \
             .strip(' \n\t\0')
 
         self.file_history = TextBlock(
@@ -846,7 +815,7 @@ class MDF23(object):
                         # skip record id
                         i += 1
                         rec_size = cg_size[rec_id]
-                        rec_data = data[i: i+rec_size]
+                        rec_data = data[i: i + rec_size]
                         cg_data[rec_id].append(rec_data)
                         # possibly skip 2nd record id
                         if record_id_nr == 2:
@@ -1009,12 +978,12 @@ class MDF23(object):
         simple_signals = [
             sig for sig in signals
             if len(sig.samples.shape) <= 1 and
-            sig.samples.dtype.names is None
+               sig.samples.dtype.names is None
         ]
         composed_signals = [
             sig for sig in signals
             if len(sig.samples.shape) > 1 or
-            sig.samples.dtype.names
+               sig.samples.dtype.names
         ]
 
         # mdf version 4 structure channels and CANopen types will be saved to
@@ -1022,12 +991,12 @@ class MDF23(object):
         new_groups_signals = [
             sig for sig in composed_signals
             if sig.samples.dtype.names and
-            sig.samples.dtype.names[0] != sig.name
+               sig.samples.dtype.names[0] != sig.name
         ]
         composed_signals = [
             sig for sig in composed_signals
             if not sig.samples.dtype.names or
-            sig.samples.dtype.names[0] == sig.name
+               sig.samples.dtype.names[0] == sig.name
         ]
 
         if simple_signals or composed_signals:
@@ -2996,7 +2965,7 @@ class MDF23(object):
 
             if self.groups:
                 for i, dg in enumerate(self.groups[:-1]):
-                    addr = self.groups[i+1]['data_group'].address
+                    addr = self.groups[i + 1]['data_group'].address
                     dg['data_group']['next_dg_addr'] = addr
                 self.groups[-1]['data_group']['next_dg_addr'] = 0
 
@@ -3378,7 +3347,7 @@ class MDF23(object):
                 group_channels = gp['channels']
                 if group_channels:
                     for j, channel in enumerate(blocks[:-1]):
-                        channel['next_ch_addr'] = blocks[j+1].address
+                        channel['next_ch_addr'] = blocks[j + 1].address
                     blocks[-1]['next_ch_addr'] = 0
                 for block in blocks:
                     write(bytes(block))
@@ -3443,7 +3412,7 @@ class MDF23(object):
 
             if self.groups:
                 for i, gp in enumerate(self.groups[:-1]):
-                    addr = self.groups[i+1]['data_group'].address
+                    addr = self.groups[i + 1]['data_group'].address
                     gp['data_group']['next_dg_addr'] = addr
                 self.groups[-1]['data_group']['next_dg_addr'] = 0
 

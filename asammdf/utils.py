@@ -11,10 +11,8 @@ from numpy import (
     amax,
 )
 
-
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
-
 
 __all__ = [
     'MdfException',

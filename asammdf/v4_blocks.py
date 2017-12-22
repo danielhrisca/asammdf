@@ -2,15 +2,13 @@
 """
 classes that implement the blocks for MDF version 4
 """
-from __future__ import print_function, division
+from __future__ import division, print_function
+
 import sys
-
-
 import time
 import warnings
-
 from hashlib import md5
-from struct import unpack, pack, unpack_from
+from struct import pack, unpack, unpack_from
 from zlib import compress, decompress
 
 import numpy as np
@@ -21,7 +19,6 @@ PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 SEEK_START = v4c.SEEK_START
 SEEK_END = v4c.SEEK_END
-
 
 __all__ = [
     'AttachmentBlock',
@@ -179,7 +176,6 @@ class Channel(dict):
 
             links_nr = self['links_nr']
 
-
             links = unpack_from('<{}Q'.format(links_nr), block)
             params = unpack_from(v4c.FMT_CHANNEL_PARAMS, block, links_nr * 8)
 
@@ -193,7 +189,7 @@ class Channel(dict):
              self['comment_addr']) = links[:8]
 
             for i in range(params[10]):
-                self['attachment_{}_addr'.format(i)] = links[8+i]
+                self['attachment_{}_addr'.format(i)] = links[8 + i]
 
             if params[6] & v4c.FLAG_CN_DEFAULT_X:
                 (self['default_X_dg_addr'],
@@ -355,7 +351,7 @@ class ChannelArrayBlock(dict):
              self['links_nr']) = unpack('<4sI2Q', stream.read(24))
 
             nr = self['links_nr']
-            links = unpack('<{}Q'.format(nr), stream.read(8*nr))
+            links = unpack('<{}Q'.format(nr), stream.read(8 * nr))
             self['composition_addr'] = links[0]
 
             values = unpack('<2BHIiI', stream.read(16))
@@ -367,7 +363,7 @@ class ChannelArrayBlock(dict):
             # lookup table with fixed axis
             elif nr == dims_nr + 1:
                 for i in range(dims_nr):
-                    self['axis_conversion_{}'.format(i)] = links[i+1]
+                    self['axis_conversion_{}'.format(i)] = links[i + 1]
 
             # lookup table with CN template
             elif nr == 4 * dims_nr + 1:
@@ -375,9 +371,9 @@ class ChannelArrayBlock(dict):
                     self['axis_conversion_{}'.format(i)] = links[i + 1]
                 links = links[dims_nr + 1:]
                 for i in range(dims_nr):
-                    self['scale_axis_{}_dg_addr'.format(i)] = links[3*i]
-                    self['scale_axis_{}_cg_addr'.format(i)] = links[3*i + 1]
-                    self['scale_axis_{}_ch_addr'.format(i)] = links[3*i + 2]
+                    self['scale_axis_{}_dg_addr'.format(i)] = links[3 * i]
+                    self['scale_axis_{}_cg_addr'.format(i)] = links[3 * i + 1]
+                    self['scale_axis_{}_ch_addr'.format(i)] = links[3 * i + 2]
 
             (self['ca_type'],
              self['storage'],
@@ -386,7 +382,7 @@ class ChannelArrayBlock(dict):
              self['byte_offset_base'],
              self['invalidation_bit_base']) = values
 
-            dim_sizes = unpack('<{}Q'.format(dims_nr), stream.read(8*dims_nr))
+            dim_sizes = unpack('<{}Q'.format(dims_nr), stream.read(8 * dims_nr))
             for i, size in enumerate(dim_sizes):
                 self['dim_size_{}'.format(i)] = size
 
@@ -481,7 +477,6 @@ class ChannelArrayBlock(dict):
                     for i in range(dims_nr):
                         self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
 
-
     def __bytes__(self):
         flags = self['flags']
         ca_type = self['ca_type']
@@ -535,11 +530,11 @@ class ChannelArrayBlock(dict):
                 )
                 keys += (
                     'ca_type',
-                     'storage',
-                     'dims',
-                     'flags',
-                     'byte_offset_base',
-                     'invalidation_bit_base',
+                    'storage',
+                    'dims',
+                    'flags',
+                    'byte_offset_base',
+                    'invalidation_bit_base',
                 )
                 keys += tuple('dim_size_{}'.format(i) for i in range(dims_nr))
                 keys += tuple(
@@ -769,7 +764,7 @@ class ChannelConversion(dict):
                 values = unpack('<{}d'.format(nr), block[56:])
                 for i in range(nr // 2):
                     (self['raw_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i*2], values[2*i+1]
+                     self['phys_{}'.format(i)]) = values[i * 2], values[2 * i + 1]
 
             elif conv == v4c.CONVERSION_TYPE_RTAB:
                 (self['name_addr'],
@@ -791,7 +786,7 @@ class ChannelConversion(dict):
                 for i in range((nr - 1) // 3):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i*3], values[3*i+1], values[3*i+2]
+                     self['phys_{}'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
                 self['default'] = unpack('<d', block[-8:])[0]
 
             elif conv == v4c.CONVERSION_TYPE_TABX:
@@ -851,14 +846,14 @@ class ChannelConversion(dict):
                 )
 
                 values = unpack_from(
-                    '<{}d'.format( (links_nr - 1) * 2 ),
+                    '<{}d'.format((links_nr - 1) * 2),
                     block,
                     32 + links_nr * 8 + 24,
                 )
                 for i in range(self['val_param_nr'] // 2):
                     j = 2 * i
                     self['lower_{}'.format(i)] = values[j]
-                    self['upper_{}'.format(i)] = values[j+1]
+                    self['upper_{}'.format(i)] = values[j + 1]
 
             elif conv == v4c.CONVERSION_TYPE_TTAB:
                 (self['name_addr'],
@@ -902,10 +897,10 @@ class ChannelConversion(dict):
 
                 links = unpack_from('<{}Q'.format(links_nr), block, 32)
 
-                for i in range((links_nr -1) // 2):
+                for i in range((links_nr - 1) // 2):
                     j = 2 * i
                     self['input_{}_addr'.format(i)] = links[j]
-                    self['output_{}_addr'.format(i)] = links[j+1]
+                    self['output_{}_addr'.format(i)] = links[j + 1]
                 self['default_addr'] = links[-1]
 
                 (self['conversion_type'],
@@ -1162,7 +1157,7 @@ class ChannelConversion(dict):
                 )
                 keys += tuple(
                     'val_{}'.format(i)
-                    for i in range(self['val_param_nr'] -1)
+                    for i in range(self['val_param_nr'] - 1)
                 )
                 keys += ('val_default',)
             elif self['conversion_type'] == v4c.CONVERSION_TYPE_TRANS:
@@ -1176,7 +1171,7 @@ class ChannelConversion(dict):
                     'comment_addr',
                     'inv_conv_addr',
                 )
-                for i in range((self['links_nr'] - 4 -1) // 2):
+                for i in range((self['links_nr'] - 4 - 1) // 2):
                     keys += (
                         'input_{}_addr'.format(i),
                         'output_{}_addr'.format(i),
@@ -1193,7 +1188,7 @@ class ChannelConversion(dict):
                 )
                 keys += tuple(
                     'val_{}'.format(i)
-                    for i in range(self['val_param_nr'] -1)
+                    for i in range(self['val_param_nr'] - 1)
                 )
 
         if PYVERSION_MAJOR >= 36:
@@ -1214,7 +1209,8 @@ class DataBlock(dict):
         file handle
 
     """
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(DataBlock, self).__init__()
 
@@ -1249,7 +1245,6 @@ class DataBlock(dict):
         return result
 
 
-
 class DataZippedBlock(dict):
     """DZBLOCK class
 
@@ -1262,6 +1257,7 @@ class DataZippedBlock(dict):
 
     """
     __slots__ = ['address', 'prevent_data_setitem', 'return_unzipped']
+
     def __init__(self, **kargs):
         super(DataZippedBlock, self).__init__()
 
@@ -1323,9 +1319,9 @@ class DataZippedBlock(dict):
                 cols = self['param']
                 lines = self['original_size'] // cols
 
-                nd = np.fromstring(data[:lines*cols], dtype=np.uint8)
+                nd = np.fromstring(data[:lines * cols], dtype=np.uint8)
                 nd = nd.reshape((lines, cols))
-                data = nd.transpose().tostring() + data[lines*cols:]
+                data = nd.transpose().tostring() + data[lines * cols:]
 
                 data = compress(data)
 
@@ -1344,9 +1340,9 @@ class DataZippedBlock(dict):
                     cols = self['param']
                     lines = self['original_size'] // cols
 
-                    nd = np.fromstring(data[:lines*cols], dtype=np.uint8)
+                    nd = np.fromstring(data[:lines * cols], dtype=np.uint8)
                     nd = nd.reshape((cols, lines))
-                    data = nd.transpose().tostring() + data[lines*cols:]
+                    data = nd.transpose().tostring() + data[lines * cols:]
             else:
                 data = super(DataZippedBlock, self).__getitem__(item)
             value = data
@@ -1367,7 +1363,8 @@ class DataZippedBlock(dict):
 
 class DataGroup(dict):
     """DGBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(DataGroup, self).__init__()
 
@@ -1402,7 +1399,7 @@ class DataGroup(dict):
             self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
             self['record_id_len'] = kargs.get('record_id_len', 0)
-            self['reserved1'] = kargs.get('reserved1', b'\00'*7)
+            self['reserved1'] = kargs.get('reserved1', b'\00' * 7)
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
@@ -1417,7 +1414,8 @@ class DataGroup(dict):
 
 class DataList(dict):
     """DLBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(DataList, self).__init__()
 
@@ -1438,7 +1436,7 @@ class DataList(dict):
 
             links = unpack(
                 '<{}Q'.format(self['links_nr'] - 1),
-                stream.read( (self['links_nr'] - 1) * 8 ),
+                stream.read((self['links_nr'] - 1) * 8),
             )
 
             for i, addr in enumerate(links):
@@ -1456,7 +1454,7 @@ class DataList(dict):
                  self['data_block_nr']) = unpack('<3sI', stream.read(7))
                 offsets = unpack(
                     '<{}Q'.format(self['links_nr'] - 1),
-                    stream.read((self['links_nr'] - 1)*8),
+                    stream.read((self['links_nr'] - 1) * 8),
                 )
                 for i, offset in enumerate(offsets):
                     self['offset_{}'.format(i)] = offset
@@ -1484,7 +1482,6 @@ class DataList(dict):
             else:
                 for i, offset in enumerate(self['links_nr'] - 1):
                     self['offset_{}'.format(i)] = kargs['offset_{}'.format(i)]
-
 
     def __bytes__(self):
         fmt = v4c.FMT_DATA_LIST.format(self['links_nr'])
@@ -1515,7 +1512,8 @@ class DataList(dict):
 
 class FileIdentificationBlock(dict):
     """IDBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
 
         super(FileIdentificationBlock, self).__init__()
@@ -1570,7 +1568,8 @@ class FileIdentificationBlock(dict):
 
 class FileHistory(dict):
     """FHBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(FileHistory, self).__init__()
 
@@ -1601,11 +1600,11 @@ class FileHistory(dict):
             self['links_nr'] = kargs.get('links_nr', 2)
             self['next_fh_addr'] = kargs.get('next_fh_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
-            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10**9)
+            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10 ** 9)
             self['tz_offset'] = kargs.get('tz_offset', 120)
             self['daylight_save_time'] = kargs.get('daylight_save_time', 60)
             self['time_flags'] = kargs.get('time_flags', 2)
-            self['reserved1'] = kargs.get('reserved1', b'\x00'*3)
+            self['reserved1'] = kargs.get('reserved1', b'\x00' * 3)
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
@@ -1620,7 +1619,8 @@ class FileHistory(dict):
 
 class HeaderBlock(dict):
     """HDBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(HeaderBlock, self).__init__()
 
@@ -1667,7 +1667,7 @@ class HeaderBlock(dict):
             )
             self['first_event_addr'] = kargs.get('first_event_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
-            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10**9)
+            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10 ** 9)
             self['tz_offset'] = kargs.get('tz_offset', 120)
             self['daylight_save_time'] = kargs.get('daylight_save_time', 60)
             self['time_flags'] = kargs.get('time_flags', 2)
@@ -1791,7 +1791,8 @@ class SourceInformation(dict):
 
 class SignalDataBlock(dict):
     """SDBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(SignalDataBlock, self).__init__()
 

@@ -3,78 +3,34 @@
 ASAM MDF version 4 file format module
 """
 
-from __future__ import print_function, division
+from __future__ import division, print_function
+
+import os
 import sys
 import time
 import warnings
-import os
-
-from tempfile import TemporaryFile
-from struct import unpack, unpack_from
-from functools import reduce, partial
-from collections import defaultdict
-from hashlib import md5
 import xml.etree.ElementTree as XML
-from math import ceil
+from collections import defaultdict
 from copy import deepcopy
+from functools import partial, reduce
+from hashlib import md5
+from math import ceil
+from struct import unpack, unpack_from
+from tempfile import TemporaryFile
 
-from numpy import (
-    interp,
-    linspace,
-    dtype,
-    array_equal,
-    zeros,
-    uint8,
-    array,
-    searchsorted,
-    clip,
-    union1d,
-    float64,
-    frombuffer,
-    argwhere,
-    arange,
-    flip,
-    unpackbits,
-    packbits,
-    roll,
-    transpose,
-)
-from numpy.core.records import fromstring, fromarrays
-from numpy.core.defchararray import encode
 from numexpr import evaluate
-
-from .v4_blocks import (
-    AttachmentBlock,
-    Channel,
-    ChannelArrayBlock,
-    ChannelGroup,
-    ChannelConversion,
-    DataBlock,
-    DataZippedBlock,
-    DataGroup,
-    DataList,
-    FileHistory,
-    FileIdentificationBlock,
-    HeaderBlock,
-    HeaderList,
-    SignalDataBlock,
-    SourceInformation,
-    TextBlock,
-)
+from numpy import (arange, argwhere, array, array_equal, clip, dtype, flip, float64, frombuffer, interp, linspace,
+                   packbits, roll, searchsorted, transpose, uint8, union1d, unpackbits, zeros)
+from numpy.core.defchararray import encode
+from numpy.core.records import fromarrays, fromstring
 
 from . import v4_constants as v4c
-from .utils import (
-    MdfException,
-    get_fmt,
-    fmt_to_datatype,
-    get_unique_name,
-    get_min_max,
-    fix_dtype_fields,
-)
-
 from .signal import Signal
+from .utils import (MdfException, fix_dtype_fields, fmt_to_datatype, get_fmt, get_min_max, get_unique_name)
+from .v4_blocks import (AttachmentBlock, Channel, ChannelArrayBlock, ChannelConversion, ChannelGroup, DataBlock,
+                        DataGroup, DataList, DataZippedBlock, FileHistory, FileIdentificationBlock, HeaderBlock,
+                        HeaderList, SignalDataBlock, SourceInformation, TextBlock)
 from .version import __version__
-
 
 get_fmt = partial(get_fmt, version=4)
 fmt_to_datatype = partial(fmt_to_datatype, version=4)
@@ -370,10 +326,10 @@ class MDF4(object):
                         i += 1
                         rec_size = cg_size[rec_id]
                         if rec_size:
-                            rec_data = data[i: i+rec_size]
+                            rec_data = data[i: i + rec_size]
                             cg_data[rec_id].append(rec_data)
                         else:
-                            rec_size = unpack('<I', data[i: i+4])[0]
+                            rec_size = unpack('<I', data[i: i + 4])[0]
                             i += 4
                             rec_data = data[i: i + rec_size]
                             cg_data[rec_id].append(rec_data)
@@ -774,10 +730,10 @@ class MDF4(object):
                         rec_size = cg_size[rec_id]
                         if rec_size:
                             if rec_id == record_id:
-                                rec_data = data[i: i+rec_size]
+                                rec_data = data[i: i + rec_size]
                                 cg_data.append(rec_data)
                         else:
-                            rec_size = unpack('<I', data[i: i+4])[0]
+                            rec_size = unpack('<I', data[i: i + 4])[0]
                             i += 4
                             if rec_id == record_id:
                                 rec_data = data[i: i + rec_size]
@@ -829,7 +785,7 @@ class MDF4(object):
                     data_list = DataList(address=address, stream=stream)
                     nr = data_list['links_nr']
                     # aggregate data from all SDBLOCK
-                    for i in range(nr-1):
+                    for i in range(nr - 1):
                         addr = data_list['data_block_addr{}'.format(i)]
                         stream.seek(addr, v4c.SEEK_START)
                         blk_id = stream.read(4)
@@ -915,7 +871,7 @@ class MDF4(object):
             if memory == 'minimum':
                 block = TextBlock(
                     address=grp['texts']['channels']
-                               [original_index]['name_addr'],
+                    [original_index]['name_addr'],
                     stream=stream,
                 )
                 name = block['text'].decode('utf-8').strip(' \r\n\t\0')
@@ -1052,7 +1008,7 @@ class MDF4(object):
                 for i in range(ca_block['dims'])
             )
             if ca_block['byte_offset_base'] // size > 1 and len(shape) == 1:
-                shape += (ca_block['byte_offset_base'] // size, )
+                shape += (ca_block['byte_offset_base'] // size,)
             dim = 1
             for d in shape:
                 dim *= d
@@ -1307,7 +1263,7 @@ class MDF4(object):
         composed_signals = [
             sig for sig in signals
             if len(sig.samples.shape) > 1 or
-            sig.samples.dtype.names
+               sig.samples.dtype.names
         ]
 
         dg_cntr = len(self.groups)
@@ -1340,7 +1296,7 @@ class MDF4(object):
         # time channel texts
         for key in ('channels', 'sources', 'channel_group', 'conversions'):
             gp['texts'][key].append({})
-        for key in ('conversion_tab', ):
+        for key in ('conversion_tab',):
             gp['texts'][key].append(None)
 
         memory = self.memory
@@ -2256,7 +2212,6 @@ class MDF4(object):
                         for i in range(dims_nr):
                             kargs['dim_size_{}'.format(i)] = shape[i]
 
-
                     parent_dep = ChannelArrayBlock(**kargs)
                     gp_dep.append([parent_dep, ])
 
@@ -2594,8 +2549,8 @@ class MDF4(object):
             if flags & v4c.FLAG_AT_EMBEDDED:
                 data = attachment.extract()
 
-                file_path = texts['file_name_addr']['text']\
-                    .decode('utf-8')\
+                file_path = texts['file_name_addr']['text'] \
+                    .decode('utf-8') \
                     .strip(' \n\t\0')
                 out_path = os.path.dirname(file_path)
                 if out_path:
@@ -2609,16 +2564,16 @@ class MDF4(object):
             else:
                 # for external attachments read the file and return the content
                 if flags & v4c.FLAG_AT_MD5_VALID:
-                    file_path = texts['file_name_addr']['text']\
-                        .decode('utf-8')\
+                    file_path = texts['file_name_addr']['text'] \
+                        .decode('utf-8') \
                         .strip(' \n\t\0')
                     data = open(file_path, 'rb').read()
                     md5_worker = md5()
                     md5_worker.update(data)
                     md5_sum = md5_worker.digest()
                     if attachment['md5_sum'] == md5_sum:
-                        if texts['mime_addr']['text']\
-                                .decode('utf-8')\
+                        if texts['mime_addr']['text'] \
+                                .decode('utf-8') \
                                 .startswith('text'):
                             with open(file_path, 'r') as f:
                                 data = f.read()
@@ -2634,8 +2589,8 @@ class MDF4(object):
                         )
                         warnings.warn(message)
                 else:
-                    if texts['mime_addr']['text']\
-                            .decode('utf-8')\
+                    if texts['mime_addr']['text'] \
+                            .decode('utf-8') \
                             .startswith('text'):
                         mode = 'r'
                     else:
@@ -2998,7 +2953,6 @@ class MDF4(object):
 
                 dep = dependency_list[0]
                 if dep['flags'] & v4c.FLAG_CA_INVERSE_LAYOUT:
-
                     shape = vals.shape
                     shape = (shape[0],) + shape[1:][::-1]
                     vals = vals.reshape(shape)
@@ -3012,7 +2966,7 @@ class MDF4(object):
                     dims_nr = ca_block['dims']
 
                     if ca_block['ca_type'] == v4c.CA_TYPE_SCALE_AXIS:
-                        shape = (ca_block['dim_size_0'], )
+                        shape = (ca_block['dim_size_0'],)
                         arrays.append(vals)
                         dtype_pair = channel.name, vals.dtype, shape
                         types.append(dtype_pair)
@@ -3025,7 +2979,7 @@ class MDF4(object):
 
                         if ca_block['flags'] & v4c.FLAG_CA_FIXED_AXIS:
                             for i in range(dims_nr):
-                                shape = (ca_block['dim_size_{}'.format(i)], )
+                                shape = (ca_block['dim_size_{}'.format(i)],)
                                 axis = []
                                 for j in range(shape[0]):
                                     key = 'axis_{}_value_{}'.format(i, j)
@@ -3049,7 +3003,7 @@ class MDF4(object):
                                     axisname = axisname.split('\\')[0]
                                 else:
                                     axisname = self.groups[dg_nr]['channels'][ch_nr].name
-                                shape = (ca_block['dim_size_{}'.format(i)], )
+                                shape = (ca_block['dim_size_{}'.format(i)],)
                                 axis_values = self.get(
                                     group=dg_nr,
                                     index=ch_nr,
@@ -3074,7 +3028,7 @@ class MDF4(object):
 
                     if ca_block['flags'] & v4c.FLAG_CA_FIXED_AXIS:
                         for i in range(dims_nr):
-                            shape = (ca_block['dim_size_{}'.format(i)], )
+                            shape = (ca_block['dim_size_{}'.format(i)],)
                             axis = []
                             for j in range(shape[0]):
                                 key = 'axis_{}_value_{}'.format(i, j)
@@ -3094,7 +3048,7 @@ class MDF4(object):
                                 axisname = axisname.split('\\')[0]
                             else:
                                 axisname = self.groups[dg_nr]['channels'][ch_nr].name
-                            shape = (ca_block['dim_size_{}'.format(i)], )
+                            shape = (ca_block['dim_size_{}'.format(i)],)
                             axis_values = self.get(
                                 group=dg_nr,
                                 index=ch_nr,
@@ -3290,7 +3244,7 @@ class MDF4(object):
                                 offset = int(offset)
                                 str_size = unpack_from('<I', signal_data, offset)[0]
                                 values.append(
-                                    signal_data[offset+4: offset+4+str_size]
+                                    signal_data[offset + 4: offset + 4 + str_size]
                                 )
 
                             if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
@@ -3416,13 +3370,13 @@ class MDF4(object):
                             [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
                              for i in range(nr)]
                         )
-                        default = grp['texts']['conversion_tab'][ch_nr]\
-                            .get('default_addr', {})\
+                        default = grp['texts']['conversion_tab'][ch_nr] \
+                            .get('default_addr', {}) \
                             .get('text', b'')
                     else:
                         phys = []
                         for i in range(nr):
-                            address=grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]
+                            address = grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]
                             if address:
                                 block = TextBlock(
                                     address=address,
@@ -3455,13 +3409,13 @@ class MDF4(object):
                             [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
                              for i in range(nr)]
                         )
-                        default = grp['texts']['conversion_tab'][ch_nr]\
-                            .get('default_addr', {})\
+                        default = grp['texts']['conversion_tab'][ch_nr] \
+                            .get('default_addr', {}) \
                             .get('text', b'')
                     else:
                         phys = []
                         for i in range(nr):
-                            address=grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]
+                            address = grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]
                             if address:
                                 block = TextBlock(
                                     address=address,
@@ -3576,8 +3530,8 @@ class MDF4(object):
         valid_index = None
         if grp['channel_group']['invalidation_bytes_nr']:
 
-            if channel['flags'] & (v4c.FLAG_INVALIDATION_BIT_VALID | v4c.FLAG_ALL_SAMPLES_VALID) == v4c.FLAG_INVALIDATION_BIT_VALID:
-
+            if channel['flags'] & (
+                    v4c.FLAG_INVALIDATION_BIT_VALID | v4c.FLAG_ALL_SAMPLES_VALID) == v4c.FLAG_INVALIDATION_BIT_VALID:
                 ch_invalidation_pos = channel['pos_invalidation_bit']
                 pos_byte, pos_offset = divmod(ch_invalidation_pos)
                 mask = 1 << pos_offset
@@ -3779,8 +3733,8 @@ class MDF4(object):
 
         """
         info = {}
-        info['version'] = self.identification['version_str']\
-            .decode('utf-8')\
+        info['version'] = self.identification['version_str'] \
+            .decode('utf-8') \
             .strip(' \n\t\0')
         info['groups'] = len(self.groups)
         for i, gp in enumerate(self.groups):
@@ -3967,7 +3921,7 @@ class MDF4(object):
 
                     align = data_block['block_len'] % 8
                     if align:
-                        write(b'\0' * (8-align))
+                        write(b'\0' * (8 - align))
 
                     if gp['channel_group']['cycles_nr']:
                         gp['data_group']['data_block_addr'] = address
@@ -3990,7 +3944,7 @@ class MDF4(object):
 
                     data_blocks = []
                     for i in range(chunks):
-                        data_ = data[i*split_size: (i+1)*split_size]
+                        data_ = data[i * split_size: (i + 1) * split_size]
                         if compression and self.version != '4.00':
                             if compression == 1:
                                 zip_type = v4c.FLAG_DZ_DEFLATE
@@ -4016,7 +3970,7 @@ class MDF4(object):
 
                         align = block['block_len'] % 8
                         if align:
-                            write(b'\0' * (8-align))
+                            write(b'\0' * (8 - align))
                         dl_block['data_block_addr{}'.format(i)] = address
 
                     address = tell()
@@ -4060,7 +4014,7 @@ class MDF4(object):
                         address += at_block['block_len']
 
                 for i, (at_block, text) in enumerate(self.attachments[:-1]):
-                    at_block['next_at_addr'] = self.attachments[i+1][0].address
+                    at_block['next_at_addr'] = self.attachments[i + 1][0].address
                 self.attachments[-1][0]['next_at_addr'] = 0
 
             # file history blocks
@@ -4077,7 +4031,7 @@ class MDF4(object):
                 blocks.append(fh)
 
             for i, (fh, fh_text) in enumerate(self.file_history[:-1]):
-                fh['next_fh_addr'] = self.file_history[i+1][0].address
+                fh['next_fh_addr'] = self.file_history[i + 1][0].address
             self.file_history[-1][0]['next_fh_addr'] = 0
 
             # data groups
@@ -4089,7 +4043,7 @@ class MDF4(object):
                 gp['data_group']['comment_addr'] = 0
 
             for i, dg in enumerate(self.groups[:-1]):
-                addr_ = self.groups[i+1]['data_group'].address
+                addr_ = self.groups[i + 1]['data_group'].address
                 dg['data_group']['next_dg_addr'] = addr_
             self.groups[-1]['data_group']['next_dg_addr'] = 0
 
@@ -4163,7 +4117,7 @@ class MDF4(object):
                         align = signal_data['block_len'] % 8
                         if align % 8:
                             blocks.append(b'\0' * (8 - align))
-                            address +=  8 - align
+                            address += 8 - align
                         gp_sd.append(signal_data)
                     else:
                         gp_sd.append(None)
@@ -4178,7 +4132,7 @@ class MDF4(object):
                                 address += dep['block_len']
                                 blocks.append(dep)
                             for k, dep in enumerate(dep_list[:-1]):
-                                dep['composition_addr'] = dep_list[k+1].address
+                                dep['composition_addr'] = dep_list[k + 1].address
                             dep_list[-1]['composition_addr'] = 0
 
                 # channels
@@ -4218,7 +4172,7 @@ class MDF4(object):
                 group_channels = gp['channels']
                 if group_channels:
                     for j, channel in enumerate(group_channels[:-1]):
-                        channel['next_ch_addr'] = group_channels[j+1].address
+                        channel['next_ch_addr'] = group_channels[j + 1].address
                     group_channels[-1]['next_ch_addr'] = 0
 
                 # channel group
@@ -4414,7 +4368,7 @@ class MDF4(object):
 
                     align = data_block['block_len'] % 8
                     if align:
-                        write(b'\0' * (8-align))
+                        write(b'\0' * (8 - align))
 
                     if gp['channel_group']['cycles_nr']:
                         gp['data_group']['data_block_addr'] = address
@@ -4437,7 +4391,7 @@ class MDF4(object):
 
                     data_blocks = []
                     for i in range(chunks):
-                        data_ = data[i*split_size: (i+1)*split_size]
+                        data_ = data[i * split_size: (i + 1) * split_size]
                         if compression and self.version != '4.00':
                             if compression == 1:
                                 zip_type = v4c.FLAG_DZ_DEFLATE
@@ -4463,7 +4417,7 @@ class MDF4(object):
 
                         align = block['block_len'] % 8
                         if align:
-                            write(b'\0' * (8-align))
+                            write(b'\0' * (8 - align))
                         dl_block['data_block_addr{}'.format(i)] = address
 
                     address = tell()
@@ -4507,7 +4461,7 @@ class MDF4(object):
                         address += at_block['block_len']
 
                 for i, (at_block, text) in enumerate(self.attachments[:-1]):
-                    at_block['next_at_addr'] = self.attachments[i+1][0].address
+                    at_block['next_at_addr'] = self.attachments[i + 1][0].address
                 self.attachments[-1][0]['next_at_addr'] = 0
 
             # file history blocks
@@ -4524,7 +4478,7 @@ class MDF4(object):
                 blocks.append(fh)
 
             for i, (fh, fh_text) in enumerate(self.file_history[:-1]):
-                fh['next_fh_addr'] = self.file_history[i+1][0].address
+                fh['next_fh_addr'] = self.file_history[i + 1][0].address
             self.file_history[-1][0]['next_fh_addr'] = 0
 
             for blk in blocks:
@@ -4628,7 +4582,7 @@ class MDF4(object):
                                 dep.address = address
                                 write(bytes(dep))
                             for k, dep in enumerate(dep_list[:-1]):
-                                dep['composition_addr'] = dep_list[k+1].address
+                                dep['composition_addr'] = dep_list[k + 1].address
                             dep_list[-1]['composition_addr'] = 0
 
                 # channels
@@ -4639,9 +4593,9 @@ class MDF4(object):
                 gp['channel_group']['first_ch_addr'] = address
                 for j, channel in enumerate(gp['channels']):
                     channel = Channel(
-                            address=channel,
-                            stream=stream,
-                        )
+                        address=channel,
+                        stream=stream,
+                    )
                     channel.address = address
                     channel_texts = temp_texts['channels'][j]
 
@@ -4669,7 +4623,7 @@ class MDF4(object):
                         align = signal_data['block_len'] % 8
                         if align % 8:
                             blocks.append(b'\0' * (8 - align))
-                            address +=  8 - align
+                            address += 8 - align
                     else:
                         channel['data_block_addr'] = 0
 
@@ -4683,7 +4637,7 @@ class MDF4(object):
                 group_channels = gp['channels']
                 if group_channels:
                     for j, channel in enumerate(chans[:-1]):
-                        channel['next_ch_addr'] = chans[j+1].address
+                        channel['next_ch_addr'] = chans[j + 1].address
                     chans[-1]['next_ch_addr'] = 0
                 for block in blocks:
                     write(bytes(block))
@@ -4724,7 +4678,7 @@ class MDF4(object):
                 gp['data_group']['comment_addr'] = 0
 
             for i, dg in enumerate(self.groups[:-1]):
-                addr_ = self.groups[i+1]['data_group'].address
+                addr_ = self.groups[i + 1]['data_group'].address
                 dg['data_group']['next_dg_addr'] = addr_
             self.groups[-1]['data_group']['next_dg_addr'] = 0
 
@@ -4752,7 +4706,6 @@ class MDF4(object):
 
             for orig_addr, gp in zip(original_data_addresses, self.groups):
                 gp['data_group']['data_block_addr'] = orig_addr
-
 
             for gp in self.groups:
                 for dep_list in gp['channel_dependencies']:

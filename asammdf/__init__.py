@@ -6,7 +6,6 @@ from .mdf import MDF, SUPPORTED_VERSIONS
 from .signal import Signal
 from .version import __version__
 
-
 __all__ = [
     '__version__',
     'configure',

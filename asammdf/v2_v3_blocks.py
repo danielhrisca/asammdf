@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
 """ classes that implement the blocks for MDF versions 2 and 3 """
 
-from __future__ import print_function, division
+from __future__ import division, print_function
+
 import sys
 import time
-
-from struct import unpack, pack, unpack_from
 from getpass import getuser
+from struct import pack, unpack, unpack_from
 
 from . import v2_v3_constants as v23c
-
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 SEEK_START = v23c.SEEK_START
 SEEK_END = v23c.SEEK_END
-
 
 __all__ = [
     'Channel',
@@ -211,8 +209,8 @@ class Channel(dict):
             self['ch_depend_addr'] = kargs.get('ch_depend_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
             self['channel_type'] = kargs.get('channel_type', 0)
-            self['short_name'] = kargs.get('short_name', (b'\0'*32))
-            self['description'] = kargs.get('description', (b'\0'*32))
+            self['short_name'] = kargs.get('short_name', (b'\0' * 32))
+            self['description'] = kargs.get('description', (b'\0' * 32))
             self['start_offset'] = kargs.get('start_offset', 0)
             self['bit_count'] = kargs.get('bit_count', 8)
             self['data_type'] = kargs.get('data_type', 0)
@@ -243,10 +241,7 @@ class Channel(dict):
             keys = v23c.KEYS_CHANNEL_SHORT
 
         if PYVERSION_MAJOR >= 36:
-            try:
-                result = pack(fmt, *self.values())
-            except:
-                print(fmt, self)
+            result = pack(fmt, *self.values())
         else:
             result = pack(fmt, *[self[key] for key in keys])
         return result
@@ -350,7 +345,8 @@ class ChannelConversion(dict):
     0, 100.0
 
     '''
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
 
@@ -397,13 +393,13 @@ class ChannelConversion(dict):
                     v23c.CONVERSION_TYPE_TABX):
                 nr = self['ref_param_nr']
                 values = unpack_from(
-                    '<{}d'.format(2*nr),
+                    '<{}d'.format(2 * nr),
                     block,
                     v23c.CC_COMMON_SHORT_SIZE,
                 )
                 for i in range(nr):
                     (self['raw_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i*2], values[2*i+1]
+                     self['phys_{}'.format(i)]) = values[i * 2], values[2 * i + 1]
 
             elif conv_type in (
                     v23c.CONVERSION_TYPE_POLY,
@@ -445,7 +441,7 @@ class ChannelConversion(dict):
 
                 for i in range(nr):
                     (self['param_val_{}'.format(i)],
-                     self['text_{}'.format(i)]) = values[i*2], values[2*i+1]
+                     self['text_{}'.format(i)]) = values[i * 2], values[2 * i + 1]
 
             elif conv_type == v23c.CONVERSION_TYPE_VTABR:
                 nr = self['ref_param_nr']
@@ -458,7 +454,7 @@ class ChannelConversion(dict):
                 for i in range(nr):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
-                     self['text_{}'.format(i)]) = values[i*3], values[3*i+1], values[3*i+2]
+                     self['text_{}'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
         except KeyError:
             self.address = 0
             self['id'] = 'CC'.encode('latin-1')
@@ -471,7 +467,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_NONE
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
 
@@ -483,7 +479,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_LINEAR
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['b'] = kargs.get('b', 0)
@@ -501,7 +497,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = kargs.get(
                     'conversion_type',
                     v23c.CONVERSION_TYPE_POLY,
@@ -524,7 +520,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = kargs.get(
                     'conversion_type',
                     v23c.CONVERSION_TYPE_EXPO,
@@ -546,13 +542,13 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = kargs.get(
                     'conversion_type',
                     v23c.CONVERSION_TYPE_FORMULA,
                 )
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
-                self['formula'] = kargs.get('formula', b'X1'+b'\0'*254)
+                self['formula'] = kargs.get('formula', b'X1' + b'\0' * 254)
 
             elif kargs['conversion_type'] in (
                     v23c.CONVERSION_TYPE_TABI,
@@ -562,7 +558,7 @@ class ChannelConversion(dict):
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = kargs.get(
                     'conversion_type',
                     v23c.CONVERSION_TYPE_TABI,
@@ -576,12 +572,12 @@ class ChannelConversion(dict):
                 nr = kargs['ref_param_nr']
                 self['block_len'] = kargs.get(
                     'block_len',
-                    v23c.CC_COMMON_BLOCK_SIZE + 40*nr,
+                    v23c.CC_COMMON_BLOCK_SIZE + 40 * nr,
                 )
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_VTAB
                 self['ref_param_nr'] = nr
 
@@ -593,12 +589,12 @@ class ChannelConversion(dict):
                 nr = kargs.get('ref_param_nr', 0)
                 self['block_len'] = kargs.get(
                     'block_len',
-                    v23c.CC_COMMON_BLOCK_SIZE + 20*nr,
+                    v23c.CC_COMMON_BLOCK_SIZE + 20 * nr,
                 )
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
+                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_VTABR
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
 
@@ -718,6 +714,7 @@ class ChannelDependency(dict):
 
     '''
     __slots__ = ['address', 'referenced_channels']
+
     def __init__(self, **kargs):
         super(ChannelDependency, self).__init__()
 
@@ -740,9 +737,9 @@ class ChannelDependency(dict):
             )
 
             for i in range(self['sd_nr']):
-                self['dg_{}'.format(i)] = links[3*i]
-                self['cg_{}'.format(i)] = links[3*i+1]
-                self['ch_{}'.format(i)] = links[3*i+2]
+                self['dg_{}'.format(i)] = links[3 * i]
+                self['cg_{}'.format(i)] = links[3 * i + 1]
+                self['ch_{}'.format(i)] = links[3 * i + 2]
 
             optional_dims_nr = (self['block_len'] - 8 - links_size) // 2
             if optional_dims_nr:
@@ -841,7 +838,8 @@ class ChannelExtension(dict):
         block address inside mdf file
 
     '''
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(ChannelExtension, self).__init__()
 
@@ -955,7 +953,8 @@ class ChannelGroup(dict):
     b'CG'
 
     '''
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(ChannelGroup, self).__init__()
 
@@ -1006,6 +1005,7 @@ class ChannelGroup(dict):
             result = pack(fmt, *[self[key] for key in keys])
         return result
 
+
 class DataBlock(dict):
     """Data Block class derived from *dict*
 
@@ -1033,7 +1033,8 @@ class DataBlock(dict):
         binary file stream
 
     """
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(DataBlock, self).__init__()
 
@@ -1089,7 +1090,8 @@ class DataGroup(dict):
         block address inside mdf file
 
     '''
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(DataGroup, self).__init__()
 
@@ -1177,7 +1179,8 @@ class FileIdentificationBlock(dict):
         block address inside mdf file; should be 0 always
 
     '''
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(FileIdentificationBlock, self).__init__()
 
@@ -1265,7 +1268,8 @@ class HeaderBlock(dict):
         block address inside mdf file; should be 64 always
 
     '''
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(HeaderBlock, self).__init__()
 
@@ -1308,7 +1312,7 @@ class HeaderBlock(dict):
             self['comment_addr'] = 0
             self['program_addr'] = 0
             self['dg_nr'] = 0
-            t1 = time.time() * 10**9
+            t1 = time.time() * 10 ** 9
             t2 = time.gmtime()
             self['date'] = '{:\0<10}'.format(time.strftime('%d:%m:%Y', t2)).encode('latin-1')
             self['time'] = '{:\0<8}'.format(time.strftime('%X', t2)).encode('latin-1')
@@ -1365,7 +1369,8 @@ class ProgramBlock(dict):
         block address inside mdf file
 
     '''
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(ProgramBlock, self).__init__()
 
@@ -1420,7 +1425,8 @@ class SampleReduction(dict):
         block address inside mdf file
 
     '''
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(SampleReduction, self).__init__()
 
@@ -1490,7 +1496,8 @@ class TextBlock(dict):
     b'VehicleSpeed'
 
     '''
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
         try:
@@ -1524,10 +1531,10 @@ class TextBlock(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            result = pack('<2sH{}s'.format(self['block_len']-4), *self.values())
+            result = pack('<2sH{}s'.format(self['block_len'] - 4), *self.values())
         else:
             result = pack(
-                '<2sH{}s'.format(self['block_len']-4),
+                '<2sH{}s'.format(self['block_len'] - 4),
                 *[self[key] for key in v23c.KEYS_TEXT_BLOCK]
             )
         return result
@@ -1565,7 +1572,8 @@ class TriggerBlock(dict):
         block address inside mdf file
 
     '''
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(TriggerBlock, self).__init__()
 
@@ -1585,11 +1593,11 @@ class TriggerBlock(dict):
 
             nr = self['trigger_events_nr']
             if nr:
-                values = unpack('<{}d'.format(3*nr), block[10:])
+                values = unpack('<{}d'.format(3 * nr), block[10:])
             for i in range(nr):
                 (self['trigger_{}_time'.format(i)],
                  self['trigger_{}_pretime'.format(i)],
-                 self['trigger_{}_posttime'.format(i)]) = values[i*3], values[3*i+1], values[3*i+2]
+                 self['trigger_{}_posttime'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
 
         except KeyError:
             self['id'] = b'TR'
