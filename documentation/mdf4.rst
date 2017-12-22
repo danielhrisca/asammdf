@@ -72,7 +72,7 @@ The *master_db* attibute is a dictionary that holds the *channel index*  of the 
 API
 ---
 
-.. autoclass:: asammdf.mdf4.MDF4
+.. autoclass:: asammdf.mdf_v4.MDF4
     :members:
     :noindex:
 

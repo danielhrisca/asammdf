@@ -22,50 +22,50 @@ The following classes implement different MDF version3 blocks.
 
 Channel Class
 -------------
-.. autoclass:: asammdf.mdf2.Channel
+.. autoclass:: asammdf.v2_v3_blocks.Channel
 
 
 ChannelConversion Class
 -----------------------
-.. autoclass:: asammdf.mdf2.ChannelConversion
+.. autoclass:: asammdf.v2_v3_blocks.ChannelConversion
 
 ChannelDependency Class
 -----------------------
-.. autoclass:: asammdf.mdf2.ChannelDependency
+.. autoclass:: asammdf.v2_v3_blocks.ChannelDependency
 
 ChannelExtension Class
 ----------------------
-.. autoclass:: asammdf.mdf2.ChannelExtension
+.. autoclass:: asammdf.v2_v3_blocks.ChannelExtension
 
 ChannelGroup Class
 ------------------
-.. autoclass:: asammdf.mdf2.ChannelGroup
+.. autoclass:: asammdf.v2_v3_blocks.ChannelGroup
 
 DataGroup Class
 ---------------
-.. autoclass:: asammdf.mdf2.DataGroup
+.. autoclass:: asammdf.v2_v3_blocks.DataGroup
 
 FileIdentificationBlock Class
 -----------------------------
-.. autoclass:: asammdf.mdf2.FileIdentificationBlock
+.. autoclass:: asammdf.v2_v3_blocks.FileIdentificationBlock
 
 HeaderBlock Class
 -----------------
-.. autoclass:: asammdf.mdf2.HeaderBlock
+.. autoclass:: asammdf.v2_v3_blocks.HeaderBlock
 
 ProgramBlock Class
 ------------------
-.. autoclass:: asammdf.v2blocks.ProgramBlock
+.. autoclass:: asammdf.v2_v3_blocks.ProgramBlock
 
 SampleReduction Class
 ---------------------
-.. autoclass:: asammdf.v2blocks.SampleReduction
+.. autoclass:: asammdf.v2_v3_blocks.SampleReduction
     :members:
 
 TextBlock Class
 ---------------
-.. autoclass:: asammdf.mdf2.TextBlock
+.. autoclass:: asammdf.v2_v3_blocks.TextBlock
 
 TriggerBlock Class
 ------------------
-.. autoclass:: asammdf.mdf2.TriggerBlock
+.. autoclass:: asammdf.v2_v3_blocks.TriggerBlock

@@ -612,15 +612,15 @@ def main(path, text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-#        partial(get_all_mdf3, memory='full'),
-#        partial(get_all_mdf3, memory='low'),
-#        partial(get_all_mdf3, memory='minimum'),
+        partial(get_all_mdf3, memory='full'),
+        partial(get_all_mdf3, memory='low'),
+        partial(get_all_mdf3, memory='minimum'),
 #        get_all_reader3,
 #        get_all_reader3_nodata,
 #        get_all_reader3_compression,
-#        partial(get_all_mdf4, memory='full'),
-#        partial(get_all_mdf4, memory='low'),
-#        partial(get_all_mdf4, memory='minimum'),
+        partial(get_all_mdf4, memory='full'),
+        partial(get_all_mdf4, memory='low'),
+        partial(get_all_mdf4, memory='minimum'),
 #        get_all_reader4,
 #        get_all_reader4_nodata,
 #        get_all_reader4_compression,
@@ -638,12 +638,12 @@ def main(path, text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-#        partial(convert_v3_v4, memory='full'),
-#        partial(convert_v3_v4, memory='low'),
-#        partial(convert_v3_v4, memory='minimum'),
-#        partial(convert_v4_v3, memory='full'),
-#        partial(convert_v4_v3, memory='low'),
-#        partial(convert_v4_v3, memory='minimum'),
+        partial(convert_v3_v4, memory='full'),
+        partial(convert_v3_v4, memory='low'),
+        partial(convert_v3_v4, memory='minimum'),
+        partial(convert_v4_v3, memory='full'),
+        partial(convert_v4_v3, memory='low'),
+        partial(convert_v4_v3, memory='minimum'),
     )
 
     if tests:
@@ -658,15 +658,15 @@ def main(path, text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-#        partial(merge_v3, memory='full'),
-#        partial(merge_v3, memory='low'),
-#        partial(merge_v3, memory='minimum'),
+        partial(merge_v3, memory='full'),
+        partial(merge_v3, memory='low'),
+        partial(merge_v3, memory='minimum'),
 #        merge_reader_v3,
 #        merge_reader_v3_compress,
 #         merge_reader_v3_nodata,
-#        partial(merge_v4, memory='full'),
-#        partial(merge_v4, memory='low'),
-#        partial(merge_v4, memory='minimum'),
+        partial(merge_v4, memory='full'),
+        partial(merge_v4, memory='low'),
+        partial(merge_v4, memory='minimum'),
 #        merge_reader_v4,
 #        merge_reader_v4_nodata,
 #        merge_reader_v4_compress,

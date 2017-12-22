@@ -15,7 +15,7 @@ from zlib import compress, decompress
 
 import numpy as np
 
-from . import v4constants as v4c
+from . import v4_constants as v4c
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]

@@ -8,7 +8,7 @@ import time
 from struct import unpack, pack, unpack_from
 from getpass import getuser
 
-from . import v23constants as v23c
+from . import v2_v3_constants as v23c
 
 
 PYVERSION = sys.version_info[0]
