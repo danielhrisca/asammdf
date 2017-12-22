@@ -2223,7 +2223,8 @@ class MDF3(object):
             index=None,
             raster=None,
             samples_only=False,
-            data=None):
+            data=None,
+            raw=False):
         """Gets channel samples.
         Channel can be specified in two ways:
 
@@ -2256,6 +2257,12 @@ class MDF3(object):
         samples_only : bool
             if *True* return only the channel samples as numpy array; if
             *False* return a *Signal* object
+        data : bytes
+            prevent redundant data read by providing the raw data group samples
+        raw : bool
+            return channel samples without appling the conversion rule; default
+            `False`
+
 
         Returns
         -------
@@ -2352,7 +2359,7 @@ class MDF3(object):
             record_shape = tuple(shape)
 
             arrays = [
-                self.get(group=dg_nr, index=ch_nr, samples_only=True)
+                self.get(group=dg_nr, index=ch_nr, samples_only=True, raw=raw)
                 for ch_nr, dg_nr in dep.referenced_channels
             ]
             if cycles_nr:
@@ -2432,7 +2439,10 @@ class MDF3(object):
 
             if cycles_nr:
 
-                if conversion_type == v3c.CONVERSION_TYPE_NONE:
+                if raw:
+                    pass
+
+                elif conversion_type == v3c.CONVERSION_TYPE_NONE:
 
                     if channel['data_type'] == v3c.DATA_TYPE_STRING:
                         vals = [val.tobytes() for val in vals]
@@ -2463,12 +2473,12 @@ class MDF3(object):
                                          v3c.CONVERSION_TYPE_TABX):
                     nr = conversion['ref_param_nr']
 
-                    raw = [conversion['raw_{}'.format(i)] for i in range(nr)]
-                    raw = array(raw)
+                    raw_vals = [conversion['raw_{}'.format(i)] for i in range(nr)]
+                    raw_vals = array(raw_vals)
                     phys = [conversion['phys_{}'.format(i)] for i in range(nr)]
                     phys = array(phys)
                     if conversion_type == v3c.CONVERSION_TYPE_TABI:
-                        vals = interp(vals, raw, phys)
+                        vals = interp(vals, raw_vals, phys)
                     else:
                         idx = searchsorted(raw, vals)
                         idx = clip(idx, 0, len(raw) - 1)
@@ -2476,14 +2486,14 @@ class MDF3(object):
 
                 elif conversion_type == v3c.CONVERSION_TYPE_VTAB:
                     nr = conversion['ref_param_nr']
-                    raw = [
+                    raw_vals = [
                         conversion['param_val_{}'.format(i)]
                         for i in range(nr)
                     ]
-                    raw = array(raw)
+                    raw_vals = array(raw_vals)
                     phys = [conversion['text_{}'.format(i)] for i in range(nr)]
                     phys = array(phys)
-                    info = {'raw': raw, 'phys': phys}
+                    info = {'raw': raw_vals, 'phys': phys}
 
                 elif conversion_type == v3c.CONVERSION_TYPE_VTABR:
                     nr = conversion['ref_param_nr']

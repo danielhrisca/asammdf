@@ -2813,7 +2813,8 @@ class MDF4(object):
             index=None,
             raster=None,
             samples_only=False,
-            data=None):
+            data=None,
+            raw=False):
         """Gets channel samples.
         Channel can be specified in two ways:
 
@@ -2845,6 +2846,11 @@ class MDF4(object):
         samples_only : bool
             if *True* return only the channel samples as numpy array; if
                 *False* return a *Signal* object
+        data : bytes
+            prevent redundant data read by providing the raw data group samples
+        raw : bool
+            return channel samples without appling the conversion rule; default
+            `False`
 
         Returns
         -------
@@ -2951,7 +2957,7 @@ class MDF4(object):
                 else:
                     names = [ch.name for ch in dependency_list]
                 arrays = [
-                    self.get(name_, samples_only=True)
+                    self.get(name_, samples_only=True, raw=raw)
                     for name_ in names
                 ]
 
@@ -3165,7 +3171,9 @@ class MDF4(object):
                 else:
                     conversion_type = conversion['conversion_type']
 
-                if conversion_type == v4c.CONVERSION_TYPE_NON:
+                if raw:
+                    pass
+                elif conversion_type == v4c.CONVERSION_TYPE_NON:
                     # check if it is VLDS channel type with SDBLOCK
                     data_type = channel['data_type']
                     channel_type = channel['channel_type']
@@ -3342,17 +3350,17 @@ class MDF4(object):
                 elif conversion_type in (v4c.CONVERSION_TYPE_TABI,
                                          v4c.CONVERSION_TYPE_TAB):
                     nr = conversion['val_param_nr'] // 2
-                    raw = array(
+                    raw_vals = array(
                         [conversion['raw_{}'.format(i)] for i in range(nr)]
                     )
                     phys = array(
                         [conversion['phys_{}'.format(i)] for i in range(nr)]
                     )
                     if conversion_type == v4c.CONVERSION_TYPE_TABI:
-                        vals = interp(vals, raw, phys)
+                        vals = interp(vals, raw_vals, phys)
                     else:
-                        idx = searchsorted(raw, vals)
-                        idx = clip(idx, 0, len(raw) - 1)
+                        idx = searchsorted(raw_vals, vals)
+                        idx = clip(idx, 0, len(raw_vals) - 1)
                         vals = phys[idx]
 
                 elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
@@ -3399,7 +3407,7 @@ class MDF4(object):
 
                 elif conversion_type == v4c.CONVERSION_TYPE_TABX:
                     nr = conversion['val_param_nr']
-                    raw = array(
+                    raw_vals = array(
                         [conversion['val_{}'.format(i)] for i in range(nr)]
                     )
 
@@ -3434,7 +3442,7 @@ class MDF4(object):
                         else:
                             default = b''
                     info = {
-                        'raw': raw,
+                        'raw': raw_vals,
                         'phys': phys,
                         'default': default,
                     }
@@ -3489,16 +3497,16 @@ class MDF4(object):
                     nr = conversion['val_param_nr'] - 1
 
                     if memory == 'minimum':
-                        raw = []
+                        raw_vals = []
                         for i in range(nr):
                             block = TextBlock(
                                 address=grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)],
                                 stream=stream,
                             )
-                            raw.append(block['text'])
-                        raw = array(raw)
+                            raw_vals.append(block['text'])
+                        raw_vals = array(raw_vals)
                     else:
-                        raw = array(
+                        raw_vals = array(
                             [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
                              for i in range(nr)]
                         )
@@ -3507,7 +3515,7 @@ class MDF4(object):
                     )
                     default = conversion['val_default']
                     info = {
-                        'raw': raw,
+                        'raw': raw_vals,
                         'phys': phys,
                         'default': default,
                     }
