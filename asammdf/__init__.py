@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """ asammdf is a parser and editor for ASAM MDF files """
-from .mdf2 import MDF2
-from .mdf3 import MDF3
-from .mdf4 import MDF4
+from .mdf_v2_v3 import MDF23
+from .mdf_v4 import MDF4
 from .mdf import MDF, SUPPORTED_VERSIONS
 from .signal import Signal
 from .version import __version__
@@ -12,8 +11,7 @@ __all__ = [
     '__version__',
     'configure',
     'MDF',
-    'MDF2',
-    'MDF3',
+    'MDF23',
     'MDF4',
     'Signal',
     'SUPPORTED_VERSIONS',
@@ -46,8 +44,7 @@ def configure(
     """
 
     if integer_compacting is not None:
-        MDF2._compact_integers_on_append = bool(integer_compacting)
-        MDF3._compact_integers_on_append = bool(integer_compacting)
+        MDF23._compact_integers_on_append = bool(integer_compacting)
         MDF4._compact_integers_on_append = bool(integer_compacting)
 
     if split_threshold is not None:
@@ -57,6 +54,5 @@ def configure(
         MDF4._split_data_blocks = bool(split_data_blocks)
 
     if overwrite is not None:
-        MDF2._overwrite = bool(overwrite)
-        MDF3._overwrite = bool(overwrite)
+        MDF23._overwrite = bool(overwrite)
         MDF4._overwrite = bool(overwrite)

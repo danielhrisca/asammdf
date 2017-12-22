@@ -12,8 +12,8 @@ from numpy import (
 )
 
 
-from . import v3constants as v3c
-from . import v4constants as v4c
+from . import v2_v3_constants as v3c
+from . import v4_constants as v4c
 
 
 __all__ = [

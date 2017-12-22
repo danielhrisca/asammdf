@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-classes that implement the blocks for MDF version 3
-"""
+""" classes that implement the blocks for MDF versions 2 and 3 """
 
 from __future__ import print_function, division
 import sys
@@ -10,13 +8,13 @@ import time
 from struct import unpack, pack, unpack_from
 from getpass import getuser
 
-from . import v2constants as v2c
+from . import v23constants as v23c
 
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
-SEEK_START = v2c.SEEK_START
-SEEK_END = v2c.SEEK_END
+SEEK_START = v23c.SEEK_START
+SEEK_END = v23c.SEEK_END
 
 
 __all__ = [
@@ -133,25 +131,7 @@ class Channel(dict):
             stream.seek(address, SEEK_START)
             block = stream.read(size)
 
-            if size == v2c.CN20_BLOCK_SIZE:
-                (self['id'],
-                 self['block_len'],
-                 self['next_ch_addr'],
-                 self['conversion_addr'],
-                 self['source_depend_addr'],
-                 self['ch_depend_addr'],
-                 self['comment_addr'],
-                 self['channel_type'],
-                 self['short_name'],
-                 self['description'],
-                 self['start_offset'],
-                 self['bit_count'],
-                 self['data_type'],
-                 self['range_flag'],
-                 self['min_raw_value'],
-                 self['max_raw_value'],
-                 self['sampling_rate']) = unpack(v2c.FMT_CHANNEL_20, block)
-            else:
+            if size == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
                 (self['id'],
                  self['block_len'],
                  self['next_ch_addr'],
@@ -169,13 +149,62 @@ class Channel(dict):
                  self['min_raw_value'],
                  self['max_raw_value'],
                  self['sampling_rate'],
-                 self['long_name_addr']) = unpack(v2c.FMT_CHANNEL_21, block)
+                 self['long_name_addr'],
+                 self['display_name_addr'],
+                 self['aditional_byte_offset']) = unpack(
+                    v23c.FMT_CHANNEL_DISPLAYNAME,
+                    block,
+                )
+
+            elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
+                (self['id'],
+                 self['block_len'],
+                 self['next_ch_addr'],
+                 self['conversion_addr'],
+                 self['source_depend_addr'],
+                 self['ch_depend_addr'],
+                 self['comment_addr'],
+                 self['channel_type'],
+                 self['short_name'],
+                 self['description'],
+                 self['start_offset'],
+                 self['bit_count'],
+                 self['data_type'],
+                 self['range_flag'],
+                 self['min_raw_value'],
+                 self['max_raw_value'],
+                 self['sampling_rate'],
+                 self['long_name_addr']) = unpack(
+                    v23c.FMT_CHANNEL_LONGNAME,
+                    block,
+                )
+            else:
+                (self['id'],
+                 self['block_len'],
+                 self['next_ch_addr'],
+                 self['conversion_addr'],
+                 self['source_depend_addr'],
+                 self['ch_depend_addr'],
+                 self['comment_addr'],
+                 self['channel_type'],
+                 self['short_name'],
+                 self['description'],
+                 self['start_offset'],
+                 self['bit_count'],
+                 self['data_type'],
+                 self['range_flag'],
+                 self['min_raw_value'],
+                 self['max_raw_value'],
+                 self['sampling_rate']) = unpack(v23c.FMT_CHANNEL_SHORT, block)
 
         except KeyError:
 
             self.address = 0
             self['id'] = b'CN'
-            self['block_len'] = kargs.get('block_len', v2c.CN21_BLOCK_SIZE)
+            self['block_len'] = kargs.get(
+                'block_len',
+                v23c.CN_DISPLAYNAME_BLOCK_SIZE,
+            )
             self['next_ch_addr'] = kargs.get('next_ch_addr', 0)
             self['conversion_addr'] = kargs.get('conversion_addr', 0)
             self['source_depend_addr'] = kargs.get('source_depend_addr', 0)
@@ -191,18 +220,33 @@ class Channel(dict):
             self['min_raw_value'] = kargs.get('min_raw_value', 0)
             self['max_raw_value'] = kargs.get('max_raw_value', 0)
             self['sampling_rate'] = kargs.get('sampling_rate', 0)
-            if self['block_len'] == v2c.CN21_BLOCK_SIZE:
+            if self['block_len'] >= v23c.CN_LONGNAME_BLOCK_SIZE:
                 self['long_name_addr'] = kargs.get('long_name_addr', 0)
+            if self['block_len'] >= v23c.CN_DISPLAYNAME_BLOCK_SIZE:
+                self['display_name_addr'] = kargs.get('display_name_addr', 0)
+                self['aditional_byte_offset'] = kargs.get(
+                    'aditional_byte_offset',
+                    0,
+                )
 
     def __bytes__(self):
-        if self['block_len'] == v2c.CN20_BLOCK_SIZE:
-            fmt = v2c.FMT_CHANNEL_20
-            keys = v2c.KEYS_CHANNEL_20
+
+        block_len = self['block_len']
+        if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
+            fmt = v23c.FMT_CHANNEL_DISPLAYNAME
+            keys = v23c.KEYS_CHANNEL_DISPLAYNAME
+        elif block_len == v23c.CN_LONGNAME_BLOCK_SIZE:
+            fmt = v23c.FMT_CHANNEL_LONGNAME
+            keys = v23c.KEYS_CHANNEL_LONGNAME
         else:
-            fmt = v2c.FMT_CHANNEL_21
-            keys = v2c.KEYS_CHANNEL_21
+            fmt = v23c.FMT_CHANNEL_SHORT
+            keys = v23c.KEYS_CHANNEL_SHORT
+
         if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
+            try:
+                result = pack(fmt, *self.values())
+            except:
+                print(fmt, self)
         else:
             result = pack(fmt, *[self[key] for key in keys])
         return result
@@ -326,44 +370,44 @@ class ChannelConversion(dict):
              self['unit'],
              self['conversion_type'],
              self['ref_param_nr']) = unpack_from(
-                v2c.FMT_CONVERSION_COMMON_SHORT,
+                v23c.FMT_CONVERSION_COMMON_SHORT,
                 block,
             )
 
             conv_type = self['conversion_type']
 
-            if conv_type == v2c.CONVERSION_TYPE_LINEAR:
+            if conv_type == v23c.CONVERSION_TYPE_LINEAR:
                 (self['b'],
                  self['a']) = unpack_from(
                     '<2d',
                     block,
-                    v2c.CC_COMMON_SHORT_SIZE,
+                    v23c.CC_COMMON_SHORT_SIZE,
                 )
-                if not size == v2c.CC_LIN_BLOCK_SIZE:
-                    self['CANapeHiddenExtra'] = block[v2c.CC_LIN_BLOCK_SIZE - 4:]
+                if not size == v23c.CC_LIN_BLOCK_SIZE:
+                    self['CANapeHiddenExtra'] = block[v23c.CC_LIN_BLOCK_SIZE - 4:]
 
-            elif conv_type == v2c.CONVERSION_TYPE_NONE:
+            elif conv_type == v23c.CONVERSION_TYPE_NONE:
                 pass
 
-            elif conv_type == v2c.CONVERSION_TYPE_FORMULA:
-                self['formula'] = block[v2c.CC_COMMON_SHORT_SIZE:]
+            elif conv_type == v23c.CONVERSION_TYPE_FORMULA:
+                self['formula'] = block[v23c.CC_COMMON_SHORT_SIZE:]
 
             elif conv_type in (
-                    v2c.CONVERSION_TYPE_TABI,
-                    v2c.CONVERSION_TYPE_TABX):
+                    v23c.CONVERSION_TYPE_TABI,
+                    v23c.CONVERSION_TYPE_TABX):
                 nr = self['ref_param_nr']
                 values = unpack_from(
                     '<{}d'.format(2*nr),
                     block,
-                    v2c.CC_COMMON_SHORT_SIZE,
+                    v23c.CC_COMMON_SHORT_SIZE,
                 )
                 for i in range(nr):
                     (self['raw_{}'.format(i)],
                      self['phys_{}'.format(i)]) = values[i*2], values[2*i+1]
 
             elif conv_type in (
-                    v2c.CONVERSION_TYPE_POLY,
-                    v2c.CONVERSION_TYPE_RAT):
+                    v23c.CONVERSION_TYPE_POLY,
+                    v23c.CONVERSION_TYPE_RAT):
                 (self['P1'],
                  self['P2'],
                  self['P3'],
@@ -372,12 +416,12 @@ class ChannelConversion(dict):
                  self['P6']) = unpack_from(
                     '<6d',
                     block,
-                    v2c.CC_COMMON_SHORT_SIZE,
+                    v23c.CC_COMMON_SHORT_SIZE,
                 )
 
             elif conv_type in (
-                    v2c.CONVERSION_TYPE_EXPO,
-                    v2c.CONVERSION_TYPE_LOGH):
+                    v23c.CONVERSION_TYPE_EXPO,
+                    v23c.CONVERSION_TYPE_LOGH):
                 (self['P1'],
                  self['P2'],
                  self['P3'],
@@ -387,29 +431,29 @@ class ChannelConversion(dict):
                  self['P7']) = unpack_from(
                     '<7d',
                     block,
-                    v2c.CC_COMMON_SHORT_SIZE,
+                    v23c.CC_COMMON_SHORT_SIZE,
                 )
 
-            elif conv_type == v2c.CONVERSION_TYPE_VTAB:
+            elif conv_type == v23c.CONVERSION_TYPE_VTAB:
                 nr = self['ref_param_nr']
 
                 values = unpack_from(
                     '<' + 'd32s' * nr,
                     block,
-                    v2c.CC_COMMON_SHORT_SIZE,
+                    v23c.CC_COMMON_SHORT_SIZE,
                 )
 
                 for i in range(nr):
                     (self['param_val_{}'.format(i)],
                      self['text_{}'.format(i)]) = values[i*2], values[2*i+1]
 
-            elif conv_type == v2c.CONVERSION_TYPE_VTABR:
+            elif conv_type == v23c.CONVERSION_TYPE_VTABR:
                 nr = self['ref_param_nr']
 
                 values = unpack_from(
                     '<' + '2dI' * nr,
                     block,
-                    v2c.CC_COMMON_SHORT_SIZE,
+                    v23c.CC_COMMON_SHORT_SIZE,
                 )
                 for i in range(nr):
                     (self['lower_{}'.format(i)],
@@ -419,40 +463,40 @@ class ChannelConversion(dict):
             self.address = 0
             self['id'] = 'CC'.encode('latin-1')
 
-            if kargs['conversion_type'] == v2c.CONVERSION_TYPE_NONE:
+            if kargs['conversion_type'] == v23c.CONVERSION_TYPE_NONE:
                 self['block_len'] = kargs.get(
                     'block_len',
-                    v2c.CC_COMMON_BLOCK_SIZE,
+                    v23c.CC_COMMON_BLOCK_SIZE,
                 )
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = v2c.CONVERSION_TYPE_NONE
+                self['conversion_type'] = v23c.CONVERSION_TYPE_NONE
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
 
-            elif kargs['conversion_type'] == v2c.CONVERSION_TYPE_LINEAR:
+            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_LINEAR:
                 self['block_len'] = kargs.get(
                     'block_len',
-                    v2c.CC_LIN_BLOCK_SIZE,
+                    v23c.CC_LIN_BLOCK_SIZE,
                 )
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = v2c.CONVERSION_TYPE_LINEAR
+                self['conversion_type'] = v23c.CONVERSION_TYPE_LINEAR
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['b'] = kargs.get('b', 0)
                 self['a'] = kargs.get('a', 1)
-                if not self['block_len'] == v2c.CC_LIN_BLOCK_SIZE:
+                if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:
                     self['CANapeHiddenExtra'] = kargs['CANapeHiddenExtra']
 
             elif kargs['conversion_type'] in (
-                    v2c.CONVERSION_TYPE_POLY,
-                    v2c.CONVERSION_TYPE_RAT):
+                    v23c.CONVERSION_TYPE_POLY,
+                    v23c.CONVERSION_TYPE_RAT):
                 self['block_len'] = kargs.get(
                     'block_len',
-                    v2c.CC_POLY_BLOCK_SIZE,
+                    v23c.CC_POLY_BLOCK_SIZE,
                 )
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
@@ -460,7 +504,7 @@ class ChannelConversion(dict):
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = kargs.get(
                     'conversion_type',
-                    v2c.CONVERSION_TYPE_POLY,
+                    v23c.CONVERSION_TYPE_POLY,
                 )
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['P1'] = kargs.get('P1', 0)
@@ -471,11 +515,11 @@ class ChannelConversion(dict):
                 self['P6'] = kargs.get('P6', 0)
 
             elif kargs['conversion_type'] in (
-                    v2c.CONVERSION_TYPE_EXPO,
-                    v2c.CONVERSION_TYPE_LOGH):
+                    v23c.CONVERSION_TYPE_EXPO,
+                    v23c.CONVERSION_TYPE_LOGH):
                 self['block_len'] = kargs.get(
                     'block_len',
-                    v2c.CC_EXPO_BLOCK_SIZE,
+                    v23c.CC_EXPO_BLOCK_SIZE,
                 )
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
@@ -483,7 +527,7 @@ class ChannelConversion(dict):
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = kargs.get(
                     'conversion_type',
-                    v2c.CONVERSION_TYPE_EXPO,
+                    v23c.CONVERSION_TYPE_EXPO,
                 )
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['P1'] = kargs.get('P1', 0)
@@ -494,10 +538,10 @@ class ChannelConversion(dict):
                 self['P6'] = kargs.get('P6', 0)
                 self['P7'] = kargs.get('P7', 0)
 
-            elif kargs['conversion_type'] == v2c.CONVERSION_TYPE_FORMULA:
+            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_FORMULA:
                 self['block_len'] = kargs.get(
                     'block_len',
-                    v2c.CC_POLY_BLOCK_SIZE,
+                    v23c.CC_POLY_BLOCK_SIZE,
                 )
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
@@ -505,14 +549,14 @@ class ChannelConversion(dict):
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = kargs.get(
                     'conversion_type',
-                    v2c.CONVERSION_TYPE_FORMULA,
+                    v23c.CONVERSION_TYPE_FORMULA,
                 )
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 self['formula'] = kargs.get('formula', b'X1'+b'\0'*254)
 
             elif kargs['conversion_type'] in (
-                    v2c.CONVERSION_TYPE_TABI,
-                    v2c.CONVERSION_TYPE_TABX):
+                    v23c.CONVERSION_TYPE_TABI,
+                    v23c.CONVERSION_TYPE_TABX):
                 nr = kargs['ref_param_nr']
                 self['block_len'] = kargs['block_len']
                 self['range_flag'] = kargs.get('range_flag', 1)
@@ -521,41 +565,41 @@ class ChannelConversion(dict):
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
                 self['conversion_type'] = kargs.get(
                     'conversion_type',
-                    v2c.CONVERSION_TYPE_TABI,
+                    v23c.CONVERSION_TYPE_TABI,
                 )
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
                 for i in range(nr):
                     self['raw_{}'.format(i)] = kargs['raw_{}'.format(i)]
                     self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
 
-            elif kargs['conversion_type'] == v2c.CONVERSION_TYPE_VTAB:
+            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_VTAB:
                 nr = kargs['ref_param_nr']
                 self['block_len'] = kargs.get(
                     'block_len',
-                    v2c.CC_COMMON_BLOCK_SIZE + 40*nr,
+                    v23c.CC_COMMON_BLOCK_SIZE + 40*nr,
                 )
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = v2c.CONVERSION_TYPE_VTAB
+                self['conversion_type'] = v23c.CONVERSION_TYPE_VTAB
                 self['ref_param_nr'] = nr
 
                 for i in range(nr):
                     self['param_val_{}'.format(i)] = kargs['param_val_{}'.format(i)]
                     self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
 
-            elif kargs['conversion_type'] == v2c.CONVERSION_TYPE_VTABR:
+            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_VTABR:
                 nr = kargs.get('ref_param_nr', 0)
                 self['block_len'] = kargs.get(
                     'block_len',
-                    v2c.CC_COMMON_BLOCK_SIZE + 20*nr,
+                    v23c.CC_COMMON_BLOCK_SIZE + 20*nr,
                 )
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0'*20).encode('latin-1'))
-                self['conversion_type'] = v2c.CONVERSION_TYPE_VTABR
+                self['conversion_type'] = v23c.CONVERSION_TYPE_VTABR
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
 
                 for i in range(self['ref_param_nr']):
@@ -571,58 +615,58 @@ class ChannelConversion(dict):
         conv = self['conversion_type']
 
         # compute the fmt
-        if conv == v2c.CONVERSION_TYPE_NONE:
-            fmt = v2c.FMT_CONVERSION_COMMON
-        elif conv == v2c.CONVERSION_TYPE_FORMULA:
-            fmt = v2c.FMT_CONVERSION_FORMULA
-        elif conv == v2c.CONVERSION_TYPE_LINEAR:
-            fmt = v2c.FMT_CONVERSION_LINEAR
-            if not self['block_len'] == v2c.CC_LIN_BLOCK_SIZE:
-                fmt += '{}s'.format(self['block_len'] - v2c.CC_LIN_BLOCK_SIZE)
-        elif conv in (v2c.CONVERSION_TYPE_POLY, v2c.CONVERSION_TYPE_RAT):
-            fmt = v2c.FMT_CONVERSION_POLY_RAT
-        elif conv in (v2c.CONVERSION_TYPE_EXPO, v2c.CONVERSION_TYPE_LOGH):
-            fmt = v2c.FMT_CONVERSION_EXPO_LOGH
-        elif conv in (v2c.CONVERSION_TYPE_TABI, v2c.CONVERSION_TYPE_TABX):
+        if conv == v23c.CONVERSION_TYPE_NONE:
+            fmt = v23c.FMT_CONVERSION_COMMON
+        elif conv == v23c.CONVERSION_TYPE_FORMULA:
+            fmt = v23c.FMT_CONVERSION_FORMULA
+        elif conv == v23c.CONVERSION_TYPE_LINEAR:
+            fmt = v23c.FMT_CONVERSION_LINEAR
+            if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:
+                fmt += '{}s'.format(self['block_len'] - v23c.CC_LIN_BLOCK_SIZE)
+        elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
+            fmt = v23c.FMT_CONVERSION_POLY_RAT
+        elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
+            fmt = v23c.FMT_CONVERSION_EXPO_LOGH
+        elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TABX):
             nr = self['ref_param_nr']
-            fmt = v2c.FMT_CONVERSION_COMMON + '{}d'.format(nr * 2)
-        elif conv == v2c.CONVERSION_TYPE_VTABR:
+            fmt = v23c.FMT_CONVERSION_COMMON + '{}d'.format(nr * 2)
+        elif conv == v23c.CONVERSION_TYPE_VTABR:
             nr = self['ref_param_nr']
-            fmt = v2c.FMT_CONVERSION_COMMON + '2dI' * nr
-        elif conv == v2c.CONVERSION_TYPE_VTAB:
+            fmt = v23c.FMT_CONVERSION_COMMON + '2dI' * nr
+        elif conv == v23c.CONVERSION_TYPE_VTAB:
             nr = self['ref_param_nr']
-            fmt = v2c.FMT_CONVERSION_COMMON + 'd32s' * nr
+            fmt = v23c.FMT_CONVERSION_COMMON + 'd32s' * nr
 
         # compute the keys only for Python < 3.6
         if PYVERSION_MAJOR < 36:
-            if conv == v2c.CONVERSION_TYPE_NONE:
-                keys = v2c.KEYS_CONVESION_NONE
-            elif conv == v2c.CONVERSION_TYPE_FORMULA:
-                keys = v2c.KEYS_CONVESION_FORMULA
-            elif conv == v2c.CONVERSION_TYPE_LINEAR:
-                keys = v2c.KEYS_CONVESION_LINEAR
-                if not self['block_len'] == v2c.CC_LIN_BLOCK_SIZE:
+            if conv == v23c.CONVERSION_TYPE_NONE:
+                keys = v23c.KEYS_CONVESION_NONE
+            elif conv == v23c.CONVERSION_TYPE_FORMULA:
+                keys = v23c.KEYS_CONVESION_FORMULA
+            elif conv == v23c.CONVERSION_TYPE_LINEAR:
+                keys = v23c.KEYS_CONVESION_LINEAR
+                if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:
                     keys += ('CANapeHiddenExtra',)
-            elif conv in (v2c.CONVERSION_TYPE_POLY, v2c.CONVERSION_TYPE_RAT):
-                keys = v2c.KEYS_CONVESION_POLY_RAT
-            elif conv in (v2c.CONVERSION_TYPE_EXPO, v2c.CONVERSION_TYPE_LOGH):
-                keys = v2c.KEYS_CONVESION_EXPO_LOGH
-            elif conv in (v2c.CONVERSION_TYPE_TABI, v2c.CONVERSION_TYPE_TABX):
+            elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
+                keys = v23c.KEYS_CONVESION_POLY_RAT
+            elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
+                keys = v23c.KEYS_CONVESION_EXPO_LOGH
+            elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TABX):
                 nr = self['ref_param_nr']
-                keys = list(v2c.KEYS_CONVESION_NONE)
+                keys = list(v23c.KEYS_CONVESION_NONE)
                 for i in range(nr):
                     keys.append('raw_{}'.format(i))
                     keys.append('phys_{}'.format(i))
-            elif conv == v2c.CONVERSION_TYPE_VTABR:
+            elif conv == v23c.CONVERSION_TYPE_VTABR:
                 nr = self['ref_param_nr']
-                keys = list(v2c.KEYS_CONVESION_NONE)
+                keys = list(v23c.KEYS_CONVESION_NONE)
                 for i in range(nr):
                     keys.append('lower_{}'.format(i))
                     keys.append('upper_{}'.format(i))
                     keys.append('text_{}'.format(i))
-            elif conv == v2c.CONVERSION_TYPE_VTAB:
+            elif conv == v23c.CONVERSION_TYPE_VTAB:
                 nr = self['ref_param_nr']
-                keys = list(v2c.KEYS_CONVESION_NONE)
+                keys = list(v23c.KEYS_CONVESION_NONE)
                 for i in range(nr):
                     keys.append('param_val_{}'.format(i))
                     keys.append('text_{}'.format(i))
@@ -648,15 +692,15 @@ class ChannelDependency(dict):
     * sd_nr - Total number of signals dependencies (m)
     * for each dependency there is a group of three keys:
 
-        * dg_{n} - Pointer to the data group block (DGBLOCK) of signal
-            dependency *n*
-        * cg_{n} - Pointer to the channel group block (DGBLOCK) of signal
-            dependency *n*
-        * ch_{n} - Pointer to the channel block (DGBLOCK) of signal dependency
-            *n*
+        * dg_{n} - Pointer to the data group block (DGBLOCK) of
+            signal dependency *n*
+        * cg_{n} - Pointer to the channel group block (DGBLOCK) of
+            signal dependency *n*
+        * ch_{n} - Pointer to the channel block (DGBLOCK) of
+            signal dependency *n*
 
-    * there can also be optional keys which decribe dimensions for the
-        N-dimensional dependencies:
+    * there can also be optional keys which decribe dimensions for
+        the N-dimensional dependencies:
 
         * dim_{n} - Optional: size of dimension *n* for N-dimensional dependency
 
@@ -752,13 +796,13 @@ class ChannelExtension(dict):
 
     The ChannelExtension object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from
-        file
-    * using any of the following presented keys - when creating a new
-        ChannelExtension
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
+    * using any of the following presented keys - when creating
+        a new ChannelExtension
 
-    The first keys are common for all conversion types, and are followed by
-    conversion specific keys. The keys have the following meaning:
+    The first keys are common for all conversion types, and are followed
+    by conversion specific keys. The keys have the following meaning:
 
     * common keys
 
@@ -807,28 +851,28 @@ class ChannelExtension(dict):
             stream.seek(address, SEEK_START)
             (self['id'],
              self['block_len'],
-             self['type']) = unpack(v2c.FMT_SOURCE_COMMON, stream.read(6))
+             self['type']) = unpack(v23c.FMT_SOURCE_COMMON, stream.read(6))
             block = stream.read(self['block_len'] - 6)
 
-            if self['type'] == v2c.SOURCE_ECU:
+            if self['type'] == v23c.SOURCE_ECU:
                 (self['module_nr'],
                  self['module_address'],
                  self['description'],
                  self['ECU_identification'],
-                 self['reserved0']) = unpack(v2c.FMT_SOURCE_EXTRA_ECU, block)
-            elif self['type'] == v2c.SOURCE_VECTOR:
+                 self['reserved0']) = unpack(v23c.FMT_SOURCE_EXTRA_ECU, block)
+            elif self['type'] == v23c.SOURCE_VECTOR:
                 (self['CAN_id'],
                  self['CAN_ch_index'],
                  self['message_name'],
                  self['sender_name'],
-                 self['reserved0']) = unpack(v2c.FMT_SOURCE_EXTRA_VECTOR, block)
+                 self['reserved0']) = unpack(v23c.FMT_SOURCE_EXTRA_VECTOR, block)
         except KeyError:
 
             self.address = 0
             self['id'] = kargs.get('id', 'CE'.encode('latin-1'))
-            self['block_len'] = kargs.get('block_len', v2c.CE_BLOCK_SIZE)
+            self['block_len'] = kargs.get('block_len', v23c.CE_BLOCK_SIZE)
             self['type'] = kargs.get('type', 2)
-            if self['type'] == v2c.SOURCE_ECU:
+            if self['type'] == v23c.SOURCE_ECU:
                 self['module_nr'] = kargs.get('module_nr', 0)
                 self['module_address'] = kargs.get('module_address', 0)
                 self['description'] = kargs.get('description', b'\0')
@@ -837,7 +881,7 @@ class ChannelExtension(dict):
                     b'\0',
                 )
                 self['reserved0'] = kargs.get('reserved0', b'\0')
-            elif self['type'] == v2c.SOURCE_VECTOR:
+            elif self['type'] == v23c.SOURCE_VECTOR:
                 self['CAN_id'] = kargs.get('CAN_id', 0)
                 self['CAN_ch_index'] = kargs.get('CAN_ch_index', 0)
                 self['message_name'] = kargs.get('message_name', b'\0')
@@ -846,12 +890,12 @@ class ChannelExtension(dict):
 
     def __bytes__(self):
         typ = self['type']
-        if typ == v2c.SOURCE_ECU:
-            fmt = v2c.FMT_SOURCE_ECU
-            keys = v2c.KEYS_SOURCE_ECU
+        if typ == v23c.SOURCE_ECU:
+            fmt = v23c.FMT_SOURCE_ECU
+            keys = v23c.KEYS_SOURCE_ECU
         else:
-            fmt = v2c.FMT_SOURCE_VECTOR
-            keys = v2c.KEYS_SOURCE_VECTOR
+            fmt = v23c.FMT_SOURCE_VECTOR
+            keys = v23c.KEYS_SOURCE_VECTOR
 
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
@@ -865,10 +909,10 @@ class ChannelGroup(dict):
 
     The ChannelGroup object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from
-        file
-    * using any of the following presented keys - when creating a new
-        ChannelGroup
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
+    * using any of the following presented keys - when creating
+        a new ChannelGroup
 
     The keys have the following meaning:
 
@@ -878,15 +922,15 @@ class ChannelGroup(dict):
     * first_ch_addr - Pointer to first channel block (CNBLOCK) (NIL allowed)
     * comment_addr - Pointer to channel group comment text (TXBLOCK)
         (NIL allowed)
-    * record_id - Record ID, i.e. value of the identifier for a record if the
-        DGBLOCK defines a number of record IDs > 0
+    * record_id - Record ID, i.e. value of the identifier for a record if
+        the DGBLOCK defines a number of record IDs > 0
     * ch_nr - Number of channels (redundant information)
-    * samples_byte_nr - Size of data record in Bytes (without record ID), i.e.
-        size of plain data for a each recorded sample of this channel group
-    * cycles_nr - Number of records of this type in the data block i.e. number
-        of samples for this channel group
-    * sample_reduction_addr - only since version 3.3. Pointer to first sample
-        reduction block (SRBLOCK) (NIL allowed) Default value: NIL.
+    * samples_byte_nr - Size of data record in Bytes (without record ID),
+        i.e. size of plain data for a each recorded sample of this channel group
+    * cycles_nr - Number of records of this type in the data block
+        i.e. number of samples for this channel group
+    * sample_reduction_addr - only since version 3.3. Pointer to
+        first sample reduction block (SRBLOCK) (NIL allowed) Default value: NIL.
 
     Parameters
     ----------
@@ -920,7 +964,7 @@ class ChannelGroup(dict):
             stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
-            block = stream.read(v2c.CG_BLOCK_SIZE)
+            block = stream.read(v23c.CG_PRE_330_BLOCK_SIZE)
 
             (self['id'],
              self['block_len'],
@@ -930,13 +974,16 @@ class ChannelGroup(dict):
              self['record_id'],
              self['ch_nr'],
              self['samples_byte_nr'],
-             self['cycles_nr']) = unpack(v2c.FMT_CHANNEL_GROUP, block)
-            if self['block_len'] == v2c.CG33_BLOCK_SIZE:
+             self['cycles_nr']) = unpack(v23c.FMT_CHANNEL_GROUP, block)
+            if self['block_len'] == v23c.CG_POST_330_BLOCK_SIZE:
                 self['sample_reduction_addr'] = unpack('<I', stream.read(4))[0]
         except KeyError:
             self.address = 0
             self['id'] = kargs.get('id', 'CG'.encode('latin-1'))
-            self['block_len'] = kargs.get('block_len', v2c.CG_BLOCK_SIZE)
+            self['block_len'] = kargs.get(
+                'block_len',
+                v23c.CG_PRE_330_BLOCK_SIZE,
+            )
             self['next_cg_addr'] = kargs.get('next_cg_addr', 0)
             self['first_ch_addr'] = kargs.get('first_ch_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
@@ -944,13 +991,13 @@ class ChannelGroup(dict):
             self['ch_nr'] = kargs.get('ch_nr', 0)
             self['samples_byte_nr'] = kargs.get('samples_byte_nr', 0)
             self['cycles_nr'] = kargs.get('cycles_nr', 0)
-            if self['block_len'] == v2c.CG33_BLOCK_SIZE:
+            if self['block_len'] == v23c.CG_POST_330_BLOCK_SIZE:
                 self['sample_reduction_addr'] = 0
 
     def __bytes__(self):
-        fmt = v2c.FMT_CHANNEL_GROUP
-        keys = v2c.KEYS_CHANNEL_GROUP
-        if self['block_len'] == v2c.CG33_BLOCK_SIZE:
+        fmt = v23c.FMT_CHANNEL_GROUP
+        keys = v23c.KEYS_CHANNEL_GROUP
+        if self['block_len'] == v23c.CG_POST_330_BLOCK_SIZE:
             fmt += 'I'
             keys += ('sample_reduction_addr',)
         if PYVERSION_MAJOR >= 36:
@@ -966,8 +1013,8 @@ class DataBlock(dict):
 
     * using the *stream*, *address* and *size* keyword parameters - when reading
         from file
-    * using any of the following presented keys - when creating a new
-        ChannelGroup
+    * using any of the following presented keys - when creating
+        a new ChannelGroup
 
     The keys have the following meaning:
 
@@ -1011,8 +1058,8 @@ class DataGroup(dict):
 
     The DataGroup object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from
-        file
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
     * using any of the following presented keys - when creating a new DataGroup
 
     The keys have the following meaning:
@@ -1023,7 +1070,8 @@ class DataGroup(dict):
     * first_cg_addr - Pointer to first channel group block (CGBLOCK)
         (NIL allowed)
     * trigger_addr - Pointer to trigger block (TRBLOCK) (NIL allowed)
-    * data_block_addr - Pointer to the data block
+    * data_block_addr - Pointer to the data block (see separate chapter
+        on data storage)
     * cg_nr - Number of channel groups (redundant information)
     * record_id_nr - Number of record IDs in the data block
     * reserved0 - since version 3.2; Reserved
@@ -1049,7 +1097,7 @@ class DataGroup(dict):
             stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
-            block = stream.read(v2c.DG31_BLOCK_SIZE)
+            block = stream.read(v23c.DG_PRE_320_BLOCK_SIZE)
 
             (self['id'],
              self['block_len'],
@@ -1058,31 +1106,34 @@ class DataGroup(dict):
              self['trigger_addr'],
              self['data_block_addr'],
              self['cg_nr'],
-             self['record_id_nr']) = unpack(v2c.FMT_DATA_GROUP, block)
+             self['record_id_nr']) = unpack(v23c.FMT_DATA_GROUP_PRE_320, block)
 
-            if self['block_len'] == v2c.DG32_BLOCK_SIZE:
+            if self['block_len'] == v23c.DG_POST_320_BLOCK_SIZE:
                 self['reserved0'] = stream.read(4)
 
         except KeyError:
             self.address = 0
             self['id'] = kargs.get('id', 'DG'.encode('latin-1'))
-            self['block_len'] = kargs.get('block_len', v2c. DG32_BLOCK_SIZE)
+            self['block_len'] = kargs.get(
+                'block_len',
+                v23c.DG_PRE_320_BLOCK_SIZE,
+            )
             self['next_dg_addr'] = kargs.get('next_dg_addr', 0)
             self['first_cg_addr'] = kargs.get('first_cg_addr', 0)
             self['trigger_addr'] = kargs.get('comment_addr', 0)
             self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['cg_nr'] = kargs.get('cg_nr', 1)
             self['record_id_nr'] = kargs.get('record_id_nr', 0)
-            if self['block_len'] == v2c.DG32_BLOCK_SIZE:
+            if self['block_len'] == v23c.DG_POST_320_BLOCK_SIZE:
                 self['reserved0'] = b'\0\0\0\0'
 
     def __bytes__(self):
-        if self['block_len'] == v2c.DG32_BLOCK_SIZE:
-            fmt = v2c.FMT_DATA_GROUP_32
-            keys = v2c.KEYS_DATA_GROUP_32
+        if self['block_len'] == v23c.DG_POST_320_BLOCK_SIZE:
+            fmt = v23c.FMT_DATA_GROUP_POST_320
+            keys = v23c.KEYS_DATA_GROUP_POST_320
         else:
-            fmt = v2c.FMT_DATA_GROUP
-            keys = v2c.KEYS_DATA_GROUP
+            fmt = v23c.FMT_DATA_GROUP_PRE_320
+            keys = v23c.KEYS_DATA_GROUP_PRE_320
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
@@ -1095,8 +1146,8 @@ class FileIdentificationBlock(dict):
 
     The TriggerBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from
-        file
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1147,15 +1198,15 @@ class FileIdentificationBlock(dict):
              self['reserved1'],
              self['unfinalized_standard_flags'],
              self['unfinalized_custom_flags']) = unpack(
-                v2c.ID_FMT,
-                stream.read(v2c.ID_BLOCK_SIZE),
+                v23c.ID_FMT,
+                stream.read(v23c.ID_BLOCK_SIZE),
             )
         except KeyError:
             version = kargs['version']
             self['file_identification'] = 'MDF     '.encode('latin-1')
             self['version_str'] = version.encode('latin-1') + b'\0' * 4
             self['program_identification'] = 'Python  '.encode('latin-1')
-            self['byte_order'] = v2c.BYTE_ORDER_INTEL
+            self['byte_order'] = v23c.BYTE_ORDER_INTEL
             self['float_format'] = 0
             self['mdf_version'] = int(version.replace('.', ''))
             self['code_page'] = 0
@@ -1166,12 +1217,9 @@ class FileIdentificationBlock(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            result = pack(v2c.ID_FMT, *self.values())
+            result = pack(v23c.ID_FMT, *self.values())
         else:
-            result = pack(
-                v2c.ID_FMT,
-                *[self[key] for key in v2c.ID_KEYS]
-            )
+            result = pack(v23c.ID_FMT, *[self[key] for key in v23c.ID_KEYS])
         return result
 
 
@@ -1188,8 +1236,8 @@ class HeaderBlock(dict):
     * id - Block type identifier, always "HD"
     * block_len - Block size of this block in bytes (entire HDBLOCK)
     * first_dg_addr - Pointer to the first data group block (DGBLOCK)
-    * comment_addr - Pointer to the measurement file comment text (TXBLOCK) (NIL
-        allowed)
+    * comment_addr - Pointer to the measurement file comment text (TXBLOCK)
+        (NIL allowed)
     * program_addr - Pointer to program block (PRBLOCK) (NIL allowed)
     * dg_nr - Number of data groups (redundant information)
     * date - Date at which the recording was started in "DD:MM:YYYY" format
@@ -1239,22 +1287,23 @@ class HeaderBlock(dict):
              self['organization'],
              self['project'],
              self['subject']) = unpack(
-                v2c.HEADER_COMMON_FMT,
-                stream.read(v2c.HEADER_COMMON_SIZE),
+                v23c.HEADER_COMMON_FMT,
+                stream.read(v23c.HEADER_COMMON_SIZE),
             )
 
-            if self['block_len'] > v2c.HEADER_COMMON_SIZE:
+            if self['block_len'] > v23c.HEADER_COMMON_SIZE:
                 (self['abs_time'],
                  self['tz_offset'],
                  self['time_quality'],
                  self['timer_identification']) = unpack(
-                    v2c.HEADER_POST_320_EXTRA_FMT,
-                    stream.read(v2c.HEADER_POST_320_EXTRA_SIZE),
+                    v23c.HEADER_POST_320_EXTRA_FMT,
+                    stream.read(v23c.HEADER_POST_320_EXTRA_SIZE),
                 )
 
         except KeyError:
+            version = kargs.get('version', '3.20')
             self['id'] = 'HD'.encode('latin-1')
-            self['block_len'] = 164
+            self['block_len'] = 208 if version >= '3.20' else 164
             self['first_dg_addr'] = 0
             self['comment_addr'] = 0
             self['program_addr'] = 0
@@ -1268,18 +1317,18 @@ class HeaderBlock(dict):
             self['project'] = '{:\0<32}'.format('').encode('latin-1')
             self['subject'] = '{:\0<32}'.format('').encode('latin-1')
 
-            if self['block_len'] > v2c.HEADER_COMMON_SIZE:
+            if self['block_len'] > v23c.HEADER_COMMON_SIZE:
                 self['abs_time'] = int(t1)
                 self['tz_offset'] = 2
                 self['time_quality'] = 0
                 self['timer_identification'] = '{:\0<32}'.format('Local PC Reference Time').encode('latin-1')
 
     def __bytes__(self):
-        fmt = v2c.HEADER_COMMON_FMT
-        keys = v2c.HEADER_COMMON_KEYS
-        if self['block_len'] > v2c.HEADER_COMMON_SIZE:
-            fmt += v2c.HEADER_POST_320_EXTRA_FMT
-            keys += v2c.HEADER_POST_320_EXTRA_KEYS
+        fmt = v23c.HEADER_COMMON_FMT
+        keys = v23c.HEADER_COMMON_KEYS
+        if self['block_len'] > v23c.HEADER_COMMON_SIZE:
+            fmt += v23c.HEADER_POST_320_EXTRA_FMT
+            keys += v23c.HEADER_POST_320_EXTRA_KEYS
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
@@ -1292,10 +1341,10 @@ class ProgramBlock(dict):
 
     The ProgramBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from
-        file
-    * using any of the following presented keys - when creating a new
-        ProgramBlock
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
+    * using any of the following presented keys - when creating
+        a new ProgramBlock
 
     The keys have the following meaning:
 
@@ -1333,30 +1382,30 @@ class ProgramBlock(dict):
             pass
 
     def __bytes__(self):
-        fmt = v2c.FMT_PROGRAM_BLOCK.format(self['block_len'])
+        fmt = v23c.FMT_PROGRAM_BLOCK.format(self['block_len'])
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
-            result = pack(fmt, *[self[key] for key in v2c.KEYS_PROGRAM_BLOCK])
+            result = pack(fmt, *[self[key] for key in v23c.KEYS_PROGRAM_BLOCK])
         return result
 
 
 class SampleReduction(dict):
     ''' SRBLOCK class derived from *dict*
 
-    Currently the SampleReduction object can only be created by using the
-    *stream* and *address* keyword parameters - when reading from file
+    Currently the SampleReduction object can only be created by using
+    the *stream* and *address* keyword parameters - when reading from file
 
     The keys have the following meaning:
 
     * id - Block type identifier, always "SR"
     * block_len - Block size of this block in bytes (entire SRBLOCK)
-    * next_sr_addr - Pointer to next sample reduction block (SRBLOCK) (NIL
-        allowed)
+    * next_sr_addr - Pointer to next sample reduction block (SRBLOCK)
+        (NIL allowed)
     * data_block_addr - Pointer to the data block for this sample reduction
     * cycles_nr - Number of reduced samples in the data block.
-    * time_interval - Length of time interval [s] used to calculate the reduced
-        samples.
+    * time_interval - Length of time interval [s] used to calculate
+        the reduced samples.
 
     Parameters
     ----------
@@ -1386,8 +1435,8 @@ class SampleReduction(dict):
              self['data_block_addr'],
              self['cycles_nr'],
              self['time_interval']) = unpack(
-                v2c.FMT_SAMPLE_REDUCTION_BLOCK,
-                stream.read(v2c.SR_BLOCK_SIZE),
+                v23c.FMT_SAMPLE_REDUCTION_BLOCK,
+                stream.read(v23c.SR_BLOCK_SIZE),
             )
 
         except KeyError:
@@ -1395,8 +1444,8 @@ class SampleReduction(dict):
 
     def __bytes__(self):
         result = pack(
-            v2c.FMT_SAMPLE_REDUCTION_BLOCK,
-            *[self[key] for key in v2c.KEYS_SAMPLE_REDUCTION_BLOCK]
+            v23c.FMT_SAMPLE_REDUCTION_BLOCK,
+            *[self[key] for key in v23c.KEYS_SAMPLE_REDUCTION_BLOCK]
         )
         return result
 
@@ -1406,8 +1455,8 @@ class TextBlock(dict):
 
     The ProgramBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from
-        file
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1445,9 +1494,9 @@ class TextBlock(dict):
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
         try:
+
             stream = kargs['stream']
             self.address = address = kargs['address']
-
             stream.seek(address, SEEK_START)
             (self['id'],
              self['block_len']) = unpack('<2sH', stream.read(4))
@@ -1475,14 +1524,11 @@ class TextBlock(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            result = pack(
-                '<2sH{}s'.format(self['block_len']-4),
-                *self.values()
-            )
+            result = pack('<2sH{}s'.format(self['block_len']-4), *self.values())
         else:
             result = pack(
                 '<2sH{}s'.format(self['block_len']-4),
-                *[self[key] for key in v2c.KEYS_TEXT_BLOCK]
+                *[self[key] for key in v23c.KEYS_TEXT_BLOCK]
             )
         return result
 
@@ -1492,8 +1538,8 @@ class TriggerBlock(dict):
 
     The TriggerBlock object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading from
-        file
+    * using the *stream* and *address* keyword parameters - when reading
+        from file
     * using the classmethod *from_text*
 
     The keys have the following meaning:
@@ -1560,7 +1606,12 @@ class TriggerBlock(dict):
     def __bytes__(self):
         triggers_nr = self['trigger_events_nr']
         fmt = '<2sHIH{}d'.format(triggers_nr * 3)
-        keys = ('id', 'block_len', 'text_addr', 'trigger_events_nr')
+        keys = (
+            'id',
+            'block_len',
+            'text_addr',
+            'trigger_events_nr',
+        )
         for i in range(triggers_nr):
             keys += (
                 'trigger_{}_time'.format(i),

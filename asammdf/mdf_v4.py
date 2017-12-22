@@ -43,7 +43,7 @@ from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import encode
 from numexpr import evaluate
 
-from .v4blocks import (
+from .v4_blocks import (
     AttachmentBlock,
     Channel,
     ChannelArrayBlock,
@@ -62,7 +62,7 @@ from .v4blocks import (
     TextBlock,
 )
 
-from . import v4constants as v4c
+from . import v4_constants as v4c
 from .utils import (
     MdfException,
     get_fmt,

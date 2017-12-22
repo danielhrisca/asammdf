@@ -560,15 +560,15 @@ def main(path, text_output, fmt):
     output.append('* 36424 channels\n\n')
 
     tests = (
-#        partial(open_mdf3, memory='full'),
-#        partial(open_mdf3, memory='low'),
-#        partial(open_mdf3, memory='minimum'),
+        partial(open_mdf3, memory='full'),
+        partial(open_mdf3, memory='low'),
+        partial(open_mdf3, memory='minimum'),
 #        open_reader3,
 #        open_reader3_compression,
 #        open_reader3_nodata,
-#        partial(open_mdf4, memory='full'),
-#        partial(open_mdf4, memory='low'),
-#        partial(open_mdf4, memory='minimum'),
+        partial(open_mdf4, memory='full'),
+        partial(open_mdf4, memory='low'),
+        partial(open_mdf4, memory='minimum'),
 #        open_reader4,
 #        open_reader4_compression,
 #        open_reader4_nodata,
@@ -586,15 +586,15 @@ def main(path, text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-#        partial(save_mdf3, memory='full'),
-#        partial(save_mdf3, memory='low'),
-#        partial(save_mdf3, memory='minimum'),
+        partial(save_mdf3, memory='full'),
+        partial(save_mdf3, memory='low'),
+        partial(save_mdf3, memory='minimum'),
 #        save_reader3,
 #        save_reader3_nodata,
 #        save_reader3_compression,
-#        partial(save_mdf4, memory='full'),
-#        partial(save_mdf4, memory='low'),
-#        partial(save_mdf4, memory='minimum'),
+        partial(save_mdf4, memory='full'),
+        partial(save_mdf4, memory='low'),
+        partial(save_mdf4, memory='minimum'),
 #        save_reader4,
 #        save_reader4_nodata,
 #        save_reader4_compression,
@@ -667,9 +667,9 @@ def main(path, text_output, fmt):
 #        partial(merge_v4, memory='full'),
 #        partial(merge_v4, memory='low'),
 #        partial(merge_v4, memory='minimum'),
-        merge_reader_v4,
-        merge_reader_v4_nodata,
-        merge_reader_v4_compress,
+#        merge_reader_v4,
+#        merge_reader_v4_nodata,
+#        merge_reader_v4_compress,
     )
 
     if tests:
