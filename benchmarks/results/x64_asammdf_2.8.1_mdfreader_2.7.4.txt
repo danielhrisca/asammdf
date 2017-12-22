@@ -1,0 +1,103 @@
+Benchmark environment
+
+* 3.6.2 (v3.6.2:5fd33b5, Jul  8 2017, 04:57:36) [MSC v.1900 64 bit (AMD64)]
+* Windows-10-10.0.16299-SP0
+* Intel64 Family 6 Model 69 Stepping 1, GenuineIntel
+* 16GB installed RAM
+
+Notations used in the results
+
+* full =  asammdf MDF object created with memory=full (everything loaded into RAM)
+* low =  asammdf MDF object created with memory=low (raw channel data not loaded into RAM, but metadata loaded to RAM)
+* minimum =  asammdf MDF object created with memory=full (lowest possible RAM usage)
+* compress = mdfreader mdf object created with compression=blosc
+* noDataLoading = mdfreader mdf object read with noDataLoading=True
+
+Files used for benchmark:
+
+* 183 groups
+* 36424 channels
+
+
+
+================================================== ========= ========
+Open file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.8.1 full mdfv3                                1054      317
+asammdf 2.8.1 low mdfv3                                  919      164
+asammdf 2.8.1 minimum mdfv3                              592       76
+mdfreader 2.7.4 mdfv3                                   2545      426
+mdfreader 2.7.4 compress mdfv3                          4188      126
+mdfreader 2.7.4 noDataLoading mdfv3                     1015      173
+asammdf 2.8.1 full mdfv4                                2438      380
+asammdf 2.8.1 low mdfv4                                 2311      215
+asammdf 2.8.1 minimum mdfv4                             1649       87
+mdfreader 2.7.4 mdfv4                                   6176      438
+mdfreader 2.7.4 compress mdfv4                          7940      137
+mdfreader 2.7.4 noDataLoading mdfv4                     4013      180
+================================================== ========= ========
+
+
+================================================== ========= ========
+Save file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.8.1 full mdfv3                                 507      319
+asammdf 2.8.1 low mdfv3                                  515      171
+asammdf 2.8.1 minimum mdfv3                             1263       84
+mdfreader 2.7.4 mdfv3                                   7590      454
+mdfreader 2.7.4 noDataLoading mdfv3                       0*       0*
+mdfreader 2.7.4 compress mdfv3                          7236      423
+asammdf 2.8.1 full mdfv4                                 599      385
+asammdf 2.8.1 low mdfv4                                  703      227
+asammdf 2.8.1 minimum mdfv4                             3157       97
+mdfreader 2.7.4 mdfv4                                   6764      457
+mdfreader 2.7.4 noDataLoading mdfv4                     8053      476
+mdfreader 2.7.4 compress mdfv4                          6677      416
+================================================== ========= ========
+
+
+================================================== ========= ========
+Get all channels (36424 calls)                     Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.8.1 full mdfv3                                1016      323
+asammdf 2.8.1 low mdfv3                                 5599      177
+asammdf 2.8.1 minimum mdfv3                             7105       91
+mdfreader 2.7.4 mdfv3                                    102      426
+mdfreader 2.7.4 nodata mdfv3                           16651      208
+mdfreader 2.7.4 compress mdfv3                           515      126
+asammdf 2.8.1 full mdfv4                                1080      388
+asammdf 2.8.1 low mdfv4                                10658      225
+asammdf 2.8.1 minimum mdfv4                            13554       98
+mdfreader 2.7.4 mdfv4                                     91      438
+mdfreader 2.7.4 nodata mdfv4                           26847      204
+mdfreader 2.7.4 compress mdfv4                           517      138
+================================================== ========= ========
+
+
+================================================== ========= ========
+Convert file                                       Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.8.1 full v3 to v4                             4995      750
+asammdf 2.8.1 low v3 to v4                              5646      330
+asammdf 2.8.1 minimum v3 to v4                          6902      161
+asammdf 2.8.1 full v4 to v3                             5750      751
+asammdf 2.8.1 low v4 to v3                              6572      313
+asammdf 2.8.1 minimum v4 to v3                         10229      133
+================================================== ========= ========
+
+
+================================================== ========= ========
+Merge files                                        Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 2.8.1 full v3                                  12050     1311
+asammdf 2.8.1 low v3                                   14122      454
+asammdf 2.8.1 minimum v3                               16537      227
+mdfreader 2.7.4 v3                                     14710      974
+mdfreader 2.7.4 compress v3                            19571      982
+asammdf 2.8.1 full v4                                  17569     1431
+asammdf 2.8.1 low v4                                   19297      548
+asammdf 2.8.1 minimum v4                               25442      227
+mdfreader 2.7.4 v4                                     22324      971
+mdfreader 2.7.4 nodata v4                              21581     1013
+mdfreader 2.7.4 compress v4                            26916      974
+================================================== ========= ========
