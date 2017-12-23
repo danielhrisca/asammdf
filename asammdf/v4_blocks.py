@@ -75,6 +75,8 @@ class AttachmentBlock(dict):
 
             self['embedded_data'] = stream.read(self['embedded_size'])
 
+            assert self['id'] == b'##AT'
+
         except KeyError:
 
             data = kargs['data']
@@ -222,6 +224,8 @@ class Channel(dict):
                 block,
                 links_nr * 8,
             )
+
+            assert self['id'] == b'##CN'
 
         else:
             self.address = 0
@@ -391,6 +395,8 @@ class ChannelArrayBlock(dict):
                     for j in range(self['dim_size_{}'.format(i)]):
                         value = unpack('<d', stream.read(8))[0]
                         self['axis_{}_value_{}'.format(i, j)] = value
+
+            assert self['id'] == b'##CA'
 
         except KeyError:
             self['id'] = b'##CA'
@@ -612,9 +618,11 @@ class ChannelGroup(dict):
                 stream.read(v4c.CG_BLOCK_SIZE),
             )
 
+            assert self['id'] == b'##CG'
+
         except KeyError:
             self.address = 0
-            self['id'] = kargs.get('id', '##CG'.encode('utf-8'))
+            self['id'] = b'##CG'
             self['reserved0'] = kargs.get('reserved0', 0)
             self['block_len'] = kargs.get('block_len', v4c.CG_BLOCK_SIZE)
             self['links_nr'] = kargs.get('links_nr', 6)
@@ -914,10 +922,12 @@ class ChannelConversion(dict):
                     32 + links_nr * 8,
                 )
 
+            assert self['id'] == b'##CC'
+
         else:
 
             self.address = 0
-            self['id'] = '##CC'.encode('utf-8')
+            self['id'] = b'##CC'
             self['reserved0'] = 0
 
             if kargs['conversion_type'] == v4c.CONVERSION_TYPE_NON:
@@ -1228,6 +1238,8 @@ class DataBlock(dict):
             )
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
+            assert self['id'] == b'##DT'
+
         except KeyError:
 
             self['id'] = b'##DT'
@@ -1282,6 +1294,8 @@ class DataZippedBlock(dict):
             )
 
             self['data'] = stream.read(self['zip_size'])
+
+            assert self['id'] == b'##DZ'
 
         except KeyError:
             self.prevent_data_setitem = False
@@ -1387,10 +1401,12 @@ class DataGroup(dict):
                 stream.read(v4c.DG_BLOCK_SIZE),
             )
 
+            assert self['id'] == b'##DG'
+
         except KeyError:
 
             self.address = 0
-            self['id'] = kargs.get('id', '##DG'.encode('utf-8'))
+            self['id'] = b'##DG'
             self['reserved0'] = kargs.get('reserved0', 0)
             self['block_len'] = kargs.get('block_len', v4c.DG_BLOCK_SIZE)
             self['links_nr'] = kargs.get('links_nr', 4)
@@ -1458,6 +1474,8 @@ class DataList(dict):
                 )
                 for i, offset in enumerate(offsets):
                     self['offset_{}'.format(i)] = offset
+
+            assert self['id'] == b'##DL'
 
         except KeyError:
 
@@ -1593,8 +1611,10 @@ class FileHistory(dict):
                 stream.read(v4c.FH_BLOCK_SIZE),
             )
 
+            assert self['id'] == b'##FH'
+
         except KeyError:
-            self['id'] = kargs.get('id', '##FH'.encode('utf-8'))
+            self['id'] = b'##FH'
             self['reserved0'] = kargs.get('reserved0', 0)
             self['block_len'] = kargs.get('block_len', v4c.FH_BLOCK_SIZE)
             self['links_nr'] = kargs.get('links_nr', 2)
@@ -1652,9 +1672,11 @@ class HeaderBlock(dict):
                 stream.read(v4c.HEADER_BLOCK_SIZE),
             )
 
+            assert self['id'] == b'##HD'
+
         except KeyError:
 
-            self['id'] = '##HD'.encode('utf-8')
+            self['id'] = b'##HD'
             self['reserved3'] = kargs.get('reserved3', 0)
             self['block_len'] = kargs.get('block_len', v4c.HEADER_BLOCK_SIZE)
             self['links_nr'] = kargs.get('links_nr', 6)
@@ -1713,6 +1735,8 @@ class HeaderList(dict):
                 stream.read(v4c.HL_BLOCK_SIZE),
             )
 
+            assert self['id'] == b'##HL'
+
         except KeyError:
 
             self.address = 0
@@ -1764,6 +1788,8 @@ class SourceInformation(dict):
                 stream.read(v4c.SI_BLOCK_SIZE),
             )
 
+            assert self['id'] == b'##SI'
+
         else:
             self.address = 0
             self['id'] = b'##SI'
@@ -1810,6 +1836,8 @@ class SignalDataBlock(dict):
             )
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
+            assert self['id'] == b'##SD'
+
         except KeyError:
 
             self.address = 0
@@ -1854,6 +1882,8 @@ class TextBlock(dict):
             size = self['block_len'] - v4c.COMMON_SIZE
 
             self['text'] = text = stream.read(size)
+
+            assert self['id'] in (b'##TX', b'##MD')
 
         else:
 
