@@ -1786,6 +1786,7 @@ class MDF4(object):
                             write(bytes(block))
                     kargs['default_addr'] = 0
                     kargs['links_nr'] = len(raw) + 5
+
                 block = ChannelConversion(**kargs)
                 if memory != 'minimum':
                     gp_conv.append(block)
@@ -1793,6 +1794,8 @@ class MDF4(object):
                     address = tell()
                     gp_conv.append(address)
                     write(bytes(block))
+
+
             elif info and 'lower' in info:
                 kargs = {}
                 kargs['conversion_type'] = v4c.CONVERSION_TYPE_RTABX
@@ -4566,6 +4569,7 @@ class MDF4(object):
                 gp['temp_channel_conversions'] = []
                 for j, conv in enumerate(gp['channel_conversions']):
                     if conv:
+
                         address = tell()
                         gp['temp_channel_conversions'].append(address)
                         conv = ChannelConversion(
@@ -4582,10 +4586,9 @@ class MDF4(object):
                                 conv[key] = text_block
                             conv['inv_conv_addr'] = 0
 
-                            if conv['conversion_type'] in tab_conversion:
-                                for key in temp_texts['conversion_tab'][j]:
-                                    conv[key] = temp_texts['conversion_tab'][j][key]
-
+                        if conv['conversion_type'] in tab_conversion:
+                            for key in temp_texts['conversion_tab'][j]:
+                                conv[key] = temp_texts['conversion_tab'][j][key]
                         write(bytes(conv))
                     else:
                         gp['temp_channel_conversions'].append(0)

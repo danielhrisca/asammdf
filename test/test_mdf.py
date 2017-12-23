@@ -50,8 +50,9 @@ class TestMDF(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree('tmpdir', True)
         os.remove('test.zip')
-        if os.path.isfile('tmp'):
-            os.remove('tmp')
+        for filename in ('tmp', 'tmp1', 'tmp2')[:1]:
+            if os.path.isfile(filename):
+                os.remove(filename)
 
     def test_read(self):
 
@@ -1620,6 +1621,40 @@ class TestMDF(unittest.TestCase):
                                     equal = False
 
                     self.assertTrue(equal)
+
+    def test_cut(self):
+        print("MDF cut tests")
+
+        for mdfname in os.listdir('tmpdir'):
+            for memory in MEMORY[:1]:
+                input_file = os.path.join('tmpdir', mdfname)
+
+                print(input_file)
+
+                MDF(input_file, memory=memory).cut(stop=2).save('tmp1', overwrite=True)
+                MDF(input_file, memory=memory).cut(start=2).save('tmp2', overwrite=True)
+
+                MDF.merge(['tmp1', 'tmp2'], MDF(input_file, memory='minimum').version).save('tmp', overwrite=True)
+
+                equal = True
+
+                with MDF(input_file, memory=memory) as mdf, \
+                        MDF('tmp', memory=memory) as mdf2:
+
+                    for i, group in enumerate(mdf.groups):
+                        for j, channel in enumerate(group['channels'][1:], 1):
+                            original = mdf.get(group=i, index=j)
+                            converted = mdf2.get(group=i, index=j)
+                            if not np.array_equal(
+                                    original.samples,
+                                    converted.samples):
+                                equal = False
+                            if not np.array_equal(
+                                    original.timestamps,
+                                    converted.timestamps):
+                                equal = False
+
+                self.assertTrue(equal)
 
 
 if __name__ == '__main__':
