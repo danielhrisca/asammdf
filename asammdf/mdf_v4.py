@@ -19,17 +19,58 @@ from struct import unpack, unpack_from
 from tempfile import TemporaryFile
 
 from numexpr import evaluate
-from numpy import (arange, argwhere, array, array_equal, clip, dtype, flip, float64, frombuffer, interp, linspace,
-                   packbits, roll, searchsorted, transpose, uint8, union1d, unpackbits, zeros)
+from numpy import (
+    arange,
+    argwhere,
+    array,
+    array_equal,
+    clip,
+    dtype,
+    flip,
+    float64,
+    frombuffer,
+    interp,
+    linspace,
+    packbits,
+    roll,
+    searchsorted,
+    transpose,
+    uint8,
+    union1d,
+    unpackbits,
+    zeros,
+)
 from numpy.core.defchararray import encode
 from numpy.core.records import fromarrays, fromstring
 
 from . import v4_constants as v4c
 from .signal import Signal
-from .utils import (MdfException, fix_dtype_fields, fmt_to_datatype, get_fmt, get_min_max, get_unique_name)
-from .v4_blocks import (AttachmentBlock, Channel, ChannelArrayBlock, ChannelConversion, ChannelGroup, DataBlock,
-                        DataGroup, DataList, DataZippedBlock, FileHistory, FileIdentificationBlock, HeaderBlock,
-                        HeaderList, SignalDataBlock, SourceInformation, TextBlock)
+from .utils import (
+    MdfException,
+    fix_dtype_fields,
+    fmt_to_datatype,
+    get_fmt,
+    get_min_max,
+    get_unique_name,
+)
+from .v4_blocks import (
+    AttachmentBlock,
+    Channel,
+    ChannelArrayBlock,
+    ChannelConversion,
+    ChannelGroup,
+    DataBlock,
+    DataGroup,
+    DataList,
+    DataZippedBlock,
+    FileHistory,
+    FileIdentificationBlock,
+    HeaderBlock,
+    HeaderList,
+    SignalDataBlock,
+    SourceInformation,
+    TextBlock,
+)
 from .version import __version__
 
 get_fmt = partial(get_fmt, version=4)

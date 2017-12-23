@@ -13,8 +13,8 @@ from zlib import compress, decompress
 
 import numpy as np
 
-from .utils import MdfException
 from . import v4_constants as v4c
+from .utils import MdfException
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]

@@ -14,14 +14,41 @@ from itertools import product
 from tempfile import TemporaryFile
 
 from numexpr import evaluate
-from numpy import (arange, array, array_equal, clip, column_stack, dtype, exp, flip, float64, interp, linspace, log,
-                   packbits, roll, searchsorted, uint8, union1d, unpackbits, zeros)
+from numpy import (
+    arange,
+    array,
+    array_equal,
+    clip,
+    column_stack,
+    dtype,
+    exp,
+    flip,
+    float64,
+    interp,
+    linspace,
+    log,
+    packbits,
+    roll,
+    searchsorted,
+    uint8,
+    union1d,
+    unpackbits,
+    zeros,
+)
 from numpy.core.defchararray import encode
 from numpy.core.records import fromarrays, fromstring
 
 from . import v2_v3_constants as v23c
 from .signal import Signal
-from .utils import (MdfException, fix_dtype_fields, fmt_to_datatype, get_fmt, get_min_max, get_unique_name, pair)
+from .utils import (
+    MdfException,
+    fix_dtype_fields,
+    fmt_to_datatype,
+    get_fmt,
+    get_min_max,
+    get_unique_name,
+    pair,
+)
 from .v2_v3_blocks import (
     Channel,
     ChannelConversion,

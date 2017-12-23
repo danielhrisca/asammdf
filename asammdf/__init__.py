@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ asammdf is a parser and editor for ASAM MDF files """
+
 from .mdf_v2_v3 import MDF23
 from .mdf_v4 import MDF4
 from .mdf import MDF, SUPPORTED_VERSIONS

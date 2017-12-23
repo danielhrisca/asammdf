@@ -8,8 +8,8 @@ import time
 from getpass import getuser
 from struct import pack, unpack, unpack_from
 
-from .utils import MdfException
 from . import v2_v3_constants as v23c
+from .utils import MdfException
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
