@@ -18,7 +18,7 @@ from .v2_v3_blocks import TextBlock as TextBlockV3
 from .v2_v3_blocks import Channel as ChannelV3
 from .v4_blocks import TextBlock as TextBlockV4
 
-MDF2_VERSIONS = ('2.00', '2.14')
+MDF2_VERSIONS = ('2.00', '2.10', '2.14')
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
 MDF4_VERSIONS = ('4.00', '4.10', '4.11')
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
@@ -43,8 +43,8 @@ class MDF(object):
             * if *minimum* only minimal data is loaded into RAM
 
     version : string
-        mdf file version from ('2.00', '2.14', '3.00', '3.10', '3.20', '3.30',
-        '4.00', '4.10', '4.11'); default '4.10'
+        mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
+        '3.30', '4.00', '4.10', '4.11'); default '4.10'
 
     """
 
@@ -72,18 +72,13 @@ class MDF(object):
             else:
                 raise MdfException('File "{}" does not exist'.format(name))
         else:
-            if version in MDF3_VERSIONS:
+            if version in MDF2_VERSIONS + MDF3_VERSIONS:
                 self._mdf = MDF23(
                     version=version,
                     memory=memory,
                 )
             elif version in MDF4_VERSIONS:
                 self._mdf = MDF4(
-                    version=version,
-                    memory=memory,
-                )
-            elif version in MDF2_VERSIONS:
-                self._mdf = MDF23(
                     version=version,
                     memory=memory,
                 )
@@ -138,8 +133,8 @@ class MDF(object):
         Parameters
         ----------
         to : str
-            new mdf version from ('2.00', '2.14', '3.00', '3.10', '3.20',
-            '3.30', '4.00', '4.10', '4.11')
+            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            '3.20', '3.30', '4.00', '4.10', '4.11'); default '4.10'
         memory : str
             memory option; default `full`
 

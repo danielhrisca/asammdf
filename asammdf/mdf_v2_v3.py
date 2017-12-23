@@ -64,7 +64,8 @@ class MDF23(object):
         * if *minimum* only minimal data is memorised into RAM
 
     version : string
-        mdf file version ('3.00', '3.10', '3.20' or '3.30'); default '3.30'
+        mdf file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
+        '3.30'); default '3.30'
 
     Attributes
     ----------

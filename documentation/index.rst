@@ -25,7 +25,7 @@ Features
 
 * create new mdf files from scratch
 * append new channels
-* read unsorted MDF v3 and v4 files
+* read unsorted MDF v2, v3 and v4 files
 * filter a subset of channels from original mdf file
 * cut measurement to specified time interval
 * convert to different mdf version

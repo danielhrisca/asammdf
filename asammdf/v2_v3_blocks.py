@@ -195,6 +195,8 @@ class Channel(dict):
                  self['max_raw_value'],
                  self['sampling_rate']) = unpack(v23c.FMT_CHANNEL_SHORT, block)
 
+            assert self['id'] == b'CN'
+
         except KeyError:
 
             self.address = 0
@@ -455,6 +457,9 @@ class ChannelConversion(dict):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
                      self['text_{}'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
+
+            assert self['id'] == b'CC'
+
         except KeyError:
             self.address = 0
             self['id'] = 'CC'.encode('latin-1')
@@ -750,6 +755,8 @@ class ChannelDependency(dict):
                 for i, dim in enumerate(dims):
                     self['dim_{}'.format(i)] = dim
 
+            assert self['id'] == b'CD'
+
         except KeyError:
             sd_nr = kargs['sd_nr']
             self['id'] = b'CD'
@@ -864,10 +871,12 @@ class ChannelExtension(dict):
                  self['message_name'],
                  self['sender_name'],
                  self['reserved0']) = unpack(v23c.FMT_SOURCE_EXTRA_VECTOR, block)
+            assert self['id'] == b'CE'
+
         except KeyError:
 
             self.address = 0
-            self['id'] = kargs.get('id', 'CE'.encode('latin-1'))
+            self['id'] = b'CE'
             self['block_len'] = kargs.get('block_len', v23c.CE_BLOCK_SIZE)
             self['type'] = kargs.get('type', 2)
             if self['type'] == v23c.SOURCE_ECU:
@@ -976,9 +985,10 @@ class ChannelGroup(dict):
              self['cycles_nr']) = unpack(v23c.FMT_CHANNEL_GROUP, block)
             if self['block_len'] == v23c.CG_POST_330_BLOCK_SIZE:
                 self['sample_reduction_addr'] = unpack('<I', stream.read(4))[0]
+            assert self['id'] == b'CG'
         except KeyError:
             self.address = 0
-            self['id'] = kargs.get('id', 'CG'.encode('latin-1'))
+            self['id'] = b'CG'
             self['block_len'] = kargs.get(
                 'block_len',
                 v23c.CG_PRE_330_BLOCK_SIZE,
@@ -1113,9 +1123,11 @@ class DataGroup(dict):
             if self['block_len'] == v23c.DG_POST_320_BLOCK_SIZE:
                 self['reserved0'] = stream.read(4)
 
+            assert self['id'] == b'DG'
+
         except KeyError:
             self.address = 0
-            self['id'] = kargs.get('id', 'DG'.encode('latin-1'))
+            self['id'] = b'DG'
             self['block_len'] = kargs.get(
                 'block_len',
                 v23c.DG_PRE_320_BLOCK_SIZE,
@@ -1304,9 +1316,11 @@ class HeaderBlock(dict):
                     stream.read(v23c.HEADER_POST_320_EXTRA_SIZE),
                 )
 
+            assert self['id'] == b'HD'
+
         except KeyError:
             version = kargs.get('version', '3.20')
-            self['id'] = 'HD'.encode('latin-1')
+            self['id'] = b'HD'
             self['block_len'] = 208 if version >= '3.20' else 164
             self['first_dg_addr'] = 0
             self['comment_addr'] = 0
@@ -1383,8 +1397,12 @@ class ProgramBlock(dict):
              self['block_len']) = unpack('<2sH', stream.read(4))
             self['data'] = stream.read(self['block_len'] - 4)
 
+            assert self['id'] == b'PR'
+
         except KeyError:
-            pass
+            self['id'] = b'PR'
+            self['block_len'] = len(kargs['data']) + 6
+            self['data'] = kargs['data']
 
     def __bytes__(self):
         fmt = v23c.FMT_PROGRAM_BLOCK.format(self['block_len'])
@@ -1444,6 +1462,8 @@ class SampleReduction(dict):
                 v23c.FMT_SAMPLE_REDUCTION_BLOCK,
                 stream.read(v23c.SR_BLOCK_SIZE),
             )
+
+            assert self['id'] == b'SR'
 
         except KeyError:
             pass
@@ -1510,6 +1530,8 @@ class TextBlock(dict):
             size = self['block_len'] - 4
             self['text'] = stream.read(size)
 
+            assert self['id'] == b'TX'
+
         except KeyError:
             self.address = 0
             text = kargs['text']
@@ -1551,7 +1573,7 @@ class TriggerBlock(dict):
 
     The keys have the following meaning:
 
-    * id - Block type identifier, always "TX"
+    * id - Block type identifier, always "TR"
     * block_len - Block size of this block in bytes (entire TRBLOCK)
     * text_addr - Pointer to trigger comment text (TXBLOCK) (NIL allowed)
     * trigger_events_nr - Number of trigger events n (0 allowed)
@@ -1598,6 +1620,8 @@ class TriggerBlock(dict):
                 (self['trigger_{}_time'.format(i)],
                  self['trigger_{}_pretime'.format(i)],
                  self['trigger_{}_posttime'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
+
+            assert self['id'] == b'TR'
 
         except KeyError:
             self['id'] = b'TR'
