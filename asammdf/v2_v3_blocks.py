@@ -8,6 +8,7 @@ import time
 from getpass import getuser
 from struct import pack, unpack, unpack_from
 
+from .utils import MdfException
 from . import v2_v3_constants as v23c
 
 PYVERSION = sys.version_info[0]
@@ -195,7 +196,9 @@ class Channel(dict):
                  self['max_raw_value'],
                  self['sampling_rate']) = unpack(v23c.FMT_CHANNEL_SHORT, block)
 
-            assert self['id'] == b'CN'
+            if self['id'] != b'CN':
+                message = 'Expected "CN" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -458,7 +461,9 @@ class ChannelConversion(dict):
                      self['upper_{}'.format(i)],
                      self['text_{}'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
 
-            assert self['id'] == b'CC'
+            if self['id'] != b'CC':
+                message = 'Expected "CC" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self.address = 0
@@ -755,7 +760,9 @@ class ChannelDependency(dict):
                 for i, dim in enumerate(dims):
                     self['dim_{}'.format(i)] = dim
 
-            assert self['id'] == b'CD'
+            if self['id'] != b'CD':
+                message = 'Expected "CD" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             sd_nr = kargs['sd_nr']
@@ -871,7 +878,9 @@ class ChannelExtension(dict):
                  self['message_name'],
                  self['sender_name'],
                  self['reserved0']) = unpack(v23c.FMT_SOURCE_EXTRA_VECTOR, block)
-            assert self['id'] == b'CE'
+            if self['id'] != b'CE':
+                message = 'Expected "CE" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -985,7 +994,9 @@ class ChannelGroup(dict):
              self['cycles_nr']) = unpack(v23c.FMT_CHANNEL_GROUP, block)
             if self['block_len'] == v23c.CG_POST_330_BLOCK_SIZE:
                 self['sample_reduction_addr'] = unpack('<I', stream.read(4))[0]
-            assert self['id'] == b'CG'
+            if self['id'] != b'CG':
+                message = 'Expected "CG" block but found "{}"'
+                raise MdfException(message.format(self['id']))
         except KeyError:
             self.address = 0
             self['id'] = b'CG'
@@ -1123,7 +1134,9 @@ class DataGroup(dict):
             if self['block_len'] == v23c.DG_POST_320_BLOCK_SIZE:
                 self['reserved0'] = stream.read(4)
 
-            assert self['id'] == b'DG'
+            if self['id'] != b'DG':
+                message = 'Expected "DG" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self.address = 0
@@ -1316,7 +1329,9 @@ class HeaderBlock(dict):
                     stream.read(v23c.HEADER_POST_320_EXTRA_SIZE),
                 )
 
-            assert self['id'] == b'HD'
+            if self['id'] != b'HD':
+                message = 'Expected "HD" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             version = kargs.get('version', '3.20')
@@ -1397,7 +1412,9 @@ class ProgramBlock(dict):
              self['block_len']) = unpack('<2sH', stream.read(4))
             self['data'] = stream.read(self['block_len'] - 4)
 
-            assert self['id'] == b'PR'
+            if self['id'] != b'PR':
+                message = 'Expected "PR" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self['id'] = b'PR'
@@ -1463,7 +1480,9 @@ class SampleReduction(dict):
                 stream.read(v23c.SR_BLOCK_SIZE),
             )
 
-            assert self['id'] == b'SR'
+            if self['id'] != b'SR':
+                message = 'Expected "SR" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             pass
@@ -1530,7 +1549,9 @@ class TextBlock(dict):
             size = self['block_len'] - 4
             self['text'] = stream.read(size)
 
-            assert self['id'] == b'TX'
+            if self['id'] != b'TX':
+                message = 'Expected "TX" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self.address = 0
@@ -1621,7 +1642,9 @@ class TriggerBlock(dict):
                  self['trigger_{}_pretime'.format(i)],
                  self['trigger_{}_posttime'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
 
-            assert self['id'] == b'TR'
+            if self['id'] != b'TR':
+                message = 'Expected "TR" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self['id'] = b'TR'

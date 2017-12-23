@@ -13,6 +13,7 @@ from zlib import compress, decompress
 
 import numpy as np
 
+from .utils import MdfException
 from . import v4_constants as v4c
 
 PYVERSION = sys.version_info[0]
@@ -75,7 +76,9 @@ class AttachmentBlock(dict):
 
             self['embedded_data'] = stream.read(self['embedded_size'])
 
-            assert self['id'] == b'##AT'
+            if self['id'] != b'##AT':
+                message = 'Expected "##AT" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -225,7 +228,9 @@ class Channel(dict):
                 links_nr * 8,
             )
 
-            assert self['id'] == b'##CN'
+            if self['id'] != b'##CN':
+                message = 'Expected "##CN" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         else:
             self.address = 0
@@ -396,7 +401,9 @@ class ChannelArrayBlock(dict):
                         value = unpack('<d', stream.read(8))[0]
                         self['axis_{}_value_{}'.format(i, j)] = value
 
-            assert self['id'] == b'##CA'
+            if self['id'] != b'##CA':
+                message = 'Expected "##CA" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self['id'] = b'##CA'
@@ -618,7 +625,9 @@ class ChannelGroup(dict):
                 stream.read(v4c.CG_BLOCK_SIZE),
             )
 
-            assert self['id'] == b'##CG'
+            if self['id'] != b'##CG':
+                message = 'Expected "##CG" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self.address = 0
@@ -922,7 +931,9 @@ class ChannelConversion(dict):
                     32 + links_nr * 8,
                 )
 
-            assert self['id'] == b'##CC'
+            if self['id'] != b'##CC':
+                message = 'Expected "##CC" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         else:
 
@@ -1238,7 +1249,9 @@ class DataBlock(dict):
             )
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
-            assert self['id'] == b'##DT'
+            if self['id'] != b'##DT':
+                message = 'Expected "##DT" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -1295,7 +1308,9 @@ class DataZippedBlock(dict):
 
             self['data'] = stream.read(self['zip_size'])
 
-            assert self['id'] == b'##DZ'
+            if self['id'] != b'##DZ':
+                message = 'Expected "##DZ" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self.prevent_data_setitem = False
@@ -1401,7 +1416,9 @@ class DataGroup(dict):
                 stream.read(v4c.DG_BLOCK_SIZE),
             )
 
-            assert self['id'] == b'##DG'
+            if self['id'] != b'##DG':
+                message = 'Expected "##DG" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -1475,7 +1492,9 @@ class DataList(dict):
                 for i, offset in enumerate(offsets):
                     self['offset_{}'.format(i)] = offset
 
-            assert self['id'] == b'##DL'
+            if self['id'] != b'##DL':
+                message = 'Expected "##DL" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -1611,7 +1630,9 @@ class FileHistory(dict):
                 stream.read(v4c.FH_BLOCK_SIZE),
             )
 
-            assert self['id'] == b'##FH'
+            if self['id'] != b'##FH':
+                message = 'Expected "##FH" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self['id'] = b'##FH'
@@ -1672,7 +1693,9 @@ class HeaderBlock(dict):
                 stream.read(v4c.HEADER_BLOCK_SIZE),
             )
 
-            assert self['id'] == b'##HD'
+            if self['id'] != b'##HD':
+                message = 'Expected "##HD" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -1735,7 +1758,9 @@ class HeaderList(dict):
                 stream.read(v4c.HL_BLOCK_SIZE),
             )
 
-            assert self['id'] == b'##HL'
+            if self['id'] != b'##HL':
+                message = 'Expected "##HL" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -1788,7 +1813,9 @@ class SourceInformation(dict):
                 stream.read(v4c.SI_BLOCK_SIZE),
             )
 
-            assert self['id'] == b'##SI'
+            if self['id'] != b'##SI':
+                message = 'Expected "##SI" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         else:
             self.address = 0
@@ -1836,7 +1863,9 @@ class SignalDataBlock(dict):
             )
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
-            assert self['id'] == b'##SD'
+            if self['id'] != b'##SD':
+                message = 'Expected "##SD" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -1883,7 +1912,9 @@ class TextBlock(dict):
 
             self['text'] = text = stream.read(size)
 
-            assert self['id'] in (b'##TX', b'##MD')
+            if self['id'] not in (b'##TX', b'##MD'):
+                message = 'Expected "##TX" or "##MD" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         else:
 
