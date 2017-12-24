@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import os
+import random
 import sys
 import unittest
 import shutil
@@ -29,34 +30,7 @@ from asammdf import MDF, SUPPORTED_VERSIONS
 
 CHANNEL_LEN = 100000
 
-
-class TestMDF(unittest.TestCase):
-
-    def test_measurement(self):
-        self.assertTrue(MDF)
-
-    @classmethod
-    def setUpClass(cls):
-        PYVERSION = sys.version_info[0]
-
-        url = 'https://github.com/danielhrisca/asammdf/files/1565237/test.files.zip'
-        if PYVERSION == 3:
-            urllib.request.urlretrieve(url, 'test.zip')
-        else:
-            urllib.urlretrieve(url, 'test.zip')
-        ZipFile(r'test.zip').extractall('tmpdir')
-
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree('tmpdir', True)
-        os.remove('test.zip')
-        for filename in ('tmp', 'tmp1', 'tmp2')[:1]:
-            if os.path.isfile(filename):
-                os.remove(filename)
-
-    def test_read(self):
-
-        channels = {
+CHANNELS = {
 
 '$ActiveCalibrationPage': array([1, 0, 1, 1], dtype=uint8),
 '$CalibrationLog': array([b'', b'Switch to reference page', b'Switch to working page',
@@ -1545,6 +1519,34 @@ class TestMDF(unittest.TestCase):
         -736,  -656,  -576,  -496,  -416,  -336,  -256,  -176,   -96,
          -16,    64,   144,   224,   304,   384,   464,   544,   624], dtype=int16),
                         }
+
+
+class TestMDF(unittest.TestCase):
+
+    def test_measurement(self):
+        self.assertTrue(MDF)
+
+    @classmethod
+    def setUpClass(cls):
+        PYVERSION = sys.version_info[0]
+
+        url = 'https://github.com/danielhrisca/asammdf/files/1565237/test.files.zip'
+        if PYVERSION == 3:
+            urllib.request.urlretrieve(url, 'test.zip')
+        else:
+            urllib.urlretrieve(url, 'test.zip')
+        ZipFile(r'test.zip').extractall('tmpdir')
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree('tmpdir', True)
+        os.remove('test.zip')
+        for filename in ('tmp', 'tmp1', 'tmp2')[:1]:
+            if os.path.isfile(filename):
+                os.remove(filename)
+
+    def test_read(self):
+
         print("MDF read tests")
 
         ret = True
@@ -1556,7 +1558,7 @@ class TestMDF(unittest.TestCase):
                         continue
                     for name in set(input_file.channels_db) - {'time', 't'}:
                         signal = input_file.get(name)
-                        original_samples = channels[name]
+                        original_samples = CHANNELS[name]
                         if signal.samples.dtype.kind == 'f':
                             signal = signal.astype(float32)
                         res = np.array_equal(signal.samples, original_samples)
@@ -1622,19 +1624,21 @@ class TestMDF(unittest.TestCase):
 
                     self.assertTrue(equal)
 
-    def test_cut(self):
-        print("MDF cut tests")
+    def test_cut_absolute(self):
+        print("MDF cut absolute tests")
 
         for mdfname in os.listdir('tmpdir'):
-            for memory in MEMORY[:1]:
+            for memory in MEMORY:
                 input_file = os.path.join('tmpdir', mdfname)
 
-                print(input_file)
-
                 MDF(input_file, memory=memory).cut(stop=2).save('tmp1', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=2).save('tmp2', overwrite=True)
+                MDF(input_file, memory=memory).cut(start=2, stop=6).save('tmp2', overwrite=True)
+                MDF(input_file, memory=memory).cut(start=6).save('tmp3', overwrite=True)
 
-                MDF.merge(['tmp1', 'tmp2'], MDF(input_file, memory='minimum').version).save('tmp', overwrite=True)
+                MDF.merge(
+                    ['tmp1', 'tmp2', 'tmp3'],
+                    MDF(input_file, memory='minimum').version,
+                ).save('tmp', overwrite=True)
 
                 equal = True
 
@@ -1653,6 +1657,115 @@ class TestMDF(unittest.TestCase):
                                     original.timestamps,
                                     converted.timestamps):
                                 equal = False
+
+                self.assertTrue(equal)
+
+    def test_cut_relative(self):
+        print("MDF cut relative tests")
+
+        for mdfname in os.listdir('tmpdir'):
+            for memory in MEMORY:
+                input_file = os.path.join('tmpdir', mdfname)
+
+                MDF(input_file, memory=memory).cut(stop=3, whence=1).save('tmp1', overwrite=True)
+                MDF(input_file, memory=memory).cut(start=3, stop=5, whence=1).save('tmp2', overwrite=True)
+                MDF(input_file, memory=memory).cut(start=5, whence=1).save('tmp3', overwrite=True)
+
+                MDF.merge(
+                    ['tmp1', 'tmp2', 'tmp3'],
+                    MDF(input_file, memory='minimum').version,
+                ).save('tmp', overwrite=True)
+
+                equal = True
+
+                with MDF(input_file, memory=memory) as mdf, \
+                        MDF('tmp', memory=memory) as mdf2:
+
+                    for i, group in enumerate(mdf.groups):
+                        for j, channel in enumerate(group['channels'][1:], 1):
+                            original = mdf.get(group=i, index=j)
+                            converted = mdf2.get(group=i, index=j)
+                            if not np.array_equal(
+                                    original.samples,
+                                    converted.samples):
+                                equal = False
+                            if not np.array_equal(
+                                    original.timestamps,
+                                    converted.timestamps):
+                                equal = False
+
+                self.assertTrue(equal)
+
+    def test_filter(self):
+        print("MDF filter tests")
+
+        for mdfname in os.listdir('tmpdir'):
+            for memory in MEMORY:
+                input_file = os.path.join('tmpdir', mdfname)
+
+                if MDF(input_file, memory=memory).version == '2.00':
+                    continue
+
+                channels_nr = np.random.randint(1, len(CHANNELS) + 1)
+
+                channel_list = random.sample(list(CHANNELS), channels_nr)
+
+                filtered_mdf = MDF(input_file, memory=memory).filter(channel_list, memory=memory)
+
+                self.assertTrue((set(filtered_mdf.channels_db) - {'t', 'time'}) == set(channel_list))
+
+                equal = True
+
+                with MDF(input_file, memory=memory) as mdf:
+
+                    for name in channel_list:
+                        original = mdf.get(name)
+                        filtered = filtered_mdf.get(name)
+                        if not np.array_equal(
+                                original.samples,
+                                filtered.samples):
+                            equal = False
+                        if not np.array_equal(
+                                original.timestamps,
+                                filtered.timestamps):
+                            equal = False
+
+                self.assertTrue(equal)
+
+    def test_select(self):
+        print("MDF select tests")
+
+        for mdfname in os.listdir('tmpdir'):
+            for memory in MEMORY:
+                input_file = os.path.join('tmpdir', mdfname)
+
+                if MDF(input_file, memory=memory).version == '2.00':
+                    continue
+
+                channels_nr = np.random.randint(1, len(CHANNELS) + 1)
+
+                channel_list = random.sample(list(CHANNELS), channels_nr)
+
+                selected_signals = MDF(input_file, memory=memory).select(channel_list)
+
+                self.assertTrue(len(selected_signals) == len(channel_list))
+
+                self.assertTrue(all(ch.name == name for ch, name in zip(selected_signals, channel_list)))
+
+                equal = True
+
+                with MDF(input_file, memory=memory) as mdf:
+
+                    for selected in selected_signals:
+                        original = mdf.get(selected.name)
+                        if not np.array_equal(
+                                original.samples,
+                                selected.samples):
+                            equal = False
+                        if not np.array_equal(
+                                original.timestamps,
+                                selected.timestamps):
+                            equal = False
 
                 self.assertTrue(equal)
 

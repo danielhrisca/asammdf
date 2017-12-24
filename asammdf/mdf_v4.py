@@ -3041,8 +3041,10 @@ class MDF4(object):
                                 ch_nr, dg_nr = ca_block.referenced_channels[i]
                                 if memory == 'minimum':
                                     axisname = self.groups[dg_nr]['texts']['channels'][ch_nr]['name_addr']
-                                    block = TextBlock(address=axisname,
-                                                      stream=self._file)
+                                    block = TextBlock(
+                                        address=axisname,
+                                        stream=stream,
+                                    )
                                     axisname = block['text'].decode('utf-8').strip(' \t\n\r\0')
                                     axisname = axisname.split('\\')[0]
                                 else:
@@ -3051,7 +3053,8 @@ class MDF4(object):
                                 axis_values = self.get(
                                     group=dg_nr,
                                     index=ch_nr,
-                                    samples_only=True)
+                                    samples_only=True,
+                                )
                                 axis_values = axis_values[axisname]
                                 arrays.append(axis_values)
                                 dtype_pair = (
@@ -3086,8 +3089,10 @@ class MDF4(object):
                             ch_nr, dg_nr = ca_block.referenced_channels[i]
                             if memory == 'minimum':
                                 axisname = self.groups[dg_nr]['texts']['channels'][ch_nr]['name_addr']
-                                block = TextBlock(address=axisname,
-                                                  stream=self._file)
+                                block = TextBlock(
+                                    address=axisname,
+                                    stream=stream,
+                                )
                                 axisname = block['text'].decode('utf-8').strip(' \t\n\r\0')
                                 axisname = axisname.split('\\')[0]
                             else:
@@ -3096,7 +3101,8 @@ class MDF4(object):
                             axis_values = self.get(
                                 group=dg_nr,
                                 index=ch_nr,
-                                samples_only=True)
+                                samples_only=True,
+                            )
                             axis_values = axis_values[axisname]
                             arrays.append(axis_values)
                             dtype_pair = axisname, axis_values.dtype, shape
@@ -3339,7 +3345,7 @@ class MDF4(object):
                     else:
                         block = TextBlock(
                             address=grp['texts']['conversions'][ch_nr]['formula_addr'],
-                            stream=self._file,
+                            stream=stream,
                         )
                         formula = block['text'].decode('utf-8').strip(' \n\t\0')
                     X = vals
@@ -3424,7 +3430,7 @@ class MDF4(object):
                             if address:
                                 block = TextBlock(
                                     address=address,
-                                    stream=self._file,
+                                    stream=stream,
                                 )
                                 phys.append(block['text'])
                             else:
@@ -3434,7 +3440,7 @@ class MDF4(object):
                         if grp['texts']['conversion_tab'][ch_nr].get('default_addr', 0):
                             block = TextBlock(
                                 address=grp['texts']['conversion_tab'][ch_nr]['default_addr'],
-                                stream=self._file,
+                                stream=stream,
                             )
                             default = block['text']
                         else:
@@ -3463,7 +3469,7 @@ class MDF4(object):
                             if address:
                                 block = TextBlock(
                                     address=address,
-                                    stream=self._file,
+                                    stream=stream,
                                 )
                                 phys.append(block['text'])
                             else:
@@ -3472,7 +3478,7 @@ class MDF4(object):
                         if grp['texts']['conversion_tab'][ch_nr].get('default_addr', 0):
                             block = TextBlock(
                                 address=grp['texts']['conversion_tab'][ch_nr]['default_addr'],
-                                stream=self._file,
+                                stream=stream,
                             )
                             default = block['text']
                         else:

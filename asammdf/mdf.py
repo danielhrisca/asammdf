@@ -504,7 +504,8 @@ class MDF(object):
                         gps[group] = set()
                     gps[group].add(index)
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-                        dep = group['channel_dependencies'][index]
+                        grp = self.groups[group]
+                        dep = grp['channel_dependencies'][index]
                         if dep:
                             for ch_nr, gp_nr in dep.referenced_channels:
                                 if gp_nr == group:
