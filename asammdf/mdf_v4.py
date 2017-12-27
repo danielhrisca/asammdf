@@ -1355,10 +1355,10 @@ class MDF4(object):
 
         block = TextBlock(text='s', meta=False)
         if memory != 'minimum':
-            gp_texts['conversions'][-1]['unit_addr'] = block
+            gp_texts['channels'][-1]['unit_addr'] = block
         else:
             address = tell()
-            gp_texts['conversions'][-1]['unit_addr'] = address
+            gp_texts['channels'][-1]['unit_addr'] = address
             write(bytes(block))
 
         si_text = TextBlock(text=source_info, meta=False)
@@ -1795,7 +1795,6 @@ class MDF4(object):
                     gp_conv.append(address)
                     write(bytes(block))
 
-
             elif info and 'lower' in info:
                 kargs = {}
                 kargs['conversion_type'] = v4c.CONVERSION_TYPE_RTABX
@@ -2082,7 +2081,6 @@ class MDF4(object):
                 else:
                     gp_conv.append(0)
 
-                # source for time
                 if memory != 'minimum':
                     gp_source.append(SourceInformation())
                 else:
@@ -2168,12 +2166,9 @@ class MDF4(object):
 
                     # source for time
                     if memory != 'minimum':
-                        gp_source.append(SourceInformation())
+                        gp_source.append(None)
                     else:
-                        address = tell()
-                        block = SourceInformation()
-                        write(bytes(block))
-                        gp_source.append(address)
+                        gp_source.append(0)
 
                     # add channel block
                     min_val, max_val = get_min_max(signal.samples)
@@ -4225,6 +4220,22 @@ class MDF4(object):
                         channel['next_ch_addr'] = group_channels[j + 1].address
                     group_channels[-1]['next_ch_addr'] = 0
 
+                # channel dependecies
+                j = 0
+                while j < len(gp['channels']):
+                    dep_list = gp['channel_dependencies'][j]
+                    if dep_list and all(
+                            isinstance(dep, Channel) for dep in dep_list):
+                        gp['channels'][j]['component_addr'] = dep_list[0].address
+                        gp['channels'][j]['next_ch_addr'] = dep_list[-1]['next_ch_addr']
+                        dep_list[-1]['next_ch_addr'] = 0
+                        j += len(dep_list)
+
+                        for dep in dep_list:
+                            dep['source_addr'] = 0
+                    else:
+                        j += 1
+
                 # channel group
                 gp['channel_group'].address = address
                 gp['channel_group']['first_ch_addr'] = gp['channels'][0].address
@@ -4623,22 +4634,34 @@ class MDF4(object):
                         gp['temp_channel_sources'].append(0)
 
                 # channel dependecies
+                temp_deps = []
                 for j, dep_list in enumerate(gp['channel_dependencies']):
                     if dep_list:
                         if all(isinstance(dep, ChannelArrayBlock)
                                for dep in dep_list):
+                            temp_deps.append([])
+
                             for dep in dep_list:
                                 address = tell()
                                 dep.address = address
+                                temp_deps[-1].append(address)
                                 write(bytes(dep))
                             for k, dep in enumerate(dep_list[:-1]):
                                 dep['composition_addr'] = dep_list[k + 1].address
                             dep_list[-1]['composition_addr'] = 0
+                        else:
+                            temp_deps.append([])
+                            for _ in dep_list:
+                                temp_deps[-1].append(0)
+                    else:
+                        temp_deps.append(0)
+
+
 
                 # channels
                 blocks = []
                 chans = []
-                address = tell()
+                address = blocks_start_addr = tell()
                 gp['temp_channels'] = ch_addrs = []
                 gp['channel_group']['first_ch_addr'] = address
                 for j, channel in enumerate(gp['channels']):
@@ -4689,6 +4712,33 @@ class MDF4(object):
                     for j, channel in enumerate(chans[:-1]):
                         channel['next_ch_addr'] = chans[j + 1].address
                     chans[-1]['next_ch_addr'] = 0
+
+                # channel dependecies
+                j = 0
+                while j < len(gp['channels']):
+                    dep_list = gp['channel_dependencies'][j]
+                    if dep_list and all(
+                            isinstance(dep, int) for dep in dep_list):
+
+                        dep = chans[j+1]
+
+                        channel = chans[j]
+                        channel['component_addr'] = dep.address
+
+                        dep = chans[j+len(dep_list)]
+                        channel['next_ch_addr'] = dep['next_ch_addr']
+                        dep['next_ch_addr'] = 0
+
+                        for k, dep_addr in enumerate(dep_list):
+                            dep = chans[j+1+k]
+                            dep['source_addr'] = 0
+
+                        j += len(dep_list)
+                    else:
+                        j += 1
+
+                seek(blocks_start_addr, v4c.SEEK_START)
+
                 for block in blocks:
                     write(bytes(block))
 
