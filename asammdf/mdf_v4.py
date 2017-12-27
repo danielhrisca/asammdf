@@ -399,7 +399,7 @@ class MDF4(object):
                     continue
 
                 for dep in dep_list:
-                    if isinstance(dep, Channel):
+                    if isinstance(dep, (Channel, int)):
                         break
                     else:
                         conditions = (
@@ -2931,7 +2931,7 @@ class MDF4(object):
             arrays = []
             name = channel.name
 
-            if all(isinstance(dep, Channel) for dep in dependency_list):
+            if all(isinstance(dep, (Channel, int)) for dep in dependency_list):
                 # structure channel composition
                 if memory == 'minimum':
                     names = []
