@@ -6,7 +6,9 @@ import sys
 import unittest
 import shutil
 import urllib
+from pprint import pprint
 from zipfile import ZipFile
+
 
 import numpy as np
 
@@ -103,6 +105,9 @@ class TestMDF(unittest.TestCase):
                         original_samples = CHANNELS_ARRAY[name]
                         res = np.array_equal(signal.samples, original_samples)
                         if not res:
+                            pprint(name)
+                            pprint(signal.samples)
+                            pprint(original_samples)
                             ret = False
 
         self.assertTrue(ret)
