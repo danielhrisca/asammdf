@@ -596,9 +596,8 @@ class MDF(object):
             raise MdfException('No files given for merge')
 
         files = [
-            MDF(file, memory)
+            file if isinstance(file, MDF) else MDF(file, memory)
             for file in files
-            if not isinstance(file, MDF)
         ]
 
         if not len(set(len(file.groups) for file in files)) == 1:
