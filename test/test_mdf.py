@@ -53,7 +53,7 @@ class TestMDF(unittest.TestCase):
             urllib.urlretrieve(url, 'test.zip')
         ZipFile(r'test.zip').extractall('tmpdir_demo')
 
-        url = 'https://github.com/danielhrisca/asammdf/files/1591223/test.arrays.zip'
+        url = 'https://github.com/danielhrisca/asammdf/files/1592123/test.arrays.zip'
         if PYVERSION == 3:
             urllib.request.urlretrieve(url, 'test.zip')
         else:
@@ -105,10 +105,12 @@ class TestMDF(unittest.TestCase):
                         original_samples = CHANNELS_ARRAY[name]
                         res = np.array_equal(signal.samples, original_samples)
                         if not res:
-                            pprint(name)
-                            pprint(signal.samples)
-                            pprint(original_samples)
-                            ret = False
+                            if name == 'Cos':
+                                for i, pair in enumerate(zip(signal.samples, original_samples)):
+                                    print(i, pair, pair[0] == pair[1])
+                                for i, pair in enumerate(zip(signal.samples.astype(np.float32), original_samples.astype(np.float32))):
+                                    print(i, pair, pair[0] == pair[1])
+                                ret = False
 
         self.assertTrue(ret)
 
@@ -356,10 +358,7 @@ class TestMDF(unittest.TestCase):
                 channel_list = random.sample(list(CHANNELS_ARRAY), channels_nr)
 
                 filtered_mdf = MDF(input_file, memory=memory).filter(channel_list, memory=memory)
-                from pprint import pprint
-                pprint(set(filtered_mdf.channels_db) - {'t', 'time'})
-                pprint(set(channel_list))
-                pprint((set(filtered_mdf.channels_db) - {'t', 'time'}) - set(channel_list))
+
                 self.assertTrue((set(filtered_mdf.channels_db) - {'t', 'time'}) == set(channel_list))
 
                 equal = True

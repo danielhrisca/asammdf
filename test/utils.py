@@ -1505,8 +1505,8 @@ CHANNELS_ARRAY = {
     'YAxis': np.array([0, 1, 2, 3] * 40, np.uint8).reshape(40,4),
     'Saw': np.arange(0, 1200, 10, dtype=np.uint16) % 0xFF,
     'Ones': np.ones(120, dtype=np.int8),
-    'Cos': np.cos(2*np.pi*np.arange(0, 360, 3)/360, dtype=np.float64),
-    'Sin': np.sin(2*np.pi*np.arange(0, 360, 3)/360, dtype=np.float64),
+    'Cos': np.cos(np.arange(0, 360, 3, dtype=np.float32)/360*2*np.pi, dtype=np.float32).astype(np.float64),
+    'Sin': np.sin(np.arange(0, 360, 3, dtype=np.float32)/360*2*np.pi, dtype=np.float32).astype(np.float64),
     'Zeros': np.zeros(120, dtype=np.int32),
 }
 
