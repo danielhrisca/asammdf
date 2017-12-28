@@ -116,7 +116,9 @@ class MDF(object):
             for dependencies in group['channel_dependencies']:
                 if dependencies is None:
                     continue
-                if all(dep['id'] == b'##CN' if not isinstance(dep, int) else True for dep in dependencies):
+                if all(dep['id'] == b'##CN'
+                       if not isinstance(dep, int) else True
+                       for dep in dependencies):
                     for ch in dependencies:
                         excluded_channels.add(channels.index(ch))
                 else:
@@ -515,7 +517,9 @@ class MDF(object):
                         dependencies = grp['channel_dependencies'][index]
                         if dependencies is None:
                             continue
-                        if all(dep['id'] == b'##CN' for dep in dependencies):
+                        if all(dep['id'] == b'##CN'
+                               if not isinstance(dep, int) else True
+                               for dep in dependencies):
                             channels = grp['channels']
                             for ch in dependencies:
                                 excluded_channels[group].append(channels.index(ch))
