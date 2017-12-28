@@ -1535,11 +1535,11 @@ class TestMDF(unittest.TestCase):
             urllib.request.urlretrieve(url, 'test.zip')
         else:
             urllib.urlretrieve(url, 'test.zip')
-        ZipFile(r'test.zip').extractall('tmpdir')
+        ZipFile(r'test.zip').extractall('tmpdir_demo')
 
     @classmethod
     def tearDownClass(cls):
-        shutil.rmtree('tmpdir', True)
+        shutil.rmtree('tmpdir_demo', True)
         os.remove('test.zip')
         for filename in ('tmp', 'tmp1', 'tmp2')[:1]:
             if os.path.isfile(filename):
@@ -1551,9 +1551,9 @@ class TestMDF(unittest.TestCase):
 
         ret = True
 
-        for mdf in os.listdir('tmpdir'):
+        for mdf in os.listdir('tmpdir_demo'):
             for memory in MEMORY:
-                with MDF(os.path.join('tmpdir', mdf), memory=memory) as input_file:
+                with MDF(os.path.join('tmpdir_demo', mdf), memory=memory) as input_file:
                     if input_file.version == '2.00':
                         continue
                     for name in set(input_file.channels_db) - {'time', 't'}:
@@ -1571,9 +1571,9 @@ class TestMDF(unittest.TestCase):
         print("MDF convert tests")
 
         for out in SUPPORTED_VERSIONS[1:]:
-            for mdfname in os.listdir('tmpdir'):
+            for mdfname in os.listdir('tmpdir_demo'):
                 for memory in MEMORY:
-                    input_file = os.path.join('tmpdir', mdfname)
+                    input_file = os.path.join('tmpdir_demo', mdfname)
                     with MDF(input_file, memory=memory) as mdf:
                         mdf.convert(out, memory=memory).save('tmp',
                                                              overwrite=True)
@@ -1601,9 +1601,9 @@ class TestMDF(unittest.TestCase):
         print("MDF merge tests")
 
         for out in SUPPORTED_VERSIONS:
-            for mdfname in os.listdir('tmpdir'):
+            for mdfname in os.listdir('tmpdir_demo'):
                 for memory in MEMORY:
-                    input_file = os.path.join('tmpdir', mdfname)
+                    input_file = os.path.join('tmpdir_demo', mdfname)
                     files = [input_file, ] * 4
 
                     MDF.merge(files, out, memory).save('tmp', overwrite=True)
@@ -1627,9 +1627,9 @@ class TestMDF(unittest.TestCase):
     def test_cut_absolute(self):
         print("MDF cut absolute tests")
 
-        for mdfname in os.listdir('tmpdir'):
+        for mdfname in os.listdir('tmpdir_demo'):
             for memory in MEMORY:
-                input_file = os.path.join('tmpdir', mdfname)
+                input_file = os.path.join('tmpdir_demo', mdfname)
 
                 MDF(input_file, memory=memory).cut(stop=2).save('tmp1', overwrite=True)
                 MDF(input_file, memory=memory).cut(start=2, stop=6).save('tmp2', overwrite=True)
@@ -1663,9 +1663,9 @@ class TestMDF(unittest.TestCase):
     def test_cut_relative(self):
         print("MDF cut relative tests")
 
-        for mdfname in os.listdir('tmpdir'):
+        for mdfname in os.listdir('tmpdir_demo'):
             for memory in MEMORY:
-                input_file = os.path.join('tmpdir', mdfname)
+                input_file = os.path.join('tmpdir_demo', mdfname)
 
                 MDF(input_file, memory=memory).cut(stop=3, whence=1).save('tmp1', overwrite=True)
                 MDF(input_file, memory=memory).cut(start=3, stop=5, whence=1).save('tmp2', overwrite=True)
@@ -1699,9 +1699,9 @@ class TestMDF(unittest.TestCase):
     def test_filter(self):
         print("MDF filter tests")
 
-        for mdfname in os.listdir('tmpdir'):
+        for mdfname in os.listdir('tmpdir_demo'):
             for memory in MEMORY:
-                input_file = os.path.join('tmpdir', mdfname)
+                input_file = os.path.join('tmpdir_demo', mdfname)
 
                 if MDF(input_file, memory=memory).version == '2.00':
                     continue
@@ -1735,9 +1735,9 @@ class TestMDF(unittest.TestCase):
     def test_select(self):
         print("MDF select tests")
 
-        for mdfname in os.listdir('tmpdir'):
+        for mdfname in os.listdir('tmpdir_demo'):
             for memory in MEMORY:
-                input_file = os.path.join('tmpdir', mdfname)
+                input_file = os.path.join('tmpdir_demo', mdfname)
 
                 if MDF(input_file, memory=memory).version == '2.00':
                     continue
