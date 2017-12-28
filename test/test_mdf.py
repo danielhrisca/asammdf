@@ -235,16 +235,16 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
 
 
-    def _test_cut_absolute_array(self):
+    def test_cut_absolute_array(self):
         print("MDF cut absolute array tests")
 
         for mdfname in os.listdir('tmpdir_array'):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_array', mdfname)
 
-                MDF(input_file, memory=memory).cut(stop=2).save('tmp1', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=2, stop=6).save('tmp2', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=6).save('tmp3', overwrite=True)
+                MDF(input_file, memory=memory).cut(stop=2.1).save('tmp1', overwrite=True)
+                MDF(input_file, memory=memory).cut(start=2.1, stop=6.1).save('tmp2', overwrite=True)
+                MDF(input_file, memory=memory).cut(start=6.1).save('tmp3', overwrite=True)
 
                 MDF.merge(
                     ['tmp1', 'tmp2', 'tmp3'],
@@ -283,6 +283,42 @@ class TestMDF(unittest.TestCase):
                 MDF(input_file, memory=memory).cut(stop=3, whence=1).save('tmp1', overwrite=True)
                 MDF(input_file, memory=memory).cut(start=3, stop=5, whence=1).save('tmp2', overwrite=True)
                 MDF(input_file, memory=memory).cut(start=5, whence=1).save('tmp3', overwrite=True)
+
+                MDF.merge(
+                    ['tmp1', 'tmp2', 'tmp3'],
+                    MDF(input_file, memory='minimum').version,
+                ).save('tmp', overwrite=True)
+
+                equal = True
+
+                with MDF(input_file, memory=memory) as mdf, \
+                        MDF('tmp', memory=memory) as mdf2:
+
+                    for i, group in enumerate(mdf.groups):
+                        for j, channel in enumerate(group['channels'][1:], 1):
+                            original = mdf.get(group=i, index=j)
+                            converted = mdf2.get(group=i, index=j)
+                            if not np.array_equal(
+                                    original.samples,
+                                    converted.samples):
+                                equal = False
+                            if not np.array_equal(
+                                    original.timestamps,
+                                    converted.timestamps):
+                                equal = False
+
+                self.assertTrue(equal)
+
+    def test_cut_relative_array(self):
+        print("MDF cut relative array tests")
+
+        for mdfname in os.listdir('tmpdir_array'):
+            for memory in MEMORY:
+                input_file = os.path.join('tmpdir_array', mdfname)
+
+                MDF(input_file, memory=memory).cut(stop=3.1, whence=1).save('tmp1', overwrite=True)
+                MDF(input_file, memory=memory).cut(start=3.1, stop=5.1, whence=1).save('tmp2', overwrite=True)
+                MDF(input_file, memory=memory).cut(start=5.1, whence=1).save('tmp3', overwrite=True)
 
                 MDF.merge(
                     ['tmp1', 'tmp2', 'tmp3'],
