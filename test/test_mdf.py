@@ -234,8 +234,8 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-    @unittest.skip
-    def test_cut_absolute_array(self):
+
+    def _test_cut_absolute_array(self):
         print("MDF cut absolute array tests")
 
         for mdfname in os.listdir('tmpdir_array'):
@@ -345,8 +345,7 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-    @unittest.skip
-    def test_filter_array(self):
+    def _test_filter_array(self):
         print("MDF filter array tests")
 
         for mdfname in os.listdir('tmpdir_array'):
