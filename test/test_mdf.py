@@ -63,7 +63,7 @@ class TestMDF(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree('tmpdir_demo', True)
-        shutil.rmtree('tmpdir_array', True)
+#        shutil.rmtree('tmpdir_array', True)
         os.remove('test.zip')
         for filename in ('tmp', 'tmp1', 'tmp2')[:1]:
             if os.path.isfile(filename):
@@ -381,11 +381,11 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-    def _test_filter_array(self):
+    def test_filter_array(self):
         print("MDF filter array tests")
 
         for mdfname in os.listdir('tmpdir_array'):
-            for memory in MEMORY:
+            for memory in MEMORY[:1]:
                 input_file = os.path.join('tmpdir_array', mdfname)
 
                 channels_nr = np.random.randint(1, len(CHANNELS_ARRAY) + 1)
@@ -394,7 +394,26 @@ class TestMDF(unittest.TestCase):
 
                 filtered_mdf = MDF(input_file, memory=memory).filter(channel_list, memory=memory)
 
-                self.assertTrue((set(filtered_mdf.channels_db) - {'t', 'time'}) == set(channel_list))
+                filtered_mdf.save('fiteed.mf4', overwrite=True)
+
+                target = set(channel_list)
+                if 'Int16Array' in target:
+                    target = target - {'XAxis', 'YAxis'}
+                if 'Maths' in target:
+                    target = target - {'Saw', 'Ones', 'Cos', 'Sin', 'Zeros'}
+                if 'Composed' in target:
+                    target = target - {'Int32', 'Float64', 'Uint8', 'Uint64'}
+
+                actual = set(filtered_mdf.channels_db) - {'t', 'time'}
+
+                if 'Int16Array' in actual:
+                    actual = actual - {'XAxis', 'YAxis'}
+                if 'Maths' in actual:
+                    actual = actual - {'Saw', 'Ones', 'Cos', 'Sin', 'Zeros'}
+                if 'Composed' in actual:
+                    actual = actual - {'Int32', 'Float64', 'Uint8', 'Uint64'}
+
+                self.assertTrue(actual == target)
 
                 equal = True
 

@@ -1402,6 +1402,7 @@ class MDF4(object):
             'lower_limit': t[0] if cycles_nr else 0,
             'upper_limit': t[-1] if cycles_nr else 0,
             'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
+            'name_addr': gp_texts['channels'][-1]['name_addr'],
         }
         ch = Channel(**kargs)
         ch.name = name = 't'
@@ -1665,6 +1666,7 @@ class MDF4(object):
                     'max_raw_value': max_val if min_val <= max_val else 0,
                     'lower_limit': min_val if min_val <= max_val else 0,
                     'upper_limit': max_val if min_val <= max_val else 0,
+                    'name_addr': gp_texts['channels'][-1]['name_addr'],
                 }
                 if min_val > max_val:
                     kargs['flags'] = 0
@@ -1872,6 +1874,7 @@ class MDF4(object):
                 'max_raw_value': max_val if min_val <= max_val else 0,
                 'lower_limit': min_val if min_val <= max_val else 0,
                 'upper_limit': max_val if min_val <= max_val else 0,
+                'name_addr': gp_texts['channels'][-1]['name_addr'],
             }
             if min_val > max_val:
                 kargs['flags'] = 0
@@ -2013,6 +2016,7 @@ class MDF4(object):
                     'lower_limit': 0,
                     'upper_limit': 0,
                     'flags': 0,
+                    'name_addr': gp_texts['channels'][-1]['name_addr'],
                 }
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2101,6 +2105,7 @@ class MDF4(object):
                     'lower_limit': 0,
                     'upper_limit': 0,
                     'flags': 0,
+                    'name_addr': gp_texts['channels'][-1]['name_addr'],
                 }
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2183,6 +2188,7 @@ class MDF4(object):
                         'lower_limit': min_val if min_val <= max_val else 0,
                         'upper_limit': max_val if min_val <= max_val else 0,
                         'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
+                        'name_addr': gp_texts['channels'][-1]['name_addr'],
                     }
                     ch = Channel(**kargs)
 
@@ -2335,6 +2341,7 @@ class MDF4(object):
                     'lower_limit': 0,
                     'upper_limit': 0,
                     'flags': 0,
+                    'name_addr': gp_texts['channels'][-1]['name_addr'],
                 }
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2430,6 +2437,7 @@ class MDF4(object):
                         'lower_limit': min_val if min_val <= max_val else 0,
                         'upper_limit': max_val if min_val <= max_val else 0,
                         'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
+                        'name_addr': gp_texts['channels'][-1]['name_addr'],
                     }
 
                     channel = Channel(**kargs)
@@ -2941,10 +2949,12 @@ class MDF4(object):
                             address=address,
                             stream=stream,
                         )
+
                         block = TextBlock(
                             address=channel['name_addr'],
                             stream=stream,
                         )
+
                         name_ = block['text'].decode('utf-8')
                         name_ = name_.split('\\')[0].strip(' \n\r\t\0')
                         names.append(name_)
