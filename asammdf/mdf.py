@@ -576,7 +576,7 @@ class MDF(object):
         Parameters
         ----------
         files : list | tuple
-            list of MDF file names
+            list of MDF file names or MDF instances
         outversion : str
             merged file version
         memory : str
@@ -595,7 +595,11 @@ class MDF(object):
         if not files:
             raise MdfException('No files given for merge')
 
-        files = [MDF(file, memory) for file in files]
+        files = [
+            MDF(file, memory)
+            for file in files
+            if not isinstance(file, MDF)
+        ]
 
         if not len(set(len(file.groups) for file in files)) == 1:
             message = ("Can't merge files: "
