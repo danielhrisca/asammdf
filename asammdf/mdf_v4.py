@@ -385,6 +385,8 @@ class MDF4(object):
                     for grp in new_groups:
                         grp['data_location'] = v4c.LOCATION_MEMORY
                         record_id = grp['channel_group']['record_id']
+                        if PYVERSION == 2:
+                            record_id = chr(record_id)
                         data = b''.join(cg_data[record_id])
                         grp['channel_group']['record_id'] = 1
                         grp['data_block'] = DataBlock(data=data)
@@ -761,6 +763,8 @@ class MDF4(object):
                     cg_data = []
                     cg_size = group['record_size']
                     record_id = channel_group['record_id']
+                    if PYVERSION == 2:
+                        record_id = chr(record_id)
                     if data_group['record_id_len'] <= 2:
                         record_id_nr = data_group['record_id_len']
                     else:

@@ -173,6 +173,8 @@ class MDF23(object):
                 else:
                     read_size = group['size']
                     record_id = group['channel_group']['record_id']
+                    if PYVERSION == 2:
+                        record_id = chr(record_id)
                     cg_size = group['record_size']
                     if group['data_group']['record_id_nr'] <= 2:
                         record_id_nr = group['data_group']['record_id_nr']
@@ -809,6 +811,8 @@ class MDF23(object):
 
             for grp in new_groups:
                 record_id = grp['channel_group']['record_id']
+                if PYVERSION == 2:
+                    record_id = chr(record_id)
                 cycles_nr = grp['channel_group']['cycles_nr']
                 record_size = grp['channel_group']['samples_byte_nr']
 

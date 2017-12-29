@@ -120,6 +120,7 @@ class TestMDF(unittest.TestCase):
                     input_file = os.path.join('tmpdir_demo', mdfname)
                     if MDF(input_file).version == '2.00':
                         continue
+                    print(input_file, memory)
                     with MDF(input_file, memory=memory) as mdf:
                         mdf.convert(out, memory=memory).save('tmp',
                                                              overwrite=True)
