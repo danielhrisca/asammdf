@@ -293,11 +293,14 @@ class MDF4(object):
                     samples_size = channel_group['samples_byte_nr']
                     inval_size = channel_group['invalidation_bytes_nr']
                     record_id = channel_group['record_id']
-
+                    if PYVERSION == 2:
+                        record_id = chr(record_id)
                     cg_size[record_id] = samples_size + inval_size
                 else:
                     # VLDS flags
                     record_id = channel_group['record_id']
+                    if PYVERSION == 2:
+                        record_id = chr(record_id)
                     cg_size[record_id] = 0
 
                 if record_id_nr:
