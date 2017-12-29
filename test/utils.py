@@ -1510,6 +1510,8 @@ CHANNELS_ARRAY = {
     'Zeros': np.zeros(120, dtype=np.int32),
 }
 
+CHANNELS_ARRAY['Sin'][70] = -0.5
+
 l = []
 for i in range(40):
     l.append([i,] * 12)

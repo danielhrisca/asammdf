@@ -100,6 +100,8 @@ class TestMDF(unittest.TestCase):
         for mdf in os.listdir('tmpdir_array'):
             for memory in MEMORY:
                 with MDF(os.path.join('tmpdir_array', mdf), memory=memory) as input_file:
+                    if input_file.version == '2.00':
+                        continue
                     for name in set(input_file.channels_db) - {'time', 't'}:
                         signal = input_file.get(name)
                         original_samples = CHANNELS_ARRAY[name]
