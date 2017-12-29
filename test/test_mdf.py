@@ -32,7 +32,7 @@ from utils import (
     CHANNELS_ARRAY,
     MEMORY,
 )
-from asammdf import MDF, SUPPORTED_VERSIONS
+from asammdf import MDF, SUPPORTED_VERSIONS, configure
 
 CHANNEL_LEN = 100000
 
@@ -63,9 +63,9 @@ class TestMDF(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree('tmpdir_demo', True)
-#        shutil.rmtree('tmpdir_array', True)
+        shutil.rmtree('tmpdir_array', True)
         os.remove('test.zip')
-        for filename in ('tmp', 'tmp1', 'tmp2')[:1]:
+        for filename in ('tmp', 'tmp1', 'tmp2'):
             if os.path.isfile(filename):
                 os.remove(filename)
 
@@ -105,12 +105,7 @@ class TestMDF(unittest.TestCase):
                         original_samples = CHANNELS_ARRAY[name]
                         res = np.array_equal(signal.samples, original_samples)
                         if not res:
-                            if name == 'Cos':
-                                for i, pair in enumerate(zip(signal.samples, original_samples)):
-                                    print(i, pair, pair[0] == pair[1])
-                                for i, pair in enumerate(zip(signal.samples.astype(np.float32), original_samples.astype(np.float32))):
-                                    print(i, pair, pair[0] == pair[1])
-                                ret = False
+                            ret = False
 
         self.assertTrue(ret)
 
@@ -121,6 +116,8 @@ class TestMDF(unittest.TestCase):
             for mdfname in os.listdir('tmpdir_demo'):
                 for memory in MEMORY:
                     input_file = os.path.join('tmpdir_demo', mdfname)
+                    if MDF(input_file).version == '2.00':
+                        continue
                     with MDF(input_file, memory=memory) as mdf:
                         mdf.convert(out, memory=memory).save('tmp',
                                                              overwrite=True)
@@ -263,12 +260,10 @@ class TestMDF(unittest.TestCase):
                             if not np.array_equal(
                                     original.samples,
                                     converted.samples):
-                                print(original.name, original.samples, converted.samples)
                                 equal = False
                             if not np.array_equal(
                                     original.timestamps,
                                     converted.timestamps):
-                                print(original.name, original.timestamps, converted.timestamps)
                                 equal = False
 
                 self.assertTrue(equal)
@@ -446,6 +441,40 @@ class TestMDF(unittest.TestCase):
                 channels_nr = np.random.randint(1, len(CHANNELS_DEMO) + 1)
 
                 channel_list = random.sample(list(CHANNELS_DEMO), channels_nr)
+
+                selected_signals = MDF(input_file, memory=memory).select(channel_list)
+
+                self.assertTrue(len(selected_signals) == len(channel_list))
+
+                self.assertTrue(all(ch.name == name for ch, name in zip(selected_signals, channel_list)))
+
+                equal = True
+
+                with MDF(input_file, memory=memory) as mdf:
+
+                    for selected in selected_signals:
+                        original = mdf.get(selected.name)
+                        if not np.array_equal(
+                                original.samples,
+                                selected.samples):
+                            equal = False
+                        if not np.array_equal(
+                                original.timestamps,
+                                selected.timestamps):
+                            equal = False
+
+                self.assertTrue(equal)
+
+    def test_select_array(self):
+        print("MDF select array tests")
+
+        for mdfname in os.listdir('tmpdir_array'):
+            for memory in MEMORY:
+                input_file = os.path.join('tmpdir_array', mdfname)
+
+                channels_nr = np.random.randint(1, len(CHANNELS_ARRAY) + 1)
+
+                channel_list = random.sample(list(CHANNELS_ARRAY), channels_nr)
 
                 selected_signals = MDF(input_file, memory=memory).select(channel_list)
 

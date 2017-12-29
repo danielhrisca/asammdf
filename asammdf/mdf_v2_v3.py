@@ -1242,11 +1242,11 @@ class MDF23(object):
                         kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTABR
                         lower = info['lower']
                         upper = info['upper']
-                        texts = info['phys']
+                        texts_ = info['phys']
                         kargs['unit'] = signal.unit.encode('latin-1')
                         kargs['ref_param_nr'] = len(upper)
 
-                        for i, vals in enumerate(zip(upper, lower, texts)):
+                        for i, vals in enumerate(zip(upper, lower, texts_)):
                             u_, l_, t_ = vals
                             kargs['lower_{}'.format(i)] = l_
                             kargs['upper_{}'.format(i)] = u_
@@ -1321,18 +1321,23 @@ class MDF23(object):
                     if len(name) >= 32 and self.version >= '2.10':
                         short_name = (name[:31] + '\0').encode('latin-1')
                         if memory != 'minimum':
-                            texts['long_name_addr'] = TextBlock(texts=name)
+                            texts['long_name_addr'] = TextBlock(text=name)
                         else:
                             address = tell()
                             texts['long_name_addr'] = address
-                            block = TextBlock(texts=name)
-                            gp_channels.append(address)
+                            block = TextBlock(text=name)
                             write(bytes(block))
                     else:
                         short_name = name.encode('latin-1')
 
                     if texts:
                         gp_texts['channels'][-1] = texts
+
+                    channel_texts = gp_texts['channels'][-1]
+                    if channel_texts:
+                        long_name_addr = channel_texts.get('long_name_addr', 0)
+                    else:
+                        long_name_addr = 0
 
                     kargs = {
                         'short_name': short_name,
@@ -1343,6 +1348,7 @@ class MDF23(object):
                         'start_offset': start_bit_offset,
                         'bit_count': bit_count,
                         'aditional_byte_offset': additional_byte_offset,
+                        'long_name_addr': long_name_addr,
                     }
                     if self.version >= '3.00':
                         kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
@@ -1494,6 +1500,13 @@ class MDF23(object):
                     short_name = (name[:31] + '\0').encode('latin-1')
                 else:
                     short_name = name.encode('latin-1')
+
+                channel_texts = gp_texts['channels'][-1]
+                if channel_texts:
+                    long_name_addr = channel_texts.get('long_name_addr', 0)
+                else:
+                    long_name_addr = 0
+
                 kargs = {
                     'short_name': short_name,
                     'channel_type': v23c.CHANNEL_TYPE_VALUE,
@@ -1503,6 +1516,7 @@ class MDF23(object):
                     'start_offset': start_bit_offset,
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
+                    'long_name_addr': long_name_addr,
                 }
                 if self.version >= '3.00':
                     kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
@@ -1635,6 +1649,12 @@ class MDF23(object):
                     short_name = (name[:31] + '\0').encode('latin-1')
                 else:
                     short_name = name.encode('latin-1')
+                channel_texts = gp_texts['channels'][-1]
+                if channel_texts:
+                    long_name_addr = channel_texts.get('long_name_addr', 0)
+                else:
+                    long_name_addr = 0
+
                 kargs = {
                     'short_name': short_name,
                     'channel_type': v23c.CHANNEL_TYPE_VALUE,
@@ -1644,6 +1664,7 @@ class MDF23(object):
                     'start_offset': start_bit_offset,
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
+                    'long_name_addr': long_name_addr,
                 }
                 if self.version >= '3.00':
                     kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
@@ -1727,6 +1748,11 @@ class MDF23(object):
                         short_name = (name[:31] + '\0').encode('latin-1')
                     else:
                         short_name = name.encode('latin-1')
+                    channel_texts = gp_texts['channels'][-1]
+                    if channel_texts:
+                        long_name_addr = channel_texts.get('long_name_addr', 0)
+                    else:
+                        long_name_addr = 0
                     kargs = {
                         'short_name': short_name,
                         'channel_type': v23c.CHANNEL_TYPE_VALUE,
@@ -1736,6 +1762,7 @@ class MDF23(object):
                         'start_offset': start_bit_offset,
                         'bit_count': s_size,
                         'aditional_byte_offset': additional_byte_offset,
+                        'long_name_addr': long_name_addr,
                     }
                     if self.version >= '3.00':
                         kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
@@ -2020,6 +2047,11 @@ class MDF23(object):
                     short_name = (name[:31] + '\0').encode('latin-1')
                 else:
                     short_name = name.encode('latin-1')
+                channel_texts = gp_texts['channels'][-1]
+                if channel_texts:
+                    long_name_addr = channel_texts.get('long_name_addr', 0)
+                else:
+                    long_name_addr = 0
                 kargs = {
                     'short_name': short_name,
                     'channel_type': v23c.CHANNEL_TYPE_VALUE,
@@ -2029,6 +2061,7 @@ class MDF23(object):
                     'start_offset': start_bit_offset,
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
+                    'long_name_addr': long_name_addr,
                 }
                 if self.version >= '3.00':
                     kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
