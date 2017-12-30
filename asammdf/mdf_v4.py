@@ -6,10 +6,10 @@ ASAM MDF version 4 file format module
 from __future__ import division, print_function
 
 import os
+import re
 import sys
 import time
 import warnings
-import xml.etree.ElementTree as XML
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial, reduce
@@ -80,6 +80,8 @@ MASTER_CHANNELS = (
     v4c.CHANNEL_TYPE_MASTER,
     v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
 )
+
+TX = re.compile('<TX>(?P<text>(.|\n)+?)</TX>')
 
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
@@ -2805,9 +2807,10 @@ class MDF4(object):
 
             if comment['id'] == b'##MD':
                 comment = comment['text'].decode('utf-8').strip(' \n\t\0')
-                try:
-                    comment = XML.fromstring(comment).find('TX').text
-                except:
+                match = TX.search(comment)
+                if match:
+                    comment = match.group('text')
+                else:
                     comment = ''
             else:
                 comment = comment['text'].decode('utf-8')
@@ -3656,9 +3659,10 @@ class MDF4(object):
 
                 if comment['id'] == b'##MD':
                     comment = comment['text'].decode('utf-8').strip(' \n\t\0')
-                    try:
-                        comment = XML.fromstring(comment).find('TX').text
-                    except:
+                    match = TX.search(comment)
+                    if match:
+                        comment = match.group('text')
+                    else:
                         comment = ''
                 else:
                     comment = comment['text'].decode('utf-8')
