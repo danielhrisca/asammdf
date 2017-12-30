@@ -4,7 +4,6 @@ asammdf utility functions and classes
 '''
 
 import itertools
-import re
 
 from numpy import (
     amin,
@@ -17,6 +16,9 @@ from . import v4_constants as v4c
 __all__ = [
     'MdfException',
     'get_fmt',
+    'get_min_max',
+    'get_unique_name',
+    'fix_dtype_fields',
     'fmt_to_datatype',
     'pair',
     'bytes',
@@ -37,53 +39,6 @@ def bytes(obj):
             return obj
         else:
             raise
-
-
-def dtype_mapping(invalue, outversion=3):
-    """ map data types between mdf versions 3 and 4
-
-    Parameters
-    ----------
-    invalue : int
-        original data type
-    outversion : int
-        mdf version of output data type
-
-    Returns
-    -------
-    res : int
-        mapped data type
-
-    """
-
-    v3tov4 = {v3c.DATA_TYPE_UNSIGNED: v4c.DATA_TYPE_UNSIGNED_INTEL,
-              v3c.DATA_TYPE_SIGNED: v4c.DATA_TYPE_SIGNED_INTEL,
-              v3c.DATA_TYPE_FLOAT: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_DOUBLE: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_STRING: v4c.DATA_TYPE_STRING_LATIN_1,
-              v3c.DATA_TYPE_UNSIGNED_INTEL: v4c.DATA_TYPE_UNSIGNED_INTEL,
-              v3c.DATA_TYPE_UNSIGNED_INTEL: v4c.DATA_TYPE_UNSIGNED_INTEL,
-              v3c.DATA_TYPE_SIGNED_INTEL: v4c.DATA_TYPE_SIGNED_INTEL,
-              v3c.DATA_TYPE_SIGNED_INTEL: v4c.DATA_TYPE_SIGNED_INTEL,
-              v3c.DATA_TYPE_FLOAT_INTEL: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_FLOAT_INTEL: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_DOUBLE_INTEL: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_DOUBLE_INTEL: v4c.DATA_TYPE_REAL_INTEL}
-
-    v4tov3 = {v4c.DATA_TYPE_UNSIGNED_INTEL: v3c.DATA_TYPE_UNSIGNED_INTEL,
-              v4c.DATA_TYPE_UNSIGNED_MOTOROLA: v3c.DATA_TYPE_UNSIGNED_MOTOROLA,
-              v4c.DATA_TYPE_SIGNED_INTEL: v3c.DATA_TYPE_SIGNED_INTEL,
-              v4c.DATA_TYPE_STRING_LATIN_1: v3c.DATA_TYPE_STRING,
-              v4c.DATA_TYPE_BYTEARRAY: v3c.DATA_TYPE_STRING,
-              v4c.DATA_TYPE_REAL_INTEL: v3c.DATA_TYPE_DOUBLE_INTEL,
-              v4c.DATA_TYPE_REAL_MOTOROLA: v3c.DATA_TYPE_DOUBLE_MOTOROLA,
-              v4c.DATA_TYPE_SIGNED_MOTOROLA: v3c.DATA_TYPE_SIGNED_MOTOROLA}
-
-    if outversion == 3:
-        res = v4tov3[invalue]
-    else:
-        res = v3tov4[invalue]
-    return res
 
 
 def get_fmt(data_type, size, version=3):
@@ -280,74 +235,3 @@ def get_min_max(samples):
     else:
         min_val, max_val = 0, 0
     return min_val, max_val
-
-
-def load_dbc(dbc):
-    """ Loads all messages description from DBC
-
-    Parameters
-    ----------
-    dbc : str
-        DBC file path
-
-    Returns
-    -------
-    messages : dict
-        the keys are the message ID's from the dbc
-
-    """
-
-    pattern = r'(?P<msg>^BO_ (.+\n)+)'
-
-    with open(dbc, 'r') as dbc_file:
-        string = dbc_file.read()
-
-    messages = {}
-
-    for match_ in re.finditer(pattern, string, flags=re.M):
-        msg = match_.group('msg')
-
-        pattern = r'BO_ (?P<can_id>\d+) (?P<name>[^ :]+): (?P<dlc>\d).+'
-        match = re.search(pattern, msg)
-        can_id = int(match.group('can_id'))
-        name = match.group('name')
-        dlc = int(match.group('dlc'))
-
-        pattern = (r'SG_ (?P<name>[^ ]+) : '
-                   r'(?P<start_bit>\d{1,2})\|(?P<size>\d{1,2})'
-                   r'@(?P<byte_order>\d)(?P<signed>[+-])'
-                   r' \((?P<factor>[^,]+),(?P<offset>[^)]+)\)'
-                   r' \[(?P<min_value>[^|]+)\|(?P<max_value>[^]]+)\]'
-                   r' "(?P<unit>[^"]*)"')
-
-        messages[can_id] = {
-            'name': name,
-            'dlc': dlc,
-            'signals': {},
-            'can_id': can_id
-        }
-
-        signals = messages[can_id]['signals']
-
-        for match in re.finditer(pattern, msg):
-            signal_name = match.group('name')
-            start_bit = int(match.group('start_bit'))
-            size = int(match.group('size'))
-            byte_order = match.group('byte_order')
-            signed = match.group('signed') == '-'
-            factor = float(match.group('factor'))
-            offset = float(match.group('offset'))
-            min_value = float(match.group('min_value'))
-            max_value = float(match.group('max_value'))
-            unit = match.group('unit')
-            signals[signal_name] = {'start_bit': start_bit,
-                                    'size': size,
-                                    'byte_order': byte_order,
-                                    'signed': signed,
-                                    'factor': factor,
-                                    'offset': offset,
-                                    'min_value': min_value,
-                                    'max_value': max_value,
-                                    'unit': unit}
-
-    return messages

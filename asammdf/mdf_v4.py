@@ -4768,7 +4768,7 @@ class MDF4(object):
                         channel['next_ch_addr'] = dep['next_ch_addr']
                         dep['next_ch_addr'] = 0
 
-                        for k, dep_addr in enumerate(dep_list):
+                        for k, _ in enumerate(dep_list):
                             dep = chans[j+1+k]
                             dep['source_addr'] = 0
 

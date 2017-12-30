@@ -6,26 +6,10 @@ import sys
 import unittest
 import shutil
 import urllib
-from pprint import pprint
 from zipfile import ZipFile
 
 
 import numpy as np
-
-from numpy import (
-    array,
-    float16,
-    float32,
-    float64,
-    int8,
-    int16,
-    int32,
-    int64,
-    uint8,
-    uint16,
-    uint32,
-    uint64,
-)
 
 from utils import (
     CHANNELS_DEMO,
@@ -93,7 +77,7 @@ class TestMDF(unittest.TestCase):
                             signal = input_file.get(name)
                             original_samples = CHANNELS_DEMO[name]
                             if signal.samples.dtype.kind == 'f':
-                                signal = signal.astype(float32)
+                                signal = signal.astype(np.float32)
                             res = np.array_equal(signal.samples, original_samples)
                             if not res:
                                 ret = False
@@ -179,7 +163,7 @@ class TestMDF(unittest.TestCase):
                             MDF('tmp', memory=memory) as mdf2:
 
                         for i, group in enumerate(mdf.groups):
-                            for j, channel in enumerate(group['channels'][1:], 1):
+                            for j, _ in enumerate(group['channels'][1:], 1):
                                 original = mdf.get(group=i, index=j)
                                 converted = mdf2.get(group=i, index=j)
                                 if not np.array_equal(
@@ -236,7 +220,7 @@ class TestMDF(unittest.TestCase):
                             MDF('tmp', memory=memory) as mdf2:
 
                         for i, group in enumerate(mdf.groups):
-                            for j, channel in enumerate(group['channels'][1:], 1):
+                            for j, _ in enumerate(group['channels'][1:], 1):
                                 original = mdf.get(group=i, index=j)
                                 converted = mdf2.get(group=i, index=j)
                                 if not np.array_equal(
@@ -295,7 +279,7 @@ class TestMDF(unittest.TestCase):
                         MDF('tmp', memory=memory) as mdf2:
 
                     for i, group in enumerate(mdf.groups):
-                        for j, channel in enumerate(group['channels'][1:], 1):
+                        for j, _ in enumerate(group['channels'][1:], 1):
                             original = mdf.get(group=i, index=j)
                             converted = mdf2.get(group=i, index=j)
                             if not np.array_equal(
@@ -371,7 +355,7 @@ class TestMDF(unittest.TestCase):
                         MDF('tmp', memory=memory) as mdf2:
 
                     for i, group in enumerate(mdf.groups):
-                        for j, channel in enumerate(group['channels'][1:], 1):
+                        for j, _ in enumerate(group['channels'][1:], 1):
                             original = mdf.get(group=i, index=j)
                             converted = mdf2.get(group=i, index=j)
                             if not np.array_equal(
@@ -445,7 +429,7 @@ class TestMDF(unittest.TestCase):
                         MDF('tmp', memory=memory) as mdf2:
 
                     for i, group in enumerate(mdf.groups):
-                        for j, channel in enumerate(group['channels'][1:], 1):
+                        for j, _ in enumerate(group['channels'][1:], 1):
                             original = mdf.get(group=i, index=j)
                             converted = mdf2.get(group=i, index=j)
                             if not np.array_equal(
@@ -517,7 +501,7 @@ class TestMDF(unittest.TestCase):
                         MDF('tmp', memory=memory) as mdf2:
 
                     for i, group in enumerate(mdf.groups):
-                        for j, channel in enumerate(group['channels'][1:], 1):
+                        for j, _ in enumerate(group['channels'][1:], 1):
                             original = mdf.get(group=i, index=j)
                             converted = mdf2.get(group=i, index=j)
                             if not np.array_equal(
