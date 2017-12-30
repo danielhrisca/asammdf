@@ -14,7 +14,9 @@ import numpy as np
 from utils import (
     CHANNELS_DEMO,
     CHANNELS_ARRAY,
+    COMMENTS,
     MEMORY,
+    UNITS,
 )
 from asammdf import MDF, SUPPORTED_VERSIONS, configure
 
@@ -83,6 +85,45 @@ class TestMDF(unittest.TestCase):
                                 ret = False
 
             self.assertTrue(ret)
+
+    def test_get_channel_comment_v4(self):
+        print("MDF get channel comment tests")
+
+        ret = True
+
+        for mdf in os.listdir('tmpdir_demo'):
+            for memory in MEMORY:
+                with MDF(os.path.join('tmpdir_demo', mdf), memory=memory) as input_file:
+                    if input_file.version < '4.00':
+                        continue
+                    print(mdf, memory)
+                    for channel_name, original_comment in COMMENTS.items():
+                        comment = input_file.get_channel_comment(channel_name)
+                        if comment != original_comment:
+                            print(channel_name, original_comment, comment)
+                            ret = False
+
+        self.assertTrue(ret)
+
+    def test_get_channel_units(self):
+        print("MDF get channel units tests")
+
+        ret = True
+
+        for mdf in os.listdir('tmpdir_demo'):
+            for memory in MEMORY:
+                with MDF(os.path.join('tmpdir_demo', mdf), memory=memory) as input_file:
+                    if input_file.version == '2.00':
+                        continue
+                    print(mdf, memory)
+                    for channel_name, original_unit in UNITS.items():
+                        comment = input_file.get_channel_unit(channel_name)
+                        if comment != original_unit:
+                            print(channel_name, original_unit, comment)
+                            ret = False
+
+        self.assertTrue(ret)
+
 
     def test_read_array(self):
 
