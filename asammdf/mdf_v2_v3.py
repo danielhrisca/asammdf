@@ -997,6 +997,13 @@ class MDF23(object):
         else:
             t = t_
 
+        if self.version >= '3.00':
+            channel_size = v23c.CN_DISPLAYNAME_BLOCK_SIZE
+        elif self.version >= '2.10':
+            channel_size = v23c.CN_LONGNAME_BLOCK_SIZE
+        else:
+            channel_size = v23c.CN_SHORT_BLOCK_SIZE
+
         memory = self.memory
         file = self._tempfile
         write = file.write
@@ -1109,13 +1116,8 @@ class MDF23(object):
                 'min_raw_value': t[0] if cycles_nr else 0,
                 'max_raw_value': t[-1] if cycles_nr else 0,
                 'bit_count': t_size,
+                'block_len': channel_size,
             }
-            if self.version >= '3.00':
-                kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
-            elif self.version >= '2.10':
-                kargs['block_len'] = v23c.CN_LONGNAME_BLOCK_SIZE
-            else:
-                kargs['block_len'] = v23c.CN_SHORT_BLOCK_SIZE
             channel = Channel(**kargs)
             channel.name = name = 't'
             if memory != 'minimum':
@@ -1353,13 +1355,8 @@ class MDF23(object):
                         'bit_count': bit_count,
                         'aditional_byte_offset': additional_byte_offset,
                         'long_name_addr': long_name_addr,
+                        'block_len': channel_size,
                     }
-                    if self.version >= '3.00':
-                        kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
-                    elif self.version >= '2.10':
-                        kargs['block_len'] = v23c.CN_LONGNAME_BLOCK_SIZE
-                    else:
-                        kargs['block_len'] = v23c.CN_SHORT_BLOCK_SIZE
                     comment = signal.comment
                     if comment:
                         comment = comment.encode('latin-1')
@@ -1521,13 +1518,8 @@ class MDF23(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                     'long_name_addr': long_name_addr,
+                    'block_len': channel_size,
                 }
-                if self.version >= '3.00':
-                    kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
-                elif self.version >= '2.10':
-                    kargs['block_len'] = v23c.CN_LONGNAME_BLOCK_SIZE
-                else:
-                    kargs['block_len'] = v23c.CN_SHORT_BLOCK_SIZE
                 comment = signal.comment
                 if comment:
                     if len(comment) >= 128:
@@ -1669,13 +1661,8 @@ class MDF23(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                     'long_name_addr': long_name_addr,
+                    'block_len': channel_size,
                 }
-                if self.version >= '3.00':
-                    kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
-                elif self.version >= '2.10':
-                    kargs['block_len'] = v23c.CN_LONGNAME_BLOCK_SIZE
-                else:
-                    kargs['block_len'] = v23c.CN_SHORT_BLOCK_SIZE
                 comment = signal.comment
                 if comment:
                     if len(comment) >= 128:
@@ -1767,13 +1754,8 @@ class MDF23(object):
                         'bit_count': s_size,
                         'aditional_byte_offset': additional_byte_offset,
                         'long_name_addr': long_name_addr,
+                        'block_len': channel_size,
                     }
-                    if self.version >= '3.00':
-                        kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
-                    elif self.version >= '2.10':
-                        kargs['block_len'] = v23c.CN_LONGNAME_BLOCK_SIZE
-                    else:
-                        kargs['block_len'] = v23c.CN_SHORT_BLOCK_SIZE
 
                     channel = Channel(**kargs)
                     channel.name = name
@@ -1924,13 +1906,8 @@ class MDF23(object):
                 'min_raw_value': t[0] if cycles_nr else 0,
                 'max_raw_value': t[-1] if cycles_nr else 0,
                 'bit_count': t_size,
+                'block_len': channel_size,
             }
-            if self.version >= '3.00':
-                kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
-            elif self.version >= '2.10':
-                kargs['block_len'] = v23c.CN_LONGNAME_BLOCK_SIZE
-            else:
-                kargs['block_len'] = v23c.CN_SHORT_BLOCK_SIZE
             channel = Channel(**kargs)
             channel.name = name = 't'
             if memory != 'minimum':
@@ -2066,13 +2043,8 @@ class MDF23(object):
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
                     'long_name_addr': long_name_addr,
+                    'block_len': channel_size,
                 }
-                if self.version >= '3.00':
-                    kargs['block_len'] = v23c.CN_DISPLAYNAME_BLOCK_SIZE
-                elif self.version >= '2.10':
-                    kargs['block_len'] = v23c.CN_LONGNAME_BLOCK_SIZE
-                else:
-                    kargs['block_len'] = v23c.CN_SHORT_BLOCK_SIZE
 
                 channel = Channel(**kargs)
                 channel.name = name
