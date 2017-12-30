@@ -27,6 +27,7 @@ from numpy import (
     interp,
     linspace,
     log,
+    ones,
     packbits,
     roll,
     searchsorted,
@@ -1167,6 +1168,7 @@ class MDF23(object):
                         int(max_).bit_length(),
                         int(min_).bit_length(),
                     )
+                    bit_length += 1
 
                     signal['bit_count'] = max(minimum_bitlength, bit_length)
 
@@ -2476,12 +2478,25 @@ class MDF23(object):
                             vals &= mask
                         else:
                             vals = vals & mask
+
                         if data_type in v23c.SIGNED_INT:
+
                             size = vals.dtype.itemsize
-                            mask = (1 << (size * 8)) - 1
-                            mask = (mask << bits) & mask
-                            vals |= mask
+
+                            masks = ones(
+                                cycles_nr,
+                                dtype=dtype('<u{}'.format(size)),
+                            )
+
+                            masks *= (1 << bits) - 1
+                            masks = ~masks
+
+                            masks *= ((vals & (1 << (bits - 1))) >> (bits - 1)).astype(dtype('<u{}'.format(size)))
+
+                            vals |= masks
+
                             vals = vals.astype('<i{}'.format(size), copy=False)
+
             else:
                 vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 

@@ -31,6 +31,7 @@ from numpy import (
     frombuffer,
     interp,
     linspace,
+    ones,
     packbits,
     roll,
     searchsorted,
@@ -1448,6 +1449,8 @@ class MDF4(object):
                 if sig.samples.dtype.kind in 'ui'
             ]
 
+
+
             max_itemsize = 1
             dtype_ = dtype(uint8)
 
@@ -1461,6 +1464,7 @@ class MDF4(object):
                     int(min_val).bit_length(),
                     int(max_val).bit_length(),
                 )
+                bit_length += 1
 
                 signal['bit_count'] = max(minimum_bitlength, bit_length)
 
@@ -3177,11 +3181,23 @@ class MDF4(object):
                                 vals &= mask
                             else:
                                 vals = vals & mask
+
                             if data_type in v4c.SIGNED_INT:
+
                                 size = vals.dtype.itemsize
-                                mask = (1 << (size * 8)) - 1
-                                mask = (mask << bits) & mask
-                                vals |= mask
+
+                                masks = ones(
+                                    cycles_nr,
+                                    dtype=dtype('<u{}'.format(size)),
+                                )
+
+                                masks *= (1 << bits) - 1
+                                masks = ~masks
+
+                                masks *= ((vals & (1 << (bits - 1))) >> (bits - 1)).astype(dtype('<u{}'.format(size)))
+
+                                vals |= masks
+
                                 vals = vals.astype('<i{}'.format(size), copy=False)
                 else:
                     vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
@@ -3967,7 +3983,7 @@ class MDF4(object):
                     split_size = MDF4._split_threshold // samples_size
                     split_size *= samples_size
                     chunks = len(data) / split_size
-                    chunks = ceil(chunks)
+                    chunks = int(ceil(chunks))
                 else:
                     chunks = 1
 
@@ -4430,7 +4446,7 @@ class MDF4(object):
                     split_size = MDF4._split_threshold // samples_size
                     split_size *= samples_size
                     chunks = len(data) / split_size
-                    chunks = ceil(chunks)
+                    chunks = int(ceil(chunks))
                 else:
                     chunks = 1
 
