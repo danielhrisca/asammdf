@@ -86,6 +86,8 @@ TX = re.compile('<TX>(?P<text>(.|\n)+?)</TX>')
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
     from .utils import bytes
+else:
+    from past.builtins import long
 
 __all__ = ['MDF4', ]
 
@@ -406,7 +408,7 @@ class MDF4(object):
                     continue
 
                 for dep in dep_list:
-                    if isinstance(dep, (Channel, int)):
+                    if isinstance(dep, (Channel, int, long)):
                         break
                     else:
                         conditions = (
@@ -2949,7 +2951,7 @@ class MDF4(object):
             arrays = []
             name = channel.name
 
-            if all(isinstance(dep, (Channel, int)) for dep in dependency_list):
+            if all(isinstance(dep, (Channel, int, long)) for dep in dependency_list):
                 # structure channel composition
                 if memory == 'minimum':
                     names = []
@@ -4723,7 +4725,7 @@ class MDF4(object):
 
                     if gp['channel_dependencies'][j]:
                         block = gp['channel_dependencies'][j][0]
-                        if isinstance(block, int):
+                        if isinstance(block, (int, long)):
                             channel['component_addr'] = block
                         else:
                             channel['component_addr'] = block.address
@@ -4739,7 +4741,7 @@ class MDF4(object):
                 while j < len(gp['channels']):
                     dep_list = gp['channel_dependencies'][j]
                     if dep_list and all(
-                            isinstance(dep, int) for dep in dep_list):
+                            isinstance(dep, (int, long)) for dep in dep_list):
 
                         dep = chans[j+1]
 

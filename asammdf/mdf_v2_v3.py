@@ -856,7 +856,10 @@ class MDF23(object):
                             i += rec_size
                     for grp in new_groups:
                         grp['data_location'] = v23c.LOCATION_MEMORY
-                        data = cg_data[grp['channel_group']['record_id']]
+                        record_id = grp['channel_group']['record_id']
+                        if PYVERSION == 2:
+                            record_id = chr(record_id)
+                        data = cg_data[record_id]
                         data = b''.join(data)
                         grp['channel_group']['record_id'] = 1
                         grp['data_block'] = DataBlock(data=data)
