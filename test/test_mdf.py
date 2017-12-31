@@ -59,7 +59,7 @@ class TestMDF(unittest.TestCase):
         shutil.rmtree('tmpdir_demo', True)
         shutil.rmtree('tmpdir_array', True)
         os.remove('test.zip')
-        for filename in os.listdir():
+        for filename in os.listdir(os.getcwd()):
             if os.path.isfile(filename) and filename.startswith('tmp'):
                 os.remove(filename)
 
