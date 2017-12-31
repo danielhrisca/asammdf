@@ -640,6 +640,7 @@ class MDF23(object):
                     kargs['block_len'] = v23c.DG_POST_320_BLOCK_SIZE
                 else:
                     kargs['block_len'] = v23c.DG_PRE_320_BLOCK_SIZE
+                kargs['record_id_nr'] = record_id_nr
 
                 grp['data_group'] = DataGroup(**kargs)
 
@@ -2879,36 +2880,35 @@ class MDF23(object):
             does nothing for mdf version3; introduced here to share the same
             API as mdf version 4 files
 
+        Returns
+        -------
+        output_file : str
+            output file name
+
         """
 
         if overwrite is None:
             overwrite = self._overwrite
+        output_file = ''
 
         if self.name is None and dst == '':
             message = ('Must specify a destination file name '
                        'for MDF created from scratch')
             raise MdfException(message)
 
-        dst = dst if dst else self.name
-        if overwrite is False:
-            if os.path.isfile(dst):
-                cntr = 0
-                while True:
-                    name = os.path.splitext(dst)[0] + '_{}.mdf'.format(cntr)
-                    if not os.path.isfile(name):
-                        break
-                    else:
-                        cntr += 1
-                message = ('Destination file "{}" already exists '
-                           'and "overwrite" is False. Saving MDF file as "{}"')
-                message = message.format(dst, name)
-                warnings.warn(message)
-                dst = name
-
-        if self.memory != 'minimum':
-            self._save_with_metadata(dst, overwrite, compression)
+        if self.memory == 'minimum':
+            output_file = self._save_without_metadata(
+                dst,
+                overwrite,
+                compression,
+            )
         else:
-            self._save_without_metadata(dst, overwrite, compression)
+            output_file = self._save_with_metadata(
+                dst,
+                overwrite,
+                compression,
+            )
+        return output_file
 
     def _save_with_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
@@ -2954,6 +2954,7 @@ class MDF23(object):
             raise MdfException(message)
 
         dst = dst if dst else self.name
+        dst = os.path.splitext(dst)[0] + '.mdf'
         if overwrite is False:
             if os.path.isfile(dst):
                 cntr = 0
@@ -3012,8 +3013,11 @@ class MDF23(object):
             # put them first in the block list so they will be written first to
             # disk this way, in case of memory=False, we can safely
             # restore he original data block address
+            gp_rec_ids = []
             for gp in self.groups:
                 dg = gp['data_group']
+                gp_rec_ids.append(dg['record_id_nr'])
+                dg['record_id_nr'] = 0
                 blocks.append(dg)
                 dg.address = address
                 address += dg['block_len']
@@ -3024,7 +3028,7 @@ class MDF23(object):
                     dg['data_group']['next_dg_addr'] = addr
                 self.groups[-1]['data_group']['next_dg_addr'] = 0
 
-            for gp in self.groups:
+            for idx, gp in enumerate(self.groups):
                 gp_texts = gp['texts']
 
                 # Texts
@@ -3124,9 +3128,9 @@ class MDF23(object):
                         trigger_text.address = address
                         blocks.append(trigger_text)
                         address += trigger_text['block_len']
-                        trigger['comment_addr'] = trigger_text.address
+                        trigger['text_addr'] = trigger_text.address
                     else:
-                        trigger['comment_addr'] = 0
+                        trigger['text_addr'] = 0
 
                     trigger.address = address
                     blocks.append(trigger)
@@ -3138,7 +3142,7 @@ class MDF23(object):
                     gp['data_group']['data_block_addr'] = address
                 else:
                     gp['data_group']['data_block_addr'] = 0
-                address += gp['size']
+                address += gp['size'] - gp_rec_ids[idx] * gp['channel_group']['cycles_nr']
                 if self.memory == 'full':
                     blocks.append(gp['data_block'])
                 else:
@@ -3191,6 +3195,9 @@ class MDF23(object):
                     data = self._load_group_data(gp)
                     write(data)
 
+            for gp, rec_id in zip(self.groups, gp_rec_ids):
+                gp['data_group']['record_id_nr'] = rec_id
+
         if self.memory == 'low' and dst == self.name:
             self.close()
             os.remove(self.name)
@@ -3211,6 +3218,7 @@ class MDF23(object):
             self._tempfile = TemporaryFile()
             self._file = open(self.name, 'rb')
             self._read()
+        return dst
 
     def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
@@ -3264,6 +3272,28 @@ class MDF23(object):
         # contain a tuple instead of a DataBlock instance; the tuple will have
         # the reference to the data group object and the original link to the
         # data block in the soource MDF file.
+
+        if self.name is None and dst == '':
+            message = ('Must specify a destination file name '
+                       'for MDF created from scratch')
+            raise MdfException(message)
+
+        dst = dst if dst else self.name
+        dst = os.path.splitext(dst)[0] + '.mdf'
+        if overwrite is False:
+            if os.path.isfile(dst):
+                cntr = 0
+                while True:
+                    name = os.path.splitext(dst)[0] + '_{}.mdf'.format(cntr)
+                    if not os.path.isfile(name):
+                        break
+                    else:
+                        cntr += 1
+                message = ('Destination file "{}" already exists '
+                           'and "overwrite" is False. Saving MDF file as "{}"')
+                message = message.format(dst, name)
+                warnings.warn(message)
+                dst = name
 
         if dst == self.name:
             destination = dst + '.temp'
@@ -3430,9 +3460,9 @@ class MDF23(object):
                     if trigger_text:
                         trigger_text.address = address
                         write(bytes(trigger_text))
-                        trigger['comment_addr'] = trigger_text.address
+                        trigger['text_addr'] = trigger_text.address
                     else:
-                        trigger['comment_addr'] = 0
+                        trigger['text_addr'] = 0
 
                     address = tell()
                     trigger.address = address
@@ -3454,8 +3484,11 @@ class MDF23(object):
 
             orig_addr = [gp['data_group']['data_block_addr'] for gp in self.groups]
             address = tell()
+            gp_rec_ids = []
             for i, gp in enumerate(self.groups):
                 dg = gp['data_group']
+                gp_rec_ids.append(dg['record_id_nr'])
+                dg['record_id_nr'] = 0
                 dg['data_block_addr'] = data_address[i]
                 dg.address = address
                 address += dg['block_len']
@@ -3474,6 +3507,9 @@ class MDF23(object):
             for i, gp in enumerate(self.groups):
                 write(bytes(gp['data_group']))
                 gp['data_block_addr'] = orig_addr[i]
+
+            for gp, rec_id in zip(self.groups, gp_rec_ids):
+                gp['data_group']['record_id_nr'] = rec_id
 
             if self.groups:
                 address = self.groups[0]['data_group'].address
@@ -3523,6 +3559,7 @@ class MDF23(object):
             self._tempfile = TemporaryFile()
             self._file = open(self.name, 'rb')
             self._read()
+        return dst
 
 
 if __name__ == '__main__':

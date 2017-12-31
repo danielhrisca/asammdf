@@ -6,6 +6,7 @@ import sys
 import unittest
 import shutil
 import urllib
+from itertools import product
 from zipfile import ZipFile
 
 
@@ -58,7 +59,7 @@ class TestMDF(unittest.TestCase):
         shutil.rmtree('tmpdir_demo', True)
         shutil.rmtree('tmpdir_array', True)
         os.remove('test.zip')
-        for filename in ('tmp', 'tmp1', 'tmp2'):
+        for filename in ('tmpx', 'tmp1', 'tmp2'):
             if os.path.isfile(filename):
                 os.remove(filename)
 
@@ -683,6 +684,91 @@ class TestMDF(unittest.TestCase):
                                 equal = False
 
                     self.assertTrue(equal)
+
+    def test_save(self):
+        print("MDF save tests")
+
+        compressions = [0, 1, 2]
+        split_sizes = [260, 10**5]
+        split_enables = [True, False]
+        overwrite_enables = [True, False]
+        for compression, memory, size, split_enable, overwrite in product(compressions, MEMORY, split_sizes, split_enables, overwrite_enables):
+            configure(
+                integer_compacting=False,
+                split_data_blocks=split_enable,
+                split_threshold=size,
+                overwrite=overwrite,
+            )
+
+            for mdfname in os.listdir('tmpdir_demo'):
+                input_file = os.path.join('tmpdir_demo', mdfname)
+                if MDF(input_file).version == '2.00':
+                    continue
+                print(input_file, compression, memory, size, split_enable, overwrite)
+                with MDF(input_file, memory=memory) as mdf:
+                    out_file = mdf.save('tmp', compression=compression)
+                    print(out_file)
+
+                equal = True
+
+                with MDF(input_file, memory=memory) as mdf, \
+                        MDF(out_file, memory=memory) as mdf2:
+
+                    for name in set(mdf.channels_db) - {'t', 'time'}:
+                        original = mdf.get(name)
+                        converted = mdf2.get(name)
+                        if not np.array_equal(
+                                original.samples,
+                                converted.samples):
+                            print(name, original, converted)
+                            equal = False
+                        if not np.array_equal(
+                                original.timestamps,
+                                converted.timestamps):
+                            equal = False
+
+                self.assertTrue(equal)
+
+    def test_save_array(self):
+        print("MDF save array tests")
+
+        compressions = [0, 1, 2]
+        split_sizes = [260, 10**5]
+        split_enables = [True, False]
+        overwrite_enables = [True, False]
+        for compression, memory, size, split_enable, overwrite in product(compressions, MEMORY, split_sizes, split_enables, overwrite_enables):
+            configure(
+                integer_compacting=False,
+                split_data_blocks=split_enable,
+                split_threshold=size,
+                overwrite=overwrite,
+            )
+
+            for mdfname in os.listdir('tmpdir_array'):
+                input_file = os.path.join('tmpdir_array', mdfname)
+                print(input_file, compression, memory, size, split_enable, overwrite)
+                with MDF(input_file, memory=memory) as mdf:
+                    out_file = mdf.save('tmp', compression=compression)
+
+                equal = True
+
+                with MDF(input_file, memory=memory) as mdf, \
+                        MDF(out_file, memory=memory) as mdf2:
+
+                    for name in set(mdf.channels_db) - {'t', 'time'}:
+                        original = mdf.get(name)
+                        converted = mdf2.get(name)
+                        if not np.array_equal(
+                                original.samples,
+                                converted.samples):
+                            print(name, original, converted)
+                            equal = False
+                        if not np.array_equal(
+                                original.timestamps,
+                                converted.timestamps):
+                            equal = False
+
+                self.assertTrue(equal)
 
     def test_select(self):
         print("MDF select tests")

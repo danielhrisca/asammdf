@@ -3872,9 +3872,15 @@ class MDF4(object):
             * 2 - transposition + deflate (slowest, but produces
                 the smallest files)
 
+        Returns
+        -------
+        output_file : str
+            output file name
+
         """
         if overwrite is None:
             overwrite = self._overwrite
+        output_file = ''
 
         if self.name is None and dst == '':
             message = ('Must specify a destination file name '
@@ -3882,9 +3888,18 @@ class MDF4(object):
             raise MdfException(message)
         else:
             if self.memory == 'minimum':
-                self._save_without_metadata(dst, overwrite, compression)
+                output_file = self._save_without_metadata(
+                    dst,
+                    overwrite,
+                    compression,
+                )
             else:
-                self._save_with_metadata(dst, overwrite, compression)
+                output_file = self._save_with_metadata(
+                    dst,
+                    overwrite,
+                    compression,
+                )
+        return output_file
 
     def _save_with_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
@@ -3914,6 +3929,7 @@ class MDF4(object):
             raise MdfException(message)
 
         dst = dst if dst else self.name
+        dst = os.path.splitext(dst)[0] + '.mf4'
         if overwrite is False:
             if os.path.isfile(dst):
                 cntr = 0
@@ -3982,8 +3998,11 @@ class MDF4(object):
                     samples_size = gp['channel_group']['samples_byte_nr']
                     split_size = MDF4._split_threshold // samples_size
                     split_size *= samples_size
-                    chunks = len(data) / split_size
-                    chunks = int(ceil(chunks))
+                    if split_size == 0:
+                        chunks = 1
+                    else:
+                        chunks = len(data) / split_size
+                        chunks = int(ceil(chunks))
                 else:
                     chunks = 1
 
@@ -4119,7 +4138,10 @@ class MDF4(object):
             self.file_history[-1][0]['next_fh_addr'] = 0
 
             # data groups
+            gp_rec_ids = []
             for gp in self.groups:
+                gp_rec_ids.append(gp['data_group']['record_id_len'])
+                gp['data_group']['record_id_len'] = 0
                 gp['data_group'].address = address
                 address += gp['data_group']['block_len']
                 blocks.append(gp['data_group'])
@@ -4306,6 +4328,9 @@ class MDF4(object):
             for block in blocks:
                 write(bytes(block))
 
+            for gp, rec_id in zip(self.groups, gp_rec_ids):
+                gp['data_group']['record_id_len'] = rec_id
+
             if self.groups:
                 addr_ = self.groups[0]['data_group'].address
                 self.header['first_dg_addr'] = addr_
@@ -4349,6 +4374,8 @@ class MDF4(object):
             self._file = open(self.name, 'rb')
             self._read()
 
+        return dst
+
     def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
@@ -4377,6 +4404,7 @@ class MDF4(object):
             raise MdfException(message)
 
         dst = dst if dst else self.name
+        dst = os.path.splitext(dst)[0] + '.mf4'
         if overwrite is False:
             if os.path.isfile(dst):
                 cntr = 0
@@ -4445,8 +4473,11 @@ class MDF4(object):
                     samples_size = gp['channel_group']['samples_byte_nr']
                     split_size = MDF4._split_threshold // samples_size
                     split_size *= samples_size
-                    chunks = len(data) / split_size
-                    chunks = int(ceil(chunks))
+                    if split_size == 0:
+                        chunks = 1
+                    else:
+                        chunks = len(data) / split_size
+                        chunks = int(ceil(chunks))
                 else:
                     chunks = 1
 
@@ -4808,9 +4839,12 @@ class MDF4(object):
 
             blocks = []
             address = tell()
+            gp_rec_ids = []
             # data groups
             for gp in self.groups:
                 gp['data_group'].address = address
+                gp_rec_ids.append(gp['data_group']['record_id_len'])
+                gp['data_group']['record_id_len'] = 0
                 address += gp['data_group']['block_len']
                 blocks.append(gp['data_group'])
 
@@ -4823,6 +4857,9 @@ class MDF4(object):
 
             for block in blocks:
                 write(bytes(block))
+
+            for gp, rec_id in zip(self.groups, gp_rec_ids):
+                gp['data_group']['record_id_len'] = rec_id
 
             if self.groups:
                 addr_ = self.groups[0]['data_group'].address
@@ -4884,3 +4921,4 @@ class MDF4(object):
             self._tempfile = TemporaryFile()
             self._file = open(self.name, 'rb')
             self._read()
+        return dst
