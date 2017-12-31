@@ -163,13 +163,13 @@ class TestMDF(unittest.TestCase):
                             continue
                         print(input_file, memory, out)
                         with MDF(input_file, memory=memory) as mdf:
-                            mdf.convert(out, memory=memory).save('tmp',
+                            outfile = mdf.convert(out, memory=memory).save('tmp',
                                                                  overwrite=True)
 
                         equal = True
 
                         with MDF(input_file, memory=memory) as mdf, \
-                                MDF('tmp', memory=memory) as mdf2:
+                                MDF(outfile, memory=memory) as mdf2:
 
                             for name in set(mdf.channels_db) - {'t', 'time'}:
                                 original = mdf.get(name)
@@ -197,12 +197,12 @@ class TestMDF(unittest.TestCase):
                     input_file = os.path.join('tmpdir_demo', mdfname)
                     files = [input_file, ] * 4
 
-                    MDF.merge(files, out, memory).save('tmp', overwrite=True)
+                    outfile = MDF.merge(files, out, memory).save('tmp', overwrite=True)
 
                     equal = True
 
                     with MDF(input_file, memory=memory) as mdf, \
-                            MDF('tmp', memory=memory) as mdf2:
+                            MDF(outfile, memory=memory) as mdf2:
 
                         for i, group in enumerate(mdf.groups):
                             for j, _ in enumerate(group['channels'][1:], 1):
@@ -225,12 +225,12 @@ class TestMDF(unittest.TestCase):
                         continue
                     files = [input_file, ] * 4
 
-                    MDF.merge(files, out, memory).save('tmp', overwrite=True)
+                    outfile = MDF.merge(files, out, memory).save('tmp', overwrite=True)
 
                     equal = True
 
                     with MDF(input_file, memory=memory) as mdf, \
-                            MDF('tmp', memory=memory) as mdf2:
+                            MDF(outfile, memory=memory) as mdf2:
 
                         for name in set(mdf.channels_db) - {'t', 'time'}:
                             original = mdf.get(name)
@@ -254,12 +254,12 @@ class TestMDF(unittest.TestCase):
                     input_file = os.path.join('tmpdir_array', mdfname)
                     files = [input_file, ] * 4
 
-                    MDF.merge(files, out, memory).save('tmp', overwrite=True)
+                    outfile = MDF.merge(files, out, memory).save('tmp', overwrite=True)
 
                     equal = True
 
                     with MDF(input_file, memory=memory) as mdf, \
-                            MDF('tmp', memory=memory) as mdf2:
+                            MDF(outfile, memory=memory) as mdf2:
 
                         for i, group in enumerate(mdf.groups):
                             for j, _ in enumerate(group['channels'][1:], 1):
@@ -280,12 +280,12 @@ class TestMDF(unittest.TestCase):
                     input_file = os.path.join('tmpdir_array', mdfname)
                     files = [input_file, ] * 4
 
-                    MDF.merge(files, out, memory).save('tmp', overwrite=True)
+                    outfile = MDF.merge(files, out, memory).save('tmp', overwrite=True)
 
                     equal = True
 
                     with MDF(input_file, memory=memory) as mdf, \
-                            MDF('tmp', memory=memory) as mdf2:
+                            MDF(outfile, memory=memory) as mdf2:
 
                         for name in set(mdf.channels_db) - {'t', 'time'}:
                             original = mdf.get(name)
@@ -306,19 +306,19 @@ class TestMDF(unittest.TestCase):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_demo', mdfname)
 
-                MDF(input_file, memory=memory).cut(stop=2).save('tmp1', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=2, stop=6).save('tmp2', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=6).save('tmp3', overwrite=True)
+                outfile1 = MDF(input_file, memory=memory).cut(stop=2).save('tmp1', overwrite=True)
+                outfile2 = MDF(input_file, memory=memory).cut(start=2, stop=6).save('tmp2', overwrite=True)
+                outfile3 = MDF(input_file, memory=memory).cut(start=6).save('tmp3', overwrite=True)
 
-                MDF.merge(
-                    ['tmp1', 'tmp2', 'tmp3'],
+                outfile = MDF.merge(
+                    [outfile1, outfile2, outfile3],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp', overwrite=True)
 
                 equal = True
 
                 with MDF(input_file, memory=memory) as mdf, \
-                        MDF('tmp', memory=memory) as mdf2:
+                        MDF(outfile, memory=memory) as mdf2:
 
                     for i, group in enumerate(mdf.groups):
                         for j, _ in enumerate(group['channels'][1:], 1):
@@ -343,19 +343,19 @@ class TestMDF(unittest.TestCase):
                 if '2.00' in input_file:
                     continue
 
-                MDF(input_file, memory=memory).cut(stop=2).save('tmp1', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=2, stop=6).save('tmp2', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=6).save('tmp3', overwrite=True)
+                outfile1 = MDF(input_file, memory=memory).cut(stop=2).save('tmp1', overwrite=True)
+                outfile2 = MDF(input_file, memory=memory).cut(start=2, stop=6).save('tmp2', overwrite=True)
+                outfile3 = MDF(input_file, memory=memory).cut(start=6).save('tmp3', overwrite=True)
 
-                MDF.merge(
-                    ['tmp1', 'tmp2', 'tmp3'],
+                outfile = MDF.merge(
+                    [outfile1, outfile2, outfile3],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp', overwrite=True)
 
                 equal = True
 
                 with MDF(input_file, memory=memory) as mdf, \
-                        MDF('tmp', memory=memory) as mdf2:
+                        MDF(outfile, memory=memory) as mdf2:
 
                     for name in set(mdf.channels_db) - {'time', 't'}:
                         original = mdf.get(name)
@@ -382,19 +382,19 @@ class TestMDF(unittest.TestCase):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_array', mdfname)
 
-                MDF(input_file, memory=memory).cut(stop=2.1).save('tmp1', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=2.1, stop=6.1).save('tmp2', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=6.1).save('tmp3', overwrite=True)
+                outfile1 = MDF(input_file, memory=memory).cut(stop=2.1).save('tmp1', overwrite=True)
+                outfile2 = MDF(input_file, memory=memory).cut(start=2.1, stop=6.1).save('tmp2', overwrite=True)
+                outfile3 = MDF(input_file, memory=memory).cut(start=6.1).save('tmp3', overwrite=True)
 
-                MDF.merge(
-                    ['tmp1', 'tmp2', 'tmp3'],
+                outfile = MDF.merge(
+                    [outfile1, outfile2, outfile3],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp', overwrite=True)
 
                 equal = True
 
                 with MDF(input_file, memory=memory) as mdf, \
-                        MDF('tmp', memory=memory) as mdf2:
+                        MDF(outfile, memory=memory) as mdf2:
 
                     for i, group in enumerate(mdf.groups):
                         for j, _ in enumerate(group['channels'][1:], 1):
@@ -417,19 +417,19 @@ class TestMDF(unittest.TestCase):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_array', mdfname)
 
-                MDF(input_file, memory=memory).cut(stop=2.1).save('tmp1', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=2.1, stop=6.1).save('tmp2', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=6.1).save('tmp3', overwrite=True)
+                outfile1 = MDF(input_file, memory=memory).cut(stop=2.1).save('tmp1', overwrite=True)
+                outfile2 =  MDF(input_file, memory=memory).cut(start=2.1, stop=6.1).save('tmp2', overwrite=True)
+                outfile3 = MDF(input_file, memory=memory).cut(start=6.1).save('tmp3', overwrite=True)
 
-                MDF.merge(
-                    ['tmp1', 'tmp2', 'tmp3'],
+                outfile = MDF.merge(
+                    [outfile1, outfile2, outfile3],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp', overwrite=True)
 
                 equal = True
 
                 with MDF(input_file, memory=memory) as mdf, \
-                        MDF('tmp', memory=memory) as mdf2:
+                        MDF(outfile, memory=memory) as mdf2:
 
                     for name in set(mdf.channels_db) - {'time', 't'}:
                         original = mdf.get(name)
@@ -456,19 +456,19 @@ class TestMDF(unittest.TestCase):
                 if '2.00' in input_file:
                     continue
 
-                MDF(input_file, memory=memory).cut(stop=3, whence=1).save('tmp1', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=3, stop=5, whence=1).save('tmp2', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=5, whence=1).save('tmp3', overwrite=True)
+                outfile1 = MDF(input_file, memory=memory).cut(stop=3, whence=1).save('tmp1', overwrite=True)
+                outfile2 = MDF(input_file, memory=memory).cut(start=3, stop=5, whence=1).save('tmp2', overwrite=True)
+                outfile3 = MDF(input_file, memory=memory).cut(start=5, whence=1).save('tmp3', overwrite=True)
 
-                MDF.merge(
-                    ['tmp1', 'tmp2', 'tmp3'],
+                outfile = MDF.merge(
+                    [outfile1, outfile2, outfile3],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp', overwrite=True)
 
                 equal = True
 
                 with MDF(input_file, memory=memory) as mdf, \
-                        MDF('tmp', memory=memory) as mdf2:
+                        MDF(outfile, memory=memory) as mdf2:
 
                     for i, group in enumerate(mdf.groups):
                         for j, _ in enumerate(group['channels'][1:], 1):
@@ -491,19 +491,19 @@ class TestMDF(unittest.TestCase):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_demo', mdfname)
 
-                MDF(input_file, memory=memory).cut(stop=3, whence=1).save('tmp1', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=3, stop=5, whence=1).save('tmp2', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=5, whence=1).save('tmp3', overwrite=True)
+                outfile1 = MDF(input_file, memory=memory).cut(stop=3, whence=1).save('tmp1', overwrite=True)
+                outfile2 = MDF(input_file, memory=memory).cut(start=3, stop=5, whence=1).save('tmp2', overwrite=True)
+                outfile3 = MDF(input_file, memory=memory).cut(start=5, whence=1).save('tmp3', overwrite=True)
 
-                MDF.merge(
-                    ['tmp1', 'tmp2', 'tmp3'],
+                outfile = MDF.merge(
+                    [outfile1, outfile2, outfile3],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp', overwrite=True)
 
                 equal = True
 
                 with MDF(input_file, memory=memory) as mdf, \
-                        MDF('tmp', memory=memory) as mdf2:
+                        MDF(outfile, memory=memory) as mdf2:
 
                     for name in set(mdf.channels_db) - {'time', 't'}:
                         original = mdf.get(name)
@@ -528,19 +528,19 @@ class TestMDF(unittest.TestCase):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_array', mdfname)
 
-                MDF(input_file, memory=memory).cut(stop=3.1, whence=1).save('tmp1', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=3.1, stop=5.1, whence=1).save('tmp2', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=5.1, whence=1).save('tmp3', overwrite=True)
+                outfile1 = MDF(input_file, memory=memory).cut(stop=3.1, whence=1).save('tmp1', overwrite=True)
+                outfile2 = MDF(input_file, memory=memory).cut(start=3.1, stop=5.1, whence=1).save('tmp2', overwrite=True)
+                outfile3 = MDF(input_file, memory=memory).cut(start=5.1, whence=1).save('tmp3', overwrite=True)
 
-                MDF.merge(
-                    ['tmp1', 'tmp2', 'tmp3'],
+                outfile = MDF.merge(
+                    [outfile1, outfile2, outfile3],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp', overwrite=True)
 
                 equal = True
 
                 with MDF(input_file, memory=memory) as mdf, \
-                        MDF('tmp', memory=memory) as mdf2:
+                        MDF(outfile, memory=memory) as mdf2:
 
                     for i, group in enumerate(mdf.groups):
                         for j, _ in enumerate(group['channels'][1:], 1):
@@ -563,19 +563,19 @@ class TestMDF(unittest.TestCase):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_array', mdfname)
 
-                MDF(input_file, memory=memory).cut(stop=3.1, whence=1).save('tmp1', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=3.1, stop=5.1, whence=1).save('tmp2', overwrite=True)
-                MDF(input_file, memory=memory).cut(start=5.1, whence=1).save('tmp3', overwrite=True)
+                outfile1 = MDF(input_file, memory=memory).cut(stop=3.1, whence=1).save('tmp1', overwrite=True)
+                outfile2 = MDF(input_file, memory=memory).cut(start=3.1, stop=5.1, whence=1).save('tmp2', overwrite=True)
+                outfile3 = MDF(input_file, memory=memory).cut(start=5.1, whence=1).save('tmp3', overwrite=True)
 
-                MDF.merge(
-                    ['tmp1', 'tmp2', 'tmp3'],
+                outfile = MDF.merge(
+                    [outfile1, outfile2, outfile3],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp', overwrite=True)
 
                 equal = True
 
                 with MDF(input_file, memory=memory) as mdf, \
-                        MDF('tmp', memory=memory) as mdf2:
+                        MDF(outfile, memory=memory) as mdf2:
 
                     for name in set(mdf.channels_db) - {'time', 't'}:
                         original = mdf.get(name)

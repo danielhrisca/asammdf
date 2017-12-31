@@ -41,9 +41,9 @@ class TestMDF4(unittest.TestCase):
 
             with MDF(version='4.00', memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
-                mdf.save('tmp', overwrite=True)
+                outfile = mdf.save('tmp', overwrite=True)
 
-            with MDF('tmp', memory=memory) as mdf:
+            with MDF(outfile, memory=memory) as mdf:
                 ret_sig_int = mdf.get(sig_int.name)
                 ret_sig_float = mdf.get(sig_float.name)
 
@@ -52,9 +52,7 @@ class TestMDF4(unittest.TestCase):
             self.assertTrue(np.array_equal(ret_sig_float.samples,
                                            sig_float.samples))
 
-            os.remove('tmp')
-
-    def test_read_mdf4_10(self):
+    def  test_read_mdf4_10(self):
 
         seed = np.random.randint(0, 2**31)
 
@@ -78,9 +76,9 @@ class TestMDF4(unittest.TestCase):
         for memory in MEMORY:
             with MDF(version='4.10', memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
-                mdf.save('tmp', overwrite=True)
+                outfile = mdf.save('tmp', overwrite=True)
 
-            with MDF('tmp', memory=memory) as mdf:
+            with MDF(outfile, memory=memory) as mdf:
                 ret_sig_int = mdf.get(sig_int.name)
                 ret_sig_float = mdf.get(sig_float.name)
 
@@ -88,8 +86,6 @@ class TestMDF4(unittest.TestCase):
                                            sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples,
                                            sig_float.samples))
-
-            os.remove('tmp')
 
 
 if __name__ == '__main__':
