@@ -59,8 +59,8 @@ class TestMDF(unittest.TestCase):
         shutil.rmtree('tmpdir_demo', True)
         shutil.rmtree('tmpdir_array', True)
         os.remove('test.zip')
-        for filename in ('tmpx', 'tmp1', 'tmp2'):
-            if os.path.isfile(filename):
+        for filename in os.listdir():
+            if os.path.isfile(filename) and filename.startswith('tmp'):
                 os.remove(filename)
 
     def test_read(self):
