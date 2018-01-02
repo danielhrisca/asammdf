@@ -1583,7 +1583,7 @@ class MDF4(object):
                                 address = tell()
                                 conv_texts_tab['text_{}'.format(i)] = address
                                 write(bytes(block))
-                        if info.get('default', b''):
+                        if 'default' in info:
                             block = TextBlock(
                                 text=info['default'],
                                 meta=False,
@@ -1594,7 +1594,6 @@ class MDF4(object):
                                 address = tell()
                                 conv_texts_tab['default_addr'] = address
                                 write(bytes(block))
-                        kargs['default_addr'] = 0
                         kargs['links_nr'] = len(raw) + 5
                     block = ChannelConversion(**kargs)
                     if memory != 'minimum':
@@ -1610,7 +1609,7 @@ class MDF4(object):
                     upper = info['upper']
                     texts = info['phys']
                     kargs['ref_param_nr'] = len(upper)
-                    kargs['default_addr'] = info.get('default', 0)
+#                    kargs['default_addr'] = info.get('default', 0)
                     kargs['links_nr'] = len(lower) + 5
 
                     for i, (u_, l_, t_) in enumerate(zip(upper, lower, texts)):
@@ -1627,8 +1626,7 @@ class MDF4(object):
                         else:
                             address = tell()
                             conv_texts_tab['text_{}'.format(i)] = address
-                            write(bytes(block))
-                    if info.get('default', b''):
+                    if 'default' in info:
                         block = TextBlock(
                             text=info['default'],
                             meta=False,
@@ -1639,8 +1637,9 @@ class MDF4(object):
                             address = tell()
                             conv_texts_tab['default_addr'] = address
                             write(bytes(block))
-                    kargs['default_addr'] = 0
+
                     block = ChannelConversion(**kargs)
+
                     if memory != 'minimum':
                         gp_conv.append(block)
                     else:
@@ -1790,7 +1789,7 @@ class MDF4(object):
                             address = tell()
                             conv_texts_tab['text_{}'.format(i)] = address
                             write(bytes(block))
-                    if info.get('default', b''):
+                    if 'default' in info:
                         block = TextBlock(
                             text=info['default'],
                             meta=False,
@@ -1801,7 +1800,6 @@ class MDF4(object):
                             address = tell()
                             conv_texts_tab['default_addr'] = address
                             write(bytes(block))
-                    kargs['default_addr'] = 0
                     kargs['links_nr'] = len(raw) + 5
 
                 block = ChannelConversion(**kargs)
@@ -1837,7 +1835,7 @@ class MDF4(object):
                         address = tell()
                         conv_texts_tab['text_{}'.format(i)] = address
                         write(bytes(block))
-                if info.get('default', b''):
+                if 'default' in info:
                     block = TextBlock(
                         text=info['default'],
                         meta=False,
@@ -1848,7 +1846,6 @@ class MDF4(object):
                         address = tell()
                         conv_texts_tab['default_addr'] = address
                         write(bytes(block))
-                kargs['default_addr'] = 0
                 block = ChannelConversion(**kargs)
                 if memory != 'minimum':
                     gp_conv.append(block)

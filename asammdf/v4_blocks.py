@@ -1943,8 +1943,12 @@ class TextBlock(dict):
         align = size % 8
         if align:
             self['block_len'] = size + v4c.COMMON_SIZE + 8 - align
-        elif text and text[-1] not in (0, b'\0'):
-            self['block_len'] = size + v4c.COMMON_SIZE + 8
+        else:
+            if text:
+                if text[-1] not in (0, b'\0'):
+                    self['block_len'] += 8
+            else:
+                self['block_len'] += 8
 
     def __bytes__(self):
         fmt = v4c.FMT_TEXT_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)

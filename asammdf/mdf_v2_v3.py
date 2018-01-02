@@ -2570,7 +2570,7 @@ class MDF23(object):
                     conv_texts = grp['texts']['conversion_tab'][ch_nr]
                     texts = []
                     for i in range(nr):
-                        key = 'text_{}'.format(i),
+                        key = 'text_{}'.format(i)
                         if key in conv_texts:
                             text = conv_texts[key].get('text', b'')
                             texts.append(text)
