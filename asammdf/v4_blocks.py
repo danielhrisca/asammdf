@@ -1913,8 +1913,8 @@ class TextBlock(dict):
             self['text'] = text = stream.read(size)
 
             if self['id'] not in (b'##TX', b'##MD'):
-                message = 'Expected "##TX" or "##MD" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = 'Expected "##TX" or "##MD" block @{} but found "{}"'
+                raise MdfException(message.format(hex(address), self['id']))
 
         else:
 

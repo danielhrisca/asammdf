@@ -1449,8 +1449,6 @@ class MDF4(object):
                 if sig.samples.dtype.kind in 'ui'
             ]
 
-
-
             max_itemsize = 1
             dtype_ = dtype(uint8)
 
@@ -1626,6 +1624,7 @@ class MDF4(object):
                         else:
                             address = tell()
                             conv_texts_tab['text_{}'.format(i)] = address
+                            write(bytes(block))
                     if 'default' in info:
                         block = TextBlock(
                             text=info['default'],
