@@ -1817,7 +1817,6 @@ class MDF4(object):
                 upper = info['upper']
                 texts = info['phys']
                 kargs['ref_param_nr'] = len(upper)
-                kargs['default_addr'] = info.get('default', 0)
                 kargs['links_nr'] = len(lower) + 5
 
                 for i, (u_, l_, t_) in enumerate(zip(upper, lower, texts)):

@@ -2569,13 +2569,26 @@ class MDF23(object):
 
                     conv_texts = grp['texts']['conversion_tab'][ch_nr]
                     texts = []
-                    for i in range(nr):
-                        key = 'text_{}'.format(i)
-                        if key in conv_texts:
-                            text = conv_texts[key].get('text', b'')
-                            texts.append(text)
-                        else:
-                            texts.append(b'')
+                    if memory != 'minimum':
+                        for i in range(nr):
+                            key = 'text_{}'.format(i)
+                            if key in conv_texts:
+                                text = conv_texts[key]['text']
+                                texts.append(text)
+                            else:
+                                texts.append(b'')
+                    else:
+                        for i in range(nr):
+                            key = 'text_{}'.format(i)
+                            if key in conv_texts:
+                                block = TextBlock(
+                                    address=conv_texts[key],
+                                    stream=stream,
+                                )
+                                text = block['text']
+                                texts.append(text)
+                            else:
+                                texts.append(b'')
 
                     texts = array(texts)
                     lower = [
