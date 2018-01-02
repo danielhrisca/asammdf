@@ -484,7 +484,8 @@ class MDF(object):
         Parameters
         ----------
         channels : list
-            list of channel names to be filtered
+            list of items to be filtered; each item can be a channel name string
+            or (channel_name, group index, channel index) list or tuple
         memory : str
             memory option for filtered mdf; default None in which case the
             original file's memory option is used
@@ -498,48 +499,53 @@ class MDF(object):
 
         # group channels by group index
         gps = {}
-        excluded_channels = defaultdict(list)
-        for ch in channels:
-            if ch in self.channels_db:
-                for group, index in self.channels_db[ch]:
+
+        for item in channels:
+            if isinstance(item, (list, tuple)):
+                if len(item) != 3:
+                    raise MdfException(
+                        'The items used for filtering must be strings or '
+                        '(string, int, int) triplets'
+                    )
+                else:
+                    group, index = self._validate_channel_selection(*item)
                     if group not in gps:
                         gps[group] = set()
                     gps[group].add(index)
-                    if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-                        grp = self.groups[group]
-                        dep = grp['channel_dependencies'][index]
-                        if dep:
+            else:
+                name = item
+                group, index = self._validate_channel_selection(name)
+                if group not in gps:
+                    gps[group] = set()
+                gps[group].add(index)
+
+        for group_index, indexes in gps.items():
+            grp = self.groups[group_index]
+            excluded_channels = set()
+            for index in indexes:
+                if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
+                    dep = grp['channel_dependencies'][index]
+                    if dep:
+                        for ch_nr, gp_nr in dep.referenced_channels:
+                            if gp_nr == group:
+                                excluded_channels.add(ch_nr)
+                else:
+                    dependencies = grp['channel_dependencies'][index]
+                    if dependencies is None:
+                        continue
+                    if all(dep['id'] == b'##CN'
+                           if not isinstance(dep, int) else True
+                           for dep in dependencies):
+                        channels = grp['channels']
+                        for ch in dependencies:
+                            excluded_channels.add(channels.index(ch))
+                    else:
+                        for dep in dependencies:
                             for ch_nr, gp_nr in dep.referenced_channels:
                                 if gp_nr == group:
-                                    excluded_channels[group].append(ch_nr)
-                    else:
-                        grp = self.groups[group]
-                        dependencies = grp['channel_dependencies'][index]
-                        if dependencies is None:
-                            continue
-                        if all(dep['id'] == b'##CN'
-                               if not isinstance(dep, int) else True
-                               for dep in dependencies):
-                            channels = grp['channels']
-                            for ch in dependencies:
-                                excluded_channels[group].append(channels.index(ch))
-                        else:
-                            for dep in dependencies:
-                                for ch_nr, gp_nr in dep.referenced_channels:
-                                    if gp_nr == group:
-                                        excluded_channels[group].append(ch_nr)
-            else:
-                message = ('MDF filter error: '
-                           'Channel "{}" not found, it will be ignored')
-                warn(message.format(ch))
-                continue
+                                    excluded_channels.add(ch_nr)
 
-        for group in excluded_channels:
-            excluded_indexes = excluded_channels[group]
-            if group in gps:
-                for index in excluded_indexes:
-                    if index in gps[group]:
-                        gps[group].remove(index)
+            gps[group_index] = gps[group_index] - excluded_channels
 
         if memory is not None:
             if memory not in ('full', 'low', 'minimum'):
@@ -789,7 +795,8 @@ class MDF(object):
         Parameters
         ----------
         channels : list
-            list of channel names to be filtered
+            list of items to be filtered; each item can be a channel name string
+            or (channel_name, group index, channel index) list or tuple
         dataframe: bool
             return a pandas DataFrame instead of a list of Signals; in this
             case the signals will be interpolated using the union of all
@@ -798,23 +805,31 @@ class MDF(object):
         Returns
         -------
         signals : list
-            lsit of *Signal* objects based on the input channel list
+            list of *Signal* objects based on the input channel list
 
         """
 
         # group channels by group index
         gps = {}
-        for ch in channels:
-            if ch in self.channels_db:
-                for group, index in self.channels_db[ch]:
+
+        for item in channels:
+            if isinstance(item, (list, tuple)):
+                if len(item) != 3:
+                    raise MdfException(
+                        'The items used for filtering must be strings or '
+                        '(string, int, int) triplets'
+                    )
+                else:
+                    group, index = self._validate_channel_selection(*item)
                     if group not in gps:
-                        gps[group] = []
-                    gps[group].append(index)
+                        gps[group] = set()
+                    gps[group].add(index)
             else:
-                message = ('MDF filter error: '
-                           'Channel "{}" not found, it will be ignored')
-                warn(message.format(ch))
-                continue
+                name = item
+                group, index = self._validate_channel_selection(name)
+                if group not in gps:
+                    gps[group] = set()
+                gps[group].add(index)
 
         # append filtered channels to new MDF
         signals = {}

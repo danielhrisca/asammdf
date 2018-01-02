@@ -1198,45 +1198,32 @@ class MDF4(object):
                 if group is None:
                     gp_nr, ch_nr = self.channels_db[name][0]
                     if len(self.channels_db[name]) > 1:
-                        message = ('Multiple occurances for channel "{}". '
-                                   'Using first occurance from data group {}. '
-                                   'Provide both "group" and "index" arguments'
-                                   ' to select another data group')
+                        message = (
+                            'Multiple occurances for channel "{}". '
+                            'Using first occurance from data group {}. '
+                            'Provide both "group" and "index" arguments'
+                            ' to select another data group'
+                        )
                         message = message.format(name, gp_nr)
                         warnings.warn(message)
                 else:
-                    group_valid = False
                     for gp_nr, ch_nr in self.channels_db[name]:
                         if gp_nr == group:
-                            group_valid = True
                             if index is None:
                                 break
                             elif index == ch_nr:
                                 break
                     else:
-                        if group_valid:
-                            gp_nr, ch_nr = self.channels_db[name][group]
-                            message = ('You have selected channel index "{}"'
-                                       'of group "{}" for channel "{}", but '
-                                       'this channel index is invalid. Using '
-                                       'first occurance of "{}" in this group'
-                                       ' at index "{}"')
-                            message = message.format(
-                                index,
-                                group,
-                                name,
-                                name,
-                                ch_nr,
-                            )
+                        if index is None:
+                            message = 'Channel "{}" not found in group {}'
+                            message = message.format(name, group)
                         else:
-                            gp_nr, ch_nr = self.channels_db[name][0]
-                            message = ('You have selected group "{}" for '
-                                       'channel "{}", but this channel was not'
-                                       ' found in this group, or this group '
-                                       'index does not exist. Using first '
-                                       'occurance of "{}" from group "{}"')
-                            message = message.format(group, name, name, gp_nr)
-                        warnings.warn(message)
+                            message = (
+                                'Channel "{}" not found in group {} '
+                                'at index {}'
+                            )
+                            message = message.format(name, group, index)
+                        raise MdfException(message)
         return gp_nr, ch_nr
 
     def append(self, signals, source_info='Python', common_timebase=False):
