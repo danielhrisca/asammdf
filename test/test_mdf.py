@@ -152,12 +152,12 @@ class TestMDF(unittest.TestCase):
     def test_convert(self):
         print("MDF convert tests")
 
-        for enable in (True, False):
+        for enable in (True, ):
             configure(enable, enable)
 
             for out in SUPPORTED_VERSIONS[1:]:
                 for mdfname in os.listdir('tmpdir_demo'):
-                    for memory in MEMORY:
+                    for memory in MEMORY[-1:]:
                         input_file = os.path.join('tmpdir_demo', mdfname)
                         if MDF(input_file).version == '2.00':
                             continue

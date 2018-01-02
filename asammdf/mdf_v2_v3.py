@@ -1149,7 +1149,7 @@ class MDF23(object):
             offset += t_size
             ch_cntr += 1
 
-            if self._compact_integers_on_append:
+            if self._compact_integers_on_append and self.version >= '3.10':
                 compacted_signals = [
                     {'signal': sig}
                     for sig in simple_signals
@@ -1325,9 +1325,9 @@ class MDF23(object):
                         additional_byte_offset = 0
 
                     if signal.samples.dtype.kind == 'u':
-                        data_type = v23c.DATA_TYPE_UNSIGNED_INTEL
+                        data_type = v23c.DATA_TYPE_UNSIGNED
                     else:
-                        data_type = v23c.DATA_TYPE_SIGNED_INTEL
+                        data_type = v23c.DATA_TYPE_SIGNED
 
                     texts = {}
                     if len(name) >= 32 and self.version >= '2.10':
@@ -2908,6 +2908,7 @@ class MDF23(object):
                 overwrite,
                 compression,
             )
+
         return output_file
 
     def _save_with_metadata(self, dst, overwrite, compression):
