@@ -484,8 +484,13 @@ class MDF(object):
         Parameters
         ----------
         channels : list
-            list of items to be filtered; each item can be a channel name string
-            or (channel_name, group index, channel index) list or tuple
+            list of items to be filtered; each item can be :
+
+                * a channel name string
+                * (channel_name, group index, channel index) list or tuple
+                * (channel name, group index) list or tuple
+                * (None, group index, channel index) lsit or tuple
+
         memory : str
             memory option for filtered mdf; default None in which case the
             original file's memory option is used
@@ -495,6 +500,46 @@ class MDF(object):
         mdf : MDF
             new MDF file
 
+        Examples
+        --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+        >>> t = np.arange(5)
+        >>> s = np.ones(5)
+        >>> mdf = MDF()
+        >>> for i in range(4):
+        ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
+        ...     mdf.append(sigs)
+        ...
+        >>> filtered = mdf.filter(['SIG', ('SIG', 3, 1), ['SIG', 2], (None, 1, 2)])
+        >>> for gp_nr, ch_nr in filtered.channels_db['SIG']:
+        ...     print(filtered.get(group=gp_nr, index=ch_nr))
+        ...
+        <Signal SIG:
+                samples=[ 1.  1.  1.  1.  1.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        <Signal SIG:
+                samples=[ 31.  31.  31.  31.  31.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        <Signal SIG:
+                samples=[ 21.  21.  21.  21.  21.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        <Signal SIG:
+                samples=[ 12.  12.  12.  12.  12.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+
         """
 
         # group channels by group index
@@ -502,10 +547,11 @@ class MDF(object):
 
         for item in channels:
             if isinstance(item, (list, tuple)):
-                if len(item) != 3:
+                if len(item) not in (2, 3):
                     raise MdfException(
-                        'The items used for filtering must be strings or '
-                        '(string, int, int) triplets'
+                        'The items used for filtering must be strings, '
+                        'or they must match the first 3 argumens of the get '
+                        'method'
                     )
                 else:
                     group, index = self._validate_channel_selection(*item)
@@ -795,8 +841,13 @@ class MDF(object):
         Parameters
         ----------
         channels : list
-            list of items to be filtered; each item can be a channel name string
-            or (channel_name, group index, channel index) list or tuple
+            list of items to be filtered; each item can be :
+
+                * a channel name string
+                * (channel_name, group index, channel index) list or tuple
+                * (channel name, group index) list or tuple
+                * (None, group index, channel index) lsit or tuple
+
         dataframe: bool
             return a pandas DataFrame instead of a list of Signals; in this
             case the signals will be interpolated using the union of all
@@ -807,40 +858,84 @@ class MDF(object):
         signals : list
             list of *Signal* objects based on the input channel list
 
+        Examples
+        --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+        >>> t = np.arange(5)
+        >>> s = np.ones(5)
+        >>> mdf = MDF()
+        >>> for i in range(4):
+        ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
+        ...     mdf.append(sigs)
+        ...
+        >>> # select SIG group 0 default index 1 default, SIG group 3 index 1, SIG group 2 index 1 default and channel index 2 from group 1
+        ...
+        >>> mdf.select(['SIG', ('SIG', 3, 1), ['SIG', 2],  (None, 1, 2)])
+        [<Signal SIG:
+                samples=[ 1.  1.  1.  1.  1.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        , <Signal SIG:
+                samples=[ 31.  31.  31.  31.  31.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        , <Signal SIG:
+                samples=[ 21.  21.  21.  21.  21.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        , <Signal SIG:
+                samples=[ 12.  12.  12.  12.  12.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        ]
+
         """
 
         # group channels by group index
         gps = {}
 
+        indexes = []
+
         for item in channels:
             if isinstance(item, (list, tuple)):
-                if len(item) != 3:
+                if len(item) not in (2, 3):
                     raise MdfException(
-                        'The items used for filtering must be strings or '
-                        '(string, int, int) triplets'
+                        'The items used for filtering must be strings, '
+                        'or they must match the first 3 argumens of the get '
+                        'method'
                     )
                 else:
                     group, index = self._validate_channel_selection(*item)
+                    indexes.append((group, index))
                     if group not in gps:
                         gps[group] = set()
                     gps[group].add(index)
             else:
                 name = item
                 group, index = self._validate_channel_selection(name)
+                indexes.append((group, index))
                 if group not in gps:
                     gps[group] = set()
                 gps[group].add(index)
 
-        # append filtered channels to new MDF
         signals = {}
         for group in gps:
             grp = self.groups[group]
             data = self._load_group_data(grp)
             for index in gps[group]:
                 signal = self.get(group=group, index=index, data=data)
-                signals[signal.name] = signal
+                signals[(group, index)] = signal
 
-        signals = [signals[channel] for channel in channels]
+        signals = [signals[pair] for pair in indexes]
 
         if dataframe:
             times = [s.timestamps for s in signals]

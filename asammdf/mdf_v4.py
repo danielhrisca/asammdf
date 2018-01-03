@@ -1224,6 +1224,7 @@ class MDF4(object):
                             )
                             message = message.format(name, group, index)
                         raise MdfException(message)
+
         return gp_nr, ch_nr
 
     def append(self, signals, source_info='Python', common_timebase=False):
@@ -2871,6 +2872,62 @@ class MDF4(object):
         * if the channel name is not found
         * if the group index is out of range
         * if the channel index is out of range
+
+        Examples
+        --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+        >>> t = np.arange(5)
+        >>> s = np.ones(5)
+        >>> mdf = MDF(version='4.10')
+        >>> for i in range(4):
+        ...     sigs = [Signal(s*(i*10+j), t, name='Sig') for j in range(1, 4)]
+        ...     mdf.append(sigs)
+        ...
+        >>> # first group and channel index of the specified channel name
+        ...
+        >>> mdf.get('Sig')
+        UserWarning: Multiple occurances for channel "Sig". Using first occurance from data group 4. Provide both "group" and "index" arguments to select another data group
+        <Signal Sig:
+                samples=[ 1.  1.  1.  1.  1.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        >>> # first channel index in the specified group
+        ...
+        >>> mdf.get('Sig', 1)
+        <Signal Sig:
+                samples=[ 11.  11.  11.  11.  11.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        >>> # channel named Sig from group 1 channel index 2
+        ...
+        >>> mdf.get('Sig', 1, 2)
+        <Signal Sig:
+                samples=[ 12.  12.  12.  12.  12.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        >>> # channel index 1 or group 2
+        ...
+        >>> mdf.get(None, 2, 1)
+        <Signal Sig:
+                samples=[ 21.  21.  21.  21.  21.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        >>> mdf.get(group=2, index=1)
+        <Signal Sig:
+                samples=[ 21.  21.  21.  21.  21.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
 
         """
         gp_nr, ch_nr = self._validate_channel_selection(
