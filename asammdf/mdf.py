@@ -3,7 +3,6 @@
 
 import csv
 import os
-from collections import defaultdict
 from warnings import warn
 from functools import reduce
 from struct import unpack
