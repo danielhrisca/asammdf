@@ -26,7 +26,7 @@ CHANNEL_LEN = 100000
 
 class TestMDF(unittest.TestCase):
 
-    def etest_measurement(self):
+    def test_measurement(self):
         self.assertTrue(MDF)
 
     @classmethod
@@ -55,7 +55,7 @@ class TestMDF(unittest.TestCase):
         )
 
     @classmethod
-    def etearDownClass(cls):
+    def tearDownClass(cls):
         shutil.rmtree('tmpdir_demo', True)
         shutil.rmtree('tmpdir_array', True)
         os.remove('test.zip')
@@ -63,7 +63,7 @@ class TestMDF(unittest.TestCase):
             if os.path.isfile(filename) and filename.startswith('tmp'):
                 os.remove(filename)
 
-    def etest_read(self):
+    def test_read(self):
 
         print("MDF read tests")
 
@@ -87,7 +87,7 @@ class TestMDF(unittest.TestCase):
 
             self.assertTrue(ret)
 
-    def etest_get_channel_comment_v4(self):
+    def test_get_channel_comment_v4(self):
         print("MDF get channel comment tests")
 
         ret = True
@@ -106,7 +106,7 @@ class TestMDF(unittest.TestCase):
 
         self.assertTrue(ret)
 
-    def etest_get_channel_units(self):
+    def test_get_channel_units(self):
         print("MDF get channel units tests")
 
         ret = True
@@ -126,7 +126,7 @@ class TestMDF(unittest.TestCase):
         self.assertTrue(ret)
 
 
-    def etest_read_array(self):
+    def test_read_array(self):
 
         print("MDF read array tests")
 
@@ -149,7 +149,7 @@ class TestMDF(unittest.TestCase):
 
             self.assertTrue(ret)
 
-    def etest_convert(self):
+    def test_convert(self):
         print("MDF convert tests")
 
         for enable in (True, ):
@@ -186,7 +186,7 @@ class TestMDF(unittest.TestCase):
 
                         self.assertTrue(equal)
 
-    def etest_merge(self):
+    def test_merge(self):
         print("MDF merge tests")
 
         configure(False, False)
@@ -244,7 +244,7 @@ class TestMDF(unittest.TestCase):
 
                     self.assertTrue(equal)
 
-    def etest_merge_array(self):
+    def test_merge_array(self):
         print("MDF merge array tests")
 
         configure(False, False)
@@ -298,7 +298,7 @@ class TestMDF(unittest.TestCase):
 
                     self.assertTrue(equal)
 
-    def etest_cut_absolute(self):
+    def test_cut_absolute(self):
         print("MDF cut absolute tests")
 
         configure(False, False)
@@ -376,7 +376,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
 
 
-    def etest_cut_absolute_array(self):
+    def test_cut_absolute_array(self):
         print("MDF cut absolute array tests")
 
         configure(False, False)
@@ -448,7 +448,7 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-    def etest_cut_relative(self):
+    def test_cut_relative(self):
         print("MDF cut relative tests")
 
         configure(False, False)
@@ -522,7 +522,7 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-    def etest_cut_relative_array(self):
+    def test_cut_relative_array(self):
         print("MDF cut relative array tests")
 
         configure(False, False)
@@ -688,7 +688,7 @@ class TestMDF(unittest.TestCase):
 
                     self.assertTrue(equal)
 
-    def etest_save(self):
+    def test_save(self):
         print("MDF save tests")
 
         compressions = [0, 1, 2]
@@ -732,7 +732,7 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-    def etest_save_array(self):
+    def test_save_array(self):
         print("MDF save array tests")
 
         compressions = [0, 1, 2]
