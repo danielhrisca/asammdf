@@ -48,6 +48,8 @@ class MDF(object):
 
     """
 
+    _iter_channels = True
+
     def __init__(self, name=None, memory='full', version='4.10'):
         if name:
             if os.path.isfile(name):
@@ -128,6 +130,23 @@ class MDF(object):
                                 excluded_channels.add(ch_nr)
 
         return excluded_channels
+
+    def __iter__(self):
+        if self._iter_channels:
+            for i, group in enumerate(self.groups):
+                try:
+                    master_index = self.masters_db[i]
+                except KeyError:
+                    master_index = -1
+
+                for j, _ in enumerate(group['channels']):
+                    if j == master_index:
+                        continue
+                    yield self.get(group=i, index=j)
+        else:
+            for dataframe in self.iter_to_pandas():
+                yield dataframe
+
 
     def convert(self, to, memory='full'):
         """convert MDF to other versions

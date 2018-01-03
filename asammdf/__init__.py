@@ -22,8 +22,13 @@ def configure(
         integer_compacting=None,
         split_data_blocks=None,
         split_threshold=None,
-        overwrite=None):
+        overwrite=None,
+        iter_channels=None):
     """ configure asammdf parameters
+
+    Note
+    ----
+    this is not thread safe
 
     Parameters
     ----------
@@ -40,6 +45,9 @@ def configure(
         the data groups' records size
     overwrite : bool
         default option for save method's overwrite argument
+    iter_channels : bool
+        default option to yield channels instead of pandas DataFrame when
+        iterating over the MDF objects
 
     """
 
@@ -56,3 +64,6 @@ def configure(
     if overwrite is not None:
         MDF23._overwrite = bool(overwrite)
         MDF4._overwrite = bool(overwrite)
+
+    if iter_channels is not None:
+        MDF.iter_channels = bool(iter_channels)
