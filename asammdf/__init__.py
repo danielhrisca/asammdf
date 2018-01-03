@@ -66,4 +66,4 @@ def configure(
         MDF4._overwrite = bool(overwrite)
 
     if iter_channels is not None:
-        MDF.iter_channels = bool(iter_channels)
+        MDF._iter_channels = bool(iter_channels)
