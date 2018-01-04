@@ -277,15 +277,23 @@ class MDF23(object):
             if memory == 'minimum':
                 channel_texts = grp['texts']['channels'][original_index]
                 if channel_texts and 'long_name_addr' in channel_texts:
-                    address = grp['texts']['channels'][original_index]['long_name_addr']
+                    address = channel_texts['long_name_addr']
 
                     block = TextBlock(
                         address=address,
                         stream=stream,
                     )
-                    name = block['text'].decode('latin-1').strip(' \r\n\t\0')
+                    name = (
+                        block['text']
+                        .decode('latin-1')
+                        .strip(' \r\n\t\0')
+                    )
                 else:
-                    name = new_ch['short_name'].decode('latin-1').strip(' \r\n\t\0')
+                    name = (
+                        new_ch['short_name']
+                        .decode('latin-1')
+                        .strip(' \r\n\t\0')
+                    )
                 name = name.split('\\')[0]
             else:
                 name = new_ch.name
@@ -496,8 +504,10 @@ class MDF23(object):
         """
         if name is None:
             if group is None or index is None:
-                message = ('Invalid arguments for channel selection: '
-                           'must give "name" or, "group" and "index"')
+                message = (
+                    'Invalid arguments for channel selection: '
+                    'must give "name" or, "group" and "index"'
+                )
                 raise MdfException(message)
             else:
                 gp_nr, ch_nr = group, index
@@ -513,10 +523,12 @@ class MDF23(object):
                 if group is None:
                     gp_nr, ch_nr = self.channels_db[name][0]
                     if len(self.channels_db[name]) > 1:
-                        message = ('Multiple occurances for channel "{}". '
-                                   'Using first occurance from data group {}. '
-                                   'Provide both "group" and "index" arguments'
-                                   ' to select another data group')
+                        message = (
+                            'Multiple occurances for channel "{}". '
+                            'Using first occurance from data group {}. '
+                            'Provide both "group" and "index" arguments'
+                            ' to select another data group'
+                        )
                         message = message.format(name, gp_nr)
                         warnings.warn(message)
                 else:
@@ -555,9 +567,11 @@ class MDF23(object):
         )
         self.header = HeaderBlock(stream=stream)
 
-        self.version = self.identification['version_str'] \
-            .decode('latin-1') \
+        self.version = (
+            self.identification['version_str']
+            .decode('latin-1')
             .strip(' \n\t\0')
+        )
 
         self.file_history = TextBlock(
             address=self.header['comment_addr'],
@@ -925,8 +939,8 @@ class MDF23(object):
                common_timebase=False):
         """Appends a new data group.
 
-        For channel dependencies type Signals, the *samples* attribute must be a
-        numpy.recarray
+        For channel dependencies type Signals, the *samples* attribute must be
+        a numpy.recarray
 
         Parameters
         ----------
@@ -1006,26 +1020,26 @@ class MDF23(object):
         # be saved as new signals.
         simple_signals = [
             sig for sig in signals
-            if len(sig.samples.shape) <= 1 and
-               sig.samples.dtype.names is None
+            if len(sig.samples.shape) <= 1
+            and sig.samples.dtype.names is None
         ]
         composed_signals = [
             sig for sig in signals
-            if len(sig.samples.shape) > 1 or
-               sig.samples.dtype.names
+            if len(sig.samples.shape) > 1
+            or sig.samples.dtype.names
         ]
 
         # mdf version 4 structure channels and CANopen types will be saved to
         # new channel groups
         new_groups_signals = [
             sig for sig in composed_signals
-            if sig.samples.dtype.names and
-               sig.samples.dtype.names[0] != sig.name
+            if sig.samples.dtype.names
+            and sig.samples.dtype.names[0] != sig.name
         ]
         composed_signals = [
             sig for sig in composed_signals
-            if not sig.samples.dtype.names or
-               sig.samples.dtype.names[0] == sig.name
+            if not sig.samples.dtype.names
+            or sig.samples.dtype.names[0] == sig.name
         ]
 
         if simple_signals or composed_signals:
@@ -1224,7 +1238,7 @@ class MDF23(object):
 
                     texts = {}
                     info = signal.info
-                    if info and 'raw' in info and not info['raw'].dtype.kind == 'S':
+                    if info and 'raw' in info and info['raw'].dtype.kind != 'S':
                         kargs = {}
                         kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTAB
                         raw = info['raw']
@@ -1406,7 +1420,7 @@ class MDF23(object):
 
                 texts = {}
                 info = signal.info
-                if info and 'raw' in info and not info['raw'].dtype.kind == 'S':
+                if info and 'raw' in info and info['raw'].dtype.kind != 'S':
                     kargs = {}
                     kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTAB
                     raw = info['raw']
@@ -1678,8 +1692,8 @@ class MDF23(object):
 
                 ch_cntr += 1
 
-                for i, (name, samples) in enumerate(zip(component_names,
-                                                        component_samples)):
+                for i, (name, samples) in enumerate(
+                        zip(component_names, component_samples)):
                     for _, item in gp['texts'].items():
                         item.append(None)
 
@@ -1926,8 +1940,9 @@ class MDF23(object):
             ch_cntr += 1
 
             names = signal.samples.dtype.names
-            if names == ('ms',
-                         'days'):
+            if names == (
+                    'ms',
+                    'days'):
                 block = TextBlock(text='From mdf v4 CANopen Time channel')
                 if memory == 'minimum':
                     address = tell()
@@ -1935,14 +1950,15 @@ class MDF23(object):
                     gp_texts['channel_group'][-1] = {'comment_addr': address}
                 else:
                     gp_texts['channel_group'][-1] = {'comment_addr': block}
-            elif names == ('ms',
-                           'min',
-                           'hour',
-                           'day',
-                           'month',
-                           'year',
-                           'summer_time',
-                           'day_of_week'):
+            elif names == (
+                    'ms',
+                    'min',
+                    'hour',
+                    'day',
+                    'month',
+                    'year',
+                    'summer_time',
+                    'day_of_week'):
                 block = TextBlock(text='From mdf v4 CANopen Date channel')
                 if memory == 'minimum':
                     address = tell()
@@ -2318,7 +2334,7 @@ class MDF23(object):
 
         Raises
         ------
-        MdfError :
+        MdfException :
 
         * if the channel name is not found
         * if the group index is out of range
@@ -2583,9 +2599,15 @@ class MDF23(object):
                                          v23c.CONVERSION_TYPE_TABX):
                     nr = conversion['ref_param_nr']
 
-                    raw_vals = [conversion['raw_{}'.format(i)] for i in range(nr)]
+                    raw_vals = [
+                        conversion['raw_{}'.format(i)]
+                        for i in range(nr)
+                    ]
                     raw_vals = array(raw_vals)
-                    phys = [conversion['phys_{}'.format(i)] for i in range(nr)]
+                    phys = [
+                        conversion['phys_{}'.format(i)]
+                        for i in range(nr)
+                    ]
                     phys = array(phys)
                     if conversion_type == v23c.CONVERSION_TYPE_TABI:
                         vals = interp(vals, raw_vals, phys)
@@ -2601,7 +2623,10 @@ class MDF23(object):
                         for i in range(nr)
                     ]
                     raw_vals = array(raw_vals)
-                    phys = [conversion['text_{}'.format(i)] for i in range(nr)]
+                    phys = [
+                        conversion['text_{}'.format(i)]
+                        for i in range(nr)
+                    ]
                     phys = array(phys)
                     info = {'raw': raw_vals, 'phys': phys}
 
@@ -2644,8 +2669,9 @@ class MDF23(object):
                     upper = array(upper)
                     info = {'lower': lower, 'upper': upper, 'phys': texts}
 
-                elif conversion_type in (v23c.CONVERSION_TYPE_EXPO,
-                                         v23c.CONVERSION_TYPE_LOGH):
+                elif conversion_type in (
+                        v23c.CONVERSION_TYPE_EXPO,
+                        v23c.CONVERSION_TYPE_LOGH):
                     if conversion_type == v23c.CONVERSION_TYPE_EXPO:
                         func = log
                     else:
@@ -2913,16 +2939,19 @@ class MDF23(object):
                     ch_type = 'master'
                 else:
                     ch_type = 'value'
-                inf['channel {}'.format(j)] = 'name="{}" type={}'.format(name, ch_type)
+                inf['channel {}'.format(j)] = 'name="{}" type={}'.format(
+                    name,
+                    ch_type,
+                )
 
         return info
 
     def save(self, dst='', overwrite=None, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '_<cntr>', were
-        '<cntr>' is the first counter that produces a new file name (that does
-        not already exist in the filesystem).
+        is overwritten, otherwise the file name is appended with '_<cntr>',
+        were '<cntr>' is the first counter that produces a new file name (that
+        does not already exist in the filesystem).
 
         Parameters
         ----------
@@ -2968,9 +2997,9 @@ class MDF23(object):
     def _save_with_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '_<cntr>', were
-        '<cntr>' is the first counter that produces a new file name (that does
-        not already exist in the filesystem).
+        is overwritten, otherwise the file name is appended with '_<cntr>',
+        were '<cntr>' is the first counter that produces a new file name (that
+        does not already exist in the filesystem).
 
         Parameters
         ----------
@@ -3004,8 +3033,10 @@ class MDF23(object):
             self.file_history = TextBlock(text=text)
 
         if self.name is None and dst == '':
-            message = ('Must specify a destination file name '
-                       'for MDF created from scratch')
+            message = (
+                'Must specify a destination file name '
+                'for MDF created from scratch'
+            )
             raise MdfException(message)
 
         dst = dst if dst else self.name
@@ -3019,8 +3050,10 @@ class MDF23(object):
                         break
                     else:
                         cntr += 1
-                message = ('Destination file "{}" already exists '
-                           'and "overwrite" is False. Saving MDF file as "{}"')
+                message = (
+                    'Destination file "{}" already exists '
+                    'and "overwrite" is False. Saving MDF file as "{}"'
+                )
                 message = message.format(dst, name)
                 warnings.warn(message)
                 dst = name
@@ -3278,9 +3311,9 @@ class MDF23(object):
     def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '_<cntr>', were
-        '<cntr>' is the first counter that produces a new file name (that does
-        not already exist in the filesystem).
+        is overwritten, otherwise the file name is appended with '_<cntr>',
+        were '<cntr>' is the first counter that produces a new file name (that
+        does not already exist in the filesystem).
 
         Parameters
         ----------
@@ -3329,8 +3362,10 @@ class MDF23(object):
         # data block in the soource MDF file.
 
         if self.name is None and dst == '':
-            message = ('Must specify a destination file name '
-                       'for MDF created from scratch')
+            message = (
+                'Must specify a destination file name '
+                'for MDF created from scratch'
+            )
             raise MdfException(message)
 
         dst = dst if dst else self.name
@@ -3344,8 +3379,10 @@ class MDF23(object):
                         break
                     else:
                         cntr += 1
-                message = ('Destination file "{}" already exists '
-                           'and "overwrite" is False. Saving MDF file as "{}"')
+                message = (
+                    'Destination file "{}" already exists '
+                    'and "overwrite" is False. Saving MDF file as "{}"'
+                )
                 message = message.format(dst, name)
                 warnings.warn(message)
                 dst = name
@@ -3537,7 +3574,10 @@ class MDF23(object):
                 del gp['temp_channel_conversions']
                 del gp['temp_channel_extensions']
 
-            orig_addr = [gp['data_group']['data_block_addr'] for gp in self.groups]
+            orig_addr = [
+                gp['data_group']['data_block_addr']
+                for gp in self.groups
+            ]
             address = tell()
             gp_rec_ids = []
             for i, gp in enumerate(self.groups):

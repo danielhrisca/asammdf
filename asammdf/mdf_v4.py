@@ -922,9 +922,9 @@ class MDF4(object):
             ch_type = new_ch['channel_type']
             dependency_list = grp['channel_dependencies'][original_index]
             if memory == 'minimum':
+                channel_texts = grp['texts']['channels'][original_index]
                 block = TextBlock(
-                    address=grp['texts']['channels']
-                    [original_index]['name_addr'],
+                    address=channel_texts['name_addr'],
                     stream=stream,
                 )
                 name = block['text'].decode('utf-8').strip(' \r\n\t\0')
@@ -1051,9 +1051,9 @@ class MDF4(object):
         byte_offset = channel['byte_offset']
         bit_count = channel['bit_count']
 
-        dependency_list = group['channel_dependencies'][ch_nr]
-        if dependency_list and isinstance(dependency_list[0], ChannelArrayBlock):
-            ca_block = dependency_list[0]
+        dependencies = group['channel_dependencies'][ch_nr]
+        if dependencies and isinstance(dependencies[0], ChannelArrayBlock):
+            ca_block = dependencies[0]
 
             size = bit_count >> 3
             shape = tuple(
@@ -1061,7 +1061,7 @@ class MDF4(object):
                 for i in range(ca_block['dims'])
             )
             if ca_block['byte_offset_base'] // size > 1 and len(shape) == 1:
-                shape += (ca_block['byte_offset_base'] // size,)
+                shape += (ca_block['byte_offset_base'] // size, )
             dim = 1
             for d in shape:
                 dim *= d
@@ -1181,8 +1181,10 @@ class MDF4(object):
         """
         if name is None:
             if group is None or index is None:
-                message = ('Invalid arguments for channel selection: '
-                           'must give "name" or, "group" and "index"')
+                message = (
+                    'Invalid arguments for channel selection: '
+                    'must give "name" or, "group" and "index"'
+                )
                 raise MdfException(message)
             else:
                 gp_nr, ch_nr = group, index
@@ -1231,8 +1233,8 @@ class MDF4(object):
         """
         Appends a new data group.
 
-        For channel dependencies type Signals, the *samples* attribute must be a
-        numpy.recarray
+        For channel dependencies type Signals, the *samples* attribute must be
+        a numpy.recarray
 
         Parameters
         ----------
@@ -1299,12 +1301,13 @@ class MDF4(object):
         # be saved as new signals.
         simple_signals = [
             sig for sig in signals
-            if len(sig.samples.shape) <= 1 and sig.samples.dtype.names is None
+            if len(sig.samples.shape) <= 1
+            and sig.samples.dtype.names is None
         ]
         composed_signals = [
             sig for sig in signals
-            if len(sig.samples.shape) > 1 or
-               sig.samples.dtype.names
+            if len(sig.samples.shape) > 1
+            or sig.samples.dtype.names
         ]
 
         dg_cntr = len(self.groups)
@@ -1595,7 +1598,6 @@ class MDF4(object):
                     upper = info['upper']
                     texts = info['phys']
                     kargs['ref_param_nr'] = len(upper)
-#                    kargs['default_addr'] = info.get('default', 0)
                     kargs['links_nr'] = len(lower) + 5
 
                     for i, (u_, l_, t_) in enumerate(zip(upper, lower, texts)):
@@ -2594,9 +2596,11 @@ class MDF4(object):
             if flags & v4c.FLAG_AT_EMBEDDED:
                 data = attachment.extract()
 
-                file_path = texts['file_name_addr']['text'] \
-                    .decode('utf-8') \
+                file_path = (
+                    texts['file_name_addr']['text']
+                    .decode('utf-8')
                     .strip(' \n\t\0')
+                )
                 out_path = os.path.dirname(file_path)
                 if out_path:
                     if not os.path.exists(out_path):
@@ -2609,24 +2613,28 @@ class MDF4(object):
             else:
                 # for external attachments read the file and return the content
                 if flags & v4c.FLAG_AT_MD5_VALID:
-                    file_path = texts['file_name_addr']['text'] \
-                        .decode('utf-8') \
+                    file_path = (
+                        texts['file_name_addr']['text']
+                        .decode('utf-8')
                         .strip(' \n\t\0')
+                    )
                     data = open(file_path, 'rb').read()
                     md5_worker = md5()
                     md5_worker.update(data)
                     md5_sum = md5_worker.digest()
                     if attachment['md5_sum'] == md5_sum:
-                        if texts['mime_addr']['text'] \
-                                .decode('utf-8') \
-                                .startswith('text'):
+                        if (texts['mime_addr']['text']
+                                .decode('utf-8')
+                                .startswith('text')):
                             with open(file_path, 'r') as f:
                                 data = f.read()
                         return data
                     else:
-                        message = ('ATBLOCK md5sum="{}" '
-                                   'and external attachment data ({}) '
-                                   'md5sum="{}"')
+                        message = (
+                            'ATBLOCK md5sum="{}" '
+                            'and external attachment data ({}) '
+                            'md5sum="{}"'
+                        )
                         message = message.format(
                             attachment['md5_sum'],
                             file_path,
@@ -2634,9 +2642,9 @@ class MDF4(object):
                         )
                         warnings.warn(message)
                 else:
-                    if texts['mime_addr']['text'] \
-                            .decode('utf-8') \
-                            .startswith('text'):
+                    if (texts['mime_addr']['text']
+                            .decode('utf-8')
+                            .startswith('text')):
                         mode = 'r'
                     else:
                         mode = 'rb'
@@ -2861,13 +2869,13 @@ class MDF4(object):
             The *Signal* samples are:
 
                 * numpy recarray for channels that have composition/channel
-                    array address or for channel of type BYTEARRAY, CANOPENDATE,
-                    CANOPENTIME
+                    array address or for channel of type BYTEARRAY,
+                    CANOPENDATE, CANOPENTIME
                 * numpy array for all the rest
 
         Raises
         ------
-        MdfError :
+        MdfException :
 
         * if the channel name is not found
         * if the group index is out of range
@@ -2994,7 +3002,9 @@ class MDF4(object):
             arrays = []
             name = channel.name
 
-            if all(isinstance(dep, (Channel, int, long)) for dep in dependency_list):
+            if all(
+                    isinstance(dep, (Channel, int, long))
+                    for dep in dependency_list):
                 # structure channel composition
                 if memory == 'minimum':
                     names = []
@@ -3020,7 +3030,10 @@ class MDF4(object):
                     for name_ in names
                 ]
 
-                types = [(name_, arr.dtype) for name_, arr in zip(names, arrays)]
+                types = [
+                    (name_, arr.dtype)
+                    for name_, arr in zip(names, arrays)
+                ]
                 if PYVERSION == 2:
                     types = fix_dtype_fields(types)
                 types = dtype(types)
@@ -3100,15 +3113,30 @@ class MDF4(object):
                             for i in range(dims_nr):
                                 ch_nr, dg_nr = ca_block.referenced_channels[i]
                                 if memory == 'minimum':
-                                    axisname = self.groups[dg_nr]['texts']['channels'][ch_nr]['name_addr']
+                                    axisname = (
+                                        self.groups[dg_nr]
+                                        ['texts']
+                                        ['channels']
+                                        [ch_nr]
+                                        ['name_addr']
+                                    )
                                     block = TextBlock(
                                         address=axisname,
                                         stream=stream,
                                     )
-                                    axisname = block['text'].decode('utf-8').strip(' \t\n\r\0')
+                                    axisname = (
+                                        block['text']
+                                        .decode('utf-8')
+                                        .strip(' \t\n\r\0')
+                                    )
                                     axisname = axisname.split('\\')[0]
                                 else:
-                                    axisname = self.groups[dg_nr]['channels'][ch_nr].name
+                                    axisname = (
+                                        self.groups[dg_nr]
+                                        ['channels']
+                                        [ch_nr]
+                                        .name
+                                    )
                                 shape = (ca_block['dim_size_{}'.format(i)],)
                                 axis_values = self.get(
                                     group=dg_nr,
@@ -3148,15 +3176,30 @@ class MDF4(object):
                         for i in range(dims_nr):
                             ch_nr, dg_nr = ca_block.referenced_channels[i]
                             if memory == 'minimum':
-                                axisname = self.groups[dg_nr]['texts']['channels'][ch_nr]['name_addr']
+                                axisname = (
+                                    self.groups[dg_nr]
+                                    ['texts']
+                                    ['channels']
+                                    [ch_nr]
+                                    ['name_addr']
+                                )
                                 block = TextBlock(
                                     address=axisname,
                                     stream=stream,
                                 )
-                                axisname = block['text'].decode('utf-8').strip(' \t\n\r\0')
+                                axisname = (
+                                    block['text']
+                                    .decode('utf-8')
+                                    .strip(' \t\n\r\0')
+                                )
                                 axisname = axisname.split('\\')[0]
                             else:
-                                axisname = self.groups[dg_nr]['channels'][ch_nr].name
+                                axisname = (
+                                    self.groups[dg_nr]
+                                    ['channels']
+                                    [ch_nr]
+                                    .name
+                                )
                             shape = (ca_block['dim_size_{}'.format(i)],)
                             axis_values = self.get(
                                 group=dg_nr,
@@ -3204,7 +3247,11 @@ class MDF4(object):
                     data_type = channel['data_type']
 
                     if vals.dtype.kind not in 'ui' and (bit_offset or not bits == size * 8):
-                        vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
+                        vals = self._get_not_byte_aligned_data(
+                            data,
+                            grp,
+                            ch_nr,
+                        )
                     else:
                         if bit_offset:
                             dtype_ = vals.dtype
@@ -3237,7 +3284,10 @@ class MDF4(object):
 
                                 vals |= masks
 
-                                vals = vals.astype('<i{}'.format(size), copy=False)
+                                vals = vals.astype(
+                                    '<i{}'.format(size),
+                                    copy=False,
+                                )
                 else:
                     vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 
@@ -3412,14 +3462,27 @@ class MDF4(object):
 
                 elif conversion_type == v4c.CONVERSION_TYPE_ALG:
                     if not memory == 'minimum':
-                        block = grp['texts']['conversions'][ch_nr]['formula_addr']
-                        formula = block['text'].decode('utf-8').strip(' \n\t\0')
+                        block = (
+                            grp['texts']
+                            ['conversions']
+                            [ch_nr]
+                            ['formula_addr']
+                        )
+                        formula = (
+                            block['text']
+                            .decode('utf-8')
+                            .strip(' \n\t\0')
+                        )
                     else:
                         block = TextBlock(
                             address=grp['texts']['conversions'][ch_nr]['formula_addr'],
                             stream=stream,
                         )
-                        formula = block['text'].decode('utf-8').strip(' \n\t\0')
+                        formula = (
+                            block['text']
+                            .decode('utf-8')
+                            .strip(' \n\t\0')
+                        )
                     X = vals
                     vals = evaluate(formula)
 
@@ -3498,7 +3561,12 @@ class MDF4(object):
                     else:
                         phys = []
                         for i in range(nr):
-                            address = grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]
+                            address = (
+                                grp['texts']
+                                ['conversion_tab']
+                                [ch_nr]
+                                ['text_{}'.format(i)]
+                            )
                             if address:
                                 block = TextBlock(
                                     address=address,
@@ -3509,7 +3577,9 @@ class MDF4(object):
                                 phys.append(b'')
                         phys = array(phys)
 
-                        if grp['texts']['conversion_tab'][ch_nr].get('default_addr', 0):
+                        if grp['texts']['conversion_tab'][ch_nr].get(
+                                'default_addr',
+                                0):
                             block = TextBlock(
                                 address=grp['texts']['conversion_tab'][ch_nr]['default_addr'],
                                 stream=stream,
@@ -3547,7 +3617,9 @@ class MDF4(object):
                             else:
                                 phys.append(b'')
                         phys = array(phys)
-                        if grp['texts']['conversion_tab'][ch_nr].get('default_addr', 0):
+                        if grp['texts']['conversion_tab'][ch_nr].get(
+                                'default_addr',
+                                0):
                             block = TextBlock(
                                 address=grp['texts']['conversion_tab'][ch_nr]['default_addr'],
                                 stream=stream,
@@ -3886,7 +3958,10 @@ class MDF4(object):
                     name = channel.name
 
                 ch_type = v4c.CHANNEL_TYPE_TO_DESCRIPTION[channel['channel_type']]
-                inf['channel {}'.format(j)] = 'name="{}" type={}'.format(name, ch_type)
+                inf['channel {}'.format(j)] = 'name="{}" type={}'.format(
+                    name,
+                    ch_type,
+                )
 
         return info
 
@@ -3922,8 +3997,10 @@ class MDF4(object):
         output_file = ''
 
         if self.name is None and dst == '':
-            message = ('Must specify a destination file name '
-                       'for MDF created from scratch')
+            message = (
+                'Must specify a destination file name '
+                'for MDF created from scratch'
+            )
             raise MdfException(message)
         else:
             if self.memory == 'minimum':
@@ -3978,8 +4055,10 @@ class MDF4(object):
                         break
                     else:
                         cntr += 1
-                message = ('Destination file "{}" already exists '
-                           'and "overwrite" is False. Saving MDF file as "{}"')
+                message = (
+                    'Destination file "{}" already exists '
+                    'and "overwrite" is False. Saving MDF file as "{}"'
+                )
                 message = message.format(dst, name)
                 warnings.warn(message)
                 dst = name
@@ -4230,7 +4309,13 @@ class MDF4(object):
 
                         if conv['conversion_type'] in tab_conversion:
                             for key in gp['texts']['conversion_tab'][j]:
-                                conv[key] = gp['texts']['conversion_tab'][j][key].address
+                                conv[key] = (
+                                    gp['texts']
+                                    ['conversion_tab']
+                                    [j]
+                                    [key]
+                                    .address
+                                )
 
                         address += conv['block_len']
                         blocks.append(conv)
@@ -4281,7 +4366,8 @@ class MDF4(object):
                             dep_list[-1]['composition_addr'] = 0
 
                 # channels
-                for j, (channel, signal_data) in enumerate(zip(gp['channels'], gp['signal_data'])):
+                for j, (channel, signal_data) in enumerate(
+                        zip(gp['channels'], gp['signal_data'])):
                     channel.address = address
                     channel_texts = gp['texts']['channels'][j]
 
@@ -4438,8 +4524,10 @@ class MDF4(object):
 
         """
         if self.name is None and dst == '':
-            message = ('Must specify a destination file name '
-                       'for MDF created from scratch')
+            message = (
+                'Must specify a destination file name '
+                'for MDF created from scratch'
+            )
             raise MdfException(message)
 
         dst = dst if dst else self.name
@@ -4453,8 +4541,10 @@ class MDF4(object):
                         break
                     else:
                         cntr += 1
-                message = ('Destination file "{}" already exists '
-                           'and "overwrite" is False. Saving MDF file as "{}"')
+                message = (
+                    'Destination file "{}" already exists '
+                    'and "overwrite" is False. Saving MDF file as "{}"'
+                )
                 message = message.format(dst, name)
                 warnings.warn(message)
                 dst = name
@@ -4765,8 +4855,6 @@ class MDF4(object):
                     else:
                         temp_deps.append(0)
 
-
-
                 # channels
                 blocks = []
                 chans = []
@@ -4857,7 +4945,6 @@ class MDF4(object):
 
                 # channel group
                 gp['channel_group'].address = address
-                #                gp['channel_group']['first_ch_addr'] = gp['channels'][0]
                 gp['channel_group']['next_cg_addr'] = 0
                 cg_texts = temp_texts['channel_group'][0]
                 for key in ('acq_name_addr', 'comment_addr'):
@@ -4925,7 +5012,9 @@ class MDF4(object):
             for gp in self.groups:
                 for dep_list in gp['channel_dependencies']:
                     if dep_list:
-                        if all(isinstance(dep, ChannelArrayBlock) for dep in dep_list):
+                        if all(
+                                isinstance(dep, ChannelArrayBlock)
+                                for dep in dep_list):
                             for dep in dep_list:
                                 for i, (ch_nr, gp_nr) in enumerate(dep.referenced_channels):
                                     grp = self.groups[gp_nr]

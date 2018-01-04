@@ -3,6 +3,7 @@
 
 import csv
 import os
+import sys
 from warnings import warn
 from functools import reduce
 from struct import unpack
@@ -16,6 +17,10 @@ from .utils import MdfException
 from .v2_v3_blocks import TextBlock as TextBlockV3
 from .v2_v3_blocks import Channel as ChannelV3
 from .v4_blocks import TextBlock as TextBlockV4
+
+PYVERSION = sys.version_info[0]
+if PYVERSION > 2:
+    from past.builtins import long
 
 MDF2_VERSIONS = ('2.00', '2.10', '2.14')
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
@@ -118,7 +123,7 @@ class MDF(object):
                 if dependencies is None:
                     continue
                 if all(dep['id'] == b'##CN'
-                       if not isinstance(dep, int) else True
+                       if not isinstance(dep, (int, long)) else True
                        for dep in dependencies):
                     for ch in dependencies:
                         excluded_channels.add(channels.index(ch))
@@ -173,8 +178,10 @@ class MDF(object):
 
         """
         if to not in SUPPORTED_VERSIONS:
-            message = ('Unknown output mdf version "{}".'
-                       ' Available versions are {}')
+            message = (
+                'Unknown output mdf version "{}".'
+                ' Available versions are {}'
+            )
             warn(message.format(to, SUPPORTED_VERSIONS))
             return
         else:
@@ -444,15 +451,19 @@ class MDF(object):
                     writer = csv.writer(csvfile, delimiter=';')
 
                     ch_nr = len(grp['channels'])
-                    channels = [self.get(group=i, index=j, data=data)
-                                for j in range(ch_nr)]
+                    channels = [
+                        self.get(group=i, index=j, data=data)
+                        for j in range(ch_nr)
+                    ]
 
                     master_index = self.masters_db[i]
                     cycles = grp['channel_group']['cycles_nr']
 
                     names_row = ['Channel', ]
-                    names_row += ['{} [{}]'.format(ch.name, ch.unit)
-                                  for ch in channels]
+                    names_row += [
+                        '{} [{}]'.format(ch.name, ch.unit)
+                        for ch in channels
+                    ]
                     writer.writerow(names_row)
 
                     comment_row = ['comment', ]
@@ -460,8 +471,10 @@ class MDF(object):
                     writer.writerow(comment_row)
 
                     master_row = ['Is master', ]
-                    master_row += ['x' if j == master_index else ''
-                                   for j in range(ch_nr)]
+                    master_row += [
+                        'x' if j == master_index else ''
+                        for j in range(ch_nr)
+                    ]
                     writer.writerow(master_row)
 
                     vals = [np.array(range(cycles), dtype=np.uint32), ]
@@ -606,7 +619,7 @@ class MDF(object):
                     if dependencies is None:
                         continue
                     if all(dep['id'] == b'##CN'
-                           if not isinstance(dep, int) else True
+                           if not isinstance(dep, (int, long)) else True
                            for dep in dependencies):
                         channels = grp['channels']
                         for ch in dependencies:
@@ -683,8 +696,10 @@ class MDF(object):
         ]
 
         if not len(set(len(file.groups) for file in files)) == 1:
-            message = ("Can't merge files: "
-                       "difference in number of data groups")
+            message = (
+                "Can't merge files: "
+                "difference in number of data groups"
+            )
             raise MdfException(message)
 
         merged = MDF(
@@ -695,8 +710,10 @@ class MDF(object):
         for i, groups in enumerate(zip(*(file.groups for file in files))):
             channels_nr = set(len(group['channels']) for group in groups)
             if not len(channels_nr) == 1:
-                message = ("Can't merge files: "
-                           "different channel number for data groups {}")
+                message = (
+                    "Can't merge files: "
+                    "different channel number for data groups {}"
+                )
                 raise MdfException(message.format(i))
 
             signals = []
@@ -723,7 +740,7 @@ class MDF(object):
                             channel_texts = grp['texts']['channels'][j]
                             if channel_texts and \
                                     'long_name_addr' in channel_texts:
-                                address = grp['texts']['channels'][j]['long_name_addr']
+                                address = channel_texts['long_name_addr']
 
                                 block = TextBlockV3(
                                     address=address,
@@ -758,8 +775,10 @@ class MDF(object):
                 else:
                     names = set(ch.name for ch in channels)
                 if not len(names) == 1:
-                    message = ("Can't merge files: "
-                               "different channel names for data group {}")
+                    message = (
+                        "Can't merge files: "
+                        "different channel names for data group {}"
+                    )
                     raise MdfException(message.format(i))
 
                 if j in excluded_channels:
