@@ -130,6 +130,9 @@ class MDF(object):
 
         return excluded_channels
 
+    def __contains__(self, channel):
+        return channel in self.channels_db
+
     def __iter__(self):
         if self._iter_channels:
             for i, group in enumerate(self.groups):
@@ -146,6 +149,11 @@ class MDF(object):
             for dataframe in self.iter_to_pandas():
                 yield dataframe
 
+    def __len__(self):
+        return sum(
+            len(channel_ocurrences)
+            for channel_ocurrences in self.channels_db.values()
+        )
 
     def convert(self, to, memory='full'):
         """convert MDF to other versions
@@ -968,6 +976,33 @@ class MDF(object):
             signals = DataFrame.from_dict(pandas_dict)
 
         return signals
+
+    def whereis(self, channel):
+        """ get ocurrences of channel name in the file
+
+        Parameters
+        ----------
+        channel : str
+            channel name string
+
+        Returns
+        -------
+        ocurrences : tuple
+
+
+        Examples
+        --------
+        >>> mdf = MDF(file_name)
+        >>> mdf.whereis('VehicleSpeed') # "VehicleSpeed" exists in the file
+        ((1, 2), (2, 4))
+        >>> mdf.whereis('VehicleSPD') # "VehicleSPD" doesn't exist in the file
+        ()
+
+        """
+        if channel in self:
+            return tuple(self.channels_db[channel])
+        else:
+            return tuple()
 
 
 if __name__ == '__main__':
