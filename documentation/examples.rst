@@ -58,17 +58,17 @@ Working with MDF
                        unit='f8')
 
     # create empty MDf version 4.00 file
-    MDF_V4 = MDF(version='4.10')
+    mdf4 = MDF(version='4.10')
 
     # append the 3 signals to the new file
     signals = [s_uint8, s_int32, s_float64]
-    MDF_V4.append(signals, 'Created by Python')
+    mdf4.append(signals, 'Created by Python')
 
     # save new file
-    MDF_V4.save('my_new_file.mf4', overwrite=True)
+    mdf4.save('my_new_file.mf4', overwrite=True)
 
     # convert new file to mdf version 3.10 with lower possible RAM usage
-    mdf3 = MDF_V4.convert(to='3.10', memory='minimum')
+    mdf3 = mdf4.convert(to='3.10', memory='minimum')
     print(mdf3.version)
 
     # get the float signal
@@ -76,18 +76,18 @@ Working with MDF
     print(sig)
 
     # cut measurement from 0.3s to end of measurement
-    MDF_V4_cut = MDF_V4.cut(start=0.3)
-    MDF_V4_cut.get('Float64_Signal').plot()
+    mdf4_cut = mdf4.cut(start=0.3)
+    mdf4_cut.get('Float64_Signal').plot()
 
     # cut measurement from start of measurement to 0.4s
-    MDF_V4_cut = MDF_V4.cut(stop=0.45)
-    MDF_V4_cut.get('Float64_Signal').plot()
+    mdf4_cut = mdf4.cut(stop=0.45)
+    mdf4_cut.get('Float64_Signal').plot()
 
     # filter some signals from the file
-    MDF_V4 = MDF_V4.filter(['Int32_Signal', 'Uint8_Signal'])
+    mdf4 = mdf4.filter(['Int32_Signal', 'Uint8_Signal'])
 
     # save using zipped transpose deflate blocks
-    MDF_V4.save('out.mf4', compression=2, overwrite=True)
+    mdf4.save('out.mf4', compression=2, overwrite=True)
 
 
 Working with Signal
