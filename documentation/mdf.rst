@@ -46,8 +46,8 @@ MDF_V2_V3 and MDF_V4 classes
 .. toctree::
    :maxdepth: 1
 
-   MDF_V2_V3
-   MDF_V4
+   mdf23
+   mdf4
 
 Notes about *memory* argument
 -----------------------------
