@@ -319,9 +319,9 @@ class Signal(object):
                 stop_ = np.searchsorted(self.timestamps, stop, side='right')
                 if stop_ == start_:
 
-                    if len(self.timestamps) and \
-                            stop >= self.timestamps[0] and \
-                            start <= self.timestamps[-1]:
+                    if (len(self.timestamps)
+                            and stop >= self.timestamps[0]
+                            and start <= self.timestamps[-1]):
                         # start and stop are found between 2 signal samples
                         # so return the previous sample
                         result = Signal(

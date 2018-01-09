@@ -21,9 +21,9 @@
 MDF
 ===
 
-This class acts as a proxy for the MDF23 and MDF4 classes.
-All attribute access is delegated to the underlying *_mdf* attribute (MDF23 or MDF4 object).
-See MDF23 and MDF4 for available extra methods.
+This class acts as a proxy for the MDF_V2_V3 and MDF_V4 classes.
+All attribute access is delegated to the underlying *_mdf* attribute (MDF_V2_V3 or MDF_V4 object).
+See MDF_V2_V3 and MDF_V4 for available extra methods.
 
 An empty MDF file is created if the *name* argument is not provided.
 If the *name* argument is provided then the file must exist in the filesystem, otherwise an exception is raised.
@@ -40,14 +40,14 @@ Best practice is to use the MDF as a context manager. This way all resources are
     :members:
 
 
-MDF23 and MDF4 classes
-----------------------
+MDF_V2_V3 and MDF_V4 classes
+----------------------------
 
 .. toctree::
    :maxdepth: 1
 
-   mdf23
-   mdf4
+   MDF_V2_V3
+   MDF_V4
 
 Notes about *memory* argument
 -----------------------------

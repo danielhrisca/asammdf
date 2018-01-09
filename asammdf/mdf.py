@@ -139,26 +139,9 @@ class MDF(object):
         return channel in self.channels_db
 
     def __iter__(self):
-        if self._iter_channels:
-            for i, group in enumerate(self.groups):
-                try:
-                    master_index = self.masters_db[i]
-                except KeyError:
-                    master_index = -1
-
-                for j, _ in enumerate(group['channels']):
-                    if j == master_index:
-                        continue
-                    yield self.get(group=i, index=j)
-        else:
-            for dataframe in self.iter_to_pandas():
-                yield dataframe
-
-    def __len__(self):
-        return sum(
-            len(channel_ocurrences)
-            for channel_ocurrences in self.channels_db.values()
-        )
+        # the default is to yield from iter_channels
+        for signal in self.iter_channels():
+            yield signal
 
     def convert(self, to, memory='full'):
         """convert MDF to other versions
@@ -800,7 +783,20 @@ class MDF(object):
 
         return merged
 
-    def iter_to_pandas(self):
+    def iter_channels(self):
+        """ generator that yields a `Signal` for each non-master channel"""
+        for i, group in enumerate(self.groups):
+            try:
+                master_index = self.masters_db[i]
+            except KeyError:
+                master_index = -1
+
+            for j, _ in enumerate(group['channels']):
+                if j == master_index:
+                    continue
+                yield self.get(group=i, index=j)
+
+    def iter_groups(self):
         """ generator that yields channel groups as pandas DataFrames"""
 
         for i, gp in enumerate(self.groups):
