@@ -783,8 +783,15 @@ class MDF(object):
 
         return merged
 
-    def iter_channels(self):
-        """ generator that yields a `Signal` for each non-master channel"""
+    def iter_channels(self, skip_master=True):
+        """ generator that yields a `Signal` for each non-master channel
+
+        Parameters
+        ----------
+        skip_master : bool
+            do not yield master channels; default True
+
+        """
         for i, group in enumerate(self.groups):
             try:
                 master_index = self.masters_db[i]
@@ -792,7 +799,7 @@ class MDF(object):
                 master_index = -1
 
             for j, _ in enumerate(group['channels']):
-                if j == master_index:
+                if skip_master and j == master_index:
                     continue
                 yield self.get(group=i, index=j)
 
