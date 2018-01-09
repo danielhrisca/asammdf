@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 from utils import MEMORY
-from asammdf import MDF, MDF4, Signal
+from asammdf import MDF, MDF_V4, Signal
 
 CHANNEL_LEN = 100000
 
@@ -13,7 +13,7 @@ CHANNEL_LEN = 100000
 class TestMDF4(unittest.TestCase):
 
     def test_measurement(self):
-        self.assertTrue(MDF4)
+        self.assertTrue(MDF_V4)
 
     def test_read_mdf4_00(self):
 
