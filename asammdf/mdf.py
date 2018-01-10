@@ -485,6 +485,7 @@ class MDF(object):
             channel = 'DataGroup_{}_{}'
 
             for i, grp in enumerate(self.groups):
+                master_index = self.masters_db.get(i, -1)
                 data = self._load_group_data(grp)
                 for j, _ in enumerate(grp['channels']):
                     sig = self.get(
