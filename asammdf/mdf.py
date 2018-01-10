@@ -11,8 +11,9 @@ from struct import unpack
 import numpy as np
 from pandas import DataFrame
 
-from .mdf_v2_v3 import MDF_V2_V3
-from .mdf_v4 import MDF_V4
+from .mdf_v2 import MDF2
+from .mdf_v3 import MDF3
+from .mdf_v4 import MDF4
 from .utils import MdfException
 from .v2_v3_blocks import TextBlock as TextBlockV3
 from .v2_v3_blocks import Channel as ChannelV3
@@ -66,11 +67,11 @@ class MDF(object):
                         version = str(version)
                         version = '{}.{}'.format(version[0], version[1:])
                 if version in MDF3_VERSIONS:
-                    self._mdf = MDF_V2_V3(name, memory)
+                    self._mdf = MDF3(name, memory)
                 elif version in MDF4_VERSIONS:
-                    self._mdf = MDF_V4(name, memory)
+                    self._mdf = MDF4(name, memory)
                 elif version in MDF2_VERSIONS:
-                    self._mdf = MDF_V2_V3(name, memory)
+                    self._mdf = MDF2(name, memory)
                 else:
                     message = ('"{}" is not a supported MDF file; '
                                '"{}" file version was found')
@@ -78,13 +79,18 @@ class MDF(object):
             else:
                 raise MdfException('File "{}" does not exist'.format(name))
         else:
-            if version in MDF2_VERSIONS + MDF3_VERSIONS:
-                self._mdf = MDF_V2_V3(
+            if version in MDF2_VERSIONS:
+                self._mdf = MDF3(
+                    version=version,
+                    memory=memory,
+                )
+            elif version in MDF3_VERSIONS:
+                self._mdf = MDF3(
                     version=version,
                     memory=memory,
                 )
             elif version in MDF4_VERSIONS:
-                self._mdf = MDF_V4(
+                self._mdf = MDF4(
                     version=version,
                     memory=memory,
                 )

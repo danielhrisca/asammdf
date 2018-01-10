@@ -90,10 +90,10 @@ if PYVERSION == 2:
 else:
     from past.builtins import long
 
-__all__ = ['MDF_V4', ]
+__all__ = ['MDF4', ]
 
 
-class MDF_V4(object):
+class MDF4(object):
     """If the *name* exist it will be memorised otherwise an empty file will be
     created that can be later saved to disk
 
@@ -3922,7 +3922,7 @@ class MDF_V4(object):
 
         Examples
         --------
-        >>> mdf = MDF_V4('test.mdf')
+        >>> mdf = MDF4('test.mdf')
         >>> mdf.info()
 
 
@@ -4112,9 +4112,9 @@ class MDF_V4(object):
 
                 data = self._load_group_data(gp)
 
-                if MDF_V4._split_data_blocks:
+                if MDF4._split_data_blocks:
                     samples_size = gp['channel_group']['samples_byte_nr']
-                    split_size = MDF_V4._split_threshold // samples_size
+                    split_size = MDF4._split_threshold // samples_size
                     split_size *= samples_size
                     if split_size == 0:
                         chunks = 1
@@ -4598,9 +4598,9 @@ class MDF_V4(object):
 
                 data = self._load_group_data(gp)
 
-                if MDF_V4._split_data_blocks:
+                if MDF4._split_data_blocks:
                     samples_size = gp['channel_group']['samples_byte_nr']
-                    split_size = MDF_V4._split_threshold // samples_size
+                    split_size = MDF4._split_threshold // samples_size
                     split_size *= samples_size
                     if split_size == 0:
                         chunks = 1

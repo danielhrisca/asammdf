@@ -533,7 +533,12 @@ class Signal(object):
         return self.__apply_func(other, '__ne__')
 
     def __iter__(self):
-        return zip(self.samples, self.timestamps)
+        for item in (
+                self.samples,
+                self.timestamps,
+                self.unit,
+                self.name):
+            yield item
 
     def __reversed__(self):
         return enumerate(zip(reversed(self.samples), reversed(self.timestamps)))

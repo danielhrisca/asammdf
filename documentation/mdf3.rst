@@ -16,10 +16,10 @@
 .. role:: orange
 .. role:: brown
 
-.. _MDF_V2_V3:
+.. _MDF3:
 
-MDF_V2_V3
-=========
+MDF3
+====
 
 asammdf tries to emulate the mdf structure using Python builtin data types.
 
@@ -63,7 +63,7 @@ The *master_db* attibute is a dictionary that holds the *channel index*  of the 
 API
 ---
 
-.. autoclass:: asammdf.mdf_v2_v3.MDF_V2_V3
+.. autoclass:: asammdf.mdf_v3.MDF3
     :members:
     :noindex:
 
