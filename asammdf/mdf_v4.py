@@ -1391,6 +1391,13 @@ class MDF4(object):
             gp_conv.append(None)
             gp_source.append(SourceInformation())
 
+        if memory == 'minimum':
+            name_addr = gp_texts['channels'][-1]['name_addr']
+            unit_addr = gp_texts['channels'][-1]['unit_addr']
+        else:
+            name_addr = 0
+            unit_addr = 0
+
         # time channel
         t_type, t_size = fmt_to_datatype(t.dtype)
         kargs = {
@@ -1405,7 +1412,8 @@ class MDF4(object):
             'lower_limit': t[0] if cycles_nr else 0,
             'upper_limit': t[-1] if cycles_nr else 0,
             'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
-            'name_addr': gp_texts['channels'][-1]['name_addr'],
+            'name_addr': name_addr,
+            'unit_addr': unit_addr,
         }
         ch = Channel(**kargs)
         ch.name = name = 't'
@@ -1654,6 +1662,13 @@ class MDF4(object):
                     write(bytes(block))
                     gp_source.append(address)
 
+                if memory == 'minimum':
+                    name_addr = gp_texts['channels'][-1]['name_addr']
+                    unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                else:
+                    name_addr = 0
+                    unit_addr = 0
+
                 # compute additional byte offset for large records size
                 if signal.samples.dtype.kind == 'u':
                     data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
@@ -1669,7 +1684,8 @@ class MDF4(object):
                     'max_raw_value': max_val if min_val <= max_val else 0,
                     'lower_limit': min_val if min_val <= max_val else 0,
                     'upper_limit': max_val if min_val <= max_val else 0,
-                    'name_addr': gp_texts['channels'][-1]['name_addr'],
+                    'name_addr': name_addr,
+                    'unit_addr': unit_addr,
                 }
                 if min_val > max_val:
                     kargs['flags'] = 0
@@ -1860,6 +1876,13 @@ class MDF4(object):
                 write(bytes(block))
                 gp_source.append(address)
 
+            if memory == 'minimum':
+                name_addr = gp_texts['channels'][-1]['name_addr']
+                unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+            else:
+                name_addr = 0
+                unit_addr = 0
+
             # compute additional byte offset for large records size
             s_type, s_size = fmt_to_datatype(signal.samples.dtype)
             byte_size = max(s_size // 8, 1)
@@ -1874,7 +1897,8 @@ class MDF4(object):
                 'max_raw_value': max_val if min_val <= max_val else 0,
                 'lower_limit': min_val if min_val <= max_val else 0,
                 'upper_limit': max_val if min_val <= max_val else 0,
-                'name_addr': gp_texts['channels'][-1]['name_addr'],
+                'name_addr': name_addr,
+                'unit_addr': unit_addr,
             }
             if min_val > max_val:
                 kargs['flags'] = 0
@@ -2004,6 +2028,13 @@ class MDF4(object):
                 # there is no chanel dependency
                 gp_dep.append(None)
 
+                if memory == 'minimum':
+                    name_addr = gp_texts['channels'][-1]['name_addr']
+                    unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                else:
+                    name_addr = 0
+                    unit_addr = 0
+
                 # add channel block
                 kargs = {
                     'channel_type': v4c.CHANNEL_TYPE_VALUE,
@@ -2016,7 +2047,8 @@ class MDF4(object):
                     'lower_limit': 0,
                     'upper_limit': 0,
                     'flags': 0,
-                    'name_addr': gp_texts['channels'][-1]['name_addr'],
+                    'name_addr': name_addr,
+                    'unit_addr': unit_addr,
                 }
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2093,6 +2125,13 @@ class MDF4(object):
                     write(bytes(block))
                     gp_source.append(address)
 
+                if memory == 'minimum':
+                    name_addr = gp_texts['channels'][-1]['name_addr']
+                    unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                else:
+                    name_addr = 0
+                    unit_addr = 0
+
                 # add channel block
                 kargs = {
                     'channel_type': v4c.CHANNEL_TYPE_VALUE,
@@ -2105,7 +2144,8 @@ class MDF4(object):
                     'lower_limit': 0,
                     'upper_limit': 0,
                     'flags': 0,
-                    'name_addr': gp_texts['channels'][-1]['name_addr'],
+                    'name_addr': name_addr,
+                    'unit_addr': unit_addr,
                 }
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2175,6 +2215,13 @@ class MDF4(object):
                     else:
                         gp_source.append(0)
 
+                    if memory == 'minimum':
+                        name_addr = gp_texts['channels'][-1]['name_addr']
+                        unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                    else:
+                        name_addr = 0
+                        unit_addr = 0
+
                     # add channel block
                     min_val, max_val = get_min_max(signal.samples)
                     kargs = {
@@ -2188,7 +2235,8 @@ class MDF4(object):
                         'lower_limit': min_val if min_val <= max_val else 0,
                         'upper_limit': max_val if min_val <= max_val else 0,
                         'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
-                        'name_addr': gp_texts['channels'][-1]['name_addr'],
+                        'name_addr': name_addr,
+                        'unit_addr': unit_addr,
                     }
                     ch = Channel(**kargs)
 
@@ -2329,6 +2377,13 @@ class MDF4(object):
 
                 s_type, s_size = fmt_to_datatype(samples.dtype)
 
+                if memory == 'minimum':
+                    name_addr = gp_texts['channels'][-1]['name_addr']
+                    unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                else:
+                    name_addr = 0
+                    unit_addr = 0
+
                 # add channel block
                 kargs = {
                     'channel_type': v4c.CHANNEL_TYPE_VALUE,
@@ -2341,7 +2396,8 @@ class MDF4(object):
                     'lower_limit': 0,
                     'upper_limit': 0,
                     'flags': 0,
-                    'name_addr': gp_texts['channels'][-1]['name_addr'],
+                    'name_addr': name_addr,
+                    'unit_addr': unit_addr,
                 }
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2422,6 +2478,13 @@ class MDF4(object):
                     dep = ChannelArrayBlock(**kargs)
                     gp_dep.append([dep, ])
 
+                    if memory == 'minimum':
+                        name_addr = gp_texts['channels'][-1]['name_addr']
+                        unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                    else:
+                        name_addr = 0
+                        unit_addr = 0
+
                     # add components channel
                     min_val, max_val = get_min_max(samples)
                     s_type, s_size = fmt_to_datatype(samples.dtype)
@@ -2437,7 +2500,8 @@ class MDF4(object):
                         'lower_limit': min_val if min_val <= max_val else 0,
                         'upper_limit': max_val if min_val <= max_val else 0,
                         'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
-                        'name_addr': gp_texts['channels'][-1]['name_addr'],
+                        'name_addr': name_addr,
+                        'unit_addr': unit_addr,
                     }
 
                     channel = Channel(**kargs)

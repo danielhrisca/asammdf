@@ -1001,6 +1001,13 @@ class MDF3(object):
         else:
             t = t_
 
+        if self.version < '3.00':
+            if t.dtype.byteorder == '>':
+                t = t.byteswap().newbyteorder()
+            for signal in signals:
+                if signal.samples.dtype.byteorder == '>':
+                    signal.samples = signal.samples.byteswap().newbyteorder()
+
         if self.version >= '3.00':
             channel_size = v23c.CN_DISPLAYNAME_BLOCK_SIZE
         elif self.version >= '2.10':

@@ -149,14 +149,26 @@ def fmt_to_datatype(fmt, version=3):
 
     if version < 4:
         if fmt.kind == 'u':
-            data_type = v3c.DATA_TYPE_UNSIGNED
-        elif fmt.kind == 'i':
-            data_type = v3c.DATA_TYPE_SIGNED
-        elif fmt.kind == 'f':
-            if size == 32:
-                data_type = v3c.DATA_TYPE_FLOAT
+            if fmt.byteorder in ('=<'):
+                data_type = v3c.DATA_TYPE_UNSIGNED
             else:
-                data_type = v3c.DATA_TYPE_DOUBLE
+                data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
+        elif fmt.kind == 'i':
+            if fmt.byteorder in ('=<'):
+                data_type = v3c.DATA_TYPE_SIGNED
+            else:
+                data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
+        elif fmt.kind == 'f':
+            if fmt.byteorder in ('=<'):
+                if size == 32:
+                    data_type = v3c.DATA_TYPE_FLOAT
+                else:
+                    data_type = v3c.DATA_TYPE_DOUBLE
+            else:
+                if size == 32:
+                    data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
+                else:
+                    data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
         elif fmt.kind in 'SV':
             data_type = v3c.DATA_TYPE_STRING
         else:
@@ -164,12 +176,22 @@ def fmt_to_datatype(fmt, version=3):
             data_type = v3c.DATA_TYPE_BYTEARRAY
 
     elif version == 4:
+
         if fmt.kind == 'u':
-            data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+            if fmt.byteorder in ('=<'):
+                data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+            else:
+                data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
         elif fmt.kind == 'i':
-            data_type = v4c.DATA_TYPE_SIGNED_INTEL
+            if fmt.byteorder in ('=<'):
+                data_type = v4c.DATA_TYPE_SIGNED_INTEL
+            else:
+                data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
         elif fmt.kind == 'f':
-            data_type = v4c.DATA_TYPE_REAL_INTEL
+            if fmt.byteorder in ('=<'):
+                data_type = v4c.DATA_TYPE_REAL_INTEL
+            else:
+                data_type = v4c.DATA_TYPE_REAL_MOTOROLA
         elif fmt.kind in 'SV':
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
         else:

@@ -245,7 +245,7 @@ class Channel(dict):
             self['source_addr'] = 0
             self['conversion_addr'] = 0
             self['data_block_addr'] = 0
-            self['unit_addr'] = 0
+            self['unit_addr'] = kargs.get('unit_addr', 0)
             self['comment_addr'] = 0
             self['channel_type'] = kargs['channel_type']
             self['sync_type'] = kargs.get('sync_type', 0)
