@@ -18,10 +18,9 @@ from .utils import MdfException
 from .v2_v3_blocks import TextBlock as TextBlockV3
 from .v2_v3_blocks import Channel as ChannelV3
 from .v4_blocks import TextBlock as TextBlockV4
+from .v4_blocks import ChannelArrayBlock
 
 PYVERSION = sys.version_info[0]
-if PYVERSION > 2:
-    from past.builtins import long
 
 MDF2_VERSIONS = ('2.00', '2.10', '2.14')
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
@@ -125,8 +124,7 @@ class MDF(object):
             for dependencies in group['channel_dependencies']:
                 if dependencies is None:
                     continue
-                if all(dep['id'] == b'##CN'
-                       if not isinstance(dep, (int, long)) else True
+                if all(not isinstance(dep, ChannelArrayBlock)
                        for dep in dependencies):
                     for ch in dependencies:
                         excluded_channels.add(channels.index(ch))
@@ -607,8 +605,7 @@ class MDF(object):
                     dependencies = grp['channel_dependencies'][index]
                     if dependencies is None:
                         continue
-                    if all(dep['id'] == b'##CN'
-                           if not isinstance(dep, (int, long)) else True
+                    if all(not isinstance(dep, ChannelArrayBlock)
                            for dep in dependencies):
                         channels = grp['channels']
                         for ch in dependencies:
