@@ -109,11 +109,8 @@ class MDF(object):
         group = self.groups[index]
 
         excluded_channels = set()
-        try:
-            master_index = self.masters_db[index]
-            excluded_channels.add(master_index)
-        except KeyError:
-            pass
+        master_index = self.masters_db.get(index, -1)
+        excluded_channels.add(master_index)
 
         channels = group['channels']
 
@@ -407,7 +404,7 @@ class MDF(object):
                         ws.write(1, 0, 'comment', bold)
                         ws.write(2, 0, 'is master', bold)
 
-                        master_index = self.masters_db[i]
+                        master_index = self.masters_db.get(i, -1)
 
                         for j in range(grp['channel_group']['cycles_nr']):
                             ws.write(j + 3, 0, str(j))
@@ -416,8 +413,10 @@ class MDF(object):
                             sig = self.get(group=i, index=j, data=data)
 
                             col = j + 1
-                            sig_description = '{} [{}]'.format(sig.name,
-                                                               sig.unit)
+                            sig_description = '{} [{}]'.format(
+                                sig.name,
+                                sig.unit,
+                            )
                             comment = sig.comment if sig.comment else ''
                             ws.write(0, col, sig_description)
                             ws.write(1, col, comment)
@@ -445,7 +444,7 @@ class MDF(object):
                         for j in range(ch_nr)
                     ]
 
-                    master_index = self.masters_db[i]
+                    master_index = self.masters_db.get(i, -1)
                     cycles = grp['channel_group']['cycles_nr']
 
                     names_row = ['Channel', ]
@@ -622,9 +621,8 @@ class MDF(object):
 
             gps[group_index] = gps[group_index] - excluded_channels
 
-        if memory is not None:
-            if memory not in ('full', 'low', 'minimum'):
-                memory = self.memory
+        if memory is None or memory not in ('full', 'low', 'minimum'):
+            memory = self.memory
 
         mdf = MDF(
             version=self.version,
@@ -853,7 +851,7 @@ class MDF(object):
 
         """
 
-        if memory is None:
+        if memory is None or memory not in ('full', 'low', 'minimum'):
             memory = self.memory
 
         mdf = MDF(
