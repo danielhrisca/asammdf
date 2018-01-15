@@ -505,6 +505,12 @@ class MDF(object):
                 long_field_names=True,
                 do_compression=True,
             )
+        else:
+            message = (
+                'Unsopported export type "{}". '
+                'Please select "csv", "excel", "hdf5" or "mat"'
+            )
+            warn(message.format(fmt))
 
     def filter(self, channels, memory=None):
         """ return new *MDF* object that contains only the channels listed in
