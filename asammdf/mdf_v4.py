@@ -87,8 +87,6 @@ TX = re.compile('<TX>(?P<text>(.|\n)+?)</TX>')
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
     from .utils import bytes
-else:
-    from past.builtins import long
 
 __all__ = ['MDF4', ]
 
@@ -409,9 +407,7 @@ class MDF4(object):
                     continue
 
                 for dep in dep_list:
-                    if isinstance(dep, (Channel, int, long)):
-                        break
-                    else:
+                    if isinstance(dep, ChannelArrayBlock):
                         conditions = (
                             dep['ca_type'] == v4c.CA_TYPE_LOOKUP,
                             dep['links_nr'] == 4 * dep['dims'] + 1,
@@ -423,6 +419,8 @@ class MDF4(object):
                             ch_addr = dep['scale_axis_{}_ch_addr'.format(i)]
                             ref_channel = self._ch_map[ch_addr]
                             dep.referenced_channels.append(ref_channel)
+                    else:
+                        break
 
         if self.memory == 'full':
             self.close()
@@ -3066,8 +3064,7 @@ class MDF4(object):
             arrays = []
             name = channel.name
 
-            if all(
-                    isinstance(dep, (Channel, int, long))
+            if all(not isinstance(dep, ChannelArrayBlock)
                     for dep in dependency_list):
                 # structure channel composition
                 if memory == 'minimum':
@@ -4963,10 +4960,10 @@ class MDF4(object):
 
                     if gp['channel_dependencies'][j]:
                         block = gp['channel_dependencies'][j][0]
-                        if isinstance(block, (int, long)):
-                            channel['component_addr'] = block
-                        else:
+                        if isinstance(block, (ChannelArrayBlock, Channel)):
                             channel['component_addr'] = block.address
+                        else:
+                            channel['component_addr'] = block
 
                 group_channels = gp['channels']
                 if group_channels:
@@ -4979,7 +4976,7 @@ class MDF4(object):
                 while j < len(gp['channels']):
                     dep_list = gp['channel_dependencies'][j]
                     if dep_list and all(
-                            isinstance(dep, (int, long)) for dep in dep_list):
+                            not isinstance(dep, ChannelArrayBlock) for dep in dep_list):
 
                         dep = chans[j+1]
 
@@ -5076,8 +5073,7 @@ class MDF4(object):
             for gp in self.groups:
                 for dep_list in gp['channel_dependencies']:
                     if dep_list:
-                        if all(
-                                isinstance(dep, ChannelArrayBlock)
+                        if all(isinstance(dep, ChannelArrayBlock)
                                 for dep in dep_list):
                             for dep in dep_list:
                                 for i, (ch_nr, gp_nr) in enumerate(dep.referenced_channels):
