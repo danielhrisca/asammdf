@@ -857,7 +857,7 @@ class MDF4(object):
                                        'but found id="{}"')
                             message = message.format(hex(address), blk_id)
                             warnings.warn(message)
-                            return
+                            return b''
                     address = data_list['next_dl_addr']
                 data = b''.join(data)
             elif blk_id == b'##CN':
@@ -2717,6 +2717,7 @@ class MDF4(object):
             os.chdir(current_path)
             message = 'Exception during attachment extraction: ' + repr(err)
             warnings.warn(message)
+            return b''
 
     def get_channel_unit(self, name=None, group=None, index=None):
         """Gets channel unit.
