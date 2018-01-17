@@ -156,12 +156,12 @@ class AttachmentBlock(dict):
 
 class Channel(dict):
     """ CNBLOCK class"""
-    __slots__ = ['address', 'name']
+    __slots__ = ['address', 'name', 'unit', 'comment', 'comment_type']
 
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
-        self.name = ''
+        self.name = self.unit = self.comment = self.comment_type = ''
 
         if 'stream' in kargs:
 
@@ -672,10 +672,12 @@ class ChannelGroup(dict):
 class ChannelConversion(dict):
     """CCBLOCK class"""
 
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'name', 'unit', 'comment', 'formula']
 
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
+
+        self.name = self.unit = self.comment = self.formula = ''
 
         if 'stream' in kargs:
             self.address = address = kargs['address']
@@ -692,7 +694,7 @@ class ChannelConversion(dict):
 
             block = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
-            conv = unpack_from('B', block, self['links_nr'] * 8)[0]
+            conv = unpack_from('<B', block, self['links_nr'] * 8)[0]
 
             if conv == v4c.CONVERSION_TYPE_NON:
                 (self['name_addr'],
@@ -1788,12 +1790,35 @@ class HeaderList(dict):
 class SourceInformation(dict):
     """SIBLOCK class"""
 
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'name', 'path', 'comment']
 
     def __init__(self, **kargs):
         super(SourceInformation, self).__init__()
 
-        if 'stream' in kargs:
+        self.name = self.path = self.comment = ''
+
+        if 'raw_bytes' in kargs:
+            self.address = 0
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr'],
+             self['name_addr'],
+             self['path_addr'],
+             self['comment_addr'],
+             self['source_type'],
+             self['bus_type'],
+             self['flags'],
+             self['reserved1']) = unpack(
+                v4c.FMT_SOURCE_INFORMATION,
+                kargs['raw_bytes'],
+            )
+
+            if self['id'] != b'##SI':
+                message = 'Expected "##SI" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
+        elif 'stream' in kargs:
             self.address = address = kargs['address']
             stream = kargs['stream']
             stream.seek(address, SEEK_START)
@@ -1823,9 +1848,9 @@ class SourceInformation(dict):
             self['reserved0'] = 0
             self['block_len'] = v4c.SI_BLOCK_SIZE
             self['links_nr'] = 3
-            self['name_addr'] = 0
-            self['path_addr'] = 0
-            self['comment_addr'] = 0
+            self['name_addr'] = kargs.get('name_addr', 0)
+            self['path_addr'] = kargs.get('path_addr', 0)
+            self['comment_addr'] = kargs.get('comment_addr', 0)
             self['source_type'] = kargs.get('source_type', v4c.SOURCE_TOOL)
             self['bus_type'] = kargs.get('bus_type', v4c.BUS_TYPE_NONE)
             self['flags'] = 0

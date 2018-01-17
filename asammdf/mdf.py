@@ -14,9 +14,10 @@ from pandas import DataFrame
 from .mdf_v2 import MDF2
 from .mdf_v3 import MDF3
 from .mdf_v4 import MDF4
-from .utils import MdfException
+from .utils import MdfException, get_text_v3, get_text_v4
 from .v2_v3_blocks import TextBlock as TextBlockV3
 from .v2_v3_blocks import Channel as ChannelV3
+from .v4_blocks import Channel as ChannelV4
 from .v4_blocks import TextBlock as TextBlockV4
 from .v4_blocks import ChannelArrayBlock
 
@@ -752,14 +753,11 @@ class MDF(object):
                             else:
                                 stream = file._tempfile
 
-                            address = grp['texts']['channels'][j]['name_addr']
-
-                            block = TextBlockV4(
-                                address=address,
+                            channel = ChannelV4(
+                                address=grp['channels'][j],
                                 stream=stream,
                             )
-                            name = block['text']
-                            name = name.decode('utf-8').strip(' \r\n\t\0')
+                            name = get_text_v4(channel['name_addr'], stream)
                         name = name.split('\\')[0]
                         names.append(name)
                     names = set(names)

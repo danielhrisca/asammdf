@@ -53,6 +53,7 @@ from .utils import (
     get_fmt,
     get_min_max,
     get_unique_name,
+    get_text_v4,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -157,6 +158,7 @@ class MDF4(object):
 
         self._ch_map = {}
         self._master_channel_cache = {}
+        self._si_map = {}
 
         # used for appending when memory=False
         self._tempfile = TemporaryFile()
@@ -279,9 +281,6 @@ class MDF4(object):
                 # channel_group is lsit to allow uniform handling of all texts
                 # in save method
                 grp['texts'] = {
-                    'channels': [],
-                    'sources': [],
-                    'conversions': [],
                     'conversion_tab': [],
                     'channel_group': [],
                 }
@@ -425,6 +424,9 @@ class MDF4(object):
         if self.memory == 'full':
             self.close()
 
+        self._si_map = None
+        self._ch_map = None
+
     def _read_channels(
             self,
             ch_addr,
@@ -464,29 +466,23 @@ class MDF4(object):
 
             conv_tabx_texts = {}
             # read text fields for channel conversions
-            conv_texts = {}
-
             if conv:
-                for key in ('name_addr', 'unit_addr', 'comment_addr'):
-                    address = conv[key]
+                if memory != 'minimum':
+                    address = conv['name_addr']
                     if address:
-                        if memory == 'minimum':
-                            conv_texts[key] = address
-                        else:
-                            conv_texts[key] = TextBlock(
-                                address=address,
-                                stream=stream,
-                            )
-                if 'formula_addr' in conv:
-                    address = conv['formula_addr']
-                    if memory == 'minimum':
-                        conv_texts['formula_addr'] = address
-                    else:
-                        if address:
-                            block = TextBlock(address=address, stream=stream)
-                            conv_texts['formula_addr'] = block
-                        else:
-                            conv_texts['formula_addr'] = None
+                        conv.name = get_text_v4(address, stream)
+
+                    address = conv['unit_addr']
+                    if address:
+                        conv.unit = get_text_v4(address, stream)
+
+                    address = conv['comment_addr']
+                    if address:
+                        conv.comment = get_text_v4(address, stream)
+
+                    address = conv.get('formula_addr', 0)
+                    if address:
+                        conv.formula = get_text_v4(address, stream)
 
                 if conv['conversion_type'] in v4c.TABULAR_CONVERSIONS:
                     if conv['conversion_type'] == v4c.CONVERSION_TYPE_TTAB:
@@ -564,73 +560,62 @@ class MDF4(object):
             else:
                 grp['texts']['conversion_tab'].append(None)
 
-            if conv_texts:
-                grp['texts']['conversions'].append(conv_texts)
-            else:
-                grp['texts']['conversions'].append(None)
-
             # read source block and create source information object
-            source_texts = {}
             address = channel['source_addr']
             if address:
-                source = SourceInformation(
-                    address=address,
-                    stream=stream,
-                )
                 if memory == 'minimum':
+#                    self._si_map[address] = address
                     grp['channel_sources'].append(address)
                 else:
-                    grp['channel_sources'].append(source)
+                    stream.seek(address, v4c.SEEK_START)
+                    raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                    if raw_bytes in self._si_map:
+                        grp['channel_sources'].append(self._si_map[raw_bytes])
+                    else:
+                        source = SourceInformation(
+                            raw_bytes=raw_bytes,
+                        )
+                        grp['channel_sources'].append(source)
 
-                # read text fields for channel sources
-                for key in ('name_addr',
-                            'path_addr',
-                            'comment_addr'):
-                    address = source[key]
-                    if address:
-                        if memory == 'minimum':
-                            source_texts[key] = address
-                        else:
-                            block = TextBlock(address=address, stream=stream)
-                            source_texts[key] = block
+                        address = source['name_addr']
+                        if address:
+                            source.name = get_text_v4(address, stream)
+                        address = source['path_addr']
+                        if address:
+                            source.path = get_text_v4(address, stream)
+                        address = source['comment_addr']
+                        if address:
+                            source.comment = get_text_v4(address, stream)
+                        self._si_map[raw_bytes] = source
 
-                if source_texts:
-                    grp['texts']['sources'].append(source_texts)
-                else:
-                    grp['texts']['sources'].append(None)
             else:
                 if memory == 'minimum':
                     grp['channel_sources'].append(0)
                 else:
                     grp['channel_sources'].append(None)
-                grp['texts']['sources'].append(None)
 
-            # read text fields for channel
-            channel_texts = {}
-            grp['texts']['channels'].append(channel_texts)
-            for key in ('name_addr', 'comment_addr', 'unit_addr'):
-                address = channel[key]
+            if memory != 'minimum':
+                address = channel['unit_addr']
                 if address:
-                    if memory == 'minimum':
-                        channel_texts[key] = address
-                    else:
-                        channel_texts[key] = TextBlock(
-                            address=address,
-                            stream=stream,
-                        )
-            # update channel object name and block_size attributes
-            if memory == 'minimum':
-                block = TextBlock(
-                    address=channel_texts['name_addr'],
-                    stream=stream,
-                )
-                name = block['text'].decode('utf-8')
-            else:
-                name = channel_texts['name_addr']['text'].decode('utf-8')
-            name = name.split('\\')[0]
+                    channel.unit = get_text_v4(address, stream)
 
-            name = name.strip(' \t\n\r\0')
-            channel.name = name
+                address = channel['comment_addr']
+                if address:
+                    block = TextBlock(
+                        address=address,
+                        stream=stream,
+                    )
+                    name = (
+                        block['text']
+                        .decode('utf-8')
+                        .split('\\')[0]
+                        .strip(' \t\n\r\0')
+                    )
+                    channel.comment = name
+                    channel.comment_type = block['id']
+
+            channel.name = name = get_text_v4(channel['name_addr'], stream)
+
             if name not in self.channels_db:
                 self.channels_db[name] = []
             self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -920,13 +905,16 @@ class MDF4(object):
             ch_type = new_ch['channel_type']
             dependency_list = grp['channel_dependencies'][original_index]
             if memory == 'minimum':
-                channel_texts = grp['texts']['channels'][original_index]
                 block = TextBlock(
-                    address=channel_texts['name_addr'],
+                    address=new_ch['name_addr'],
                     stream=stream,
                 )
-                name = block['text'].decode('utf-8').strip(' \r\n\t\0')
-                name = name.split('\\')[0]
+                name = (
+                    block['text']
+                    .decode('utf-8')
+                    .strip(' \r\n\t\0')
+                    .split('\\')[0]
+                )
             else:
                 name = new_ch.name
 
@@ -1308,6 +1296,7 @@ class MDF4(object):
             or sig.samples.dtype.names
         ]
 
+
         dg_cntr = len(self.groups)
 
         gp = {}
@@ -1316,9 +1305,6 @@ class MDF4(object):
         gp['channel_sources'] = gp_source = []
         gp['channel_dependencies'] = gp_dep = []
         gp['texts'] = gp_texts = {
-            'channels': [],
-            'sources': [],
-            'conversions': [],
             'conversion_tab': [],
             'channel_group': [],
         }
@@ -1336,8 +1322,6 @@ class MDF4(object):
         # setup all blocks related to the time master channel
 
         # time channel texts
-        for key in ('channels', 'sources', 'channel_group', 'conversions'):
-            gp['texts'][key].append({})
         for key in ('conversion_tab',):
             gp['texts'][key].append(None)
 
@@ -1346,52 +1330,43 @@ class MDF4(object):
         write = file.write
         tell = file.tell
 
-        block = TextBlock(text='t', meta=False)
-        if memory != 'minimum':
-            gp_texts['channels'][-1]['name_addr'] = block
-        else:
-            address = tell()
-            gp_texts['channels'][-1]['name_addr'] = address
-            write(bytes(block))
-
-        block = TextBlock(text='s', meta=False)
-        if memory != 'minimum':
-            gp_texts['channels'][-1]['unit_addr'] = block
-        else:
-            address = tell()
-            gp_texts['channels'][-1]['unit_addr'] = address
-            write(bytes(block))
-
-        si_text = TextBlock(text=source_info, meta=False)
         if memory == 'minimum':
-            address = tell()
-            si_text.address = address
-            write(bytes(si_text))
-            gp_texts['sources'][-1]['name_addr'] = address
-            gp_texts['sources'][-1]['path_addr'] = address
-            gp_texts['channel_group'][-1]['acq_name_addr'] = address
-            gp_texts['channel_group'][-1]['comment_addr'] = address
+            block = TextBlock(text='t', meta=False)
+            channel_name_addr = tell()
+            write(bytes(block))
+
+        if memory == 'minimum':
+            block = TextBlock(text='s', meta=False)
+            channel_unit_addr = tell()
+            write(bytes(block))
+
+        if memory == 'minimum':
+            block = TextBlock(text=source_info, meta=False)
+            source_text_address = tell()
+            write(bytes(block))
         else:
-            gp_texts['sources'][-1]['name_addr'] = si_text
-            gp_texts['sources'][-1]['path_addr'] = si_text
-            gp_texts['channel_group'][-1]['acq_name_addr'] = si_text
-            gp_texts['channel_group'][-1]['comment_addr'] = si_text
+            source_text_address = 0
+
+        source_block = SourceInformation(
+            name_addr=source_text_address,
+            path_addr=source_text_address,
+        )
+        source_block.name = source_block.path = source_info
+
+        source_info_address = tell()
+        write(bytes(source_block))
 
         # conversion and source for time channel
         if memory == 'minimum':
             gp_conv.append(0)
-
-            address = tell()
-            block = SourceInformation()
-            write(bytes(block))
-            gp_source.append(address)
+            gp_source.append(source_info_address)
         else:
             gp_conv.append(None)
-            gp_source.append(SourceInformation())
+            gp_source.append(source_block)
 
         if memory == 'minimum':
-            name_addr = gp_texts['channels'][-1]['name_addr']
-            unit_addr = gp_texts['channels'][-1]['unit_addr']
+            name_addr = channel_name_addr
+            unit_addr = channel_unit_addr
         else:
             name_addr = 0
             unit_addr = 0
@@ -1414,12 +1389,14 @@ class MDF4(object):
             'unit_addr': unit_addr,
         }
         ch = Channel(**kargs)
-        ch.name = name = 't'
+        name = 't'
         if memory == 'minimum':
             address = tell()
             write(bytes(ch))
             gp_channels.append(address)
         else:
+            ch.name = name
+            ch.unit = 's'
             gp_channels.append(ch)
 
         if name not in self.channels_db:
@@ -1512,30 +1489,26 @@ class MDF4(object):
                 max_val = signal_d['max']
 
                 name = signal.name
-                for key in ('channels', 'sources'):
-                    gp['texts'][key].append({})
-                for key in ('conversion_tab', 'conversions'):
-                    gp['texts'][key].append(None)
+                gp['texts']['conversion_tab'].append(None)
 
-                block = TextBlock(text=name, meta=False)
                 if memory == 'minimum':
-                    address = tell()
-                    gp_texts['channels'][-1]['name_addr'] = address
+                    block = TextBlock(text=name, meta=False)
+                    channel_name_address = tell()
                     write(bytes(block))
-                    gp_texts['sources'][-1]['name_addr'] = si_text.address
-                    gp_texts['sources'][-1]['path_addr'] = si_text.address
-                else:
-                    gp_texts['channels'][-1]['name_addr'] = block
-                    gp_texts['sources'][-1]['name_addr'] = si_text
-                    gp_texts['sources'][-1]['path_addr'] = si_text
-                if signal.unit:
-                    block = TextBlock(text=signal.unit, meta=False)
-                    if memory == 'minimum':
-                        address = tell()
-                        gp_texts['channels'][-1]['unit_addr'] = address
+
+                    if signal.unit:
+                        block = TextBlock(text=signal.unit, meta=False)
+                        channel_unit_address = tell()
                         write(bytes(block))
                     else:
-                        gp_texts['channels'][-1]['unit_addr'] = block
+                        channel_unit_address = 0
+
+                    if signal.comment:
+                        block = TextBlock(text=signal.comment, meta=False)
+                        channel_comment_address = tell()
+                        write(bytes(block))
+                    else:
+                        channel_comment_address = 0
 
                 # conversions for channel
                 info = signal.info
@@ -1653,19 +1626,18 @@ class MDF4(object):
 
                 # source for channel
                 if memory != 'minimum':
-                    gp_source.append(SourceInformation())
+                    gp_source.append(source_block)
                 else:
-                    address = tell()
-                    block = SourceInformation()
-                    write(bytes(block))
-                    gp_source.append(address)
+                    gp_source.append(source_info_address)
 
                 if memory == 'minimum':
-                    name_addr = gp_texts['channels'][-1]['name_addr']
-                    unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                    name_addr = channel_name_address
+                    unit_addr = channel_unit_address
+                    comment_addr = channel_comment_address
                 else:
                     name_addr = 0
                     unit_addr = 0
+                    comment_addr = 0
 
                 # compute additional byte offset for large records size
                 if signal.samples.dtype.kind == 'u':
@@ -1684,14 +1656,17 @@ class MDF4(object):
                     'upper_limit': max_val if min_val <= max_val else 0,
                     'name_addr': name_addr,
                     'unit_addr': unit_addr,
+                    'comment_addr': comment_addr,
                 }
                 if min_val > max_val:
                     kargs['flags'] = 0
                 else:
                     kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
                 ch = Channel(**kargs)
-                ch.name = name
                 if memory != 'minimum':
+                    ch.name = name
+                    ch.unit = signal.unit
+                    ch.comment = signal.comment
                     gp_channels.append(ch)
                 else:
                     address = tell()
@@ -1720,36 +1695,30 @@ class MDF4(object):
         # first add the signals in the simple signal list
         for signal in simple_signals:
             name = signal.name
-            for key in ('channels', 'sources'):
-                gp['texts'][key].append({})
-            for key in ('conversion_tab', 'conversions'):
-                gp['texts'][key].append(None)
+            gp['texts']['conversion_tab'].append(None)
 
-            block = TextBlock(text=name, meta=False)
-            if memory != 'minimum':
-                gp_texts['channels'][-1]['name_addr'] = block
-            else:
-                address = tell()
+            if memory == 'minimum':
+                block = TextBlock(text=name, meta=False)
+                channel_name_address = tell()
                 write(bytes(block))
-                gp_texts['channels'][-1]['name_addr'] = address
-            if signal.unit:
-                block = TextBlock(
-                    text=signal.unit,
-                    meta=False,
-                )
-                if memory != 'minimum':
-                    gp_texts['channels'][-1]['unit_addr'] = block
-                else:
-                    address = tell()
-                    write(bytes(block))
-                    gp_texts['channels'][-1]['unit_addr'] = address
 
-            if memory != 'minimum':
-                gp_texts['sources'][-1]['name_addr'] = si_text
-                gp_texts['sources'][-1]['path_addr'] = si_text
-            else:
-                gp_texts['sources'][-1]['name_addr'] = si_text.address
-                gp_texts['sources'][-1]['path_addr'] = si_text.address
+                if signal.unit:
+                    block = TextBlock(
+                        text=signal.unit,
+                        meta=False,
+                    )
+
+                    channel_unit_address = tell()
+                    write(bytes(block))
+                else:
+                    channel_unit_address = 0
+
+                if signal.comment:
+                    block = TextBlock(text=signal.comment, meta=False)
+                    channel_comment_address = tell()
+                    write(bytes(block))
+                else:
+                    channel_comment_address = 0
 
             # conversions for channel
             info = signal.info
@@ -1867,19 +1836,18 @@ class MDF4(object):
 
             # source for channel
             if memory != 'minimum':
-                gp_source.append(SourceInformation())
+                gp_source.append(source_block)
             else:
-                block = SourceInformation()
-                address = tell()
-                write(bytes(block))
-                gp_source.append(address)
+                gp_source.append(source_info_address)
 
             if memory == 'minimum':
-                name_addr = gp_texts['channels'][-1]['name_addr']
-                unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                name_addr = channel_name_address
+                unit_addr = channel_unit_address
+                comment_addr = channel_comment_address
             else:
                 name_addr = 0
                 unit_addr = 0
+                comment_addr = 0
 
             # compute additional byte offset for large records size
             s_type, s_size = fmt_to_datatype(signal.samples.dtype)
@@ -1897,14 +1865,17 @@ class MDF4(object):
                 'upper_limit': max_val if min_val <= max_val else 0,
                 'name_addr': name_addr,
                 'unit_addr': unit_addr,
+                'comment_addr': comment_addr,
             }
             if min_val > max_val:
                 kargs['flags'] = 0
             else:
                 kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
             ch = Channel(**kargs)
-            ch.name = name
             if memory != 'minimum':
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
                 gp_channels.append(ch)
             else:
                 address = tell()
@@ -1977,36 +1948,26 @@ class MDF4(object):
                 s_size = byte_size << 3
 
                 # add channel texts
-                for key in ('channels', 'sources'):
-                    gp['texts'][key].append({})
-                for key in ('conversion_tab', 'conversions'):
-                    gp['texts'][key].append(None)
+                gp['texts']['conversion_tab'].append(None)
 
-                block = TextBlock(text=name, meta=False)
-                if memory != 'minimum':
-                    gp_texts['channels'][-1]['name_addr'] = block
-                else:
-                    address = tell()
+                if memory == 'minimum':
+                    block = TextBlock(text=name, meta=False)
+                    channel_name_address = tell()
                     write(bytes(block))
-                    gp_texts['channels'][-1]['name_addr'] = address
-                if signal.unit:
-                    block = TextBlock(
-                        text=signal.unit,
-                        meta=False,
-                    )
-                    if memory != 'minimum':
-                        gp_texts['channels'][-1]['unit_addr'] = block
-                    else:
-                        address = tell()
+                    if signal.unit:
+                        block = TextBlock(
+                            text=signal.unit,
+                            meta=False,
+                        )
+                        channel_unit_address = tell()
                         write(bytes(block))
-                        gp_texts['channels'][-1]['unit_addr'] = address
 
-                if memory != 'minimum':
-                    gp_texts['sources'][-1]['name_addr'] = si_text
-                    gp_texts['sources'][-1]['path_addr'] = si_text
-                else:
-                    gp_texts['sources'][-1]['name_addr'] = si_text.address
-                    gp_texts['sources'][-1]['path_addr'] = si_text.address
+                    if signal.comment:
+                        block = TextBlock(text=signal.comment, meta=False)
+                        channel_comment_address = tell()
+                        write(bytes(block))
+                    else:
+                        channel_comment_address = 0
 
                 # add channel conversion
                 if memory != 'minimum':
@@ -2014,24 +1975,22 @@ class MDF4(object):
                 else:
                     gp_conv.append(0)
 
-                # source for time
                 if memory != 'minimum':
-                    gp_source.append(SourceInformation())
+                    gp_source.append(source_block)
                 else:
-                    address = tell()
-                    block = SourceInformation()
-                    write(bytes(block))
-                    gp_source.append(address)
+                    gp_source.append(source_info_address)
 
-                # there is no chanel dependency
+                # there is no channel dependency
                 gp_dep.append(None)
 
                 if memory == 'minimum':
-                    name_addr = gp_texts['channels'][-1]['name_addr']
-                    unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                    name_addr = channel_name_address
+                    unit_addr = channel_unit_address
+                    comment_addr = channel_comment_address
                 else:
                     name_addr = 0
                     unit_addr = 0
+                    comment_addr = 0
 
                 # add channel block
                 kargs = {
@@ -2047,10 +2006,13 @@ class MDF4(object):
                     'flags': 0,
                     'name_addr': name_addr,
                     'unit_addr': unit_addr,
+                    'comment_addr': comment_addr,
                 }
                 ch = Channel(**kargs)
-                ch.name = name
                 if memory != 'minimum':
+                    ch.name = name
+                    ch.unit = signal.unit
+                    ch.comment = signal.comment
                     gp_channels.append(ch)
                 else:
                     address = tell()
@@ -2070,7 +2032,7 @@ class MDF4(object):
 
                 ch_cntr += 1
 
-            elif names and names[0] != signal.name:
+            elif names and names[0] != name:
                 # here we have a structure channel composition
 
                 field_name = get_unique_name(field_names, name)
@@ -2078,36 +2040,26 @@ class MDF4(object):
 
                 # first we add the structure channel
                 # add channel texts
-                for key in ('channels', 'sources'):
-                    gp['texts'][key].append({})
-                for key in ('conversion_tab', 'conversions'):
-                    gp['texts'][key].append(None)
+                gp['texts']['conversion_tab'].append(None)
 
-                block = TextBlock(text=name, meta=False)
-                if memory != 'minimum':
-                    gp_texts['channels'][-1]['name_addr'] = block
-                else:
-                    address = tell()
+                if memory == 'minimum':
+                    block = TextBlock(text=name, meta=False)
+                    channel_name_address = tell()
                     write(bytes(block))
-                    gp_texts['channels'][-1]['name_addr'] = address
-                if signal.unit:
-                    block = TextBlock(
-                        text=signal.unit,
-                        meta=False,
-                    )
-                    if memory != 'minimum':
-                        gp_texts['channels'][-1]['unit_addr'] = block
-                    else:
-                        address = tell()
-                        write(bytes(block))
-                        gp_texts['channels'][-1]['unit_addr'] = address
 
-                if memory != 'minimum':
-                    gp_texts['sources'][-1]['name_addr'] = si_text
-                    gp_texts['sources'][-1]['path_addr'] = si_text
-                else:
-                    gp_texts['sources'][-1]['name_addr'] = si_text.address
-                    gp_texts['sources'][-1]['path_addr'] = si_text.address
+                    if signal.unit:
+                        block = TextBlock(text=signal.unit, meta=False)
+                        channel_unit_address = tell()
+                        write(bytes(block))
+                    else:
+                        channel_unit_address = 0
+
+                    if signal.comment:
+                        block = TextBlock(text=signal.comment, meta=False)
+                        channel_comment_address = tell()
+                        write(bytes(block))
+                    else:
+                        channel_comment_address = 0
 
                 # add channel conversion
                 if memory != 'minimum':
@@ -2116,19 +2068,18 @@ class MDF4(object):
                     gp_conv.append(0)
 
                 if memory != 'minimum':
-                    gp_source.append(SourceInformation())
+                    gp_source.append(source_block)
                 else:
-                    address = tell()
-                    block = SourceInformation()
-                    write(bytes(block))
-                    gp_source.append(address)
+                    gp_source.append(source_info_address)
 
                 if memory == 'minimum':
-                    name_addr = gp_texts['channels'][-1]['name_addr']
-                    unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                    name_addr = channel_name_address
+                    unit_addr = channel_unit_address
+                    comment_addr = channel_comment_address
                 else:
                     name_addr = 0
                     unit_addr = 0
+                    comment_addr = 0
 
                 # add channel block
                 kargs = {
@@ -2144,10 +2095,13 @@ class MDF4(object):
                     'flags': 0,
                     'name_addr': name_addr,
                     'unit_addr': unit_addr,
+                    'comment_addr': comment_addr,
                 }
                 ch = Channel(**kargs)
-                ch.name = name
                 if memory != 'minimum':
+                    ch.name = name
+                    ch.unit = signal.unit
+                    ch.comment = signal.comment
                     gp_channels.append(ch)
                 else:
                     address = tell()
@@ -2181,25 +2135,26 @@ class MDF4(object):
                     types.append((field_name, samples.dtype))
 
                     # add channel texts
-                    for key in ('channels', 'sources'):
-                        gp['texts'][key].append({})
-                    for key in ('conversion_tab', 'conversions'):
-                        gp['texts'][key].append(None)
+                    gp['texts']['conversion_tab'].append(None)
 
-                    block = TextBlock(text=name, meta=False)
-                    if memory != 'minimum':
-                        gp_texts['channels'][-1]['name_addr'] = block
-                    else:
-                        address = tell()
+                    if memory == 'minimum':
+                        block = TextBlock(text=name, meta=False)
+                        channel_name_address = tell()
                         write(bytes(block))
-                        gp_texts['channels'][-1]['name_addr'] = address
 
-                    if memory != 'minimum':
-                        gp_texts['sources'][-1]['name_addr'] = si_text
-                        gp_texts['sources'][-1]['path_addr'] = si_text
-                    else:
-                        gp_texts['sources'][-1]['name_addr'] = si_text.address
-                        gp_texts['sources'][-1]['path_addr'] = si_text.address
+                        if signal.unit:
+                            block = TextBlock(text=signal.unit, meta=False)
+                            channel_unit_address = tell()
+                            write(bytes(block))
+                        else:
+                            channel_unit_address = 0
+
+                        if signal.comment:
+                            block = TextBlock(text=signal.comment, meta=False)
+                            channel_comment_address = tell()
+                            write(bytes(block))
+                        else:
+                            channel_comment_address = 0
 
                     # add channel conversion
                     if memory != 'minimum':
@@ -2207,18 +2162,20 @@ class MDF4(object):
                     else:
                         gp_conv.append(0)
 
-                    # source for time
+                    # source
                     if memory != 'minimum':
-                        gp_source.append(None)
+                        gp_source.append(source_block)
                     else:
-                        gp_source.append(0)
+                        gp_source.append(source_info_address)
 
                     if memory == 'minimum':
-                        name_addr = gp_texts['channels'][-1]['name_addr']
-                        unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                        name_addr = channel_name_address
+                        unit_addr = channel_unit_address
+                        comment_addr = channel_comment_address
                     else:
                         name_addr = 0
                         unit_addr = 0
+                        comment_addr = 0
 
                     # add channel block
                     min_val, max_val = get_min_max(signal.samples)
@@ -2235,11 +2192,13 @@ class MDF4(object):
                         'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
                         'name_addr': name_addr,
                         'unit_addr': unit_addr,
+                        'comment_addr': comment_addr,
                     }
                     ch = Channel(**kargs)
-
-                    ch.name = name
                     if memory != 'minimum':
+                        ch.name = name
+                        ch.unit = signal.unit
+                        ch.comment = signal.comment
                         gp_channels.append(ch)
                         dep_list.append(ch)
                     else:
@@ -2327,36 +2286,26 @@ class MDF4(object):
 
                 # first we add the structure channel
                 # add channel texts
-                for key in ('channels', 'sources'):
-                    gp['texts'][key].append({})
-                for key in ('conversion_tab', 'conversions'):
-                    gp['texts'][key].append(None)
+                gp['texts']['conversion_tab'].append(None)
 
-                block = TextBlock(text=name, meta=False)
-                if memory != 'minimum':
-                    gp_texts['channels'][-1]['name_addr'] = block
-                else:
-                    address = tell()
+                if memory == 'minimum':
+                    block = TextBlock(text=name, meta=False)
+                    channel_name_address = tell()
                     write(bytes(block))
-                    gp_texts['channels'][-1]['name_addr'] = address
-                if signal.unit:
-                    block = TextBlock(
-                        text=signal.unit,
-                        meta=False,
-                    )
-                    if memory != 'minimum':
-                        gp_texts['channels'][-1]['unit_addr'] = block
-                    else:
-                        address = tell()
-                        write(bytes(block))
-                        gp_texts['channels'][-1]['unit_addr'] = address
 
-                if memory != 'minimum':
-                    gp_texts['sources'][-1]['name_addr'] = si_text
-                    gp_texts['sources'][-1]['path_addr'] = si_text
-                else:
-                    gp_texts['sources'][-1]['name_addr'] = si_text.address
-                    gp_texts['sources'][-1]['path_addr'] = si_text.address
+                    if signal.unit:
+                        block = TextBlock(text=signal.unit, meta=False)
+                        channel_unit_address = tell()
+                        write(bytes(block))
+                    else:
+                        channel_unit_address = 0
+
+                    if signal.comment:
+                        block = TextBlock(text=signal.comment, meta=False)
+                        channel_comment_address = tell()
+                        write(bytes(block))
+                    else:
+                        channel_comment_address = 0
 
                 # add channel conversion
                 if memory != 'minimum':
@@ -2364,23 +2313,22 @@ class MDF4(object):
                 else:
                     gp_conv.append(0)
 
-                # source for time
+                # source for channel
                 if memory != 'minimum':
-                    gp_source.append(SourceInformation())
+                    gp_source.append(source_block)
                 else:
-                    address = tell()
-                    block = SourceInformation()
-                    write(bytes(block))
-                    gp_source.append(address)
-
-                s_type, s_size = fmt_to_datatype(samples.dtype)
+                    gp_source.append(source_info_address)
 
                 if memory == 'minimum':
-                    name_addr = gp_texts['channels'][-1]['name_addr']
-                    unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
+                    name_addr = channel_name_address
+                    unit_addr = channel_unit_address
+                    comment_addr = channel_comment_address
                 else:
                     name_addr = 0
                     unit_addr = 0
+                    comment_addr = 0
+
+                s_type, s_size = fmt_to_datatype(samples.dtype)
 
                 # add channel block
                 kargs = {
@@ -2396,10 +2344,13 @@ class MDF4(object):
                     'flags': 0,
                     'name_addr': name_addr,
                     'unit_addr': unit_addr,
+                    'comment_addr': comment_addr,
                 }
                 ch = Channel(**kargs)
-                ch.name = name
                 if memory != 'minimum':
+                    ch.name = name
+                    ch.unit = signal.unit
+                    ch.comment = signal.comment
                     gp_channels.append(ch)
                 else:
                     address = tell()
@@ -2429,26 +2380,26 @@ class MDF4(object):
                     fields.append(samples)
                     types.append((field_name, samples.dtype, shape))
 
-                    # add composed parent signal texts
-                    for key in ('channels', 'sources'):
-                        gp['texts'][key].append({})
-                    for key in ('conversion_tab', 'conversions'):
-                        gp['texts'][key].append(None)
+                    gp['texts']['conversion_tab'].append(None)
 
-                    block = TextBlock(text=name, meta=False)
-                    if memory != 'minimum':
-                        gp_texts['channels'][-1]['name_addr'] = block
-                    else:
-                        address = tell()
+                    if memory == 'minimum':
+                        block = TextBlock(text=name, meta=False)
+                        channel_name_address = tell()
                         write(bytes(block))
-                        gp_texts['channels'][-1]['name_addr'] = address
 
-                    if memory != 'minimum':
-                        gp_texts['sources'][-1]['name_addr'] = si_text
-                        gp_texts['sources'][-1]['path_addr'] = si_text
-                    else:
-                        gp_texts['sources'][-1]['name_addr'] = si_text.address
-                        gp_texts['sources'][-1]['path_addr'] = si_text.address
+                        if signal.unit:
+                            block = TextBlock(text=signal.unit, meta=False)
+                            channel_unit_address = tell()
+                            write(bytes(block))
+                        else:
+                            channel_unit_address = 0
+
+                        if signal.comment:
+                            block = TextBlock(text=signal.comment, meta=False)
+                            channel_comment_address = tell()
+                            write(bytes(block))
+                        else:
+                            channel_comment_address = 0
 
                     # add channel conversion
                     if memory != 'minimum':
@@ -2456,14 +2407,20 @@ class MDF4(object):
                     else:
                         gp_conv.append(0)
 
-                    # source for time
+                    # source for channel
                     if memory != 'minimum':
-                        gp_source.append(SourceInformation())
+                        gp_source.append(source_block)
                     else:
-                        address = tell()
-                        block = SourceInformation()
-                        write(bytes(block))
-                        gp_source.append(address)
+                        gp_source.append(source_info_address)
+
+                    if memory == 'minimum':
+                        name_addr = channel_name_address
+                        unit_addr = channel_unit_address
+                        comment_addr = channel_comment_address
+                    else:
+                        name_addr = 0
+                        unit_addr = 0
+                        comment_addr = 0
 
                     # add channel dependency block
                     kargs = {
@@ -2475,13 +2432,6 @@ class MDF4(object):
                     }
                     dep = ChannelArrayBlock(**kargs)
                     gp_dep.append([dep, ])
-
-                    if memory == 'minimum':
-                        name_addr = gp_texts['channels'][-1]['name_addr']
-                        unit_addr = gp_texts['channels'][-1].get('unit_addr', 0)
-                    else:
-                        name_addr = 0
-                        unit_addr = 0
 
                     # add components channel
                     min_val, max_val = get_min_max(samples)
@@ -2500,16 +2450,19 @@ class MDF4(object):
                         'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
                         'name_addr': name_addr,
                         'unit_addr': unit_addr,
+                        'comment_addr': comment_addr,
                     }
 
-                    channel = Channel(**kargs)
-                    channel.name = name
+                    ch = Channel(**kargs)
                     if memory != 'minimum':
-                        gp_channels.append(channel)
+                        ch.name = name
+                        ch.unit = signal.unit
+                        ch.comment = signal.comment
+                        gp_channels.append(ch)
                     else:
 
                         address = tell()
-                        write(bytes(channel))
+                        write(bytes(ch))
                         gp_channels.append(address)
 
                     parent_dep.referenced_channels.append((ch_cntr, dg_cntr))
@@ -2533,6 +2486,7 @@ class MDF4(object):
         }
         gp['channel_group'] = ChannelGroup(**kargs)
         gp['size'] = cycles_nr * offset
+        gp['texts']['channel_group'].append(None)
 
         # data group
         gp['data_group'] = DataGroup()
@@ -2768,40 +2722,45 @@ class MDF4(object):
         else:
             stream = self._tempfile
 
-        conv_texts = grp['texts']['conversions'][ch_nr]
-        channel_texts = grp['texts']['channels'][ch_nr]
+        channel = grp['channels'][ch_nr]
+        conversion = grp['channel_conversions'][ch_nr]
 
-        if conv_texts and 'unit_addr' in conv_texts:
-            if not self.memory == 'minimum':
-                unit = conv_texts['unit_addr']
-            else:
-                unit = TextBlock(
-                    address=conv_texts['unit_addr'],
+        if self.memory == 'minimum':
+
+            channel = Channel(
+                address=channel,
+                stream=stream,
+            )
+
+            if conversion:
+                conversion = ChannelConversion(
+                    address=conversion,
                     stream=stream,
                 )
-            if PYVERSION == 3:
-                try:
-                    unit = unit['text'].decode('utf-8').strip(' \n\t\0')
-                except UnicodeDecodeError:
-                    unit = ''
-            else:
-                unit = unit['text'].strip(' \n\t\0')
-        else:
-            # search for physical unit in channel texts
-            if 'unit_addr' in channel_texts:
-                if not self.memory == 'minimum':
-                    unit = channel_texts['unit_addr']
-                else:
-                    unit = TextBlock(
-                        address=channel_texts['unit_addr'],
-                        stream=stream,
-                    )
+
+            address = (
+                conversion and conversion['unit_addr'] 
+                or channel['unit_addr'] 
+                or 0
+            )
+
+            if address:
+                unit = TextBlock(
+                    address=address,
+                    stream=stream,
+                )
                 if PYVERSION == 3:
                     unit = unit['text'].decode('utf-8').strip(' \n\t\0')
                 else:
                     unit = unit['text'].strip(' \n\t\0')
             else:
                 unit = ''
+        else:
+            unit = (
+                conversion and conversion.unit 
+                or channel.unit 
+                or ''
+            )
 
         return unit
 
@@ -2849,33 +2808,46 @@ class MDF4(object):
 
         grp = self.groups[gp_nr]
 
-        channel_texts = grp['texts']['channels'][ch_nr]
-
         if grp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
 
-        if 'comment_addr' in channel_texts:
-            if self.memory == 'minimum':
-                comment = TextBlock(
-                    address=channel_texts['comment_addr'],
+        channel = grp['channels'][ch_nr]
+
+        if self.memory == 'minimum':
+            channel = Channel(
+                address=channel,
+                stream=stream,
+            )
+
+            address = channel['comment_addr']
+            if address:
+                comment_block = TextBlock(
+                    address=address,
                     stream=stream,
                 )
+                comment = (
+                    comment_block['text']
+                    .decode('utf-8')
+                    .strip(' \r\n\t\0')
+                )
+                if comment_block['id'] == b'##MD':
+                    match = TX.search(comment)
+                    if match:
+                        comment = match.group('text')
+                    else:
+                        comment = ''
             else:
-                comment = channel_texts['comment_addr']
-
-            if comment['id'] == b'##MD':
-                comment = comment['text'].decode('utf-8').strip(' \n\t\0')
+                comment = ''
+        else:
+            comment = channel.comment
+            if channel.comment_type == b'##MD':
                 match = TX.search(comment)
                 if match:
                     comment = match.group('text')
                 else:
                     comment = ''
-            else:
-                comment = comment['text'].decode('utf-8')
-        else:
-            comment = ''
 
         return comment
 
@@ -3028,11 +3000,15 @@ class MDF4(object):
                 conversion = None
             if name is None:
                 name = TextBlock(
-                    address=grp['texts']['channels'][ch_nr]['name_addr'],
+                    address=channel['name_addr'],
                     stream=stream,
                 )
-                name = name['text'].decode('utf-8').strip(' \r\t\n\0')
-                name = name.split('\\')[0]
+                name = (
+                    name['text']
+                    .decode('utf-8')
+                    .strip(' \r\t\n\0')
+                    .split('\\')[0]
+                )
             channel.name = name
         else:
             channel = grp['channels'][ch_nr]
@@ -3077,13 +3053,7 @@ class MDF4(object):
                             stream=stream,
                         )
 
-                        block = TextBlock(
-                            address=channel['name_addr'],
-                            stream=stream,
-                        )
-
-                        name_ = block['text'].decode('utf-8')
-                        name_ = name_.split('\\')[0].strip(' \n\r\t\0')
+                        name_ = get_text_v4(channel['name_addr'], stream)
                         names.append(name_)
                 else:
                     names = [ch.name for ch in dependency_list]
@@ -3175,23 +3145,14 @@ class MDF4(object):
                             for i in range(dims_nr):
                                 ch_nr, dg_nr = ca_block.referenced_channels[i]
                                 if memory == 'minimum':
-                                    axisname = (
-                                        self.groups[dg_nr]
-                                        ['texts']
-                                        ['channels']
-                                        [ch_nr]
-                                        ['name_addr']
-                                    )
-                                    block = TextBlock(
-                                        address=axisname,
+                                    channel = Channel(
+                                        address=self.groups[dg_nr]['channels'][ch_nr],
                                         stream=stream,
                                     )
-                                    axisname = (
-                                        block['text']
-                                        .decode('utf-8')
-                                        .strip(' \t\n\r\0')
+                                    axisname = get_text_v4(
+                                        channel['name_addr'], 
+                                        stream,
                                     )
-                                    axisname = axisname.split('\\')[0]
                                 else:
                                     axisname = (
                                         self.groups[dg_nr]
@@ -3238,23 +3199,14 @@ class MDF4(object):
                         for i in range(dims_nr):
                             ch_nr, dg_nr = ca_block.referenced_channels[i]
                             if memory == 'minimum':
-                                axisname = (
-                                    self.groups[dg_nr]
-                                    ['texts']
-                                    ['channels']
-                                    [ch_nr]
-                                    ['name_addr']
-                                )
-                                block = TextBlock(
-                                    address=axisname,
+                                channel = Channel(
+                                    address=self.groups[dg_nr]['channels'][ch_nr],
                                     stream=stream,
                                 )
-                                axisname = (
-                                    block['text']
-                                    .decode('utf-8')
-                                    .strip(' \t\n\r\0')
+                                axisname = get_text_v4(
+                                    channel['name_addr'], 
+                                    stream,
                                 )
-                                axisname = axisname.split('\\')[0]
                             else:
                                 axisname = (
                                     self.groups[dg_nr]
@@ -3524,20 +3476,10 @@ class MDF4(object):
 
                 elif conversion_type == v4c.CONVERSION_TYPE_ALG:
                     if not memory == 'minimum':
-                        block = (
-                            grp['texts']
-                            ['conversions']
-                            [ch_nr]
-                            ['formula_addr']
-                        )
-                        formula = (
-                            block['text']
-                            .decode('utf-8')
-                            .strip(' \n\t\0')
-                        )
+                        formula = conversion.formula
                     else:
                         block = TextBlock(
-                            address=grp['texts']['conversions'][ch_nr]['formula_addr'],
+                            address=conversion['formula_addr'],
                             stream=stream,
                         )
                         formula = (
@@ -3803,62 +3745,48 @@ class MDF4(object):
             res = vals
         else:
             # search for unit in conversion texts
-            conv_texts = grp['texts']['conversions'][ch_nr]
-            channel_texts = grp['texts']['channels'][ch_nr]
 
-            if conv_texts and 'unit_addr' in conv_texts:
-                if not memory == 'minimum':
-                    unit = conv_texts['unit_addr']
-                else:
-                    unit = TextBlock(
-                        address=conv_texts['unit_addr'],
+            if memory == 'minimum':
+
+                address = (
+                    conversion and conversion['unit_addr']
+                    or channel['unit_addr']
+                    or 0
+                )
+                if address:
+                    unit = get_text_v4(
+                        address=address,
                         stream=stream,
                     )
-                if PYVERSION == 3:
-                    try:
-                        unit = unit['text'].decode('utf-8').strip(' \n\t\0')
-                    except UnicodeDecodeError:
-                        unit = ''
-                else:
-                    unit = unit['text'].strip(' \n\t\0')
-            else:
-                # search for physical unit in channel texts
-                if 'unit_addr' in channel_texts:
-                    if not memory == 'minimum':
-                        unit = channel_texts['unit_addr']
-                    else:
-                        unit = TextBlock(
-                            address=channel_texts['unit_addr'],
-                            stream=stream,
-                        )
-                    if PYVERSION == 3:
-                        unit = unit['text'].decode('utf-8').strip(' \n\t\0')
-                    else:
-                        unit = unit['text'].strip(' \n\t\0')
                 else:
                     unit = ''
 
-            # get the channel commment if available
-            if 'comment_addr' in channel_texts:
-                if memory == 'minimum':
-                    comment = TextBlock(
-                        address=channel_texts['comment_addr'],
+                address = channel['comment_addr']
+                if address:
+                    comment = get_text_v4(
+                        address=address,
                         stream=stream,
                     )
-                else:
-                    comment = channel_texts['comment_addr']
 
-                if comment['id'] == b'##MD':
-                    comment = comment['text'].decode('utf-8').strip(' \n\t\0')
+                    if channel.comment_type == b'##MD':
+                        match = TX.search(comment)
+                        if match:
+                            comment = match.group('text')
+                        else:
+                            comment = ''
+                else:
+                    comment = ''
+            else:
+                unit = (
+                    conversion and conversion.unit
+                    or channel.unit
+                    or ''
+                )
+                comment = channel.comment
+                if channel.comment_type == b'##MD':
                     match = TX.search(comment)
                     if match:
                         comment = match.group('text')
-                    else:
-                        comment = ''
-                else:
-                    comment = comment['text'].decode('utf-8')
-            else:
-                comment = ''
 
             t = self.get_master(gp_nr, data)
 
@@ -4010,12 +3938,15 @@ class MDF4(object):
                         stream=stream,
                     )
                     name = TextBlock(
-                        address=gp['texts']['channels'][j]['name_addr'],
+                        address=channel['name_addr'],
                         stream=stream,
                     )
-                    name = name['text'].decode('utf-8').strip(' \r\t\n\0')
-                    name = name.split('\\')[0]
-                    channel.name = name
+                    name = (
+                        name['text']
+                        .decode('utf-8')
+                        .strip(' \r\t\n\0')
+                        .split('\\')[0]
+                    )
                 else:
                     name = channel.name
 
@@ -4340,6 +4271,8 @@ class MDF4(object):
                 v4c.CONVERSION_TYPE_TRANS,
             )
 
+            si_map = {}
+
             # go through each data group and append the rest of the blocks
             for i, gp in enumerate(self.groups):
                 # write TXBLOCK's
@@ -4358,16 +4291,156 @@ class MDF4(object):
                                 address += tx_block['block_len']
                                 blocks.append(tx_block)
 
+                for channel in gp['channels']:
+                    if channel.name:
+                        tx_block = TextBlock(text=channel.name)
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['name_addr'] = defined_texts[text]
+                        else:
+                            channel['name_addr'] = address
+                            defined_texts[text] = address
+                            tx_block.address = address
+                            address += tx_block['block_len']
+                            blocks.append(tx_block)
+                    else:
+                        channel['name_addr'] = 0
+
+                    if channel.unit:
+                        tx_block = TextBlock(text=channel.unit)
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['unit_addr'] = defined_texts[text]
+                        else:
+                            channel['unit_addr'] = address
+                            defined_texts[text] = address
+                            tx_block.address = address
+                            address += tx_block['block_len']
+                            blocks.append(tx_block)
+                    else:
+                        channel['unit_addr'] = 0
+
+                    if channel.comment:
+                        meta = channel.comment_type == b'##MD'
+                        tx_block = TextBlock(text=channel.comment, meta=meta)
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['comment_addr'] = defined_texts[text]
+                        else:
+                            channel['comment_addr'] = address
+                            defined_texts[text] = address
+                            tx_block.address = address
+                            address += tx_block['block_len']
+                            blocks.append(tx_block)
+                    else:
+                        channel['comment_addr'] = 0
+
+                for source in gp['channel_sources']:
+                    if source:
+                        if source.name:
+                            tx_block = TextBlock(text=source.name)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                source['name_addr'] = defined_texts[text]
+                            else:
+                                source['name_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                address += tx_block['block_len']
+                                blocks.append(tx_block)
+                        else:
+                            source['name_addr'] = 0
+
+                        if source.path:
+                            tx_block = TextBlock(text=source.path)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                source['path_addr'] = defined_texts[text]
+                            else:
+                                source['path_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                address += tx_block['block_len']
+                                blocks.append(tx_block)
+                        else:
+                            source['path_addr'] = 0
+
+                        if source.comment:
+                            tx_block = TextBlock(text=source.comment)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                source['comment_addr'] = defined_texts[text]
+                            else:
+                                source['comment_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                address += tx_block['block_len']
+                                blocks.append(tx_block)
+                        else:
+                            source['comment_addr'] = 0
+
+                for conversion in gp['channel_conversions']:
+                    if conversion:
+                        if conversion.name:
+                            tx_block = TextBlock(text=conversion.name)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                conversion['name_addr'] = defined_texts[text]
+                            else:
+                                conversion['name_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                address += tx_block['block_len']
+                                blocks.append(tx_block)
+                        else:
+                            conversion['name_addr'] = 0
+
+                        if conversion.unit:
+                            tx_block = TextBlock(text=conversion.unit)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                conversion['unit_addr'] = defined_texts[text]
+                            else:
+                                conversion['unit_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                address += tx_block['block_len']
+                                blocks.append(tx_block)
+                        else:
+                            conversion['unit_addr'] = 0
+
+                        if conversion.comment:
+                            tx_block = TextBlock(text=conversion.comment)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                conversion['comment_addr'] = defined_texts[text]
+                            else:
+                                conversion['comment_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                address += tx_block['block_len']
+                                blocks.append(tx_block)
+                        else:
+                            conversion['comment_addr'] = 0
+
+                        if conversion['conversion_type'] == v4c.CONVERSION_TYPE_ALG and conversion.formula:
+                            tx_block = TextBlock(text=conversion.formula)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                conversion['formula_addr'] = defined_texts[text]
+                            else:
+                                conversion['formula_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                address += tx_block['block_len']
+                                blocks.append(tx_block)
+
                 # channel conversions
                 for j, conv in enumerate(gp['channel_conversions']):
                     if conv:
                         conv.address = address
-                        conv_texts = gp['texts']['conversions'][j]
 
-                        if conv_texts:
-                            for key, text_block in conv_texts.items():
-                                conv[key] = text_block.address
-                            conv['inv_conv_addr'] = 0
+                        conv['inv_conv_addr'] = 0
 
                         if conv['conversion_type'] in tab_conversion:
                             for key in gp['texts']['conversion_tab'][j]:
@@ -4385,17 +4458,12 @@ class MDF4(object):
                 # channel sources
                 for j, source in enumerate(gp['channel_sources']):
                     if source:
-                        source.address = address
-                        source_texts = gp['texts']['sources'][j]
-
-                        for key in ('name_addr', 'path_addr', 'comment_addr'):
-                            if source_texts and key in source_texts:
-                                source[key] = source_texts[key].address
-                            else:
-                                source[key] = 0
-
-                        address += source['block_len']
-                        blocks.append(source)
+                        source_id = id(source)
+                        if source_id not in si_map:
+                            source.address = address
+                            address += source['block_len']
+                            blocks.append(source)
+                            si_map[source_id] = 0
 
                 # channel data
                 gp_sd = gp['signal_data'] = []
@@ -4431,17 +4499,9 @@ class MDF4(object):
                 for j, (channel, signal_data) in enumerate(
                         zip(gp['channels'], gp['signal_data'])):
                     channel.address = address
-                    channel_texts = gp['texts']['channels'][j]
 
                     address += channel['block_len']
                     blocks.append(channel)
-
-                    for key in ('comment_addr', 'unit_addr'):
-                        if key in channel_texts:
-                            channel[key] = channel_texts[key].address
-                        else:
-                            channel[key] = 0
-                    channel['name_addr'] = channel_texts['name_addr'].address
 
                     if not gp['channel_conversions'][j]:
                         channel['conversion_addr'] = 0
@@ -4815,8 +4875,14 @@ class MDF4(object):
                 v4c.CONVERSION_TYPE_TRANS,
             )
 
+            si_map = {}
+
             # go through each data group and append the rest of the blocks
             for i, gp in enumerate(self.groups):
+                gp['temp_channels'] = ch_addrs = []
+                gp['temp_channel_conversions'] = cc_addrs = []
+                gp['temp_channel_sources'] = si_addrs = []
+
                 if gp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
                     stream = self._file
                 else:
@@ -4826,7 +4892,7 @@ class MDF4(object):
                 # write TXBLOCK's
                 for item_list in temp_texts.values():
                     for dict_ in item_list:
-                        if dict_ is None:
+                        if not dict_:
                             continue
                         for key, tx_block in dict_.items():
                             # text blocks can be shared
@@ -4843,56 +4909,159 @@ class MDF4(object):
                                 dict_[key] = address
                                 write(bytes(block))
 
-                # channel conversions
-                gp['temp_channel_conversions'] = []
-                for j, conv in enumerate(gp['channel_conversions']):
-                    if conv:
-
-                        address = tell()
-                        gp['temp_channel_conversions'].append(address)
-                        conv = ChannelConversion(
-                            address=conv,
-                            stream=stream,
-                        )
-
-                        conv.address = address
-                        conv_texts = temp_texts['conversions'][j]
-
-                        if conv_texts:
-
-                            for key, text_block in conv_texts.items():
-                                conv[key] = text_block
-                            conv['inv_conv_addr'] = 0
-
-                        if conv['conversion_type'] in tab_conversion:
-                            for key in temp_texts['conversion_tab'][j]:
-                                conv[key] = temp_texts['conversion_tab'][j][key]
-                        write(bytes(conv))
-                    else:
-                        gp['temp_channel_conversions'].append(0)
-
-                # channel sources
-                gp['temp_channel_sources'] = []
-                for j, source in enumerate(gp['channel_sources']):
-                    if source:
-                        address = tell()
-                        gp['temp_channel_sources'].append(address)
-                        source_texts = temp_texts['sources'][j]
-
-                        source = SourceInformation(
-                            address=source,
-                            stream=stream,
-                        )
-
-                        for key in ('name_addr', 'path_addr', 'comment_addr'):
-                            if source_texts and key in source_texts:
-                                source[key] = source_texts[key]
+                for source in gp['channel_sources']:
+                    if source:  
+                        stream.seek(source, v4c.SEEK_START)
+                        raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                        if raw_bytes in si_map:
+                            si_addrs.append(si_map[raw_bytes])
+                        else:
+                            source = SourceInformation(
+                                raw_bytes=raw_bytes,
+                            )
+                        
+                            if source['name_addr']:
+                                tx_block = TextBlock(
+                                    address=source['name_addr'],
+                                    stream=stream,
+                                )
+                                text = tx_block['text']
+                                if text in defined_texts:
+                                    source['name_addr'] = defined_texts[text]
+                                else:
+                                    address = tell()
+                                    source['name_addr'] = address
+                                    defined_texts[text] = address
+                                    tx_block.address = address
+                                    write(bytes(tx_block))
                             else:
-                                source[key] = 0
+                                source['name_addr'] = 0
 
-                        write(bytes(source))
+                            if source.path:
+                                tx_block = TextBlock(
+                                    address=source['path_addr'],
+                                    stream=stream,
+                                )
+                                text = tx_block['text']
+                                if text in defined_texts:
+                                    source['path_addr'] = defined_texts[text]
+                                else:
+                                    address = tell()
+                                    source['path_addr'] = address
+                                    defined_texts[text] = address
+                                    tx_block.address = address
+                                    write(bytes(tx_block))
+                            else:
+                                source['path_addr'] = 0
+
+                            if source['comment_addr']:
+                                tx_block = TextBlock(
+                                    address=source['comment_addr'],
+                                    stream=stream,
+                                )
+                                text = tx_block['text']
+                                if text in defined_texts:
+                                    source['comment_addr'] = defined_texts[text]
+                                else:
+                                    address = tell()
+                                    source['comment_addr'] = address
+                                    defined_texts[text] = address
+                                    tx_block.address = address
+                                    write(bytes(tx_block))
+                            else:
+                                source['comment_addr'] = 0
+
+                            address = tell()
+                            si_addrs.append(address)
+                            si_map[raw_bytes] = address
+                            write(bytes(source))
                     else:
-                        gp['temp_channel_sources'].append(0)
+                        si_addrs.append(0)
+
+                for j, conversion in enumerate(gp['channel_conversions']):
+                    if conversion:
+                        conversion = ChannelConversion(
+                            address=conversion,
+                            stream=stream,
+                        )
+                        
+                        if conversion['name_addr']:
+                            tx_block = TextBlock(
+                                address=conversion['name_addr'],
+                                stream=stream,
+                            )
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                conversion['name_addr'] = defined_texts[text]
+                            else:
+                                address = tell()
+                                conversion['name_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                write(bytes(tx_block))
+                        else:
+                            conversion['name_addr'] = 0
+
+                        if conversion['unit_addr']:
+                            tx_block = TextBlock(
+                                address=conversion['unit_addr'],
+                                stream=stream,
+                            )
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                conversion['unit_addr'] = defined_texts[text]
+                            else:
+                                address = tell()
+                                conversion['unit_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                write(bytes(tx_block))
+                        else:
+                            conversion['unit_addr'] = 0
+
+                        if conversion['comment_addr']:
+                            tx_block = TextBlock(
+                                address=conversion['comment_addr'],
+                                stream=stream,
+                            )
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                conversion['comment_addr'] = defined_texts[text]
+                            else:
+                                address = tell()
+                                conversion['comment_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                write(bytes(tx_block))
+                        else:
+                            conversion['comment_addr'] = 0
+
+                        if conversion['conversion_type'] == v4c.CONVERSION_TYPE_ALG and conversion['formula_addr']:
+                            tx_block = TextBlock(
+                                address=conversion['formula_addr'],
+                                stream=stream,
+                            )
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                conversion['formula_addr'] = defined_texts[text]
+                            else:
+                                address = tell()
+                                conversion['formula_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                write(bytes(tx_block))
+
+                        elif conversion['conversion_type'] in tab_conversion:
+                            for key in temp_texts['conversion_tab'][j]:
+                                conversion[key] = temp_texts['conversion_tab'][j][key]
+
+                        conversion['inv_conv_addr'] = 0
+
+                        address = tell()
+                        cc_addrs.append(address)
+                        write(bytes(conversion))
+                    else:
+                        cc_addrs.append(0)
 
                 # channel dependecies
                 temp_deps = []
@@ -4921,28 +5090,72 @@ class MDF4(object):
                 blocks = []
                 chans = []
                 address = blocks_start_addr = tell()
-                gp['temp_channels'] = ch_addrs = []
+                
                 gp['channel_group']['first_ch_addr'] = address
+
+
                 for j, channel in enumerate(gp['channels']):
                     channel = Channel(
                         address=channel,
                         stream=stream,
                     )
                     channel.address = address
-                    channel_texts = temp_texts['channels'][j]
-
                     ch_addrs.append(address)
+                    chans.append(channel)
+                    blocks.append(channel)
 
                     address += channel['block_len']
-                    blocks.append(channel)
-                    chans.append(channel)
 
-                    for key in ('comment_addr', 'unit_addr'):
-                        if key in channel_texts:
-                            channel[key] = channel_texts[key]
+                    if channel['name_addr']:
+                        tx_block = TextBlock(
+                            address=channel['name_addr'],
+                            stream=stream,
+                        )
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['name_addr'] = defined_texts[text]
                         else:
-                            channel[key] = 0
-                    channel['name_addr'] = channel_texts['name_addr']
+                            channel['name_addr'] = address
+                            defined_texts[text] = address
+                            tx_block.address = address
+                            address += tx_block['block_len']
+                            blocks.append(tx_block)
+                    else:
+                        channel['name_addr'] = 0
+
+                    if channel['unit_addr']:
+                        tx_block = TextBlock(
+                            address=channel['unit_addr'],
+                            stream=stream,
+                        )
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['unit_addr'] = defined_texts[text]
+                        else:
+                            channel['unit_addr'] = address
+                            defined_texts[text] = address
+                            tx_block.address = address
+                            address += tx_block['block_len']
+                            blocks.append(tx_block)
+                    else:
+                        channel['unit_addr'] = 0
+
+                    if channel['comment_addr']:
+                        tx_block = TextBlock(
+                            address=channel['comment_addr'],
+                            stream=stream,
+                        )
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['comment_addr'] = defined_texts[text]
+                        else:
+                            channel['comment_addr'] = address
+                            defined_texts[text] = address
+                            tx_block.address = address
+                            address += tx_block['block_len']
+                            blocks.append(tx_block)
+                    else:
+                        channel['comment_addr'] = 0
 
                     channel['conversion_addr'] = gp['temp_channel_conversions'][j]
                     channel['source_addr'] = gp['temp_channel_sources'][j]
