@@ -4,6 +4,7 @@ asammdf utility functions and classes
 '''
 
 import itertools
+from struct import unpack
 
 from numpy import (
     amin,
@@ -18,6 +19,7 @@ __all__ = [
     'get_fmt',
     'get_min_max',
     'get_unique_name',
+    'get_text_v4',
     'fix_dtype_fields',
     'fmt_to_datatype',
     'pair',
@@ -39,6 +41,29 @@ def bytes(obj):
             return obj
         else:
             raise
+
+def get_text_v3(address, stream):
+    stream.seek(address + 2)
+    size = unpack('<H', stream.read(2))[0] - 4
+    text = (
+        stream
+        .read(size)
+        .decode('latin-1')
+        .strip(' \r\t\n\0')
+    )
+    return text
+
+def get_text_v4(address, stream):
+    stream.seek(address + 8)
+    size = unpack('<Q', stream.read(8))[0] - 24
+    stream.read(8)
+    text = (
+        stream
+        .read(size)
+        .decode('utf-8')
+        .strip(' \r\t\n\0')
+    )
+    return text
 
 
 def get_fmt(data_type, size, version=3):
