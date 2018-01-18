@@ -734,7 +734,7 @@ class MDF(object):
                                 stream=stream,
                             )
 
-                            if channel['long_name_addr']:
+                            if channel.get('long_name_addr', 0):
                                 name = get_text_v3(channel['long_name_addr'], stream)
                             else:
                                 name = (

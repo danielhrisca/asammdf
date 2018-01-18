@@ -685,8 +685,10 @@ class MDF3(object):
                     # read conversion block
                     address = new_ch['conversion_addr']
                     if address:
-                        stream.seek(address, v23c.SEEK_START)
-                        raw_bytes = stream.read(v23c.CE_BLOCK_SIZE)
+                        stream.seek(address + 2, v23c.SEEK_START)
+                        size = unpack('<H', stream.read(2))[0]
+                        stream.seek(address)
+                        raw_bytes = stream.read(size)
                         if memory == 'minimum':
                             new_conv = ChannelConversion(
                                 raw_bytes=raw_bytes,
@@ -696,7 +698,7 @@ class MDF3(object):
                             if raw_bytes in cc_map:
                                 new_conv = cc_map[raw_bytes]
                             else:
-                                new_conv = new_conv = ChannelConversion(
+                                new_conv = ChannelConversion(
                                     raw_bytes=raw_bytes,
                                 )
                                 if new_conv['conversion_type'] != v23c.CONVERSION_TYPE_VTABR:
@@ -1324,6 +1326,8 @@ class MDF3(object):
                                 block = TextBlock(text=comment)
                                 comment_address = tell()
                                 write(bytes(block))
+                            else:
+                                comment_address = 0
                         else:
                             description = (comment[:127] + '\0').encode('latin-1')
                             comment_address = 0
@@ -1341,7 +1345,7 @@ class MDF3(object):
                         'start_offset': start_bit_offset,
                         'bit_count': bit_count,
                         'aditional_byte_offset': additional_byte_offset,
-                        'long_name_addr': long_name_addr,
+                        'long_name_addr': long_name_address,
                         'block_len': channel_size,
                         'comment_addr': comment_address,
                         'description': description,
@@ -1472,6 +1476,8 @@ class MDF3(object):
                             block = TextBlock(text=comment)
                             comment_address = tell()
                             write(bytes(block))
+                        else:
+                            comment_address = 0
                     else:
                         description = (comment[:127] + '\0').encode('latin-1')
                         comment_address = 0
@@ -1499,7 +1505,6 @@ class MDF3(object):
                 if memory != 'minimum':
                     channel.name = name
                     channel.comment = signal.comment
-                    gp_channels.append(channel)
                     gp_channels.append(channel)
                 else:
                     address = tell()
@@ -1601,6 +1606,8 @@ class MDF3(object):
                             block = TextBlock(text=comment)
                             comment_address = tell()
                             write(bytes(block))
+                        else:
+                            comment_address = 0
                     else:
                         description = (comment[:127] + '\0').encode('latin-1')
                         comment_address = 0
@@ -3131,7 +3138,7 @@ class MDF3(object):
                         blocks.append(conv)
                         address += conv['block_len']
                     else:
-                        cc_id = id(cc)
+                        cc_id = id(conv)
                         if cc_id not in cc_map:
                             conv.address = address
                             cc_map[cc_id] = conv
@@ -3400,7 +3407,15 @@ class MDF3(object):
 
             data_address = []
 
+            ce_map = {}
+            cc_map = {}
+
             for gp in self.groups:
+                gp['temp_channels'] = ch_addrs = []
+                gp['temp_channel_conversions'] = cc_addrs = []
+                gp['temp_channel_extensions'] = ce_addrs = []
+                gp['temp_channel_dependencies'] = cd_addrs = []
+
                 gp_texts = deepcopy(gp['texts'])
                 if gp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
                     stream = self._file
@@ -3428,86 +3443,125 @@ class MDF3(object):
                                 my_dict[key] = address
                                 write(bytes(block))
 
-                # ChannelConversions
-                cc = gp['temp_channel_conversions'] = []
-                for i, conv in enumerate(gp['channel_conversions']):
-                    if not conv:
-                        gp['temp_channel_conversions'].append(0)
-                        continue
-
-                    address = tell()
-                    gp['temp_channel_conversions'].append(address)
-                    conv = ChannelConversion(
-                        address=conv,
-                        stream=stream,
-                    )
-                    if conv['conversion_type'] == v23c.CONVERSION_TYPE_VTABR:
-                        pairs = gp_texts['conversion_tab'][i].items()
-                        for key, item in pairs:
-                            conv[key] = item
-
-                    write(bytes(conv))
-
-                # Channel Extension
-                cs = gp['temp_channel_extensions'] = []
-                for source in gp['channel_extensions']:
-                    if source:
-                        address = tell()
-                        gp['temp_channel_extensions'].append(address)
-                        source = ChannelExtension(
-                            address=source,
-                            stream=stream,
-                        )
-                        write(bytes(source))
-                    else:
-                        gp['temp_channel_extensions'].append(0)
-
                 # Channel Dependency
-                cd = gp['temp_channel_dependencies'] = []
                 for dep in gp['channel_dependencies']:
                     if dep:
                         address = tell()
-                        gp['temp_channel_dependencies'].append(address)
-                        dep.address = address
+                        cd_addrs.append(address)
                         write(bytes(dep))
                     else:
-                        gp['temp_channel_dependencies'].append(0)
+                        cd_addrs.append(0)
 
-                # Channels
+                # channel extensions
+                for addr in gp['channel_extensions']:
+                    if addr:
+                        stream.seek(addr)
+                        raw_bytes = stream.read(v23c.CE_BLOCK_SIZE)
+                        if raw_bytes in ce_map:
+                            ce_addrs.append(ce_map[raw_bytes])
+                        else:
+                            address = tell()
+                            source = ChannelExtension(raw_bytes=raw_bytes)
+                            ce_map[raw_bytes] = address
+                            ce_addrs.append(address)
+                            write(bytes(source))
+                    else:
+                        ce_addrs.append(0)
+
+                # ChannelConversions
+                for i, addr in enumerate(gp['channel_conversions']):
+                    if not addr:
+                        cc_addrs.append(0)
+                        continue
+
+                    stream.seek(addr+2)
+                    size = unpack('<H', stream.read(2))[0]
+                    stream.seek(addr)
+                    raw_bytes = stream.read(size)
+
+                    if raw_bytes in cc_map:
+                        cc_addrs.append(cc_map[raw_bytes])
+                    else:
+                        conversion = ChannelConversion(raw_bytes=raw_bytes)
+                        address = tell()
+                        if conversion['conversion_type'] == v23c.CONVERSION_TYPE_VTABR:
+                            pairs = gp_texts['conversion_tab'][i].items()
+                            for key, item in pairs:
+                                conversion[key] = item
+                            write(bytes(conversion))
+                            cc_addrs.append(address)
+                        else:
+                            cc_addrs.append(address)
+                            cc_map[raw_bytes] = address
+                            write(raw_bytes)
+
                 blocks = []
-                address = tell()
-                ch_texts = gp_texts['channels']
-                gp['temp_channels'] = ch_addrs = []
-                gp['channel_group']['first_ch_addr'] = address
+
                 for i, channel in enumerate(gp['channels']):
                     channel = Channel(
                         address=channel,
                         stream=stream,
                     )
-                    channel.address = address
-                    channel_texts = ch_texts[i]
-
-                    ch_addrs.append(address)
-
-                    address += channel['block_len']
                     blocks.append(channel)
 
-                    if channel_texts:
-                        for key in ('long_name_addr',
-                                    'comment_addr',
-                                    'display_name_addr'):
-                            if key in channel_texts:
-                                channel[key] = channel_texts[key]
+                    if channel['comment_addr']:
+                        tx_block = TextBlock(
+                            address=channel['comment_addr'],
+                            stream=stream,
+                        )
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['comment_addr'] = defined_texts[text].address
+                        else:
+                            address = tell()
+                            channel['comment_addr'] = address
+                            defined_texts[text] = tx_block
+                            tx_block.address = address
+                            write(bytes(tx_block))
 
-                    channel['conversion_addr'] = cc[i]
-                    channel['source_depend_addr'] = cs[i]
-                    channel['ch_depend_addr'] = cd[i]
+                    if channel.get('long_name_addr', 0):
+                        tx_block = TextBlock(
+                            address=channel['long_name_addr'],
+                            stream=stream,
+                        )
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['long_name_addr'] = defined_texts[text].address
+                        else:
+                            address = tell()
+                            channel['long_name_addr'] = address
+                            defined_texts[text] = tx_block
+                            tx_block.address = address
+                            write(bytes(tx_block))
 
-                group_channels = gp['channels']
-                if group_channels:
-                    for j, channel in enumerate(blocks[:-1]):
-                        channel['next_ch_addr'] = blocks[j + 1].address
-                    blocks[-1]['next_ch_addr'] = 0
+                    if channel.get('display_name_addr', 0):
+                        tx_block = TextBlock(
+                            address=channel['display_name_addr'],
+                            stream=stream,
+                        )
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['display_name_addr'] = defined_texts[text].address
+                        else:
+                            address = tell()
+                            channel['display_name_addr'] = address
+                            defined_texts[text] = tx_block
+                            tx_block.address = address
+                            write(bytes(tx_block))
+
+                    channel['conversion_addr'] = cc_addrs[i]
+                    channel['source_depend_addr'] = ce_addrs[i]
+                    channel['ch_depend_addr'] = cd_addrs[i]
+
+                address = tell()
+                for block in blocks:
+                    ch_addrs.append(address)
+                    block.address = address
+                    address += block['block_len']
+                for j, block in enumerate(blocks[:-1]):
+                    block['next_ch_addr'] = blocks[j + 1].address
+                blocks[-1]['next_ch_addr'] = 0
+
                 for block in blocks:
                     write(bytes(block))
 
@@ -3520,6 +3574,7 @@ class MDF3(object):
                 cg.address = address
 
                 cg['next_cg_addr'] = 0
+                cg['first_ch_addr'] = ch_addrs[0]
                 cg_texts = gp_texts['channel_group'][0]
                 if 'comment_addr' in cg_texts:
                     addr = cg_texts['comment_addr']
