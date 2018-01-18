@@ -168,7 +168,7 @@ class MDF(object):
                 ' Available versions are {}'
             )
             warn(message.format(to, SUPPORTED_VERSIONS))
-            return
+            out = None
         else:
             out = MDF(version=to, memory=memory)
 
@@ -192,7 +192,8 @@ class MDF(object):
                         source_info.format(self.version, to),
                         common_timebase=True,
                     )
-            return out
+                    
+        return out
 
     def cut(self, start=None, stop=None, whence=0):
         """convert MDF to other versions
@@ -231,7 +232,7 @@ class MDF(object):
                         index=master_index,
                         samples_only=True,
                     )
-                    if len(master):
+                    if master.size:
                         timestamps.append(master[0])
             first_timestamp = np.amin(timestamps)
             if start is not None:

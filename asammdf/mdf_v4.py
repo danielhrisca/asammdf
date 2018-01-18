@@ -159,6 +159,7 @@ class MDF4(object):
         self._ch_map = {}
         self._master_channel_cache = {}
         self._si_map = {}
+        self._cc_map = {}
 
         # used for appending when memory=False
         self._tempfile = TemporaryFile()
@@ -426,6 +427,7 @@ class MDF4(object):
 
         self._si_map = None
         self._ch_map = None
+        self._cc_map = None
 
     def _read_channels(
             self,
@@ -456,8 +458,27 @@ class MDF4(object):
             # read conversion block and create channel conversion object
             address = channel['conversion_addr']
             if address:
-                conv = ChannelConversion(address=address, stream=stream)
+                if memory == 'minimum':
+                    conv = ChannelConversion(
+                        address=address,
+                        stream=stream,
+                    )
+                    conv_type = conv['conversion_type']
+                else:
+                    stream.seek(address+8)
+                    size = unpack('<Q', stream.read(8))[0]
+                    stream.seek(address)
+                    raw_bytes = stream.read(size)
+                    if raw_bytes in self._cc_map:
+                        conv = self._cc_map[raw_bytes]
+                        conv_type = conv['conversion_type']
+                    else:
+                        conv = ChannelConversion(raw_bytes=raw_bytes)
+                        conv_type = conv['conversion_type']
+                        if conv_type not in v4c.CONVERSIONS_WITH_TEXTS:
+                            self._cc_map[raw_bytes] = conv
             else:
+                conv_type = -1
                 conv = None
             if memory == 'minimum':
                 grp['channel_conversions'].append(address)
@@ -484,8 +505,8 @@ class MDF4(object):
                     if address:
                         conv.formula = get_text_v4(address, stream)
 
-                if conv['conversion_type'] in v4c.TABULAR_CONVERSIONS:
-                    if conv['conversion_type'] == v4c.CONVERSION_TYPE_TTAB:
+                if conv_type in v4c.TABULAR_CONVERSIONS:
+                    if conv_type == v4c.CONVERSION_TYPE_TTAB:
                         tabs = conv['links_nr'] - 4
                     else:
                         tabs = conv['links_nr'] - 4 - 1
@@ -502,7 +523,7 @@ class MDF4(object):
                                 conv_tabx_texts['text_{}'.format(i)] = block
                             else:
                                 conv_tabx_texts['text_{}'.format(i)] = None
-                    if not conv['conversion_type'] == v4c.CONVERSION_TYPE_TTAB:
+                    if not conv_type == v4c.CONVERSION_TYPE_TTAB:
                         address = conv.get('default_addr', 0)
                         if address:
                             if memory == 'minimum':
@@ -529,7 +550,7 @@ class MDF4(object):
                                     conv['unit_addr'] = default_text['unit_addr']
                                     default_text['unit_addr'] = 0
 
-                elif conv['conversion_type'] == v4c.CONVERSION_TYPE_TRANS:
+                elif conv_type == v4c.CONVERSION_TYPE_TRANS:
                     # link_nr - common links (4) - default text link (1)
                     for i in range((conv['links_nr'] - 4 - 1) // 2):
                         for key in ('input_{}_addr'.format(i),
@@ -1295,7 +1316,6 @@ class MDF4(object):
             if len(sig.samples.shape) > 1
             or sig.samples.dtype.names
         ]
-
 
         dg_cntr = len(self.groups)
 

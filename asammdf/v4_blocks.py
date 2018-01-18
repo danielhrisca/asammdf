@@ -679,20 +679,35 @@ class ChannelConversion(dict):
 
         self.name = self.unit = self.comment = self.formula = ''
 
-        if 'stream' in kargs:
-            self.address = address = kargs['address']
-            stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+        if 'raw_bytes' in kargs or 'stream' in kargs:
+            try:  
+                (self['id'],
+                 self['reserved0'],
+                 self['block_len'],
+                 self['links_nr']) = unpack_from(
+                    v4c.FMT_COMMON,
+                    kargs['raw_bytes'],
+                )
 
-            (self['id'],
-             self['reserved0'],
-             self['block_len'],
-             self['links_nr']) = unpack(
-                v4c.FMT_COMMON,
-                stream.read(v4c.COMMON_SIZE),
-            )
+                self.address = 0
 
-            block = stream.read(self['block_len'] - v4c.COMMON_SIZE)
+                block = kargs['raw_bytes'][v4c.COMMON_SIZE:]
+
+            except KeyError:
+
+                self.address = address = kargs['address']
+                stream = kargs['stream']
+                stream.seek(address, SEEK_START)
+
+                (self['id'],
+                self['reserved0'],
+                self['block_len'],
+                self['links_nr']) = unpack(
+                    v4c.FMT_COMMON,
+                    stream.read(v4c.COMMON_SIZE),
+                )
+
+                block = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
             conv = unpack_from('<B', block, self['links_nr'] * 8)[0]
 

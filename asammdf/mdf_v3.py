@@ -1012,8 +1012,6 @@ class MDF3(object):
         write = file.write
         tell = file.tell
 
-        cc_map = {}
-
         kargs = {
             'module_nr': 0,
             'module_address': 0,
@@ -2182,7 +2180,7 @@ class MDF3(object):
         else:
             channel = grp['channels'][ch_nr]
 
-        if memory == 'minimum':
+        if self.memory == 'minimum':
             comment = ''
             if channel['comment_addr']:
                 comment = get_text_v3(channel['comment_addr'], stream)
@@ -3076,7 +3074,53 @@ class MDF3(object):
                                 blocks.append(tx_block)
                                 address += tx_block['block_len']
 
-                for channel in gp['channels']:
+                # ChannelConversions
+                cc = gp['channel_conversions']
+                for i, conv in enumerate(cc):
+                    if conv is None:
+                        continue
+
+                    if conv['conversion_type'] == v23c.CONVERSION_TYPE_VTABR:
+                        conv.address = address
+                        pairs = gp_texts['conversion_tab'][i].items()
+                        for key, item in pairs:
+                            conv[key] = item.address
+
+                        blocks.append(conv)
+                        address += conv['block_len']
+                    else:
+                        cc_id = id(conv)
+                        if cc_id not in cc_map:
+                            conv.address = address
+                            cc_map[cc_id] = conv
+                            blocks.append(conv)
+                            address += conv['block_len']
+
+                # Channel Extension
+                cs = gp['channel_extensions']
+                for source in cs:
+                    if source:
+                        source_id = id(source)
+                        if source_id not in ce_map:
+                            source.address = address
+                            ce_map[source_id] = source
+                            blocks.append(source)
+                            address += source['block_len']
+
+                # Channel Dependency
+                cd = gp['channel_dependencies']
+                for dep in cd:
+                    if dep:
+                        dep.address = address
+                        blocks.append(dep)
+                        address += dep['block_len']
+
+                # Channels
+                for i, channel in enumerate(gp['channels']):
+                    channel.address = address
+                    blocks.append(channel)
+                    address += channel['block_len']
+
                     comment = channel.comment
                     if comment:
                         if len(comment) >= 128:
@@ -3122,54 +3166,6 @@ class MDF3(object):
                                 address += tx_block['block_len']
                         else:
                             channel['display_name_addr'] = 0
-
-                # ChannelConversions
-                cc = gp['channel_conversions']
-                for i, conv in enumerate(cc):
-                    if conv is None:
-                        continue
-
-                    if conv['conversion_type'] == v23c.CONVERSION_TYPE_VTABR:
-                        conv.address = address
-                        pairs = gp_texts['conversion_tab'][i].items()
-                        for key, item in pairs:
-                            conv[key] = item.address
-
-                        blocks.append(conv)
-                        address += conv['block_len']
-                    else:
-                        cc_id = id(conv)
-                        if cc_id not in cc_map:
-                            conv.address = address
-                            cc_map[cc_id] = conv
-                            blocks.append(conv)
-                            address += conv['block_len']
-
-                # Channel Extension
-                cs = gp['channel_extensions']
-                for source in cs:
-                    if source:
-                        source_id = id(source)
-                        if source_id not in ce_map:
-                            source.address = address
-                            ce_map[source_id] = source
-                            blocks.append(source)
-                            address += source['block_len']
-
-                # Channel Dependency
-                cd = gp['channel_dependencies']
-                for dep in cd:
-                    if dep:
-                        dep.address = address
-                        blocks.append(dep)
-                        address += dep['block_len']
-
-                # Channels
-                for i, channel in enumerate(gp['channels']):
-                    channel.address = address
-
-                    blocks.append(channel)
-                    address += channel['block_len']
 
                     channel['conversion_addr'] = cc[i].address if cc[i] else 0
                     if cs[i]:
