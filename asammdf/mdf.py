@@ -729,23 +729,20 @@ class MDF(object):
                             else:
                                 stream = file._tempfile
 
-                            channel_texts = grp['texts']['channels'][j]
-                            if channel_texts and \
-                                    'long_name_addr' in channel_texts:
-                                address = channel_texts['long_name_addr']
+                            channel = ChannelV3(
+                                address=grp['channels'][j],
+                                stream=stream,
+                            )
 
-                                block = TextBlockV3(
-                                    address=address,
-                                    stream=stream,
-                                )
-                                name = block['text']
+                            if channel['long_name_addr']:
+                                name = get_text_v3(channel['long_name_addr'], stream)
                             else:
-                                channel = ChannelV3(
-                                    address=grp['channels'][j],
-                                    stream=stream,
+                                name = (
+                                    channel['short_name']
+                                    .decode('latin-1')
+                                    .strip(' \r\n\t\0')
+                                    .split('\\')[0]
                                 )
-                                name = channel['short_name']
-                            name = name.decode('latin-1').strip(' \r\n\t\0')
                         else:
                             grp = file.groups[i]
                             if grp['data_location'] == 0:

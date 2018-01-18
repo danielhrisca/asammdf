@@ -115,12 +115,12 @@ class Channel(dict):
     b'CN'
 
     '''
-    __slots__ = ['name', 'address']
+    __slots__ = ['name', 'address', 'comment', 'display_name']
 
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
-        self.name = ''
+        self.name = self.display_name = self.comment = ''
 
         try:
             stream = kargs['stream']
@@ -355,15 +355,27 @@ class ChannelConversion(dict):
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
 
-        try:
-            stream = kargs['stream']
-            self.address = address = kargs['address']
-            stream.seek(address, SEEK_START)
-            block = stream.read(4)
-            (self['id'],
-             self['block_len']) = unpack('<2sH', block)
-            size = self['block_len']
-            block = stream.read(size - 4)
+        if 'raw_bytes' in kargs or 'stream' in kargs:
+            try:
+                self.address = 0
+                block = kargs['raw_bytes']
+                (self['id'],
+                 self['block_len']) = unpack_from(
+                    '<2sH',
+                    block,
+                )
+                size = self['block_len']
+                block = block[4:]
+
+            except KeyError:
+                stream = kargs['stream']
+                self.address = address = kargs['address']
+                stream.seek(address, SEEK_START)
+                block = stream.read(4)
+                (self['id'],
+                 self['block_len']) = unpack('<2sH', block)
+                size = self['block_len']
+                block = stream.read(size - 4)
 
             (self['range_flag'],
              self['min_phy_value'],
@@ -465,7 +477,8 @@ class ChannelConversion(dict):
                 message = 'Expected "CC" block but found "{}"'
                 raise MdfException(message.format(self['id']))
 
-        except KeyError:
+        else:
+
             self.address = 0
             self['id'] = 'CC'.encode('latin-1')
 
@@ -857,7 +870,40 @@ class ChannelExtension(dict):
     def __init__(self, **kargs):
         super(ChannelExtension, self).__init__()
 
-        try:
+        if 'raw_bytes' in kargs:
+
+            (self['id'],
+             self['block_len'],
+             self['type']) = unpack_from(
+                v23c.FMT_SOURCE_COMMON,
+                kargs['raw_bytes'],
+            )
+            if self['type'] == v23c.SOURCE_ECU:
+                (self['module_nr'],
+                 self['module_address'],
+                 self['description'],
+                 self['ECU_identification'],
+                 self['reserved0']) = unpack_from(
+                    v23c.FMT_SOURCE_EXTRA_ECU,
+                    kargs['raw_bytes'],
+                    6,
+                )
+            elif self['type'] == v23c.SOURCE_VECTOR:
+                (self['CAN_id'],
+                 self['CAN_ch_index'],
+                 self['message_name'],
+                 self['sender_name'],
+                 self['reserved0']) = unpack_from(
+                    v23c.FMT_SOURCE_EXTRA_VECTOR,
+                    kargs['raw_bytes'],
+                    6,
+                )
+
+            if self['id'] != b'CE':
+                message = 'Expected "CE" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
+        elif 'stream' in kargs:
             stream = kargs['stream']
             self.address = address = kargs['address']
             stream.seek(address, SEEK_START)
@@ -882,7 +928,7 @@ class ChannelExtension(dict):
                 message = 'Expected "CE" block but found "{}"'
                 raise MdfException(message.format(self['id']))
 
-        except KeyError:
+        else:
 
             self.address = 0
             self['id'] = b'CE'

@@ -526,6 +526,8 @@ def table_end(fmt='rst'):
 
 
 def main(text_output, fmt):
+    if os.path.dirname(__file__):
+        os.chdir(os.path.dirname(__file__))
     listen, send = multiprocessing.Pipe()
     output = MyList()
     errors = []
