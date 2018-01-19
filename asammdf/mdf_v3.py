@@ -9,10 +9,10 @@ import time
 import warnings
 from collections import defaultdict
 from copy import deepcopy
-from functools import partial, reduce
+from functools import reduce
 from itertools import product
 from tempfile import TemporaryFile
-from struct import unpack, unpack_from
+from struct import unpack
 
 from numexpr import evaluate
 from numpy import (
@@ -45,12 +45,11 @@ from .signal import Signal
 from .utils import (
     MdfException,
     fix_dtype_fields,
-    fmt_to_datatype,
-    get_fmt,
+    fmt_to_datatype_v3,
+    get_fmt_v3,
     get_min_max,
     get_unique_name,
     get_text_v3,
-    pair,
 )
 from .v2_v3_blocks import (
     Channel,
@@ -67,12 +66,11 @@ from .v2_v3_blocks import (
 )
 from .version import __version__
 
-get_fmt = partial(get_fmt, version=3)
-fmt_to_datatype = partial(fmt_to_datatype, version=3)
-
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
+    # pylint: disable=W0622
     from .utils import bytes
+    # pylint: enable=W0622
 
 __all__ = ['MDF3', ]
 
@@ -139,6 +137,9 @@ class MDF3(object):
         self._tempfile = TemporaryFile()
         self._tempfile.write(b'\0')
         self._file = None
+
+        self.attachments = None
+        self.file_comment = None
 
         if name:
             self._file = open(self.name, 'rb')
@@ -307,7 +308,7 @@ class MDF3(object):
                     next_byte_aligned_position = parent_start_offset + size
                     size = size // 8
                     if next_byte_aligned_position <= record_size:
-                        dtype_pair = (name, get_fmt(data_type, size))
+                        dtype_pair = (name, get_fmt_v3(data_type, size))
                         types.append(dtype_pair)
                         parents[original_index] = name, bit_offset
 
@@ -334,7 +335,7 @@ class MDF3(object):
                         size = 1
 
                     if next_byte_aligned_position <= record_size:
-                        dtype_pair = (name, get_fmt(data_type, size))
+                        dtype_pair = (name, get_fmt_v3(data_type, size))
                         types.append(dtype_pair)
                         parents[original_index] = name, bit_offset
 
@@ -445,7 +446,7 @@ class MDF3(object):
             vals = fromarrays([vals, extra], dtype=dtype(types))
         vals = vals.tostring()
 
-        fmt = get_fmt(channel['data_type'], size)
+        fmt = get_fmt_v3(channel['data_type'], size)
         if size <= byte_count:
             types = [
                 ('vals', fmt),
@@ -580,14 +581,17 @@ class MDF3(object):
         dg_addr = self.header['first_dg_addr']
         # read each data group sequentially
         while dg_addr:
-            gp = DataGroup(address=dg_addr, stream=stream)
-            record_id_nr = gp['record_id_nr']
-            cg_nr = gp['cg_nr']
-            cg_addr = gp['first_cg_addr']
-            data_addr = gp['data_block_addr']
+            data_group = DataGroup(
+                address=dg_addr,
+                stream=stream,
+            )
+            record_id_nr = data_group['record_id_nr']
+            cg_nr = data_group['cg_nr']
+            cg_addr = data_group['first_cg_addr']
+            data_addr = data_group['data_block_addr']
 
             # read trigger information if available
-            trigger_addr = gp['trigger_addr']
+            trigger_addr = data_group['trigger_addr']
             if trigger_addr:
                 trigger = TriggerBlock(
                     address=trigger_addr,
@@ -819,7 +823,7 @@ class MDF3(object):
 
             if memory == 'full':
                 # read data block of the current data group
-                dat_addr = gp['data_block_addr']
+                dat_addr = data_group['data_block_addr']
                 if dat_addr:
                     seek(dat_addr, v23c.SEEK_START)
                     data = read(total_size)
@@ -863,7 +867,7 @@ class MDF3(object):
             self.groups.extend(new_groups)
 
             # go to next data group
-            dg_addr = gp['next_dg_addr']
+            dg_addr = data_group['next_dg_addr']
 
         # finally update the channel depency references
         for grp in self.groups:
@@ -899,18 +903,18 @@ class MDF3(object):
             trigger comment
 
         """
-        gp = self.groups[group]
-        trigger, trigger_text = gp['trigger']
+        group = self.groups[group]
+        trigger, trigger_text = group['trigger']
         if trigger:
-            nr = trigger['trigger_event_nr']
+            count = trigger['trigger_event_nr']
             trigger['trigger_event_nr'] += 1
             trigger['block_len'] += 24
-            trigger['trigger_{}_time'.format(nr)] = timestamp
-            trigger['trigger_{}_pretime'.format(nr)] = pre_time
-            trigger['trigger_{}_posttime'.format(nr)] = post_time
+            trigger['trigger_{}_time'.format(count)] = timestamp
+            trigger['trigger_{}_pretime'.format(count)] = pre_time
+            trigger['trigger_{}_posttime'.format(count)] = post_time
             if trigger_text is None and comment:
                 trigger_text = TextBlock(text=comment)
-                gp['trigger'][1] = trigger_text
+                group['trigger'][1] = trigger_text
         else:
             trigger = TriggerBlock(
                 trigger_event_nr=1,
@@ -923,7 +927,7 @@ class MDF3(object):
             else:
                 trigger_text = None
 
-            gp['trigger'] = [trigger, trigger_text]
+            group['trigger'] = [trigger, trigger_text]
 
     def append(self,
                signals,
@@ -974,10 +978,10 @@ class MDF3(object):
 
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
-        t_ = signals[0].timestamps
+        timestamps = signals[0].timestamps
         if not common_timebase:
-            for s in signals[1:]:
-                if not array_equal(s.timestamps, t_):
+            for signal in signals[1:]:
+                if not array_equal(signal.timestamps, timestamps):
                     different = True
                     break
             else:
@@ -985,17 +989,13 @@ class MDF3(object):
 
             if different:
                 times = [s.timestamps for s in signals]
-                t = reduce(union1d, times).flatten().astype(float64)
-                signals = [s.interp(t) for s in signals]
+                timestamps = reduce(union1d, times).flatten().astype(float64)
+                signals = [s.interp(timestamps) for s in signals]
                 times = None
-            else:
-                t = t_
-        else:
-            t = t_
 
         if self.version < '3.00':
-            if t.dtype.byteorder == '>':
-                t = t.byteswap().newbyteorder()
+            if timestamps.dtype.byteorder == '>':
+                timestamps = timestamps.byteswap().newbyteorder()
             for signal in signals:
                 if signal.samples.dtype.byteorder == '>':
                     signal.samples = signal.samples.byteswap().newbyteorder()
@@ -1075,7 +1075,7 @@ class MDF3(object):
             }
             self.groups.append(gp)
 
-            cycles_nr = len(t)
+            cycles_nr = len(timestamps)
             fields = []
             types = []
             parents = {}
@@ -1097,8 +1097,8 @@ class MDF3(object):
             kargs = {
                 'conversion_type': v23c.CONVERSION_TYPE_NONE,
                 'unit': b's',
-                'min_phy_value': t[0] if cycles_nr else 0,
-                'max_phy_value': t[-1] if cycles_nr else 0,
+                'min_phy_value': timestamps[0] if cycles_nr else 0,
+                'max_phy_value': timestamps[-1] if cycles_nr else 0,
             }
             block = ChannelConversion(**kargs)
             if memory != 'minimum':
@@ -1115,14 +1115,14 @@ class MDF3(object):
                 gp_source.append(ce_address)
 
             # time channel
-            t_type, t_size = fmt_to_datatype(t.dtype)
+            t_type, t_size = fmt_to_datatype_v3(timestamps.dtype)
             kargs = {
                 'short_name': b't',
                 'channel_type': v23c.CHANNEL_TYPE_MASTER,
                 'data_type': t_type,
                 'start_offset': 0,
-                'min_raw_value': t[0] if cycles_nr else 0,
-                'max_raw_value': t[-1] if cycles_nr else 0,
+                'min_raw_value': timestamps[0] if cycles_nr else 0,
+                'max_raw_value': timestamps[-1] if cycles_nr else 0,
                 'bit_count': t_size,
                 'block_len': channel_size,
             }
@@ -1145,8 +1145,8 @@ class MDF3(object):
             # time channel doesn't have channel dependencies
             gp_dep.append(None)
 
-            fields.append(t)
-            types.append((name, t.dtype))
+            fields.append(timestamps)
+            types.append((name, timestamps.dtype))
             field_names.add(name)
 
             offset += t_size
@@ -1458,7 +1458,7 @@ class MDF3(object):
                 else:
                     start_bit_offset = offset
                     additional_byte_offset = 0
-                s_type, s_size = fmt_to_datatype(signal.samples.dtype)
+                s_type, s_size = fmt_to_datatype_v3(signal.samples.dtype)
 
                 if memory == 'minimum' and len(name) >= 32 and self.version >= '2.10':
                     block = TextBlock(text=name)
@@ -1581,7 +1581,7 @@ class MDF3(object):
 
                 min_val, max_val = get_min_max(samples)
 
-                s_type, s_size = fmt_to_datatype(samples.dtype)
+                s_type, s_size = fmt_to_datatype_v3(samples.dtype)
                 # compute additional byte offset for large records size
                 if offset > v23c.MAX_UINT16:
                     additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
@@ -1666,7 +1666,7 @@ class MDF3(object):
                     short_name = (name[:31] + '\0').encode('latin-1')
 
                     min_val, max_val = get_min_max(samples)
-                    s_type, s_size = fmt_to_datatype(samples.dtype)
+                    s_type, s_size = fmt_to_datatype_v3(samples.dtype)
                     shape = samples.shape[1:]
 
                     # source for channel
@@ -1790,7 +1790,7 @@ class MDF3(object):
             }
             self.groups.append(gp)
 
-            cycles_nr = len(t)
+            cycles_nr = len(timestamps)
             fields = []
             types = []
             parents = {}
@@ -1805,8 +1805,8 @@ class MDF3(object):
             kargs = {
                 'conversion_type': v23c.CONVERSION_TYPE_NONE,
                 'unit': b's',
-                'min_phy_value': t[0] if cycles_nr else 0,
-                'max_phy_value': t[-1] if cycles_nr else 0,
+                'min_phy_value': timestamps[0] if cycles_nr else 0,
+                'max_phy_value': timestamps[-1] if cycles_nr else 0,
             }
             block = ChannelConversion(**kargs)
             if memory != 'minimum':
@@ -1823,14 +1823,14 @@ class MDF3(object):
                 gp_source.append(ce_address)
 
             # time channel
-            t_type, t_size = fmt_to_datatype(t.dtype)
+            t_type, t_size = fmt_to_datatype_v3(timestamps.dtype)
             kargs = {
                 'short_name': b't',
                 'channel_type': v23c.CHANNEL_TYPE_MASTER,
                 'data_type': t_type,
                 'start_offset': 0,
-                'min_raw_value': t[0] if cycles_nr else 0,
-                'max_raw_value': t[-1] if cycles_nr else 0,
+                'min_raw_value': timestamps[0] if cycles_nr else 0,
+                'max_raw_value': timestamps[-1] if cycles_nr else 0,
                 'bit_count': t_size,
                 'block_len': channel_size,
             }
@@ -1853,8 +1853,8 @@ class MDF3(object):
             # time channel doesn't have channel dependencies
             gp_dep.append(None)
 
-            fields.append(t)
-            types.append((name, t.dtype))
+            fields.append(timestamps)
+            types.append((name, timestamps.dtype))
             field_names.add(name)
 
             offset += t_size
@@ -1942,7 +1942,7 @@ class MDF3(object):
                 else:
                     start_bit_offset = offset
                     additional_byte_offset = 0
-                s_type, s_size = fmt_to_datatype(samples.dtype)
+                s_type, s_size = fmt_to_datatype_v3(samples.dtype)
 
                 kargs = {
                     'short_name': short_name,
@@ -2595,6 +2595,7 @@ class MDF3(object):
                 elif conversion_type in (
                         v23c.CONVERSION_TYPE_EXPO,
                         v23c.CONVERSION_TYPE_LOGH):
+                    # pylint: disable=C0103
                     if conversion_type == v23c.CONVERSION_TYPE_EXPO:
                         func = log
                     else:
@@ -2615,6 +2616,7 @@ class MDF3(object):
                         raise ValueError(message)
 
                 elif conversion_type == v23c.CONVERSION_TYPE_RAT:
+                    # pylint: disable=unused-variable,C0103
                     P1 = conversion['P1']
                     P2 = conversion['P2']
                     P3 = conversion['P3']
@@ -2626,6 +2628,7 @@ class MDF3(object):
                         vals = evaluate(v23c.RAT_CONV_TEXT)
 
                 elif conversion_type == v23c.CONVERSION_TYPE_POLY:
+                    # pylint: disable=unused-variable,C0103
                     P1 = conversion['P1']
                     P2 = conversion['P2']
                     P3 = conversion['P3']
@@ -2643,6 +2646,7 @@ class MDF3(object):
                         vals = evaluate(v23c.POLY_CONV_LONG_TEXT)
 
                 elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
+                    # pylint: disable=unused-variable,C0103
                     formula = conversion['formula'].decode('latin-1')
                     formula = formula.strip(' \n\t\0')
                     X1 = vals
@@ -2672,20 +2676,24 @@ class MDF3(object):
             else:
                 comment = description
 
-            t = self.get_master(gp_nr, data)
+            timestamps = self.get_master(gp_nr, data)
 
             res = Signal(
                 samples=vals,
-                timestamps=t,
+                timestamps=timestamps,
                 unit=unit,
                 name=channel.name,
                 comment=comment,
                 info=info,
             )
 
-            if raster and t:
-                tx = linspace(0, t[-1], int(t[-1] / raster))
-                res = res.interp(tx)
+            if raster and timestamps:
+                new_timestamps = linspace(
+                    0,
+                    timestamps[-1],
+                    int(timestamps[-1] / raster),
+                )
+                res = res.interp(new_timestamps)
 
         return res
 
@@ -2948,6 +2956,7 @@ class MDF3(object):
             API as mdf version 4 files
 
         """
+        # pylint: disable=unused-argument
 
         if self.file_history is None:
             self.file_history = TextBlock(text='''<FHcomment>
@@ -3041,6 +3050,12 @@ class MDF3(object):
             # disk this way, in case of memory=False, we can safely
             # restore he original data block address
             gp_rec_ids = []
+
+            original_data_block_addrs = [
+                group['data_group']['data_block_addr']
+                for group in self.groups
+            ]
+
             for gp in self.groups:
                 dg = gp['data_group']
                 gp_rec_ids.append(dg['record_id_nr'])
@@ -3177,9 +3192,11 @@ class MDF3(object):
                     else:
                         channel['ch_depend_addr'] = 0
 
-                for channel, next_channel in pair(gp['channels']):
-                    channel['next_ch_addr'] = next_channel.address
-                next_channel['next_ch_addr'] = 0
+                count = len(gp['channels'])
+                if count:
+                    for i in range(count-1):
+                        gp['channels'][i]['next_ch_addr'] = gp['channels'][i+1].address
+                    gp['channels'][-1]['next_ch_addr'] = 0
 
                 # ChannelGroup
                 cg = gp['channel_group']
@@ -3210,21 +3227,16 @@ class MDF3(object):
                     address += trigger['block_len']
 
                 # DataBlock
-                original_data_addr = gp['data_group']['data_block_addr']
+                if self.memory == 'full':
+                    blocks.append(gp['data_block'])
+                else:
+                    blocks.append(self._load_group_data(gp))
+
                 if gp['size']:
                     gp['data_group']['data_block_addr'] = address
                 else:
                     gp['data_group']['data_block_addr'] = 0
                 address += gp['size'] - gp_rec_ids[idx] * gp['channel_group']['cycles_nr']
-                if self.memory == 'full':
-                    blocks.append(gp['data_block'])
-                else:
-                    # trying to call bytes([gp, address]) will result in an
-                    # exceptionthat be used as a flag for non existing data
-                    # block in caseof memory=False, the address is
-                    # the actual addressof the data group's data within the
-                    # original file
-                    blocks.append([gp, original_data_addr])
 
             # update referenced channels addresses in the channel dependecies
             for gp in self.groups:
@@ -3256,20 +3268,14 @@ class MDF3(object):
                 self.header['program_addr'] = 0
 
             for block in blocks:
-                try:
-                    write(bytes(block))
-                except:
-                    # this will only be executed for data blocks when
-                    # memory=False
-                    gp, address = block
-                    # restore data block address from original file so that
-                    # future calls to get will still work after the save
-                    gp['data_group']['data_block_addr'] = address
-                    data = self._load_group_data(gp)
-                    write(data)
+                write(bytes(block))
 
-            for gp, rec_id in zip(self.groups, gp_rec_ids):
+            for gp, rec_id, original_address in zip(
+                    self.groups, 
+                    gp_rec_ids, 
+                    original_data_block_addrs):
                 gp['data_group']['record_id_nr'] = rec_id
+                gp['data_group']['data_block_addr'] = original_address
 
         if self.memory == 'low' and dst == self.name:
             self.close()
@@ -3285,7 +3291,6 @@ class MDF3(object):
             self.attachments = []
             self.file_comment = None
 
-            self._ch_map = {}
             self._master_channel_cache = {}
 
             self._tempfile = TemporaryFile()
@@ -3311,6 +3316,7 @@ class MDF3(object):
             API as mdf version 4 files
 
         """
+        # pylint: disable=unused-argument
 
         if self.file_history is None:
             self.file_history = TextBlock(text='''<FHcomment>
@@ -3681,7 +3687,6 @@ class MDF3(object):
             self.attachments = []
             self.file_comment = None
 
-            self._ch_map = {}
             self._master_channel_cache = {}
 
             self._tempfile = TemporaryFile()

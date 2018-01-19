@@ -3,7 +3,6 @@
 asammdf utility functions and classes
 '''
 
-import itertools
 from struct import unpack
 
 from numpy import (
@@ -16,13 +15,14 @@ from . import v4_constants as v4c
 
 __all__ = [
     'MdfException',
-    'get_fmt',
+    'get_fmt_v3',
+    'get_fmt_v4',
     'get_min_max',
     'get_unique_name',
     'get_text_v4',
     'fix_dtype_fields',
-    'fmt_to_datatype',
-    'pair',
+    'fmt_to_datatype_v3',
+    'fmt_to_datatype_v4',
     'bytes',
 ]
 
@@ -31,7 +31,7 @@ class MdfException(Exception):
     """MDF Exception class"""
     pass
 
-
+# pylint: disable=W0622
 def bytes(obj):
     """ Python 2 compatibility function """
     try:
@@ -41,8 +41,25 @@ def bytes(obj):
             return obj
         else:
             raise
+# pylint: enable=W0622
 
 def get_text_v3(address, stream):
+    """ faster way extract string from mdf versions 2 and 3 TextBlock
+
+    Parameters
+    ----------
+    address : int
+        TextBlock address
+    stream : handle
+        file IO handle
+
+    Returns
+    -------
+    text : str
+        unicode string
+
+    """
+
     stream.seek(address + 2)
     size = unpack('<H', stream.read(2))[0] - 4
     text = (
@@ -54,6 +71,21 @@ def get_text_v3(address, stream):
     return text
 
 def get_text_v4(address, stream):
+    """ faster way extract string from mdf version 4 TextBlock
+
+    Parameters
+    ----------
+    address : int
+        TextBlock address
+    stream : handle
+        file IO handle
+
+    Returns
+    -------
+    text : str
+        unicode string
+
+    """
     stream.seek(address + 8)
     size = unpack('<Q', stream.read(8))[0] - 24
     stream.read(8)
@@ -66,8 +98,8 @@ def get_text_v4(address, stream):
     return text
 
 
-def get_fmt(data_type, size, version=3):
-    """convert mdf channel data type to numpy dtype format string
+def get_fmt_v3(data_type, size):
+    """convert mdf versions 2 and 3 channel data type to numpy dtype format string
 
     Parameters
     ----------
@@ -75,8 +107,54 @@ def get_fmt(data_type, size, version=3):
         mdf channel data type
     size : int
         data byte size
-    version : int
-        mdf version; default 3
+    Returns
+    -------
+    fmt : str
+        numpy compatible data type format string
+
+    """
+    if size == 0:
+        fmt = 'b'
+    else:
+        if data_type in (
+                v3c.DATA_TYPE_UNSIGNED_INTEL,
+                v3c.DATA_TYPE_UNSIGNED):
+            fmt = '<u{}'.format(size)
+        elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
+            fmt = '>u{}'.format(size)
+        elif data_type in (
+                v3c.DATA_TYPE_SIGNED_INTEL,
+                v3c.DATA_TYPE_SIGNED):
+            fmt = '<i{}'.format(size)
+        elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
+            fmt = '>i{}'.format(size)
+        elif data_type in (
+                v3c.DATA_TYPE_FLOAT,
+                v3c.DATA_TYPE_DOUBLE,
+                v3c.DATA_TYPE_FLOAT_INTEL,
+                v3c.DATA_TYPE_DOUBLE_INTEL):
+            fmt = '<f{}'.format(size)
+        elif data_type in (
+                v3c.DATA_TYPE_FLOAT_MOTOROLA,
+                v3c.DATA_TYPE_DOUBLE_MOTOROLA):
+            fmt = '>f{}'.format(size)
+        elif data_type == v3c.DATA_TYPE_STRING:
+            fmt = 'V{}'.format(size)
+        elif data_type == v3c.DATA_TYPE_BYTEARRAY:
+            fmt = 'u1'
+
+    return fmt
+
+
+def get_fmt_v4(data_type, size):
+    """convert mdf version 4 channel data type to numpy dtype format string
+
+    Parameters
+    ----------
+    data_type : int
+        mdf channel data type
+    size : int
+        data byte size
 
     Returns
     -------
@@ -84,33 +162,9 @@ def get_fmt(data_type, size, version=3):
         numpy compatible data type format string
 
     """
-    if version <= 3:
-        if size == 0:
-            fmt = 'b'
-        if data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED):
-            fmt = '<u{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = '>u{}'.format(size)
-        elif data_type in (v3c.DATA_TYPE_SIGNED_INTEL, v3c.DATA_TYPE_SIGNED):
-            fmt = '<i{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = '>i{}'.format(size)
-        elif data_type in (v3c.DATA_TYPE_FLOAT,
-                           v3c.DATA_TYPE_DOUBLE,
-                           v3c.DATA_TYPE_FLOAT_INTEL,
-                           v3c.DATA_TYPE_DOUBLE_INTEL):
-            fmt = '<f{}'.format(size)
-        elif data_type in (v3c.DATA_TYPE_FLOAT_MOTOROLA,
-                           v3c.DATA_TYPE_DOUBLE_MOTOROLA):
-            fmt = '>f{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_STRING:
-            fmt = 'V{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_BYTEARRAY:
-            fmt = 'u1'
-
-    elif version == 4:
-        if size == 0:
-            fmt = 'b'
+    if size == 0:
+        fmt = 'b'
+    else:
         if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
             fmt = '<u{}'.format(size)
         elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
@@ -125,10 +179,11 @@ def get_fmt(data_type, size, version=3):
             fmt = '>f{}'.format(size)
         elif data_type == v4c.DATA_TYPE_BYTEARRAY:
             fmt = 'V{}'.format(size)
-        elif data_type in (v4c.DATA_TYPE_STRING_UTF_8,
-                           v4c.DATA_TYPE_STRING_LATIN_1,
-                           v4c.DATA_TYPE_STRING_UTF_16_BE,
-                           v4c.DATA_TYPE_STRING_UTF_16_LE):
+        elif data_type in (
+                v4c.DATA_TYPE_STRING_UTF_8,
+                v4c.DATA_TYPE_STRING_LATIN_1,
+                v4c.DATA_TYPE_STRING_UTF_16_BE,
+                v4c.DATA_TYPE_STRING_UTF_16_LE):
             if size == 4:
                 fmt = '<u4'
             elif size == 8:
@@ -154,15 +209,14 @@ def fix_dtype_fields(fields):
     return new_types
 
 
-def fmt_to_datatype(fmt, version=3):
-    """convert numpy dtype format string to mdf channel data type and size
+def fmt_to_datatype_v3(fmt):
+    """convert numpy dtype format string to mdf versions 2 and 3
+    channel data type and size
 
     Parameters
     ----------
     fmt : numpy.dtype
         numpy data type
-    version : int
-        MDF version (2, 3 or 4); default is 3
 
     Returns
     -------
@@ -172,65 +226,75 @@ def fmt_to_datatype(fmt, version=3):
     """
     size = fmt.itemsize * 8
 
-    if version < 4:
-        if fmt.kind == 'u':
-            if fmt.byteorder in ('=<'):
-                data_type = v3c.DATA_TYPE_UNSIGNED
-            else:
-                data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
-        elif fmt.kind == 'i':
-            if fmt.byteorder in ('=<'):
-                data_type = v3c.DATA_TYPE_SIGNED
-            else:
-                data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
-        elif fmt.kind == 'f':
-            if fmt.byteorder in ('=<'):
-                if size == 32:
-                    data_type = v3c.DATA_TYPE_FLOAT
-                else:
-                    data_type = v3c.DATA_TYPE_DOUBLE
-            else:
-                if size == 32:
-                    data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
-                else:
-                    data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
-        elif fmt.kind in 'SV':
-            data_type = v3c.DATA_TYPE_STRING
+    if fmt.kind == 'u':
+        if fmt.byteorder in '=<':
+            data_type = v3c.DATA_TYPE_UNSIGNED
         else:
-            # here we have arrays
-            data_type = v3c.DATA_TYPE_BYTEARRAY
-
-    elif version == 4:
-
-        if fmt.kind == 'u':
-            if fmt.byteorder in ('=<'):
-                data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
-        elif fmt.kind == 'i':
-            if fmt.byteorder in ('=<'):
-                data_type = v4c.DATA_TYPE_SIGNED_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
-        elif fmt.kind == 'f':
-            if fmt.byteorder in ('=<'):
-                data_type = v4c.DATA_TYPE_REAL_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_REAL_MOTOROLA
-        elif fmt.kind in 'SV':
-            data_type = v4c.DATA_TYPE_STRING_LATIN_1
+            data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
+    elif fmt.kind == 'i':
+        if fmt.byteorder in '=<':
+            data_type = v3c.DATA_TYPE_SIGNED
         else:
-            # here we have arrays
-            data_type = v4c.DATA_TYPE_BYTEARRAY
+            data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
+    elif fmt.kind == 'f':
+        if fmt.byteorder in '=<':
+            if size == 32:
+                data_type = v3c.DATA_TYPE_FLOAT
+            else:
+                data_type = v3c.DATA_TYPE_DOUBLE
+        else:
+            if size == 32:
+                data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
+            else:
+                data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
+    elif fmt.kind in 'SV':
+        data_type = v3c.DATA_TYPE_STRING
+    else:
+        # here we have arrays
+        data_type = v3c.DATA_TYPE_BYTEARRAY
 
     return data_type, size
 
 
-def pair(iterable):
-    """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
-    current, next_ = itertools.tee(iterable)
-    next(next_, None)
-    return zip(current, next_)
+def fmt_to_datatype_v4(fmt):
+    """convert numpy dtype format string to mdf version 4 channel data
+    type and size
+
+    Parameters
+    ----------
+    fmt : numpy.dtype
+        numpy data type
+
+    Returns
+    -------
+    data_type, size : int, int
+        integer data type as defined by ASAM MDF and bit size
+
+    """
+    size = fmt.itemsize * 8
+
+    if fmt.kind == 'u':
+        if fmt.byteorder in '=<':
+            data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+        else:
+            data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
+    elif fmt.kind == 'i':
+        if fmt.byteorder in '=<':
+            data_type = v4c.DATA_TYPE_SIGNED_INTEL
+        else:
+            data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
+    elif fmt.kind == 'f':
+        if fmt.byteorder in '=<':
+            data_type = v4c.DATA_TYPE_REAL_INTEL
+        else:
+            data_type = v4c.DATA_TYPE_REAL_MOTOROLA
+    elif fmt.kind in 'SV':
+        data_type = v4c.DATA_TYPE_STRING_LATIN_1
+    else:
+        # here we have arrays
+        data_type = v4c.DATA_TYPE_BYTEARRAY
+
+    return data_type, size
 
 
 def get_unique_name(used_names, name):

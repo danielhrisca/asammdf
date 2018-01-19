@@ -307,13 +307,17 @@ def save_reader3_nodata(output, fmt):
 
 
 def save_reader3_compression(output, fmt):
-
-    x = MDFreader(r'test.mdf', compression='blosc')
     with Timer('Save file',
                'mdfreader {} compress mdfv3'.format(mdfreader_version),
-               fmt) as timer:
-        x.write(r'x.mdf')
-    output.send([timer.output, timer.error])
+               fmt) as outer_timer:
+        x = MDFreader(r'test.mdf', compression='blosc')
+        with Timer('Save file',
+                'mdfreader {} compress mdfv3'.format(mdfreader_version),
+                fmt) as timer:
+            x.write(r'x.mdf')
+        output.send([timer.output, timer.error])
+    if outer_timer.error:
+        output.send([timer.output, timer.error])
 
 
 def save_reader4(output, fmt):

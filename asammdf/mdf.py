@@ -127,8 +127,8 @@ class MDF(object):
                     continue
                 if all(not isinstance(dep, ChannelArrayBlock)
                        for dep in dependencies):
-                    for ch in dependencies:
-                        excluded_channels.add(channels.index(ch))
+                    for channel in dependencies:
+                        excluded_channels.add(channels.index(channel))
                 else:
                     for dep in dependencies:
                         for ch_nr, gp_nr in dep.referenced_channels:
@@ -173,13 +173,13 @@ class MDF(object):
             out = MDF(version=to, memory=memory)
 
             # walk through all groups and get all channels
-            for i, gp in enumerate(self.groups):
+            for i, group in enumerate(self.groups):
                 sigs = []
                 excluded_channels = self._excluded_channels(i)
 
-                data = self._load_group_data(gp)
+                data = self._load_group_data(group)
 
-                for j, _ in enumerate(gp['channels']):
+                for j, _ in enumerate(group['channels']):
                     if j in excluded_channels:
                         continue
                     else:
@@ -192,7 +192,7 @@ class MDF(object):
                         source_info.format(self.version, to),
                         common_timebase=True,
                     )
-                    
+
         return out
 
     def cut(self, start=None, stop=None, whence=0):
@@ -244,13 +244,13 @@ class MDF(object):
             del timestamps
 
         # walk through all groups and get all channels
-        for i, gp in enumerate(self.groups):
+        for i, group in enumerate(self.groups):
             sigs = []
             excluded_channels = self._excluded_channels(i)
 
-            data = self._load_group_data(gp)
+            data = self._load_group_data(group)
 
-            for j, _ in enumerate(gp['channels']):
+            for j, _ in enumerate(group['channels']):
                 if j in excluded_channels:
                     continue
                 sig = self.get(
@@ -336,9 +336,9 @@ class MDF(object):
             else:
                 if not name.endswith('.hdf'):
                     name = os.path.splitext(name)[0] + '.hdf'
-                with HDF5(name, 'w') as f:
+                with HDF5(name, 'w') as hdf:
                     # header information
-                    group = f.create_group(os.path.basename(name))
+                    group = hdf.create_group(os.path.basename(name))
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
@@ -350,7 +350,7 @@ class MDF(object):
                     # that will hold the name of the master channel
                     for i, grp in enumerate(self.groups):
                         group_name = r'/' + 'DataGroup_{}'.format(i + 1)
-                        group = f.create_group(group_name)
+                        group = hdf.create_group(group_name)
 
                         master_index = self.masters_db.get(i, -1)
 
@@ -376,9 +376,9 @@ class MDF(object):
                 return
             else:
                 excel_name = os.path.splitext(name)[0]
-                nr = len(self.groups)
+                count = len(self.groups)
                 for i, grp in enumerate(self.groups):
-                    print('Exporting group {} of {}'.format(i + 1, nr))
+                    print('Exporting group {} of {}'.format(i + 1, count))
 
                     data = self._load_group_data(grp)
 
@@ -387,27 +387,24 @@ class MDF(object):
                     workbook = xlsxwriter.Workbook(wb_name)
                     bold = workbook.add_format({'bold': True})
 
-                    ws = workbook.add_worksheet("Information")
-
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
+                        sheet = workbook.add_worksheet(group_name)
                         for j, item in enumerate(header_items):
-                            ws.write(j, 0, item.title(), bold)
-                            ws.write(j, 1, self.header[item].decode('latin-1'))
-
-                        ws = workbook.add_worksheet(group_name)
+                            sheet.write(j, 0, item.title(), bold)
+                            sheet.write(j, 1, self.header[item].decode('latin-1'))
 
                         # the sheet header has 3 rows
                         # the channel name and unit 'YY [xx]'
                         # the channel comment
                         # the flag for data grup master channel
-                        ws.write(0, 0, 'Channel', bold)
-                        ws.write(1, 0, 'comment', bold)
-                        ws.write(2, 0, 'is master', bold)
+                        sheet.write(0, 0, 'Channel', bold)
+                        sheet.write(1, 0, 'comment', bold)
+                        sheet.write(2, 0, 'is master', bold)
 
                         master_index = self.masters_db.get(i, -1)
 
                         for j in range(grp['channel_group']['cycles_nr']):
-                            ws.write(j + 3, 0, str(j))
+                            sheet.write(j + 3, 0, str(j))
 
                         for j, _ in enumerate(grp['channels']):
                             sig = self.get(group=i, index=j, data=data)
@@ -418,19 +415,19 @@ class MDF(object):
                                 sig.unit,
                             )
                             comment = sig.comment if sig.comment else ''
-                            ws.write(0, col, sig_description)
-                            ws.write(1, col, comment)
+                            sheet.write(0, col, sig_description)
+                            sheet.write(1, col, comment)
                             if j == master_index:
-                                ws.write(2, col, 'x')
-                            ws.write_column(3, col, sig.samples.astype(str))
+                                sheet.write(2, col, 'x')
+                            sheet.write_column(3, col, sig.samples.astype(str))
 
                     workbook.close()
 
         elif fmt == 'csv':
             csv_name = os.path.splitext(name)[0]
-            nr = len(self.groups)
+            count = len(self.groups)
             for i, grp in enumerate(self.groups):
-                print('Exporting group {} of {}'.format(i + 1, nr))
+                print('Exporting group {} of {}'.format(i + 1, count))
                 data = self._load_group_data(grp)
 
                 group_name = 'DataGroup_{}'.format(i + 1)
@@ -616,8 +613,8 @@ class MDF(object):
                     if all(not isinstance(dep, ChannelArrayBlock)
                            for dep in dependencies):
                         channels = grp['channels']
-                        for ch in dependencies:
-                            excluded_channels.add(channels.index(ch))
+                        for channel in dependencies:
+                            excluded_channels.add(channels.index(channel))
                     else:
                         for dep in dependencies:
                             for ch_nr, gp_nr in dep.referenced_channels:
@@ -771,16 +768,16 @@ class MDF(object):
                 if j in excluded_channels:
                     continue
 
-                sigs = [
+                signals_to_merge = [
                     file.get(group=i, index=j, data=data)
                     for file, data in zip(files, groups_data)
                 ]
 
-                sig = sigs[0]
-                for s in sigs[1:]:
-                    sig = sig.extend(s)
+                signal = signals_to_merge[0]
+                for merged_signal in signals_to_merge[1:]:
+                    signal = signal.extend(merged_signal)
 
-                signals.append(sig)
+                signals.append(signal)
 
             if signals:
                 merged.append(signals, common_timebase=True)
@@ -810,8 +807,8 @@ class MDF(object):
     def iter_groups(self):
         """ generator that yields channel groups as pandas DataFrames"""
 
-        for i, gp in enumerate(self.groups):
-            data = self._load_group_data(gp)
+        for i, group in enumerate(self.groups):
+            data = self._load_group_data(group)
             master_index = self.masters_db.get(i, None)
             if master_index is None:
                 pandas_dict = {}
@@ -822,7 +819,7 @@ class MDF(object):
                     data=data,
                 )
                 pandas_dict = {master.name: master.samples}
-            for j, _ in enumerate(gp['channels']):
+            for j, _ in enumerate(group['channels']):
                 if j == master_index:
                     continue
                 sig = self.get(
@@ -859,13 +856,13 @@ class MDF(object):
         )
 
         # walk through all groups and get all channels
-        for i, gp in enumerate(self.groups):
+        for i, group in enumerate(self.groups):
             sigs = []
             excluded_channels = self._excluded_channels(i)
 
-            data = self._load_group_data(gp)
+            data = self._load_group_data(group)
 
-            for j, _ in enumerate(gp['channels']):
+            for j, _ in enumerate(group['channels']):
                 if j in excluded_channels:
                     continue
                 sig = self.get(

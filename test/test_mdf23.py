@@ -43,6 +43,7 @@ class TestMDF23(unittest.TestCase):
         )
 
         for memory in MEMORY:
+            print(memory)
 
             with MDF(version='2.00', memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
@@ -79,6 +80,7 @@ class TestMDF23(unittest.TestCase):
         )
 
         for memory in MEMORY:
+            print(memory)
             with MDF(version='2.14', memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
                 outfile = mdf.save('tmp', overwrite=True)
@@ -114,6 +116,7 @@ class TestMDF23(unittest.TestCase):
         )
 
         for memory in MEMORY:
+            print(memory)
 
             with MDF(version='3.00', memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
@@ -153,6 +156,8 @@ class TestMDF23(unittest.TestCase):
             with MDF(version='3.10', memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
                 outfile = mdf.save('tmp', overwrite=True)
+
+            print(memory)
 
             with MDF(outfile, memory=memory) as mdf:
                 ret_sig_int = mdf.get(sig_int.name)
