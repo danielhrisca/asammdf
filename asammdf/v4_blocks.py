@@ -1278,6 +1278,9 @@ class DataBlock(dict):
             self['links_nr'] = 0
             self['data'] = kargs['data']
 
+        if PYVERSION_MAJOR < 30 and isinstance(self['data'], bytearray):
+            self['data'] = str(self['data'])
+
     def __bytes__(self):
         fmt = v4c.FMT_DATA_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)
         if PYVERSION_MAJOR >= 36:
