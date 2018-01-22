@@ -3,6 +3,8 @@
 asammdf utility functions and classes
 '''
 
+import warnings
+
 from struct import unpack
 
 from numpy import (
@@ -43,6 +45,7 @@ def bytes(obj):
             raise
 # pylint: enable=W0622
 
+
 def get_text_v3(address, stream):
     """ faster way extract string from mdf versions 2 and 3 TextBlock
 
@@ -70,6 +73,7 @@ def get_text_v3(address, stream):
     )
     return text
 
+
 def get_text_v4(address, stream):
     """ faster way extract string from mdf version 4 TextBlock
 
@@ -86,15 +90,33 @@ def get_text_v4(address, stream):
         unicode string
 
     """
+
     stream.seek(address + 8)
     size = unpack('<Q', stream.read(8))[0] - 24
     stream.read(8)
-    text = (
-        stream
-        .read(size)
-        .decode('utf-8')
-        .strip(' \r\t\n\0')
-    )
+    text_bytes = stream.read(size)
+    try:
+        text = (
+            text_bytes
+            .decode('utf-8')
+            .strip(' \r\t\n\0')
+        )
+    except UnicodeDecodeError as err:
+        try:
+            from chardet import detect
+            encoding = detect(text_bytes)['encoding']
+            text = (
+                text_bytes
+                .decode(encoding)
+                .strip(' \r\t\n\0')
+            )
+        except ImportError:
+            warnings.warn('Unicode exception occured and "chardet" package is '
+                          'not installed. Mdf version 4 expects "utf-8" '
+                          'strings and this package may detect if a different'
+                          ' encoding was used')
+            raise err
+
     return text
 
 

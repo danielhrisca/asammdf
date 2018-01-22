@@ -359,7 +359,22 @@ class MDF4(object):
             if memory == 'full':
                 grp['data_location'] = v4c.LOCATION_MEMORY
                 dat_addr = group['data_block_addr']
-                data = self._read_data_block(address=dat_addr, stream=stream)
+
+                if record_id_nr == 0:
+                    size = channel_group['samples_byte_nr']
+                    size *= channel_group['cycles_nr']
+                else:
+                    size = sum(
+                        (gp['channel_group']['samples_byte_nr'] + record_id_nr)
+                        * gp['channel_group']['cycles_nr']
+                        for gp in new_groups
+                    )
+
+                data = self._read_data_block(
+                    address=dat_addr,
+                    stream=stream,
+                    size=size,
+                )
 
                 if record_id_nr == 0:
                     grp = new_groups[0]
@@ -690,7 +705,7 @@ class MDF4(object):
 
         return ch_cntr, composition
 
-    def _read_data_block(self, address, stream):
+    def _read_data_block(self, address, stream, size=-1):
         """read and aggregate data blocks for a given data group
 
         Returns
@@ -698,6 +713,7 @@ class MDF4(object):
         data : bytes
             aggregated raw data
         """
+        orig = address
         if address:
             stream.seek(address, v4c.SEEK_START)
             id_string = stream.read(4)
@@ -711,31 +727,50 @@ class MDF4(object):
                 data = data['data']
             # or a DataList
             elif id_string == b'##DL':
-                data = []
-                while address:
-                    dl = DataList(address=address, stream=stream)
-                    for i in range(dl['links_nr'] - 1):
-                        addr = dl['data_block_addr{}'.format(i)]
-                        stream.seek(addr, v4c.SEEK_START)
-                        id_string = stream.read(4)
-                        if id_string == b'##DT':
-                            block = DataBlock(stream=stream, address=addr)
-                            data.append(block['data'])
-                        elif id_string == b'##DZ':
-                            block = DataZippedBlock(
-                                stream=stream,
-                                address=addr,
-                            )
-                            data.append(block['data'])
-                        elif id_string == b'##DL':
-                            data.append(
-                                self._read_data_block(
-                                    address=addr,
+                if size >= 0:
+                    data = bytearray(size)
+                    view = memoryview(data)
+                    position = 0
+                    while address:
+                        dl = DataList(address=address, stream=stream)
+                        for i in range(dl['links_nr'] - 1):
+                            addr = dl['data_block_addr{}'.format(i)]
+                            stream.seek(addr, v4c.SEEK_START)
+                            id_string = stream.read(4)
+                            if id_string == b'##DT':
+                                _, dim, __ = unpack('<4s2Q', stream.read(20))
+                                dim -= 24
+                                position += stream.readinto(view[position: position+dim])
+                            elif id_string == b'##DZ':
+                                block = DataZippedBlock(
                                     stream=stream,
+                                    address=addr,
                                 )
-                            )
-                    address = dl['next_dl_addr']
-                data = b''.join(data)
+                                uncompressed_size = block['original_size']
+                                view[position: position+uncompressed_size] = block['data']
+                                position += uncompressed_size
+                        address = dl['next_dl_addr']
+
+                else:
+
+                    data = []
+                    while address:
+                        dl = DataList(address=address, stream=stream)
+                        for i in range(dl['links_nr'] - 1):
+                            addr = dl['data_block_addr{}'.format(i)]
+                            stream.seek(addr, v4c.SEEK_START)
+                            id_string = stream.read(4)
+                            if id_string == b'##DT':
+                                block = DataBlock(stream=stream, address=addr)
+                                data.append(block['data'])
+                            elif id_string == b'##DZ':
+                                block = DataZippedBlock(
+                                    stream=stream,
+                                    address=addr,
+                                )
+                                data.append(block['data'])
+                        address = dl['next_dl_addr']
+                    data = b''.join(data)
             # or a header list
             elif id_string == b'##HL':
                 hl = HeaderList(address=address, stream=stream)
@@ -1090,6 +1125,8 @@ class MDF4(object):
         ]
 
         vals = fromstring(data, dtype=dtype(types))
+
+        vals.setflags(write=False)
 
         vals = vals['vals']
 
@@ -3119,6 +3156,8 @@ class MDF4(object):
                     else:
                         record = grp['record']
 
+                    record.setflags(write=False)
+
                     vals = record[parent]
                 else:
                     vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
@@ -3277,6 +3316,8 @@ class MDF4(object):
                             grp['record'] = record
                     else:
                         record = grp['record']
+
+                    record.setflags(write=False)
 
                     vals = record[parent]
                     bits = channel['bit_count']
@@ -3912,6 +3953,8 @@ class MDF4(object):
 
                         if memory == 'full':
                             group['record'] = record
+
+                    record.setflags(write=False)
                     t = record[parent]
                 else:
                     t = self._get_not_byte_aligned_data(
