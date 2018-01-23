@@ -1067,7 +1067,7 @@ class MDF4(object):
             dtype_pair = '', 'a{}'.format(gap)
             types.append(dtype_pair)
 
-        dtype_pair = 'invalidation_bytes', 'a{}'.format(invalidation_bytes_nr)
+        dtype_pair = 'invalidation_bytes', 'u1', invalidation_bytes_nr
         types.append(dtype_pair)
         if PYVERSION == 2:
             types = fix_dtype_fields(types)
