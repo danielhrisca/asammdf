@@ -3795,7 +3795,7 @@ class MDF4(object):
             if channel['flags'] & (
                     v4c.FLAG_INVALIDATION_BIT_VALID | v4c.FLAG_ALL_SAMPLES_VALID) == v4c.FLAG_INVALIDATION_BIT_VALID:
                 ch_invalidation_pos = channel['pos_invalidation_bit']
-                pos_byte, pos_offset = divmod(ch_invalidation_pos)
+                pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
                 mask = 1 << pos_offset
 
                 inval_bytes = record['invalidation_bytes']
