@@ -3299,6 +3299,7 @@ class MDF4(object):
                 ch_dtype = dtype(get_fmt_v4(data_type, 8))
 
                 vals = arange(cycles_nr, dtype=ch_dtype)
+                record = None
             else:
                 try:
                     parent, bit_offset = parents[ch_nr]
@@ -3797,6 +3798,10 @@ class MDF4(object):
                 ch_invalidation_pos = channel['pos_invalidation_bit']
                 pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
                 mask = 1 << pos_offset
+
+                if record is None:
+                    record = fromstring(data, dtype=dtypes)
+                    record.setflags(write=False)
 
                 inval_bytes = record['invalidation_bytes']
                 inval_index = array(
