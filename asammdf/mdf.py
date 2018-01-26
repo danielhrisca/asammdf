@@ -11,8 +11,6 @@ from struct import unpack
 import numpy as np
 from pandas import DataFrame
 
-from time import perf_counter
-
 from .mdf_v2 import MDF2
 from .mdf_v3 import MDF3
 from .mdf_v4 import MDF4
