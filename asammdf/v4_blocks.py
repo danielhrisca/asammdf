@@ -244,7 +244,7 @@ class Channel(dict):
             self['name_addr'] = kargs.get('name_addr', 0)
             self['source_addr'] = 0
             self['conversion_addr'] = 0
-            self['data_block_addr'] = 0
+            self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['unit_addr'] = kargs.get('unit_addr', 0)
             self['comment_addr'] = 0
             self['channel_type'] = kargs['channel_type']
@@ -680,7 +680,7 @@ class ChannelConversion(dict):
         self.name = self.unit = self.comment = self.formula = ''
 
         if 'raw_bytes' in kargs or 'stream' in kargs:
-            try:  
+            try:
                 (self['id'],
                  self['reserved0'],
                  self['block_len'],
@@ -1277,9 +1277,6 @@ class DataBlock(dict):
             self['block_len'] = len(kargs['data']) + v4c.COMMON_SIZE
             self['links_nr'] = 0
             self['data'] = kargs['data']
-
-        if PYVERSION_MAJOR < 30 and isinstance(self['data'], bytearray):
-            self['data'] = str(self['data'])
 
     def __bytes__(self):
         fmt = v4c.FMT_DATA_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)

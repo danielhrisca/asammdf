@@ -11,9 +11,12 @@ from struct import unpack
 import numpy as np
 from pandas import DataFrame
 
+from time import perf_counter
+
 from .mdf_v2 import MDF2
 from .mdf_v3 import MDF3
 from .mdf_v4 import MDF4
+from .signal import Signal
 from .utils import MdfException, get_text_v3, get_text_v4
 from .v2_v3_blocks import TextBlock as TextBlockV3
 from .v2_v3_blocks import Channel as ChannelV3
@@ -174,24 +177,84 @@ class MDF(object):
 
             # walk through all groups and get all channels
             for i, group in enumerate(self.groups):
-                sigs = []
                 excluded_channels = self._excluded_channels(i)
 
+                names = [
+                    self.get_channel_name(i, j)
+                    for j, _ in enumerate(group['channels'])
+                    if j not in excluded_channels
+                ]
+
+                units = [
+                    self.get_channel_unit(group=i, index=j)
+                    for j, _ in enumerate(group['channels'])
+                    if j not in excluded_channels
+                ]
+
+                comments = [
+                    self.get_channel_comment(group=i, index=j)
+                    for j, _ in enumerate(group['channels'])
+                    if j not in excluded_channels
+                ]
+
                 data = self._load_group_data(group)
+                # from time import perf_counter
+#                t = perf_counter()
+#                input('inainte')
+                for idx, data_bytes in enumerate(data):
+#                    t2 = perf_counter()
+                    data_bytes = (data_bytes, )
+#                    print(idx, round(t2-t, 3))
+#                    t = t2
 
-                for j, _ in enumerate(group['channels']):
-                    if j in excluded_channels:
-                        continue
+                    if idx == 0:
+                        master = self.get_master(i, data=data_bytes)
+                        sigs = []
+                        for j, _ in enumerate(group['channels']):
+                            if j in excluded_channels:
+                                continue
+                            else:
+                                sig = self.get(group=i, index=j, data=data_bytes, samples_only=True)
+                                if not sig.flags.writeable:
+                                    sig = sig.copy()
+                                sigs.append(sig)
+#                        for j, lst in enumerate(sigs):
+#                            sigs[j] = np.concatenate(lst)
+#
+#        #                print(sigs[0][0].shape)
+#
+                        for j, sig in enumerate(sigs):
+                            sigs[j] = Signal(
+                                sig,
+                                master,
+                                units[j],
+                                names[j],
+                                comments[j],
+                            )
+
+                        source_info = 'Converted from {} to {}'
+                        out.append(
+                            sigs,
+                            source_info.format(self.version, to),
+                            common_timebase=True,
+                        )
+
+                        master = None
+                        sigs = None
                     else:
-                        sigs.append(self.get(group=i, index=j, data=data))
+                        sigs = [self.get_master(i, data=data_bytes), ]
 
-                if sigs:
-                    source_info = 'Converted from {} to {}'
-                    out.append(
-                        sigs,
-                        source_info.format(self.version, to),
-                        common_timebase=True,
-                    )
+                        for j, _ in enumerate(group['channels']):
+                            if j in excluded_channels:
+                                continue
+                            else:
+                                sig = self.get(group=i, index=j, data=data_bytes, samples_only=True)
+                                if not sig.flags.writeable:
+                                    sig = sig.copy()
+                                sigs.append(sig)
+                        out.extend(i, sigs)
+#                    input('final'+str(idx))
+
 
         return out
 
@@ -249,6 +312,8 @@ class MDF(object):
             excluded_channels = self._excluded_channels(i)
 
             data = self._load_group_data(group)
+
+            data = (b''.join(data), )
 
             for j, _ in enumerate(group['channels']):
                 if j in excluded_channels:
@@ -631,24 +696,84 @@ class MDF(object):
             memory=memory,
         )
 
+        if self.name:
+            origin = os.path.basename(self.name)
+        else:
+            origin = 'New MDF'
+
         # append filtered channels to new MDF
-        for group in gps:
-            grp = self.groups[group]
-            data = self._load_group_data(grp)
-            sigs = []
-            for index in gps[group]:
-                sigs.append(self.get(group=group, index=index, data=data))
-            if sigs:
-                if self.name:
-                    origin = os.path.basename(self.name)
+        for new_index, (group_index, indexes) in enumerate(gps.items()):
+            group = self.groups[group_index]
+
+            names = [
+                self.get_channel_name(group=group_index, index=j)
+                for j in indexes
+            ]
+
+            units = [
+                self.get_channel_unit(group=group_index, index=j)
+                for j in indexes
+            ]
+
+            comments = [
+                self.get_channel_comment(group=group_index, index=j)
+                for j in indexes
+            ]
+
+            data = self._load_group_data(group)
+
+            for idx, data_bytes in enumerate(data):
+                data_bytes = (data_bytes, )
+
+                if idx == 0:
+                    master = self.get_master(group_index, data=data_bytes)
+
+                    sigs = []
+                    for j in indexes:
+                        sig = self.get(
+                            group=group_index,
+                            index=j,
+                            data=data_bytes,
+                            samples_only=True,
+                        )
+                        if not sig.flags.writeable:
+                            sig = sig.copy()
+                        sigs.append(sig)
+                    for j, sig in enumerate(sigs):
+                        sigs[j] = Signal(
+                            sig,
+                            master,
+                            units[j],
+                            names[j],
+                            comments[j],
+                        )
+
+                    source_info = 'Signals filtered from <{}>'.format(origin)
+                    mdf.append(
+                        sigs,
+                        source_info,
+                        common_timebase=True,
+                    )
+
+
                 else:
-                    origin = 'New MDF'
-                source = 'Signals filtered from <{}>'.format(origin)
-                mdf.append(
-                    sigs,
-                    source,
-                    common_timebase=True,
-                )
+                    sigs = [self.get_master(group_index, data=data_bytes), ]
+
+                    for j in indexes:
+                        sig = self.get(
+                            group=group_index,
+                            index=j,
+                            data=data_bytes,
+                            samples_only=True,
+                        )
+                        if not sig.flags.writeable:
+                            sig = sig.copy()
+                        sigs.append(sig)
+                    mdf.extend(new_index, sigs)
+
+                master = None
+                sigs = None
+
 
         return mdf
 
@@ -711,7 +836,7 @@ class MDF(object):
             excluded_channels = mdf._excluded_channels(i)
 
             groups_data = [
-                files[index]._load_group_data(grp)
+                (b''.join(files[index]._load_group_data(grp)), )
                 for index, grp in enumerate(groups)
             ]
 
@@ -808,26 +933,64 @@ class MDF(object):
         """ generator that yields channel groups as pandas DataFrames"""
 
         for i, group in enumerate(self.groups):
-            data = self._load_group_data(group)
-            master_index = self.masters_db.get(i, None)
-            if master_index is None:
-                pandas_dict = {}
+            master_index = self.masters_db.get(i, -1)
+
+            if master_index >= 0:
+                master_name = self.get_channel_name(i, master_index)
             else:
-                master = self.get(
-                    group=i,
-                    index=master_index,
-                    data=data,
-                )
-                pandas_dict = {master.name: master.samples}
-            for j, _ in enumerate(group['channels']):
-                if j == master_index:
-                    continue
-                sig = self.get(
-                    group=i,
-                    index=j,
-                    data=data,
-                )
-                pandas_dict[sig.name] = sig.samples
+                master_name = 'Idx'
+
+            master = []
+
+            names = [
+                self.get_channel_name(i, j)
+                for j, _ in enumerate(group['channels'])
+                if j != master_index
+            ]
+
+            sigs = [
+                []
+                for j, _ in enumerate(group['channels'])
+                if j != master_index
+            ]
+
+            pandas_dict = {}
+
+            data = self._load_group_data(group)
+            for data_bytes in data:
+                data_bytes = (data_bytes, )
+
+                master.append(self.get_master(i, data=data_bytes))
+
+                idx = 0
+                for j, _ in enumerate(group['channels']):
+                    if j == master_index:
+                        continue
+                    sigs[idx].append(
+                        self.get(
+                            group=i,
+                            index=j,
+                            data=data_bytes,
+                            samples_only=True,
+                        )
+                    )
+                    idx += 1
+
+            pandas_dict = {}
+
+            pandas_dict[master_name] = np.concatenate(master)
+
+            for name, sig in zip(names, sigs):
+                pandas_dict[name] = np.concatenate(sig)
+
+                if master_index is not None:
+                    master = self.get(
+                        group=i,
+                        index=master_index,
+                        data=data_bytes,
+                    )
+                    pandas_dict = {master.name: master.samples}
+
             yield DataFrame.from_dict(pandas_dict)
 
     def resample(self, raster, memory=None):
@@ -980,9 +1143,16 @@ class MDF(object):
         for group in gps:
             grp = self.groups[group]
             data = self._load_group_data(grp)
-            for index in gps[group]:
-                signal = self.get(group=group, index=index, data=data)
-                signals[(group, index)] = signal
+
+            for data_bytes in data:
+                data_bytes = (data_bytes, )
+
+                for index in gps[group]:
+                    signal = self.get(group=group, index=index, data=data_bytes)
+                    if (group, index) not in signals:
+                        signals[(group, index)] = signal
+                    else:
+                        signals[(group, index)] = signals[(group, index)].extend(signal)
 
         signals = [signals[pair] for pair in indexes]
 

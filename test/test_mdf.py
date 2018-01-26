@@ -48,7 +48,6 @@ class TestMDF(unittest.TestCase):
         ZipFile(r'test.zip').extractall('tmpdir_array')
 
         configure(
-            integer_compacting=False,
             split_data_blocks=False,
             split_threshold=260,
             overwrite=True,
@@ -70,7 +69,7 @@ class TestMDF(unittest.TestCase):
         ret = True
 
         for enable in (True, False):
-            configure(enable, enable)
+            configure(enable)
             for mdf in os.listdir('tmpdir_demo'):
                 for memory in MEMORY:
                     with MDF(os.path.join('tmpdir_demo', mdf), memory=memory) as input_file:
@@ -101,7 +100,6 @@ class TestMDF(unittest.TestCase):
                     for channel_name, original_comment in COMMENTS.items():
                         comment = input_file.get_channel_comment(channel_name)
                         if comment != original_comment:
-                            print(channel_name, original_comment, comment)
                             ret = False
 
         self.assertTrue(ret)
@@ -120,7 +118,6 @@ class TestMDF(unittest.TestCase):
                     for channel_name, original_unit in UNITS.items():
                         comment = input_file.get_channel_unit(channel_name)
                         if comment != original_unit:
-                            print(channel_name, original_unit, comment)
                             ret = False
 
         self.assertTrue(ret)
@@ -133,7 +130,7 @@ class TestMDF(unittest.TestCase):
         ret = True
 
         for enable in (True, False):
-            configure(enable, enable)
+            configure(enable)
 
             for mdf in os.listdir('tmpdir_array'):
                 for memory in MEMORY:
@@ -153,7 +150,7 @@ class TestMDF(unittest.TestCase):
         print("MDF convert tests")
 
         for enable in (True, ):
-            configure(enable, enable)
+            configure(enable)
 
             for out in SUPPORTED_VERSIONS[1:]:
                 for mdfname in os.listdir('tmpdir_demo'):
@@ -177,7 +174,7 @@ class TestMDF(unittest.TestCase):
                                 if not np.array_equal(
                                         original.samples,
                                         converted.samples):
-                                    print(name, original, converted)
+#                                    print(name, original, converted)
                                     equal = False
                                 if not np.array_equal(
                                         original.timestamps,
@@ -239,7 +236,7 @@ class TestMDF(unittest.TestCase):
                             if not np.array_equal(
                                     np.tile(original.samples, 4),
                                     converted.samples):
-                                print(original, converted)
+#                                print(original, converted)
                                 equal = False
 
                     self.assertTrue(equal)
@@ -598,13 +595,14 @@ class TestMDF(unittest.TestCase):
         print("MDF filter tests")
 
         for enable in (True, False):
-            configure(enable, enable)
+            configure(enable)
 
             for mdfname in os.listdir('tmpdir_demo'):
-                for memory in MEMORY:
+                for memory in MEMORY[:1]:
                     input_file = os.path.join('tmpdir_demo', mdfname)
 
-                    if MDF(input_file, memory=memory).version == '2.00':
+#                    if MDF(input_file, memory=memory).version == '2.00':
+                    if MDF(input_file, memory=memory).version < '4.00':
                         continue
 
                     channels_nr = np.random.randint(1, len(CHANNELS_DEMO) + 1)
@@ -618,6 +616,7 @@ class TestMDF(unittest.TestCase):
                     equal = True
 
                     with MDF(input_file, memory=memory) as mdf:
+                        print(input_file, memory)
 
                         for name in channel_list:
                             original = mdf.get(name)
@@ -630,6 +629,7 @@ class TestMDF(unittest.TestCase):
                                     original.timestamps,
                                     filtered.timestamps):
                                 equal = False
+#                                print('ts', mdfname, memory,  original, filtered)
 
                     self.assertTrue(equal)
 
@@ -637,7 +637,7 @@ class TestMDF(unittest.TestCase):
         print("MDF filter array tests")
 
         for enable in (True, False):
-            configure(enable, enable)
+            configure(enable)
 
             for mdfname in os.listdir('tmpdir_array'):
                 for memory in MEMORY[:1]:
@@ -695,9 +695,8 @@ class TestMDF(unittest.TestCase):
         split_sizes = [260, 10**5]
         split_enables = [True, False]
         overwrite_enables = [True, False]
-        for compression, memory, size, split_enable, overwrite in product(compressions, MEMORY, split_sizes, split_enables, overwrite_enables):
+        for compression, memory, size, split_enable, overwrite in product(compressions, MEMORY[-1:], split_sizes, split_enables, overwrite_enables):
             configure(
-                integer_compacting=False,
                 split_data_blocks=split_enable,
                 split_threshold=size,
                 overwrite=overwrite,
@@ -705,7 +704,8 @@ class TestMDF(unittest.TestCase):
 
             for mdfname in os.listdir('tmpdir_demo'):
                 input_file = os.path.join('tmpdir_demo', mdfname)
-                if MDF(input_file).version == '2.00':
+#                if MDF(input_file).version == '2.00':
+                if MDF(input_file).version < '4.10':
                     continue
                 print(input_file, compression, memory, size, split_enable, overwrite)
                 with MDF(input_file, memory=memory) as mdf:
@@ -723,8 +723,13 @@ class TestMDF(unittest.TestCase):
                         if not np.array_equal(
                                 original.samples,
                                 converted.samples):
-                            print(name, original, converted)
                             equal = False
+                            print("NE", name, input_file, memory)
+                            print(original)
+                            print(converted)
+
+                            os.rename(out_file, out_file+'err')
+                            raise ValueError(1)
                         if not np.array_equal(
                                 original.timestamps,
                                 converted.timestamps):
@@ -741,7 +746,6 @@ class TestMDF(unittest.TestCase):
         overwrite_enables = [True, False]
         for compression, memory, size, split_enable, overwrite in product(compressions, MEMORY, split_sizes, split_enables, overwrite_enables):
             configure(
-                integer_compacting=False,
                 split_data_blocks=split_enable,
                 split_threshold=size,
                 overwrite=overwrite,
@@ -752,6 +756,8 @@ class TestMDF(unittest.TestCase):
                 print(input_file, compression, memory, size, split_enable, overwrite)
                 with MDF(input_file, memory=memory) as mdf:
                     out_file = mdf.save('tmp', compression=compression)
+
+                    mdf.save('a_tmp_{}_{}.mf4'.format(compression, memory), compression=compression)
 
                 equal = True
 
@@ -764,7 +770,6 @@ class TestMDF(unittest.TestCase):
                         if not np.array_equal(
                                 original.samples,
                                 converted.samples):
-                            print(name, original, converted)
                             equal = False
                         if not np.array_equal(
                                 original.timestamps,
@@ -777,7 +782,7 @@ class TestMDF(unittest.TestCase):
         print("MDF select tests")
 
         for enable in (True, False):
-            configure(enable, enable)
+            configure(enable)
 
             for mdfname in os.listdir('tmpdir_demo'):
                 for memory in MEMORY:
@@ -785,6 +790,8 @@ class TestMDF(unittest.TestCase):
 
                     if MDF(input_file).version == '2.00':
                         continue
+
+                    print(input_file, memory)
 
                     channels_nr = np.random.randint(1, len(CHANNELS_DEMO) + 1)
 
@@ -806,6 +813,10 @@ class TestMDF(unittest.TestCase):
                                     original.samples,
                                     selected.samples):
                                 equal = False
+                                print(input_file, memory)
+                                print(selected)
+                                print(original)
+                                raise ValueError(1)
                             if not np.array_equal(
                                     original.timestamps,
                                     selected.timestamps):
@@ -817,7 +828,7 @@ class TestMDF(unittest.TestCase):
         print("MDF select array tests")
 
         for enable in (True, False):
-            configure(enable, enable)
+            configure(enable)
 
             for mdfname in os.listdir('tmpdir_array'):
                 for memory in MEMORY:

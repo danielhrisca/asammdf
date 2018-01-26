@@ -54,8 +54,9 @@ class Signal(object):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
-                       'for Signal class __init__')
-            raise MdfException(message)
+                       'for Signal class __init__: samples={}\n'
+                       'timestamps={}\nname={}')
+            raise MdfException(message.format(samples, timestamps, name))
         else:
             if isinstance(samples, (list, tuple)):
                 samples = np.array(samples)
@@ -385,6 +386,7 @@ class Signal(object):
             )
         else:
             result = self
+
         return result
 
     def interp(self, new_timestamps):

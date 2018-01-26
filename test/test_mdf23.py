@@ -9,7 +9,7 @@ from asammdf import MDF, MDF2, MDF3, Signal, configure
 
 CHANNEL_LEN = 10000
 
-configure(integer_compacting=True,
+configure(
         split_data_blocks=True,
         split_threshold=260,
         overwrite=True)

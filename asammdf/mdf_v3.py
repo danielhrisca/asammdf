@@ -21,6 +21,7 @@ from numpy import (
     array_equal,
     clip,
     column_stack,
+    concatenate,
     dtype,
     exp,
     flip,
@@ -118,7 +119,6 @@ class MDF3(object):
 
     """
 
-    _compact_integers_on_append = False
     _overwrite = False
 
     def __init__(self, name=None, memory='full', version='3.30'):
@@ -141,6 +141,8 @@ class MDF3(object):
         self.attachments = None
         self.file_comment = None
 
+        self.read_split_threshold = 0
+
         if name:
             self._file = open(self.name, 'rb')
             self._read()
@@ -153,26 +155,57 @@ class MDF3(object):
         """ get group's data block bytes"""
 
         if self.memory == 'full':
-            data = group['data_block']['data']
+            yield group['data_block'][0]['data']
         else:
             # could be an appended group
             # for now appended groups keep the measured data in the memory.
             # the plan is to use a temp file for appended groups, to keep the
             # memory usage low.
+            data_group = group['data_group']
+            channel_group = group['channel_group']
+
             if group['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
-                # this is a group from the source file
-                # so fetch the measured data from it
-                stream = self._file
                 # go to the first data block of the current data group
-                dat_addr = group['data_group']['data_block_addr']
+                stream = self._file
+            else:
+                stream = self._tempfile
+
+            # go to the first data block of the current data group
+            dat_addr = data_group['data_block_addr']
+            if dat_addr:
+                read_size = group['size']
 
                 if group['sorted']:
-                    read_size = group['size']
-                    data = DataBlock(
-                        stream=stream,
-                        address=dat_addr, size=read_size,
-                    )
-                    data = data['data']
+                    # only if more then 4MB are found in the group
+                    if read_size > 4 * 2**20:
+                        samples_size = channel_group['samples_byte_nr']
+                        if self.read_split_threshold:
+                            split_size = self.read_split_threshold // samples_size
+                            split_size *= samples_size
+                        else:
+                            split_size_1 = channel_group['cycles_nr'] // 99
+                            split_size_1 *= samples_size
+
+                            split_size_2 = (4 * 2**20) // samples_size
+                            split_size_2 *= samples_size
+
+                            split_size = max(split_size_1, split_size_2)
+
+                        if split_size == 0:
+                            split_size = samples_size
+                        elif split_size > read_size:
+                            split_size = read_size
+                    else:
+                        split_size = read_size
+
+                    stream.seek(dat_addr)
+                    while read_size:
+                        if read_size > split_size:
+                            yield stream.read(split_size)
+                            read_size -= split_size
+                        else:
+                            yield stream.read(read_size)
+                            read_size = 0
 
                 else:
                     read_size = group['size']
@@ -186,11 +219,8 @@ class MDF3(object):
                         record_id_nr = 0
                     cg_data = []
 
-                    data = DataBlock(
-                        stream=stream,
-                        address=dat_addr, size=read_size,
-                    )
-                    data = data['data']
+                    stream.seek(dat_addr)
+                    data = stream.read(read_size)
 
                     i = 0
                     size = len(data)
@@ -207,17 +237,9 @@ class MDF3(object):
                             i += rec_size + 1
                         else:
                             i += rec_size
-                    data = b''.join(cg_data)
-            elif group['data_location'] == v23c.LOCATION_TEMPORARY_FILE:
-                read_size = group['size']
-                dat_addr = group['data_group']['data_block_addr']
-                if dat_addr:
-                    self._tempfile.seek(dat_addr, v23c.SEEK_START)
-                    data = self._tempfile.read(read_size)
-                else:
-                    data = b''
-
-        return data
+                    yield b''.join(cg_data)
+            else:
+                yield b''
 
     def _prepare_record(self, group):
         """ compute record dtype and parents dict for this group
@@ -832,7 +854,7 @@ class MDF3(object):
                 if record_id_nr == 0:
                     grp = new_groups[0]
                     grp['data_location'] = v23c.LOCATION_MEMORY
-                    grp['data_block'] = DataBlock(data=data)
+                    grp['data_block'] = [DataBlock(data=data), ]
 
                 else:
                     # agregate data for each record ID in the cg_data dict
@@ -859,7 +881,7 @@ class MDF3(object):
                         data = cg_data[record_id]
                         data = b''.join(data)
                         grp['channel_group']['record_id'] = 1
-                        grp['data_block'] = DataBlock(data=data)
+                        grp['data_block'] = [DataBlock(data=data), ]
             else:
                 for grp in new_groups:
                     grp['data_location'] = v23c.LOCATION_ORIGINAL_FILE
@@ -1151,232 +1173,6 @@ class MDF3(object):
 
             offset += t_size
             ch_cntr += 1
-
-            if self._compact_integers_on_append and self.version >= '3.10':
-                compacted_signals = [
-                    {'signal': sig}
-                    for sig in simple_signals
-                    if sig.samples.dtype.kind in 'ui'
-                ]
-
-                max_itemsize = 1
-                dtype_ = dtype(uint8)
-
-                for signal in compacted_signals:
-                    itemsize = signal['signal'].samples.dtype.itemsize
-
-                    min_, max_ = get_min_max(signal['signal'].samples)
-                    signal['min'], signal['max'] = min_, max_
-                    minimum_bitlength = (itemsize // 2) * 8 + 1
-                    bit_length = max(
-                        int(max_).bit_length(),
-                        int(min_).bit_length(),
-                    )
-                    bit_length += 1
-
-                    signal['bit_count'] = max(minimum_bitlength, bit_length)
-
-                    if itemsize > max_itemsize:
-                        dtype_ = dtype('<u{}'.format(itemsize))
-                        max_itemsize = itemsize
-
-                compacted_signals.sort(key=lambda x: x['bit_count'])
-                simple_signals = [
-                    sig
-                    for sig in simple_signals
-                    if sig.samples.dtype.kind not in 'ui'
-                ]
-                dtype_size = dtype_.itemsize * 8
-
-            else:
-                compacted_signals = []
-
-            # first try to compact unsigned integers
-            while compacted_signals:
-                # channels texts
-
-                cluster = []
-
-                tail = compacted_signals.pop()
-                size = tail['bit_count']
-                cluster.append(tail)
-
-                while size < dtype_size and compacted_signals:
-                    head = compacted_signals[0]
-                    head_size = head['bit_count']
-                    if head_size + size > dtype_size:
-                        break
-                    else:
-                        cluster.append(compacted_signals.pop(0))
-                        size += head_size
-
-                bit_offset = 0
-                field_name = get_unique_name(field_names, 'COMPACT')
-                types.append((field_name, dtype_))
-                field_names.add(field_name)
-
-                values = zeros(cycles_nr, dtype=dtype_)
-
-                for signal_d in cluster:
-
-                    signal = signal_d['signal']
-                    bit_count = signal_d['bit_count']
-                    min_val = signal_d['min']
-                    max_val = signal_d['max']
-
-                    name = signal.name
-
-                    texts = {}
-                    info = signal.info
-                    if info and 'raw' in info and info['raw'].dtype.kind != 'S':
-                        kargs = {}
-                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTAB
-                        raw = info['raw']
-                        phys = info['phys']
-                        for i, (r_, p_) in enumerate(zip(raw, phys)):
-                            kargs['text_{}'.format(i)] = p_[:31] + b'\0'
-                            kargs['param_val_{}'.format(i)] = r_
-                        kargs['ref_param_nr'] = len(raw)
-                        kargs['unit'] = signal.unit.encode('latin-1')
-                    elif info and 'lower' in info:
-                        kargs = {}
-                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTABR
-                        lower = info['lower']
-                        upper = info['upper']
-                        texts_ = info['phys']
-                        kargs['unit'] = signal.unit.encode('latin-1')
-                        kargs['ref_param_nr'] = len(upper)
-
-                        for i, vals in enumerate(zip(upper, lower, texts_)):
-                            u_, l_, t_ = vals
-                            kargs['lower_{}'.format(i)] = l_
-                            kargs['upper_{}'.format(i)] = u_
-                            kargs['text_{}'.format(i)] = 0
-
-                            key = 'text_{}'.format(i)
-                            block = TextBlock(text=t_)
-                            if memory != 'minimum':
-                                texts[key] = block
-                            else:
-                                address = tell()
-                                texts[key] = address
-                                write(bytes(block))
-                    else:
-                        if min_val <= max_val:
-                            min_phy_value = min_val
-                            max_phy_value = max_val
-                        else:
-                            min_phy_value = 0
-                            max_phy_value = 0
-                        kargs = {
-                            'conversion_type': v23c.CONVERSION_TYPE_NONE,
-                            'unit': signal.unit.encode('latin-1'),
-                            'min_phy_value': min_phy_value,
-                            'max_phy_value': max_phy_value,
-                        }
-
-                    if texts:
-                        gp_texts['conversion_tab'].append(texts)
-                    else:
-                        gp_texts['conversion_tab'].append(None)
-
-                    block = ChannelConversion(**kargs)
-                    if memory != 'minimum':
-                        gp_conv.append(block)
-                    else:
-                        address = tell()
-                        gp_conv.append(address)
-                        write(bytes(block))
-
-                    # source for channel
-                    if memory != 'minimum':
-                        gp_source.append(ce_block)
-                    else:
-                        gp_source.append(ce_address)
-
-                    # compute additional byte offset for large records size
-                    current_offset = offset + bit_offset
-                    if current_offset > v23c.MAX_UINT16:
-                        additional_byte_offset = \
-                            (current_offset - v23c.MAX_UINT16) >> 3
-                        start_bit_offset = \
-                            current_offset - additional_byte_offset << 3
-                    else:
-                        start_bit_offset = current_offset
-                        additional_byte_offset = 0
-
-                    if signal.samples.dtype.kind == 'u':
-                        data_type = v23c.DATA_TYPE_UNSIGNED
-                    else:
-                        data_type = v23c.DATA_TYPE_SIGNED
-
-                    if memory == 'minimum' and len(name) >= 32 and self.version >= '2.10':
-                        block = TextBlock(text=name)
-                        long_name_address = tell()
-                        write(bytes(block))
-                    else:
-                        long_name_address = 0
-                    comment = signal.comment
-                    if comment:
-                        if len(comment) >= 128:
-                            description = b'\0'
-                            if memory == 'minimum':
-                                block = TextBlock(text=comment)
-                                comment_address = tell()
-                                write(bytes(block))
-                            else:
-                                comment_address = 0
-                        else:
-                            description = (comment[:127] + '\0').encode('latin-1')
-                            comment_address = 0
-                    else:
-                        description = b'\0'
-                        comment_address = 0
-                    short_name = (name[:31] + '\0').encode('latin-1')
-
-                    kargs = {
-                        'short_name': short_name,
-                        'channel_type': v23c.CHANNEL_TYPE_VALUE,
-                        'data_type': data_type,
-                        'min_raw_value': min_val if min_val <= max_val else 0,
-                        'max_raw_value': max_val if min_val <= max_val else 0,
-                        'start_offset': start_bit_offset,
-                        'bit_count': bit_count,
-                        'aditional_byte_offset': additional_byte_offset,
-                        'long_name_addr': long_name_address,
-                        'block_len': channel_size,
-                        'comment_addr': comment_address,
-                        'description': description,
-                    }
-
-                    channel = Channel(**kargs)
-
-                    if memory != 'minimum':
-                        channel.name = name
-                        channel.comment = signal.comment
-                        gp_channels.append(channel)
-                    else:
-                        address = tell()
-                        gp_channels.append(address)
-                        write(bytes(channel))
-
-                    if name not in self.channels_db:
-                        self.channels_db[name] = []
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                    # update the parents as well
-                    parents[ch_cntr] = field_name, bit_offset
-
-                    # simple channels don't have channel dependencies
-                    gp_dep.append(None)
-
-                    values += signal.samples.astype(dtype_) << bit_offset
-                    bit_offset += bit_count
-
-                    ch_cntr += 1
-
-                offset += dtype_.itemsize * 8
-                fields.append(values)
 
             # first add the signals in the simple signal list
             for signal in simple_signals:
@@ -1764,7 +1560,7 @@ class MDF3(object):
             if memory == 'full':
                 gp['data_location'] = v23c.LOCATION_MEMORY
                 kargs = {'data': block}
-                gp['data_block'] = DataBlock(**kargs)
+                gp['data_block'] = [DataBlock(**kargs), ]
             else:
                 gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
                 if cycles_nr:
@@ -2019,7 +1815,7 @@ class MDF3(object):
                 if memory == 'full':
                     gp['data_location'] = v23c.LOCATION_MEMORY
                     kargs = {'data': block}
-                    gp['data_block'] = DataBlock(**kargs)
+                    gp['data_block'] = [DataBlock(**kargs), ]
                 else:
                     gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
                     if cycles_nr:
@@ -2052,6 +1848,58 @@ class MDF3(object):
             self._tempfile.close()
         if self._file is not None:
             self._file.close()
+
+    def get_channel_name(self, group, index):
+        """Gets channel name.
+
+        Parameters
+        ----------
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        name : str
+            found channel name
+
+        """
+        gp_nr, ch_nr = self._validate_channel_selection(
+            None,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+        if grp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        if self.memory == 'minimum':
+            channel = Channel(
+                address=grp['channels'][ch_nr],
+                stream=stream,
+            )
+            address = channel.get('long_name_addr', 0)
+            if address:
+                name = get_text_v3(
+                    address,
+                    stream,
+                )
+            else:
+                name = (
+                    channel['short_name']
+                    .decode('latin-1')
+                    .strip(' \n\t\0')
+                    .split('\\')[0]
+                )
+
+        else:
+            name = grp['channels'][ch_nr].name
+
+        return name
 
     def get_channel_unit(self, name=None, group=None, index=None):
         """Gets channel unit.
@@ -2327,6 +2175,8 @@ class MDF3(object):
             index,
         )
 
+        original_data = data
+
         memory = self.memory
         grp = self.groups[gp_nr]
 
@@ -2414,72 +2264,86 @@ class MDF3(object):
 
         else:
             # get channel values
-            try:
-                parents, dtypes = grp['parents'], grp['types']
-            except KeyError:
-                grp['parents'], grp['types'] = self._prepare_record(grp)
-                parents, dtypes = grp['parents'], grp['types']
+            channel_values = []
+            for data_bytes in data:
+                try:
+                    parents, dtypes = grp['parents'], grp['types']
+                except KeyError:
+                    grp['parents'], grp['types'] = self._prepare_record(grp)
+                    parents, dtypes = grp['parents'], grp['types']
 
-            try:
-                parent, bit_offset = parents[ch_nr]
-            except KeyError:
-                parent, bit_offset = None, None
+                try:
+                    parent, bit_offset = parents[ch_nr]
+                except KeyError:
+                    parent, bit_offset = None, None
 
-            if parent is not None:
-                if 'record' not in grp:
-                    if dtypes.itemsize:
-                        record = fromstring(data, dtype=dtypes)
+
+                if parent is not None:
+                    if 'record' not in grp:
+                        if dtypes.itemsize:
+                            record = fromstring(data_bytes, dtype=dtypes)
+                        else:
+                            record = None
+
+                        if memory == 'full':
+                            grp['record'] = record
                     else:
-                        record = None
+                        record = grp['record']
 
-                    if memory == 'full':
-                        grp['record'] = record
+                    record.setflags(write=False)
+
+                    vals = record[parent]
+                    bits = channel['bit_count']
+                    size = vals.dtype.itemsize
+                    data_type = channel['data_type']
+
+                    if vals.dtype.kind not in 'ui' and (bit_offset or not bits == size * 8):
+                        vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
+                    else:
+                        if bit_offset:
+                            dtype_ = vals.dtype
+                            if dtype_.kind == 'i':
+                                vals = vals.astype(dtype('<u{}'.format(size)))
+                                vals >>= bit_offset
+                            else:
+                                vals = vals >> bit_offset
+
+                        if not bits == size * 8:
+                            mask = (1 << bits) - 1
+                            if vals.flags.writeable:
+                                vals &= mask
+                            else:
+                                vals = vals & mask
+
+                            if data_type in v23c.SIGNED_INT:
+
+                                size = vals.dtype.itemsize
+
+                                masks = ones(
+                                    cycles_nr,
+                                    dtype=dtype('<u{}'.format(size)),
+                                )
+
+                                masks *= (1 << bits) - 1
+                                masks = ~masks
+
+                                masks *= ((vals & (1 << (bits - 1))) >> (bits - 1)).astype(dtype('<u{}'.format(size)))
+
+                                vals |= masks
+
+                                vals = vals.astype('<i{}'.format(size), copy=False)
+
                 else:
-                    record = grp['record']
+                    vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
-                vals = record[parent]
-                bits = channel['bit_count']
-                size = vals.dtype.itemsize
-                data_type = channel['data_type']
+                if memory != 'full':
+                    channel_values.append(vals.copy())
 
-                if vals.dtype.kind not in 'ui' and (bit_offset or not bits == size * 8):
-                    vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
+            if memory != 'full':
+                if len(channel_values) > 1:
+                    vals = concatenate(channel_values)
                 else:
-                    if bit_offset:
-                        dtype_ = vals.dtype
-                        if dtype_.kind == 'i':
-                            vals = vals.astype(dtype('<u{}'.format(size)))
-                            vals >>= bit_offset
-                        else:
-                            vals = vals >> bit_offset
-
-                    if not bits == size * 8:
-                        mask = (1 << bits) - 1
-                        if vals.flags.writeable:
-                            vals &= mask
-                        else:
-                            vals = vals & mask
-
-                        if data_type in v23c.SIGNED_INT:
-
-                            size = vals.dtype.itemsize
-
-                            masks = ones(
-                                cycles_nr,
-                                dtype=dtype('<u{}'.format(size)),
-                            )
-
-                            masks *= (1 << bits) - 1
-                            masks = ~masks
-
-                            masks *= ((vals & (1 << (bits - 1))) >> (bits - 1)).astype(dtype('<u{}'.format(size)))
-
-                            vals |= masks
-
-                            vals = vals.astype('<i{}'.format(size), copy=False)
-
-            else:
-                vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
+                    vals = channel_values[0]
 
             if conversion is None:
                 conversion_type = v23c.CONVERSION_TYPE_NONE
@@ -2676,7 +2540,7 @@ class MDF3(object):
             else:
                 comment = description
 
-            timestamps = self.get_master(gp_nr, data)
+            timestamps = self.get_master(gp_nr, original_data)
 
             res = Signal(
                 samples=vals,
@@ -2713,8 +2577,14 @@ class MDF3(object):
             master channel samples
 
         """
-        if index in self._master_channel_cache:
-            return self._master_channel_cache[index]
+        original_data = data
+
+        if not data:
+            try:
+                return self._master_channel_cache[index]
+            except KeyError:
+                pass
+
         group = self.groups[index]
 
         if group['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
@@ -2763,25 +2633,41 @@ class MDF3(object):
                 if data is None:
                     data = self._load_group_data(group)
 
-                parent, _ = parents.get(time_ch_nr, (None, None))
-                if parent is not None:
-                    not_found = object()
-                    record = group.get('record', not_found)
-                    if record is not_found:
-                        if dtypes.itemsize:
-                            record = fromstring(data, dtype=dtypes)
-                        else:
-                            record = None
+                # get data
+                if data is None:
+                    data = self._load_group_data(group)
 
-                        if memory == 'full':
-                            group['record'] = record
-                    t = record[parent]
+                time_values = []
+                for data_bytes in data:
+                    parent, _ = parents.get(time_ch_nr, (None, None))
+                    if parent is not None:
+                        not_found = object()
+                        record = group.get('record', not_found)
+                        if record is not_found:
+                            if dtypes.itemsize:
+                                record = fromstring(data_bytes, dtype=dtypes)
+                            else:
+                                record = None
+
+                            if memory == 'full':
+                                group['record'] = record
+                        record.setflags(write=False)
+                        t = record[parent]
+                    else:
+                        t = self._get_not_byte_aligned_data(
+                            data_bytes,
+                            group,
+                            time_ch_nr,
+                        )
+                    time_values.append(t.copy())
+
+                chunks = len(time_values)
+                if chunks > 1:
+                    t = concatenate(time_values)
+                elif chunks == 1:
+                    t = time_values[0]
                 else:
-                    t = self._get_not_byte_aligned_data(
-                        data,
-                        group,
-                        time_ch_nr,
-                    )
+                    t = b''
 
                 # get timestamps
                 if time_conv is None:
@@ -2795,7 +2681,8 @@ class MDF3(object):
                     if time_b:
                         t += time_b
 
-        self._master_channel_cache[index] = t
+        if not original_data:
+            self._master_channel_cache[index] = t
 
         return t
 
@@ -3227,10 +3114,8 @@ class MDF3(object):
                     address += trigger['block_len']
 
                 # DataBlock
-                if self.memory == 'full':
-                    blocks.append(gp['data_block'])
-                else:
-                    blocks.append(self._load_group_data(gp))
+                for data_bytes in self._load_group_data(gp):
+                    blocks.append(data_bytes)
 
                 if gp['size']:
                     gp['data_group']['data_block_addr'] = address
@@ -3271,8 +3156,8 @@ class MDF3(object):
                 write(bytes(block))
 
             for gp, rec_id, original_address in zip(
-                    self.groups, 
-                    gp_rec_ids, 
+                    self.groups,
+                    gp_rec_ids,
                     original_data_block_addrs):
                 gp['data_group']['record_id_nr'] = rec_id
                 gp['data_group']['data_block_addr'] = original_address
@@ -3604,9 +3489,14 @@ class MDF3(object):
                 # DataBlock
                 data = self._load_group_data(gp)
 
-                if data:
-                    data_address.append(address)
-                    write(bytes(data))
+                dat_addr = tell()
+                written_bytes = 0
+
+                for data_bytes in data:
+                    written_bytes += write(data_bytes)
+
+                if written_bytes:
+                    data_address.append(dat_addr)
                 else:
                     data_address.append(0)
 

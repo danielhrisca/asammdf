@@ -90,7 +90,6 @@ def get_text_v4(address, stream):
         unicode string
 
     """
-
     stream.seek(address + 8)
     size = unpack('<Q', stream.read(8))[0] - 24
     stream.read(8)
