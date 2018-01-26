@@ -2336,14 +2336,14 @@ class MDF3(object):
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
-                if memory != 'full':
-                    channel_values.append(vals.copy())
+                channel_values.append(vals.copy())
 
-            if memory != 'full':
-                if len(channel_values) > 1:
-                    vals = concatenate(channel_values)
-                else:
-                    vals = channel_values[0]
+            if len(channel_values) > 1:
+                vals = concatenate(channel_values)
+            elif len(channel_values) == 1:
+                vals = channel_values[0]
+            else:
+                vals = []
 
             if conversion is None:
                 conversion_type = v23c.CONVERSION_TYPE_NONE
@@ -3490,12 +3490,10 @@ class MDF3(object):
                 data = self._load_group_data(gp)
 
                 dat_addr = tell()
-                written_bytes = 0
-
                 for data_bytes in data:
-                    written_bytes += write(data_bytes)
+                    write(data_bytes)
 
-                if written_bytes:
+                if tell() - dat_addr:
                     data_address.append(dat_addr)
                 else:
                     data_address.append(0)

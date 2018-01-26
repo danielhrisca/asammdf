@@ -3685,8 +3685,10 @@ class MDF4(object):
 
                 if len(channel_values) > 1:
                     vals = concatenate(channel_values)
-                else:
+                elif len(channel_values) == 1:
                     vals = channel_values[0]
+                else:
+                    vals = []
                 cycles_nr = len(vals)
 
             # get the channel conversion
@@ -3734,8 +3736,10 @@ class MDF4(object):
                     channel_values.append(vals)
                 if len(channel_values) > 1:
                     vals = concatenate(channel_values)
-                else:
+                elif len(channel_values) == 1:
                     vals = channel_values[0]
+                else:
+                    vals = []
             else:
                 channel_values = []
                 for data_bytes in data:
@@ -3827,11 +3831,12 @@ class MDF4(object):
 
                     channel_values.append(vals.copy())
 
-                if memory != 'full':
-                    if len(channel_values) > 1:
-                        vals = concatenate(channel_values)
-                    else:
-                        vals = channel_values[0]
+                if len(channel_values) > 1:
+                    vals = concatenate(channel_values)
+                elif len(channel_values) == 1:
+                    vals = channel_values[0]
+                else:
+                    vals = []
 
             if raw:
                 pass
