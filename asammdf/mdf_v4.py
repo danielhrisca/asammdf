@@ -3472,6 +3472,7 @@ class MDF4(object):
                     for i, name_ in enumerate(names):
                         vals = self.get(name_, samples_only=True, raw=raw, data=data_bytes)
                         channel_values[i].append(vals)
+                    valid_index = None
 
                 if len(channel_values[0]) > 1:
                     arrays = [concatenate(lst) for lst in channel_values]
