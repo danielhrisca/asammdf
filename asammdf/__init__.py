@@ -12,7 +12,7 @@ __all__ = [
     '__version__',
     'configure',
     'MDF',
-    'MDF2'
+    'MDF2',
     'MDF3',
     'MDF4',
     'Signal',

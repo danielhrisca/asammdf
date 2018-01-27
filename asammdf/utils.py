@@ -120,7 +120,8 @@ def get_text_v4(address, stream):
 
 
 def get_fmt_v3(data_type, size):
-    """convert mdf versions 2 and 3 channel data type to numpy dtype format string
+    """convert mdf versions 2 and 3 channel data type to numpy dtype format
+    string
 
     Parameters
     ----------

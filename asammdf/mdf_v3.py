@@ -574,7 +574,7 @@ class MDF3(object):
         seek = stream.seek
 
         dg_cntr = 0
-        seek(0, v23c.SEEK_START)
+        seek(0)
 
         self.identification = FileIdentificationBlock(
             stream=stream,
@@ -711,7 +711,7 @@ class MDF3(object):
                     # read conversion block
                     address = new_ch['conversion_addr']
                     if address:
-                        stream.seek(address + 2, v23c.SEEK_START)
+                        stream.seek(address + 2)
                         size = unpack('<H', stream.read(2))[0]
                         stream.seek(address)
                         raw_bytes = stream.read(size)
@@ -764,7 +764,7 @@ class MDF3(object):
 
                     if memory != 'minimum':
                         if address:
-                            stream.seek(address, v23c.SEEK_START)
+                            stream.seek(address)
                             raw_bytes = stream.read(v23c.CE_BLOCK_SIZE)
 
                             if raw_bytes in ce_map:
@@ -847,7 +847,7 @@ class MDF3(object):
                 # read data block of the current data group
                 dat_addr = data_group['data_block_addr']
                 if dat_addr:
-                    seek(dat_addr, v23c.SEEK_START)
+                    seek(dat_addr)
                     data = read(total_size)
                 else:
                     data = b''
@@ -3552,10 +3552,10 @@ class MDF3(object):
                         dep['ch_{}'.format(i)] = grp['temp_channels'][i]
                         dep['cg_{}'.format(i)] = grp['channel_group'].address
                         dep['dg_{}'.format(i)] = grp['data_group'].address
-                    seek(dep.address, v23c.SEEK_START)
+                    seek(dep.address)
                     write(bytes(dep))
 
-            seek(v23c.ID_BLOCK_SIZE, v23c.SEEK_START)
+            seek(v23c.ID_BLOCK_SIZE)
             write(bytes(self.header))
 
             for gp in self.groups:

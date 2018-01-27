@@ -303,14 +303,10 @@ class MDF4(object):
                     samples_size = channel_group['samples_byte_nr']
                     inval_size = channel_group['invalidation_bytes_nr']
                     record_id = channel_group['record_id']
-                    if PYVERSION == 2:
-                        record_id = chr(record_id)
                     cg_size[record_id] = samples_size + inval_size
                 else:
                     # VLDS flags
                     record_id = channel_group['record_id']
-                    if PYVERSION == 2:
-                        record_id = chr(record_id)
                     cg_size[record_id] = 0
 
                 if record_id_nr:
@@ -387,12 +383,22 @@ class MDF4(object):
                     grp['data_block'] = [DataBlock(data=data), ]
                 else:
                     cg_data = defaultdict(list)
+                    if record_id_nr == 1:
+                        fmt = '<B'
+                    elif record_id_nr == 2:
+                        fmt = '<H'
+                    elif record_id_nr == 4:
+                        fmt = '<I'
+                    elif record_id_nr == 8:
+                        fmt = '<Q'
+                    else:
+                        raise MdfException("invalid record id size {}".format(record_id_nr))
 
                     i = 0
                     while i < size:
-                        rec_id = data[i]
+                        rec_id = unpack(fmt, data[i: i+record_id_nr])[0]
                         # skip record id
-                        i += 1
+                        i += record_id_nr
                         rec_size = cg_size[rec_id]
                         if rec_size:
                             rec_data = data[i: i + rec_size]
@@ -402,16 +408,10 @@ class MDF4(object):
                             i += 4
                             rec_data = data[i: i + rec_size]
                             cg_data[rec_id].append(rec_data)
-                        # if 2 record id's are used skip also the second one
-                        if record_id_nr == 2:
-                            i += rec_size + 1
-                        else:
-                            i += rec_size
+                        i += rec_size
                     for grp in new_groups:
                         grp['data_location'] = v4c.LOCATION_MEMORY
                         record_id = grp['channel_group']['record_id']
-                        if PYVERSION == 2:
-                            record_id = chr(record_id)
                         data = b''.join(cg_data[record_id])
                         grp['channel_group']['record_id'] = 1
                         grp['data_block'] = [DataBlock(data=data), ]
@@ -426,7 +426,7 @@ class MDF4(object):
                 }
 
                 if address:
-                    stream.seek(address, v4c.SEEK_START)
+                    stream.seek(address)
                     id_string = stream.read(4)
                     # can be a DataBlock
                     if id_string == b'##DT':
@@ -441,7 +441,7 @@ class MDF4(object):
                         info['data_block_type'] = v4c.DT_BLOCK
                     # or a DataZippedBlock
                     elif id_string == b'##DZ':
-                        stream.seek(address, v4c.SEEK_START)
+                        stream.seek(address)
                         temp = {}
                         (temp['id'],
                          temp['reserved0'],
@@ -654,7 +654,7 @@ class MDF4(object):
                             if memory == 'minimum':
                                 conv_tabx_texts['default_addr'] = address
                             else:
-                                stream.seek(address, v4c.SEEK_START)
+                                stream.seek(address)
                                 blk_id = stream.read(4)
 
                                 if blk_id == b'##TX':
@@ -712,7 +712,7 @@ class MDF4(object):
                 if memory == 'minimum':
                     grp['channel_sources'].append(address)
                 else:
-                    stream.seek(address, v4c.SEEK_START)
+                    stream.seek(address)
                     raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
                     if raw_bytes in self._si_map:
                         grp['channel_sources'].append(self._si_map[raw_bytes])
@@ -779,7 +779,7 @@ class MDF4(object):
 
             if channel['component_addr']:
                 # check if it is a CABLOCK or CNBLOCK
-                stream.seek(channel['component_addr'], v4c.SEEK_START)
+                stream.seek(channel['component_addr'])
                 blk_id = stream.read(4)
                 if blk_id == b'##CN':
                     index = ch_cntr - 1
@@ -828,7 +828,7 @@ class MDF4(object):
             aggregated raw data
         """
         if address:
-            stream.seek(address, v4c.SEEK_START)
+            stream.seek(address)
             id_string = stream.read(4)
             # can be a DataBlock
             if id_string == b'##DT':
@@ -850,7 +850,7 @@ class MDF4(object):
                         dl = DataList(address=address, stream=stream)
                         for i in range(dl['links_nr'] - 1):
                             addr = dl['data_block_addr{}'.format(i)]
-                            stream.seek(addr, v4c.SEEK_START)
+                            stream.seek(addr)
                             id_string = stream.read(4)
                             if id_string == b'##DT':
                                 _, dim, __ = unpack('<4s2Q', stream.read(20))
@@ -872,7 +872,7 @@ class MDF4(object):
                         dl = DataList(address=address, stream=stream)
                         for i in range(dl['links_nr'] - 1):
                             addr = dl['data_block_addr{}'.format(i)]
-                            stream.seek(addr, v4c.SEEK_START)
+                            stream.seek(addr)
                             id_string = stream.read(4)
                             if id_string == b'##DT':
                                 block = DataBlock(stream=stream, address=addr)
@@ -904,18 +904,18 @@ class MDF4(object):
     def _load_group_data(self, group):
         """ get group's data block bytes """
         if self.memory == 'full':
-            for item in group['data_block']:
-                yield item['data']
+            if len(group['data_block']) == 1:
+                yield group['data_block'][0]['data']
+            else:
+                if PYVERSION == 3:
+                    yield b''.join(item['data'] for item in group['data_block'])
+                else:
+                    yield b''.join(str(item['data']) for item in group['data_block'])
         else:
-            # could be an appended group
-            # for now appended groups keep the measured data in the memory.
-            # the plan is to use a temp file for appended groups, to keep the
-            # memory usage low.
             data_group = group['data_group']
             channel_group = group['channel_group']
 
             if group['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
-                # go to the first data block of the current data group
                 stream = self._file
             else:
                 stream = self._tempfile
@@ -926,8 +926,6 @@ class MDF4(object):
             if not group['sorted']:
                 cg_size = group['record_size']
                 record_id = channel_group['record_id']
-                if PYVERSION == 2:
-                    record_id = chr(record_id)
                 if data_group['record_id_len'] <= 2:
                     record_id_nr = data_group['record_id_len']
                 else:
@@ -982,8 +980,6 @@ class MDF4(object):
                             if data:
                                 data.append(stream.read(split_size - cur_size))
                                 yield b''.join(data)
-
-
                             else:
                                 yield stream.read(split_size)
 
@@ -1019,18 +1015,25 @@ class MDF4(object):
 
                             cg_size = group['record_size']
                             record_id = channel_group['record_id']
-                            if PYVERSION == 2:
-                                record_id = chr(record_id)
-                            if data_group['record_id_len'] <= 2:
-                                record_id_nr = data_group['record_id_len']
+                            record_id_nr = data_group['record_id_len']
+
+                            if record_id_nr == 1:
+                                fmt = '<B'
+                            elif record_id_nr == 2:
+                                fmt = '<H'
+                            elif record_id_nr == 4:
+                                fmt = '<I'
+                            elif record_id_nr == 8:
+                                fmt = '<Q'
                             else:
-                                record_id_nr = 0
+                                raise MdfException("invalid record id size {}".format(record_id_nr))
+
                             i = 0
                             size = len(data)
                             while i < size:
-                                rec_id = data[i]
+                                rec_id = unpack(fmt, data[i: i+record_id_nr])[0]
                                 # skip record id
-                                i += 1
+                                i += record_id_nr
                                 rec_size = cg_size[rec_id]
                                 if rec_size:
                                     if rec_id == record_id:
@@ -1040,11 +1043,7 @@ class MDF4(object):
                                     i += 4
                                     if rec_id == record_id:
                                         rec_data.append(data[i: i + rec_size])
-                                # consider the second record ID byte
-                                if record_id_nr == 2:
-                                    i += rec_size + 1
-                                else:
-                                    i += rec_size
+                                i += rec_size
                             yield b''.join(rec_data)
                         else:
                             yield data
@@ -1058,7 +1057,7 @@ class MDF4(object):
         """
 
         if address:
-            stream.seek(address, v4c.SEEK_START)
+            stream.seek(address)
             blk_id = stream.read(4)
             if blk_id == b'##SD':
                 data = SignalDataBlock(address=address, stream=stream)
@@ -1075,7 +1074,7 @@ class MDF4(object):
                     # aggregate data from all SDBLOCK
                     for i in range(nr - 1):
                         addr = data_list['data_block_addr{}'.format(i)]
-                        stream.seek(addr, v4c.SEEK_START)
+                        stream.seek(addr)
                         blk_id = stream.read(4)
                         if blk_id == b'##SD':
                             block = SignalDataBlock(
@@ -1155,15 +1154,9 @@ class MDF4(object):
             ch_type = new_ch['channel_type']
             dependency_list = grp['channel_dependencies'][original_index]
             if memory == 'minimum':
-                block = TextBlock(
+                name = get_text_v4(
                     address=new_ch['name_addr'],
                     stream=stream,
-                )
-                name = (
-                    block['text']
-                    .decode('utf-8')
-                    .strip(' \r\n\t\0')
-                    .split('\\')[0]
                 )
             else:
                 name = new_ch.name
@@ -1683,23 +1676,23 @@ class MDF4(object):
             name = signal.name
             if len(sig.samples.shape) <= 1:
                 if names is None:
-                    sig_type = 0
+                    sig_type = v4c.SIGNAL_TYPE_SCALAR
                     if sig.samples.dtype.kind in 'SV':
-                        sig_type = 1
+                        sig_type = v4c.SIGNAL_TYPE_STRING
                 else:
                     if names in (canopen_time_fields, canopen_date_fields):
-                        sig_type = 2
+                        sig_type = v4c.SIGNAL_TYPE_CANOPEN
                     elif names[0] != sig.name:
-                        sig_type = 3
+                        sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
                     else:
-                        sig_type = 4
+                        sig_type = v4c.SIGNAL_TYPE_ARRAY
             else:
                 sig_type = 4
 
             gp_sig_types.append(sig_type)
 
             # first add the signals in the simple signal list
-            if sig_type == 0:
+            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
                 gp_texts['conversion_tab'].append(None)
 
                 if memory == 'minimum':
@@ -1908,7 +1901,7 @@ class MDF4(object):
                 gp_dep.append(None)
 
 
-            elif sig_type == 1:
+            elif sig_type == v4c.SIGNAL_TYPE_STRING:
                 gp_texts['conversion_tab'].append(None)
 
                 if memory == 'minimum':
@@ -2033,7 +2026,7 @@ class MDF4(object):
                 gp_dep.append(None)
 
 
-            elif sig_type == 2:
+            elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
 
                 field_name = get_unique_name(field_names, name)
                 field_names.add(field_name)
@@ -2145,7 +2138,7 @@ class MDF4(object):
 
                 ch_cntr += 1
 
-            elif sig_type == 3:
+            elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
 
                 # here we have a structure channel composition
 
@@ -2634,12 +2627,10 @@ class MDF4(object):
                 gp['data_block'] = [DataBlock(data=block), ]
 
             else:
-                gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
-                gp['data_block'] = []
                 data_address = self._tempfile.tell()
-                gp['data_block'].append(data_address)
+                gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
+                gp['data_block'] = [data_address, ]
                 gp['data_group']['data_block_addr'] = data_address
-                block = bytes(block)
                 size = len(block)
                 self._tempfile.write(block)
                 gp['data_block_type'] = v4c.DT_BLOCK
@@ -2736,7 +2727,7 @@ class MDF4(object):
         for i, (signal, sig_type) in enumerate(zip(signals, gp['signal_types'])):
 
             # first add the signals in the simple signal list
-            if sig_type == 0:
+            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
                 fields.append(signal)
                 types.append(('', signal.dtype))
@@ -2771,7 +2762,7 @@ class MDF4(object):
                         channel['max_raw_value'] = max_val
                         channel['upper_limit'] = max_val
 
-            elif sig_type == 1:
+            elif sig_type == v4c.SIGNAL_TYPE_STRING:
                 if self.memory == 'full':
                     data = gp['signal_data'][i]
                 else:
@@ -2808,8 +2799,7 @@ class MDF4(object):
                 fields.append(offsets)
                 types.append(('', uint64))
 
-
-            elif sig_type == 2:
+            elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
 
                 names = signal.dtype.names
 
@@ -2829,7 +2819,7 @@ class MDF4(object):
                     fields.append(frombuffer(vals, dtype='V7'))
                     types.append(('', 'V7'))
 
-            elif sig_type == 3:
+            elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
 
                 names = signal.dtype.names
 
@@ -2841,7 +2831,7 @@ class MDF4(object):
                     fields.append(samples)
                     types.append(('', samples.dtype))
 
-            elif sig_type == 4:
+            elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names
                 if names is None:
                     names = []
@@ -2878,7 +2868,8 @@ class MDF4(object):
 
             addr = self._tempfile.tell()
             gp['data_block'].append(addr)
-            size = self._tempfile.write(samples)
+            size = len(samples)
+            self._tempfile.write(samples)
             gp['channel_group']['cycles_nr'] += size // gp['channel_group']['samples_byte_nr']
 
             gp['data_block_addr'].append(addr)
@@ -5176,7 +5167,7 @@ class MDF4(object):
             else:
                 self.header['comment_addr'] = 0
 
-            seek(v4c.IDENTIFICATION_BLOCK_SIZE, v4c.SEEK_START)
+            seek(v4c.IDENTIFICATION_BLOCK_SIZE)
             write(bytes(self.header))
 
             for orig_addr, gp in zip(original_data_addresses, self.groups):
@@ -5501,7 +5492,7 @@ class MDF4(object):
 
                 for source in gp['channel_sources']:
                     if source:
-                        stream.seek(source, v4c.SEEK_START)
+                        stream.seek(source)
                         raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
                         if raw_bytes in si_map:
                             si_addrs.append(si_map[raw_bytes])
@@ -5802,7 +5793,7 @@ class MDF4(object):
                     else:
                         j += 1
 
-                seek(blocks_start_addr, v4c.SEEK_START)
+                seek(blocks_start_addr)
 
                 for block in blocks:
                     write(bytes(block))
@@ -5871,7 +5862,7 @@ class MDF4(object):
             else:
                 self.header['comment_addr'] = 0
 
-            seek(v4c.IDENTIFICATION_BLOCK_SIZE, v4c.SEEK_START)
+            seek(v4c.IDENTIFICATION_BLOCK_SIZE)
             write(bytes(self.header))
 
             for orig_addr, gp in zip(original_data_addresses, self.groups):
@@ -5891,7 +5882,7 @@ class MDF4(object):
                                     dep['scale_axis_{}_dg_addr'.format(i)] = grp['data_group'].address
                                     dep['scale_axis_{}_cg_addr'.format(i)] = grp['channel_group'].address
                                     dep['scale_axis_{}_ch_addr'.format(i)] = grp['temp_channels'][ch_nr]
-                                seek(dep.address, v4c.SEEK_START)
+                                seek(dep.address)
                                 write(bytes(dep))
 
             for gp in self.groups:

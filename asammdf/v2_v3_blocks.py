@@ -125,9 +125,9 @@ class Channel(dict):
         try:
             stream = kargs['stream']
             self.address = address = kargs['address']
-            stream.seek(address + 2, SEEK_START)
+            stream.seek(address + 2)
             size = unpack('<H', stream.read(2))[0]
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
             block = stream.read(size)
 
             if size == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
@@ -370,7 +370,7 @@ class ChannelConversion(dict):
             except KeyError:
                 stream = kargs['stream']
                 self.address = address = kargs['address']
-                stream.seek(address, SEEK_START)
+                stream.seek(address)
                 block = stream.read(4)
                 (self['id'],
                  self['block_len']) = unpack('<2sH', block)
@@ -746,7 +746,7 @@ class ChannelDependency(dict):
         try:
             stream = kargs['stream']
             self.address = address = kargs['address']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['block_len'],
@@ -906,7 +906,7 @@ class ChannelExtension(dict):
         elif 'stream' in kargs:
             stream = kargs['stream']
             self.address = address = kargs['address']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
             (self['id'],
              self['block_len'],
              self['type']) = unpack(v23c.FMT_SOURCE_COMMON, stream.read(6))
@@ -1026,7 +1026,7 @@ class ChannelGroup(dict):
 
             stream = kargs['stream']
             self.address = address = kargs['address']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
             block = stream.read(v23c.CG_PRE_330_BLOCK_SIZE)
 
             (self['id'],
@@ -1109,7 +1109,7 @@ class DataBlock(dict):
             stream = kargs['stream']
             size = kargs['size']
             self.address = address = kargs['address']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             self['data'] = stream.read(size)
 
@@ -1165,7 +1165,7 @@ class DataGroup(dict):
         try:
             stream = kargs['stream']
             self.address = address = kargs['address']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
             block = stream.read(v23c.DG_PRE_320_BLOCK_SIZE)
 
             (self['id'],
@@ -1259,7 +1259,7 @@ class FileIdentificationBlock(dict):
         try:
 
             stream = kargs['stream']
-            stream.seek(0, SEEK_START)
+            stream.seek(0)
 
             (self['file_identification'],
              self['version_str'],
@@ -1348,7 +1348,7 @@ class HeaderBlock(dict):
         try:
 
             stream = kargs['stream']
-            stream.seek(64, SEEK_START)
+            stream.seek(64)
 
             (self['id'],
              self['block_len'],
@@ -1452,7 +1452,7 @@ class ProgramBlock(dict):
         try:
             stream = kargs['stream']
             self.address = address = kargs['address']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['block_len']) = unpack('<2sH', stream.read(4))
@@ -1514,7 +1514,7 @@ class SampleReduction(dict):
         try:
             stream = kargs['stream']
             self.address = address = kargs['address']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['block_len'],
@@ -1589,7 +1589,7 @@ class TextBlock(dict):
 
             stream = kargs['stream']
             self.address = address = kargs['address']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
             (self['id'],
              self['block_len']) = unpack('<2sH', stream.read(4))
             size = self['block_len'] - 4
@@ -1670,9 +1670,9 @@ class TriggerBlock(dict):
             self.address = address = kargs['address']
             stream = kargs['stream']
 
-            stream.seek(address + 2, SEEK_START)
+            stream.seek(address + 2)
             size = unpack('<H', stream.read(2))[0]
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
             block = stream.read(size)
 
             (self['id'],

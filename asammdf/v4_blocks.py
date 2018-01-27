@@ -54,7 +54,7 @@ class AttachmentBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -167,7 +167,7 @@ class Channel(dict):
 
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -352,7 +352,7 @@ class ChannelArrayBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -444,7 +444,10 @@ class ChannelArrayBlock(dict):
             elif ca_type == v4c.CA_TYPE_LOOKUP:
                 flags = kargs['flags']
                 dims_nr = kargs['dims']
-                values = sum(kargs['dim_size_{}'.format(i)] for i in range(dims_nr))
+                values = sum(
+                    kargs['dim_size_{}'.format(i)]
+                    for i in range(dims_nr)
+                )
                 if flags & v4c.FLAG_CA_FIXED_AXIS:
                     self['block_len'] = 48 + dims_nr * 16 + values * 8
                     self['links_nr'] = 1 + dims_nr
@@ -602,7 +605,7 @@ class ChannelGroup(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -697,7 +700,7 @@ class ChannelConversion(dict):
 
                 self.address = address = kargs['address']
                 stream = kargs['stream']
-                stream.seek(address, SEEK_START)
+                stream.seek(address)
 
                 (self['id'],
                 self['reserved0'],
@@ -1255,7 +1258,7 @@ class DataBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1307,7 +1310,7 @@ class DataZippedBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1417,7 +1420,7 @@ class DataGroup(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1472,7 +1475,7 @@ class DataList(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1577,7 +1580,7 @@ class FileIdentificationBlock(dict):
         try:
 
             stream = kargs['stream']
-            stream.seek(self.address, SEEK_START)
+            stream.seek(self.address)
 
             (self['file_identification'],
              self['version_str'],
@@ -1630,7 +1633,7 @@ class FileHistory(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1685,7 +1688,7 @@ class HeaderBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved3'],
@@ -1761,7 +1764,7 @@ class HeaderList(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1836,7 +1839,7 @@ class SourceInformation(dict):
         elif 'stream' in kargs:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1892,7 +1895,7 @@ class SignalDataBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1939,7 +1942,7 @@ class TextBlock(dict):
             stream = kargs['stream']
             self.address = address = kargs['address']
 
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
             (self['id'],
              self['reserved0'],
              self['block_len'],
