@@ -154,7 +154,7 @@ class TestMDF(unittest.TestCase):
 
             for out in SUPPORTED_VERSIONS[1:]:
                 for mdfname in os.listdir('tmpdir_demo'):
-                    for memory in MEMORY[-1:]:
+                    for memory in MEMORY:
                         input_file = os.path.join('tmpdir_demo', mdfname)
                         if MDF(input_file).version == '2.00':
                             continue
@@ -186,11 +186,11 @@ class TestMDF(unittest.TestCase):
     def test_merge(self):
         print("MDF merge tests")
 
-        configure(False, False)
+        configure(False)
 
         for out in SUPPORTED_VERSIONS:
             for mdfname in os.listdir('tmpdir_demo'):
-                for memory in MEMORY[:1]:
+                for memory in MEMORY:
 
                     input_file = os.path.join('tmpdir_demo', mdfname)
                     files = [input_file, ] * 4
@@ -213,7 +213,7 @@ class TestMDF(unittest.TestCase):
 
                     self.assertTrue(equal)
 
-        configure(True, True)
+        configure(True)
 
         for out in SUPPORTED_VERSIONS[1:]:
             for mdfname in os.listdir('tmpdir_demo'):
@@ -244,7 +244,7 @@ class TestMDF(unittest.TestCase):
     def test_merge_array(self):
         print("MDF merge array tests")
 
-        configure(False, False)
+        configure(False)
 
         for out in (version for version in SUPPORTED_VERSIONS if version >= '4.00'):
             for mdfname in os.listdir('tmpdir_array'):
@@ -270,7 +270,7 @@ class TestMDF(unittest.TestCase):
 
                     self.assertTrue(equal)
 
-        configure(True, True)
+        configure(True)
 
         for out in (version for version in SUPPORTED_VERSIONS if version >= '4.00'):
             for mdfname in os.listdir('tmpdir_array'):
@@ -298,10 +298,10 @@ class TestMDF(unittest.TestCase):
     def test_cut_absolute(self):
         print("MDF cut absolute tests")
 
-        configure(False, False)
+        configure(False)
 
         for mdfname in os.listdir('tmpdir_demo'):
-            for memory in MEMORY[:1]:
+            for memory in MEMORY:
                 input_file = os.path.join('tmpdir_demo', mdfname)
 
                 print(input_file, memory)
@@ -335,7 +335,7 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-        configure(True, True)
+        configure(True)
 
         for mdfname in os.listdir('tmpdir_demo'):
             for memory in MEMORY:
@@ -376,7 +376,7 @@ class TestMDF(unittest.TestCase):
     def test_cut_absolute_array(self):
         print("MDF cut absolute array tests")
 
-        configure(False, False)
+        configure(False)
 
         for mdfname in os.listdir('tmpdir_array'):
             for memory in MEMORY:
@@ -411,7 +411,7 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-        configure(True, True)
+        configure(True)
 
         for mdfname in os.listdir('tmpdir_array'):
             for memory in MEMORY:
@@ -448,7 +448,7 @@ class TestMDF(unittest.TestCase):
     def test_cut_relative(self):
         print("MDF cut relative tests")
 
-        configure(False, False)
+        configure(False)
 
         for mdfname in os.listdir('tmpdir_demo'):
             for memory in MEMORY:
@@ -485,7 +485,7 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-        configure(True, True)
+        configure(True)
 
         for mdfname in os.listdir('tmpdir_demo'):
             for memory in MEMORY:
@@ -522,7 +522,7 @@ class TestMDF(unittest.TestCase):
     def test_cut_relative_array(self):
         print("MDF cut relative array tests")
 
-        configure(False, False)
+        configure(False)
 
         for mdfname in os.listdir('tmpdir_array'):
             for memory in MEMORY:
@@ -557,7 +557,7 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-        configure(True, True)
+        configure(True)
 
         for mdfname in os.listdir('tmpdir_array'):
             for memory in MEMORY:
@@ -598,7 +598,7 @@ class TestMDF(unittest.TestCase):
             configure(enable)
 
             for mdfname in os.listdir('tmpdir_demo'):
-                for memory in MEMORY[:1]:
+                for memory in MEMORY:
                     input_file = os.path.join('tmpdir_demo', mdfname)
 
 #                    if MDF(input_file, memory=memory).version == '2.00':
@@ -640,7 +640,7 @@ class TestMDF(unittest.TestCase):
             configure(enable)
 
             for mdfname in os.listdir('tmpdir_array'):
-                for memory in MEMORY[:1]:
+                for memory in MEMORY:
                     input_file = os.path.join('tmpdir_array', mdfname)
 
                     channels_nr = np.random.randint(1, len(CHANNELS_ARRAY) + 1)
@@ -695,7 +695,7 @@ class TestMDF(unittest.TestCase):
         split_sizes = [260, 10**5]
         split_enables = [True, False]
         overwrite_enables = [True, False]
-        for compression, memory, size, split_enable, overwrite in product(compressions, MEMORY[-1:], split_sizes, split_enables, overwrite_enables):
+        for compression, memory, size, split_enable, overwrite in product(compressions, MEMORY, split_sizes, split_enables, overwrite_enables):
             configure(
                 split_data_blocks=split_enable,
                 split_threshold=size,
