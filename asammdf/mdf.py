@@ -311,7 +311,10 @@ class MDF(object):
 
             data = self._load_group_data(group)
 
-            data = (b''.join(data), )
+            if PYVERSION == 3:
+                data = (b''.join(data), )
+            else:
+                data = (b''.join(str(_data) for _data in data), )
 
             for j, _ in enumerate(group['channels']):
                 if j in excluded_channels:
@@ -833,10 +836,16 @@ class MDF(object):
             mdf = files[0]
             excluded_channels = mdf._excluded_channels(i)
 
-            groups_data = [
-                (b''.join(files[index]._load_group_data(grp)), )
-                for index, grp in enumerate(groups)
-            ]
+            if PYVERSION == 3:
+                groups_data = [
+                    (b''.join(files[index]._load_group_data(grp)), )
+                    for index, grp in enumerate(groups)
+                ]
+            else:
+                groups_data = [
+                    (b''.join(str(d) for d in files[index]._load_group_data(grp)), )
+                    for index, grp in enumerate(groups)
+                ]
 
             group_channels = [group['channels'] for group in groups]
             for j, channels in enumerate(zip(*group_channels)):

@@ -997,7 +997,7 @@ class MDF4(object):
                     if data:
                         yield b''.join(data)
                 else:
-                    for address, size, block_size in blocks:
+                    for (address, size, block_size) in blocks:
 
                         stream.seek(address)
                         data = stream.read(block_size)
@@ -1534,7 +1534,7 @@ class MDF4(object):
                 t = t_
         else:
             t = t_
-
+        
         canopen_time_fields = (
             'ms',
             'days',
@@ -2639,7 +2639,9 @@ class MDF4(object):
                 data_address = self._tempfile.tell()
                 gp['data_block'].append(data_address)
                 gp['data_group']['data_block_addr'] = data_address
-                size = self._tempfile.write(bytes(block))
+                block = bytes(block)
+                size = len(block)
+                self._tempfile.write(block)
                 gp['data_block_type'] = v4c.DT_BLOCK
                 gp['param'] = 0
                 gp['data_size'] = [size, ]
@@ -4653,7 +4655,7 @@ class MDF4(object):
                 zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
 
             # write DataBlocks first
-            for gp in self.groups:
+            for idx, gp in enumerate(self.groups):
 
                 original_data_addresses.append(
                     gp['data_group']['data_block_addr']
@@ -4661,22 +4663,29 @@ class MDF4(object):
                 address = tell()
 
                 data = self._load_group_data(gp)
+                
+                total_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
 
                 if MDF4._split_data_blocks:
-                    total_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                    
                     samples_size = gp['channel_group']['samples_byte_nr']
                     split_size = MDF4._split_threshold // samples_size
                     split_size *= samples_size
                     if split_size == 0:
                         chunks = 1
                     else:
-                        chunks = total_size / split_size
+                        chunks = float(total_size) / split_size
                         chunks = int(ceil(chunks))
                 else:
                     chunks = 1
+                    
+                
 
                 if chunks == 1:
-                    data = b''.join(data)
+                    if PYVERSION == 3:
+                        data = b''.join(data)
+                    else:
+                        data = b''.join(str(d) for d in data)
                     if compression and self.version != '4.00':
                         if compression == 1:
                             param = 0

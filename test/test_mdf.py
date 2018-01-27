@@ -301,7 +301,7 @@ class TestMDF(unittest.TestCase):
         configure(False, False)
 
         for mdfname in os.listdir('tmpdir_demo'):
-            for memory in MEMORY:
+            for memory in MEMORY[:1]:
                 input_file = os.path.join('tmpdir_demo', mdfname)
 
                 print(input_file, memory)
