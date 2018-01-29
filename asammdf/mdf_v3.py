@@ -2985,7 +2985,7 @@ class MDF3(object):
             raise MdfException(message)
 
         dst = dst if dst else self.name
-        if not dst.endswith(('mdf', 'MDF'))
+        if not dst.endswith(('mdf', 'MDF')):
             dst = dst + '.mdf'
         if overwrite is False:
             if os.path.isfile(dst):
@@ -3361,7 +3361,7 @@ class MDF3(object):
             raise MdfException(message)
 
         dst = dst if dst else self.name
-        if not dst.endswith(('mdf', 'MDF'))
+        if not dst.endswith(('mdf', 'MDF')):
             dst = dst + '.mdf'
         if overwrite is False:
             if os.path.isfile(dst):
