@@ -4109,7 +4109,8 @@ class MDF4(object):
             raise MdfException(message)
 
         dst = dst if dst else self.name
-        dst = os.path.splitext(dst)[0] + '.mf4'
+        dif not dst.endswith(('mf4', 'MF4'))
+            dst = dst + '.mf4'
         if overwrite is False:
             if os.path.isfile(dst):
                 cntr = 0
@@ -4724,7 +4725,8 @@ class MDF4(object):
             raise MdfException(message)
 
         dst = dst if dst else self.name
-        dst = os.path.splitext(dst)[0] + '.mf4'
+        if not dst.endswith(('mf4', 'MF4'))
+            dst = dst + '.mf4'
         if overwrite is False:
             if os.path.isfile(dst):
                 cntr = 0
