@@ -458,7 +458,10 @@ class MDF3(object):
 
         vals = fromstring(vals, dtype=dtype(types))
 
-        return vals['vals']
+        if channel['data_type'] in v23c.SIGNED_INT:
+            return as_non_byte_sized_signed_int(vals['vals'], bit_count)
+        else:
+            return vals['vals']
 
     def _validate_channel_selection(self, name=None, group=None, index=None):
         """Gets channel comment.
