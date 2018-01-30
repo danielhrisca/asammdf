@@ -1,6 +1,3 @@
-[![PyPI version](https://badge.fury.io/py/asammdf.svg)](https://badge.fury.io/py/asammdf) [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=master)](http://asammdf.readthedocs.io/en/master/?badge=stable) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) 
-
-[![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=master)](https://travis-ci.org/danielhrisca/asammdf)
 
 
 *asammdf* is a fast parser/editor for ASAM (Associtation for Standardisation of Automation and Measuring Systems) MDF (Measurement Data Format) files. 
@@ -9,17 +6,24 @@
 
 *asammdf* works on Python 2.7, and Python >= 3.4 (Travis CI tests done with Python 2.7 and Python >= 3.5)
 
+# Status
+! | master | development
+--|--|--
+Travis CI | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=master)](https://travis-ci.org/danielhrisca/asammdf) | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=development)](https://travis-ci.org/danielhrisca/asammdf)
+Codacy | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=development)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) 
+Coverage | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=development)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage)
+ReadTheDocs | [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=master)](http://asammdf.readthedocs.io/en/master/?badge=stable) | [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=development)](http://asammdf.readthedocs.io/en/development/?badge=stable)
+PyPI | [![PyPI version](https://badge.fury.io/py/asammdf.svg)](https://badge.fury.io/py/asammdf) |
 
-Project goals
-=============
+
+# Project goals
 The main goals for this library are:
 
 * to be faster than the other Python based mdf libraries
 * to have clean and easy to understand code base
 * to have minimal 3-rd party dependencies
 
-Features
-========
+# Features
 
 * create new mdf files from scratch
 * append new channels
@@ -52,8 +56,7 @@ Features
     * usually a measurement will have channels from different sources at different rates
     * the *Signal* class facilitates operations with such channels
 
-Major features not implemented (yet)
-====================================
+# Major features not implemented (yet)
 * for version 3
 
     * functionality related to sample reduction block (but the class is defined)
@@ -69,8 +72,7 @@ Major features not implemented (yet)
     * channels with default X axis
     * channels with reference to attachment
 
-Usage
-=====
+# Usage
 
 ```python
    from asammdf import MDF
@@ -94,14 +96,12 @@ Usage
 ```  
  
 Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/master/examples.html
+http://asammdf.readthedocs.io/en/development/examples.html
 
-Documentation
-=============
-http://asammdf.readthedocs.io/en/master
+# Documentation
+http://asammdf.readthedocs.io/en/development
 
-Installation
-============
+# Installation
 *asammdf* is available on 
 
 * github: https://github.com/danielhrisca/asammdf/
@@ -111,8 +111,7 @@ Installation
    pip install asammdf
 ```
     
-Dependencies
-============
+# Dependencies
 asammdf uses the following libraries
 
 * numpy : the heart that makes all tick
@@ -127,8 +126,7 @@ optional dependencies needed for exports
 * xlsxwriter : for Excel export
 * scipy : for Matlab .mat export
 
-Benchmarks
-==========
+# Benchmarks
 
-http://asammdf.readthedocs.io/en/master/benchmarks.html
+http://asammdf.readthedocs.io/en/development/benchmarks.html
 

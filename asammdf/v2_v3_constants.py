@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-""" MDF v3 constants """
+""" MDF v2 and v3 constants """
 
 # byte order
 BYTE_ORDER_INTEL = 0
@@ -87,12 +87,14 @@ HEADER_COMMON_SIZE = 164
 HEADER_POST_320_EXTRA_SIZE = 44
 CE_BLOCK_SIZE = 128
 FH_BLOCK_SIZE = 56
-DG31_BLOCK_SIZE = 24
-DG32_BLOCK_SIZE = 28
+DG_PRE_320_BLOCK_SIZE = 24
+DG_POST_320_BLOCK_SIZE = 28
 HD_BLOCK_SIZE = 104
-CN_BLOCK_SIZE = 228
-CG_BLOCK_SIZE = 26
-CG33_BLOCK_SIZE = 30
+CN_DISPLAYNAME_BLOCK_SIZE = 228
+CN_SHORT_BLOCK_SIZE = 218
+CN_LONGNAME_BLOCK_SIZE = 222
+CG_PRE_330_BLOCK_SIZE = 26
+CG_POST_330_BLOCK_SIZE = 30
 DT_BLOCK_SIZE = 24
 CC_COMMON_BLOCK_SIZE = 46
 CC_COMMON_SHORT_SIZE = 42
@@ -154,8 +156,8 @@ HEADER_POST_320_EXTRA_KEYS = (
     'timer_identification',
 )
 
-FMT_CHANNEL = '<2sH5IH32s128s4H3d2IH'
-KEYS_CHANNEL = (
+FMT_CHANNEL_DISPLAYNAME = '<2sH5IH32s128s4H3d2IH'
+KEYS_CHANNEL_DISPLAYNAME = (
     'id',
     'block_len',
     'next_ch_addr',
@@ -178,6 +180,29 @@ KEYS_CHANNEL = (
     'aditional_byte_offset',
 )
 
+FMT_CHANNEL_SHORT = '<2sH5IH32s128s4H3d'
+FMT_CHANNEL_LONGNAME = FMT_CHANNEL_SHORT + 'I'
+KEYS_CHANNEL_SHORT = (
+    'id',
+    'block_len',
+    'next_ch_addr',
+    'conversion_addr',
+    'source_depend_addr',
+    'ch_depend_addr',
+    'comment_addr',
+    'channel_type',
+    'short_name',
+    'description',
+    'start_offset',
+    'bit_count',
+    'data_type',
+    'range_flag',
+    'min_raw_value',
+    'max_raw_value',
+    'sampling_rate',
+)
+KEYS_CHANNEL_LONGNAME = KEYS_CHANNEL_SHORT + ('long_name_addr',)
+
 FMT_CHANNEL_GROUP = '<2sH3I3HI'
 KEYS_CHANNEL_GROUP = (
     'id',
@@ -191,8 +216,8 @@ KEYS_CHANNEL_GROUP = (
     'cycles_nr',
 )
 
-FMT_DATA_GROUP_32 = '<2sH4I2H4s'
-KEYS_DATA_GROUP_32 = (
+FMT_DATA_GROUP_POST_320 = '<2sH4I2H4s'
+KEYS_DATA_GROUP_POST_320 = (
     'id',
     'block_len',
     'next_dg_addr',
@@ -204,8 +229,8 @@ KEYS_DATA_GROUP_32 = (
     'reserved0',
 )
 
-FMT_DATA_GROUP = '<2sH4I2H'
-KEYS_DATA_GROUP = (
+FMT_DATA_GROUP_PRE_320 = '<2sH4I2H'
+KEYS_DATA_GROUP_PRE_320 = (
     'id',
     'block_len',
     'next_dg_addr',

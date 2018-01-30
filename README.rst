@@ -90,11 +90,11 @@ Usage
 
  
 Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/master/examples.html
+http://asammdf.readthedocs.io/en/development/examples.html
 
 Documentation
 =============
-http://asammdf.readthedocs.io/en/master
+http://asammdf.readthedocs.io/en/development
 
 Installation
 ============
@@ -128,7 +128,7 @@ optional dependencies needed for exports
 Benchmarks
 ==========
 
-Graphical results can be seen here at http://asammdf.readthedocs.io/en/master/benchmarks.html
+Graphical results can be seen here at http://asammdf.readthedocs.io/en/development/benchmarks.html
 
 
 Python 3 x86

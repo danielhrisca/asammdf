@@ -3,24 +3,29 @@
 asammdf utility functions and classes
 '''
 
-import itertools
-import re
+import warnings
+
+from struct import unpack
 
 from numpy import (
     amin,
     amax,
+    where,
 )
 
-
-from . import v3constants as v3c
-from . import v4constants as v4c
-
+from . import v2_v3_constants as v3c
+from . import v4_constants as v4c
 
 __all__ = [
     'MdfException',
-    'get_fmt',
-    'fmt_to_datatype',
-    'pair',
+    'get_fmt_v3',
+    'get_fmt_v4',
+    'get_min_max',
+    'get_unique_name',
+    'get_text_v4',
+    'fix_dtype_fields',
+    'fmt_to_datatype_v3',
+    'fmt_to_datatype_v4',
     'bytes',
 ]
 
@@ -29,7 +34,7 @@ class MdfException(Exception):
     """MDF Exception class"""
     pass
 
-
+# pylint: disable=W0622
 def bytes(obj):
     """ Python 2 compatibility function """
     try:
@@ -39,57 +44,85 @@ def bytes(obj):
             return obj
         else:
             raise
+# pylint: enable=W0622
 
 
-def dtype_mapping(invalue, outversion=3):
-    """ map data types between mdf versions 3 and 4
+def get_text_v3(address, stream):
+    """ faster way extract string from mdf versions 2 and 3 TextBlock
 
     Parameters
     ----------
-    invalue : int
-        original data type
-    outversion : int
-        mdf version of output data type
+    address : int
+        TextBlock address
+    stream : handle
+        file IO handle
 
     Returns
     -------
-    res : int
-        mapped data type
+    text : str
+        unicode string
 
     """
 
-    v3tov4 = {v3c.DATA_TYPE_UNSIGNED: v4c.DATA_TYPE_UNSIGNED_INTEL,
-              v3c.DATA_TYPE_SIGNED: v4c.DATA_TYPE_SIGNED_INTEL,
-              v3c.DATA_TYPE_FLOAT: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_DOUBLE: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_STRING: v4c.DATA_TYPE_STRING_LATIN_1,
-              v3c.DATA_TYPE_UNSIGNED_INTEL: v4c.DATA_TYPE_UNSIGNED_INTEL,
-              v3c.DATA_TYPE_UNSIGNED_INTEL: v4c.DATA_TYPE_UNSIGNED_INTEL,
-              v3c.DATA_TYPE_SIGNED_INTEL: v4c.DATA_TYPE_SIGNED_INTEL,
-              v3c.DATA_TYPE_SIGNED_INTEL: v4c.DATA_TYPE_SIGNED_INTEL,
-              v3c.DATA_TYPE_FLOAT_INTEL: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_FLOAT_INTEL: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_DOUBLE_INTEL: v4c.DATA_TYPE_REAL_INTEL,
-              v3c.DATA_TYPE_DOUBLE_INTEL: v4c.DATA_TYPE_REAL_INTEL}
-
-    v4tov3 = {v4c.DATA_TYPE_UNSIGNED_INTEL: v3c.DATA_TYPE_UNSIGNED_INTEL,
-              v4c.DATA_TYPE_UNSIGNED_MOTOROLA: v3c.DATA_TYPE_UNSIGNED_MOTOROLA,
-              v4c.DATA_TYPE_SIGNED_INTEL: v3c.DATA_TYPE_SIGNED_INTEL,
-              v4c.DATA_TYPE_STRING_LATIN_1: v3c.DATA_TYPE_STRING,
-              v4c.DATA_TYPE_BYTEARRAY: v3c.DATA_TYPE_STRING,
-              v4c.DATA_TYPE_REAL_INTEL: v3c.DATA_TYPE_DOUBLE_INTEL,
-              v4c.DATA_TYPE_REAL_MOTOROLA: v3c.DATA_TYPE_DOUBLE_MOTOROLA,
-              v4c.DATA_TYPE_SIGNED_MOTOROLA: v3c.DATA_TYPE_SIGNED_MOTOROLA}
-
-    if outversion == 3:
-        res = v4tov3[invalue]
-    else:
-        res = v3tov4[invalue]
-    return res
+    stream.seek(address + 2)
+    size = unpack('<H', stream.read(2))[0] - 4
+    text = (
+        stream
+        .read(size)
+        .decode('latin-1')
+        .strip(' \r\t\n\0')
+    )
+    return text
 
 
-def get_fmt(data_type, size, version=3):
-    """convert mdf channel data type to numpy dtype format string
+def get_text_v4(address, stream):
+    """ faster way extract string from mdf version 4 TextBlock
+
+    Parameters
+    ----------
+    address : int
+        TextBlock address
+    stream : handle
+        file IO handle
+
+    Returns
+    -------
+    text : str
+        unicode string
+
+    """
+
+    stream.seek(address + 8)
+    size = unpack('<Q', stream.read(8))[0] - 24
+    stream.read(8)
+    text_bytes = stream.read(size)
+    try:
+        text = (
+            text_bytes
+            .decode('utf-8')
+            .strip(' \r\t\n\0')
+        )
+    except UnicodeDecodeError as err:
+        try:
+            from chardet import detect
+            encoding = detect(text_bytes)['encoding']
+            text = (
+                text_bytes
+                .decode(encoding)
+                .strip(' \r\t\n\0')
+            )
+        except ImportError:
+            warnings.warn('Unicode exception occured and "chardet" package is '
+                          'not installed. Mdf version 4 expects "utf-8" '
+                          'strings and this package may detect if a different'
+                          ' encoding was used')
+            raise err
+
+    return text
+
+
+def get_fmt_v3(data_type, size):
+    """convert mdf versions 2 and 3 channel data type to numpy dtype format string
 
     Parameters
     ----------
@@ -97,8 +130,54 @@ def get_fmt(data_type, size, version=3):
         mdf channel data type
     size : int
         data byte size
-    version : int
-        mdf version; default 3
+    Returns
+    -------
+    fmt : str
+        numpy compatible data type format string
+
+    """
+    if size == 0:
+        fmt = 'b'
+    else:
+        if data_type in (
+                v3c.DATA_TYPE_UNSIGNED_INTEL,
+                v3c.DATA_TYPE_UNSIGNED):
+            fmt = '<u{}'.format(size)
+        elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
+            fmt = '>u{}'.format(size)
+        elif data_type in (
+                v3c.DATA_TYPE_SIGNED_INTEL,
+                v3c.DATA_TYPE_SIGNED):
+            fmt = '<i{}'.format(size)
+        elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
+            fmt = '>i{}'.format(size)
+        elif data_type in (
+                v3c.DATA_TYPE_FLOAT,
+                v3c.DATA_TYPE_DOUBLE,
+                v3c.DATA_TYPE_FLOAT_INTEL,
+                v3c.DATA_TYPE_DOUBLE_INTEL):
+            fmt = '<f{}'.format(size)
+        elif data_type in (
+                v3c.DATA_TYPE_FLOAT_MOTOROLA,
+                v3c.DATA_TYPE_DOUBLE_MOTOROLA):
+            fmt = '>f{}'.format(size)
+        elif data_type == v3c.DATA_TYPE_STRING:
+            fmt = 'V{}'.format(size)
+        elif data_type == v3c.DATA_TYPE_BYTEARRAY:
+            fmt = 'u1'
+
+    return fmt
+
+
+def get_fmt_v4(data_type, size):
+    """convert mdf version 4 channel data type to numpy dtype format string
+
+    Parameters
+    ----------
+    data_type : int
+        mdf channel data type
+    size : int
+        data byte size
 
     Returns
     -------
@@ -106,33 +185,9 @@ def get_fmt(data_type, size, version=3):
         numpy compatible data type format string
 
     """
-    if version <= 3:
-        if size == 0:
-            fmt = 'b'
-        if data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED):
-            fmt = '<u{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = '>u{}'.format(size)
-        elif data_type in (v3c.DATA_TYPE_SIGNED_INTEL, v3c.DATA_TYPE_SIGNED):
-            fmt = '<i{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = '>i{}'.format(size)
-        elif data_type in (v3c.DATA_TYPE_FLOAT,
-                           v3c.DATA_TYPE_DOUBLE,
-                           v3c.DATA_TYPE_FLOAT_INTEL,
-                           v3c.DATA_TYPE_DOUBLE_INTEL):
-            fmt = '<f{}'.format(size)
-        elif data_type in (v3c.DATA_TYPE_FLOAT_MOTOROLA,
-                           v3c.DATA_TYPE_DOUBLE_MOTOROLA):
-            fmt = '>f{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_STRING:
-            fmt = 'V{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_BYTEARRAY:
-            fmt = 'u1'
-
-    elif version == 4:
-        if size == 0:
-            fmt = 'b'
+    if size == 0:
+        fmt = 'b'
+    else:
         if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
             fmt = '<u{}'.format(size)
         elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
@@ -147,10 +202,11 @@ def get_fmt(data_type, size, version=3):
             fmt = '>f{}'.format(size)
         elif data_type == v4c.DATA_TYPE_BYTEARRAY:
             fmt = 'V{}'.format(size)
-        elif data_type in (v4c.DATA_TYPE_STRING_UTF_8,
-                           v4c.DATA_TYPE_STRING_LATIN_1,
-                           v4c.DATA_TYPE_STRING_UTF_16_BE,
-                           v4c.DATA_TYPE_STRING_UTF_16_LE):
+        elif data_type in (
+                v4c.DATA_TYPE_STRING_UTF_8,
+                v4c.DATA_TYPE_STRING_LATIN_1,
+                v4c.DATA_TYPE_STRING_UTF_16_BE,
+                v4c.DATA_TYPE_STRING_UTF_16_LE):
             if size == 4:
                 fmt = '<u4'
             elif size == 8:
@@ -176,15 +232,14 @@ def fix_dtype_fields(fields):
     return new_types
 
 
-def fmt_to_datatype(fmt, version=3):
-    """convert numpy dtype format string to mdf channel data type and size
+def fmt_to_datatype_v3(fmt):
+    """convert numpy dtype format string to mdf versions 2 and 3
+    channel data type and size
 
     Parameters
     ----------
     fmt : numpy.dtype
         numpy data type
-    version : int
-        MDF version (2, 3 or 4); default is 3
 
     Returns
     -------
@@ -194,43 +249,75 @@ def fmt_to_datatype(fmt, version=3):
     """
     size = fmt.itemsize * 8
 
-    if version < 4:
-        if fmt.kind == 'u':
+    if fmt.kind == 'u':
+        if fmt.byteorder in '=<':
             data_type = v3c.DATA_TYPE_UNSIGNED
-        elif fmt.kind == 'i':
+        else:
+            data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
+    elif fmt.kind == 'i':
+        if fmt.byteorder in '=<':
             data_type = v3c.DATA_TYPE_SIGNED
-        elif fmt.kind == 'f':
+        else:
+            data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
+    elif fmt.kind == 'f':
+        if fmt.byteorder in '=<':
             if size == 32:
                 data_type = v3c.DATA_TYPE_FLOAT
             else:
                 data_type = v3c.DATA_TYPE_DOUBLE
-        elif fmt.kind in 'SV':
-            data_type = v3c.DATA_TYPE_STRING
         else:
-            # here we have arrays
-            data_type = v3c.DATA_TYPE_BYTEARRAY
-
-    elif version == 4:
-        if fmt.kind == 'u':
-            data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
-        elif fmt.kind == 'i':
-            data_type = v4c.DATA_TYPE_SIGNED_INTEL
-        elif fmt.kind == 'f':
-            data_type = v4c.DATA_TYPE_REAL_INTEL
-        elif fmt.kind in 'SV':
-            data_type = v4c.DATA_TYPE_STRING_LATIN_1
-        else:
-            # here we have arrays
-            data_type = v4c.DATA_TYPE_BYTEARRAY
+            if size == 32:
+                data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
+            else:
+                data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
+    elif fmt.kind in 'SV':
+        data_type = v3c.DATA_TYPE_STRING
+    else:
+        # here we have arrays
+        data_type = v3c.DATA_TYPE_BYTEARRAY
 
     return data_type, size
 
 
-def pair(iterable):
-    """s -> (s0,s1), (s1,s2), (s2, s3), ..."""
-    current, next_ = itertools.tee(iterable)
-    next(next_, None)
-    return zip(current, next_)
+def fmt_to_datatype_v4(fmt):
+    """convert numpy dtype format string to mdf version 4 channel data
+    type and size
+
+    Parameters
+    ----------
+    fmt : numpy.dtype
+        numpy data type
+
+    Returns
+    -------
+    data_type, size : int, int
+        integer data type as defined by ASAM MDF and bit size
+
+    """
+    size = fmt.itemsize * 8
+
+    if fmt.kind == 'u':
+        if fmt.byteorder in '=<':
+            data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+        else:
+            data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
+    elif fmt.kind == 'i':
+        if fmt.byteorder in '=<':
+            data_type = v4c.DATA_TYPE_SIGNED_INTEL
+        else:
+            data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
+    elif fmt.kind == 'f':
+        if fmt.byteorder in '=<':
+            data_type = v4c.DATA_TYPE_REAL_INTEL
+        else:
+            data_type = v4c.DATA_TYPE_REAL_MOTOROLA
+    elif fmt.kind in 'SV':
+        data_type = v4c.DATA_TYPE_STRING_LATIN_1
+    else:
+        # here we have arrays
+        data_type = v4c.DATA_TYPE_BYTEARRAY
+
+    return data_type, size
 
 
 def get_unique_name(used_names, name):
@@ -284,72 +371,25 @@ def get_min_max(samples):
     return min_val, max_val
 
 
-def load_dbc(dbc):
-    """ Loads all messages description from DBC
+def as_non_byte_sized_signed_int(integer_array, bit_length):
+    """
+    The MDF spec allows values to be encoded as integers that aren't byte-sized. Numpy only knows how to do two's
+    complement on byte-sized integers (i.e. int16, int32, int64, etc.), so we have to calculate two's complement
+    ourselves in order to handle signed integers with unconventional lengths.
 
     Parameters
     ----------
-    dbc : str
-        DBC file path
-
+    integer_array : np.array
+        Array of integers to apply two's complement to
+    bit_length : int
+        Number of bits to sample from the array
     Returns
     -------
-    messages : dict
-        the keys are the message ID's from the dbc
-
+    integer_array : np.array
+        signed integer array with non-byte-sized two's complement applied
     """
 
-    pattern = r'(?P<msg>^BO_ (.+\n)+)'
-
-    with open(dbc, 'r') as dbc_file:
-        string = dbc_file.read()
-
-    messages = {}
-
-    for match_ in re.finditer(pattern, string, flags=re.M):
-        msg = match_.group('msg')
-
-        pattern = r'BO_ (?P<can_id>\d+) (?P<name>[^ :]+): (?P<dlc>\d).+'
-        match = re.search(pattern, msg)
-        can_id = int(match.group('can_id'))
-        name = match.group('name')
-        dlc = int(match.group('dlc'))
-
-        pattern = (r'SG_ (?P<name>[^ ]+) : '
-                   r'(?P<start_bit>\d{1,2})\|(?P<size>\d{1,2})'
-                   r'@(?P<byte_order>\d)(?P<signed>[+-])'
-                   r' \((?P<factor>[^,]+),(?P<offset>[^)]+)\)'
-                   r' \[(?P<min_value>[^|]+)\|(?P<max_value>[^]]+)\]'
-                   r' "(?P<unit>[^"]*)"')
-
-        messages[can_id] = {
-            'name': name,
-            'dlc': dlc,
-            'signals': {},
-            'can_id': can_id
-        }
-
-        signals = messages[can_id]['signals']
-
-        for match in re.finditer(pattern, msg):
-            signal_name = match.group('name')
-            start_bit = int(match.group('start_bit'))
-            size = int(match.group('size'))
-            byte_order = match.group('byte_order')
-            signed = match.group('signed') == '-'
-            factor = float(match.group('factor'))
-            offset = float(match.group('offset'))
-            min_value = float(match.group('min_value'))
-            max_value = float(match.group('max_value'))
-            unit = match.group('unit')
-            signals[signal_name] = {'start_bit': start_bit,
-                                    'size': size,
-                                    'byte_order': byte_order,
-                                    'signed': signed,
-                                    'factor': factor,
-                                    'offset': offset,
-                                    'min_value': min_value,
-                                    'max_value': max_value,
-                                    'unit': unit}
-
-    return messages
+    truncated_integers = integer_array & ((1 << bit_length) - 1)  # Zero out the unwanted bits
+    return where(truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
+                 (2**bit_length - truncated_integers) * -1,  # when negative, do two's complement
+                 truncated_integers)  # when positive, return the truncated int

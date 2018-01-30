@@ -283,29 +283,35 @@ class Signal(object):
                 # cut from beggining to stop
                 stop = np.searchsorted(self.timestamps, stop, side='right')
                 if stop:
-                    result = Signal(self.samples[: stop],
-                                    self.timestamps[:stop],
-                                    self.unit,
-                                    self.name,
-                                    self.info,
-                                    self.comment)
+                    result = Signal(
+                        self.samples[: stop],
+                        self.timestamps[:stop],
+                        self.unit,
+                        self.name,
+                        self.info,
+                        self.comment,
+                    )
                 else:
-                    result = Signal(np.array([]),
-                                    np.array([]),
-                                    self.unit,
-                                    self.name,
-                                    self.info,
-                                    self.comment)
+                    result = Signal(
+                        np.array([]),
+                        np.array([]),
+                        self.unit,
+                        self.name,
+                        self.info,
+                        self.comment,
+                    )
 
             elif stop is None:
                 # cut from start to end
                 start = np.searchsorted(self.timestamps, start, side='left')
-                result = Signal(self.samples[start: ],
-                                self.timestamps[start: ],
-                                self.unit,
-                                self.name,
-                                self.info,
-                                self.comment)
+                result = Signal(
+                    self.samples[start:],
+                    self.timestamps[start:],
+                    self.unit,
+                    self.name,
+                    self.info,
+                    self.comment,
+                )
 
             else:
                 # cut between start and stop
@@ -313,33 +319,39 @@ class Signal(object):
                 stop_ = np.searchsorted(self.timestamps, stop, side='right')
                 if stop_ == start_:
 
-                    if len(self.timestamps) and \
-                            stop >= self.timestamps[0] and \
-                            start <= self.timestamps[-1]:
+                    if (len(self.timestamps)
+                            and stop >= self.timestamps[0]
+                            and start <= self.timestamps[-1]):
                         # start and stop are found between 2 signal samples
                         # so return the previous sample
-                        result = Signal(self.samples[start_: start_ + 1],
-                                        self.timestamps[start_: start_ + 1],
-                                        self.unit,
-                                        self.name,
-                                        self.info,
-                                        self.comment)
+                        result = Signal(
+                            self.samples[start_: start_ + 1],
+                            self.timestamps[start_: start_ + 1],
+                            self.unit,
+                            self.name,
+                            self.info,
+                            self.comment,
+                        )
                     else:
                         # signal is empty or start and stop are outside the
                         # signal time base
-                        result = Signal(np.array([]),
-                                        np.array([]),
-                                        self.unit,
-                                        self.name,
-                                        self.info,
-                                        self.comment)
+                        result = Signal(
+                            np.array([]),
+                            np.array([]),
+                            self.unit,
+                            self.name,
+                            self.info,
+                            self.comment,
+                        )
                 else:
-                    result = Signal(self.samples[start_: stop_],
-                                    self.timestamps[start_: stop_],
-                                    self.unit,
-                                    self.name,
-                                    self.info,
-                                    self.comment)
+                    result = Signal(
+                        self.samples[start_: stop_],
+                        self.timestamps[start_: stop_],
+                        self.unit,
+                        self.name,
+                        self.info,
+                        self.comment,
+                    )
         return result
 
     def extend(self, other):
@@ -363,12 +375,14 @@ class Signal(object):
             else:
                 timestamps = other.timestamps
 
-            result = Signal(np.append(self.samples, other.samples),
-                            np.append(self.timestamps, timestamps),
-                            self.unit,
-                            self.name,
-                            self.info,
-                            self.comment)
+            result = Signal(
+                np.append(self.samples, other.samples),
+                np.append(self.timestamps, timestamps),
+                self.unit,
+                self.name,
+                self.info,
+                self.comment,
+            )
         else:
             result = self
         return result
@@ -378,9 +392,11 @@ class Signal(object):
         if self.samples.dtype.kind == 'f':
             s = np.interp(new_timestamps, self.timestamps, self.samples)
         else:
-            idx = np.searchsorted(self.timestamps,
-                                  new_timestamps,
-                                  side='right')
+            idx = np.searchsorted(
+                self.timestamps,
+                new_timestamps,
+                side='right',
+            )
             idx -= 1
             idx = np.clip(idx, 0, idx[-1])
             s = self.samples[idx]
@@ -401,28 +417,34 @@ class Signal(object):
             func = getattr(self.samples, func_name)
             s = func(other)
             time = self.timestamps
-        return Signal(s,
-                      time,
-                      self.unit,
-                      self.name,
-                      self.info)
+        return Signal(
+            s,
+            time,
+            self.unit,
+            self.name,
+            self.info,
+        )
 
     def __pos__(self):
         return self
 
     def __neg__(self):
-        return Signal(np.negative(self.samples),
-                      self.timestamps,
-                      self.unit,
-                      self.name,
-                      self.info)
+        return Signal(
+            np.negative(self.samples),
+            self.timestamps,
+            self.unit,
+            self.name,
+            self.info,
+        )
 
     def __round__(self, n):
-        return Signal(np.around(self.samples, n),
-                      self.timestamps,
-                      self.unit,
-                      self.name,
-                      self.info)
+        return Signal(
+            np.around(self.samples, n),
+            self.timestamps,
+            self.unit,
+            self.name,
+            self.info,
+        )
 
     def __sub__(self, other):
         return self.__apply_func(other, '__sub__')
@@ -478,11 +500,13 @@ class Signal(object):
     def __invert__(self):
         s = ~self.samples
         time = self.timestamps
-        return Signal(s,
-                      time,
-                      self.unit,
-                      self.name,
-                      self.info)
+        return Signal(
+            s,
+            time,
+            self.unit,
+            self.name,
+            self.info,
+        )
 
     def __lshift__(self, other):
         return self.__apply_func(other, '__lshift__')
@@ -509,7 +533,12 @@ class Signal(object):
         return self.__apply_func(other, '__ne__')
 
     def __iter__(self):
-        return zip(self.samples, self.timestamps)
+        for item in (
+                self.samples,
+                self.timestamps,
+                self.unit,
+                self.name):
+            yield item
 
     def __reversed__(self):
         return enumerate(zip(reversed(self.samples), reversed(self.timestamps)))
@@ -518,11 +547,13 @@ class Signal(object):
         return len(self.samples)
 
     def __abs__(self):
-        return Signal(np.fabs(self.samples),
-                      self.timestamps,
-                      self.unit,
-                      self.name,
-                      self.info)
+        return Signal(
+            np.fabs(self.samples),
+            self.timestamps,
+            self.unit,
+            self.name,
+            self.info,
+        )
 
     def __getitem__(self, val):
         return self.samples[val]
@@ -532,11 +563,13 @@ class Signal(object):
 
     def astype(self, np_type):
         """ returns new *Signal* with samples of dtype *np_type*"""
-        return Signal(self.samples.astype(np_type),
-                      self.timestamps,
-                      self.unit,
-                      self.name,
-                      self.info)
+        return Signal(
+            self.samples.astype(np_type),
+            self.timestamps,
+            self.unit,
+            self.name,
+            self.info,
+        )
 
 
 if __name__ == '__main__':

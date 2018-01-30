@@ -1,2 +1,4 @@
 xmlrunner
+coverage
+codacy-coverage
 numpy>=1.13.1

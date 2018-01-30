@@ -1,58 +1,58 @@
 # -*- coding: utf-8 -*-
 """ ASAM MDF version 3 file format module """
 
-from __future__ import print_function, division
-import sys
-
+from __future__ import division, print_function
 
 import os
+import sys
 import time
 import warnings
-
 from collections import defaultdict
-from functools import reduce, partial
-from tempfile import TemporaryFile
-from itertools import product
 from copy import deepcopy
+from functools import reduce
+from itertools import product
+from tempfile import TemporaryFile
+from struct import unpack
 
+from numexpr import evaluate
 from numpy import (
+    arange,
+    array,
+    array_equal,
+    clip,
+    column_stack,
+    dtype,
+    exp,
+    flip,
+    float64,
     interp,
     linspace,
-    dtype,
-    array_equal,
-    column_stack,
-    array,
-    searchsorted,
     log,
-    exp,
-    clip,
-    union1d,
-    float64,
-    flip,
-    unpackbits,
+    ones,
     packbits,
     roll,
-    zeros,
+    searchsorted,
     uint8,
-    arange,
+    union1d,
+    unpackbits,
+    zeros,
 )
-from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import encode
-from numexpr import evaluate
+from numpy.core.records import fromarrays, fromstring
 
+from . import v2_v3_constants as v23c
+from .signal import Signal
 from .utils import (
     MdfException,
-    get_fmt,
-    pair,
-    fmt_to_datatype,
-    get_unique_name,
-    get_min_max,
+    as_non_byte_sized_signed_int,
     fix_dtype_fields,
+    fmt_to_datatype_v3,
+    get_fmt_v3,
+    get_min_max,
+    get_unique_name,
+    get_text_v3,
 )
-from .signal import Signal
-from .version import __version__
-from . import v2constants as v2c
-from .v2blocks import (
+from .v2_v3_blocks import (
     Channel,
     ChannelConversion,
     ChannelDependency,
@@ -65,20 +65,18 @@ from .v2blocks import (
     TextBlock,
     TriggerBlock,
 )
-
-
-get_fmt = partial(get_fmt, version=2)
-fmt_to_datatype = partial(fmt_to_datatype, version=2)
+from .version import __version__
 
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
+    # pylint: disable=W0622
     from .utils import bytes
+    # pylint: enable=W0622
+
+__all__ = ['MDF3', ]
 
 
-__all__ = ['MDF2', ]
-
-
-class MDF2(object):
+class MDF3(object):
     """If the *name* exist it will be loaded otherwise an empty file will be
     created that can be later saved to disk
 
@@ -95,7 +93,8 @@ class MDF2(object):
         * if *minimum* only minimal data is memorised into RAM
 
     version : string
-        mdf file version ('2.00' or '2.14'); default '2.14'
+        mdf file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
+        '3.30'); default '3.30'
 
     Attributes
     ----------
@@ -107,8 +106,8 @@ class MDF2(object):
         mdf file header
     file_history : TextBlock
         file history text block; can be None
-    memory : bool
-        load measured data option
+    memory : str
+        memory optimization option
     version : str
         mdf version
     channels_db : dict
@@ -123,7 +122,7 @@ class MDF2(object):
     _compact_integers_on_append = False
     _overwrite = False
 
-    def __init__(self, name=None, memory=2, version='2.14'):
+    def __init__(self, name=None, memory='full', version='3.30'):
         self.groups = []
         self.header = None
         self.identification = None
@@ -139,6 +138,9 @@ class MDF2(object):
         self._tempfile = TemporaryFile()
         self._tempfile.write(b'\0')
         self._file = None
+
+        self.attachments = None
+        self.file_comment = None
 
         if name:
             self._file = open(self.name, 'rb')
@@ -158,7 +160,7 @@ class MDF2(object):
             # for now appended groups keep the measured data in the memory.
             # the plan is to use a temp file for appended groups, to keep the
             # memory usage low.
-            if group['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
+            if group['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
                 # this is a group from the source file
                 # so fetch the measured data from it
                 stream = self._file
@@ -176,6 +178,8 @@ class MDF2(object):
                 else:
                     read_size = group['size']
                     record_id = group['channel_group']['record_id']
+                    if PYVERSION == 2:
+                        record_id = chr(record_id)
                     cg_size = group['record_size']
                     if group['data_group']['record_id_nr'] <= 2:
                         record_id_nr = group['data_group']['record_id_nr']
@@ -197,7 +201,7 @@ class MDF2(object):
                         i += 1
                         rec_size = cg_size[rec_id]
                         if rec_id == record_id:
-                            rec_data = data[i: i+rec_size]
+                            rec_data = data[i: i + rec_size]
                             cg_data.append(rec_data)
                         # consider the second record ID if it exists
                         if record_id_nr == 2:
@@ -205,11 +209,11 @@ class MDF2(object):
                         else:
                             i += rec_size
                     data = b''.join(cg_data)
-            elif group['data_location'] == v2c.LOCATION_TEMPORARY_FILE:
+            elif group['data_location'] == v23c.LOCATION_TEMPORARY_FILE:
                 read_size = group['size']
                 dat_addr = group['data_group']['data_block_addr']
                 if dat_addr:
-                    self._tempfile.seek(dat_addr, v2c.SEEK_START)
+                    self._tempfile.seek(dat_addr, v23c.SEEK_START)
                     data = self._tempfile.read(read_size)
                 else:
                     data = b''
@@ -275,18 +279,15 @@ class MDF2(object):
             data_type = new_ch['data_type']
             bit_count = new_ch['bit_count']
             if memory == 'minimum':
-                channel_texts = grp['texts']['channels'][original_index]
-                if channel_texts and 'long_name_addr' in channel_texts:
-                    address = grp['texts']['channels'][original_index]['long_name_addr']
-
-                    block = TextBlock(
-                        address=address,
-                        stream=stream,
-                    )
-                    name = block['text'].decode('latin-1').strip(' \r\n\t\0')
+                if new_ch.get('long_name_addr', 0):
+                    name = get_text_v3(new_ch['long_name_addr'], stream)
                 else:
-                    name = new_ch['short_name'].decode('latin-1').strip(' \r\n\t\0')
-                name = name.split('\\')[0]
+                    name = (
+                        new_ch['short_name']
+                        .decode('latin-1')
+                        .strip(' \r\n\t\0')
+                        .split('\\')[0]
+                    )
             else:
                 name = new_ch.name
 
@@ -304,15 +305,15 @@ class MDF2(object):
 
                 # adjust size to 1, 2, 4 or 8 bytes for nonstandard integers
                 size = bit_offset + bit_count
-                if data_type == v2c.DATA_TYPE_STRING:
+                if data_type == v23c.DATA_TYPE_STRING:
                     next_byte_aligned_position = parent_start_offset + size
                     size = size // 8
                     if next_byte_aligned_position <= record_size:
-                        dtype_pair = (name, get_fmt(data_type, size))
+                        dtype_pair = (name, get_fmt_v3(data_type, size))
                         types.append(dtype_pair)
                         parents[original_index] = name, bit_offset
 
-                elif data_type == v2c.DATA_TYPE_BYTEARRAY:
+                elif data_type == v23c.DATA_TYPE_BYTEARRAY:
                     size = size // 8
                     next_byte_aligned_position = parent_start_offset + size
                     if next_byte_aligned_position <= record_size:
@@ -335,7 +336,7 @@ class MDF2(object):
                         size = 1
 
                     if next_byte_aligned_position <= record_size:
-                        dtype_pair = (name, get_fmt(data_type, size))
+                        dtype_pair = (name, get_fmt_v3(data_type, size))
                         types.append(dtype_pair)
                         parents[original_index] = name, bit_offset
 
@@ -363,10 +364,10 @@ class MDF2(object):
     def _get_not_byte_aligned_data(self, data, group, ch_nr):
 
         big_endian_types = (
-            v2c.DATA_TYPE_UNSIGNED_MOTOROLA,
-            v2c.DATA_TYPE_FLOAT_MOTOROLA,
-            v2c.DATA_TYPE_DOUBLE_MOTOROLA,
-            v2c.DATA_TYPE_SIGNED_MOTOROLA,
+            v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
+            v23c.DATA_TYPE_FLOAT_MOTOROLA,
+            v23c.DATA_TYPE_DOUBLE_MOTOROLA,
+            v23c.DATA_TYPE_SIGNED_MOTOROLA,
         )
 
         record_size = group['channel_group']['samples_byte_nr']
@@ -446,7 +447,7 @@ class MDF2(object):
             vals = fromarrays([vals, extra], dtype=dtype(types))
         vals = vals.tostring()
 
-        fmt = get_fmt(channel['data_type'], size)
+        fmt = get_fmt_v3(channel['data_type'], size)
         if size <= byte_count:
             types = [
                 ('vals', fmt),
@@ -461,16 +462,15 @@ class MDF2(object):
 
     def _validate_channel_selection(self, name=None, group=None, index=None):
         """Gets channel comment.
-
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
             * if there are multiple occurrences for this channel then the
-                *group* and *index* arguments can be used to select a specific
+            *group* and *index* arguments can be used to select a specific
                 group.
             * if there are multiple occurrences for this channel and either the
-                *group* or *index* arguments is None then a warning is issued
+            *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
             number (keyword argument *index*). Use *info* method for group and
@@ -497,8 +497,10 @@ class MDF2(object):
         """
         if name is None:
             if group is None or index is None:
-                message = ('Invalid arguments for channel selection: '
-                           'must give "name" or, "group" and "index"')
+                message = (
+                    'Invalid arguments for channel selection: '
+                    'must give "name" or, "group" and "index"'
+                )
                 raise MdfException(message)
             else:
                 gp_nr, ch_nr = group, index
@@ -514,45 +516,32 @@ class MDF2(object):
                 if group is None:
                     gp_nr, ch_nr = self.channels_db[name][0]
                     if len(self.channels_db[name]) > 1:
-                        message = ('Multiple occurances for channel "{}". '
-                                   'Using first occurance from data group {}. '
-                                   'Provide both "group" and "index" arguments'
-                                   ' to select another data group')
+                        message = (
+                            'Multiple occurances for channel "{}". '
+                            'Using first occurance from data group {}. '
+                            'Provide both "group" and "index" arguments'
+                            ' to select another data group'
+                        )
                         message = message.format(name, gp_nr)
                         warnings.warn(message)
                 else:
-                    group_valid = False
                     for gp_nr, ch_nr in self.channels_db[name]:
                         if gp_nr == group:
-                            group_valid = True
                             if index is None:
                                 break
                             elif index == ch_nr:
                                 break
                     else:
-                        if group_valid:
-                            gp_nr, ch_nr = self.channels_db[name][group]
-                            message = ('You have selected channel index "{}"'
-                                       'of group "{}" for channel "{}", but '
-                                       'this channel index is invalid. Using '
-                                       'first occurance of "{}" in this group'
-                                       ' at index "{}"')
-                            message = message.format(
-                                index,
-                                group,
-                                name,
-                                name,
-                                ch_nr,
-                            )
+                        if index is None:
+                            message = 'Channel "{}" not found in group {}'
+                            message = message.format(name, group)
                         else:
-                            gp_nr, ch_nr = self.channels_db[name][0]
-                            message = ('You have selected group "{}" for '
-                                       'channel "{}", but this channel was not'
-                                       ' found in this group, or this group '
-                                       'index does not exist. Using first '
-                                       'occurance of "{}" from group "{}"')
-                            message = message.format(group, name, name, gp_nr)
-                        warnings.warn(message)
+                            message = (
+                                'Channel "{}" not found in group {} '
+                                'at index {}'
+                            )
+                            message = message.format(name, group, index)
+                        raise MdfException(message)
         return gp_nr, ch_nr
 
     def _read(self):
@@ -564,16 +553,18 @@ class MDF2(object):
         seek = stream.seek
 
         dg_cntr = 0
-        seek(0, v2c.SEEK_START)
+        seek(0, v23c.SEEK_START)
 
         self.identification = FileIdentificationBlock(
             stream=stream,
         )
         self.header = HeaderBlock(stream=stream)
 
-        self.version = self.identification['version_str']\
-            .decode('latin-1')\
+        self.version = (
+            self.identification['version_str']
+            .decode('latin-1')
             .strip(' \n\t\0')
+        )
 
         self.file_history = TextBlock(
             address=self.header['comment_addr'],
@@ -584,22 +575,29 @@ class MDF2(object):
         # needed for linking dependency blocks to referenced channels after
         # the file is loaded
         ch_map = {}
+        ce_map = {}
+        cc_map = {}
 
         # go to first date group
         dg_addr = self.header['first_dg_addr']
         # read each data group sequentially
         while dg_addr:
-            gp = DataGroup(address=dg_addr, stream=stream)
-            record_id_nr = gp['record_id_nr']
-            cg_nr = gp['cg_nr']
-            cg_addr = gp['first_cg_addr']
-            data_addr = gp['data_block_addr']
+            data_group = DataGroup(
+                address=dg_addr,
+                stream=stream,
+            )
+            record_id_nr = data_group['record_id_nr']
+            cg_nr = data_group['cg_nr']
+            cg_addr = data_group['first_cg_addr']
+            data_addr = data_group['data_block_addr']
 
             # read trigger information if available
-            trigger_addr = gp['trigger_addr']
+            trigger_addr = data_group['trigger_addr']
             if trigger_addr:
-                trigger = TriggerBlock(address=trigger_addr,
-                                       stream=stream)
+                trigger = TriggerBlock(
+                    address=trigger_addr,
+                    stream=stream,
+                )
                 if trigger['text_addr']:
                     trigger_text = TextBlock(
                         address=trigger['text_addr'],
@@ -621,7 +619,6 @@ class MDF2(object):
                 grp['channel_extensions'] = []
                 grp['data_block'] = None
                 grp['texts'] = {
-                    'channels': [],
                     'conversion_tab': [],
                     'channel_group': [],
                 }
@@ -635,10 +632,11 @@ class MDF2(object):
 
                 kargs = {'first_cg_addr': cg_addr,
                          'data_block_addr': data_addr}
-                if self.version in ('3.20', '3.30'):
-                    kargs['block_len'] = v2c.DG32_BLOCK_SIZE
+                if self.version >= '3.20':
+                    kargs['block_len'] = v23c.DG_POST_320_BLOCK_SIZE
                 else:
-                    kargs['block_len'] = v2c.DG31_BLOCK_SIZE
+                    kargs['block_len'] = v23c.DG_PRE_320_BLOCK_SIZE
+                kargs['record_id_nr'] = record_id_nr
 
                 grp['data_group'] = DataGroup(**kargs)
 
@@ -668,7 +666,6 @@ class MDF2(object):
                 ch_cntr = 0
                 grp_chs = grp['channels']
                 grp_conv = grp['channel_conversions']
-                grp_ch_texts = grp['texts']['channels']
 
                 while ch_addr:
                     # read channel block and create channel object
@@ -693,14 +690,25 @@ class MDF2(object):
                     # read conversion block
                     address = new_ch['conversion_addr']
                     if address:
-                        new_conv = ChannelConversion(
-                            address=address,
-                            stream=stream,
-                        )
-                        if memory != 'minimum':
-                            grp_conv.append(new_conv)
-                        else:
+                        stream.seek(address + 2, v23c.SEEK_START)
+                        size = unpack('<H', stream.read(2))[0]
+                        stream.seek(address)
+                        raw_bytes = stream.read(size)
+                        if memory == 'minimum':
+                            new_conv = ChannelConversion(
+                                raw_bytes=raw_bytes,
+                            )
                             grp_conv.append(address)
+                        else:
+                            if raw_bytes in cc_map:
+                                new_conv = cc_map[raw_bytes]
+                            else:
+                                new_conv = ChannelConversion(
+                                    raw_bytes=raw_bytes,
+                                )
+                                if new_conv['conversion_type'] != v23c.CONVERSION_TYPE_VTABR:
+                                    cc_map[raw_bytes] = new_conv
+                            grp_conv.append(new_conv)
                     else:
                         new_conv = None
                         if memory != 'minimum':
@@ -713,7 +721,7 @@ class MDF2(object):
                         conv_type = new_conv['conversion_type']
                     else:
                         conv_type = 0
-                    if conv_type == v2c.CONVERSION_TYPE_VTABR:
+                    if conv_type == v23c.CONVERSION_TYPE_VTABR:
                         for idx in range(new_conv['ref_param_nr']):
                             address = new_conv['text_{}'.format(idx)]
                             if address:
@@ -732,53 +740,44 @@ class MDF2(object):
                         grp['texts']['conversion_tab'].append(None)
 
                     address = new_ch['source_depend_addr']
+
                     if memory != 'minimum':
                         if address:
-                            block = ChannelExtension(
-                                address=address,
-                                stream=stream,
-                            )
-                            grp['channel_extensions'].append(block)
+                            stream.seek(address, v23c.SEEK_START)
+                            raw_bytes = stream.read(v23c.CE_BLOCK_SIZE)
+
+                            if raw_bytes in ce_map:
+                                grp['channel_extensions'].append(ce_map[raw_bytes])
+                            else:
+                                block = ChannelExtension(
+                                    raw_bytes=raw_bytes,
+                                )
+                                grp['channel_extensions'].append(block)
+                                ce_map[raw_bytes] = block
                         else:
                             grp['channel_extensions'].append(None)
                     else:
                         grp['channel_extensions'].append(address)
 
                     # read text fields for channel
-                    ch_texts = {}
-                    for key in (
-                            'long_name_addr',
-                            'comment_addr'):
-                        address = new_ch.get(key, 0)
-                        if address:
-                            if memory != 'minimum':
-                                ch_texts[key] = TextBlock(
-                                    address=address,
-                                    stream=stream,
-                                )
-                            else:
-                                ch_texts[key] = address
-
-                    if ch_texts:
-                        grp_ch_texts.append(ch_texts)
+                    address = new_ch.get('long_name_addr', 0)
+                    if address:
+                        new_ch.name = name = get_text_v3(address, stream)
                     else:
-                        grp_ch_texts.append(None)
+                        new_ch.name = name = (
+                            new_ch['short_name']
+                            .decode('latin-1')
+                            .strip(' \n\t\0')
+                            .split('\\')[0]
+                        )
 
-                    # update channel object name and block_size attributes
-                    if new_ch.get('long_name_addr', 0):
-                        if memory != 'minimum':
-                            name = ch_texts['long_name_addr']['text']
-                        else:
-                            block = TextBlock(
-                                address=ch_texts['long_name_addr'],
-                                stream=stream,
-                            )
-                            name = block['text']
-                    else:
-                        name = new_ch['short_name']
-                    name = name.decode('latin-1').strip(' \n\t\0')
-                    name = name.split('\\')[0]
-                    new_ch.name = name
+                    address = new_ch.get('comment_addr', 0)
+                    if address:
+                        new_ch.comment = get_text_v3(address, stream)
+
+                    address = new_ch.get('display_name_addr', 0)
+                    if address:
+                        new_ch.display_name = get_text_v3(address, stream)
 
                     if name in self.channels_db:
                         self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -786,7 +785,7 @@ class MDF2(object):
                         self.channels_db[name] = []
                         self.channels_db[name].append((dg_cntr, ch_cntr))
 
-                    if new_ch['channel_type'] == v2c.CHANNEL_TYPE_MASTER:
+                    if new_ch['channel_type'] == v23c.CHANNEL_TYPE_MASTER:
                         self.masters_db[dg_cntr] = ch_cntr
                     # go to next channel of the current channel group
 
@@ -810,6 +809,8 @@ class MDF2(object):
 
             for grp in new_groups:
                 record_id = grp['channel_group']['record_id']
+                if PYVERSION == 2:
+                    record_id = chr(record_id)
                 cycles_nr = grp['channel_group']['cycles_nr']
                 record_size = grp['channel_group']['samples_byte_nr']
 
@@ -823,15 +824,15 @@ class MDF2(object):
 
             if memory == 'full':
                 # read data block of the current data group
-                dat_addr = gp['data_block_addr']
+                dat_addr = data_group['data_block_addr']
                 if dat_addr:
-                    seek(dat_addr, v2c.SEEK_START)
+                    seek(dat_addr, v23c.SEEK_START)
                     data = read(total_size)
                 else:
                     data = b''
                 if record_id_nr == 0:
                     grp = new_groups[0]
-                    grp['data_location'] = v2c.LOCATION_MEMORY
+                    grp['data_location'] = v23c.LOCATION_MEMORY
                     grp['data_block'] = DataBlock(data=data)
 
                 else:
@@ -844,7 +845,7 @@ class MDF2(object):
                         # skip record id
                         i += 1
                         rec_size = cg_size[rec_id]
-                        rec_data = data[i: i+rec_size]
+                        rec_data = data[i: i + rec_size]
                         cg_data[rec_id].append(rec_data)
                         # possibly skip 2nd record id
                         if record_id_nr == 2:
@@ -852,19 +853,22 @@ class MDF2(object):
                         else:
                             i += rec_size
                     for grp in new_groups:
-                        grp['data_location'] = v2c.LOCATION_MEMORY
-                        data = cg_data[grp['channel_group']['record_id']]
+                        grp['data_location'] = v23c.LOCATION_MEMORY
+                        record_id = grp['channel_group']['record_id']
+                        if PYVERSION == 2:
+                            record_id = chr(record_id)
+                        data = cg_data[record_id]
                         data = b''.join(data)
                         grp['channel_group']['record_id'] = 1
                         grp['data_block'] = DataBlock(data=data)
             else:
                 for grp in new_groups:
-                    grp['data_location'] = v2c.LOCATION_ORIGINAL_FILE
+                    grp['data_location'] = v23c.LOCATION_ORIGINAL_FILE
 
             self.groups.extend(new_groups)
 
             # go to next data group
-            dg_addr = gp['next_dg_addr']
+            dg_addr = data_group['next_dg_addr']
 
         # finally update the channel depency references
         for grp in self.groups:
@@ -900,18 +904,18 @@ class MDF2(object):
             trigger comment
 
         """
-        gp = self.groups[group]
-        trigger, trigger_text = gp['trigger']
+        group = self.groups[group]
+        trigger, trigger_text = group['trigger']
         if trigger:
-            nr = trigger['trigger_event_nr']
+            count = trigger['trigger_event_nr']
             trigger['trigger_event_nr'] += 1
             trigger['block_len'] += 24
-            trigger['trigger_{}_time'.format(nr)] = timestamp
-            trigger['trigger_{}_pretime'.format(nr)] = pre_time
-            trigger['trigger_{}_posttime'.format(nr)] = post_time
+            trigger['trigger_{}_time'.format(count)] = timestamp
+            trigger['trigger_{}_pretime'.format(count)] = pre_time
+            trigger['trigger_{}_posttime'.format(count)] = post_time
             if trigger_text is None and comment:
                 trigger_text = TextBlock(text=comment)
-                gp['trigger'][1] = trigger_text
+                group['trigger'][1] = trigger_text
         else:
             trigger = TriggerBlock(
                 trigger_event_nr=1,
@@ -924,17 +928,16 @@ class MDF2(object):
             else:
                 trigger_text = None
 
-            gp['trigger'] = [trigger, trigger_text]
+            group['trigger'] = [trigger, trigger_text]
 
     def append(self,
                signals,
                acquisition_info='Python',
                common_timebase=False):
-        """
-        Appends a new data group.
+        """Appends a new data group.
 
-        For channel dependencies type Signals, the *samples* attribute must be a
-        numpy.recarray
+        For channel dependencies type Signals, the *samples* attribute must be
+        a numpy.recarray
 
         Parameters
         ----------
@@ -959,14 +962,14 @@ class MDF2(object):
         >>> s1 = Signal(samples=s1, timstamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timstamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timstamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF2('new.mdf')
+        >>> mdf = MDF3('new.mdf')
         >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
         >>> # case 2: VTAB conversions from channels inside another file
-        >>> mdf1 = MDF2('in.mdf')
+        >>> mdf1 = MDF3('in.mdf')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
         >>> sigs = [ch1, ch2]
-        >>> mdf2 = MDF2('out.mdf')
+        >>> mdf2 = MDF3('out.mdf')
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
 
         """
@@ -976,10 +979,10 @@ class MDF2(object):
 
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
-        t_ = signals[0].timestamps
+        timestamps = signals[0].timestamps
         if not common_timebase:
-            for s in signals[1:]:
-                if not array_equal(s.timestamps, t_):
+            for signal in signals[1:]:
+                if not array_equal(signal.timestamps, timestamps):
                     different = True
                     break
             else:
@@ -987,18 +990,48 @@ class MDF2(object):
 
             if different:
                 times = [s.timestamps for s in signals]
-                t = reduce(union1d, times).flatten().astype(float64)
-                signals = [s.interp(t) for s in signals]
+                timestamps = reduce(union1d, times).flatten().astype(float64)
+                signals = [s.interp(timestamps) for s in signals]
                 times = None
-            else:
-                t = t_
+
+        if self.version < '3.00':
+            if timestamps.dtype.byteorder == '>':
+                timestamps = timestamps.byteswap().newbyteorder()
+            for signal in signals:
+                if signal.samples.dtype.byteorder == '>':
+                    signal.samples = signal.samples.byteswap().newbyteorder()
+
+        if self.version >= '3.00':
+            channel_size = v23c.CN_DISPLAYNAME_BLOCK_SIZE
+        elif self.version >= '2.10':
+            channel_size = v23c.CN_LONGNAME_BLOCK_SIZE
         else:
-            t = t_
+            channel_size = v23c.CN_SHORT_BLOCK_SIZE
 
         memory = self.memory
         file = self._tempfile
         write = file.write
         tell = file.tell
+
+        kargs = {
+            'module_nr': 0,
+            'module_address': 0,
+            'type': v23c.SOURCE_ECU,
+            'description': b'Channel inserted by Python Script',
+        }
+        ce_block = ChannelExtension(**kargs)
+        if memory == 'minimum':
+            ce_address = tell()
+            write(bytes(ce_block))
+
+        if acquisition_info:
+            acq_block = TextBlock(text=acquisition_info)
+            if memory == 'minimum':
+                acq_address = tell()
+                write(bytes(acq_block))
+        else:
+            acq_block = None
+            acq_address = 0
 
         # split regular from composed signals. Composed signals have recarray
         # samples or multimendional ndarray.
@@ -1007,26 +1040,26 @@ class MDF2(object):
         # be saved as new signals.
         simple_signals = [
             sig for sig in signals
-            if len(sig.samples.shape) <= 1 and
-            sig.samples.dtype.names is None
+            if len(sig.samples.shape) <= 1
+            and sig.samples.dtype.names is None
         ]
         composed_signals = [
             sig for sig in signals
-            if len(sig.samples.shape) > 1 or
-            sig.samples.dtype.names
+            if len(sig.samples.shape) > 1
+            or sig.samples.dtype.names
         ]
 
         # mdf version 4 structure channels and CANopen types will be saved to
         # new channel groups
         new_groups_signals = [
             sig for sig in composed_signals
-            if sig.samples.dtype.names and
-            sig.samples.dtype.names[0] != sig.name
+            if sig.samples.dtype.names
+            and sig.samples.dtype.names[0] != sig.name
         ]
         composed_signals = [
             sig for sig in composed_signals
-            if not sig.samples.dtype.names or
-            sig.samples.dtype.names[0] == sig.name
+            if not sig.samples.dtype.names
+            or sig.samples.dtype.names[0] == sig.name
         ]
 
         if simple_signals or composed_signals:
@@ -1038,13 +1071,12 @@ class MDF2(object):
             gp['channel_extensions'] = gp_source = []
             gp['channel_dependencies'] = gp_dep = []
             gp['texts'] = gp_texts = {
-                'channels': [],
                 'conversion_tab': [],
                 'channel_group': [],
             }
             self.groups.append(gp)
 
-            cycles_nr = len(t)
+            cycles_nr = len(timestamps)
             fields = []
             types = []
             parents = {}
@@ -1052,27 +1084,22 @@ class MDF2(object):
             offset = 0
             field_names = set()
 
-            # setup all blocks related to the time master channel
+            cg_texts = {}
+            gp_texts['channel_group'].append(cg_texts)
+            if memory == 'minimum':
+                cg_texts['comment_addr'] = acq_address
+            else:
+                cg_texts['comment_addr'] = acq_block
 
             # time channel texts
-            for _, item in gp_texts.items():
-                item.append(None)
-
-            gp_texts['channel_group'][-1] = {}
-            block = TextBlock(text=acquisition_info)
-            if memory != 'minimum':
-                gp_texts['channel_group'][-1]['comment_addr'] = block
-            else:
-                address = tell()
-                gp_texts['channel_group'][-1]['comment_addr'] = address
-                write(bytes(block))
+            gp_texts['conversion_tab'].append(None)
 
             # conversion for time channel
             kargs = {
-                'conversion_type': v2c.CONVERSION_TYPE_NONE,
+                'conversion_type': v23c.CONVERSION_TYPE_NONE,
                 'unit': b's',
-                'min_phy_value': t[0] if cycles_nr else 0,
-                'max_phy_value': t[-1] if cycles_nr else 0,
+                'min_phy_value': timestamps[0] if cycles_nr else 0,
+                'max_phy_value': timestamps[-1] if cycles_nr else 0,
             }
             block = ChannelConversion(**kargs)
             if memory != 'minimum':
@@ -1083,35 +1110,23 @@ class MDF2(object):
                 write(bytes(block))
 
             # source for time
-            kargs = {
-                'module_nr': 0,
-                'module_address': 0,
-                'type': v2c.SOURCE_ECU,
-                'description': b'Channel inserted by Python Script',
-            }
-            block = ChannelExtension(**kargs)
             if memory != 'minimum':
-                gp_source.append(block)
+                gp_source.append(ce_block)
             else:
-                address = tell()
-                gp_source.append(address)
-                write(bytes(block))
+                gp_source.append(ce_address)
 
             # time channel
-            t_type, t_size = fmt_to_datatype(t.dtype)
+            t_type, t_size = fmt_to_datatype_v3(timestamps.dtype)
             kargs = {
                 'short_name': b't',
-                'channel_type': v2c.CHANNEL_TYPE_MASTER,
+                'channel_type': v23c.CHANNEL_TYPE_MASTER,
                 'data_type': t_type,
                 'start_offset': 0,
-                'min_raw_value': t[0] if cycles_nr else 0,
-                'max_raw_value': t[-1] if cycles_nr else 0,
+                'min_raw_value': timestamps[0] if cycles_nr else 0,
+                'max_raw_value': timestamps[-1] if cycles_nr else 0,
                 'bit_count': t_size,
+                'block_len': channel_size,
             }
-            if self.version == '2.00':
-                kargs['block_len'] = v2c.CN20_BLOCK_SIZE
-            else:
-                kargs['block_len'] = v2c.CN21_BLOCK_SIZE
             channel = Channel(**kargs)
             channel.name = name = 't'
             if memory != 'minimum':
@@ -1131,14 +1146,14 @@ class MDF2(object):
             # time channel doesn't have channel dependencies
             gp_dep.append(None)
 
-            fields.append(t)
-            types.append((name, t.dtype))
+            fields.append(timestamps)
+            types.append((name, timestamps.dtype))
             field_names.add(name)
 
             offset += t_size
             ch_cntr += 1
 
-            if self._compact_integers_on_append:
+            if self._compact_integers_on_append and self.version >= '3.10':
                 compacted_signals = [
                     {'signal': sig}
                     for sig in simple_signals
@@ -1158,6 +1173,7 @@ class MDF2(object):
                         int(max_).bit_length(),
                         int(min_).bit_length(),
                     )
+                    bit_length += 1
 
                     signal['bit_count'] = max(minimum_bitlength, bit_length)
 
@@ -1210,26 +1226,12 @@ class MDF2(object):
                     max_val = signal_d['max']
 
                     name = signal.name
-                    for _, item in gp['texts'].items():
-                        item.append(None)
-
-                    texts = {}
-                    if len(name) >= 32 and self.version == '2.14':
-                        block = TextBlock(text=name)
-                        if memory != 'minimum':
-                            texts['long_name_addr'] = block
-                        else:
-                            address = tell()
-                            texts['long_name_addr'] = address
-                            write(bytes(block))
-                    if texts:
-                        gp_texts['channels'][-1] = texts
 
                     texts = {}
                     info = signal.info
-                    if info and 'raw' in info and not info['raw'].dtype.kind == 'S':
+                    if info and 'raw' in info and info['raw'].dtype.kind != 'S':
                         kargs = {}
-                        kargs['conversion_type'] = v2c.CONVERSION_TYPE_VTAB
+                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTAB
                         raw = info['raw']
                         phys = info['phys']
                         for i, (r_, p_) in enumerate(zip(raw, phys)):
@@ -1239,14 +1241,14 @@ class MDF2(object):
                         kargs['unit'] = signal.unit.encode('latin-1')
                     elif info and 'lower' in info:
                         kargs = {}
-                        kargs['conversion_type'] = v2c.CONVERSION_TYPE_VTABR
+                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTABR
                         lower = info['lower']
                         upper = info['upper']
-                        texts = info['phys']
+                        texts_ = info['phys']
                         kargs['unit'] = signal.unit.encode('latin-1')
                         kargs['ref_param_nr'] = len(upper)
 
-                        for i, vals in enumerate(zip(upper, lower, texts)):
+                        for i, vals in enumerate(zip(upper, lower, texts_)):
                             u_, l_, t_ = vals
                             kargs['lower_{}'.format(i)] = l_
                             kargs['upper_{}'.format(i)] = u_
@@ -1260,7 +1262,6 @@ class MDF2(object):
                                 address = tell()
                                 texts[key] = address
                                 write(bytes(block))
-
                     else:
                         if min_val <= max_val:
                             min_phy_value = min_val
@@ -1269,14 +1270,16 @@ class MDF2(object):
                             min_phy_value = 0
                             max_phy_value = 0
                         kargs = {
-                            'conversion_type': v2c.CONVERSION_TYPE_NONE,
+                            'conversion_type': v23c.CONVERSION_TYPE_NONE,
                             'unit': signal.unit.encode('latin-1'),
                             'min_phy_value': min_phy_value,
                             'max_phy_value': max_phy_value,
                         }
 
                     if texts:
-                        gp_texts['conversion_tab'][-1] = texts
+                        gp_texts['conversion_tab'].append(texts)
+                    else:
+                        gp_texts['conversion_tab'].append(None)
 
                     block = ChannelConversion(**kargs)
                     if memory != 'minimum':
@@ -1287,25 +1290,16 @@ class MDF2(object):
                         write(bytes(block))
 
                     # source for channel
-                    kargs = {
-                        'module_nr': 0,
-                        'module_address': 0,
-                        'type': v2c.SOURCE_ECU,
-                        'description': b'Channel inserted by Python Script',
-                    }
-                    block = ChannelExtension(**kargs)
                     if memory != 'minimum':
-                        gp_source.append(block)
+                        gp_source.append(ce_block)
                     else:
-                        address = tell()
-                        gp_source.append(address)
-                        write(bytes(block))
+                        gp_source.append(ce_address)
 
                     # compute additional byte offset for large records size
                     current_offset = offset + bit_offset
-                    if current_offset > v2c.MAX_UINT16:
+                    if current_offset > v23c.MAX_UINT16:
                         additional_byte_offset = \
-                            (current_offset - v2c.MAX_UINT16) >> 3
+                            (current_offset - v23c.MAX_UINT16) >> 3
                         start_bit_offset = \
                             current_offset - additional_byte_offset << 3
                     else:
@@ -1313,51 +1307,54 @@ class MDF2(object):
                         additional_byte_offset = 0
 
                     if signal.samples.dtype.kind == 'u':
-                        data_type = v2c.DATA_TYPE_UNSIGNED_INTEL
+                        data_type = v23c.DATA_TYPE_UNSIGNED
                     else:
-                        data_type = v2c.DATA_TYPE_SIGNED_INTEL
+                        data_type = v23c.DATA_TYPE_SIGNED
 
-                    texts = {}
-                    if len(name) >= 32 and self.version == '2.14':
-                        short_name = (name[:31] + '\0').encode('latin-1')
-                        if memory != 'minimum':
-                            texts['long_name_addr'] = TextBlock(texts=name)
+                    if memory == 'minimum' and len(name) >= 32 and self.version >= '2.10':
+                        block = TextBlock(text=name)
+                        long_name_address = tell()
+                        write(bytes(block))
+                    else:
+                        long_name_address = 0
+                    comment = signal.comment
+                    if comment:
+                        if len(comment) >= 128:
+                            description = b'\0'
+                            if memory == 'minimum':
+                                block = TextBlock(text=comment)
+                                comment_address = tell()
+                                write(bytes(block))
+                            else:
+                                comment_address = 0
                         else:
-                            address = tell()
-                            texts['long_name_addr'] = address
-                            block = TextBlock(texts=name)
-                            gp_channels.append(address)
-                            write(bytes(block))
+                            description = (comment[:127] + '\0').encode('latin-1')
+                            comment_address = 0
                     else:
-                        short_name = name.encode('latin-1')
-
-                    if texts:
-                        gp_texts['channels'][-1] = texts
+                        description = b'\0'
+                        comment_address = 0
+                    short_name = (name[:31] + '\0').encode('latin-1')
 
                     kargs = {
                         'short_name': short_name,
-                        'channel_type': v2c.CHANNEL_TYPE_VALUE,
+                        'channel_type': v23c.CHANNEL_TYPE_VALUE,
                         'data_type': data_type,
                         'min_raw_value': min_val if min_val <= max_val else 0,
                         'max_raw_value': max_val if min_val <= max_val else 0,
                         'start_offset': start_bit_offset,
                         'bit_count': bit_count,
                         'aditional_byte_offset': additional_byte_offset,
+                        'long_name_addr': long_name_address,
+                        'block_len': channel_size,
+                        'comment_addr': comment_address,
+                        'description': description,
                     }
-                    if self.version == '2.00':
-                        kargs['block_len'] = v2c.CN20_BLOCK_SIZE
-                    else:
-                        kargs['block_len'] = v2c.CN21_BLOCK_SIZE
-                    comment = signal.comment
-                    if comment:
-                        comment = comment.encode('latin-1')
-                        if len(comment) >= 128:
-                            comment = comment[:127] + b'\0'
-                        kargs['description'] = comment
 
                     channel = Channel(**kargs)
-                    channel.name = name
+
                     if memory != 'minimum':
+                        channel.name = name
+                        channel.comment = signal.comment
                         gp_channels.append(channel)
                     else:
                         address = tell()
@@ -1384,31 +1381,15 @@ class MDF2(object):
 
             # first add the signals in the simple signal list
             for signal in simple_signals:
-                # channels texts
                 name = signal.name
-                for _, item in gp['texts'].items():
-                    item.append(None)
-
-                texts = {}
-                if len(name) >= 32 and self.version == '2.14':
-                    block = TextBlock(text=name)
-                    if memory != 'minimum':
-                        texts['long_name_addr'] = block
-                    else:
-                        address = tell()
-                        texts['long_name_addr'] = address
-                        write(bytes(block))
-                if texts:
-                    gp_texts['channels'][-1] = texts
-
                 # conversions for channel
                 min_val, max_val = get_min_max(signal.samples)
 
                 texts = {}
                 info = signal.info
-                if info and 'raw' in info and not info['raw'].dtype.kind == 'S':
+                if info and 'raw' in info and info['raw'].dtype.kind != 'S':
                     kargs = {}
-                    kargs['conversion_type'] = v2c.CONVERSION_TYPE_VTAB
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTAB
                     raw = info['raw']
                     phys = info['phys']
                     for i, (r_, p_) in enumerate(zip(raw, phys)):
@@ -1418,7 +1399,7 @@ class MDF2(object):
                     kargs['unit'] = signal.unit.encode('latin-1')
                 elif info and 'lower' in info:
                     kargs = {}
-                    kargs['conversion_type'] = v2c.CONVERSION_TYPE_VTABR
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTABR
                     lower = info['lower']
                     upper = info['upper']
                     texts_ = info['phys']
@@ -1438,7 +1419,6 @@ class MDF2(object):
                             address = tell()
                             texts[key] = address
                             write(bytes(block))
-
                 else:
                     if min_val <= max_val:
                         min_phy_value = min_val
@@ -1447,14 +1427,16 @@ class MDF2(object):
                         min_phy_value = 0
                         max_phy_value = 0
                     kargs = {
-                        'conversion_type': v2c.CONVERSION_TYPE_NONE,
+                        'conversion_type': v23c.CONVERSION_TYPE_NONE,
                         'unit': signal.unit.encode('latin-1'),
                         'min_phy_value': min_phy_value,
                         'max_phy_value': max_phy_value,
                     }
 
                 if texts:
-                    gp_texts['conversion_tab'][-1] = texts
+                    gp_texts['conversion_tab'].append(texts)
+                else:
+                    gp_texts['conversion_tab'].append(None)
 
                 block = ChannelConversion(**kargs)
                 if memory != 'minimum':
@@ -1465,58 +1447,63 @@ class MDF2(object):
                     write(bytes(block))
 
                 # source for channel
-                kargs = {
-                    'module_nr': 0,
-                    'module_address': 0,
-                    'type': v2c.SOURCE_ECU,
-                    'description': b'Channel inserted by Python Script',
-                }
-                block = ChannelExtension(**kargs)
                 if memory != 'minimum':
-                    gp_source.append(block)
+                    gp_source.append(ce_block)
                 else:
-                    address = tell()
-                    gp_source.append(address)
-                    write(bytes(block))
+                    gp_source.append(ce_address)
 
                 # compute additional byte offset for large records size
-                if offset > v2c.MAX_UINT16:
-                    additional_byte_offset = (offset - v2c.MAX_UINT16) >> 3
+                if offset > v23c.MAX_UINT16:
+                    additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
                     start_bit_offset = offset - additional_byte_offset << 3
                 else:
                     start_bit_offset = offset
                     additional_byte_offset = 0
-                s_type, s_size = fmt_to_datatype(signal.samples.dtype)
+                s_type, s_size = fmt_to_datatype_v3(signal.samples.dtype)
 
-                if len(name) >= 32:
-                    short_name = (name[:31] + '\0').encode('latin-1')
+                if memory == 'minimum' and len(name) >= 32 and self.version >= '2.10':
+                    block = TextBlock(text=name)
+                    long_name_address = tell()
+                    write(bytes(block))
                 else:
-                    short_name = name.encode('latin-1')
+                    long_name_address = 0
+                comment = signal.comment
+                if comment:
+                    if len(comment) >= 128:
+                        description = b'\0'
+                        if memory == 'minimum':
+                            block = TextBlock(text=comment)
+                            comment_address = tell()
+                            write(bytes(block))
+                        else:
+                            comment_address = 0
+                    else:
+                        description = (comment[:127] + '\0').encode('latin-1')
+                        comment_address = 0
+                else:
+                    description = b'\0'
+                    comment_address = 0
+                short_name = (name[:31] + '\0').encode('latin-1')
+
                 kargs = {
                     'short_name': short_name,
-                    'channel_type': v2c.CHANNEL_TYPE_VALUE,
+                    'channel_type': v23c.CHANNEL_TYPE_VALUE,
                     'data_type': s_type,
                     'min_raw_value': min_val if min_val <= max_val else 0,
                     'max_raw_value': max_val if min_val <= max_val else 0,
                     'start_offset': start_bit_offset,
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
+                    'long_name_addr': long_name_address,
+                    'block_len': channel_size,
+                    'comment_addr': comment_address,
+                    'description': description,
                 }
-                if self.version == '2.00':
-                    kargs['block_len'] = v2c.CN20_BLOCK_SIZE
-                else:
-                    kargs['block_len'] = v2c.CN21_BLOCK_SIZE
-                comment = signal.comment
-                if comment:
-                    if len(comment) >= 128:
-                        comment = (comment[:127] + '\0').encode('latin-1')
-                    else:
-                        comment = comment.encode('latin-1')
-                    kargs['description'] = comment
 
                 channel = Channel(**kargs)
-                channel.name = name
                 if memory != 'minimum':
+                    channel.name = name
+                    channel.comment = signal.comment
                     gp_channels.append(channel)
                 else:
                     address = tell()
@@ -1579,21 +1566,7 @@ class MDF2(object):
                     component_samples.extend(new_samples)
                     component_names.extend(names[1:])
 
-                # add composed parent signal texts
-                for _, item in gp['texts'].items():
-                    item.append(None)
-
-                texts = {}
-                if len(name) >= 32 and self.version == '2.14':
-                    block = TextBlock(text=name)
-                    if memory != 'minimum':
-                        texts['long_name_addr'] = block
-                    else:
-                        address = tell()
-                        texts['long_name_addr'] = address
-                        write(bytes(block))
-                if texts:
-                    gp_texts['channels'][-1] = texts
+                gp_texts['conversion_tab'].append(None)
 
                 # composed parent has no conversion
                 if memory != 'minimum':
@@ -1601,62 +1574,66 @@ class MDF2(object):
                 else:
                     gp_conv.append(0)
 
-                # add parent and components sources
-                kargs = {
-                    'module_nr': 0,
-                    'module_address': 0,
-                    'type': v2c.SOURCE_ECU,
-                    'description': b'Channel inserted by Python Script',
-                }
-                block = ChannelExtension(**kargs)
+                # source for channel
                 if memory != 'minimum':
-                    gp_source.append(block)
+                    gp_source.append(ce_block)
                 else:
-                    address = tell()
-                    gp_source.append(address)
-                    write(bytes(block))
+                    gp_source.append(ce_address)
 
                 min_val, max_val = get_min_max(samples)
 
-                s_type, s_size = fmt_to_datatype(samples.dtype)
+                s_type, s_size = fmt_to_datatype_v3(samples.dtype)
                 # compute additional byte offset for large records size
-                if offset > v2c.MAX_UINT16:
-                    additional_byte_offset = (offset - v2c.MAX_UINT16) >> 3
+                if offset > v23c.MAX_UINT16:
+                    additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
                     start_bit_offset = offset - additional_byte_offset << 3
                 else:
                     start_bit_offset = offset
                     additional_byte_offset = 0
 
-                if len(name) >= 32:
-                    short_name = (name[:31] + '\0').encode('latin-1')
+                if memory == 'minimum' and len(name) >= 32 and self.version >= '2.10':
+                    block = TextBlock(text=name)
+                    long_name_address = tell()
+                    write(bytes(block))
                 else:
-                    short_name = name.encode('latin-1')
+                    long_name_address = 0
+                comment = signal.comment
+                if comment:
+                    if len(comment) >= 128:
+                        description = b'\0'
+                        if memory == 'minimum':
+                            block = TextBlock(text=comment)
+                            comment_address = tell()
+                            write(bytes(block))
+                        else:
+                            comment_address = 0
+                    else:
+                        description = (comment[:127] + '\0').encode('latin-1')
+                        comment_address = 0
+                else:
+                    description = b'\0'
+                    comment_address = 0
+                short_name = (name[:31] + '\0').encode('latin-1')
+
                 kargs = {
                     'short_name': short_name,
-                    'channel_type': v2c.CHANNEL_TYPE_VALUE,
+                    'channel_type': v23c.CHANNEL_TYPE_VALUE,
                     'data_type': s_type,
                     'min_raw_value': min_val if min_val <= max_val else 0,
                     'max_raw_value': max_val if min_val <= max_val else 0,
                     'start_offset': start_bit_offset,
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
+                    'long_name_addr': long_name_address,
+                    'block_len': channel_size,
+                    'comment_addr': comment_address,
+                    'description': description,
                 }
-                if self.version == '2.00':
-                    kargs['block_len'] = v2c.CN20_BLOCK_SIZE
-                else:
-                    kargs['block_len'] = v2c.CN21_BLOCK_SIZE
-                comment = signal.comment
-                if comment:
-                    if len(comment) >= 128:
-                        comment = (comment[:127] + '\0').encode('latin-1')
-                    else:
-                        comment = comment.encode('latin-1')
-                    kargs['description'] = comment
 
                 channel = Channel(**kargs)
-                channel.name = name
-                channel.name = name
                 if memory != 'minimum':
+                    channel.name = name
+                    channel.comment = signal.comment
                     gp_channels.append(channel)
                 else:
                     address = tell()
@@ -1669,40 +1646,35 @@ class MDF2(object):
 
                 ch_cntr += 1
 
-                for i, (name, samples) in enumerate(zip(component_names,
-                                                        component_samples)):
-                    for _, item in gp['texts'].items():
-                        item.append(None)
+                for i, (name, samples) in enumerate(
+                        zip(component_names, component_samples)):
+                    gp_texts['conversion_tab'].append(None)
 
-                    texts = {}
-                    if len(name) >= 32 and self.version == '2.14':
+                    if memory == 'minimum' and len(name) >= 32 and self.version >= '2.10':
                         block = TextBlock(text=name)
-                        if memory != 'minimum':
-                            texts['long_name_addr'] = block
-                        else:
-                            address = tell()
-                            texts['long_name_addr'] = address
-                            write(bytes(block))
-                    if texts:
-                        gp_texts['channels'][-1] = texts
+                        long_name_address = tell()
+                        write(bytes(block))
+                    else:
+                        long_name_address = 0
+                    if i < sd_nr:
+                        dep_pair = ch_cntr, dg_cntr
+                        parent_dep.referenced_channels.append(dep_pair)
+                        description = b'\0'
+                    else:
+                        description = '{} - axis {}'.format(signal.name, name)
+                        description = description.encode('latin-1')
+                    comment_address = 0
+                    short_name = (name[:31] + '\0').encode('latin-1')
 
                     min_val, max_val = get_min_max(samples)
-                    s_type, s_size = fmt_to_datatype(samples.dtype)
+                    s_type, s_size = fmt_to_datatype_v3(samples.dtype)
                     shape = samples.shape[1:]
 
-                    kargs = {
-                        'module_nr': 0,
-                        'module_address': 0,
-                        'type': v2c.SOURCE_ECU,
-                        'description': b'Channel inserted by Python Script',
-                    }
-                    block = ChannelExtension(**kargs)
+                    # source for channel
                     if memory != 'minimum':
-                        gp_source.append(block)
+                        gp_source.append(ce_block)
                     else:
-                        address = tell()
-                        gp_source.append(address)
-                        write(bytes(block))
+                        gp_source.append(ce_address)
 
                     if memory != 'minimum':
                         gp_conv.append(None)
@@ -1710,40 +1682,37 @@ class MDF2(object):
                         gp_conv.append(0)
 
                     # compute additional byte offset for large records size
-                    if offset > v2c.MAX_UINT16:
-                        additional_byte_offset = (offset - v2c.MAX_UINT16) >> 3
+                    if offset > v23c.MAX_UINT16:
+                        additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
                         start_bit_offset = offset - additional_byte_offset << 3
                     else:
                         start_bit_offset = offset
                         additional_byte_offset = 0
 
-                    if len(name) >= 32:
-                        short_name = (name[:31] + '\0').encode('latin-1')
-                    else:
-                        short_name = name.encode('latin-1')
                     kargs = {
                         'short_name': short_name,
-                        'channel_type': v2c.CHANNEL_TYPE_VALUE,
+                        'channel_type': v23c.CHANNEL_TYPE_VALUE,
                         'data_type': s_type,
                         'min_raw_value': min_val if min_val <= max_val else 0,
                         'max_raw_value': max_val if min_val <= max_val else 0,
                         'start_offset': start_bit_offset,
                         'bit_count': s_size,
                         'aditional_byte_offset': additional_byte_offset,
+                        'long_name_addr': long_name_address,
+                        'block_len': channel_size,
+                        'comment_addr': comment_address,
+                        'description': description,
                     }
-                    if self.version == '2.00':
-                        kargs['block_len'] = v2c.CN20_BLOCK_SIZE
-                    else:
-                        kargs['block_len'] = v2c.CN21_BLOCK_SIZE
 
                     channel = Channel(**kargs)
-                    channel.name = name
                     if memory != 'minimum':
+                        channel.name = name
                         gp_channels.append(channel)
                     else:
                         address = tell()
                         gp_channels.append(address)
                         write(bytes(channel))
+
                     size = s_size
                     for dim in shape:
                         size *= dim
@@ -1763,14 +1732,6 @@ class MDF2(object):
 
                     gp_dep.append(None)
 
-                    if i < sd_nr:
-                        dep_pair = ch_cntr, dg_cntr
-                        parent_dep.referenced_channels.append(dep_pair)
-                    else:
-                        description = '{} - axis {}'.format(signal.name, name)
-                        description = description.encode('latin-1')
-                        channel['description'] = description
-
                     ch_cntr += 1
 
             # channel group
@@ -1783,10 +1744,10 @@ class MDF2(object):
             gp['size'] = cycles_nr * (offset >> 3)
 
             # data group
-            if self.version in ('3.20', '3.30'):
-                block_len = v2c.DG32_BLOCK_SIZE
+            if self.version >= '3.20':
+                block_len = v23c.DG_POST_320_BLOCK_SIZE
             else:
-                block_len = v2c.DG31_BLOCK_SIZE
+                block_len = v23c.DG_PRE_320_BLOCK_SIZE
             gp['data_group'] = DataGroup(block_len=block_len)
 
             # data block
@@ -1802,11 +1763,11 @@ class MDF2(object):
             block = samples.tostring()
 
             if memory == 'full':
-                gp['data_location'] = v2c.LOCATION_MEMORY
+                gp['data_location'] = v23c.LOCATION_MEMORY
                 kargs = {'data': block}
                 gp['data_block'] = DataBlock(**kargs)
             else:
-                gp['data_location'] = v2c.LOCATION_TEMPORARY_FILE
+                gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
                 if cycles_nr:
                     data_address = tell()
                     gp['data_group']['data_block_addr'] = data_address
@@ -1825,13 +1786,12 @@ class MDF2(object):
             gp['channel_extensions'] = gp_source = []
             gp['channel_dependencies'] = gp_dep = []
             gp['texts'] = gp_texts = {
-                'channels': [],
                 'conversion_tab': [],
                 'channel_group': [],
             }
             self.groups.append(gp)
 
-            cycles_nr = len(t)
+            cycles_nr = len(timestamps)
             fields = []
             types = []
             parents = {}
@@ -1839,57 +1799,42 @@ class MDF2(object):
             offset = 0
             field_names = set()
 
-            # setup all blocks related to the time master channel
-
             # time channel texts
-            for _, item in gp_texts.items():
-                item.append(None)
+            gp_texts['conversion_tab'].append(None)
 
             # conversion for time channel
             kargs = {
-                'conversion_type': v2c.CONVERSION_TYPE_NONE,
+                'conversion_type': v23c.CONVERSION_TYPE_NONE,
                 'unit': b's',
-                'min_phy_value': t[0] if cycles_nr else 0,
-                'max_phy_value': t[-1] if cycles_nr else 0,
+                'min_phy_value': timestamps[0] if cycles_nr else 0,
+                'max_phy_value': timestamps[-1] if cycles_nr else 0,
             }
             block = ChannelConversion(**kargs)
-            if memory == 'minimum':
-                address = tell()
-                write(bytes(block))
-                gp_conv.append(address)
+            if memory != 'minimum':
+                gp_conv.append(block)
             else:
-                gp_conv.append(ChannelConversion(**kargs))
+                address = tell()
+                gp_conv.append(address)
+                write(bytes(block))
 
             # source for time
-            kargs = {
-                'module_nr': 0,
-                'module_address': 0,
-                'type': v2c.SOURCE_ECU,
-                'description': b'Channel inserted by Python Script',
-            }
-            block = ChannelExtension(**kargs)
             if memory != 'minimum':
-                gp_source.append(block)
+                gp_source.append(ce_block)
             else:
-                address = tell()
-                gp_source.append(address)
-                write(bytes(block))
+                gp_source.append(ce_address)
 
             # time channel
-            t_type, t_size = fmt_to_datatype(t.dtype)
+            t_type, t_size = fmt_to_datatype_v3(timestamps.dtype)
             kargs = {
                 'short_name': b't',
-                'channel_type': v2c.CHANNEL_TYPE_MASTER,
+                'channel_type': v23c.CHANNEL_TYPE_MASTER,
                 'data_type': t_type,
                 'start_offset': 0,
-                'min_raw_value': t[0] if cycles_nr else 0,
-                'max_raw_value': t[-1] if cycles_nr else 0,
+                'min_raw_value': timestamps[0] if cycles_nr else 0,
+                'max_raw_value': timestamps[-1] if cycles_nr else 0,
                 'bit_count': t_size,
+                'block_len': channel_size,
             }
-            if self.version == '2.00':
-                kargs['block_len'] = v2c.CN20_BLOCK_SIZE
-            else:
-                kargs['block_len'] = v2c.CN21_BLOCK_SIZE
             channel = Channel(**kargs)
             channel.name = name = 't'
             if memory != 'minimum':
@@ -1909,68 +1854,70 @@ class MDF2(object):
             # time channel doesn't have channel dependencies
             gp_dep.append(None)
 
-            fields.append(t)
-            types.append((name, t.dtype))
+            fields.append(timestamps)
+            types.append((name, timestamps.dtype))
             field_names.add(name)
 
             offset += t_size
             ch_cntr += 1
 
             names = signal.samples.dtype.names
-            if names == ('ms',
-                         'days'):
-                block = TextBlock(text='From mdf v4 CANopen Time channel')
+            if names == (
+                    'ms',
+                    'days'):
+                acq_block = TextBlock(text='From mdf v4 CANopen Time channel')
                 if memory == 'minimum':
-                    address = tell()
+                    acq_address = tell()
                     write(bytes(block))
-                    gp_texts['channel_group'][-1] = {'comment_addr': address}
+                    gp_texts['channel_group'].append({'comment_addr': acq_address})
                 else:
-                    gp_texts['channel_group'][-1] = {'comment_addr': block}
-            elif names == ('ms',
-                           'min',
-                           'hour',
-                           'day',
-                           'month',
-                           'year',
-                           'summer_time',
-                           'day_of_week'):
-                block = TextBlock(text='From mdf v4 CANopen Date channel')
+                    gp_texts['channel_group'].append({'comment_addr': acq_block})
+            elif names == (
+                    'ms',
+                    'min',
+                    'hour',
+                    'day',
+                    'month',
+                    'year',
+                    'summer_time',
+                    'day_of_week'):
+                acq_block = TextBlock(text='From mdf v4 CANopen Date channel')
                 if memory == 'minimum':
-                    address = tell()
+                    acq_address = tell()
                     write(bytes(block))
-                    gp_texts['channel_group'][-1] = {'comment_addr': address}
+                    gp_texts['channel_group'].append({'comment_addr': acq_address})
                 else:
-                    gp_texts['channel_group'][-1] = {'comment_addr': block}
+                    gp_texts['channel_group'].append({'comment_addr': acq_block})
             else:
                 text = 'From mdf v4 structure channel composition'
-                block = TextBlock(text=text)
+                acq_block = TextBlock(text=text)
                 if memory == 'minimum':
-                    address = tell()
+                    acq_address = tell()
                     write(bytes(block))
-                    gp_texts['channel_group'][-1] = {'comment_addr': address}
+                    gp_texts['channel_group'].append({'comment_addr': acq_address})
                 else:
-                    gp_texts['channel_group'][-1] = {'comment_addr': block}
+                    gp_texts['channel_group'].append({'comment_addr': acq_block})
 
             for name in names:
 
                 samples = signal.samples[name]
 
-                # channels texts
-                for _, item in gp['texts'].items():
-                    item.append(None)
+                gp_texts['conversion_tab'].append(None)
 
-                texts = {}
-                if len(name) >= 32 and self.version == '2.14':
+                if memory == 'minimum' and len(name) >= 32 and self.version >= '2.10':
                     block = TextBlock(text=name)
-                    texts['long_name_addr'] = block
-                if texts:
-                    gp_texts['channels'][-1] = texts
+                    long_name_address = tell()
+                    write(bytes(block))
+                else:
+                    long_name_address = 0
+                comment_address = 0
+                short_name = (name[:31] + '\0').encode('latin-1')
 
                 # conversions for channel
                 min_val, max_val = get_min_max(samples)
 
                 kargs = {
-                    'conversion_type': v2c.CONVERSION_TYPE_NONE,
+                    'conversion_type': v23c.CONVERSION_TYPE_NONE,
                     'unit': signal.unit.encode('latin-1'),
                     'min_phy_value': min_val if min_val <= max_val else 0,
                     'max_phy_value': max_val if min_val <= max_val else 0,
@@ -1984,50 +1931,39 @@ class MDF2(object):
                     write(bytes(block))
 
                 # source for channel
-                kargs = {
-                    'module_nr': 0,
-                    'module_address': 0,
-                    'type': v2c.SOURCE_ECU,
-                    'description': b'Channel inserted by Python Script',
-                }
-                block = ChannelExtension(**kargs)
                 if memory != 'minimum':
-                    gp_source.append(block)
+                    gp_source.append(ce_block)
                 else:
-                    address = tell()
-                    gp_source.append(address)
-                    write(bytes(block))
+                    gp_source.append(ce_address)
 
                 # compute additional byte offset for large records size
-                if offset > v2c.MAX_UINT16:
-                    additional_byte_offset = (offset - v2c.MAX_UINT16) >> 3
+                if offset > v23c.MAX_UINT16:
+                    additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
                     start_bit_offset = offset - additional_byte_offset << 3
                 else:
                     start_bit_offset = offset
                     additional_byte_offset = 0
-                s_type, s_size = fmt_to_datatype(samples.dtype)
-                if len(name) >= 32:
-                    short_name = (name[:31] + '\0').encode('latin-1')
-                else:
-                    short_name = name.encode('latin-1')
+                s_type, s_size = fmt_to_datatype_v3(samples.dtype)
+
                 kargs = {
                     'short_name': short_name,
-                    'channel_type': v2c.CHANNEL_TYPE_VALUE,
+                    'channel_type': v23c.CHANNEL_TYPE_VALUE,
                     'data_type': s_type,
                     'min_raw_value': min_val if min_val <= max_val else 0,
                     'max_raw_value': max_val if min_val <= max_val else 0,
                     'start_offset': start_bit_offset,
                     'bit_count': s_size,
                     'aditional_byte_offset': additional_byte_offset,
+                    'long_name_addr': long_name_address,
+                    'block_len': channel_size,
+                    'comment_addr': comment_address,
+                    'description': description,
                 }
-                if self.version == '2.00':
-                    kargs['block_len'] = v2c.CN20_BLOCK_SIZE
-                else:
-                    kargs['block_len'] = v2c.CN21_BLOCK_SIZE
 
                 channel = Channel(**kargs)
-                channel.name = name
+
                 if memory != 'minimum':
+                    channel.name = name
                     gp_channels.append(channel)
                 else:
                     address = tell()
@@ -2062,10 +1998,10 @@ class MDF2(object):
             gp['size'] = cycles_nr * (offset >> 3)
 
             # data group
-            if self.version in ('3.20', '3.30'):
-                block_len = v2c.DG32_BLOCK_SIZE
+            if self.version >= '3.20':
+                block_len = v23c.DG_POST_320_BLOCK_SIZE
             else:
-                block_len = v2c.DG31_BLOCK_SIZE
+                block_len = v23c.DG_PRE_320_BLOCK_SIZE
             gp['data_group'] = DataGroup(block_len=block_len)
 
             # data block
@@ -2082,11 +2018,11 @@ class MDF2(object):
                 block = samples.tostring()
 
                 if memory == 'full':
-                    gp['data_location'] = v2c.LOCATION_MEMORY
+                    gp['data_location'] = v23c.LOCATION_MEMORY
                     kargs = {'data': block}
                     gp['data_block'] = DataBlock(**kargs)
                 else:
-                    gp['data_location'] = v2c.LOCATION_TEMPORARY_FILE
+                    gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
                     if cycles_nr:
                         data_address = tell()
                         gp['data_group']['data_block_addr'] = data_address
@@ -2097,7 +2033,7 @@ class MDF2(object):
                 if memory == 'full':
                     raise
                 else:
-                    gp['data_location'] = v2c.LOCATION_TEMPORARY_FILE
+                    gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
 
                     data_address = tell()
                     gp['data_group']['data_block_addr'] = data_address
@@ -2108,9 +2044,9 @@ class MDF2(object):
             gp['trigger'] = [None, None]
 
     def close(self):
-        """if the MDF was created with memory='minimum' and new
-           channels have been appended, then this must be called just before the
-           object is not used anymore to clean-up the temporary file
+        """ if the MDF was created with memory='minimum' and new
+        channels have been appended, then this must be called just before the
+        object is not used anymore to clean-up the temporary file
 
         """
         if self._tempfile is not None:
@@ -2125,10 +2061,10 @@ class MDF2(object):
 
         * using the first positional argument *name*
 
-            * if there are multiple occurrences for this channel then the
+            * if there are multiple occurances for this channel then the
                 *group* and *index* arguments can be used to select a specific
                 group.
-            * if there are multiple occurrences for this channel and either the
+            * if there are multiple occurances for this channel and either the
                 *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
@@ -2161,7 +2097,7 @@ class MDF2(object):
         )
 
         grp = self.groups[gp_nr]
-        if grp['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
+        if grp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -2180,7 +2116,11 @@ class MDF2(object):
             conversion = grp['channel_conversions'][ch_nr]
 
         if conversion:
-            unit = conversion['unit'].decode('latin-1').strip(' \n\t\0')
+            unit = (
+                conversion['unit']
+                .decode('latin-1')
+                .strip(' \n\t\0')
+            )
         else:
             unit = ''
 
@@ -2188,15 +2128,14 @@ class MDF2(object):
 
     def get_channel_comment(self, name=None, group=None, index=None):
         """Gets channel comment.
-
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurrences for this channel then the
+            * if there are multiple occurances for this channel then the
                 *group* and *index* arguments can be used to select a specific
                 group.
-            * if there are multiple occurrences for this channel and either the
+            * if there are multiple occurances for this channel and either the
                 *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
@@ -2229,7 +2168,7 @@ class MDF2(object):
         )
 
         grp = self.groups[gp_nr]
-        if grp['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
+        if grp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -2242,8 +2181,21 @@ class MDF2(object):
         else:
             channel = grp['channels'][ch_nr]
 
-        comment = channel['description'].decode('latin-1')
-        comment = comment.strip(' \t\n\0')
+        if self.memory == 'minimum':
+            comment = ''
+            if channel['comment_addr']:
+                comment = get_text_v3(channel['comment_addr'], stream)
+        else:
+            comment = channel.comment
+        description = (
+            channel['description']
+            .decode('latin-1')
+            .strip(' \t\n\0')
+        )
+        if comment:
+            comment = '{}\n{}'.format(comment, description)
+        else:
+            comment = description
 
         return comment
 
@@ -2253,17 +2205,17 @@ class MDF2(object):
             index=None,
             raster=None,
             samples_only=False,
-            data=None):
+            data=None,
+            raw=False):
         """Gets channel samples.
-
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
-            * if there are multiple occurrences for this channel then the
+            * if there are multiple occurances for this channel then the
                 *group* and *index* arguments can be used to select a specific
                 group.
-            * if there are multiple occurrences for this channel and either the
+            * if there are multiple occurances for this channel and either the
                 *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
@@ -2287,6 +2239,12 @@ class MDF2(object):
         samples_only : bool
             if *True* return only the channel samples as numpy array; if
             *False* return a *Signal* object
+        data : bytes
+            prevent redundant data read by providing the raw data group samples
+        raw : bool
+            return channel samples without appling the conversion rule; default
+            `False`
+
 
         Returns
         -------
@@ -2301,11 +2259,67 @@ class MDF2(object):
 
         Raises
         ------
-        MdfError :
+        MdfException :
 
         * if the channel name is not found
         * if the group index is out of range
         * if the channel index is out of range
+
+        Examples
+        --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+        >>> t = np.arange(5)
+        >>> s = np.ones(5)
+        >>> mdf = MDF(version='3.30')
+        >>> for i in range(4):
+        ...     sigs = [Signal(s*(i*10+j), t, name='Sig') for j in range(1, 4)]
+        ...     mdf.append(sigs)
+        ...
+        >>> # first group and channel index of the specified channel name
+        ...
+        >>> mdf.get('Sig')
+        UserWarning: Multiple occurances for channel "Sig". Using first occurance from data group 4. Provide both "group" and "index" arguments to select another data group
+        <Signal Sig:
+                samples=[ 1.  1.  1.  1.  1.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        >>> # first channel index in the specified group
+        ...
+        >>> mdf.get('Sig', 1)
+        <Signal Sig:
+                samples=[ 11.  11.  11.  11.  11.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        >>> # channel named Sig from group 1 channel index 2
+        ...
+        >>> mdf.get('Sig', 1, 2)
+        <Signal Sig:
+                samples=[ 12.  12.  12.  12.  12.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        >>> # channel index 1 or group 2
+        ...
+        >>> mdf.get(None, 2, 1)
+        <Signal Sig:
+                samples=[ 21.  21.  21.  21.  21.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        >>> mdf.get(group=2, index=1)
+        <Signal Sig:
+                samples=[ 21.  21.  21.  21.  21.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
 
         """
         gp_nr, ch_nr = self._validate_channel_selection(
@@ -2317,7 +2331,7 @@ class MDF2(object):
         memory = self.memory
         grp = self.groups[gp_nr]
 
-        if grp['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
+        if grp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -2344,15 +2358,14 @@ class MDF2(object):
                 conversion = None
             if name is None:
                 if channel.get('long_name_addr', 0):
-                    name = TextBlock(
-                        address=channel['long_name_addr'],
-                        stream=stream,
-                    )
-                    name = name['text']
+                    name = get_text_v3(channel['long_name_addr'], stream)
                 else:
-                    name = channel['short_name']
-                name = name.decode('utf-8').strip(' \r\t\n\0')
-            name = name.split('\\')[0]
+                    name = (
+                        channel['short_name']
+                        .decode('latin-1')
+                        .strip(' \n\t\0')
+                        .split('\\')[0]
+                    )
             channel.name = name
 
         dep = grp['channel_dependencies'][ch_nr]
@@ -2366,9 +2379,9 @@ class MDF2(object):
 
         # check if this is a channel array
         if dep:
-            if dep['dependency_type'] == v2c.DEPENDENCY_TYPE_VECTOR:
+            if dep['dependency_type'] == v23c.DEPENDENCY_TYPE_VECTOR:
                 shape = [dep['sd_nr'], ]
-            elif dep['dependency_type'] >= v2c.DEPENDENCY_TYPE_NDIM:
+            elif dep['dependency_type'] >= v23c.DEPENDENCY_TYPE_NDIM:
                 shape = []
                 i = 0
                 while True:
@@ -2383,7 +2396,7 @@ class MDF2(object):
             record_shape = tuple(shape)
 
             arrays = [
-                self.get(group=dg_nr, index=ch_nr, samples_only=True)
+                self.get(group=dg_nr, index=ch_nr, samples_only=True, raw=raw)
                 for ch_nr, dg_nr in dep.referenced_channels
             ]
             if cycles_nr:
@@ -2442,30 +2455,31 @@ class MDF2(object):
                             vals = vals >> bit_offset
 
                     if not bits == size * 8:
-                        mask = (1 << bits) - 1
-                        if vals.flags.writeable:
-                            vals &= mask
+                        if data_type in v23c.SIGNED_INT:
+                            vals = as_non_byte_sized_signed_int(vals, bits)
                         else:
-                            vals = vals & mask
-                        if data_type in v2c.SIGNED_INT:
-                            size = vals.dtype.itemsize
-                            mask = (1 << (size * 8)) - 1
-                            mask = (mask << bits) & mask
-                            vals |= mask
-                            vals = vals.astype('<i{}'.format(size), copy=False)
+                            mask = (1 << bits) - 1
+                            if vals.flags.writeable:
+                                vals &= mask
+                            else:
+                                vals = vals & mask
+
             else:
                 vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 
             if conversion is None:
-                conversion_type = v2c.CONVERSION_TYPE_NONE
+                conversion_type = v23c.CONVERSION_TYPE_NONE
             else:
                 conversion_type = conversion['conversion_type']
 
             if cycles_nr:
 
-                if conversion_type == v2c.CONVERSION_TYPE_NONE:
+                if raw:
+                    pass
 
-                    if channel['data_type'] == v2c.DATA_TYPE_STRING:
+                elif conversion_type == v23c.CONVERSION_TYPE_NONE:
+
+                    if channel['data_type'] == v23c.DATA_TYPE_STRING:
                         vals = [val.tobytes() for val in vals]
                         vals = [
                             x.decode('latin-1').strip(' \n\t\0')
@@ -2474,7 +2488,7 @@ class MDF2(object):
                         vals = array(vals)
                         vals = encode(vals, 'latin-1')
 
-                    elif channel['data_type'] == v2c.DATA_TYPE_BYTEARRAY:
+                    elif channel['data_type'] == v23c.DATA_TYPE_BYTEARRAY:
                         arrays = [vals, ]
                         types = [(channel.name, vals.dtype, vals.shape[1:]), ]
                         if PYVERSION == 2:
@@ -2482,7 +2496,7 @@ class MDF2(object):
                         types = dtype(types)
                         vals = fromarrays(arrays, dtype=types)
 
-                elif conversion_type == v2c.CONVERSION_TYPE_LINEAR:
+                elif conversion_type == v23c.CONVERSION_TYPE_LINEAR:
                     a = conversion['a']
                     b = conversion['b']
                     if (a, b) != (1, 0):
@@ -2490,44 +2504,66 @@ class MDF2(object):
                         if b:
                             vals += b
 
-                elif conversion_type in (v2c.CONVERSION_TYPE_TABI,
-                                         v2c.CONVERSION_TYPE_TABX):
+                elif conversion_type in (v23c.CONVERSION_TYPE_TABI,
+                                         v23c.CONVERSION_TYPE_TABX):
                     nr = conversion['ref_param_nr']
 
-                    raw = [conversion['raw_{}'.format(i)] for i in range(nr)]
-                    raw = array(raw)
-                    phys = [conversion['phys_{}'.format(i)] for i in range(nr)]
+                    raw_vals = [
+                        conversion['raw_{}'.format(i)]
+                        for i in range(nr)
+                    ]
+                    raw_vals = array(raw_vals)
+                    phys = [
+                        conversion['phys_{}'.format(i)]
+                        for i in range(nr)
+                    ]
                     phys = array(phys)
-                    if conversion_type == v2c.CONVERSION_TYPE_TABI:
-                        vals = interp(vals, raw, phys)
+                    if conversion_type == v23c.CONVERSION_TYPE_TABI:
+                        vals = interp(vals, raw_vals, phys)
                     else:
                         idx = searchsorted(raw, vals)
                         idx = clip(idx, 0, len(raw) - 1)
                         vals = phys[idx]
 
-                elif conversion_type == v2c.CONVERSION_TYPE_VTAB:
+                elif conversion_type == v23c.CONVERSION_TYPE_VTAB:
                     nr = conversion['ref_param_nr']
-                    raw = [
+                    raw_vals = [
                         conversion['param_val_{}'.format(i)]
                         for i in range(nr)
                     ]
-                    raw = array(raw)
-                    phys = [conversion['text_{}'.format(i)] for i in range(nr)]
+                    raw_vals = array(raw_vals)
+                    phys = [
+                        conversion['text_{}'.format(i)]
+                        for i in range(nr)
+                    ]
                     phys = array(phys)
-                    info = {'raw': raw, 'phys': phys}
+                    info = {'raw': raw_vals, 'phys': phys}
 
-                elif conversion_type == v2c.CONVERSION_TYPE_VTABR:
+                elif conversion_type == v23c.CONVERSION_TYPE_VTABR:
                     nr = conversion['ref_param_nr']
 
                     conv_texts = grp['texts']['conversion_tab'][ch_nr]
                     texts = []
-                    for i in range(nr):
-                        key = 'text_{}'.format(i),
-                        if key in conv_texts:
-                            text = conv_texts[key].get('text', b'')
-                            texts.append(text)
-                        else:
-                            texts.append(b'')
+                    if memory != 'minimum':
+                        for i in range(nr):
+                            key = 'text_{}'.format(i)
+                            if key in conv_texts:
+                                text = conv_texts[key]['text']
+                                texts.append(text)
+                            else:
+                                texts.append(b'')
+                    else:
+                        for i in range(nr):
+                            key = 'text_{}'.format(i)
+                            if key in conv_texts:
+                                block = TextBlock(
+                                    address=conv_texts[key],
+                                    stream=stream,
+                                )
+                                text = block['text']
+                                texts.append(text)
+                            else:
+                                texts.append(b'')
 
                     texts = array(texts)
                     lower = [
@@ -2542,9 +2578,11 @@ class MDF2(object):
                     upper = array(upper)
                     info = {'lower': lower, 'upper': upper, 'phys': texts}
 
-                elif conversion_type in (v2c.CONVERSION_TYPE_EXPO,
-                                         v2c.CONVERSION_TYPE_LOGH):
-                    if conversion_type == v2c.CONVERSION_TYPE_EXPO:
+                elif conversion_type in (
+                        v23c.CONVERSION_TYPE_EXPO,
+                        v23c.CONVERSION_TYPE_LOGH):
+                    # pylint: disable=C0103
+                    if conversion_type == v23c.CONVERSION_TYPE_EXPO:
                         func = log
                     else:
                         func = exp
@@ -2563,7 +2601,8 @@ class MDF2(object):
                         message = 'wrong conversion {}'.format(conversion_type)
                         raise ValueError(message)
 
-                elif conversion_type == v2c.CONVERSION_TYPE_RAT:
+                elif conversion_type == v23c.CONVERSION_TYPE_RAT:
+                    # pylint: disable=unused-variable,C0103
                     P1 = conversion['P1']
                     P2 = conversion['P2']
                     P3 = conversion['P3']
@@ -2572,9 +2611,10 @@ class MDF2(object):
                     P6 = conversion['P6']
                     if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
                         X = vals
-                        vals = evaluate(v2c.RAT_CONV_TEXT)
+                        vals = evaluate(v23c.RAT_CONV_TEXT)
 
-                elif conversion_type == v2c.CONVERSION_TYPE_POLY:
+                elif conversion_type == v23c.CONVERSION_TYPE_POLY:
+                    # pylint: disable=unused-variable,C0103
                     P1 = conversion['P1']
                     P2 = conversion['P2']
                     P3 = conversion['P3']
@@ -2587,11 +2627,12 @@ class MDF2(object):
                     coefs = (P2, P3, P5, P6)
                     if coefs == (0, 0, 0, 0):
                         if P1 != P4:
-                            vals = evaluate(v2c.POLY_CONV_SHORT_TEXT)
+                            vals = evaluate(v23c.POLY_CONV_SHORT_TEXT)
                     else:
-                        vals = evaluate(v2c.POLY_CONV_LONG_TEXT)
+                        vals = evaluate(v23c.POLY_CONV_LONG_TEXT)
 
-                elif conversion_type == v2c.CONVERSION_TYPE_FORMULA:
+                elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
+                    # pylint: disable=unused-variable,C0103
                     formula = conversion['formula'].decode('latin-1')
                     formula = formula.strip(' \n\t\0')
                     X1 = vals
@@ -2604,23 +2645,41 @@ class MDF2(object):
                 unit = conversion['unit'].decode('latin-1').strip(' \n\t\0')
             else:
                 unit = ''
-            comment = channel['description'].decode('latin-1')
-            comment = comment.strip(' \t\n\0')
 
-            t = self.get_master(gp_nr, data)
+            if memory == 'minimum':
+                comment = ''
+                if channel['comment_addr']:
+                    comment = get_text_v3(channel['comment_addr'], stream)
+            else:
+                comment = channel.comment
+            description = (
+                channel['description']
+                .decode('latin-1')
+                .strip(' \t\n\0')
+            )
+            if comment:
+                comment = '{}\n{}'.format(comment, description)
+            else:
+                comment = description
+
+            timestamps = self.get_master(gp_nr, data)
 
             res = Signal(
                 samples=vals,
-                timestamps=t,
+                timestamps=timestamps,
                 unit=unit,
                 name=channel.name,
                 comment=comment,
                 info=info,
             )
 
-            if raster and t:
-                tx = linspace(0, t[-1], int(t[-1] / raster))
-                res = res.interp(tx)
+            if raster and timestamps:
+                new_timestamps = linspace(
+                    0,
+                    timestamps[-1],
+                    int(timestamps[-1] / raster),
+                )
+                res = res.interp(new_timestamps)
 
         return res
 
@@ -2644,7 +2703,7 @@ class MDF2(object):
             return self._master_channel_cache[index]
         group = self.groups[index]
 
-        if group['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
+        if group['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -2712,10 +2771,10 @@ class MDF2(object):
 
                 # get timestamps
                 if time_conv is None:
-                    time_conv_type = v2c.CONVERSION_TYPE_NONE
+                    time_conv_type = v23c.CONVERSION_TYPE_NONE
                 else:
                     time_conv_type = time_conv['conversion_type']
-                if time_conv_type == v2c.CONVERSION_TYPE_LINEAR:
+                if time_conv_type == v23c.CONVERSION_TYPE_LINEAR:
                     time_a = time_conv['a']
                     time_b = time_conv['b']
                     t = t * time_a
@@ -2766,7 +2825,7 @@ class MDF2(object):
 
         Examples
         --------
-        >>> mdf = MDF2('test.mdf')
+        >>> mdf = MDF3('test.mdf')
         >>> mdf.info()
 
         """
@@ -2780,9 +2839,9 @@ class MDF2(object):
         info['version'] = self.version
         info['groups'] = len(self.groups)
         for i, gp in enumerate(self.groups):
-            if gp['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
+            if gp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
                 stream = self._file
-            elif gp['data_location'] == v2c.LOCATION_TEMPORARY_FILE:
+            elif gp['data_location'] == v23c.LOCATION_TEMPORARY_FILE:
                 stream = self._tempfile
             inf = {}
             info['group {}'.format(i)] = inf
@@ -2797,30 +2856,32 @@ class MDF2(object):
                         stream=stream,
                     )
                     if channel.get('long_name_addr', 0):
-                        name = TextBlock(
-                            address=channel['long_name_addr'],
-                            stream=stream,
-                        )
-                        name = name['text']
+                        name = get_text_v3(channel['long_name_addr'], stream)
                     else:
-                        name = channel['short_name']
-                    name = name.decode('utf-8').strip(' \r\t\n\0')
-                    name = name.split('\\')[0]
+                        name = (
+                            channel['short_name']
+                            .decode('utf-8')
+                            .strip(' \r\t\n\0')
+                            .split('\\')[0]
+                        )
 
-                if channel['channel_type'] == v2c.CHANNEL_TYPE_MASTER:
+                if channel['channel_type'] == v23c.CHANNEL_TYPE_MASTER:
                     ch_type = 'master'
                 else:
                     ch_type = 'value'
-                inf['channel {}'.format(j)] = 'name="{}" type={}'.format(name, ch_type)
+                inf['channel {}'.format(j)] = 'name="{}" type={}'.format(
+                    name,
+                    ch_type,
+                )
 
         return info
 
     def save(self, dst='', overwrite=None, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '_<cntr>', were
-        '<cntr>' is the first counter that produces a new file name (that does
-        not already exist in the filesystem).
+        is overwritten, otherwise the file name is appended with '_<cntr>',
+        were '<cntr>' is the first counter that produces a new file name (that
+        does not already exist in the filesystem).
 
         Parameters
         ----------
@@ -2832,43 +2893,43 @@ class MDF2(object):
             does nothing for mdf version3; introduced here to share the same
             API as mdf version 4 files
 
+        Returns
+        -------
+        output_file : str
+            output file name
+
         """
 
         if overwrite is None:
             overwrite = self._overwrite
+        output_file = ''
 
         if self.name is None and dst == '':
             message = ('Must specify a destination file name '
                        'for MDF created from scratch')
             raise MdfException(message)
 
-        dst = dst if dst else self.name
-        if overwrite is False:
-            if os.path.isfile(dst):
-                cntr = 0
-                while True:
-                    name = os.path.splitext(dst)[0] + '_{}.mdf'.format(cntr)
-                    if not os.path.isfile(name):
-                        break
-                    else:
-                        cntr += 1
-                message = ('Destination file "{}" already exists '
-                           'and "overwrite" is False. Saving MDF file as "{}"')
-                message = message.format(dst, name)
-                warnings.warn(message)
-                dst = name
-
-        if self.memory != 'minimum':
-            self._save_with_metadata(dst, overwrite, compression)
+        if self.memory == 'minimum':
+            output_file = self._save_without_metadata(
+                dst,
+                overwrite,
+                compression,
+            )
         else:
-            self._save_without_metadata(dst, overwrite, compression)
+            output_file = self._save_with_metadata(
+                dst,
+                overwrite,
+                compression,
+            )
+
+        return output_file
 
     def _save_with_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '_<cntr>', were
-        '<cntr>' is the first counter that produces a new file name (that does
-        not already exist in the filesystem).
+        is overwritten, otherwise the file name is appended with '_<cntr>',
+        were '<cntr>' is the first counter that produces a new file name (that
+        does not already exist in the filesystem).
 
         Parameters
         ----------
@@ -2881,6 +2942,7 @@ class MDF2(object):
             API as mdf version 4 files
 
         """
+        # pylint: disable=unused-argument
 
         if self.file_history is None:
             self.file_history = TextBlock(text='''<FHcomment>
@@ -2902,11 +2964,15 @@ class MDF2(object):
             self.file_history = TextBlock(text=text)
 
         if self.name is None and dst == '':
-            message = ('Must specify a destination file name '
-                       'for MDF created from scratch')
+            message = (
+                'Must specify a destination file name '
+                'for MDF created from scratch'
+            )
             raise MdfException(message)
 
         dst = dst if dst else self.name
+        if not dst.endswith(('mdf', 'MDF')):
+            dst = dst + '.mdf'
         if overwrite is False:
             if os.path.isfile(dst):
                 cntr = 0
@@ -2916,8 +2982,10 @@ class MDF2(object):
                         break
                     else:
                         cntr += 1
-                message = ('Destination file "{}" already exists '
-                           'and "overwrite" is False. Saving MDF file as "{}"')
+                message = (
+                    'Destination file "{}" already exists '
+                    'and "overwrite" is False. Saving MDF file as "{}"'
+                )
                 message = message.format(dst, name)
                 warnings.warn(message)
                 dst = name
@@ -2952,7 +3020,7 @@ class MDF2(object):
             address = 0
 
             blocks.append(self.identification)
-            address += v2c.ID_BLOCK_SIZE
+            address += v23c.ID_BLOCK_SIZE
 
             blocks.append(self.header)
             address += self.header['block_len']
@@ -2961,23 +3029,35 @@ class MDF2(object):
             blocks.append(self.file_history)
             address += self.file_history['block_len']
 
+            ce_map = {}
+            cc_map = {}
+
             # DataGroup
             # put them first in the block list so they will be written first to
             # disk this way, in case of memory=False, we can safely
             # restore he original data block address
+            gp_rec_ids = []
+
+            original_data_block_addrs = [
+                group['data_group']['data_block_addr']
+                for group in self.groups
+            ]
+
             for gp in self.groups:
                 dg = gp['data_group']
+                gp_rec_ids.append(dg['record_id_nr'])
+                dg['record_id_nr'] = 0
                 blocks.append(dg)
                 dg.address = address
                 address += dg['block_len']
 
             if self.groups:
                 for i, dg in enumerate(self.groups[:-1]):
-                    addr = self.groups[i+1]['data_group'].address
+                    addr = self.groups[i + 1]['data_group'].address
                     dg['data_group']['next_dg_addr'] = addr
                 self.groups[-1]['data_group']['next_dg_addr'] = 0
 
-            for gp in self.groups:
+            for idx, gp in enumerate(self.groups):
                 gp_texts = gp['texts']
 
                 # Texts
@@ -3002,22 +3082,32 @@ class MDF2(object):
                     if conv is None:
                         continue
 
-                    conv.address = address
-                    if conv['conversion_type'] == v2c.CONVERSION_TYPE_VTABR:
+                    if conv['conversion_type'] == v23c.CONVERSION_TYPE_VTABR:
+                        conv.address = address
                         pairs = gp_texts['conversion_tab'][i].items()
                         for key, item in pairs:
                             conv[key] = item.address
 
-                    blocks.append(conv)
-                    address += conv['block_len']
+                        blocks.append(conv)
+                        address += conv['block_len']
+                    else:
+                        cc_id = id(conv)
+                        if cc_id not in cc_map:
+                            conv.address = address
+                            cc_map[cc_id] = conv
+                            blocks.append(conv)
+                            address += conv['block_len']
 
                 # Channel Extension
                 cs = gp['channel_extensions']
                 for source in cs:
                     if source:
-                        source.address = address
-                        blocks.append(source)
-                        address += source['block_len']
+                        source_id = id(source)
+                        if source_id not in ce_map:
+                            source.address = address
+                            ce_map[source_id] = source
+                            blocks.append(source)
+                            address += source['block_len']
 
                 # Channel Dependency
                 cd = gp['channel_dependencies']
@@ -3028,24 +3118,56 @@ class MDF2(object):
                         address += dep['block_len']
 
                 # Channels
-                ch_texts = gp_texts['channels']
                 for i, channel in enumerate(gp['channels']):
                     channel.address = address
-                    channel_texts = ch_texts[i]
-
                     blocks.append(channel)
-                    if self.version == '2.00':
-                        address += v2c.CN20_BLOCK_SIZE
-                    else:
-                        address += v2c.CN21_BLOCK_SIZE
+                    address += channel['block_len']
 
-                    if channel_texts:
-                        for key in ('long_name_addr',
-                                    'comment_addr'):
-                            if key in channel_texts:
-                                channel[key] = channel_texts[key].address
+                    comment = channel.comment
+                    if comment:
+                        if len(comment) >= 128:
+                            channel['description'] = b'\0'
+                            tx_block = TextBlock(text=comment)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                channel['comment_addr'] = defined_texts[text].address
                             else:
-                                channel[key] = 0
+                                channel['comment_addr'] = address
+                                defined_texts[text] = tx_block
+                                tx_block.address = address
+                                blocks.append(tx_block)
+                                address += tx_block['block_len']
+                        else:
+                            channel['description'] = (comment[:127] + '\0').encode('latin-1')
+                            channel['comment_addr'] = 0
+                    if self.version >= '2.10':
+                        if len(channel.name) >= 32:
+                            tx_block = TextBlock(text=channel.name)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                channel['long_name_addr'] = defined_texts[text].address
+                            else:
+                                channel['long_name_addr'] = address
+                                defined_texts[text] = tx_block
+                                tx_block.address = address
+                                blocks.append(tx_block)
+                                address += tx_block['block_len']
+                        else:
+                            channel['long_name_addr'] = 0
+                    if 'display_name_addr' in channel:
+                        if channel.display_name:
+                            tx_block = TextBlock(text=channel.display_name)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                channel['display_name_addr'] = defined_texts[text].address
+                            else:
+                                channel['display_name_addr'] = address
+                                defined_texts[text] = tx_block
+                                tx_block.address = address
+                                blocks.append(tx_block)
+                                address += tx_block['block_len']
+                        else:
+                            channel['display_name_addr'] = 0
 
                     channel['conversion_addr'] = cc[i].address if cc[i] else 0
                     if cs[i]:
@@ -3057,9 +3179,11 @@ class MDF2(object):
                     else:
                         channel['ch_depend_addr'] = 0
 
-                for channel, next_channel in pair(gp['channels']):
-                    channel['next_ch_addr'] = next_channel.address
-                next_channel['next_ch_addr'] = 0
+                count = len(gp['channels'])
+                if count:
+                    for i in range(count-1):
+                        gp['channels'][i]['next_ch_addr'] = gp['channels'][i+1].address
+                    gp['channels'][-1]['next_ch_addr'] = 0
 
                 # ChannelGroup
                 cg = gp['channel_group']
@@ -3081,30 +3205,25 @@ class MDF2(object):
                         trigger_text.address = address
                         blocks.append(trigger_text)
                         address += trigger_text['block_len']
-                        trigger['comment_addr'] = trigger_text.address
+                        trigger['text_addr'] = trigger_text.address
                     else:
-                        trigger['comment_addr'] = 0
+                        trigger['text_addr'] = 0
 
                     trigger.address = address
                     blocks.append(trigger)
                     address += trigger['block_len']
 
                 # DataBlock
-                original_data_addr = gp['data_group']['data_block_addr']
+                if self.memory == 'full':
+                    blocks.append(gp['data_block'])
+                else:
+                    blocks.append(self._load_group_data(gp))
+
                 if gp['size']:
                     gp['data_group']['data_block_addr'] = address
                 else:
                     gp['data_group']['data_block_addr'] = 0
-                address += gp['size']
-                if self.memory == 'full':
-                    blocks.append(gp['data_block'])
-                else:
-                    # trying to call bytes([gp, address]) will result in an
-                    # exceptionthat be used as a flag for non existing data
-                    # block in caseof memory=False, the address is
-                    # the actual addressof the data group's data within the
-                    # original file
-                    blocks.append([gp, original_data_addr])
+                address += gp['size'] - gp_rec_ids[idx] * gp['channel_group']['cycles_nr']
 
             # update referenced channels addresses in the channel dependecies
             for gp in self.groups:
@@ -3136,17 +3255,14 @@ class MDF2(object):
                 self.header['program_addr'] = 0
 
             for block in blocks:
-                try:
-                    write(bytes(block))
-                except:
-                    # this will only be executed for data blocks when
-                    # memory=False
-                    gp, address = block
-                    # restore data block address from original file so that
-                    # future calls to get will still work after the save
-                    gp['data_group']['data_block_addr'] = address
-                    data = self._load_group_data(gp)
-                    write(data)
+                write(bytes(block))
+
+            for gp, rec_id, original_address in zip(
+                    self.groups, 
+                    gp_rec_ids, 
+                    original_data_block_addrs):
+                gp['data_group']['record_id_nr'] = rec_id
+                gp['data_group']['data_block_addr'] = original_address
 
         if self.memory == 'low' and dst == self.name:
             self.close()
@@ -3162,19 +3278,19 @@ class MDF2(object):
             self.attachments = []
             self.file_comment = None
 
-            self._ch_map = {}
             self._master_channel_cache = {}
 
             self._tempfile = TemporaryFile()
             self._file = open(self.name, 'rb')
             self._read()
+        return dst
 
     def _save_without_metadata(self, dst, overwrite, compression):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '_<cntr>', were
-        '<cntr>' is the first counter that produces a new file name (that does
-        not already exist in the filesystem).
+        is overwritten, otherwise the file name is appended with '_<cntr>',
+        were '<cntr>' is the first counter that produces a new file name (that
+        does not already exist in the filesystem).
 
         Parameters
         ----------
@@ -3187,6 +3303,7 @@ class MDF2(object):
             API as mdf version 4 files
 
         """
+        # pylint: disable=unused-argument
 
         if self.file_history is None:
             self.file_history = TextBlock(text='''<FHcomment>
@@ -3222,6 +3339,33 @@ class MDF2(object):
         # the reference to the data group object and the original link to the
         # data block in the soource MDF file.
 
+        if self.name is None and dst == '':
+            message = (
+                'Must specify a destination file name '
+                'for MDF created from scratch'
+            )
+            raise MdfException(message)
+
+        dst = dst if dst else self.name
+        if not dst.endswith(('mdf', 'MDF')):
+            dst = dst + '.mdf'
+        if overwrite is False:
+            if os.path.isfile(dst):
+                cntr = 0
+                while True:
+                    name = os.path.splitext(dst)[0] + '_{}.mdf'.format(cntr)
+                    if not os.path.isfile(name):
+                        break
+                    else:
+                        cntr += 1
+                message = (
+                    'Destination file "{}" already exists '
+                    'and "overwrite" is False. Saving MDF file as "{}"'
+                )
+                message = message.format(dst, name)
+                warnings.warn(message)
+                dst = name
+
         if dst == self.name:
             destination = dst + '.temp'
         else:
@@ -3253,9 +3397,17 @@ class MDF2(object):
 
             data_address = []
 
+            ce_map = {}
+            cc_map = {}
+
             for gp in self.groups:
+                gp['temp_channels'] = ch_addrs = []
+                gp['temp_channel_conversions'] = cc_addrs = []
+                gp['temp_channel_extensions'] = ce_addrs = []
+                gp['temp_channel_dependencies'] = cd_addrs = []
+
                 gp_texts = deepcopy(gp['texts'])
-                if gp['data_location'] == v2c.LOCATION_ORIGINAL_FILE:
+                if gp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
                     stream = self._file
                 else:
                     stream = self._tempfile
@@ -3281,93 +3433,125 @@ class MDF2(object):
                                 my_dict[key] = address
                                 write(bytes(block))
 
-                # ChannelConversions
-                cc = gp['temp_channel_conversions'] = []
-                for i, conv in enumerate(gp['channel_conversions']):
-                    if not conv:
-                        gp['temp_channel_conversions'].append(0)
-                        continue
-
-                    address = tell()
-                    gp['temp_channel_conversions'].append(address)
-                    conv = ChannelConversion(
-                        address=conv,
-                        stream=stream,
-                    )
-                    if conv['conversion_type'] == v2c.CONVERSION_TYPE_VTABR:
-                        pairs = gp_texts['conversion_tab'][i].items()
-                        for key, item in pairs:
-                            conv[key] = item
-
-                    write(bytes(conv))
-
-                # Channel Extension
-                cs = gp['temp_channel_extensions'] = []
-                for source in gp['channel_extensions']:
-                    if source:
-                        address = tell()
-                        gp['temp_channel_extensions'].append(address)
-                        source = ChannelExtension(
-                            address=source,
-                            stream=stream,
-                        )
-                        write(bytes(source))
-                    else:
-                        gp['temp_channel_extensions'].append(0)
-
                 # Channel Dependency
-                cd = gp['temp_channel_dependencies'] = []
                 for dep in gp['channel_dependencies']:
                     if dep:
                         address = tell()
-                        gp['temp_channel_dependencies'].append(address)
-                        dep.address = address
+                        cd_addrs.append(address)
                         write(bytes(dep))
                     else:
-                        gp['temp_channel_dependencies'].append(0)
+                        cd_addrs.append(0)
 
-                # Channels
+                # channel extensions
+                for addr in gp['channel_extensions']:
+                    if addr:
+                        stream.seek(addr)
+                        raw_bytes = stream.read(v23c.CE_BLOCK_SIZE)
+                        if raw_bytes in ce_map:
+                            ce_addrs.append(ce_map[raw_bytes])
+                        else:
+                            address = tell()
+                            source = ChannelExtension(raw_bytes=raw_bytes)
+                            ce_map[raw_bytes] = address
+                            ce_addrs.append(address)
+                            write(bytes(source))
+                    else:
+                        ce_addrs.append(0)
+
+                # ChannelConversions
+                for i, addr in enumerate(gp['channel_conversions']):
+                    if not addr:
+                        cc_addrs.append(0)
+                        continue
+
+                    stream.seek(addr+2)
+                    size = unpack('<H', stream.read(2))[0]
+                    stream.seek(addr)
+                    raw_bytes = stream.read(size)
+
+                    if raw_bytes in cc_map:
+                        cc_addrs.append(cc_map[raw_bytes])
+                    else:
+                        conversion = ChannelConversion(raw_bytes=raw_bytes)
+                        address = tell()
+                        if conversion['conversion_type'] == v23c.CONVERSION_TYPE_VTABR:
+                            pairs = gp_texts['conversion_tab'][i].items()
+                            for key, item in pairs:
+                                conversion[key] = item
+                            write(bytes(conversion))
+                            cc_addrs.append(address)
+                        else:
+                            cc_addrs.append(address)
+                            cc_map[raw_bytes] = address
+                            write(raw_bytes)
+
                 blocks = []
-                address = tell()
-                ch_texts = gp_texts['channels']
-                gp['temp_channels'] = ch_addrs = []
-                gp['channel_group']['first_ch_addr'] = address
+
                 for i, channel in enumerate(gp['channels']):
                     channel = Channel(
                         address=channel,
                         stream=stream,
                     )
-                    channel.address = address
-                    channel_texts = ch_texts[i]
-
-                    ch_addrs.append(address)
-
-                    address += channel['block_len']
                     blocks.append(channel)
 
-                    if channel_texts:
-                        for key in ('long_name_addr',
-                                    'comment_addr'):
-                            if key in channel_texts:
-                                channel[key] = channel_texts[key]
-                            else:
-                                channel[key] = 0
-                    else:
-                        for key in ('long_name_addr',
-                                    'comment_addr'):
-                            channel[key] = 0
-                            if self.version == '2.00' and 'long_name_addr' in channel:
-                                del channel['long_name_addr']
+                    if channel['comment_addr']:
+                        tx_block = TextBlock(
+                            address=channel['comment_addr'],
+                            stream=stream,
+                        )
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['comment_addr'] = defined_texts[text].address
+                        else:
+                            address = tell()
+                            channel['comment_addr'] = address
+                            defined_texts[text] = tx_block
+                            tx_block.address = address
+                            write(bytes(tx_block))
 
-                    channel['conversion_addr'] = cc[i]
-                    channel['source_depend_addr'] = cs[i]
-                    channel['ch_depend_addr'] = cd[i]
+                    if channel.get('long_name_addr', 0):
+                        tx_block = TextBlock(
+                            address=channel['long_name_addr'],
+                            stream=stream,
+                        )
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['long_name_addr'] = defined_texts[text].address
+                        else:
+                            address = tell()
+                            channel['long_name_addr'] = address
+                            defined_texts[text] = tx_block
+                            tx_block.address = address
+                            write(bytes(tx_block))
 
-                group_channels = gp['channels']
-                if group_channels:
-                    for j, channel in enumerate(blocks[:-1]):
-                        channel['next_ch_addr'] = blocks[j+1].address
-                    blocks[-1]['next_ch_addr'] = 0
+                    if channel.get('display_name_addr', 0):
+                        tx_block = TextBlock(
+                            address=channel['display_name_addr'],
+                            stream=stream,
+                        )
+                        text = tx_block['text']
+                        if text in defined_texts:
+                            channel['display_name_addr'] = defined_texts[text].address
+                        else:
+                            address = tell()
+                            channel['display_name_addr'] = address
+                            defined_texts[text] = tx_block
+                            tx_block.address = address
+                            write(bytes(tx_block))
+
+                    channel['conversion_addr'] = cc_addrs[i]
+                    channel['source_depend_addr'] = ce_addrs[i]
+                    channel['ch_depend_addr'] = cd_addrs[i]
+
+                address = tell()
+                for block in blocks:
+                    ch_addrs.append(address)
+                    block.address = address
+                    address += block['block_len']
+                for j, block in enumerate(blocks[:-1]):
+                    block['next_ch_addr'] = blocks[j + 1].address
+                blocks[-1]['next_ch_addr'] = 0
+
                 for block in blocks:
                     write(bytes(block))
 
@@ -3380,6 +3564,7 @@ class MDF2(object):
                 cg.address = address
 
                 cg['next_cg_addr'] = 0
+                cg['first_ch_addr'] = ch_addrs[0]
                 cg_texts = gp_texts['channel_group'][0]
                 if 'comment_addr' in cg_texts:
                     addr = cg_texts['comment_addr']
@@ -3394,9 +3579,9 @@ class MDF2(object):
                     if trigger_text:
                         trigger_text.address = address
                         write(bytes(trigger_text))
-                        trigger['comment_addr'] = trigger_text.address
+                        trigger['text_addr'] = trigger_text.address
                     else:
-                        trigger['comment_addr'] = 0
+                        trigger['text_addr'] = 0
 
                     address = tell()
                     trigger.address = address
@@ -3416,10 +3601,16 @@ class MDF2(object):
                 del gp['temp_channel_conversions']
                 del gp['temp_channel_extensions']
 
-            orig_addr = [gp['data_group']['data_block_addr'] for gp in self.groups]
+            orig_addr = [
+                gp['data_group']['data_block_addr']
+                for gp in self.groups
+            ]
             address = tell()
+            gp_rec_ids = []
             for i, gp in enumerate(self.groups):
                 dg = gp['data_group']
+                gp_rec_ids.append(dg['record_id_nr'])
+                dg['record_id_nr'] = 0
                 dg['data_block_addr'] = data_address[i]
                 dg.address = address
                 address += dg['block_len']
@@ -3431,13 +3622,16 @@ class MDF2(object):
 
             if self.groups:
                 for i, gp in enumerate(self.groups[:-1]):
-                    addr = self.groups[i+1]['data_group'].address
+                    addr = self.groups[i + 1]['data_group'].address
                     gp['data_group']['next_dg_addr'] = addr
                 self.groups[-1]['data_group']['next_dg_addr'] = 0
 
             for i, gp in enumerate(self.groups):
                 write(bytes(gp['data_group']))
                 gp['data_block_addr'] = orig_addr[i]
+
+            for gp, rec_id in zip(self.groups, gp_rec_ids):
+                gp['data_group']['record_id_nr'] = rec_id
 
             if self.groups:
                 address = self.groups[0]['data_group'].address
@@ -3458,10 +3652,10 @@ class MDF2(object):
                         dep['ch_{}'.format(i)] = grp['temp_channels'][i]
                         dep['cg_{}'.format(i)] = grp['channel_group'].address
                         dep['dg_{}'.format(i)] = grp['data_group'].address
-                    seek(dep.address, v2c.SEEK_START)
+                    seek(dep.address, v23c.SEEK_START)
                     write(bytes(dep))
 
-            seek(v2c.ID_BLOCK_SIZE, v2c.SEEK_START)
+            seek(v23c.ID_BLOCK_SIZE, v23c.SEEK_START)
             write(bytes(self.header))
 
             for gp in self.groups:
@@ -3481,12 +3675,12 @@ class MDF2(object):
             self.attachments = []
             self.file_comment = None
 
-            self._ch_map = {}
             self._master_channel_cache = {}
 
             self._tempfile = TemporaryFile()
             self._file = open(self.name, 'rb')
             self._read()
+        return dst
 
 
 if __name__ == '__main__':

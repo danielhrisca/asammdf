@@ -2,26 +2,24 @@
 """
 classes that implement the blocks for MDF version 4
 """
-from __future__ import print_function, division
+from __future__ import division, print_function
+
 import sys
-
-
 import time
 import warnings
-
 from hashlib import md5
-from struct import unpack, pack, unpack_from
+from struct import pack, unpack, unpack_from
 from zlib import compress, decompress
 
 import numpy as np
 
-from . import v4constants as v4c
+from . import v4_constants as v4c
+from .utils import MdfException
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 SEEK_START = v4c.SEEK_START
 SEEK_END = v4c.SEEK_END
-
 
 __all__ = [
     'AttachmentBlock',
@@ -77,6 +75,10 @@ class AttachmentBlock(dict):
             )
 
             self['embedded_data'] = stream.read(self['embedded_size'])
+
+            if self['id'] != b'##AT':
+                message = 'Expected "##AT" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -154,12 +156,12 @@ class AttachmentBlock(dict):
 
 class Channel(dict):
     """ CNBLOCK class"""
-    __slots__ = ['address', 'name']
+    __slots__ = ['address', 'name', 'unit', 'comment', 'comment_type']
 
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
-        self.name = ''
+        self.name = self.unit = self.comment = self.comment_type = ''
 
         if 'stream' in kargs:
 
@@ -179,7 +181,6 @@ class Channel(dict):
 
             links_nr = self['links_nr']
 
-
             links = unpack_from('<{}Q'.format(links_nr), block)
             params = unpack_from(v4c.FMT_CHANNEL_PARAMS, block, links_nr * 8)
 
@@ -193,7 +194,7 @@ class Channel(dict):
              self['comment_addr']) = links[:8]
 
             for i in range(params[10]):
-                self['attachment_{}_addr'.format(i)] = links[8+i]
+                self['attachment_{}_addr'.format(i)] = links[8 + i]
 
             if params[6] & v4c.FLAG_CN_DEFAULT_X:
                 (self['default_X_dg_addr'],
@@ -227,6 +228,10 @@ class Channel(dict):
                 links_nr * 8,
             )
 
+            if self['id'] != b'##CN':
+                message = 'Expected "##CN" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
         else:
             self.address = 0
 
@@ -236,11 +241,11 @@ class Channel(dict):
             self['links_nr'] = 8
             self['next_ch_addr'] = 0
             self['component_addr'] = 0
-            self['name_addr'] = 0
+            self['name_addr'] = kargs.get('name_addr', 0)
             self['source_addr'] = 0
             self['conversion_addr'] = 0
             self['data_block_addr'] = 0
-            self['unit_addr'] = 0
+            self['unit_addr'] = kargs.get('unit_addr', 0)
             self['comment_addr'] = 0
             self['channel_type'] = kargs['channel_type']
             self['sync_type'] = kargs.get('sync_type', 0)
@@ -355,7 +360,7 @@ class ChannelArrayBlock(dict):
              self['links_nr']) = unpack('<4sI2Q', stream.read(24))
 
             nr = self['links_nr']
-            links = unpack('<{}Q'.format(nr), stream.read(8*nr))
+            links = unpack('<{}Q'.format(nr), stream.read(8 * nr))
             self['composition_addr'] = links[0]
 
             values = unpack('<2BHIiI', stream.read(16))
@@ -367,7 +372,7 @@ class ChannelArrayBlock(dict):
             # lookup table with fixed axis
             elif nr == dims_nr + 1:
                 for i in range(dims_nr):
-                    self['axis_conversion_{}'.format(i)] = links[i+1]
+                    self['axis_conversion_{}'.format(i)] = links[i + 1]
 
             # lookup table with CN template
             elif nr == 4 * dims_nr + 1:
@@ -375,9 +380,9 @@ class ChannelArrayBlock(dict):
                     self['axis_conversion_{}'.format(i)] = links[i + 1]
                 links = links[dims_nr + 1:]
                 for i in range(dims_nr):
-                    self['scale_axis_{}_dg_addr'.format(i)] = links[3*i]
-                    self['scale_axis_{}_cg_addr'.format(i)] = links[3*i + 1]
-                    self['scale_axis_{}_ch_addr'.format(i)] = links[3*i + 2]
+                    self['scale_axis_{}_dg_addr'.format(i)] = links[3 * i]
+                    self['scale_axis_{}_cg_addr'.format(i)] = links[3 * i + 1]
+                    self['scale_axis_{}_ch_addr'.format(i)] = links[3 * i + 2]
 
             (self['ca_type'],
              self['storage'],
@@ -386,7 +391,7 @@ class ChannelArrayBlock(dict):
              self['byte_offset_base'],
              self['invalidation_bit_base']) = values
 
-            dim_sizes = unpack('<{}Q'.format(dims_nr), stream.read(8*dims_nr))
+            dim_sizes = unpack('<{}Q'.format(dims_nr), stream.read(8 * dims_nr))
             for i, size in enumerate(dim_sizes):
                 self['dim_size_{}'.format(i)] = size
 
@@ -395,6 +400,10 @@ class ChannelArrayBlock(dict):
                     for j in range(self['dim_size_{}'.format(i)]):
                         value = unpack('<d', stream.read(8))[0]
                         self['axis_{}_value_{}'.format(i, j)] = value
+
+            if self['id'] != b'##CA':
+                message = 'Expected "##CA" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self['id'] = b'##CA'
@@ -481,7 +490,6 @@ class ChannelArrayBlock(dict):
                     for i in range(dims_nr):
                         self['dim_size_{}'.format(i)] = kargs['dim_size_{}'.format(i)]
 
-
     def __bytes__(self):
         flags = self['flags']
         ca_type = self['ca_type']
@@ -535,11 +543,11 @@ class ChannelArrayBlock(dict):
                 )
                 keys += (
                     'ca_type',
-                     'storage',
-                     'dims',
-                     'flags',
-                     'byte_offset_base',
-                     'invalidation_bit_base',
+                    'storage',
+                    'dims',
+                    'flags',
+                    'byte_offset_base',
+                    'invalidation_bit_base',
                 )
                 keys += tuple('dim_size_{}'.format(i) for i in range(dims_nr))
                 keys += tuple(
@@ -617,9 +625,13 @@ class ChannelGroup(dict):
                 stream.read(v4c.CG_BLOCK_SIZE),
             )
 
+            if self['id'] != b'##CG':
+                message = 'Expected "##CG" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
         except KeyError:
             self.address = 0
-            self['id'] = kargs.get('id', '##CG'.encode('utf-8'))
+            self['id'] = b'##CG'
             self['reserved0'] = kargs.get('reserved0', 0)
             self['block_len'] = kargs.get('block_len', v4c.CG_BLOCK_SIZE)
             self['links_nr'] = kargs.get('links_nr', 6)
@@ -660,27 +672,44 @@ class ChannelGroup(dict):
 class ChannelConversion(dict):
     """CCBLOCK class"""
 
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'name', 'unit', 'comment', 'formula']
 
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
 
-        if 'stream' in kargs:
-            self.address = address = kargs['address']
-            stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+        self.name = self.unit = self.comment = self.formula = ''
 
-            (self['id'],
-             self['reserved0'],
-             self['block_len'],
-             self['links_nr']) = unpack(
-                v4c.FMT_COMMON,
-                stream.read(v4c.COMMON_SIZE),
-            )
+        if 'raw_bytes' in kargs or 'stream' in kargs:
+            try:  
+                (self['id'],
+                 self['reserved0'],
+                 self['block_len'],
+                 self['links_nr']) = unpack_from(
+                    v4c.FMT_COMMON,
+                    kargs['raw_bytes'],
+                )
 
-            block = stream.read(self['block_len'] - v4c.COMMON_SIZE)
+                self.address = 0
 
-            conv = unpack_from('B', block, self['links_nr'] * 8)[0]
+                block = kargs['raw_bytes'][v4c.COMMON_SIZE:]
+
+            except KeyError:
+
+                self.address = address = kargs['address']
+                stream = kargs['stream']
+                stream.seek(address, SEEK_START)
+
+                (self['id'],
+                self['reserved0'],
+                self['block_len'],
+                self['links_nr']) = unpack(
+                    v4c.FMT_COMMON,
+                    stream.read(v4c.COMMON_SIZE),
+                )
+
+                block = stream.read(self['block_len'] - v4c.COMMON_SIZE)
+
+            conv = unpack_from('<B', block, self['links_nr'] * 8)[0]
 
             if conv == v4c.CONVERSION_TYPE_NON:
                 (self['name_addr'],
@@ -769,7 +798,7 @@ class ChannelConversion(dict):
                 values = unpack('<{}d'.format(nr), block[56:])
                 for i in range(nr // 2):
                     (self['raw_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i*2], values[2*i+1]
+                     self['phys_{}'.format(i)]) = values[i * 2], values[2 * i + 1]
 
             elif conv == v4c.CONVERSION_TYPE_RTAB:
                 (self['name_addr'],
@@ -791,7 +820,7 @@ class ChannelConversion(dict):
                 for i in range((nr - 1) // 3):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i*3], values[3*i+1], values[3*i+2]
+                     self['phys_{}'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
                 self['default'] = unpack('<d', block[-8:])[0]
 
             elif conv == v4c.CONVERSION_TYPE_TABX:
@@ -851,14 +880,14 @@ class ChannelConversion(dict):
                 )
 
                 values = unpack_from(
-                    '<{}d'.format( (links_nr - 1) * 2 ),
+                    '<{}d'.format((links_nr - 1) * 2),
                     block,
                     32 + links_nr * 8 + 24,
                 )
                 for i in range(self['val_param_nr'] // 2):
                     j = 2 * i
                     self['lower_{}'.format(i)] = values[j]
-                    self['upper_{}'.format(i)] = values[j+1]
+                    self['upper_{}'.format(i)] = values[j + 1]
 
             elif conv == v4c.CONVERSION_TYPE_TTAB:
                 (self['name_addr'],
@@ -902,10 +931,10 @@ class ChannelConversion(dict):
 
                 links = unpack_from('<{}Q'.format(links_nr), block, 32)
 
-                for i in range((links_nr -1) // 2):
+                for i in range((links_nr - 1) // 2):
                     j = 2 * i
                     self['input_{}_addr'.format(i)] = links[j]
-                    self['output_{}_addr'.format(i)] = links[j+1]
+                    self['output_{}_addr'.format(i)] = links[j + 1]
                 self['default_addr'] = links[-1]
 
                 (self['conversion_type'],
@@ -919,10 +948,14 @@ class ChannelConversion(dict):
                     32 + links_nr * 8,
                 )
 
+            if self['id'] != b'##CC':
+                message = 'Expected "##CC" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
         else:
 
             self.address = 0
-            self['id'] = '##CC'.encode('utf-8')
+            self['id'] = b'##CC'
             self['reserved0'] = 0
 
             if kargs['conversion_type'] == v4c.CONVERSION_TYPE_NON:
@@ -1162,7 +1195,7 @@ class ChannelConversion(dict):
                 )
                 keys += tuple(
                     'val_{}'.format(i)
-                    for i in range(self['val_param_nr'] -1)
+                    for i in range(self['val_param_nr'] - 1)
                 )
                 keys += ('val_default',)
             elif self['conversion_type'] == v4c.CONVERSION_TYPE_TRANS:
@@ -1176,7 +1209,7 @@ class ChannelConversion(dict):
                     'comment_addr',
                     'inv_conv_addr',
                 )
-                for i in range((self['links_nr'] - 4 -1) // 2):
+                for i in range((self['links_nr'] - 4 - 1) // 2):
                     keys += (
                         'input_{}_addr'.format(i),
                         'output_{}_addr'.format(i),
@@ -1193,7 +1226,7 @@ class ChannelConversion(dict):
                 )
                 keys += tuple(
                     'val_{}'.format(i)
-                    for i in range(self['val_param_nr'] -1)
+                    for i in range(self['val_param_nr'] - 1)
                 )
 
         if PYVERSION_MAJOR >= 36:
@@ -1214,7 +1247,8 @@ class DataBlock(dict):
         file handle
 
     """
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(DataBlock, self).__init__()
 
@@ -1232,6 +1266,10 @@ class DataBlock(dict):
             )
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
+            if self['id'] != b'##DT':
+                message = 'Expected "##DT" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
         except KeyError:
 
             self['id'] = b'##DT'
@@ -1240,6 +1278,9 @@ class DataBlock(dict):
             self['links_nr'] = 0
             self['data'] = kargs['data']
 
+        if PYVERSION_MAJOR < 30 and isinstance(self['data'], bytearray):
+            self['data'] = str(self['data'])
+
     def __bytes__(self):
         fmt = v4c.FMT_DATA_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)
         if PYVERSION_MAJOR >= 36:
@@ -1247,7 +1288,6 @@ class DataBlock(dict):
         else:
             result = pack(fmt, *[self[key] for key in v4c.KEYS_DATA_BLOCK])
         return result
-
 
 
 class DataZippedBlock(dict):
@@ -1262,6 +1302,7 @@ class DataZippedBlock(dict):
 
     """
     __slots__ = ['address', 'prevent_data_setitem', 'return_unzipped']
+
     def __init__(self, **kargs):
         super(DataZippedBlock, self).__init__()
 
@@ -1286,6 +1327,10 @@ class DataZippedBlock(dict):
             )
 
             self['data'] = stream.read(self['zip_size'])
+
+            if self['id'] != b'##DZ':
+                message = 'Expected "##DZ" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
             self.prevent_data_setitem = False
@@ -1323,9 +1368,9 @@ class DataZippedBlock(dict):
                 cols = self['param']
                 lines = self['original_size'] // cols
 
-                nd = np.fromstring(data[:lines*cols], dtype=np.uint8)
+                nd = np.fromstring(data[:lines * cols], dtype=np.uint8)
                 nd = nd.reshape((lines, cols))
-                data = nd.transpose().tostring() + data[lines*cols:]
+                data = nd.transpose().tostring() + data[lines * cols:]
 
                 data = compress(data)
 
@@ -1344,9 +1389,9 @@ class DataZippedBlock(dict):
                     cols = self['param']
                     lines = self['original_size'] // cols
 
-                    nd = np.fromstring(data[:lines*cols], dtype=np.uint8)
+                    nd = np.fromstring(data[:lines * cols], dtype=np.uint8)
                     nd = nd.reshape((cols, lines))
-                    data = nd.transpose().tostring() + data[lines*cols:]
+                    data = nd.transpose().tostring() + data[lines * cols:]
             else:
                 data = super(DataZippedBlock, self).__getitem__(item)
             value = data
@@ -1367,7 +1412,8 @@ class DataZippedBlock(dict):
 
 class DataGroup(dict):
     """DGBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(DataGroup, self).__init__()
 
@@ -1390,10 +1436,14 @@ class DataGroup(dict):
                 stream.read(v4c.DG_BLOCK_SIZE),
             )
 
+            if self['id'] != b'##DG':
+                message = 'Expected "##DG" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
         except KeyError:
 
             self.address = 0
-            self['id'] = kargs.get('id', '##DG'.encode('utf-8'))
+            self['id'] = b'##DG'
             self['reserved0'] = kargs.get('reserved0', 0)
             self['block_len'] = kargs.get('block_len', v4c.DG_BLOCK_SIZE)
             self['links_nr'] = kargs.get('links_nr', 4)
@@ -1402,7 +1452,7 @@ class DataGroup(dict):
             self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
             self['record_id_len'] = kargs.get('record_id_len', 0)
-            self['reserved1'] = kargs.get('reserved1', b'\00'*7)
+            self['reserved1'] = kargs.get('reserved1', b'\00' * 7)
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
@@ -1417,7 +1467,8 @@ class DataGroup(dict):
 
 class DataList(dict):
     """DLBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(DataList, self).__init__()
 
@@ -1438,7 +1489,7 @@ class DataList(dict):
 
             links = unpack(
                 '<{}Q'.format(self['links_nr'] - 1),
-                stream.read( (self['links_nr'] - 1) * 8 ),
+                stream.read((self['links_nr'] - 1) * 8),
             )
 
             for i, addr in enumerate(links):
@@ -1456,10 +1507,14 @@ class DataList(dict):
                  self['data_block_nr']) = unpack('<3sI', stream.read(7))
                 offsets = unpack(
                     '<{}Q'.format(self['links_nr'] - 1),
-                    stream.read((self['links_nr'] - 1)*8),
+                    stream.read((self['links_nr'] - 1) * 8),
                 )
                 for i, offset in enumerate(offsets):
                     self['offset_{}'.format(i)] = offset
+
+            if self['id'] != b'##DL':
+                message = 'Expected "##DL" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -1484,7 +1539,6 @@ class DataList(dict):
             else:
                 for i, offset in enumerate(self['links_nr'] - 1):
                     self['offset_{}'.format(i)] = kargs['offset_{}'.format(i)]
-
 
     def __bytes__(self):
         fmt = v4c.FMT_DATA_LIST.format(self['links_nr'])
@@ -1515,7 +1569,8 @@ class DataList(dict):
 
 class FileIdentificationBlock(dict):
     """IDBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
 
         super(FileIdentificationBlock, self).__init__()
@@ -1570,7 +1625,8 @@ class FileIdentificationBlock(dict):
 
 class FileHistory(dict):
     """FHBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(FileHistory, self).__init__()
 
@@ -1594,18 +1650,22 @@ class FileHistory(dict):
                 stream.read(v4c.FH_BLOCK_SIZE),
             )
 
+            if self['id'] != b'##FH':
+                message = 'Expected "##FH" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
         except KeyError:
-            self['id'] = kargs.get('id', '##FH'.encode('utf-8'))
+            self['id'] = b'##FH'
             self['reserved0'] = kargs.get('reserved0', 0)
             self['block_len'] = kargs.get('block_len', v4c.FH_BLOCK_SIZE)
             self['links_nr'] = kargs.get('links_nr', 2)
             self['next_fh_addr'] = kargs.get('next_fh_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
-            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10**9)
+            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10 ** 9)
             self['tz_offset'] = kargs.get('tz_offset', 120)
             self['daylight_save_time'] = kargs.get('daylight_save_time', 60)
             self['time_flags'] = kargs.get('time_flags', 2)
-            self['reserved1'] = kargs.get('reserved1', b'\x00'*3)
+            self['reserved1'] = kargs.get('reserved1', b'\x00' * 3)
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
@@ -1620,7 +1680,8 @@ class FileHistory(dict):
 
 class HeaderBlock(dict):
     """HDBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(HeaderBlock, self).__init__()
 
@@ -1652,9 +1713,13 @@ class HeaderBlock(dict):
                 stream.read(v4c.HEADER_BLOCK_SIZE),
             )
 
+            if self['id'] != b'##HD':
+                message = 'Expected "##HD" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
         except KeyError:
 
-            self['id'] = '##HD'.encode('utf-8')
+            self['id'] = b'##HD'
             self['reserved3'] = kargs.get('reserved3', 0)
             self['block_len'] = kargs.get('block_len', v4c.HEADER_BLOCK_SIZE)
             self['links_nr'] = kargs.get('links_nr', 6)
@@ -1667,7 +1732,7 @@ class HeaderBlock(dict):
             )
             self['first_event_addr'] = kargs.get('first_event_addr', 0)
             self['comment_addr'] = kargs.get('comment_addr', 0)
-            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10**9)
+            self['abs_time'] = kargs.get('abs_time', int(time.time()) * 10 ** 9)
             self['tz_offset'] = kargs.get('tz_offset', 120)
             self['daylight_save_time'] = kargs.get('daylight_save_time', 60)
             self['time_flags'] = kargs.get('time_flags', 2)
@@ -1713,6 +1778,10 @@ class HeaderList(dict):
                 stream.read(v4c.HL_BLOCK_SIZE),
             )
 
+            if self['id'] != b'##HL':
+                message = 'Expected "##HL" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
         except KeyError:
 
             self.address = 0
@@ -1739,12 +1808,35 @@ class HeaderList(dict):
 class SourceInformation(dict):
     """SIBLOCK class"""
 
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'name', 'path', 'comment']
 
     def __init__(self, **kargs):
         super(SourceInformation, self).__init__()
 
-        if 'stream' in kargs:
+        self.name = self.path = self.comment = ''
+
+        if 'raw_bytes' in kargs:
+            self.address = 0
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr'],
+             self['name_addr'],
+             self['path_addr'],
+             self['comment_addr'],
+             self['source_type'],
+             self['bus_type'],
+             self['flags'],
+             self['reserved1']) = unpack(
+                v4c.FMT_SOURCE_INFORMATION,
+                kargs['raw_bytes'],
+            )
+
+            if self['id'] != b'##SI':
+                message = 'Expected "##SI" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
+        elif 'stream' in kargs:
             self.address = address = kargs['address']
             stream = kargs['stream']
             stream.seek(address, SEEK_START)
@@ -1764,15 +1856,19 @@ class SourceInformation(dict):
                 stream.read(v4c.SI_BLOCK_SIZE),
             )
 
+            if self['id'] != b'##SI':
+                message = 'Expected "##SI" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
         else:
             self.address = 0
             self['id'] = b'##SI'
             self['reserved0'] = 0
             self['block_len'] = v4c.SI_BLOCK_SIZE
             self['links_nr'] = 3
-            self['name_addr'] = 0
-            self['path_addr'] = 0
-            self['comment_addr'] = 0
+            self['name_addr'] = kargs.get('name_addr', 0)
+            self['path_addr'] = kargs.get('path_addr', 0)
+            self['comment_addr'] = kargs.get('comment_addr', 0)
             self['source_type'] = kargs.get('source_type', v4c.SOURCE_TOOL)
             self['bus_type'] = kargs.get('bus_type', v4c.BUS_TYPE_NONE)
             self['flags'] = 0
@@ -1791,7 +1887,8 @@ class SourceInformation(dict):
 
 class SignalDataBlock(dict):
     """SDBLOCK class"""
-    __slots__ = ['address',]
+    __slots__ = ['address', ]
+
     def __init__(self, **kargs):
         super(SignalDataBlock, self).__init__()
 
@@ -1808,6 +1905,10 @@ class SignalDataBlock(dict):
                 stream.read(v4c.COMMON_SIZE),
             )
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
+
+            if self['id'] != b'##SD':
+                message = 'Expected "##SD" block but found "{}"'
+                raise MdfException(message.format(self['id']))
 
         except KeyError:
 
@@ -1854,6 +1955,10 @@ class TextBlock(dict):
 
             self['text'] = text = stream.read(size)
 
+            if self['id'] not in (b'##TX', b'##MD'):
+                message = 'Expected "##TX" or "##MD" block @{} but found "{}"'
+                raise MdfException(message.format(hex(address), self['id']))
+
         else:
 
             self.address = 0
@@ -1881,8 +1986,12 @@ class TextBlock(dict):
         align = size % 8
         if align:
             self['block_len'] = size + v4c.COMMON_SIZE + 8 - align
-        elif text and text[-1] not in (0, b'\0'):
-            self['block_len'] = size + v4c.COMMON_SIZE + 8
+        else:
+            if text:
+                if text[-1] not in (0, b'\0'):
+                    self['block_len'] += 8
+            else:
+                self['block_len'] += 8
 
     def __bytes__(self):
         fmt = v4c.FMT_TEXT_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)

@@ -18,64 +18,64 @@
 
 .. _v4blocks:
 
-The following classes implement different MDF version3 blocks.
+The following classes implement different MDF version4 blocks.
 
 AttachmentBlock Class
 ---------------------
-.. autoclass:: asammdf.mdf4.AttachmentBlock
+.. autoclass:: asammdf.v4_blocks.AttachmentBlock
     :members:
 
 Channel Class
 -------------
-.. autoclass:: asammdf.mdf4.Channel
+.. autoclass:: asammdf.v4_blocks.Channel
     :members:
 
 ChannelConversion Class
 -----------------------
-.. autoclass:: asammdf.mdf4.ChannelConversion
+.. autoclass:: asammdf.v4_blocks.ChannelConversion
     :members:
 
 ChannelGroup Class
 ------------------
-.. autoclass:: asammdf.mdf4.ChannelGroup
+.. autoclass:: asammdf.v4_blocks.ChannelGroup
     :members:
 
 DataGroup Class
 ---------------
-.. autoclass:: asammdf.mdf4.DataGroup
+.. autoclass:: asammdf.v4_blocks.DataGroup
     :members:
 
 DataList Class
 --------------
-.. autoclass:: asammdf.mdf4.DataList
+.. autoclass:: asammdf.v4_blocks.DataList
     :members:
 
 DataBlock Class
 ---------------
-.. autoclass:: asammdf.mdf4.DataBlock
+.. autoclass:: asammdf.v4_blocks.DataBlock
     :members:
 
 FileIdentificationBlock Class
 -----------------------------
-.. autoclass:: asammdf.mdf4.FileIdentificationBlock
+.. autoclass:: asammdf.v4_blocks.FileIdentificationBlock
     :members:
 
 HeaderBlock Class
 -----------------
-.. autoclass:: asammdf.mdf4.HeaderBlock
+.. autoclass:: asammdf.v4_blocks.HeaderBlock
     :members:
 
 SourceInformation Class
 -----------------------
-.. autoclass:: asammdf.mdf4.SourceInformation
+.. autoclass:: asammdf.v4_blocks.SourceInformation
     :members:
 
 FileHistory Class
 -----------------
-.. autoclass:: asammdf.mdf4.FileHistory
+.. autoclass:: asammdf.v4_blocks.FileHistory
     :members:
 
 TextBlock Class
 ---------------
-.. autoclass:: asammdf.mdf4.TextBlock
+.. autoclass:: asammdf.v4_blocks.TextBlock
     :members:

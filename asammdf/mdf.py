@@ -3,7 +3,7 @@
 
 import csv
 import os
-from collections import defaultdict
+import sys
 from warnings import warn
 from functools import reduce
 from struct import unpack
@@ -11,21 +11,22 @@ from struct import unpack
 import numpy as np
 from pandas import DataFrame
 
-from .mdf2 import MDF2
-from .mdf3 import MDF3
-from .mdf4 import MDF4
-from .utils import MdfException
-from .v2blocks import Channel as ChannelV2
-from .v3blocks import TextBlock as TextBlockV3
-from .v3blocks import Channel as ChannelV3
-from .v4blocks import TextBlock as TextBlockV4
+from .mdf_v2 import MDF2
+from .mdf_v3 import MDF3
+from .mdf_v4 import MDF4
+from .utils import MdfException, get_text_v3, get_text_v4
+from .v2_v3_blocks import TextBlock as TextBlockV3
+from .v2_v3_blocks import Channel as ChannelV3
+from .v4_blocks import Channel as ChannelV4
+from .v4_blocks import TextBlock as TextBlockV4
+from .v4_blocks import ChannelArrayBlock
 
+PYVERSION = sys.version_info[0]
 
-MDF2_VERSIONS = ('2.00', '2.14')
+MDF2_VERSIONS = ('2.00', '2.10', '2.14')
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
 MDF4_VERSIONS = ('4.00', '4.10', '4.11')
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
-
 
 __all__ = ['MDF', 'SUPPORTED_VERSIONS']
 
@@ -47,10 +48,13 @@ class MDF(object):
             * if *minimum* only minimal data is loaded into RAM
 
     version : string
-        mdf file version from ('2.00', '2.14', '3.00', '3.10', '3.20', '3.30',
-        '4.00', '4.10', '4.11'); default '4.10'
+        mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
+        '3.30', '4.00', '4.10', '4.11'); default '4.10'
 
     """
+
+    _iter_channels = True
+
     def __init__(self, name=None, memory='full', version='4.10'):
         if name:
             if os.path.isfile(name):
@@ -75,18 +79,18 @@ class MDF(object):
             else:
                 raise MdfException('File "{}" does not exist'.format(name))
         else:
-            if version in MDF3_VERSIONS:
+            if version in MDF2_VERSIONS:
+                self._mdf = MDF3(
+                    version=version,
+                    memory=memory,
+                )
+            elif version in MDF3_VERSIONS:
                 self._mdf = MDF3(
                     version=version,
                     memory=memory,
                 )
             elif version in MDF4_VERSIONS:
                 self._mdf = MDF4(
-                    version=version,
-                    memory=memory,
-                )
-            elif version in MDF2_VERSIONS:
-                self._mdf = MDF2(
                     version=version,
                     memory=memory,
                 )
@@ -105,11 +109,8 @@ class MDF(object):
         group = self.groups[index]
 
         excluded_channels = set()
-        try:
-            master_index = self.masters_db[index]
-            excluded_channels.add(master_index)
-        except KeyError:
-            pass
+        master_index = self.masters_db.get(index, -1)
+        excluded_channels.add(master_index)
 
         channels = group['channels']
 
@@ -124,9 +125,10 @@ class MDF(object):
             for dependencies in group['channel_dependencies']:
                 if dependencies is None:
                     continue
-                if all(dep['id'] == b'##CN' for dep in dependencies):
-                    for ch in dependencies:
-                        excluded_channels.add(channels.index(ch))
+                if all(not isinstance(dep, ChannelArrayBlock)
+                       for dep in dependencies):
+                    for channel in dependencies:
+                        excluded_channels.add(channels.index(channel))
                 else:
                     for dep in dependencies:
                         for ch_nr, gp_nr in dep.referenced_channels:
@@ -135,14 +137,22 @@ class MDF(object):
 
         return excluded_channels
 
+    def __contains__(self, channel):
+        return channel in self.channels_db
+
+    def __iter__(self):
+        # the default is to yield from iter_channels
+        for signal in self.iter_channels():
+            yield signal
+
     def convert(self, to, memory='full'):
         """convert MDF to other versions
 
         Parameters
         ----------
         to : str
-            new mdf version from ('2.00', '2.14', '3.00', '3.10', '3.20',
-            '3.30', '4.00', '4.10', '4.11')
+            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            '3.20', '3.30', '4.00', '4.10', '4.11'); default '4.10'
         memory : str
             memory option; default `full`
 
@@ -153,21 +163,23 @@ class MDF(object):
 
         """
         if to not in SUPPORTED_VERSIONS:
-            message = ('Unknown output mdf version "{}".'
-                       ' Available versions are {}')
+            message = (
+                'Unknown output mdf version "{}".'
+                ' Available versions are {}'
+            )
             warn(message.format(to, SUPPORTED_VERSIONS))
-            return
+            out = None
         else:
             out = MDF(version=to, memory=memory)
 
             # walk through all groups and get all channels
-            for i, gp in enumerate(self.groups):
+            for i, group in enumerate(self.groups):
                 sigs = []
                 excluded_channels = self._excluded_channels(i)
 
-                data = self._load_group_data(gp)
+                data = self._load_group_data(group)
 
-                for j, _ in enumerate(gp['channels']):
+                for j, _ in enumerate(group['channels']):
                     if j in excluded_channels:
                         continue
                     else:
@@ -180,7 +192,8 @@ class MDF(object):
                         source_info.format(self.version, to),
                         common_timebase=True,
                     )
-            return out
+
+        return out
 
     def cut(self, start=None, stop=None, whence=0):
         """convert MDF to other versions
@@ -219,7 +232,7 @@ class MDF(object):
                         index=master_index,
                         samples_only=True,
                     )
-                    if len(master):
+                    if master.size:
                         timestamps.append(master[0])
             first_timestamp = np.amin(timestamps)
             if start is not None:
@@ -231,13 +244,13 @@ class MDF(object):
             del timestamps
 
         # walk through all groups and get all channels
-        for i, gp in enumerate(self.groups):
+        for i, group in enumerate(self.groups):
             sigs = []
             excluded_channels = self._excluded_channels(i)
 
-            data = self._load_group_data(gp)
+            data = self._load_group_data(group)
 
-            for j, _ in enumerate(gp['channels']):
+            for j, _ in enumerate(group['channels']):
                 if j in excluded_channels:
                     continue
                 sig = self.get(
@@ -323,9 +336,9 @@ class MDF(object):
             else:
                 if not name.endswith('.hdf'):
                     name = os.path.splitext(name)[0] + '.hdf'
-                with HDF5(name, 'w') as f:
+                with HDF5(name, 'w') as hdf:
                     # header information
-                    group = f.create_group(os.path.basename(name))
+                    group = hdf.create_group(os.path.basename(name))
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
@@ -337,7 +350,7 @@ class MDF(object):
                     # that will hold the name of the master channel
                     for i, grp in enumerate(self.groups):
                         group_name = r'/' + 'DataGroup_{}'.format(i + 1)
-                        group = f.create_group(group_name)
+                        group = hdf.create_group(group_name)
 
                         master_index = self.masters_db.get(i, -1)
 
@@ -363,9 +376,9 @@ class MDF(object):
                 return
             else:
                 excel_name = os.path.splitext(name)[0]
-                nr = len(self.groups)
+                count = len(self.groups)
                 for i, grp in enumerate(self.groups):
-                    print('Exporting group {} of {}'.format(i+1, nr))
+                    print('Exporting group {} of {}'.format(i + 1, count))
 
                     data = self._load_group_data(grp)
 
@@ -374,49 +387,47 @@ class MDF(object):
                     workbook = xlsxwriter.Workbook(wb_name)
                     bold = workbook.add_format({'bold': True})
 
-                    ws = workbook.add_worksheet("Information")
-
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
+                        sheet = workbook.add_worksheet(group_name)
                         for j, item in enumerate(header_items):
-
-                            ws.write(j, 0, item.title(), bold)
-                            ws.write(j, 1, self.header[item].decode('latin-1'))
-
-                        ws = workbook.add_worksheet(group_name)
+                            sheet.write(j, 0, item.title(), bold)
+                            sheet.write(j, 1, self.header[item].decode('latin-1'))
 
                         # the sheet header has 3 rows
                         # the channel name and unit 'YY [xx]'
                         # the channel comment
                         # the flag for data grup master channel
-                        ws.write(0, 0, 'Channel', bold)
-                        ws.write(1, 0, 'comment', bold)
-                        ws.write(2, 0, 'is master', bold)
+                        sheet.write(0, 0, 'Channel', bold)
+                        sheet.write(1, 0, 'comment', bold)
+                        sheet.write(2, 0, 'is master', bold)
 
-                        master_index = self.masters_db[i]
+                        master_index = self.masters_db.get(i, -1)
 
                         for j in range(grp['channel_group']['cycles_nr']):
-                            ws.write(j+3, 0, str(j))
+                            sheet.write(j + 3, 0, str(j))
 
                         for j, _ in enumerate(grp['channels']):
                             sig = self.get(group=i, index=j, data=data)
 
                             col = j + 1
-                            sig_description = '{} [{}]'.format(sig.name,
-                                                               sig.unit)
+                            sig_description = '{} [{}]'.format(
+                                sig.name,
+                                sig.unit,
+                            )
                             comment = sig.comment if sig.comment else ''
-                            ws.write(0, col, sig_description)
-                            ws.write(1, col, comment)
+                            sheet.write(0, col, sig_description)
+                            sheet.write(1, col, comment)
                             if j == master_index:
-                                ws.write(2, col, 'x')
-                            ws.write_column(3, col, sig.samples.astype(str))
+                                sheet.write(2, col, 'x')
+                            sheet.write_column(3, col, sig.samples.astype(str))
 
                     workbook.close()
 
         elif fmt == 'csv':
             csv_name = os.path.splitext(name)[0]
-            nr = len(self.groups)
+            count = len(self.groups)
             for i, grp in enumerate(self.groups):
-                print('Exporting group {} of {}'.format(i+1, nr))
+                print('Exporting group {} of {}'.format(i + 1, count))
                 data = self._load_group_data(grp)
 
                 group_name = 'DataGroup_{}'.format(i + 1)
@@ -425,15 +436,19 @@ class MDF(object):
                     writer = csv.writer(csvfile, delimiter=';')
 
                     ch_nr = len(grp['channels'])
-                    channels = [self.get(group=i, index=j, data=data)
-                                for j in range(ch_nr)]
+                    channels = [
+                        self.get(group=i, index=j, data=data)
+                        for j in range(ch_nr)
+                    ]
 
-                    master_index = self.masters_db[i]
+                    master_index = self.masters_db.get(i, -1)
                     cycles = grp['channel_group']['cycles_nr']
 
                     names_row = ['Channel', ]
-                    names_row += ['{} [{}]'.format(ch.name, ch.unit)
-                                  for ch in channels]
+                    names_row += [
+                        '{} [{}]'.format(ch.name, ch.unit)
+                        for ch in channels
+                    ]
                     writer.writerow(names_row)
 
                     comment_row = ['comment', ]
@@ -441,8 +456,10 @@ class MDF(object):
                     writer.writerow(comment_row)
 
                     master_row = ['Is master', ]
-                    master_row += ['x' if j == master_index else ''
-                                   for j in range(ch_nr)]
+                    master_row += [
+                        'x' if j == master_index else ''
+                        for j in range(ch_nr)
+                    ]
                     writer.writerow(master_row)
 
                     vals = [np.array(range(cycles), dtype=np.uint32), ]
@@ -464,6 +481,7 @@ class MDF(object):
             channel = 'DataGroup_{}_{}'
 
             for i, grp in enumerate(self.groups):
+                master_index = self.masters_db.get(i, -1)
                 data = self._load_group_data(grp)
                 for j, _ in enumerate(grp['channels']):
                     sig = self.get(
@@ -483,6 +501,12 @@ class MDF(object):
                 long_field_names=True,
                 do_compression=True,
             )
+        else:
+            message = (
+                'Unsopported export type "{}". '
+                'Please select "csv", "excel", "hdf5" or "mat"'
+            )
+            warn(message.format(fmt))
 
     def filter(self, channels, memory=None):
         """ return new *MDF* object that contains only the channels listed in
@@ -491,7 +515,13 @@ class MDF(object):
         Parameters
         ----------
         channels : list
-            list of channel names to be filtered
+            list of items to be filtered; each item can be :
+
+                * a channel name string
+                * (channel_name, group index, channel index) list or tuple
+                * (channel name, group index) list or tuple
+                * (None, group index, channel index) lsit or tuple
+
         memory : str
             memory option for filtered mdf; default None in which case the
             original file's memory option is used
@@ -501,53 +531,100 @@ class MDF(object):
         mdf : MDF
             new MDF file
 
+        Examples
+        --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+        >>> t = np.arange(5)
+        >>> s = np.ones(5)
+        >>> mdf = MDF()
+        >>> for i in range(4):
+        ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
+        ...     mdf.append(sigs)
+        ...
+        >>> filtered = mdf.filter(['SIG', ('SIG', 3, 1), ['SIG', 2], (None, 1, 2)])
+        >>> for gp_nr, ch_nr in filtered.channels_db['SIG']:
+        ...     print(filtered.get(group=gp_nr, index=ch_nr))
+        ...
+        <Signal SIG:
+                samples=[ 1.  1.  1.  1.  1.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        <Signal SIG:
+                samples=[ 31.  31.  31.  31.  31.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        <Signal SIG:
+                samples=[ 21.  21.  21.  21.  21.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        <Signal SIG:
+                samples=[ 12.  12.  12.  12.  12.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+
         """
 
         # group channels by group index
         gps = {}
-        excluded_channels = defaultdict(list)
-        for ch in channels:
-            if ch in self.channels_db:
-                for group, index in self.channels_db[ch]:
+
+        for item in channels:
+            if isinstance(item, (list, tuple)):
+                if len(item) not in (2, 3):
+                    raise MdfException(
+                        'The items used for filtering must be strings, '
+                        'or they must match the first 3 argumens of the get '
+                        'method'
+                    )
+                else:
+                    group, index = self._validate_channel_selection(*item)
                     if group not in gps:
                         gps[group] = set()
                     gps[group].add(index)
-                    if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-                        dep = group['channel_dependencies'][index]
-                        if dep:
+            else:
+                name = item
+                group, index = self._validate_channel_selection(name)
+                if group not in gps:
+                    gps[group] = set()
+                gps[group].add(index)
+
+        for group_index, indexes in gps.items():
+            grp = self.groups[group_index]
+            excluded_channels = set()
+            for index in indexes:
+                if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
+                    dep = grp['channel_dependencies'][index]
+                    if dep:
+                        for ch_nr, gp_nr in dep.referenced_channels:
+                            if gp_nr == group:
+                                excluded_channels.add(ch_nr)
+                else:
+                    dependencies = grp['channel_dependencies'][index]
+                    if dependencies is None:
+                        continue
+                    if all(not isinstance(dep, ChannelArrayBlock)
+                           for dep in dependencies):
+                        channels = grp['channels']
+                        for channel in dependencies:
+                            excluded_channels.add(channels.index(channel))
+                    else:
+                        for dep in dependencies:
                             for ch_nr, gp_nr in dep.referenced_channels:
                                 if gp_nr == group:
-                                    excluded_channels[group].append(ch_nr)
-                    else:
-                        grp = self.groups[group]
-                        dependencies = grp['channel_dependencies'][index]
-                        if dependencies is None:
-                            continue
-                        if all(dep['id'] == b'##CN' for dep in dependencies):
-                            channels = grp['channels']
-                            for ch in dependencies:
-                                excluded_channels[group].append(channels.index(ch))
-                        else:
-                            for dep in dependencies:
-                                for ch_nr, gp_nr in dep.referenced_channels:
-                                    if gp_nr == group:
-                                        excluded_channels[group].append(ch_nr)
-            else:
-                message = ('MDF filter error: '
-                           'Channel "{}" not found, it will be ignored')
-                warn(message.format(ch))
-                continue
+                                    excluded_channels.add(ch_nr)
 
-        for group in excluded_channels:
-            excluded_indexes = excluded_channels[group]
-            if group in gps:
-                for index in excluded_indexes:
-                    if index in gps[group]:
-                        gps[group].remove(index)
+            gps[group_index] = gps[group_index] - excluded_channels
 
-        if memory is not None:
-            if memory not in ('full', 'low', 'minimum'):
-                memory = self.memory
+        if memory is None or memory not in ('full', 'low', 'minimum'):
+            memory = self.memory
 
         mdf = MDF(
             version=self.version,
@@ -584,7 +661,7 @@ class MDF(object):
         Parameters
         ----------
         files : list | tuple
-            list of MDF file names
+            list of MDF file names or MDF instances
         outversion : str
             merged file version
         memory : str
@@ -603,11 +680,16 @@ class MDF(object):
         if not files:
             raise MdfException('No files given for merge')
 
-        files = [MDF(file, memory) for file in files]
+        files = [
+            file if isinstance(file, MDF) else MDF(file, memory)
+            for file in files
+        ]
 
         if not len(set(len(file.groups) for file in files)) == 1:
-            message = ("Can't merge files: "
-                       "difference in number of data groups")
+            message = (
+                "Can't merge files: "
+                "difference in number of data groups"
+            )
             raise MdfException(message)
 
         merged = MDF(
@@ -618,8 +700,10 @@ class MDF(object):
         for i, groups in enumerate(zip(*(file.groups for file in files))):
             channels_nr = set(len(group['channels']) for group in groups)
             if not len(channels_nr) == 1:
-                message = ("Can't merge files: "
-                           "different channel number for data groups {}")
+                message = (
+                    "Can't merge files: "
+                    "different channel number for data groups {}"
+                )
                 raise MdfException(message.format(i))
 
             signals = []
@@ -643,29 +727,20 @@ class MDF(object):
                             else:
                                 stream = file._tempfile
 
-                            channel_texts = grp['texts']['channels'][j]
-                            if channel_texts and \
-                                    'long_name_addr' in channel_texts:
-                                address = grp['texts']['channels'][j]['long_name_addr']
+                            channel = ChannelV3(
+                                address=grp['channels'][j],
+                                stream=stream,
+                            )
 
-                                block = TextBlockV3(
-                                    address=address,
-                                    stream=stream,
-                                )
-                                name = block['text']
+                            if channel.get('long_name_addr', 0):
+                                name = get_text_v3(channel['long_name_addr'], stream)
                             else:
-                                if file.version in MDF2_VERSIONS:
-                                    channel = ChannelV2(
-                                        address=grp['channels'][j],
-                                        stream=stream,
-                                    )
-                                else:
-                                    channel = ChannelV3(
-                                        address=grp['channels'][j],
-                                        stream=stream,
-                                    )
-                                name = channel['short_name']
-                            name = name.decode('latin-1').strip(' \r\n\t\0')
+                                name = (
+                                    channel['short_name']
+                                    .decode('latin-1')
+                                    .strip(' \r\n\t\0')
+                                    .split('\\')[0]
+                                )
                         else:
                             grp = file.groups[i]
                             if grp['data_location'] == 0:
@@ -673,48 +748,67 @@ class MDF(object):
                             else:
                                 stream = file._tempfile
 
-                            address = grp['texts']['channels'][j]['name_addr']
-
-                            block = TextBlockV4(
-                                address=address,
+                            channel = ChannelV4(
+                                address=grp['channels'][j],
                                 stream=stream,
                             )
-                            name = block['text']
-                            name = name.decode('utf-8').strip(' \r\n\t\0')
+                            name = get_text_v4(channel['name_addr'], stream)
                         name = name.split('\\')[0]
                         names.append(name)
                     names = set(names)
                 else:
                     names = set(ch.name for ch in channels)
                 if not len(names) == 1:
-                    message = ("Can't merge files: "
-                               "different channel names for data group {}")
+                    message = (
+                        "Can't merge files: "
+                        "different channel names for data group {}"
+                    )
                     raise MdfException(message.format(i))
 
                 if j in excluded_channels:
                     continue
 
-                sigs = [
+                signals_to_merge = [
                     file.get(group=i, index=j, data=data)
                     for file, data in zip(files, groups_data)
                 ]
 
-                sig = sigs[0]
-                for s in sigs[1:]:
-                    sig = sig.extend(s)
+                signal = signals_to_merge[0]
+                for merged_signal in signals_to_merge[1:]:
+                    signal = signal.extend(merged_signal)
 
-                signals.append(sig)
+                signals.append(signal)
 
             if signals:
                 merged.append(signals, common_timebase=True)
 
         return merged
 
-    def iter_to_pandas(self):
+    def iter_channels(self, skip_master=True):
+        """ generator that yields a `Signal` for each non-master channel
+
+        Parameters
+        ----------
+        skip_master : bool
+            do not yield master channels; default True
+
+        """
+        for i, group in enumerate(self.groups):
+            try:
+                master_index = self.masters_db[i]
+            except KeyError:
+                master_index = -1
+
+            for j, _ in enumerate(group['channels']):
+                if skip_master and j == master_index:
+                    continue
+                yield self.get(group=i, index=j)
+
+    def iter_groups(self):
         """ generator that yields channel groups as pandas DataFrames"""
 
-        for i, gp in enumerate(self.groups):
-            data = self._load_group_data(gp)
+        for i, group in enumerate(self.groups):
+            data = self._load_group_data(group)
             master_index = self.masters_db.get(i, None)
             if master_index is None:
                 pandas_dict = {}
@@ -725,7 +819,7 @@ class MDF(object):
                     data=data,
                 )
                 pandas_dict = {master.name: master.samples}
-            for j, _ in enumerate(gp['channels']):
+            for j, _ in enumerate(group['channels']):
                 if j == master_index:
                     continue
                 sig = self.get(
@@ -753,7 +847,7 @@ class MDF(object):
 
         """
 
-        if memory is None:
+        if memory is None or memory not in ('full', 'low', 'minimum'):
             memory = self.memory
 
         mdf = MDF(
@@ -762,13 +856,13 @@ class MDF(object):
         )
 
         # walk through all groups and get all channels
-        for i, gp in enumerate(self.groups):
+        for i, group in enumerate(self.groups):
             sigs = []
             excluded_channels = self._excluded_channels(i)
 
-            data = self._load_group_data(gp)
+            data = self._load_group_data(group)
 
-            for j, _ in enumerate(gp['channels']):
+            for j, _ in enumerate(group['channels']):
                 if j in excluded_channels:
                     continue
                 sig = self.get(
@@ -796,7 +890,13 @@ class MDF(object):
         Parameters
         ----------
         channels : list
-            list of channel names to be filtered
+            list of items to be filtered; each item can be :
+
+                * a channel name string
+                * (channel_name, group index, channel index) list or tuple
+                * (channel name, group index) list or tuple
+                * (None, group index, channel index) lsit or tuple
+
         dataframe: bool
             return a pandas DataFrame instead of a list of Signals; in this
             case the signals will be interpolated using the union of all
@@ -805,34 +905,86 @@ class MDF(object):
         Returns
         -------
         signals : list
-            lsit of *Signal* objects based on the input channel list
+            list of *Signal* objects based on the input channel list
+
+        Examples
+        --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+        >>> t = np.arange(5)
+        >>> s = np.ones(5)
+        >>> mdf = MDF()
+        >>> for i in range(4):
+        ...     sigs = [Signal(s*(i*10+j), t, name='SIG') for j in range(1,4)]
+        ...     mdf.append(sigs)
+        ...
+        >>> # select SIG group 0 default index 1 default, SIG group 3 index 1, SIG group 2 index 1 default and channel index 2 from group 1
+        ...
+        >>> mdf.select(['SIG', ('SIG', 3, 1), ['SIG', 2],  (None, 1, 2)])
+        [<Signal SIG:
+                samples=[ 1.  1.  1.  1.  1.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        , <Signal SIG:
+                samples=[ 31.  31.  31.  31.  31.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        , <Signal SIG:
+                samples=[ 21.  21.  21.  21.  21.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        , <Signal SIG:
+                samples=[ 12.  12.  12.  12.  12.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
+        ]
 
         """
 
         # group channels by group index
         gps = {}
-        for ch in channels:
-            if ch in self.channels_db:
-                for group, index in self.channels_db[ch]:
-                    if group not in gps:
-                        gps[group] = []
-                    gps[group].append(index)
-            else:
-                message = ('MDF filter error: '
-                           'Channel "{}" not found, it will be ignored')
-                warn(message.format(ch))
-                continue
 
-        # append filtered channels to new MDF
+        indexes = []
+
+        for item in channels:
+            if isinstance(item, (list, tuple)):
+                if len(item) not in (2, 3):
+                    raise MdfException(
+                        'The items used for filtering must be strings, '
+                        'or they must match the first 3 argumens of the get '
+                        'method'
+                    )
+                else:
+                    group, index = self._validate_channel_selection(*item)
+                    indexes.append((group, index))
+                    if group not in gps:
+                        gps[group] = set()
+                    gps[group].add(index)
+            else:
+                name = item
+                group, index = self._validate_channel_selection(name)
+                indexes.append((group, index))
+                if group not in gps:
+                    gps[group] = set()
+                gps[group].add(index)
+
         signals = {}
         for group in gps:
             grp = self.groups[group]
             data = self._load_group_data(grp)
             for index in gps[group]:
                 signal = self.get(group=group, index=index, data=data)
-                signals[signal.name] = signal
+                signals[(group, index)] = signal
 
-        signals = [signals[channel] for channel in channels]
+        signals = [signals[pair] for pair in indexes]
 
         if dataframe:
             times = [s.timestamps for s in signals]
@@ -847,6 +999,34 @@ class MDF(object):
             signals = DataFrame.from_dict(pandas_dict)
 
         return signals
+
+    def whereis(self, channel):
+        """ get ocurrences of channel name in the file
+
+        Parameters
+        ----------
+        channel : str
+            channel name string
+
+        Returns
+        -------
+        ocurrences : tuple
+
+
+        Examples
+        --------
+        >>> mdf = MDF(file_name)
+        >>> mdf.whereis('VehicleSpeed') # "VehicleSpeed" exists in the file
+        ((1, 2), (2, 4))
+        >>> mdf.whereis('VehicleSPD') # "VehicleSPD" doesn't exist in the file
+        ()
+
+        """
+        if channel in self:
+            return tuple(self.channels_db[channel])
+        else:
+            return tuple()
+
 
 if __name__ == '__main__':
     pass
