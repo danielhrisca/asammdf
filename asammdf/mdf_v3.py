@@ -44,6 +44,7 @@ from . import v2_v3_constants as v23c
 from .signal import Signal
 from .utils import (
     MdfException,
+    as_non_byte_sized_signed_int,
     fix_dtype_fields,
     fmt_to_datatype_v3,
     get_fmt_v3,
@@ -2454,29 +2455,14 @@ class MDF3(object):
                             vals = vals >> bit_offset
 
                     if not bits == size * 8:
-                        mask = (1 << bits) - 1
-                        if vals.flags.writeable:
-                            vals &= mask
-                        else:
-                            vals = vals & mask
-
                         if data_type in v23c.SIGNED_INT:
-
-                            size = vals.dtype.itemsize
-
-                            masks = ones(
-                                cycles_nr,
-                                dtype=dtype('<u{}'.format(size)),
-                            )
-
-                            masks *= (1 << bits) - 1
-                            masks = ~masks
-
-                            masks *= ((vals & (1 << (bits - 1))) >> (bits - 1)).astype(dtype('<u{}'.format(size)))
-
-                            vals |= masks
-
-                            vals = vals.astype('<i{}'.format(size), copy=False)
+                            vals = as_non_byte_sized_signed_int(vals, bits)
+                        else:
+                            mask = (1 << bits) - 1
+                            if vals.flags.writeable:
+                                vals &= mask
+                            else:
+                                vals = vals & mask
 
             else:
                 vals = self._get_not_byte_aligned_data(data, grp, ch_nr)

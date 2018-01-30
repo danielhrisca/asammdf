@@ -10,6 +10,7 @@ from struct import unpack
 from numpy import (
     amin,
     amax,
+    where,
 )
 
 from . import v2_v3_constants as v3c
@@ -368,3 +369,27 @@ def get_min_max(samples):
     else:
         min_val, max_val = 0, 0
     return min_val, max_val
+
+
+def as_non_byte_sized_signed_int(integer_array, bit_length):
+    """
+    The MDF spec allows values to be encoded as integers that aren't byte-sized. Numpy only knows how to do two's
+    complement on byte-sized integers (i.e. int16, int32, int64, etc.), so we have to calculate two's complement
+    ourselves in order to handle signed integers with unconventional lengths.
+
+    Parameters
+    ----------
+    integer_array : np.array
+        Array of integers to apply two's complement to
+    bit_length : int
+        Number of bits to sample from the array
+    Returns
+    -------
+    integer_array : np.array
+        signed integer array with non-byte-sized two's complement applied
+    """
+
+    truncated_integers = integer_array & ((1 << bit_length) - 1)  # Zero out the unwanted bits
+    return where(truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
+                 (2**bit_length - truncated_integers) * -1,  # when negative, do two's complement
+                 truncated_integers)  # when positive, return the truncated int
