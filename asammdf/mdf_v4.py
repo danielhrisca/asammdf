@@ -48,6 +48,7 @@ from . import v4_constants as v4c
 from .signal import Signal
 from .utils import (
     MdfException,
+    as_non_byte_sized_signed_int,
     fix_dtype_fields,
     fmt_to_datatype_v4,
     get_fmt_v4,
@@ -3348,25 +3349,8 @@ class MDF4(object):
                                 vals = vals & mask
 
                             if data_type in v4c.SIGNED_INT:
+                                vals = as_non_byte_sized_signed_int(vals, bits)
 
-                                size = vals.dtype.itemsize
-
-                                masks = ones(
-                                    cycles_nr,
-                                    dtype=dtype('<u{}'.format(size)),
-                                )
-
-                                masks *= (1 << bits) - 1
-                                masks = ~masks
-
-                                masks *= ((vals & (1 << (bits - 1))) >> (bits - 1)).astype(dtype('<u{}'.format(size)))
-
-                                vals |= masks
-
-                                vals = vals.astype(
-                                    '<i{}'.format(size),
-                                    copy=False,
-                                )
                 else:
                     vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 
