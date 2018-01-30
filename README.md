@@ -96,10 +96,10 @@ The main goals for this library are:
 ```  
  
 Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/development/examples.html
+http://asammdf.readthedocs.io/en/master/examples.html
 
 # Documentation
-http://asammdf.readthedocs.io/en/development
+http://asammdf.readthedocs.io/en/master
 
 # Installation
 *asammdf* is available on 
@@ -128,5 +128,5 @@ optional dependencies needed for exports
 
 # Benchmarks
 
-http://asammdf.readthedocs.io/en/development/benchmarks.html
+http://asammdf.readthedocs.io/en/master/benchmarks.html
 
