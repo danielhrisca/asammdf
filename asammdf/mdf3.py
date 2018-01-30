@@ -35,6 +35,7 @@ from numpy import (
     zeros,
     uint8,
     arange,
+    where,
 )
 from numpy.core.records import fromstring, fromarrays
 from numpy.core.defchararray import encode
@@ -2411,17 +2412,15 @@ class MDF3(object):
                             vals = vals >> bit_offset
 
                     if not bits == size * 8:
-                        mask = (1 << bits) - 1
-                        if vals.flags.writeable:
-                            vals &= mask
-                        else:
-                            vals = vals & mask
                         if data_type in v3c.SIGNED_INT:
-                            size = vals.dtype.itemsize
-                            mask = (1 << (size * 8)) - 1
-                            mask = (mask << bits) & mask
-                            vals |= mask
-                            vals = vals.astype('<i{}'.format(size), copy=False)
+                            vals = self._as_non_byte_sized_signed_int(vals, bits)
+                        else:
+                            mask = (1 << bits) - 1
+                            if vals.flags.writeable:
+                                vals &= mask
+                            else:
+                                vals = vals & mask
+
             else:
                 vals = self._get_not_byte_aligned_data(data, grp, ch_nr)
 
@@ -3454,6 +3453,26 @@ class MDF3(object):
             self._tempfile = TemporaryFile()
             self._file = open(self.name, 'rb')
             self._read()
+
+
+    @staticmethod
+    def _as_non_byte_sized_signed_int(integer_array, bit_length):
+        """
+        The MDF spec allows values to be encoded as integers that aren't byte-sized. Numpy only knows how to do two's
+        complement on byte-sized integers (i.e. int16, int32, int64, etc.), so we have to calculate two's complement
+        ourselves in order to handle signed integers with unconventional lengths.
+
+        :param np.array integer_array: Array of integers to apply two's complement to
+        :param bit_length: Number of bits to sample from the array
+        :return np.array:
+        """
+
+        truncated_integers = integer_array & ((1 << bit_length) - 1)  # Zero out the unwanted bits
+        return where(truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
+                     (2**bit_length - truncated_integers) * -1, # when negative, do two's complement
+                     truncated_integers)  # when positive, return the truncated int
+
+
 
 
 if __name__ == '__main__':
