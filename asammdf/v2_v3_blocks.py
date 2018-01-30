@@ -407,7 +407,7 @@ class ChannelConversion(dict):
 
             elif conv_type in (
                     v23c.CONVERSION_TYPE_TABI,
-                    v23c.CONVERSION_TYPE_TABX):
+                    v23c.CONVERSION_TYPE_TAB):
                 nr = self['ref_param_nr']
                 values = unpack_from(
                     '<{}d'.format(2 * nr),
@@ -447,7 +447,7 @@ class ChannelConversion(dict):
                     v23c.CC_COMMON_SHORT_SIZE,
                 )
 
-            elif conv_type == v23c.CONVERSION_TYPE_VTAB:
+            elif conv_type == v23c.CONVERSION_TYPE_TABX:
                 nr = self['ref_param_nr']
 
                 values = unpack_from(
@@ -460,7 +460,7 @@ class ChannelConversion(dict):
                     (self['param_val_{}'.format(i)],
                      self['text_{}'.format(i)]) = values[i * 2], values[2 * i + 1]
 
-            elif conv_type == v23c.CONVERSION_TYPE_VTABR:
+            elif conv_type == v23c.CONVERSION_TYPE_RTABX:
                 nr = self['ref_param_nr']
 
                 values = unpack_from(
@@ -575,9 +575,9 @@ class ChannelConversion(dict):
 
             elif kargs['conversion_type'] in (
                     v23c.CONVERSION_TYPE_TABI,
-                    v23c.CONVERSION_TYPE_TABX):
+                    v23c.CONVERSION_TYPE_TAB):
                 nr = kargs['ref_param_nr']
-                self['block_len'] = kargs['block_len']
+                self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + nr * 2 * 8
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
@@ -591,7 +591,7 @@ class ChannelConversion(dict):
                     self['raw_{}'.format(i)] = kargs['raw_{}'.format(i)]
                     self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
 
-            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_VTAB:
+            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_TABX:
                 nr = kargs['ref_param_nr']
                 self['block_len'] = kargs.get(
                     'block_len',
@@ -601,14 +601,14 @@ class ChannelConversion(dict):
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = v23c.CONVERSION_TYPE_VTAB
+                self['conversion_type'] = v23c.CONVERSION_TYPE_TABX
                 self['ref_param_nr'] = nr
 
                 for i in range(nr):
                     self['param_val_{}'.format(i)] = kargs['param_val_{}'.format(i)]
                     self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
 
-            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_VTABR:
+            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_RTABX:
                 nr = kargs.get('ref_param_nr', 0)
                 self['block_len'] = kargs.get(
                     'block_len',
@@ -618,7 +618,7 @@ class ChannelConversion(dict):
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = v23c.CONVERSION_TYPE_VTABR
+                self['conversion_type'] = v23c.CONVERSION_TYPE_RTABX
                 self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
 
                 for i in range(self['ref_param_nr']):
@@ -646,13 +646,13 @@ class ChannelConversion(dict):
             fmt = v23c.FMT_CONVERSION_POLY_RAT
         elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
             fmt = v23c.FMT_CONVERSION_EXPO_LOGH
-        elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TABX):
+        elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
             nr = self['ref_param_nr']
             fmt = v23c.FMT_CONVERSION_COMMON + '{}d'.format(nr * 2)
-        elif conv == v23c.CONVERSION_TYPE_VTABR:
+        elif conv == v23c.CONVERSION_TYPE_RTABX:
             nr = self['ref_param_nr']
             fmt = v23c.FMT_CONVERSION_COMMON + '2dI' * nr
-        elif conv == v23c.CONVERSION_TYPE_VTAB:
+        elif conv == v23c.CONVERSION_TYPE_TABX:
             nr = self['ref_param_nr']
             fmt = v23c.FMT_CONVERSION_COMMON + 'd32s' * nr
 
@@ -670,20 +670,20 @@ class ChannelConversion(dict):
                 keys = v23c.KEYS_CONVESION_POLY_RAT
             elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
                 keys = v23c.KEYS_CONVESION_EXPO_LOGH
-            elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TABX):
+            elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
                 nr = self['ref_param_nr']
                 keys = list(v23c.KEYS_CONVESION_NONE)
                 for i in range(nr):
                     keys.append('raw_{}'.format(i))
                     keys.append('phys_{}'.format(i))
-            elif conv == v23c.CONVERSION_TYPE_VTABR:
+            elif conv == v23c.CONVERSION_TYPE_RTABX:
                 nr = self['ref_param_nr']
                 keys = list(v23c.KEYS_CONVESION_NONE)
                 for i in range(nr):
                     keys.append('lower_{}'.format(i))
                     keys.append('upper_{}'.format(i))
                     keys.append('text_{}'.format(i))
-            elif conv == v23c.CONVERSION_TYPE_VTAB:
+            elif conv == v23c.CONVERSION_TYPE_TABX:
                 nr = self['ref_param_nr']
                 keys = list(v23c.KEYS_CONVESION_NONE)
                 for i in range(nr):

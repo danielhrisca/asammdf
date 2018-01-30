@@ -42,9 +42,10 @@ from numpy.core.defchararray import encode
 from numpy.core.records import fromarrays, fromstring
 
 from . import v2_v3_constants as v23c
-from .signal import Signal
+from .signal import Signal, SignalConversions
 from .utils import (
     MdfException,
+    as_non_byte_sized_signed_int,
     fix_dtype_fields,
     fmt_to_datatype_v3,
     get_fmt_v3,
@@ -154,8 +155,9 @@ class MDF3(object):
     def _load_group_data(self, group):
         """ get group's data block bytes"""
 
+        offset = 0
         if self.memory == 'full':
-            yield group['data_block'][0]['data']
+            yield group['data_block']['data'], offset
         else:
             # could be an appended group
             # for now appended groups keep the measured data in the memory.
@@ -201,11 +203,12 @@ class MDF3(object):
                     stream.seek(dat_addr)
                     while read_size:
                         if read_size > split_size:
-                            yield stream.read(split_size)
+                            yield stream.read(split_size), offset
                             read_size -= split_size
                         else:
-                            yield stream.read(read_size)
+                            yield stream.read(read_size), offset
                             read_size = 0
+                        offset += split_size
 
                 else:
                     read_size = group['size']
@@ -237,9 +240,12 @@ class MDF3(object):
                             i += rec_size + 1
                         else:
                             i += rec_size
-                    yield b''.join(cg_data)
+                    cg_data = b''.join(cg_data)
+                    size = len(cg_data)
+                    yield cg_data, offset
+                    offset += size
             else:
-                yield b''
+                yield b'', offset
 
     def _prepare_record(self, group):
         """ compute record dtype and parents dict for this group
@@ -727,7 +733,7 @@ class MDF3(object):
                                 new_conv = ChannelConversion(
                                     raw_bytes=raw_bytes,
                                 )
-                                if new_conv['conversion_type'] != v23c.CONVERSION_TYPE_VTABR:
+                                if new_conv['conversion_type'] != v23c.CONVERSION_TYPE_RTABX:
                                     cc_map[raw_bytes] = new_conv
                             grp_conv.append(new_conv)
                     else:
@@ -742,7 +748,7 @@ class MDF3(object):
                         conv_type = new_conv['conversion_type']
                     else:
                         conv_type = 0
-                    if conv_type == v23c.CONVERSION_TYPE_VTABR:
+                    if conv_type == v23c.CONVERSION_TYPE_RTABX:
                         for idx in range(new_conv['ref_param_nr']):
                             address = new_conv['text_{}'.format(idx)]
                             if address:
@@ -854,7 +860,7 @@ class MDF3(object):
                 if record_id_nr == 0:
                     grp = new_groups[0]
                     grp['data_location'] = v23c.LOCATION_MEMORY
-                    grp['data_block'] = [DataBlock(data=data), ]
+                    grp['data_block'] = DataBlock(data=data)
 
                 else:
                     # agregate data for each record ID in the cg_data dict
@@ -881,7 +887,7 @@ class MDF3(object):
                         data = cg_data[record_id]
                         data = b''.join(data)
                         grp['channel_group']['record_id'] = 1
-                        grp['data_block'] = [DataBlock(data=data), ]
+                        grp['data_block'] = DataBlock(data=data)
             else:
                 for grp in new_groups:
                     grp['data_location'] = v23c.LOCATION_ORIGINAL_FILE
@@ -1054,151 +1060,239 @@ class MDF3(object):
             acq_block = None
             acq_address = 0
 
-        # split regular from composed signals. Composed signals have recarray
-        # samples or multimendional ndarray.
-        # The regular signals will be first added to the group.
-        # The composed signals will be saved along side the fields, which will
-        # be saved as new signals.
-        simple_signals = [
-            sig for sig in signals
-            if len(sig.samples.shape) <= 1
-            and sig.samples.dtype.names is None
-        ]
-        composed_signals = [
-            sig for sig in signals
-            if len(sig.samples.shape) > 1
-            or sig.samples.dtype.names
-        ]
+        canopen_time_fields = (
+            'ms',
+            'days',
+        )
+        canopen_date_fields = (
+            'ms',
+            'min',
+            'hour',
+            'day',
+            'month',
+            'year',
+            'summer_time',
+            'day_of_week',
+        )
 
-        # mdf version 4 structure channels and CANopen types will be saved to
-        # new channel groups
-        new_groups_signals = [
-            sig for sig in composed_signals
-            if sig.samples.dtype.names
-            and sig.samples.dtype.names[0] != sig.name
-        ]
-        composed_signals = [
-            sig for sig in composed_signals
-            if not sig.samples.dtype.names
-            or sig.samples.dtype.names[0] == sig.name
-        ]
+        dg_cntr = len(self.groups)
 
-        if simple_signals or composed_signals:
-            dg_cntr = len(self.groups)
+        gp = {}
+        gp['channels'] = gp_channels = []
+        gp['channel_conversions'] = gp_conv = []
+        gp['channel_extensions'] = gp_source = []
+        gp['channel_dependencies'] = gp_dep = []
+        gp['texts'] = gp_texts = {
+            'conversion_tab': [],
+            'channel_group': [],
+        }
+        gp['signal_types'] = gp_sig_types = []
 
-            gp = {}
-            gp['channels'] = gp_channels = []
-            gp['channel_conversions'] = gp_conv = []
-            gp['channel_extensions'] = gp_source = []
-            gp['channel_dependencies'] = gp_dep = []
-            gp['texts'] = gp_texts = {
-                'conversion_tab': [],
-                'channel_group': [],
-            }
-            self.groups.append(gp)
+        self.groups.append(gp)
 
-            cycles_nr = len(timestamps)
-            fields = []
-            types = []
-            parents = {}
-            ch_cntr = 0
-            offset = 0
-            field_names = set()
+        cycles_nr = len(timestamps)
+        fields = []
+        types = []
+        parents = {}
+        ch_cntr = 0
+        offset = 0
+        field_names = set()
 
-            cg_texts = {}
-            gp_texts['channel_group'].append(cg_texts)
-            if memory == 'minimum':
-                cg_texts['comment_addr'] = acq_address
+        cg_texts = {}
+        gp_texts['channel_group'].append(cg_texts)
+        if memory == 'minimum':
+            cg_texts['comment_addr'] = acq_address
+        else:
+            cg_texts['comment_addr'] = acq_block
+
+        # time channel texts
+        gp_texts['conversion_tab'].append(None)
+
+        # conversion for time channel
+        kargs = {
+            'conversion_type': v23c.CONVERSION_TYPE_NONE,
+            'unit': b's',
+            'min_phy_value': timestamps[0] if cycles_nr else 0,
+            'max_phy_value': timestamps[-1] if cycles_nr else 0,
+        }
+        block = ChannelConversion(**kargs)
+        if memory != 'minimum':
+            gp_conv.append(block)
+        else:
+            address = tell()
+            gp_conv.append(address)
+            write(bytes(block))
+
+        # source for time
+        if memory != 'minimum':
+            gp_source.append(ce_block)
+        else:
+            gp_source.append(ce_address)
+
+        # time channel
+        t_type, t_size = fmt_to_datatype_v3(timestamps.dtype)
+        kargs = {
+            'short_name': b't',
+            'channel_type': v23c.CHANNEL_TYPE_MASTER,
+            'data_type': t_type,
+            'start_offset': 0,
+            'min_raw_value': timestamps[0] if cycles_nr else 0,
+            'max_raw_value': timestamps[-1] if cycles_nr else 0,
+            'bit_count': t_size,
+            'block_len': channel_size,
+        }
+        channel = Channel(**kargs)
+        channel.name = name = 't'
+        if memory != 'minimum':
+            gp_channels.append(channel)
+        else:
+            address = tell()
+            gp_channels.append(address)
+            write(bytes(channel))
+
+        if name not in self.channels_db:
+            self.channels_db[name] = []
+        self.channels_db[name].append((dg_cntr, ch_cntr))
+        self.masters_db[dg_cntr] = 0
+        # data group record parents
+        parents[ch_cntr] = name, 0
+
+        # time channel doesn't have channel dependencies
+        gp_dep.append(None)
+
+        fields.append(timestamps)
+        types.append((name, timestamps.dtype))
+        field_names.add(name)
+
+        offset += t_size
+        ch_cntr += 1
+
+        gp_sig_types.append(0)
+
+        for signal in signals:
+            sig = signal
+            names = sig.samples.dtype.names
+            name = signal.name
+            if len(sig.samples.shape) <= 1:
+                if names is None:
+                    sig_type = v23c.SIGNAL_TYPE_SCALAR
+                else:
+                    if names in (canopen_time_fields, canopen_date_fields):
+                        sig_type = v23c.SIGNAL_TYPE_CANOPEN
+                    elif names[0] != sig.name:
+                        sig_type = v23c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
+                    else:
+                        sig_type = v23c.SIGNAL_TYPE_ARRAY
             else:
-                cg_texts['comment_addr'] = acq_block
+                sig_type = v23c.SIGNAL_TYPE_ARRAY
 
-            # time channel texts
-            gp_texts['conversion_tab'].append(None)
+            gp_sig_types.append(sig_type)
 
-            # conversion for time channel
-            kargs = {
-                'conversion_type': v23c.CONVERSION_TYPE_NONE,
-                'unit': b's',
-                'min_phy_value': timestamps[0] if cycles_nr else 0,
-                'max_phy_value': timestamps[-1] if cycles_nr else 0,
-            }
-            block = ChannelConversion(**kargs)
-            if memory != 'minimum':
-                gp_conv.append(block)
+            # conversions for channel
+
+            info = signal.conversion
+            israw = signal.raw
+            if info is None:
+                conv_type = SignalConversions.CONVERSION_NONE
             else:
-                address = tell()
-                gp_conv.append(address)
-                write(bytes(block))
+                if israw:
+                    conv_type = info['type']
+                else:
+                    conv_type = info['type']
+                    if conv_type in (
+                            SignalConversions.CONVERSION_NONE,
+                            SignalConversions.CONVERSION_TAB,
+                            SignalConversions.CONVERSION_TABI,
+                            SignalConversions.CONVERSION_POLYNOMIAL,
+                            SignalConversions.CONVERSION_ALGEBRAIC,
+                            SignalConversions.CONVERSION_LINEAR,
+                            SignalConversions.CONVERSION_EXPO,
+                            SignalConversions.CONVERSION_LOGH,
+                            SignalConversions.CONVERSION_RATIONAL,):
+                        conv_type = SignalConversions.CONVERSION_NONE
+            texts = {}
+            kargs = {}
 
-            # source for time
-            if memory != 'minimum':
-                gp_source.append(ce_block)
-            else:
-                gp_source.append(ce_address)
+            min_val, max_val = get_min_max(signal.samples)
 
-            # time channel
-            t_type, t_size = fmt_to_datatype_v3(timestamps.dtype)
-            kargs = {
-                'short_name': b't',
-                'channel_type': v23c.CHANNEL_TYPE_MASTER,
-                'data_type': t_type,
-                'start_offset': 0,
-                'min_raw_value': timestamps[0] if cycles_nr else 0,
-                'max_raw_value': timestamps[-1] if cycles_nr else 0,
-                'bit_count': t_size,
-                'block_len': channel_size,
-            }
-            channel = Channel(**kargs)
-            channel.name = name = 't'
-            if memory != 'minimum':
-                gp_channels.append(channel)
-            else:
-                address = tell()
-                gp_channels.append(address)
-                write(bytes(channel))
+            if sig_type == v23c.SIGNAL_TYPE_SCALAR:
 
-            if name not in self.channels_db:
-                self.channels_db[name] = []
-            self.channels_db[name].append((dg_cntr, ch_cntr))
-            self.masters_db[dg_cntr] = 0
-            # data group record parents
-            parents[ch_cntr] = name, 0
+                if conv_type == SignalConversions.CONVERSION_NONE:
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_NONE
 
-            # time channel doesn't have channel dependencies
-            gp_dep.append(None)
+                elif conv_type == SignalConversions.CONVERSION_LINEAR:
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_LINEAR
+                    kargs['a'] = info['a']
+                    kargs['b'] = info['b']
 
-            fields.append(timestamps)
-            types.append((name, timestamps.dtype))
-            field_names.add(name)
+                elif conv_type == SignalConversions.CONVERSION_RATIONAL:
+                    kargs = {k: v for k, v in info.items()}
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_RAT
 
-            offset += t_size
-            ch_cntr += 1
+                elif conv_type == SignalConversions.CONVERSION_ALGEBRAIC:
+                    formula = info['formula']
+                    if 'X1' not in formula:
+                        formula = formula.replace('X', 'X1')
+                    kargs['formula'] = formula.encode('latin-1')
 
-            # first add the signals in the simple signal list
-            for signal in simple_signals:
-                name = signal.name
-                # conversions for channel
-                min_val, max_val = get_min_max(signal.samples)
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_FORMULA
 
-                texts = {}
-                info = signal.info
-                if info and 'raw' in info and info['raw'].dtype.kind != 'S':
-                    kargs = {}
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTAB
-                    raw = info['raw']
-                    phys = info['phys']
-                    for i, (r_, p_) in enumerate(zip(raw, phys)):
+                elif conv_type == SignalConversions.CONVERSION_LOGH:
+                    kargs = {k: v for k, v in info.items()}
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_LOGH
+
+                elif conv_type == SignalConversions.CONVERSION_EXPO:
+                    kargs = {k: v for k, v in info.items()}
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_EXPO
+
+                elif conv_type == SignalConversions.CONVERSION_POLYNOMIAL:
+                    kargs = {k: v for k, v in info.items()}
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_POLY
+
+                elif conv_type in (
+                        SignalConversions.CONVERSION_TAB,
+                        SignalConversions.CONVERSION_TABI):
+                    if conv_type == SignalConversions.CONVERSION_TAB:
+                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_TAB
+                    else:
+                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_TABI
+
+                    kargs['ref_param_nr'] = len(info['raw'])
+
+                    for i, (r_, p_) in enumerate(zip(info['raw'], info['phys'])):
+                        kargs['raw_{}'.format(i)] = r_
+                        kargs['phys_{}'.format(i)] = p_
+
+                elif conv_type == SignalConversions.CONVERSION_RTAB:
+                    if israw:
+                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_TABI
+                        kargs['ref_param_nr'] = 2 * len(info['upper'])
+
+                        for i, (u_, l_, p_) in enumerate(zip(
+                                info['upper'],
+                                info['lower'],
+                                info['phys'])):
+                            kargs['raw_{}'.format(2*i)] = l_
+                            kargs['raw_{}'.format(2*i+1)] = u_ - 0.000001
+                            kargs['phys_{}'.format(2 * i)] = p_
+                            kargs['phys_{}'.format(2 * i + 1)] = p_
+                    else:
+                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_NONE
+
+                elif conv_type == SignalConversions.CONVERSION_TABX:
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_TABX
+
+                    kargs['ref_param_nr'] = count = len(info['raw'])
+
+                    for i, (r_, p_) in enumerate(zip(info['raw'], info['phys'])):
                         kargs['text_{}'.format(i)] = p_[:31] + b'\0'
                         kargs['param_val_{}'.format(i)] = r_
-                    kargs['ref_param_nr'] = len(raw)
-                    kargs['unit'] = signal.unit.encode('latin-1')
-                elif info and 'lower' in info:
-                    kargs = {}
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_VTABR
+
+                elif conv_type == SignalConversions.CONVERSION_RTABX:
+                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_RTABX
                     lower = info['lower']
                     upper = info['upper']
                     texts_ = info['phys']
-                    kargs['unit'] = signal.unit.encode('latin-1')
                     kargs['ref_param_nr'] = len(upper)
 
                     for i, (u_, l_, t_) in enumerate(zip(upper, lower, texts_)):
@@ -1206,27 +1300,20 @@ class MDF3(object):
                         kargs['upper_{}'.format(i)] = u_
                         kargs['text_{}'.format(i)] = 0
 
-                        key = 'text_{}'.format(i)
                         block = TextBlock(text=t_)
                         if memory != 'minimum':
-                            texts[key] = block
+                            texts['text_{}'.format(i)] = block
                         else:
                             address = tell()
-                            texts[key] = address
+                            texts['text_{}'.format(i)] = address
+                            kargs['text_{}'.format(i)] = address
                             write(bytes(block))
+
                 else:
-                    if min_val <= max_val:
-                        min_phy_value = min_val
-                        max_phy_value = max_val
-                    else:
-                        min_phy_value = 0
-                        max_phy_value = 0
-                    kargs = {
-                        'conversion_type': v23c.CONVERSION_TYPE_NONE,
-                        'unit': signal.unit.encode('latin-1'),
-                        'min_phy_value': min_phy_value,
-                        'max_phy_value': max_phy_value,
-                    }
+                    raise ValueError(conv_type)
+
+                kargs['min_phy_value'] = min_val
+                kargs['max_phy_value'] = max_val
 
                 if texts:
                     gp_texts['conversion_tab'].append(texts)
@@ -1324,7 +1411,274 @@ class MDF3(object):
                 gp_dep.append(None)
 
             # second, add the composed signals
-            for signal in composed_signals:
+            elif sig_type in (
+                    v23c.SIGNAL_TYPE_CANOPEN,
+                    v23c.SIGNAL_TYPE_STRUCTURE_COMPOSITION):
+                new_dg_cntr = len(self.groups)
+                new_gp = {}
+                new_gp['channels'] = new_gp_channels = []
+                new_gp['channel_conversions'] = new_gp_conv = []
+                new_gp['channel_extensions'] = new_gp_source = []
+                new_gp['channel_dependencies'] = new_gp_dep = []
+                new_gp['texts'] = new_gp_texts = {
+                    'conversion_tab': [],
+                    'channel_group': [],
+                }
+                self.groups.append(new_gp)
+
+                new_cycles_nr = len(timestamps)
+                new_fields = []
+                new_types = []
+                new_parents = {}
+                new_ch_cntr = 0
+                new_offset = 0
+                new_field_names = set()
+
+                # time channel texts
+                new_gp_texts['conversion_tab'].append(None)
+
+                # conversion for time channel
+                kargs = {
+                    'conversion_type': v23c.CONVERSION_TYPE_NONE,
+                    'unit': b's',
+                    'min_phy_value': timestamps[0] if cycles_nr else 0,
+                    'max_phy_value': timestamps[-1] if cycles_nr else 0,
+                }
+                block = ChannelConversion(**kargs)
+                if memory != 'minimum':
+                    new_gp_conv.append(block)
+                else:
+                    address = tell()
+                    new_gp_conv.append(address)
+                    write(bytes(block))
+
+                # source for time
+                if memory != 'minimum':
+                    new_gp_source.append(ce_block)
+                else:
+                    new_gp_source.append(ce_address)
+
+                # time channel
+                t_type, t_size = fmt_to_datatype_v3(timestamps.dtype)
+                kargs = {
+                    'short_name': b't',
+                    'channel_type': v23c.CHANNEL_TYPE_MASTER,
+                    'data_type': t_type,
+                    'start_offset': 0,
+                    'min_raw_value': timestamps[0] if cycles_nr else 0,
+                    'max_raw_value': timestamps[-1] if cycles_nr else 0,
+                    'bit_count': t_size,
+                    'block_len': channel_size,
+                }
+                channel = Channel(**kargs)
+                channel.name = name = 't'
+                if memory != 'minimum':
+                    new_gp_channels.append(channel)
+                else:
+                    address = tell()
+                    new_gp_channels.append(address)
+                    write(bytes(channel))
+
+                if name not in self.channels_db:
+                    self.channels_db[name] = []
+                self.channels_db[name].append((new_dg_cntr, new_ch_cntr))
+                self.masters_db[new_dg_cntr] = 0
+                # data group record parents
+                new_parents[new_ch_cntr] = name, 0
+
+                # time channel doesn't have channel dependencies
+                new_gp_dep.append(None)
+
+                new_fields.append(timestamps)
+                new_types.append((name, timestamps.dtype))
+                new_field_names.add(name)
+
+                new_offset += t_size
+                new_ch_cntr += 1
+
+                names = signal.samples.dtype.names
+                if names == (
+                        'ms',
+                        'days'):
+                    acq_block = TextBlock(text='From mdf v4 CANopen Time channel')
+                    if memory == 'minimum':
+                        acq_address = tell()
+                        write(bytes(block))
+                        new_gp_texts['channel_group'].append({'comment_addr': acq_address})
+                    else:
+                        new_gp_texts['channel_group'].append({'comment_addr': acq_block})
+                elif names == (
+                        'ms',
+                        'min',
+                        'hour',
+                        'day',
+                        'month',
+                        'year',
+                        'summer_time',
+                        'day_of_week'):
+                    acq_block = TextBlock(text='From mdf v4 CANopen Date channel')
+                    if memory == 'minimum':
+                        acq_address = tell()
+                        write(bytes(block))
+                        new_gp_texts['channel_group'].append({'comment_addr': acq_address})
+                    else:
+                        new_gp_texts['channel_group'].append({'comment_addr': acq_block})
+                else:
+                    text = 'From mdf v4 structure channel composition'
+                    acq_block = TextBlock(text=text)
+                    if memory == 'minimum':
+                        acq_address = tell()
+                        write(bytes(block))
+                        new_gp_texts['channel_group'].append({'comment_addr': acq_address})
+                    else:
+                        new_gp_texts['channel_group'].append({'comment_addr': acq_block})
+
+                for name in names:
+
+                    samples = signal.samples[name]
+
+                    new_gp_texts['conversion_tab'].append(None)
+
+                    if memory == 'minimum' and len(name) >= 32 and self.version >= '2.10':
+                        block = TextBlock(text=name)
+                        long_name_address = tell()
+                        write(bytes(block))
+                    else:
+                        long_name_address = 0
+                    comment_address = 0
+                    short_name = (name[:31] + '\0').encode('latin-1')
+
+                    # conversions for channel
+                    min_val, max_val = get_min_max(samples)
+
+                    kargs = {
+                        'conversion_type': v23c.CONVERSION_TYPE_NONE,
+                        'unit': signal.unit.encode('latin-1'),
+                        'min_phy_value': min_val if min_val <= max_val else 0,
+                        'max_phy_value': max_val if min_val <= max_val else 0,
+                    }
+                    block = ChannelConversion(**kargs)
+                    if memory != 'minimum':
+                        new_gp_conv.append(block)
+                    else:
+                        address = tell()
+                        new_gp_conv.append(address)
+                        write(bytes(block))
+
+                    # source for channel
+                    if memory != 'minimum':
+                        new_gp_source.append(ce_block)
+                    else:
+                        new_gp_source.append(ce_address)
+
+                    # compute additional byte offset for large records size
+                    if new_offset > v23c.MAX_UINT16:
+                        additional_byte_offset = (new_offset - v23c.MAX_UINT16) >> 3
+                        start_bit_offset = new_offset - additional_byte_offset << 3
+                    else:
+                        start_bit_offset = new_offset
+                        additional_byte_offset = 0
+                    s_type, s_size = fmt_to_datatype_v3(samples.dtype)
+
+                    kargs = {
+                        'short_name': short_name,
+                        'channel_type': v23c.CHANNEL_TYPE_VALUE,
+                        'data_type': s_type,
+                        'min_raw_value': min_val if min_val <= max_val else 0,
+                        'max_raw_value': max_val if min_val <= max_val else 0,
+                        'start_offset': start_bit_offset,
+                        'bit_count': s_size,
+                        'aditional_byte_offset': additional_byte_offset,
+                        'long_name_addr': long_name_address,
+                        'block_len': channel_size,
+                        'comment_addr': comment_address,
+                        'description': description,
+                    }
+
+                    channel = Channel(**kargs)
+
+                    if memory != 'minimum':
+                        channel.name = name
+                        new_gp_channels.append(channel)
+                    else:
+                        address = tell()
+                        new_gp_channels.append(address)
+                        write(bytes(channel))
+                    new_offset += s_size
+
+                    if name not in self.channels_db:
+                        self.channels_db[name] = []
+                    self.channels_db[name].append((new_dg_cntr, new_ch_cntr))
+
+                    # update the parents as well
+                    field_name = get_unique_name(new_field_names, name)
+                    new_parents[new_ch_cntr] = field_name, 0
+
+                    new_fields.append(samples)
+                    new_types.append((field_name, samples.dtype))
+                    new_field_names.add(field_name)
+
+                    new_ch_cntr += 1
+
+                    # simple channels don't have channel dependencies
+                    new_gp_dep.append(None)
+
+                # channel group
+                kargs = {
+                    'cycles_nr': cycles_nr,
+                    'samples_byte_nr': new_offset >> 3,
+                }
+                new_gp['channel_group'] = ChannelGroup(**kargs)
+                new_gp['channel_group']['ch_nr'] = new_ch_cntr
+                new_gp['size'] = cycles_nr * (new_offset >> 3)
+
+                # data group
+                if self.version >= '3.20':
+                    block_len = v23c.DG_POST_320_BLOCK_SIZE
+                else:
+                    block_len = v23c.DG_PRE_320_BLOCK_SIZE
+                new_gp['data_group'] = DataGroup(block_len=block_len)
+
+                # data block
+                if PYVERSION == 2:
+                    new_types = fix_dtype_fields(new_types)
+                new_types = dtype(new_types)
+
+                new_gp['types'] = new_types
+                new_gp['parents'] = new_parents
+                new_gp['sorted'] = True
+
+                samples = fromarrays(new_fields, dtype=new_types)
+                try:
+                    block = samples.tostring()
+
+                    if memory == 'full':
+                        new_gp['data_location'] = v23c.LOCATION_MEMORY
+                        kargs = {'data': block}
+                        new_gp['data_block'] = DataBlock(**kargs)
+                    else:
+                        new_gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
+                        if cycles_nr:
+                            data_address = tell()
+                            new_gp['data_group']['data_block_addr'] = data_address
+                            self._tempfile.write(block)
+                        else:
+                            new_gp['data_group']['data_block_addr'] = 0
+                except MemoryError:
+                    if memory == 'full':
+                        raise
+                    else:
+                        new_gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
+
+                        data_address = tell()
+                        new_gp['data_group']['data_block_addr'] = data_address
+                        for sample in samples:
+                            self._tempfile.write(sample.tostring())
+
+                # data group trigger
+                new_gp['trigger'] = [None, None]
+
+            else:
                 names = signal.samples.dtype.names
                 name = signal.name
 
@@ -1529,314 +1883,49 @@ class MDF3(object):
 
                     ch_cntr += 1
 
-            # channel group
-            kargs = {
-                'cycles_nr': cycles_nr,
-                'samples_byte_nr': offset >> 3,
-            }
-            gp['channel_group'] = ChannelGroup(**kargs)
-            gp['channel_group']['ch_nr'] = ch_cntr
-            gp['size'] = cycles_nr * (offset >> 3)
+        # channel group
+        kargs = {
+            'cycles_nr': cycles_nr,
+            'samples_byte_nr': offset >> 3,
+        }
+        gp['channel_group'] = ChannelGroup(**kargs)
+        gp['channel_group']['ch_nr'] = ch_cntr
+        gp['size'] = cycles_nr * (offset >> 3)
 
-            # data group
-            if self.version >= '3.20':
-                block_len = v23c.DG_POST_320_BLOCK_SIZE
+        # data group
+        if self.version >= '3.20':
+            block_len = v23c.DG_POST_320_BLOCK_SIZE
+        else:
+            block_len = v23c.DG_PRE_320_BLOCK_SIZE
+        gp['data_group'] = DataGroup(block_len=block_len)
+
+        # data block
+        if PYVERSION == 2:
+            types = fix_dtype_fields(types)
+        types = dtype(types)
+
+        gp['types'] = types
+        gp['parents'] = parents
+        gp['sorted'] = True
+
+        samples = fromarrays(fields, dtype=types)
+        block = samples.tostring()
+
+        if memory == 'full':
+            gp['data_location'] = v23c.LOCATION_MEMORY
+            kargs = {'data': block}
+            gp['data_block'] = DataBlock(**kargs)
+        else:
+            gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
+            if cycles_nr:
+                data_address = tell()
+                gp['data_group']['data_block_addr'] = data_address
+                self._tempfile.write(block)
             else:
-                block_len = v23c.DG_PRE_320_BLOCK_SIZE
-            gp['data_group'] = DataGroup(block_len=block_len)
+                gp['data_group']['data_block_addr'] = 0
 
-            # data block
-            if PYVERSION == 2:
-                types = fix_dtype_fields(types)
-            types = dtype(types)
-
-            gp['types'] = types
-            gp['parents'] = parents
-            gp['sorted'] = True
-
-            samples = fromarrays(fields, dtype=types)
-            block = samples.tostring()
-
-            if memory == 'full':
-                gp['data_location'] = v23c.LOCATION_MEMORY
-                kargs = {'data': block}
-                gp['data_block'] = [DataBlock(**kargs), ]
-            else:
-                gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
-                if cycles_nr:
-                    data_address = tell()
-                    gp['data_group']['data_block_addr'] = data_address
-                    self._tempfile.write(block)
-                else:
-                    gp['data_group']['data_block_addr'] = 0
-
-            # data group trigger
-            gp['trigger'] = [None, None]
-
-        for signal in new_groups_signals:
-            dg_cntr = len(self.groups)
-            gp = {}
-            gp['channels'] = gp_channels = []
-            gp['channel_conversions'] = gp_conv = []
-            gp['channel_extensions'] = gp_source = []
-            gp['channel_dependencies'] = gp_dep = []
-            gp['texts'] = gp_texts = {
-                'conversion_tab': [],
-                'channel_group': [],
-            }
-            self.groups.append(gp)
-
-            cycles_nr = len(timestamps)
-            fields = []
-            types = []
-            parents = {}
-            ch_cntr = 0
-            offset = 0
-            field_names = set()
-
-            # time channel texts
-            gp_texts['conversion_tab'].append(None)
-
-            # conversion for time channel
-            kargs = {
-                'conversion_type': v23c.CONVERSION_TYPE_NONE,
-                'unit': b's',
-                'min_phy_value': timestamps[0] if cycles_nr else 0,
-                'max_phy_value': timestamps[-1] if cycles_nr else 0,
-            }
-            block = ChannelConversion(**kargs)
-            if memory != 'minimum':
-                gp_conv.append(block)
-            else:
-                address = tell()
-                gp_conv.append(address)
-                write(bytes(block))
-
-            # source for time
-            if memory != 'minimum':
-                gp_source.append(ce_block)
-            else:
-                gp_source.append(ce_address)
-
-            # time channel
-            t_type, t_size = fmt_to_datatype_v3(timestamps.dtype)
-            kargs = {
-                'short_name': b't',
-                'channel_type': v23c.CHANNEL_TYPE_MASTER,
-                'data_type': t_type,
-                'start_offset': 0,
-                'min_raw_value': timestamps[0] if cycles_nr else 0,
-                'max_raw_value': timestamps[-1] if cycles_nr else 0,
-                'bit_count': t_size,
-                'block_len': channel_size,
-            }
-            channel = Channel(**kargs)
-            channel.name = name = 't'
-            if memory != 'minimum':
-                gp_channels.append(channel)
-            else:
-                address = tell()
-                gp_channels.append(address)
-                write(bytes(channel))
-
-            if name not in self.channels_db:
-                self.channels_db[name] = []
-            self.channels_db[name].append((dg_cntr, ch_cntr))
-            self.masters_db[dg_cntr] = 0
-            # data group record parents
-            parents[ch_cntr] = name, 0
-
-            # time channel doesn't have channel dependencies
-            gp_dep.append(None)
-
-            fields.append(timestamps)
-            types.append((name, timestamps.dtype))
-            field_names.add(name)
-
-            offset += t_size
-            ch_cntr += 1
-
-            names = signal.samples.dtype.names
-            if names == (
-                    'ms',
-                    'days'):
-                acq_block = TextBlock(text='From mdf v4 CANopen Time channel')
-                if memory == 'minimum':
-                    acq_address = tell()
-                    write(bytes(block))
-                    gp_texts['channel_group'].append({'comment_addr': acq_address})
-                else:
-                    gp_texts['channel_group'].append({'comment_addr': acq_block})
-            elif names == (
-                    'ms',
-                    'min',
-                    'hour',
-                    'day',
-                    'month',
-                    'year',
-                    'summer_time',
-                    'day_of_week'):
-                acq_block = TextBlock(text='From mdf v4 CANopen Date channel')
-                if memory == 'minimum':
-                    acq_address = tell()
-                    write(bytes(block))
-                    gp_texts['channel_group'].append({'comment_addr': acq_address})
-                else:
-                    gp_texts['channel_group'].append({'comment_addr': acq_block})
-            else:
-                text = 'From mdf v4 structure channel composition'
-                acq_block = TextBlock(text=text)
-                if memory == 'minimum':
-                    acq_address = tell()
-                    write(bytes(block))
-                    gp_texts['channel_group'].append({'comment_addr': acq_address})
-                else:
-                    gp_texts['channel_group'].append({'comment_addr': acq_block})
-
-            for name in names:
-
-                samples = signal.samples[name]
-
-                gp_texts['conversion_tab'].append(None)
-
-                if memory == 'minimum' and len(name) >= 32 and self.version >= '2.10':
-                    block = TextBlock(text=name)
-                    long_name_address = tell()
-                    write(bytes(block))
-                else:
-                    long_name_address = 0
-                comment_address = 0
-                short_name = (name[:31] + '\0').encode('latin-1')
-
-                # conversions for channel
-                min_val, max_val = get_min_max(samples)
-
-                kargs = {
-                    'conversion_type': v23c.CONVERSION_TYPE_NONE,
-                    'unit': signal.unit.encode('latin-1'),
-                    'min_phy_value': min_val if min_val <= max_val else 0,
-                    'max_phy_value': max_val if min_val <= max_val else 0,
-                }
-                block = ChannelConversion(**kargs)
-                if memory != 'minimum':
-                    gp_conv.append(block)
-                else:
-                    address = tell()
-                    gp_conv.append(address)
-                    write(bytes(block))
-
-                # source for channel
-                if memory != 'minimum':
-                    gp_source.append(ce_block)
-                else:
-                    gp_source.append(ce_address)
-
-                # compute additional byte offset for large records size
-                if offset > v23c.MAX_UINT16:
-                    additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
-                    start_bit_offset = offset - additional_byte_offset << 3
-                else:
-                    start_bit_offset = offset
-                    additional_byte_offset = 0
-                s_type, s_size = fmt_to_datatype_v3(samples.dtype)
-
-                kargs = {
-                    'short_name': short_name,
-                    'channel_type': v23c.CHANNEL_TYPE_VALUE,
-                    'data_type': s_type,
-                    'min_raw_value': min_val if min_val <= max_val else 0,
-                    'max_raw_value': max_val if min_val <= max_val else 0,
-                    'start_offset': start_bit_offset,
-                    'bit_count': s_size,
-                    'aditional_byte_offset': additional_byte_offset,
-                    'long_name_addr': long_name_address,
-                    'block_len': channel_size,
-                    'comment_addr': comment_address,
-                    'description': description,
-                }
-
-                channel = Channel(**kargs)
-
-                if memory != 'minimum':
-                    channel.name = name
-                    gp_channels.append(channel)
-                else:
-                    address = tell()
-                    gp_channels.append(address)
-                    write(bytes(channel))
-                offset += s_size
-
-                if name not in self.channels_db:
-                    self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                # update the parents as well
-                field_name = get_unique_name(field_names, name)
-                parents[ch_cntr] = field_name, 0
-
-                fields.append(samples)
-                types.append((field_name, samples.dtype))
-                field_names.add(field_name)
-
-                ch_cntr += 1
-
-                # simple channels don't have channel dependencies
-                gp_dep.append(None)
-
-            # channel group
-            kargs = {
-                'cycles_nr': cycles_nr,
-                'samples_byte_nr': offset >> 3,
-            }
-            gp['channel_group'] = ChannelGroup(**kargs)
-            gp['channel_group']['ch_nr'] = ch_cntr
-            gp['size'] = cycles_nr * (offset >> 3)
-
-            # data group
-            if self.version >= '3.20':
-                block_len = v23c.DG_POST_320_BLOCK_SIZE
-            else:
-                block_len = v23c.DG_PRE_320_BLOCK_SIZE
-            gp['data_group'] = DataGroup(block_len=block_len)
-
-            # data block
-            if PYVERSION == 2:
-                types = fix_dtype_fields(types)
-            types = dtype(types)
-
-            gp['types'] = types
-            gp['parents'] = parents
-            gp['sorted'] = True
-
-            samples = fromarrays(fields, dtype=types)
-            try:
-                block = samples.tostring()
-
-                if memory == 'full':
-                    gp['data_location'] = v23c.LOCATION_MEMORY
-                    kargs = {'data': block}
-                    gp['data_block'] = [DataBlock(**kargs), ]
-                else:
-                    gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
-                    if cycles_nr:
-                        data_address = tell()
-                        gp['data_group']['data_block_addr'] = data_address
-                        self._tempfile.write(block)
-                    else:
-                        gp['data_group']['data_block_addr'] = 0
-            except MemoryError:
-                if memory == 'full':
-                    raise
-                else:
-                    gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
-
-                    data_address = tell()
-                    gp['data_group']['data_block_addr'] = data_address
-                    for sample in samples:
-                        self._tempfile.write(sample.tostring())
-
-            # data group trigger
-            gp['trigger'] = [None, None]
+        # data group trigger
+        gp['trigger'] = [None, None]
 
     def close(self):
         """ if the MDF was created with memory='minimum' and new
@@ -2223,6 +2312,8 @@ class MDF3(object):
         # get data group record
         if data is None:
             data = self._load_group_data(grp)
+        else:
+            data = (data, )
 
         info = None
 
@@ -2262,10 +2353,13 @@ class MDF3(object):
             types = dtype(types)
             vals = fromarrays(arrays, dtype=types)
 
+            signal_conversion = None
+
         else:
             # get channel values
             channel_values = []
-            for data_bytes in data:
+            for fragment in data:
+                data_bytes, offset = fragment
                 try:
                     parents, dtypes = grp['parents'], grp['types']
                 except KeyError:
@@ -2276,7 +2370,6 @@ class MDF3(object):
                     parent, bit_offset = parents[ch_nr]
                 except KeyError:
                     parent, bit_offset = None, None
-
 
                 if parent is not None:
                     if 'record' not in grp:
@@ -2309,29 +2402,14 @@ class MDF3(object):
                                 vals = vals >> bit_offset
 
                         if not bits == size * 8:
-                            mask = (1 << bits) - 1
-                            if vals.flags.writeable:
-                                vals &= mask
-                            else:
-                                vals = vals & mask
-
                             if data_type in v23c.SIGNED_INT:
-
-                                size = vals.dtype.itemsize
-
-                                masks = ones(
-                                    cycles_nr,
-                                    dtype=dtype('<u{}'.format(size)),
-                                )
-
-                                masks *= (1 << bits) - 1
-                                masks = ~masks
-
-                                masks *= ((vals & (1 << (bits - 1))) >> (bits - 1)).astype(dtype('<u{}'.format(size)))
-
-                                vals |= masks
-
-                                vals = vals.astype('<i{}'.format(size), copy=False)
+                                vals = as_non_byte_sized_signed_int(vals, bits)
+                            else:
+                                mask = (1 << bits) - 1
+                                if vals.flags.writeable:
+                                    vals &= mask
+                                else:
+                                    vals = vals & mask
 
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
@@ -2350,12 +2428,13 @@ class MDF3(object):
             else:
                 conversion_type = conversion['conversion_type']
 
+            signal_conversion = None
+
             if cycles_nr:
 
-                if raw:
-                    pass
+                if conversion_type == v23c.CONVERSION_TYPE_NONE:
 
-                elif conversion_type == v23c.CONVERSION_TYPE_NONE:
+
 
                     if channel['data_type'] == v23c.DATA_TYPE_STRING:
                         vals = [val.tobytes() for val in vals]
@@ -2367,23 +2446,30 @@ class MDF3(object):
                         vals = encode(vals, 'latin-1')
 
                     elif channel['data_type'] == v23c.DATA_TYPE_BYTEARRAY:
-                        arrays = [vals, ]
-                        types = [(channel.name, vals.dtype, vals.shape[1:]), ]
-                        if PYVERSION == 2:
-                            types = fix_dtype_fields(types)
-                        types = dtype(types)
-                        vals = fromarrays(arrays, dtype=types)
+                        if not raw:
+                            arrays = [vals, ]
+                            types = [(channel.name, vals.dtype, vals.shape[1:]), ]
+                            if PYVERSION == 2:
+                                types = fix_dtype_fields(types)
+                            types = dtype(types)
+                            vals = fromarrays(arrays, dtype=types)
 
                 elif conversion_type == v23c.CONVERSION_TYPE_LINEAR:
-                    a = conversion['a']
-                    b = conversion['b']
-                    if (a, b) != (1, 0):
-                        vals = vals * a
-                        if b:
-                            vals += b
+                    signal_conversion = {
+                        'type': SignalConversions.CONVERSION_LINEAR,
+                        'a': conversion['a'],
+                        'b': conversion['b'],
+                    }
+                    if not raw:
+                        a = conversion['a']
+                        b = conversion['b']
+                        if (a, b) != (1, 0):
+                            vals = vals * a
+                            if b:
+                                vals += b
 
                 elif conversion_type in (v23c.CONVERSION_TYPE_TABI,
-                                         v23c.CONVERSION_TYPE_TABX):
+                                         v23c.CONVERSION_TYPE_TAB):
                     nr = conversion['ref_param_nr']
 
                     raw_vals = [
@@ -2396,14 +2482,27 @@ class MDF3(object):
                         for i in range(nr)
                     ]
                     phys = array(phys)
-                    if conversion_type == v23c.CONVERSION_TYPE_TABI:
-                        vals = interp(vals, raw_vals, phys)
-                    else:
-                        idx = searchsorted(raw, vals)
-                        idx = clip(idx, 0, len(raw) - 1)
-                        vals = phys[idx]
 
-                elif conversion_type == v23c.CONVERSION_TYPE_VTAB:
+                    if not raw:
+                        if conversion_type == v23c.CONVERSION_TYPE_TABI:
+                            vals = interp(vals, raw_vals, phys)
+                        else:
+                            idx = searchsorted(raw_vals, vals)
+                            idx = clip(idx, 0, len(raw_vals) - 1)
+                            vals = phys[idx]
+
+                    if conversion_type == v23c.CONVERSION_TYPE_TAB:
+                        signal_conversion = SignalConversions.CONVERSION_TAB
+                    else:
+                        signal_conversion = SignalConversions.CONVERSION_TABI
+
+                    signal_conversion = {
+                        'type': signal_conversion,
+                        'raw': raw_vals,
+                        'phys': phys,
+                    }
+
+                elif conversion_type == v23c.CONVERSION_TYPE_TABX:
                     nr = conversion['ref_param_nr']
                     raw_vals = [
                         conversion['param_val_{}'.format(i)]
@@ -2415,9 +2514,14 @@ class MDF3(object):
                         for i in range(nr)
                     ]
                     phys = array(phys)
-                    info = {'raw': raw_vals, 'phys': phys}
 
-                elif conversion_type == v23c.CONVERSION_TYPE_VTABR:
+                    signal_conversion = {
+                        'type': SignalConversions.CONVERSION_TABX,
+                        'raw': raw_vals,
+                        'phys': phys,
+                    }
+
+                elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
                     nr = conversion['ref_param_nr']
 
                     conv_texts = grp['texts']['conversion_tab'][ch_nr]
@@ -2454,67 +2558,120 @@ class MDF3(object):
                         for i in range(nr)
                     ]
                     upper = array(upper)
-                    info = {'lower': lower, 'upper': upper, 'phys': texts}
+
+                    signal_conversion = {
+                        'type': SignalConversions.CONVERSION_RTABX,
+                        'lower': lower,
+                        'upper': upper,
+                        'phys': texts,
+                    }
 
                 elif conversion_type in (
                         v23c.CONVERSION_TYPE_EXPO,
                         v23c.CONVERSION_TYPE_LOGH):
                     # pylint: disable=C0103
+
                     if conversion_type == v23c.CONVERSION_TYPE_EXPO:
-                        func = log
+                        signal_conversion = SignalConversions.CONVERSION_EXPO
                     else:
-                        func = exp
-                    P1 = conversion['P1']
-                    P2 = conversion['P2']
-                    P3 = conversion['P3']
-                    P4 = conversion['P4']
-                    P5 = conversion['P5']
-                    P6 = conversion['P6']
-                    P7 = conversion['P7']
-                    if P4 == 0:
-                        vals = func(((vals - P7) * P6 - P3) / P1) / P2
-                    elif P1 == 0:
-                        vals = func((P3 / (vals - P7) - P6) / P4) / P5
-                    else:
-                        message = 'wrong conversion {}'.format(conversion_type)
-                        raise ValueError(message)
+                        signal_conversion = SignalConversions.CONVERSION_LOGH
+
+                    signal_conversion = {
+                        'type': signal_conversion,
+                        'P1': conversion['P1'],
+                        'P2': conversion['P2'],
+                        'P3': conversion['P3'],
+                        'P4': conversion['P4'],
+                        'P5': conversion['P5'],
+                        'P6': conversion['P6'],
+                        'P7': conversion['P7'],
+                    }
+
+                    if not raw:
+                        if conversion_type == v23c.CONVERSION_TYPE_EXPO:
+                            func = log
+                        else:
+                            func = exp
+                        P1 = conversion['P1']
+                        P2 = conversion['P2']
+                        P3 = conversion['P3']
+                        P4 = conversion['P4']
+                        P5 = conversion['P5']
+                        P6 = conversion['P6']
+                        P7 = conversion['P7']
+                        if P4 == 0:
+                            vals = func(((vals - P7) * P6 - P3) / P1) / P2
+                        elif P1 == 0:
+                            vals = func((P3 / (vals - P7) - P6) / P4) / P5
+                        else:
+                            message = 'wrong conversion {}'.format(conversion_type)
+                            raise ValueError(message)
 
                 elif conversion_type == v23c.CONVERSION_TYPE_RAT:
                     # pylint: disable=unused-variable,C0103
-                    P1 = conversion['P1']
-                    P2 = conversion['P2']
-                    P3 = conversion['P3']
-                    P4 = conversion['P4']
-                    P5 = conversion['P5']
-                    P6 = conversion['P6']
-                    if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
-                        X = vals
-                        vals = evaluate(v23c.RAT_CONV_TEXT)
+                    signal_conversion = {
+                        'type': SignalConversions.CONVERSION_RATIONAL,
+                        'P1': conversion['P1'],
+                        'P2': conversion['P2'],
+                        'P3': conversion['P3'],
+                        'P4': conversion['P4'],
+                        'P5': conversion['P5'],
+                        'P6': conversion['P6'],
+                    }
+
+                    if not raw:
+                        P1 = conversion['P1']
+                        P2 = conversion['P2']
+                        P3 = conversion['P3']
+                        P4 = conversion['P4']
+                        P5 = conversion['P5']
+                        P6 = conversion['P6']
+                        if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
+                            X = vals
+                            vals = evaluate(v23c.RAT_CONV_TEXT)
 
                 elif conversion_type == v23c.CONVERSION_TYPE_POLY:
                     # pylint: disable=unused-variable,C0103
-                    P1 = conversion['P1']
-                    P2 = conversion['P2']
-                    P3 = conversion['P3']
-                    P4 = conversion['P4']
-                    P5 = conversion['P5']
-                    P6 = conversion['P6']
+                    signal_conversion = {
+                        'type': SignalConversions.CONVERSION_POLYNOMIAL,
+                        'P1': conversion['P1'],
+                        'P2': conversion['P2'],
+                        'P3': conversion['P3'],
+                        'P4': conversion['P4'],
+                        'P5': conversion['P5'],
+                        'P6': conversion['P6'],
+                    }
 
-                    X = vals
+                    if not raw:
+                        P1 = conversion['P1']
+                        P2 = conversion['P2']
+                        P3 = conversion['P3']
+                        P4 = conversion['P4']
+                        P5 = conversion['P5']
+                        P6 = conversion['P6']
 
-                    coefs = (P2, P3, P5, P6)
-                    if coefs == (0, 0, 0, 0):
-                        if P1 != P4:
-                            vals = evaluate(v23c.POLY_CONV_SHORT_TEXT)
-                    else:
-                        vals = evaluate(v23c.POLY_CONV_LONG_TEXT)
+                        X = vals
+
+                        coefs = (P2, P3, P5, P6)
+                        if coefs == (0, 0, 0, 0):
+                            if P1 != P4:
+                                vals = evaluate(v23c.POLY_CONV_SHORT_TEXT)
+                        else:
+                            vals = evaluate(v23c.POLY_CONV_LONG_TEXT)
 
                 elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
                     # pylint: disable=unused-variable,C0103
                     formula = conversion['formula'].decode('latin-1')
                     formula = formula.strip(' \n\t\0')
-                    X1 = vals
-                    vals = evaluate(formula)
+
+                    signal_conversion = {
+                        'type': SignalConversions.CONVERSION_ALGEBRAIC,
+                        'formula': formula,
+                    }
+
+                    if not raw:
+                        X1 = vals
+                        vals = evaluate(formula)
 
         if samples_only:
             res = vals
@@ -2548,7 +2705,8 @@ class MDF3(object):
                 unit=unit,
                 name=channel.name,
                 comment=comment,
-                info=info,
+                conversion=signal_conversion,
+                raw=raw,
             )
 
             if raster and timestamps:
@@ -2632,13 +2790,12 @@ class MDF3(object):
                 # get data group record
                 if data is None:
                     data = self._load_group_data(group)
-
-                # get data
-                if data is None:
-                    data = self._load_group_data(group)
+                else:
+                    data = (data, )
 
                 time_values = []
-                for data_bytes in data:
+                for fragment in data:
+                    data_bytes, offset = fragment
                     parent, _ = parents.get(time_ch_nr, (None, None))
                     if parent is not None:
                         not_found = object()
@@ -2872,7 +3029,8 @@ class MDF3(object):
             raise MdfException(message)
 
         dst = dst if dst else self.name
-        dst = os.path.splitext(dst)[0] + '.mdf'
+        if not dst.endswith(('mdf', 'MDF')):
+            dst = dst + '.mdf'
         if overwrite is False:
             if os.path.isfile(dst):
                 cntr = 0
@@ -2982,11 +3140,15 @@ class MDF3(object):
                     if conv is None:
                         continue
 
-                    if conv['conversion_type'] == v23c.CONVERSION_TYPE_VTABR:
+                    if conv['conversion_type'] in (
+                            v23c.CONVERSION_TYPE_RTABX,
+                            v23c.CONVERSION_TYPE_TABX):
                         conv.address = address
-                        pairs = gp_texts['conversion_tab'][i].items()
-                        for key, item in pairs:
-                            conv[key] = item.address
+                        conv_tab_texts = gp_texts['conversion_tab'][i]
+                        if conv_tab_texts:
+                            pairs = conv_tab_texts.items()
+                            for key, item in pairs:
+                                conv[key] = item.address
 
                         blocks.append(conv)
                         address += conv['block_len']
@@ -3114,7 +3276,7 @@ class MDF3(object):
                     address += trigger['block_len']
 
                 # DataBlock
-                for data_bytes in self._load_group_data(gp):
+                for (data_bytes, _) in self._load_group_data(gp):
                     blocks.append(data_bytes)
 
                 if gp['size']:
@@ -3245,7 +3407,8 @@ class MDF3(object):
             raise MdfException(message)
 
         dst = dst if dst else self.name
-        dst = os.path.splitext(dst)[0] + '.mdf'
+        if not dst.endswith(('mdf', 'MDF')):
+            dst = dst + '.mdf'
         if overwrite is False:
             if os.path.isfile(dst):
                 cntr = 0
@@ -3371,10 +3534,14 @@ class MDF3(object):
                     else:
                         conversion = ChannelConversion(raw_bytes=raw_bytes)
                         address = tell()
-                        if conversion['conversion_type'] == v23c.CONVERSION_TYPE_VTABR:
-                            pairs = gp_texts['conversion_tab'][i].items()
-                            for key, item in pairs:
-                                conversion[key] = item
+                        if conversion['conversion_type'] in (
+                                v23c.CONVERSION_TYPE_RTABX,
+                                v23c.CONVERSION_TYPE_TABX):
+                            conv_tab_texts = gp_texts['conversion_tab'][i]
+                            if conv_tab_texts:
+                                pairs = gp_texts['conversion_tab'][i].items()
+                                for key, item in pairs:
+                                    conversion[key] = item
                             write(bytes(conversion))
                             cc_addrs.append(address)
                         else:
@@ -3490,7 +3657,7 @@ class MDF3(object):
                 data = self._load_group_data(gp)
 
                 dat_addr = tell()
-                for data_bytes in data:
+                for (data_bytes, _) in data:
                     write(data_bytes)
 
                 if tell() - dat_addr:

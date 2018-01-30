@@ -174,7 +174,10 @@ class TestMDF(unittest.TestCase):
                                 if not np.array_equal(
                                         original.samples,
                                         converted.samples):
-#                                    print(name, original, converted)
+                                    print('@'*80)
+                                    print(input_file, memory, name)
+                                    print(original)
+                                    print(converted)
                                     equal = False
                                 if not np.array_equal(
                                         original.timestamps,
@@ -328,6 +331,14 @@ class TestMDF(unittest.TestCase):
                                     original.samples,
                                     converted.samples):
                                 equal = False
+                                print('*'*80)
+                                print(input_file, memory)
+                                print(original)
+                                print(mdf.get(group=i, index=j, raw=True))
+                                print(converted)
+                                print(mdf2.get(group=i, index=j, raw=True))
+                                print('='*80)
+                                raise Exception()
                             if not np.array_equal(
                                     original.timestamps,
                                     converted.timestamps):
@@ -601,8 +612,8 @@ class TestMDF(unittest.TestCase):
                 for memory in MEMORY:
                     input_file = os.path.join('tmpdir_demo', mdfname)
 
-#                    if MDF(input_file, memory=memory).version == '2.00':
-                    if MDF(input_file, memory=memory).version < '4.00':
+                    if MDF(input_file, memory=memory).version <= '2.00':
+                    # if MDF(input_file, memory=memory).version < '4.00':
                         continue
 
                     channels_nr = np.random.randint(1, len(CHANNELS_DEMO) + 1)
@@ -625,6 +636,10 @@ class TestMDF(unittest.TestCase):
                                     original.samples,
                                     filtered.samples):
                                 equal = False
+                                print('^'*80)
+                                print(mdfname, memory)
+                                print(original)
+                                print(filtered)
                             if not np.array_equal(
                                     original.timestamps,
                                     filtered.timestamps):
@@ -704,8 +719,8 @@ class TestMDF(unittest.TestCase):
 
             for mdfname in os.listdir('tmpdir_demo'):
                 input_file = os.path.join('tmpdir_demo', mdfname)
-#                if MDF(input_file).version == '2.00':
-                if MDF(input_file).version < '4.10':
+                if MDF(input_file).version == '2.00':
+                # if MDF(input_file).version < '4.10':
                     continue
                 print(input_file, compression, memory, size, split_enable, overwrite)
                 with MDF(input_file, memory=memory) as mdf:

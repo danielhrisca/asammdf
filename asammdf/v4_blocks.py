@@ -1003,7 +1003,7 @@ class ChannelConversion(dict):
                 self['unit_addr'] = kargs.get('unit_addr', 0)
                 self['comment_addr'] = kargs.get('comment_addr', 0)
                 self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
-                self['conv_text_addr'] = kargs.get('conv_text_addr', 0)
+                self['formula_addr'] = kargs.get('formula_addr', 0)
                 self['conversion_type'] = v4c.CONVERSION_TYPE_ALG
                 self['precision'] = kargs.get('precision', 1)
                 self['flags'] = kargs.get('flags', 0)
@@ -1011,6 +1011,69 @@ class ChannelConversion(dict):
                 self['val_param_nr'] = kargs.get('val_param_nr', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
+
+            elif kargs['conversion_type'] in (
+                    v4c.CONVERSION_TYPE_TAB,
+                    v4c.CONVERSION_TYPE_TABI):
+
+                nr = kargs['val_param_nr']
+
+                self['block_len'] = 80 + 8 * nr
+                self['links_nr'] = kargs.get('links_nr', 4)
+                self['name_addr'] = kargs.get('name_addr', 0)
+                self['unit_addr'] = kargs.get('unit_addr', 0)
+                self['comment_addr'] = kargs.get('comment_addr', 0)
+                self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
+                self['conversion_type'] = kargs['conversion_type']
+                self['precision'] = kargs.get('precision', 1)
+                self['flags'] = kargs.get('flags', 0)
+                self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
+                self['val_param_nr'] = kargs.get('val_param_nr', 0)
+                self['min_phy_value'] = kargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kargs.get('max_phy_value', 0)
+
+                for i in range(nr//2):
+                    self['raw_{}'.format(i)] = kargs['raw_{}'.format(i)]
+                    self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
+
+            elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_RTAB:
+                self['block_len'] = kargs['val_param_nr']* 8 + 80
+                self['links_nr'] = 4
+                self['name_addr'] = kargs.get('name_addr', 0)
+                self['unit_addr'] = kargs.get('unit_addr', 0)
+                self['comment_addr'] = kargs.get('comment_addr', 0)
+                self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
+                self['conversion_type'] = v4c.CONVERSION_TYPE_RTAB
+                self['precision'] = kargs.get('precision', 0)
+                self['flags'] = kargs.get('flags', 0)
+                self['ref_param_nr'] = 0
+                self['val_param_nr'] = kargs['val_param_nr']
+                self['min_phy_value'] = kargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kargs.get('max_phy_value', 0)
+                for i in range((kargs['val_param_nr'] - 1) // 3):
+                    self['lower_{}'.format(i)] = kargs['lower_{}'.format(i)]
+                    self['upper_{}'.format(i)] = kargs['upper_{}'.format(i)]
+                    self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
+                self['default'] = kargs['default']
+
+            elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_RAT:
+
+                self['block_len'] = 80 + 6 * 8
+                self['links_nr'] = kargs.get('links_nr', 4)
+                self['name_addr'] = kargs.get('name_addr', 0)
+                self['unit_addr'] = kargs.get('unit_addr', 0)
+                self['comment_addr'] = kargs.get('comment_addr', 0)
+                self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
+                self['conversion_type'] = kargs['conversion_type']
+                self['precision'] = kargs.get('precision', 1)
+                self['flags'] = kargs.get('flags', 0)
+                self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
+                self['val_param_nr'] = kargs.get('val_param_nr', 6)
+                self['min_phy_value'] = kargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kargs.get('max_phy_value', 0)
+
+                for i in range(1, 7):
+                    self['P{}'.format(i)] = kargs['P{}'.format(i)]
 
             elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_TABX:
                 self['block_len'] = ((kargs['links_nr'] - 5) * 8 * 2) + 88
@@ -1081,6 +1144,9 @@ class ChannelConversion(dict):
                 for i in range(kargs['links_nr'] - 4):
                     self['val_{}'.format(i)] = kargs['val_{}'.format(i)]
                 self['val_default'] = kargs['val_default']
+
+            else:
+                raise NotImplementedError('Conversion {} dynamic creation not implementated'.format(kargs['conversion_type']))
 
     def __bytes__(self):
         fmt = '<4sI{}Q2B3H{}d'.format(
@@ -1280,6 +1346,9 @@ class DataBlock(dict):
             self['block_len'] = len(kargs['data']) + v4c.COMMON_SIZE
             self['links_nr'] = 0
             self['data'] = kargs['data']
+
+        if PYVERSION_MAJOR < 30 and isinstance(self['data'], bytearray):
+            self['data'] = str(self['data'])
 
     def __bytes__(self):
         fmt = v4c.FMT_DATA_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)
