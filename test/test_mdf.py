@@ -175,7 +175,7 @@ class TestMDF(unittest.TestCase):
                                         original.samples,
                                         converted.samples):
                                     print('@'*80)
-                                    print(input_file, memory, name)
+                                    print(input_file, out, memory, name)
                                     print(original)
                                     print(converted)
                                     equal = False

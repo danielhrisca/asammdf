@@ -195,6 +195,7 @@ class MDF(object):
                                 sig = self.get(group=i, index=j, data=fragment, raw=True)
                                 if not sig.samples.flags.writeable:
                                     sig.samples = sig.samples.copy()
+                                # print(sig)
                                 sigs.append(sig)
 #                        for j, lst in enumerate(sigs):
 #                            sigs[j] = np.concatenate(lst)

@@ -1659,7 +1659,10 @@ class MDF4(object):
             unit_addr = 0
 
         # time channel
-        t_type, t_size = fmt_to_datatype_v4(t.dtype)
+        t_type, t_size = fmt_to_datatype_v4(
+            t.dtype,
+            t.shape,
+        )
         kargs = {
             'channel_type': v4c.CHANNEL_TYPE_MASTER,
             'data_type': t_type,
@@ -1981,7 +1984,10 @@ class MDF4(object):
                     comment_addr = 0
 
                 # compute additional byte offset for large records size
-                s_type, s_size = fmt_to_datatype_v4(signal.samples.dtype)
+                s_type, s_size = fmt_to_datatype_v4(
+                    signal.samples.dtype,
+                    signal.samples.shape,
+                )
                 # print(signal.name, signal.samples.dtype.byteorder, s_type, s_size)
                 byte_size = max(s_size // 8, 1)
                 min_val, max_val = get_min_max(signal.samples)
@@ -2026,7 +2032,10 @@ class MDF4(object):
                 parents[ch_cntr] = field_name, 0
 
                 fields.append(signal.samples)
-                types.append((field_name, signal.samples.dtype))
+                if s_type == v4c.DATA_TYPE_BYTEARRAY:
+                    types.append((field_name, signal.samples.dtype, signal.samples.shape[1:]))
+                else:
+                    types.append((field_name, signal.samples.dtype))
                 field_names.add(field_name)
 
                 ch_cntr += 1
@@ -2197,6 +2206,8 @@ class MDF4(object):
                         )
                         channel_unit_address = tell()
                         write(bytes(block))
+                    else:
+                        channel_unit_address = 0
 
                     if signal.comment:
                         block = TextBlock(text=signal.comment, meta=False)
@@ -2265,6 +2276,11 @@ class MDF4(object):
 
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
+
+                if memory == 'full':
+                    gp_sdata.append(None)
+                else:
+                    gp_sdata.append(0)
 
                 ch_cntr += 1
 
@@ -2366,7 +2382,10 @@ class MDF4(object):
 
                     samples = signal.samples[name]
 
-                    s_type, s_size = fmt_to_datatype_v4(samples.dtype)
+                    s_type, s_size = fmt_to_datatype_v4(
+                        samples.dtype,
+                        samples.shape,
+                    )
                     byte_size = s_size >> 3
 
                     fields.append(samples)
@@ -2570,7 +2589,10 @@ class MDF4(object):
                     unit_addr = 0
                     comment_addr = 0
 
-                s_type, s_size = fmt_to_datatype_v4(samples.dtype)
+                s_type, s_size = fmt_to_datatype_v4(
+                    samples.dtype,
+                    samples.shape,
+                )
 
                 # add channel block
                 kargs = {
@@ -2678,7 +2700,10 @@ class MDF4(object):
 
                     # add components channel
                     min_val, max_val = get_min_max(samples)
-                    s_type, s_size = fmt_to_datatype_v4(samples.dtype)
+                    s_type, s_size = fmt_to_datatype_v4(
+                        samples.dtype,
+                        (),
+                    )
                     byte_size = max(s_size // 8, 1)
                     kargs = {
                         'channel_type': v4c.CHANNEL_TYPE_VALUE,
@@ -2860,7 +2885,10 @@ class MDF4(object):
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
                 fields.append(signal)
-                types.append(('', signal.dtype))
+                if signal.shape[1:]:
+                    types.append(('', signal.dtype, signal.shape[1:]))
+                else:
+                    types.append(('', signal.dtype))
                 min_val, max_val = get_min_max(signal)
                 if self.memory == 'minimum':
                     address = gp['channels'][i]
@@ -3769,7 +3797,6 @@ class MDF4(object):
                                             index=ref_ch_nr,
                                             samples_only=True,
                                         )
-                                        print('ES', start, end, offset, record_size)
                                         axis_values = ref[start: end].copy()
                                     axis_values = axis_values[axisname]
 
@@ -3851,13 +3878,7 @@ class MDF4(object):
                     if PYVERSION == 2:
                         types = fix_dtype_fields(types)
 
-
-                    try:
-                        vals = fromarrays(arrays, dtype(types))
-                    except:
-                        print(*[(arr, arr.shape, arr.dtype) for arr in arrays], sep='\n')
-                        print(types)
-                        raise
+                    vals = fromarrays(arrays, dtype(types))
 
                     if not samples_only:
                         timestamps.append(self.get_master(gp_nr, fragment))
@@ -3924,9 +3945,7 @@ class MDF4(object):
                     data_bytes, offset = fragment
                     offset = offset // record_size
 
-                    record = fromstring(data_bytes, dtype=dtypes)
-                    record.setflags(write=False)
-                    vals = arange(len(record), dtype=ch_dtype)
+                    vals = arange(len(data_bytes)//record_size, dtype=ch_dtype)
                     vals += offset
 
                     if not samples_only:
@@ -3988,6 +4007,8 @@ class MDF4(object):
                         vals = record[parent]
                         bits = channel['bit_count']
                         size = vals.dtype.itemsize
+                        for dim in vals.shape[1:]:
+                            size *= dim
                         data_type = channel['data_type']
 
                         if vals.dtype.kind not in 'ui' and (bit_offset or not bits == size * 8):
@@ -4021,8 +4042,9 @@ class MDF4(object):
                         timestamps.append(self.get_master(gp_nr, fragment))
                     if channel_invalidation_present:
                         valid_indexes.append(self.get_valid_indexes(gp_nr, channel, fragment))
-
                     channel_values.append(vals.copy())
+
+
 
                 if len(channel_values) > 1:
                     vals = concatenate(channel_values)
@@ -4064,8 +4086,6 @@ class MDF4(object):
             else:
                 conversion_type = conversion['conversion_type']
 
-
-
             if conversion_type == v4c.CONVERSION_TYPE_NON:
                 signal_conversion = None
 
@@ -4089,11 +4109,7 @@ class MDF4(object):
                             vals = [v.decode('utf-16-le') for v in values]
 
                         elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                            try:
-                                vals = [v.decode('utf-8') for v in values]
-                            except:
-                                print(self.name, channel, values, channel_type, data_type)
-                                raise
+                            vals = [v.decode('utf-8') for v in values]
 
                         elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
                             vals = [v.decode('latin-1') for v in values]
@@ -4129,87 +4145,87 @@ class MDF4(object):
                             )
                             vals = encode(vals, 'latin-1')
 
-                elif not raw:
-                    # CANopen date
-                    if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
+                # # byte array
+                # elif data_type == v4c.DATA_TYPE_BYTEARRAY:
+                #     vals = vals.tostring()
+                #     size = max(bits >> 3, 1)
+                #
+                #     vals = frombuffer(
+                #         vals,
+                #         dtype=dtype('({},)u1'.format(size)),
+                #     )
+                #
+                #     types = [(channel.name, vals.dtype, vals.shape[1:])]
+                #     if PYVERSION == 2:
+                #         types = fix_dtype_fields(types)
+                #
+                #     types = dtype(types)
+                #     arrays = [vals, ]
+                #
+                #     vals = fromarrays(arrays, dtype=types)
 
-                        vals = vals.tostring()
+                # TO DO really handle CANopen types as raw values
+                # CANopen date
+                if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
 
-                        types = dtype(
-                            [('ms', '<u2'),
-                                ('min', '<u1'),
-                                ('hour', '<u1'),
-                                ('day', '<u1'),
-                                ('month', '<u1'),
-                                ('year', '<u1')]
-                        )
-                        dates = fromstring(vals, types)
+                    vals = vals.tostring()
 
-                        arrays = []
-                        arrays.append(dates['ms'])
-                        # bit 6 and 7 of minutes are reserved
-                        arrays.append(dates['min'] & 0x3F)
-                        # only firt 4 bits of hour are used
-                        arrays.append(dates['hour'] & 0xF)
-                        # the first 4 bits are the day number
-                        arrays.append(dates['day'] & 0xF)
-                        # bit 6 and 7 of month are reserved
-                        arrays.append(dates['month'] & 0x3F)
-                        # bit 7 of year is reserved
-                        arrays.append(dates['year'] & 0x7F)
-                        # add summer or standard time information for hour
-                        arrays.append((dates['hour'] & 0x80) >> 7)
-                        # add day of week information
-                        arrays.append((dates['day'] & 0xF0) >> 4)
+                    types = dtype(
+                        [('ms', '<u2'),
+                            ('min', '<u1'),
+                            ('hour', '<u1'),
+                            ('day', '<u1'),
+                            ('month', '<u1'),
+                            ('year', '<u1')]
+                    )
+                    dates = fromstring(vals, types)
 
-                        names = [
-                            'ms',
-                            'min',
-                            'hour',
-                            'day',
-                            'month',
-                            'year',
-                            'summer_time',
-                            'day_of_week',
-                        ]
-                        vals = fromarrays(arrays, names=names)
+                    arrays = []
+                    arrays.append(dates['ms'])
+                    # bit 6 and 7 of minutes are reserved
+                    arrays.append(dates['min'] & 0x3F)
+                    # only firt 4 bits of hour are used
+                    arrays.append(dates['hour'] & 0xF)
+                    # the first 4 bits are the day number
+                    arrays.append(dates['day'] & 0xF)
+                    # bit 6 and 7 of month are reserved
+                    arrays.append(dates['month'] & 0x3F)
+                    # bit 7 of year is reserved
+                    arrays.append(dates['year'] & 0x7F)
+                    # add summer or standard time information for hour
+                    arrays.append((dates['hour'] & 0x80) >> 7)
+                    # add day of week information
+                    arrays.append((dates['day'] & 0xF0) >> 4)
 
-                    # CANopen time
-                    elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
-                        vals = vals.tostring()
+                    names = [
+                        'ms',
+                        'min',
+                        'hour',
+                        'day',
+                        'month',
+                        'year',
+                        'summer_time',
+                        'day_of_week',
+                    ]
+                    vals = fromarrays(arrays, names=names)
 
-                        types = dtype(
-                            [('ms', '<u4'),
-                                ('days', '<u2')]
-                        )
-                        dates = fromstring(vals, types)
+                # CANopen time
+                elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
+                    vals = vals.tostring()
 
-                        arrays = []
-                        # bits 28 to 31 are reserverd for ms
-                        arrays.append(dates['ms'] & 0xFFFFFFF)
-                        arrays.append(dates['days'] & 0x3F)
+                    types = dtype(
+                        [('ms', '<u4'),
+                            ('days', '<u2')]
+                    )
+                    dates = fromstring(vals, types)
 
-                        names = ['ms', 'days']
-                        vals = fromarrays(arrays, names=names)
+                    arrays = []
+                    # bits 28 to 31 are reserverd for ms
+                    arrays.append(dates['ms'] & 0xFFFFFFF)
+                    arrays.append(dates['days'] & 0x3F)
 
-                    # byte array
-                    elif data_type == v4c.DATA_TYPE_BYTEARRAY:
-                        vals = vals.tostring()
-                        size = max(bits >> 3, 1)
-
-                        vals = frombuffer(
-                            vals,
-                            dtype=dtype('({},)u1'.format(size)),
-                        )
-
-                        types = [(channel.name, vals.dtype, vals.shape[1:])]
-                        if PYVERSION == 2:
-                            types = fix_dtype_fields(types)
-
-                        types = dtype(types)
-                        arrays = [vals, ]
-
-                        vals = fromarrays(arrays, dtype=types)
+                    names = ['ms', 'days']
+                    vals = fromarrays(arrays, names=names)
 
             elif conversion_type == v4c.CONVERSION_TYPE_LIN:
                 signal_conversion = {
