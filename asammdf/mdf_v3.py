@@ -159,10 +159,6 @@ class MDF3(object):
         if self.memory == 'full':
             yield group['data_block']['data'], offset
         else:
-            # could be an appended group
-            # for now appended groups keep the measured data in the memory.
-            # the plan is to use a temp file for appended groups, to keep the
-            # memory usage low.
             data_group = group['data_group']
             channel_group = group['channel_group']
 
@@ -185,7 +181,7 @@ class MDF3(object):
                             split_size = self.read_split_threshold // samples_size
                             split_size *= samples_size
                         else:
-                            split_size_1 = channel_group['cycles_nr'] // 99
+                            split_size_1 = channel_group['cycles_nr'] // 49
                             split_size_1 *= samples_size
 
                             split_size_2 = (4 * 2**20) // samples_size
@@ -200,18 +196,44 @@ class MDF3(object):
                     else:
                         split_size = read_size
 
-                    stream.seek(dat_addr)
-                    while read_size:
-                        if read_size > split_size:
-                            yield stream.read(split_size), offset
-                            read_size -= split_size
-                        else:
-                            yield stream.read(read_size), offset
-                            read_size = 0
-                        offset += split_size
+                    blocks = zip(
+                        group['data_block_addr'],
+                        group['data_block_size'],
+                    )
+                    if PYVERSION == 2:
+                        blocks = iter(blocks)
+
+                    cur_size = 0
+                    data = []
+
+                    while True:
+                        try:
+                            address, size = next(blocks)
+                        except StopIteration:
+                            break
+                        stream.seek(address)
+
+                        while size >= split_size - cur_size:
+                            if data:
+                                data.append(stream.read(split_size - cur_size))
+                                yield b''.join(data), offset
+                            else:
+                                yield stream.read(split_size), offset
+                            offset += split_size
+
+                            size -= split_size - cur_size
+                            data = []
+                            cur_size = 0
+
+                        if size:
+                            data.append(stream.read(size))
+                            cur_size += size
+                            offset += size
+
+                    if data:
+                        yield b''.join(data), offset
 
                 else:
-                    read_size = group['size']
                     record_id = group['channel_group']['record_id']
                     if PYVERSION == 2:
                         record_id = chr(record_id)
@@ -222,28 +244,36 @@ class MDF3(object):
                         record_id_nr = 0
                     cg_data = []
 
-                    stream.seek(dat_addr)
-                    data = stream.read(read_size)
+                    blocks = zip(
+                        group['data_block_addr'],
+                        group['data_block_size'],
+                    )
+                    if PYVERSION == 2:
+                        blocks = iter(blocks)
 
-                    i = 0
-                    size = len(data)
-                    while i < size:
-                        rec_id = data[i]
-                        # skip record id
-                        i += 1
-                        rec_size = cg_size[rec_id]
-                        if rec_id == record_id:
-                            rec_data = data[i: i + rec_size]
-                            cg_data.append(rec_data)
-                        # consider the second record ID if it exists
-                        if record_id_nr == 2:
-                            i += rec_size + 1
-                        else:
-                            i += rec_size
-                    cg_data = b''.join(cg_data)
-                    size = len(cg_data)
-                    yield cg_data, offset
-                    offset += size
+                    for address, size in blocks:
+
+                        stream.seek(address)
+                        data = stream.read(size)
+
+                        i = 0
+                        while i < size:
+                            rec_id = data[i]
+                            # skip record id
+                            i += 1
+                            rec_size = cg_size[rec_id]
+                            if rec_id == record_id:
+                                rec_data = data[i: i + rec_size]
+                                cg_data.append(rec_data)
+                            # consider the second record ID if it exists
+                            if record_id_nr == 2:
+                                i += rec_size + 1
+                            else:
+                                i += rec_size
+                        cg_data = b''.join(cg_data)
+                        size = len(cg_data)
+                        yield cg_data, offset
+                        offset += size
             else:
                 yield b'', offset
 
@@ -891,6 +921,9 @@ class MDF3(object):
             else:
                 for grp in new_groups:
                     grp['data_location'] = v23c.LOCATION_ORIGINAL_FILE
+                    grp['data_group']['data_block_addr'] = data_group['data_block_addr']
+                    grp['data_block_addr'] = [data_group['data_block_addr'], ]
+                    grp['data_block_size'] = [total_size, ]
 
             self.groups.extend(new_groups)
 
@@ -1920,9 +1953,13 @@ class MDF3(object):
             if cycles_nr:
                 data_address = tell()
                 gp['data_group']['data_block_addr'] = data_address
+                gp['data_block_addr'] = [data_address, ]
+                gp['data_block_size'] = [len(block), ]
                 self._tempfile.write(block)
             else:
                 gp['data_group']['data_block_addr'] = 0
+                gp['data_block_addr'] = [data_address, ]
+                gp['data_block_size'] = [0, ]
 
         # data group trigger
         gp['trigger'] = [None, None]
@@ -1937,6 +1974,151 @@ class MDF3(object):
             self._tempfile.close()
         if self._file is not None:
             self._file.close()
+
+    def extend(self, index, signals):
+        memory = self.memory
+        new_group_offset = 0
+        gp = self.groups[index]
+        if not signals:
+            message = '"append" requires a non-empty list of Signal objects'
+            raise MdfException(message)
+
+        if gp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        canopen_time_fields = (
+            'ms',
+            'days',
+        )
+        canopen_date_fields = (
+            'ms',
+            'min',
+            'hour',
+            'day',
+            'month',
+            'year',
+            'summer_time',
+            'day_of_week',
+        )
+
+        fields = []
+        types = []
+
+        cycles_nr = len(signals[0])
+
+        for i, signal in enumerate(signals):
+            sig = signal
+            names = sig.samples.dtype.names
+            name = signal.name
+            if len(sig.samples.shape) <= 1:
+                if names is None:
+                    sig_type = v23c.SIGNAL_TYPE_SCALAR
+                else:
+                    if names in (canopen_time_fields, canopen_date_fields):
+                        sig_type = v23c.SIGNAL_TYPE_CANOPEN
+                    elif names[0] != sig.name:
+                        sig_type = v23c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
+                    else:
+                        sig_type = v23c.SIGNAL_TYPE_ARRAY
+            else:
+                sig_type = v23c.SIGNAL_TYPE_ARRAY
+
+            if sig_type == v23c.SIGNAL_TYPE_SCALAR:
+                fields.append(signal.samples)
+                types.append(('', signal.samples.dtype))
+
+            # second, add the composed signals
+            elif sig_type in (
+                    v23c.SIGNAL_TYPE_CANOPEN,
+                    v23c.SIGNAL_TYPE_STRUCTURE_COMPOSITION):
+                new_group_offset += 1
+                new_gp = self.groups[index + new_group_offset]
+
+                new_fields = []
+                new_types = []
+
+                names = signal.samples.dtype.names
+                for name in names:
+                    new_fields.append(signal.samples[name])
+                    new_types.append(('', samples.dtype))
+
+                # data block
+                if PYVERSION == 2:
+                    new_types = fix_dtype_fields(new_types)
+                new_types = dtype(new_types)
+
+                samples = fromarrays(new_fields, dtype=new_types)
+                samples = samples.tostring()
+
+                record_size = new_gp['channel_group']['samples_byte_nr']
+                extended_size = cycles_nr * record_size
+                new_gp['size'] += extended_size
+
+                if memory == 'full':
+                    if samples:
+                        data = new_gp['data_block']['data'] + samples
+                        new_gp['data_block'] = DataBlock(data=data)
+                else:
+                    if samples:
+                        data_address = self._tempfile.tell()
+                        new_gp['data_block_addr'].append(data_address)
+                        new_gp['data_block_size'].append(extended_size)
+                        self._tempfile.write(samples)
+
+            else:
+
+                names = signal.samples.dtype.names
+                name = signal.name
+
+                component_samples = []
+                if names:
+                    samples = signal.samples[names[0]]
+                else:
+                    samples = signal.samples
+
+                shape = samples.shape[1:]
+                dims = [list(range(size)) for size in shape]
+
+                for indexes in product(*dims):
+                    subarray = samples
+                    for idx in indexes:
+                        subarray = subarray[:, idx]
+                    component_samples.append(subarray)
+
+                if names:
+                    new_samples = [signal.samples[fld] for fld in names[1:]]
+                    component_samples.extend(new_samples)
+
+                for i, samples in enumerate(component_samples):
+                    shape = samples.shape[1:]
+
+                    fields.append(samples)
+                    types.append(('', samples.dtype, shape))
+
+            record_size = gp['channel_group']['samples_byte_nr']
+            extended_size = cycles_nr * record_size
+            gp['size'] += extended_size
+
+            # data block
+            if PYVERSION == 2:
+                types = fix_dtype_fields(types)
+            types = dtype(types)
+
+            samples = fromarrays(fields, dtype=types)
+            samples = samples.tostring()
+
+            if memory == 'full':
+                if samples:
+                    data = gp['data_block']['data'] + samples
+                    gp['data_block'] = DataBlock(data=data)
+            else:
+                if cycles_nr:
+                    data_address = self._tempfile.tell()
+                    gp['data_block_addr'].append(data_address)
+                    gp['data_block_size'].append(extended_size)
+                    self._tempfile.write(samples)
 
     def get_channel_name(self, group, index):
         """Gets channel name.
@@ -2433,9 +2615,6 @@ class MDF3(object):
             if cycles_nr:
 
                 if conversion_type == v23c.CONVERSION_TYPE_NONE:
-
-
-
                     if channel['data_type'] == v23c.DATA_TYPE_STRING:
                         vals = [val.tobytes() for val in vals]
                         vals = [

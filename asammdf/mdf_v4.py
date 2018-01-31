@@ -44,6 +44,7 @@ from numpy import (
     unpackbits,
     zeros,
 )
+
 from numpy.core.defchararray import encode
 from numpy.core.records import fromarrays, fromstring
 
@@ -3142,6 +3143,11 @@ class MDF4(object):
                         )
                         warnings.warn(message)
                 else:
+                    file_path = (
+                        texts['file_name_addr']['text']
+                            .decode('utf-8')
+                            .strip(' \n\t\0')
+                    )
                     if (texts['mime_addr']['text']
                             .decode('utf-8')
                             .startswith('text')):
@@ -3507,6 +3513,7 @@ class MDF4(object):
                 comment="">
 
         """
+
         gp_nr, ch_nr = self._validate_channel_selection(
             name,
             group,
@@ -3848,7 +3855,7 @@ class MDF4(object):
                     try:
                         vals = fromarrays(arrays, dtype(types))
                     except:
-                        print(*[(array, array.shape, array.dtype) for array in arrays], sep='\n')
+                        print(*[(arr, arr.shape, arr.dtype) for arr in arrays], sep='\n')
                         print(types)
                         raise
 
