@@ -455,7 +455,7 @@ class MDF4(object):
 
                 if address:
                     stream.seek(address)
-                    id_string, _, block_len = unpack(
+                    id_string, reserved, block_len, links_nr = unpack(
                         v4c.FMT_COMMON,
                         stream.read(v4c.COMMON_SIZE),
                     )
