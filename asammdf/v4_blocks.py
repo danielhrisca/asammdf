@@ -391,7 +391,10 @@ class ChannelArrayBlock(dict):
              self['byte_offset_base'],
              self['invalidation_bit_base']) = values
 
-            dim_sizes = unpack('<{}Q'.format(dims_nr), stream.read(8 * dims_nr))
+            dim_sizes = unpack(
+                '<{}Q'.format(dims_nr),
+                stream.read(8 * dims_nr),
+            )
             for i, size in enumerate(dim_sizes):
                 self['dim_size_{}'.format(i)] = size
 
@@ -703,9 +706,9 @@ class ChannelConversion(dict):
                 stream.seek(address)
 
                 (self['id'],
-                self['reserved0'],
-                self['block_len'],
-                self['links_nr']) = unpack(
+                 self['reserved0'],
+                 self['block_len'],
+                 self['links_nr']) = unpack(
                     v4c.FMT_COMMON,
                     stream.read(v4c.COMMON_SIZE),
                 )
@@ -801,7 +804,10 @@ class ChannelConversion(dict):
                 values = unpack('<{}d'.format(nr), block[56:])
                 for i in range(nr // 2):
                     (self['raw_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i * 2], values[2 * i + 1]
+                     self['phys_{}'.format(i)]) = (
+                        values[i * 2],
+                        values[2 * i + 1],
+                    )
 
             elif conv == v4c.CONVERSION_TYPE_RTAB:
                 (self['name_addr'],
@@ -823,7 +829,11 @@ class ChannelConversion(dict):
                 for i in range((nr - 1) // 3):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
+                     self['phys_{}'.format(i)]) = (
+                        values[i * 3],
+                        values[3 * i + 1],
+                        values[3 * i + 2],
+                    )
                 self['default'] = unpack('<d', block[-8:])[0]
 
             elif conv == v4c.CONVERSION_TYPE_TABX:
@@ -1037,7 +1047,7 @@ class ChannelConversion(dict):
                     self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
 
             elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_RTAB:
-                self['block_len'] = kargs['val_param_nr']* 8 + 80
+                self['block_len'] = kargs['val_param_nr'] * 8 + 80
                 self['links_nr'] = 4
                 self['name_addr'] = kargs.get('name_addr', 0)
                 self['unit_addr'] = kargs.get('unit_addr', 0)
@@ -1146,7 +1156,9 @@ class ChannelConversion(dict):
                 self['val_default'] = kargs['val_default']
 
             else:
-                raise NotImplementedError('Conversion {} dynamic creation not implementated'.format(kargs['conversion_type']))
+                message = 'Conversion {} dynamic creation not implementated'
+                message = message.format(kargs['conversion_type'])
+                raise NotImplementedError(message)
 
     def __bytes__(self):
         fmt = '<4sI{}Q2B3H{}d'.format(
@@ -1427,7 +1439,7 @@ class DataZippedBlock(dict):
         self.return_unzipped = True
 
     def __setitem__(self, item, value):
-        if item == 'data' and self.prevent_data_setitem == False:
+        if item == 'data' and not self.prevent_data_setitem:
             data = value
             self['original_size'] = len(data)
 
@@ -1439,7 +1451,7 @@ class DataZippedBlock(dict):
 
                 nd = np.fromstring(data[:lines * cols], dtype=np.uint8)
                 nd = nd.reshape((lines, cols))
-                data = nd.transpose().tostring() + data[lines * cols:]
+                data = nd.T.tostring() + data[lines * cols:]
 
                 data = compress(data)
 
@@ -1460,7 +1472,7 @@ class DataZippedBlock(dict):
 
                     nd = np.fromstring(data[:lines * cols], dtype=np.uint8)
                     nd = nd.reshape((cols, lines))
-                    data = nd.transpose().tostring() + data[lines * cols:]
+                    data = nd.T.tostring() + data[lines * cols:]
             else:
                 data = super(DataZippedBlock, self).__getitem__(item)
             value = data

@@ -59,8 +59,8 @@ class Channel(dict):
     * channel_type - Channel type
 
         * 0 = data channel
-        * 1 = time channel for all signals of this group (in each channel group,
-            exactly one channel must be defined as time channel).
+        * 1 = time channel for all signals of this group (in each channel
+            group, exactly one channel must be defined as time channel).
             The time stamps recording in a time channel are always relative
             to the start time of the measurement defined in HDBLOCK.
 
@@ -68,8 +68,8 @@ class Channel(dict):
         ASAM-MCD name of the signal (end of text should be indicated by 0)
     * description - Signal description (end of text should be indicated by 0)
     * start_offset - Start offset in bits to determine the first bit of the
-        signal in the data record. The start offset N is divided into two parts:
-        a "Byte offset" (= N div 8) and a "Bit offset" (= N mod 8).
+        signal in the data record. The start offset N is divided into two
+        parts: a "Byte offset" (= N div 8) and a "Bit offset" (= N mod 8).
         The channel block can define an "additional Byte offset" (see below)
         which must be added to the Byte offset.
     * bit_count - Number of bits used to encode the value of this signal in a
@@ -81,8 +81,8 @@ class Channel(dict):
     * max_raw_value - Maximum signal value that occurred for this signal
         (raw value)
     * sampling_rate - Sampling rate for a virtual time channel. Unit [s]
-    * long_name_addr - Pointer to TXBLOCK that contains the ASAM-MCD long signal
-        name
+    * long_name_addr - Pointer to TXBLOCK that contains the ASAM-MCD long
+        signal name
     * display_name_addr - Pointer to TXBLOCK that contains the signal's display
         name (NIL allowed)
     * aditional_byte_offset - Additional Byte offset of the signal in the data
@@ -416,7 +416,7 @@ class ChannelConversion(dict):
                 )
                 for i in range(nr):
                     (self['raw_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i * 2], values[2 * i + 1]
+                     self['phys_{}'.format(i)]) = values[i*2], values[2*i + 1]
 
             elif conv_type in (
                     v23c.CONVERSION_TYPE_POLY,
@@ -458,7 +458,7 @@ class ChannelConversion(dict):
 
                 for i in range(nr):
                     (self['param_val_{}'.format(i)],
-                     self['text_{}'.format(i)]) = values[i * 2], values[2 * i + 1]
+                     self['text_{}'.format(i)]) = values[i*2], values[2*i + 1]
 
             elif conv_type == v23c.CONVERSION_TYPE_RTABX:
                 nr = self['ref_param_nr']
@@ -471,7 +471,11 @@ class ChannelConversion(dict):
                 for i in range(nr):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
-                     self['text_{}'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
+                     self['text_{}'.format(i)]) = (
+                        values[i*3],
+                        values[3*i + 1],
+                        values[3*i + 2],
+                    )
 
             if self['id'] != b'CC':
                 message = 'Expected "CC" block but found "{}"'
@@ -721,7 +725,8 @@ class ChannelDependency(dict):
     * there can also be optional keys which decribe dimensions for
         the N-dimensional dependencies:
 
-        * dim_{n} - Optional: size of dimension *n* for N-dimensional dependency
+        * dim_{n} - Optional: size of dimension *n* for N-dimensional
+            dependency
 
     Parameters
     ----------
@@ -923,7 +928,10 @@ class ChannelExtension(dict):
                  self['CAN_ch_index'],
                  self['message_name'],
                  self['sender_name'],
-                 self['reserved0']) = unpack(v23c.FMT_SOURCE_EXTRA_VECTOR, block)
+                 self['reserved0']) = unpack(
+                    v23c.FMT_SOURCE_EXTRA_VECTOR,
+                    block,
+                )
             if self['id'] != b'CE':
                 message = 'Expected "CE" block but found "{}"'
                 raise MdfException(message.format(self['id']))
@@ -980,7 +988,8 @@ class ChannelGroup(dict):
 
     * id - Block type identifier, always "CG"
     * block_len - Block size of this block in bytes (entire CGBLOCK)
-    * next_cg_addr - Pointer to next channel group block (CGBLOCK) (NIL allowed)
+    * next_cg_addr - Pointer to next channel group block (CGBLOCK) (NIL
+        allowed)
     * first_ch_addr - Pointer to first channel block (CNBLOCK) (NIL allowed)
     * comment_addr - Pointer to channel group comment text (TXBLOCK)
         (NIL allowed)
@@ -988,11 +997,12 @@ class ChannelGroup(dict):
         the DGBLOCK defines a number of record IDs > 0
     * ch_nr - Number of channels (redundant information)
     * samples_byte_nr - Size of data record in Bytes (without record ID),
-        i.e. size of plain data for a each recorded sample of this channel group
+        i.e. size of plain data for a each recorded sample of this channel
+        group
     * cycles_nr - Number of records of this type in the data block
         i.e. number of samples for this channel group
     * sample_reduction_addr - only since version 3.3. Pointer to
-        first sample reduction block (SRBLOCK) (NIL allowed) Default value: NIL.
+        first sample reduction block (SRBLOCK) (NIL allowed) Default value: NIL
 
     Parameters
     ----------
@@ -1078,8 +1088,8 @@ class DataBlock(dict):
 
     The DataBlock object can be created in two modes:
 
-    * using the *stream*, *address* and *size* keyword parameters - when reading
-        from file
+    * using the *stream*, *address* and *size* keyword parameters - when
+        reading from file
     * using any of the following presented keys - when creating
         a new ChannelGroup
 
@@ -1389,18 +1399,46 @@ class HeaderBlock(dict):
             self['dg_nr'] = 0
             t1 = time.time() * 10 ** 9
             t2 = time.gmtime()
-            self['date'] = '{:\0<10}'.format(time.strftime('%d:%m:%Y', t2)).encode('latin-1')
-            self['time'] = '{:\0<8}'.format(time.strftime('%X', t2)).encode('latin-1')
-            self['author'] = '{:\0<32}'.format(getuser()).encode('latin-1')
-            self['organization'] = '{:\0<32}'.format('').encode('latin-1')
-            self['project'] = '{:\0<32}'.format('').encode('latin-1')
-            self['subject'] = '{:\0<32}'.format('').encode('latin-1')
+            self['date'] = (
+                '{:\0<10}'
+                .format(time.strftime('%d:%m:%Y', t2))
+                .encode('latin-1')
+            )
+            self['time'] = (
+                '{:\0<8}'
+                .format(time.strftime('%X', t2))
+                .encode('latin-1')
+            )
+            self['author'] = (
+                '{:\0<32}'
+                .format(getuser())
+                .encode('latin-1')
+            )
+            self['organization'] = (
+                '{:\0<32}'
+                .format('')
+                .encode('latin-1')
+            )
+            self['project'] = (
+                '{:\0<32}'
+                .format('')
+                .encode('latin-1')
+            )
+            self['subject'] = (
+                '{:\0<32}'
+                .format('')
+                .encode('latin-1')
+            )
 
             if self['block_len'] > v23c.HEADER_COMMON_SIZE:
                 self['abs_time'] = int(t1)
                 self['tz_offset'] = 2
                 self['time_quality'] = 0
-                self['timer_identification'] = '{:\0<32}'.format('Local PC Reference Time').encode('latin-1')
+                self['timer_identification'] = (
+                    '{:\0<32}'
+                    .format('Local PC Reference Time')
+                    .encode('latin-1')
+                )
 
     def __bytes__(self):
         fmt = v23c.HEADER_COMMON_FMT
@@ -1620,7 +1658,10 @@ class TextBlock(dict):
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
-            result = pack('<2sH{}s'.format(self['block_len'] - 4), *self.values())
+            result = pack(
+                '<2sH{}s'.format(self['block_len'] - 4),
+                *self.values()
+            )
         else:
             result = pack(
                 '<2sH{}s'.format(self['block_len'] - 4),
@@ -1686,7 +1727,11 @@ class TriggerBlock(dict):
             for i in range(nr):
                 (self['trigger_{}_time'.format(i)],
                  self['trigger_{}_pretime'.format(i)],
-                 self['trigger_{}_posttime'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
+                 self['trigger_{}_posttime'.format(i)]) = (
+                    values[i * 3],
+                    values[3 * i + 1],
+                    values[3 * i + 2],
+                )
 
             if self['id'] != b'TR':
                 message = 'Expected "TR" block but found "{}"'
@@ -1700,9 +1745,12 @@ class TriggerBlock(dict):
 
             nr = self['trigger_events_nr']
             for i in range(nr):
-                self['trigger_{}_time'.format(i)] = kargs['trigger_{}_time'.format(i)]
-                self['trigger_{}_pretime'.format(i)] = kargs['trigger_{}_pretime'.format(i)]
-                self['trigger_{}_posttime'.format(i)] = kargs['trigger_{}_posttime'.format(i)]
+                key = 'trigger_{}_time'.format(i)
+                self[key] = kargs[key]
+                key = 'trigger_{}_pretime'.format(i)
+                self[key] = kargs[key]
+                key = 'trigger_{}_posttime'.format(i)
+                self[key] = kargs[key]
 
     def __bytes__(self):
         triggers_nr = self['trigger_events_nr']

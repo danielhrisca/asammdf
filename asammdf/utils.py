@@ -34,6 +34,7 @@ class MdfException(Exception):
     """MDF Exception class"""
     pass
 
+
 # pylint: disable=W0622
 def bytes(obj):
     """ Python 2 compatibility function """
@@ -66,12 +67,29 @@ def get_text_v3(address, stream):
 
     stream.seek(address + 2)
     size = unpack('<H', stream.read(2))[0] - 4
-    text = (
-        stream
-        .read(size)
-        .decode('latin-1')
-        .strip(' \r\t\n\0')
-    )
+    text_bytes = stream.read(size)
+    try:
+        text = (
+            text_bytes
+            .decode('latin-1')
+            .strip(' \r\t\n\0')
+        )
+    except UnicodeDecodeError as err:
+        try:
+            from chardet import detect
+            encoding = detect(text_bytes)['encoding']
+            text = (
+                text_bytes
+                .decode(encoding)
+                .strip(' \r\t\n\0')
+            )
+        except ImportError:
+            warnings.warn('Unicode exception occured and "chardet" package is '
+                          'not installed. Mdf version 3 expects "latin-1" '
+                          'strings and this package may detect if a different'
+                          ' encoding was used')
+            raise err
+
     return text
 
 
@@ -281,7 +299,8 @@ def fmt_to_datatype_v3(fmt, shape):
         elif fmt.kind in 'SV':
             data_type = v3c.DATA_TYPE_STRING
         else:
-            raise MdfException('Unknown type: dtype={}, shape={}'.format(fmt, shape))
+            message = 'Unknown type: dtype={}, shape={}'
+            raise MdfException(message.format(fmt, shape))
 
     return data_type, size
 
@@ -309,8 +328,8 @@ def fmt_to_datatype_v4(fmt, shape):
         data_type = v4c.DATA_TYPE_BYTEARRAY
         for dim in shape[1:]:
             size *= dim
-    else:
 
+    else:
         if fmt.kind == 'u':
             if fmt.byteorder in '=<|':
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
@@ -329,7 +348,8 @@ def fmt_to_datatype_v4(fmt, shape):
         elif fmt.kind in 'SV':
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
         else:
-            raise MdfException('Unknown type: dtype={}, shape={}'.format(fmt, shape))
+            message = 'Unknown type: dtype={}, shape={}'
+            raise MdfException(message.format(fmt, shape))
 
     return data_type, size
 
@@ -387,9 +407,11 @@ def get_min_max(samples):
 
 def as_non_byte_sized_signed_int(integer_array, bit_length):
     """
-    The MDF spec allows values to be encoded as integers that aren't byte-sized. Numpy only knows how to do two's
-    complement on byte-sized integers (i.e. int16, int32, int64, etc.), so we have to calculate two's complement
-    ourselves in order to handle signed integers with unconventional lengths.
+    The MDF spec allows values to be encoded as integers that aren't
+    byte-sized. Numpy only knows how to do two's complement on byte-sized
+    integers (i.e. int16, int32, int64, etc.), so we have to calculate two's
+    complement ourselves in order to handle signed integers with unconventional
+    lengths.
 
     Parameters
     ----------
@@ -404,6 +426,8 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
     """
 
     truncated_integers = integer_array & ((1 << bit_length) - 1)  # Zero out the unwanted bits
-    return where(truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
-                 (2**bit_length - truncated_integers) * -1,  # when negative, do two's complement
-                 truncated_integers)  # when positive, return the truncated int
+    return where(
+        truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
+        (2**bit_length - truncated_integers) * -1,  # when negative, do two's complement
+        truncated_integers,  # when positive, return the truncated int
+    )

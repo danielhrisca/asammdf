@@ -2228,7 +2228,7 @@ class MDF3(object):
 
         cycles_nr = len(signals[0])
 
-        for i, signal in enumerate(signals):
+        for signal in signals:
             sig = signal
             names = sig.dtype.names
 
@@ -2849,15 +2849,6 @@ class MDF3(object):
                         vals = array(vals)
                         vals = encode(vals, 'latin-1')
 
-                    # elif channel['data_type'] == v23c.DATA_TYPE_BYTEARRAY:
-                    #     if not raw:
-                    #         arrays = [vals, ]
-                    #         types = [(channel.name, vals.dtype, vals.shape[1:]), ]
-                    #         if PYVERSION == 2:
-                    #             types = fix_dtype_fields(types)
-                    #         types = dtype(types)
-                    #         vals = fromarrays(arrays, dtype=types)
-
                 elif conversion_type == v23c.CONVERSION_TYPE_LINEAR:
                     signal_conversion = {
                         'type': SignalConversions.CONVERSION_LINEAR,
@@ -3008,7 +2999,8 @@ class MDF3(object):
                         elif P1 == 0:
                             vals = func((P3 / (vals - P7) - P6) / P4) / P5
                         else:
-                            message = 'wrong conversion {}'.format(conversion_type)
+                            message = 'wrong conversion {}'
+                            message = message.format(conversion_type)
                             raise ValueError(message)
 
                 elif conversion_type == v23c.CONVERSION_TYPE_RAT:

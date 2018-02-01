@@ -9,6 +9,10 @@ from .version import __version__
 
 
 class SignalConversions(object):
+    """
+    types of generic conversions found in the `Signal` conversion attribute
+    """
+
     CONVERSION_NONE = 0
     CONVERSION_LINEAR = 1
     CONVERSION_RATIONAL = 2
@@ -45,7 +49,8 @@ class Signal(object):
     name : str
         signal name
     conversion : dict
-        dict that contains extra conversionrmation about the signal , default *None*
+        dict that contains extra conversionrmation about the signal ,
+        default *None*
     comment : str
         signal comment, default ''
     raw : bool
@@ -209,7 +214,8 @@ class Signal(object):
                     Z = samples[0]
 
                     # Plot a basic wireframe.
-                    self._plot_axis = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
+                    self._plot_axis = ax.plot_wireframe(X, Y, Z,
+                                                        rstride=1, cstride=1)
 
                     # Place Sliders on Graph
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
@@ -227,11 +233,13 @@ class Signal(object):
                                               sa.val,
                                               side='right')
                         Z = samples[idx-1]
-                        self._plot_axis = ax.plot_wireframe(X,
-                                                   Y,
-                                                   Z,
-                                                   rstride=1,
-                                                   cstride=1)
+                        self._plot_axis = ax.plot_wireframe(
+                            X,
+                            Y,
+                            Z,
+                            rstride=1,
+                            cstride=1,
+                        )
                         fig.canvas.draw_idle()
 
                     sa.on_changed(update)
@@ -241,9 +249,16 @@ class Signal(object):
                 else:
                     fig = plt.figure()
                     fig.canvas.set_window_title(self.name)
-                    fig.text(0.95, 0.05, 'asammdf {}'.format(__version__),
-                         fontsize=8, color='red',
-                         ha='right', va='top', alpha=0.5)
+                    fig.text(
+                        0.95,
+                        0.05,
+                        'asammdf {}'.format(__version__),
+                        fontsize=8,
+                        color='red',
+                        ha='right',
+                        va='top',
+                        alpha=0.5,
+                    )
 
                     if self.comment:
                         comment = self.comment.replace('$', '')
@@ -263,7 +278,13 @@ class Signal(object):
                     Z = samples[0]
 
                     # Plot a basic wireframe.
-                    self._plot_axis = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
+                    self._plot_axis = ax.plot_wireframe(
+                        X,
+                        Y,
+                        Z,
+                        rstride=1,
+                        cstride=1,
+                    )
 
                     # Place Sliders on Graph
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
@@ -282,11 +303,13 @@ class Signal(object):
                                               side='right')
                         Z = samples[idx-1]
                         X, Y = np.meshgrid(axis2[idx-1], axis1[idx-1])
-                        self._plot_axis = ax.plot_wireframe(X,
-                                                   Y,
-                                                   Z,
-                                                   rstride=1,
-                                                   cstride=1)
+                        self._plot_axis = ax.plot_wireframe(
+                            X,
+                            Y,
+                            Z,
+                            rstride=1,
+                            cstride=1,
+                        )
                         fig.canvas.draw_idle()
 
                     sa.on_changed(update)
@@ -295,8 +318,6 @@ class Signal(object):
 
             except Exception as err:
                 print(err)
-
-
 
     def cut(self, start=None, stop=None):
         """
@@ -457,7 +478,14 @@ class Signal(object):
             idx -= 1
             idx = np.clip(idx, 0, idx[-1])
             s = self.samples[idx]
-        return Signal(s, new_timestamps, self.unit, self.name, self.conversion, self.raw)
+        return Signal(
+            s,
+            new_timestamps,
+            self.unit,
+            self.name,
+            self.conversion,
+            self.raw,
+        )
 
     def __apply_func(self, other, func_name):
 
@@ -602,7 +630,8 @@ class Signal(object):
             yield item
 
     def __reversed__(self):
-        return enumerate(zip(reversed(self.samples), reversed(self.timestamps)))
+        return enumerate(zip(reversed(self.samples),
+                             reversed(self.timestamps)))
 
     def __len__(self):
         return len(self.samples)

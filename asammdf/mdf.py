@@ -14,12 +14,9 @@ from pandas import DataFrame
 from .mdf_v2 import MDF2
 from .mdf_v3 import MDF3
 from .mdf_v4 import MDF4
-from .signal import Signal
 from .utils import MdfException, get_text_v3, get_text_v4
-from .v2_v3_blocks import TextBlock as TextBlockV3
 from .v2_v3_blocks import Channel as ChannelV3
 from .v4_blocks import Channel as ChannelV4
-from .v4_blocks import TextBlock as TextBlockV4
 from .v4_blocks import ChannelArrayBlock
 
 PYVERSION = sys.version_info[0]
@@ -95,6 +92,10 @@ class MDF(object):
                     version=version,
                     memory=memory,
                 )
+            else:
+                message = ('"{}" is not a supported MDF file version; '
+                           'Supported versions are {}')
+                raise MdfException(message.format(version, SUPPORTED_VERSIONS))
 
         # link underlying _file attributes and methods to the new MDF object
         for attr in set(dir(self._mdf)) - set(dir(self)):
@@ -166,66 +167,66 @@ class MDF(object):
         if to not in SUPPORTED_VERSIONS:
             message = (
                 'Unknown output mdf version "{}".'
-                ' Available versions are {}'
+                ' Available versions are {}.'
+                ' Automatically using version 4.10'
             )
             warn(message.format(to, SUPPORTED_VERSIONS))
-            out = None
+            version = '4.10'
         else:
-            out = MDF(version=to, memory=memory)
+            version = to
 
-            # walk through all groups and get all channels
-            for i, group in enumerate(self.groups):
-                excluded_channels = self._excluded_channels(i)
+        if memory not in ('full', 'low', 'minimum'):
+            memory = self.memory
 
+        out = MDF(version=version, memory=memory)
 
-                data = self._load_group_data(group)
-                # from time import perf_counter
-#                t = perf_counter()
-#                input('inainte')
-                for idx, fragment in enumerate(data):
-#                    t2 = perf_counter()
-#                    print(idx, round(t2-t, 3))
-#                    t = t2
+        # walk through all groups and get all channels
+        for i, group in enumerate(self.groups):
+            excluded_channels = self._excluded_channels(i)
 
-                    if idx == 0:
-                        sigs = []
-                        for j, _ in enumerate(group['channels']):
-                            if j in excluded_channels:
-                                continue
-                            else:
-                                sig = self.get(group=i, index=j, data=fragment, raw=True)
-                                if not sig.samples.flags.writeable:
-                                    sig.samples = sig.samples.copy()
-                                sigs.append(sig)
-#                        for j, lst in enumerate(sigs):
-#                            sigs[j] = np.concatenate(lst)
-#
-#        #                print(sigs[0][0].shape)
-#
+            data = self._load_group_data(group)
+            for idx, fragment in enumerate(data):
 
-                        source_info = 'Converted from {} to {}'
-                        out.append(
-                            sigs,
-                            source_info.format(self.version, to),
-                            common_timebase=True,
-                        )
+                if idx == 0:
+                    sigs = []
+                    for j, _ in enumerate(group['channels']):
+                        if j in excluded_channels:
+                            continue
+                        else:
+                            sig = self.get(
+                                group=i,
+                                index=j,
+                                data=fragment,
+                                raw=True,
+                            )
+                            if not sig.samples.flags.writeable:
+                                sig.samples = sig.samples.copy()
+                            sigs.append(sig)
+                    source_info = 'Converted from {} to {}'
+                    out.append(
+                        sigs,
+                        source_info.format(self.version, to),
+                        common_timebase=True,
+                    )
 
-                        master = None
-                        sigs = None
-                    else:
-                        sigs = [self.get_master(i, data=fragment), ]
+                else:
+                    sigs = [self.get_master(i, data=fragment), ]
 
-                        for j, _ in enumerate(group['channels']):
-                            if j in excluded_channels:
-                                continue
-                            else:
-                                sig = self.get(group=i, index=j, data=fragment, raw=True, samples_only=True)
-                                if not sig.flags.writeable:
-                                    sig = sig.copy()
-                                sigs.append(sig)
-                        out.extend(i, sigs)
-#                    input('final'+str(idx))
-
+                    for j, _ in enumerate(group['channels']):
+                        if j in excluded_channels:
+                            continue
+                        else:
+                            sig = self.get(
+                                group=i,
+                                index=j,
+                                data=fragment,
+                                raw=True,
+                                samples_only=True,
+                            )
+                            if not sig.flags.writeable:
+                                sig = sig.copy()
+                            sigs.append(sig)
+                    out.extend(i, sigs)
 
         return out
 
@@ -555,7 +556,7 @@ class MDF(object):
             )
             warn(message.format(fmt))
 
-    def filter(self, channels, memory=None):
+    def filter(self, channels, memory='full'):
         """ return new *MDF* object that contains only the channels listed in
         *channels* argument
 
@@ -670,7 +671,7 @@ class MDF(object):
 
             gps[group_index] = gps[group_index] - excluded_channels
 
-        if memory is None or memory not in ('full', 'low', 'minimum'):
+        if memory not in ('full', 'low', 'minimum'):
             memory = self.memory
 
         mdf = MDF(
@@ -728,10 +729,6 @@ class MDF(object):
                         sigs.append(sig)
                     mdf.extend(new_index, sigs)
 
-                master = None
-                sigs = None
-
-
         return mdf
 
     @staticmethod
@@ -774,8 +771,22 @@ class MDF(object):
             )
             raise MdfException(message)
 
+        if memory not in ('full', 'low', 'minimum'):
+            memory = 'full'
+
+        if outversion not in SUPPORTED_VERSIONS:
+            message = (
+                'Unknown output mdf version "{}".'
+                ' Available versions are {}.'
+                ' Automatically using version 4.10'
+            )
+            warn(message.format(outversion, SUPPORTED_VERSIONS))
+            version = '4.10'
+        else:
+            version = outversion
+
         merged = MDF(
-            version=outversion,
+            version=version,
             memory=memory,
         )
 
@@ -821,7 +832,10 @@ class MDF(object):
                             )
 
                             if channel.get('long_name_addr', 0):
-                                name = get_text_v3(channel['long_name_addr'], stream)
+                                name = get_text_v3(
+                                    channel['long_name_addr'],
+                                    stream,
+                                )
                             else:
                                 name = (
                                     channel['short_name']
@@ -840,7 +854,10 @@ class MDF(object):
                                 address=grp['channels'][j],
                                 stream=stream,
                             )
-                            name = get_text_v4(channel['name_addr'], stream)
+                            name = get_text_v4(
+                                channel['name_addr'],
+                                stream,
+                            )
                         name = name.split('\\')[0]
                         names.append(name)
                     names = set(names)
@@ -956,7 +973,7 @@ class MDF(object):
 
             yield DataFrame.from_dict(pandas_dict)
 
-    def resample(self, raster, memory=None):
+    def resample(self, raster, memory='full'):
         """ resample all channels to given raster
 
         Parameters
@@ -973,7 +990,7 @@ class MDF(object):
 
         """
 
-        if memory is None or memory not in ('full', 'low', 'minimum'):
+        if memory not in ('full', 'low', 'minimum'):
             memory = self.memory
 
         mdf = MDF(
