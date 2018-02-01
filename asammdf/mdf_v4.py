@@ -4704,7 +4704,7 @@ class MDF4(object):
                 offset = offset // record_size
                 time_a = time_conv['a']
                 time_b = time_conv['b']
-                t = arange(cycles_nr, dtype=float64) * time_a + time_b
+                t = arange(cycles_nr, dtype=float64)
                 t += offset
                 t *= time_a
                 t += time_b
