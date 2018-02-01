@@ -368,7 +368,7 @@ class MDF4(object):
                     size *= channel_group['cycles_nr']
                 else:
                     size = sum(
-                        (channel_group['samples_byte_nr'] + record_id_nr + channel_group['invalidation_bytes_nr')
+                        (channel_group['samples_byte_nr'] + record_id_nr + channel_group['invalidation_bytes_nr'])
                         * channel_group['cycles_nr']
                         for gp in new_groups
                     )
