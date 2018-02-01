@@ -2337,10 +2337,11 @@ class MDF3(object):
                 gp['data_block'] = DataBlock(data=data)
         else:
             if cycles_nr:
-                data_address = self._tempfile.tell()
+                stream.seek(0, 2)
+                data_address = stream.tell()
                 gp['data_block_addr'].append(data_address)
                 gp['data_block_size'].append(extended_size)
-                self._tempfile.write(samples)
+                stream.write(samples)
 
     def get_channel_name(self, group, index):
         """Gets channel name.
