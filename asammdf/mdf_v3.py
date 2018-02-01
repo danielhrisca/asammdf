@@ -3330,6 +3330,17 @@ class MDF3(object):
 
         return info
 
+    def set_split_size(self, size):
+        """ set the split size when reading the group's samples
+
+        Parameters
+        ----------
+        size : int
+            desired split size in bytes
+
+        """
+        self.read_split_threshold = size
+
     def save(self, dst='', overwrite=None, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
