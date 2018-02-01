@@ -209,16 +209,20 @@ class MDF3(object):
                     while True:
                         try:
                             address, size = next(blocks)
+                            current_address = address
                         except StopIteration:
                             break
                         stream.seek(address)
 
                         while size >= split_size - cur_size:
+                            stream.seek(current_address)
                             if data:
                                 data.append(stream.read(split_size - cur_size))
                                 yield b''.join(data), offset
+                                current_address += split_size - cur_size
                             else:
                                 yield stream.read(split_size), offset
+                                current_address += split_size
                             offset += split_size
 
                             size -= split_size - cur_size
@@ -226,6 +230,7 @@ class MDF3(object):
                             cur_size = 0
 
                         if size:
+                            stream.seek(current_address)
                             data.append(stream.read(size))
                             cur_size += size
                             offset += size

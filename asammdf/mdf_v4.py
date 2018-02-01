@@ -364,12 +364,12 @@ class MDF4(object):
                 dat_addr = group['data_block_addr']
 
                 if record_id_nr == 0:
-                    size = channel_group['samples_byte_nr']
+                    size = channel_group['samples_byte_nr'] + channel_group['invalidation_bytes_nr']
                     size *= channel_group['cycles_nr']
                 else:
                     size = sum(
-                        (gp['channel_group']['samples_byte_nr'] + record_id_nr)
-                        * gp['channel_group']['cycles_nr']
+                        (channel_group['samples_byte_nr'] + record_id_nr + channel_group['invalidation_bytes_nr')
+                        * channel_group['cycles_nr']
                         for gp in new_groups
                     )
 
@@ -950,21 +950,26 @@ class MDF4(object):
 
                 if block_type == v4c.DT_BLOCK and group['sorted']:
                     cur_size = 0
+                    current_address = 0
                     data = []
 
                     while True:
                         try:
                             address, size, block_size = next(blocks)
+                            current_address = address
                         except StopIteration:
                             break
                         stream.seek(address)
 
                         while size >= split_size - cur_size:
+                            stream.seek(current_address)
                             if data:
                                 data.append(stream.read(split_size - cur_size))
                                 yield b''.join(data), offset
+                                current_address += split_size - cur_size
                             else:
                                 yield stream.read(split_size), offset
+                                current_address += split_size
                             offset += split_size
 
                             size -= split_size - cur_size
@@ -972,6 +977,7 @@ class MDF4(object):
                             cur_size = 0
 
                         if size:
+                            stream.seek(current_address)
                             data.append(stream.read(size))
                             cur_size += size
                             offset += size
@@ -3028,11 +3034,11 @@ class MDF4(object):
             if 'record' in gp:
                 del gp['record']
         else:
-
-            addr = self._tempfile.tell()
+            stream.seek(0, 2)
+            addr = stream.tell()
             gp['data_block'].append(addr)
             size = len(samples)
-            self._tempfile.write(samples)
+            stream.write(samples)
             gp['channel_group']['cycles_nr'] += size // gp['channel_group']['samples_byte_nr']
 
             gp['data_block_addr'].append(addr)

@@ -177,6 +177,7 @@ class MDF(object):
             for i, group in enumerate(self.groups):
                 excluded_channels = self._excluded_channels(i)
 
+
                 data = self._load_group_data(group)
                 # from time import perf_counter
 #                t = perf_counter()
@@ -195,7 +196,6 @@ class MDF(object):
                                 sig = self.get(group=i, index=j, data=fragment, raw=True)
                                 if not sig.samples.flags.writeable:
                                     sig.samples = sig.samples.copy()
-                                # print(sig)
                                 sigs.append(sig)
 #                        for j, lst in enumerate(sigs):
 #                            sigs[j] = np.concatenate(lst)
