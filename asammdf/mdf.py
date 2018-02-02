@@ -1000,31 +1000,51 @@ class MDF(object):
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
-            sigs = []
             excluded_channels = self._excluded_channels(i)
 
             data = self._load_group_data(group)
+            for idx, fragment in enumerate(data):
+                if idx == 0:
+                    sigs = []
+                    for j, _ in enumerate(group['channels']):
+                        if j in excluded_channels:
+                            continue
+                        sig = self.get(
+                            group=i,
+                            index=j,
+                            data=fragment,
+                            raw=True,
+                            raster=raster,
+                        )
+                        if not sig.samples.flags.writeable:
+                            sig.samples = sig.samples.copy()
+                        sigs.append(sig)
 
-            for j, _ in enumerate(group['channels']):
-                if j in excluded_channels:
-                    continue
-                sig = self.get(
-                    group=i,
-                    index=j,
-                    data=data,
-                    raster=raster,
-                )
-                sigs.append(sig)
+                    mdf.append(
+                        sigs,
+                        'Resampled to {}s'.format(raster),
+                        common_timebase=True,
+                    )
 
-            data = None
-            del data
+                else:
+                    sigs = [self.get_master(i, data=fragment, raster=raster), ]
 
-            if sigs:
-                mdf.append(
-                    sigs,
-                    'Resampled to {}s'.format(raster),
-                    common_timebase=True,
-                )
+                    for j, _ in enumerate(group['channels']):
+                        if j in excluded_channels:
+                            continue
+                        else:
+                            sig = self.get(
+                                group=i,
+                                index=j,
+                                data=fragment,
+                                raw=True,
+                                samples_only=True,
+                                raster=raster,
+                            )
+                            if not sig.flags.writeable:
+                                sig = sig.copy()
+                            sigs.append(sig)
+                    mdf.extend(i, sigs)
         return mdf
 
     def select(self, channels, dataframe=False):

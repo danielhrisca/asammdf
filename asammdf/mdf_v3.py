@@ -2741,7 +2741,7 @@ class MDF3(object):
             record_shape = tuple(shape)
 
             arrays = [
-                self.get(group=dg_nr, index=ch_nr, samples_only=True, raw=raw)
+                self.get(group=dg_nr, index=ch_nr, samples_only=True, raw=raw, data=data)
                 for ch_nr, dg_nr in dep.referenced_channels
             ]
             if cycles_nr:
@@ -2760,9 +2760,27 @@ class MDF3(object):
 
             signal_conversion = None
 
+            if not samples_only or raster:
+                timestamps = self.get_master(gp_nr, original_data)
+                if raster:
+                    t = arange(
+                        timestamps[0],
+                        timestamps[-1],
+                        raster,
+                    )
+
+                    vals = Signal(
+                        vals,
+                        timestamps,
+                        name='_',
+                    ).interp(t).samples
+
+                    timestamps = t
+
         else:
             # get channel values
             channel_values = []
+            timestamps = []
             for fragment in data:
                 data_bytes, offset = fragment
                 try:
@@ -2821,6 +2839,9 @@ class MDF3(object):
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
+                if not samples_only or raster:
+                    timestamps.append(self.get_master(gp_nr, fragment))
+
                 channel_values.append(vals.copy())
 
             if len(channel_values) > 1:
@@ -2829,6 +2850,27 @@ class MDF3(object):
                 vals = channel_values[0]
             else:
                 vals = []
+
+            if not samples_only or raster:
+                if len(timestamps) > 1:
+                    timestamps = concatenate(timestamps)
+                else:
+                    timestamps = timestamps[0]
+
+                if raster:
+                    t = arange(
+                        timestamps[0],
+                        timestamps[-1],
+                        raster,
+                    )
+
+                    vals = Signal(
+                        vals,
+                        timestamps,
+                        name='_',
+                    ).interp(t).samples
+
+                    timestamps = t
 
             if conversion is None:
                 conversion_type = v23c.CONVERSION_TYPE_NONE
@@ -3093,8 +3135,6 @@ class MDF3(object):
             else:
                 comment = description
 
-            timestamps = self.get_master(gp_nr, original_data)
-
             res = Signal(
                 samples=vals,
                 timestamps=timestamps,
@@ -3105,25 +3145,19 @@ class MDF3(object):
                 raw=raw,
             )
 
-            if raster and timestamps:
-                new_timestamps = linspace(
-                    0,
-                    timestamps[-1],
-                    int(timestamps[-1] / raster),
-                )
-                res = res.interp(new_timestamps)
-
         return res
 
-    def get_master(self, index, data=None):
+    def get_master(self, index, data=None, raster=None):
         """ returns master channel samples for given group
 
         Parameters
         ----------
         index : int
             group index
-        data : bytes
-            data block raw bytes; default None
+        data : (bytes, int)
+            (data block raw bytes, fragment offset); default None
+        raster : float
+            raster to be used for interpolation; default None
 
         Returns
         -------
@@ -3133,9 +3167,30 @@ class MDF3(object):
         """
         original_data = data
 
-        if not data:
+        fragment = data
+        if fragment:
+            data_bytes, offset = fragment
             try:
-                return self._master_channel_cache[index]
+                timestamps = self._master_channel_cache[(index, offset)]
+                if raster and timestamps:
+                    timestamps = arange(
+                        timestamps[0],
+                        timestamps[-1],
+                        raster,
+                    )
+                return timestamps
+            except KeyError:
+                pass
+        else:
+            try:
+                timestamps = self._master_channel_cache[index]
+                if raster and timestamps:
+                    timestamps = arange(
+                        timestamps[0],
+                        timestamps[-1],
+                        raster,
+                    )
+                return timestamps
             except KeyError:
                 pass
 
@@ -3234,10 +3289,21 @@ class MDF3(object):
                     if time_b:
                         t += time_b
 
-        if not original_data:
+        if original_data is None:
             self._master_channel_cache[index] = t
+        else:
+            data_bytes, offset = original_data
+            self._master_channel_cache[(index, offset)] = t
 
-        return t
+        if raster and t:
+            timestamps = arange(
+                t[0],
+                t[-1],
+                raster,
+            )
+        else:
+            timestamps = t
+        return timestamps
 
     def iter_get_triggers(self):
         """ generator that yields triggers

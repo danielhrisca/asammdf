@@ -3716,7 +3716,7 @@ class MDF4(object):
                             data=fragment,
                         )
                         channel_values[i].append(vals)
-                    if not samples_only:
+                    if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
                     if channel_invalidation_present:
                         valid_indexes.append(
@@ -3737,7 +3737,7 @@ class MDF4(object):
 
                 vals = fromarrays(arrays, dtype=types)
 
-                if not samples_only:
+                if not samples_only or raster:
                     if len(timestamps) > 1:
                         timestamps = concatenate(timestamps)
                     else:
@@ -3749,8 +3749,23 @@ class MDF4(object):
                     else:
                         valid_indexes = valid_indexes[0]
                     vals = vals[valid_indexes]
-                    if not samples_only:
+                    if not samples_only or raster:
                         timestamps = timestamps[valid_indexes]
+
+                if raster:
+                    t = arange(
+                        timestamps[0],
+                        timestamps[-1],
+                        raster,
+                    )
+
+                    vals = Signal(
+                        vals,
+                        timestamps,
+                        name='_',
+                    ).interp(t).samples
+
+                    timestamps = t
 
                 cycles_nr = len(vals)
 
@@ -3970,7 +3985,7 @@ class MDF4(object):
 
                     vals = fromarrays(arrays, dtype(types))
 
-                    if not samples_only:
+                    if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
                     if channel_invalidation_present:
                         valid_indexes.append(
@@ -3986,7 +4001,7 @@ class MDF4(object):
                 else:
                     vals = []
 
-                if not samples_only:
+                if not samples_only or raster:
                     if len(timestamps) > 1:
                         timestamps = concatenate(timestamps)
                     else:
@@ -3998,8 +4013,23 @@ class MDF4(object):
                     else:
                         valid_indexes = valid_indexes[0]
                     vals = vals[valid_indexes]
-                    if not samples_only:
+                    if not samples_only or raster:
                         timestamps = timestamps[valid_indexes]
+
+                if raster:
+                    t = arange(
+                        timestamps[0],
+                        timestamps[-1],
+                        raster,
+                    )
+
+                    vals = Signal(
+                        vals,
+                        timestamps,
+                        name='_',
+                    ).interp(t).samples
+
+                    timestamps = t
 
                 cycles_nr = len(vals)
 
@@ -4040,7 +4070,7 @@ class MDF4(object):
                     vals = arange(len(data_bytes)//record_size, dtype=ch_dtype)
                     vals += offset
 
-                    if not samples_only:
+                    if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
                     if channel_invalidation_present:
                         valid_indexes.append(
@@ -4056,7 +4086,7 @@ class MDF4(object):
                 else:
                     vals = []
 
-                if not samples_only:
+                if not samples_only or raster:
                     if len(timestamps) > 1:
                         timestamps = concatenate(timestamps)
                     else:
@@ -4068,8 +4098,23 @@ class MDF4(object):
                     else:
                         valid_indexes = valid_indexes[0]
                     vals = vals[valid_indexes]
-                    if not samples_only:
+                    if not samples_only or raster:
                         timestamps = timestamps[valid_indexes]
+
+                if raster:
+                    t = arange(
+                        timestamps[0],
+                        timestamps[-1],
+                        raster,
+                    )
+
+                    vals = Signal(
+                        vals,
+                        timestamps,
+                        name='_',
+                    ).interp(t).samples
+
+                    timestamps = t
 
                 signal_conversion = None
             else:
@@ -4139,7 +4184,7 @@ class MDF4(object):
                             ch_nr,
                         )
 
-                    if not samples_only:
+                    if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
                     if channel_invalidation_present:
                         valid_indexes.append(
@@ -4153,7 +4198,7 @@ class MDF4(object):
                     vals = channel_values[0]
                 else:
                     vals = []
-                if not samples_only:
+                if not samples_only or raster:
                     if len(timestamps) > 1:
                         timestamps = concatenate(timestamps)
                     else:
@@ -4165,8 +4210,23 @@ class MDF4(object):
                     else:
                         valid_indexes = valid_indexes[0]
                     vals = vals[valid_indexes]
-                    if not samples_only:
+                    if not samples_only or raster:
                         timestamps = timestamps[valid_indexes]
+
+                if raster:
+                    t = arange(
+                        timestamps[0],
+                        timestamps[-1],
+                        raster,
+                    )
+
+                    vals = Signal(
+                        vals,
+                        timestamps,
+                        name='_',
+                    ).interp(t).samples
+
+                    timestamps = t
 
             # get the channel conversion
             if memory == 'minimum':
@@ -4746,24 +4806,19 @@ class MDF4(object):
                 raw=raw,
             )
 
-            if raster and timestamps:
-                tx = linspace(
-                    0,
-                    timestamps[-1],
-                    int(timestamps[-1] / raster),
-                )
-                res = res.interp(tx)
         return res
 
-    def get_master(self, index, data=None):
+    def get_master(self, index, data=None, raster=None):
         """ returns master channel samples for given group
 
         Parameters
         ----------
         index : int
             group index
-        fragment : (bytes, int)
+        data : (bytes, int)
             (data block raw bytes, fragment offset); default None
+        raster : float
+            raster to be used for interpolation; default None
 
         Returns
         -------
@@ -4775,12 +4830,26 @@ class MDF4(object):
         if fragment:
             data_bytes, offset = fragment
             try:
-                return self._master_channel_cache[(index, offset)]
+                timestamps = self._master_channel_cache[(index, offset)]
+                if raster and timestamps:
+                    timestamps = arange(
+                        timestamps[0],
+                        timestamps[-1],
+                        raster,
+                    )
+                return timestamps
             except KeyError:
                 pass
         else:
             try:
-                return self._master_channel_cache[index]
+                timestamps = self._master_channel_cache[index]
+                if raster and timestamps:
+                    timestamps = arange(
+                        timestamps[0],
+                        timestamps[-1],
+                        raster,
+                    )
+                return timestamps
             except KeyError:
                 pass
 
@@ -4893,7 +4962,16 @@ class MDF4(object):
         else:
             data_bytes, offset = original_data
             self._master_channel_cache[(index, offset)] = t
-        return t
+
+        if raster and t:
+            timestamps = arange(
+                t[0],
+                t[-1],
+                raster,
+            )
+        else:
+            timestamps = t
+        return timestamps
 
     def info(self):
         """get MDF information as a dict
