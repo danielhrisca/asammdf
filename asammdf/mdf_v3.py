@@ -2741,7 +2741,7 @@ class MDF3(object):
             record_shape = tuple(shape)
 
             arrays = [
-                self.get(group=dg_nr, index=ch_nr, samples_only=True, raw=raw, data=data)
+                self.get(group=dg_nr, index=ch_nr, samples_only=True, raw=raw, data=original_data)
                 for ch_nr, dg_nr in dep.referenced_channels
             ]
             if cycles_nr:
