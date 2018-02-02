@@ -143,8 +143,8 @@ class MDF4(object):
 
     """
 
-    _split_data_blocks = False
-    _split_threshold = 1 << 22
+    _split_data_blocks = True
+    _split_threshold = 1 << 23
     _overwrite = False
 
     def __init__(self, name=None, memory='full', version='4.10'):
@@ -1762,20 +1762,18 @@ class MDF4(object):
             sig = signal
             names = sig.samples.dtype.names
             name = signal.name
-            if len(sig.samples.shape) <= 1:
-                if names is None:
-                    sig_type = v4c.SIGNAL_TYPE_SCALAR
-                    if sig.samples.dtype.kind in 'SV':
-                        sig_type = v4c.SIGNAL_TYPE_STRING
-                else:
-                    if names in (canopen_time_fields, canopen_date_fields):
-                        sig_type = v4c.SIGNAL_TYPE_CANOPEN
-                    elif names[0] != sig.name:
-                        sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
-                    else:
-                        sig_type = v4c.SIGNAL_TYPE_ARRAY
+
+            if names is None:
+                sig_type = v4c.SIGNAL_TYPE_SCALAR
+                if sig.samples.dtype.kind in 'SV':
+                    sig_type = v4c.SIGNAL_TYPE_STRING
             else:
-                sig_type = v4c.SIGNAL_TYPE_ARRAY
+                if names in (canopen_time_fields, canopen_date_fields):
+                    sig_type = v4c.SIGNAL_TYPE_CANOPEN
+                elif names[0] != sig.name:
+                    sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
+                else:
+                    sig_type = v4c.SIGNAL_TYPE_ARRAY
 
             gp_sig_types.append(sig_type)
 
@@ -2542,14 +2540,8 @@ class MDF4(object):
                     gp_dep.append(None)
 
             else:
-                if names is None:
-                    names = []
-
                 # here we have channel arrays or mdf v3 channel dependencies
-                if names:
-                    samples = signal.samples[names[0]]
-                else:
-                    samples = signal.samples
+                samples = signal.samples[names[0]]
                 shape = samples.shape[1:]
 
                 if len(shape) > 1:
@@ -3060,11 +3052,7 @@ class MDF4(object):
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names
 
-                if names is None:
-                    names = []
-
-                if names:
-                    samples = signal[names[0]]
+                samples = signal[names[0]]
 
                 shape = samples.shape[1:]
 
