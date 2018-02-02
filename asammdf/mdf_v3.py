@@ -3479,19 +3479,20 @@ class MDF3(object):
             defined_texts = {}
 
             write = dst_.write
+            seek = dst_.seek
             # list of all blocks
             blocks = []
 
             address = 0
 
-            blocks.append(self.identification)
+            write(bytes(self.identification))
             address += v23c.ID_BLOCK_SIZE
 
-            blocks.append(self.header)
+            write(bytes(self.header))
             address += self.header['block_len']
 
             self.file_history.address = address
-            blocks.append(self.file_history)
+            write(bytes(self.file_history))
             address += self.file_history['block_len']
 
             ce_map = {}
@@ -3508,10 +3509,23 @@ class MDF3(object):
                 for group in self.groups
             ]
 
-            for gp in self.groups:
+            for idx, gp in enumerate(self.groups):
                 dg = gp['data_group']
                 gp_rec_ids.append(dg['record_id_nr'])
                 dg['record_id_nr'] = 0
+
+                # DataBlock
+                for (data_bytes, _) in self._load_group_data(gp):
+                    write(data_bytes)
+
+                if gp['size']:
+                    gp['data_group']['data_block_addr'] = address
+                else:
+                    gp['data_group']['data_block_addr'] = 0
+                address += gp['size'] - gp_rec_ids[idx] * gp['channel_group']['cycles_nr']
+
+            for gp in self.groups:
+                dg = gp['data_group']
                 blocks.append(dg)
                 dg.address = address
                 address += dg['block_len']
@@ -3682,16 +3696,6 @@ class MDF3(object):
                     blocks.append(trigger)
                     address += trigger['block_len']
 
-                # DataBlock
-                for (data_bytes, _) in self._load_group_data(gp):
-                    blocks.append(data_bytes)
-
-                if gp['size']:
-                    gp['data_group']['data_block_addr'] = address
-                else:
-                    gp['data_group']['data_block_addr'] = 0
-                address += gp['size'] - gp_rec_ids[idx] * gp['channel_group']['cycles_nr']
-
             # update referenced channels addresses in the channel dependecies
             for gp in self.groups:
                 for dep in gp['channel_dependencies']:
@@ -3730,6 +3734,10 @@ class MDF3(object):
                     original_data_block_addrs):
                 gp['data_group']['record_id_nr'] = rec_id
                 gp['data_group']['data_block_addr'] = original_address
+
+            seek(0)
+            write(bytes(self.identification))
+            write(bytes(self.header))
 
         if self.memory == 'low' and dst == self.name:
             self.close()
