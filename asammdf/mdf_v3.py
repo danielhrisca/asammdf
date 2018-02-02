@@ -2781,6 +2781,7 @@ class MDF3(object):
             # get channel values
             channel_values = []
             timestamps = []
+            count = 0
             for fragment in data:
                 data_bytes, offset = fragment
                 try:
@@ -2843,16 +2844,17 @@ class MDF3(object):
                     timestamps.append(self.get_master(gp_nr, fragment))
 
                 channel_values.append(vals.copy())
+                count += 1
 
-            if len(channel_values) > 1:
+            if count > 1:
                 vals = concatenate(channel_values)
-            elif len(channel_values) == 1:
+            elif count == 1:
                 vals = channel_values[0]
             else:
                 vals = []
 
             if not samples_only or raster:
-                if len(timestamps) > 1:
+                if count > 1:
                     timestamps = concatenate(timestamps)
                 else:
                     timestamps = timestamps[0]
@@ -3245,6 +3247,7 @@ class MDF3(object):
                     data = (data, )
 
                 time_values = []
+                count = 0
                 for fragment in data:
                     data_bytes, offset = fragment
                     parent, _ = parents.get(time_ch_nr, (None, None))
@@ -3268,14 +3271,14 @@ class MDF3(object):
                             time_ch_nr,
                         )
                     time_values.append(t.copy())
+                    count += 1
 
-                chunks = len(time_values)
-                if chunks > 1:
+                if count > 1:
                     t = concatenate(time_values)
-                elif chunks == 1:
+                elif count == 1:
                     t = time_values[0]
                 else:
-                    t = b''
+                    t = array([], dtype=float64)
 
                 # get timestamps
                 if time_conv is None:

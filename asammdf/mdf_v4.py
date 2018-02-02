@@ -3708,6 +3708,7 @@ class MDF4(object):
                 timestamps = []
                 valid_indexes = []
 
+                count = 0
                 for fragment in data:
                     for i, name_ in enumerate(names):
                         vals = self.get(
@@ -3724,7 +3725,9 @@ class MDF4(object):
                             self.get_valid_indexes(gp_nr, channel, fragment)
                         )
 
-                if len(channel_values[0]) > 1:
+                    count += 1
+
+                if count > 1:
                     arrays = [concatenate(lst) for lst in channel_values]
                 else:
                     arrays = [lst[0] for lst in channel_values]
@@ -3739,13 +3742,13 @@ class MDF4(object):
                 vals = fromarrays(arrays, dtype=types)
 
                 if not samples_only or raster:
-                    if len(timestamps) > 1:
+                    if count > 1:
                         timestamps = concatenate(timestamps)
                     else:
                         timestamps = timestamps[0]
 
                 if channel_invalidation_present:
-                    if len(valid_indexes) > 1:
+                    if count > 1:
                         valid_indexes = concatenate(valid_indexes)
                     else:
                         valid_indexes = valid_indexes[0]
@@ -3776,6 +3779,7 @@ class MDF4(object):
                 channel_values = []
                 timestamps = []
                 valid_indexes = []
+                count = 0
                 for fragment in data:
                     data_bytes, offset = fragment
 
@@ -3994,22 +3998,23 @@ class MDF4(object):
                         )
 
                     channel_values.append(vals)
+                    count += 1
 
-                if len(channel_values) > 1:
+                if count > 1:
                     vals = concatenate(channel_values)
-                elif len(channel_values) == 1:
+                elif count == 1:
                     vals = channel_values[0]
                 else:
                     vals = []
 
                 if not samples_only or raster:
-                    if len(timestamps) > 1:
+                    if count > 1:
                         timestamps = concatenate(timestamps)
                     else:
                         timestamps = timestamps[0]
 
                 if channel_invalidation_present:
-                    if len(valid_indexes) > 1:
+                    if count > 1:
                         valid_indexes = concatenate(valid_indexes)
                     else:
                         valid_indexes = valid_indexes[0]
@@ -4064,6 +4069,7 @@ class MDF4(object):
                 record_size = channel_group['samples_byte_nr']
                 record_size += channel_group['invalidation_bytes_nr']
 
+                count = 0
                 for fragment in data:
                     data_bytes, offset = fragment
                     offset = offset // record_size
@@ -4079,22 +4085,23 @@ class MDF4(object):
                         )
 
                     channel_values.append(vals)
+                    count += 1
 
-                if len(channel_values) > 1:
+                if count > 1:
                     vals = concatenate(channel_values)
-                elif len(channel_values) == 1:
+                elif count == 1:
                     vals = channel_values[0]
                 else:
                     vals = []
 
                 if not samples_only or raster:
-                    if len(timestamps) > 1:
+                    if count > 1:
                         timestamps = concatenate(timestamps)
                     else:
                         timestamps = timestamps[0]
 
                 if channel_invalidation_present:
-                    if len(valid_indexes) > 1:
+                    if count > 1:
                         valid_indexes = concatenate(valid_indexes)
                     else:
                         valid_indexes = valid_indexes[0]
@@ -4123,6 +4130,7 @@ class MDF4(object):
                 timestamps = []
                 valid_indexes = []
 
+                count = 0
                 for fragment in data:
                     data_bytes, offset = fragment
                     try:
@@ -4192,21 +4200,22 @@ class MDF4(object):
                             self.get_valid_indexes(gp_nr, channel, fragment)
                         )
                     channel_values.append(vals.copy())
+                    count += 1
 
-                if len(channel_values) > 1:
+                if count > 1:
                     vals = concatenate(channel_values)
-                elif len(channel_values) == 1:
+                elif count == 1:
                     vals = channel_values[0]
                 else:
                     vals = []
                 if not samples_only or raster:
-                    if len(timestamps) > 1:
+                    if count > 1:
                         timestamps = concatenate(timestamps)
                     else:
                         timestamps = timestamps[0]
 
                 if channel_invalidation_present:
-                    if len(valid_indexes) > 1:
+                    if count > 1:
                         valid_indexes = concatenate(valid_indexes)
                     else:
                         valid_indexes = valid_indexes[0]

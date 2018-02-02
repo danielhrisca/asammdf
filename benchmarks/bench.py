@@ -209,8 +209,8 @@ def convert_v4_v3(output, fmt, memory):
 
 def merge_v3(output, fmt, memory):
 
-    files = [r'test.mdf', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mdf', ] * 3
+    with Timer('Merge 3 files',
                'asammdf {} {} v3'.format(asammdf_version, memory),
                fmt) as timer:
         MDF.merge(files, memory=memory, outversion='3.30')
@@ -218,9 +218,9 @@ def merge_v3(output, fmt, memory):
 
 
 def merge_v4(output, fmt, memory):
-    files = [r'test.mf4', ] * 2
+    files = [r'test.mf4', ] * 3
 
-    with Timer('Merge files',
+    with Timer('Merge 3 files',
                'asammdf {} {} v4'.format(asammdf_version, memory),
                fmt) as timer:
         MDF.merge(files, memory=memory, outversion='4.10')
@@ -421,8 +421,8 @@ def get_all_reader4_compression(output, fmt):
 
 def merge_reader_v3(output, fmt):
 
-    files = [r'test.mdf', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mdf', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} v3'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0])
@@ -430,13 +430,16 @@ def merge_reader_v3(output, fmt):
         x2 = MDFreader(files[1])
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
 
 def merge_reader_v3_compress(output, fmt):
 
-    files = [r'test.mdf', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mdf', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} compress v3'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], compression='blosc')
@@ -444,13 +447,16 @@ def merge_reader_v3_compress(output, fmt):
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
 
 def merge_reader_v3_nodata(output, fmt):
 
-    files = [r'test.mdf', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mdf', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} nodata v3'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], noDataLoading=True)
@@ -458,13 +464,16 @@ def merge_reader_v3_nodata(output, fmt):
         x2 = MDFreader(files[1], noDataLoading=True)
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
 
 def merge_reader_v4(output, fmt):
-    files = [r'test.mf4', ] * 2
+    files = [r'test.mf4', ] * 3
 
-    with Timer('Merge files',
+    with Timer('Merge 3 files',
                'mdfreader {} v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0])
@@ -472,13 +481,16 @@ def merge_reader_v4(output, fmt):
         x2 = MDFreader(files[1])
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
 
 def merge_reader_v4_compress(output, fmt):
 
-    files = [r'test.mf4', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mf4', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} compress v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], compression='blosc')
@@ -486,17 +498,23 @@ def merge_reader_v4_compress(output, fmt):
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
 def merge_reader_v4_nodata(output, fmt):
 
-    files = [r'test.mf4', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mf4', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} nodata v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], noDataLoading=True)
         x1.resample(0.01)
         x2 = MDFreader(files[1], noDataLoading=True)
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
         x2.resample(0.01)
         x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
@@ -563,18 +581,18 @@ def main(text_output, fmt):
     output.append('* 36424 channels\n\n')
 
     tests = (
-        # partial(open_mdf3, memory='full'),
-        # partial(open_mdf3, memory='low'),
-        # partial(open_mdf3, memory='minimum'),
-        # open_reader3,
-        # open_reader3_compression,
-        # open_reader3_nodata,
-        # partial(open_mdf4, memory='full'),
-        # partial(open_mdf4, memory='low'),
-        # partial(open_mdf4, memory='minimum'),
-        # open_reader4,
-        # open_reader4_compression,
-        # open_reader4_nodata,
+        partial(open_mdf3, memory='full'),
+        partial(open_mdf3, memory='low'),
+        partial(open_mdf3, memory='minimum'),
+        open_reader3,
+        open_reader3_compression,
+        open_reader3_nodata,
+        partial(open_mdf4, memory='full'),
+        partial(open_mdf4, memory='low'),
+        partial(open_mdf4, memory='minimum'),
+        open_reader4,
+        open_reader4_compression,
+        open_reader4_nodata,
     )
 
     if tests:
@@ -615,18 +633,18 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        # partial(get_all_mdf3, memory='full'),
-        # partial(get_all_mdf3, memory='low'),
-        # partial(get_all_mdf3, memory='minimum'),
-        # get_all_reader3,
-        # get_all_reader3_nodata,
-        # get_all_reader3_compression,
-        # partial(get_all_mdf4, memory='full'),
-        # partial(get_all_mdf4, memory='low'),
-        # partial(get_all_mdf4, memory='minimum'),
-        # get_all_reader4,
-        # get_all_reader4_nodata,
-        # get_all_reader4_compression,
+        partial(get_all_mdf3, memory='full'),
+        partial(get_all_mdf3, memory='low'),
+        partial(get_all_mdf3, memory='minimum'),
+        get_all_reader3,
+        get_all_reader3_nodata,
+        get_all_reader3_compression,
+        partial(get_all_mdf4, memory='full'),
+        partial(get_all_mdf4, memory='low'),
+        partial(get_all_mdf4, memory='minimum'),
+        get_all_reader4,
+        get_all_reader4_nodata,
+        get_all_reader4_compression,
     )
 
     if tests:
@@ -641,12 +659,12 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        # partial(convert_v3_v4, memory='full'),
-        # partial(convert_v3_v4, memory='low'),
-        # partial(convert_v3_v4, memory='minimum'),
-        # partial(convert_v4_v3, memory='full'),
-        # partial(convert_v4_v3, memory='low'),
-        # partial(convert_v4_v3, memory='minimum'),
+        partial(convert_v3_v4, memory='full'),
+        partial(convert_v3_v4, memory='low'),
+        partial(convert_v3_v4, memory='minimum'),
+        partial(convert_v4_v3, memory='full'),
+        partial(convert_v4_v3, memory='low'),
+        partial(convert_v4_v3, memory='minimum'),
     )
 
     if tests:
@@ -661,22 +679,22 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        # partial(merge_v3, memory='full'),
-        # partial(merge_v3, memory='low'),
-        # partial(merge_v3, memory='minimum'),
-        # merge_reader_v3,
-        # merge_reader_v3_compress,
-        # merge_reader_v3_nodata,
-        # partial(merge_v4, memory='full'),
-        # partial(merge_v4, memory='low'),
-        # partial(merge_v4, memory='minimum'),
-        # merge_reader_v4,
-        # merge_reader_v4_nodata,
-        # merge_reader_v4_compress,
+        partial(merge_v3, memory='full'),
+        partial(merge_v3, memory='low'),
+        partial(merge_v3, memory='minimum'),
+        merge_reader_v3,
+        merge_reader_v3_compress,
+        merge_reader_v3_nodata,
+        partial(merge_v4, memory='full'),
+        partial(merge_v4, memory='low'),
+        partial(merge_v4, memory='minimum'),
+        merge_reader_v4,
+        merge_reader_v4_nodata,
+        merge_reader_v4_compress,
     )
 
     if tests:
-        output.extend(table_header('Merge files', fmt))
+        output.extend(table_header('Merge 3 files', fmt))
         for func in tests:
             thr = multiprocessing.Process(target=func, args=(send, fmt))
             thr.start()
@@ -700,7 +718,7 @@ def main(text_output, fmt):
             out.write('\n'.join(output))
 
 
-    for file in ('x.mdff', 'x.mf4f'):
+    for file in ('x.mdf', 'x.mf4'):
         try:
             os.remove(file)
         except FileNotFoundError:

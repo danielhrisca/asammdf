@@ -801,17 +801,6 @@ class MDF(object):
             mdf = files[0]
             excluded_channels = mdf._excluded_channels(i)
 
-            if PYVERSION == 3:
-                groups_data = [
-                    (b''.join(d[0] for d in files[index]._load_group_data(grp)), 0)
-                    for index, grp in enumerate(groups)
-                ]
-            else:
-                groups_data = [
-                    (b''.join(str(d[0]) for d in files[index]._load_group_data(grp)), 0)
-                    for index, grp in enumerate(groups)
-                ]
-
             group_channels = [group['channels'] for group in groups]
             for j, channels in enumerate(zip(*group_channels)):
                 if memory == 'minimum':
@@ -868,22 +857,51 @@ class MDF(object):
                     )
                     raise MdfException(message.format(i))
 
-                if j in excluded_channels:
-                    continue
+            channels_nr = j
+            idx = 0
+            last_timestamp = None
+            for group, mdf in zip(groups, files):
+                data = mdf._load_group_data(group)
 
-                signals_to_merge = [
-                    file.get(group=i, index=j, data=data)
-                    for file, data in zip(files, groups_data)
-                ]
+                for fragment in data:
+                    if idx == 0:
+                        signals = [
+                            mdf.get(
+                                group=i,
+                                index=j,
+                                data=fragment,
+                                raw=True,
+                            )
+                            for j in range(channels_nr)
+                            if j not in excluded_channels
+                        ]
+                        last_timestamp = signals[0].timestamps[-1]
+                        delta = last_timestamp / len(signals[0])
 
-                signal = signals_to_merge[0]
-                for merged_signal in signals_to_merge[1:]:
-                    signal = signal.extend(merged_signal)
+                        merged.append(signals, common_timebase=True)
+                        idx += 1
+                    else:
+                        master = mdf.get_master(i, fragment)
+                        if last_timestamp >= master[0]:
+                            master += last_timestamp + delta - master[0]
+                        last_timestamp = master[-1]
 
-                signals.append(signal)
+                        signals = [master, ]
 
-            if signals:
-                merged.append(signals, common_timebase=True)
+                        for j in range(channels_nr):
+                            if j in excluded_channels:
+                                continue
+                            signals.append(
+                                mdf.get(
+                                    group=i,
+                                    index=j,
+                                    data=fragment,
+                                    raw=True,
+                                    samples_only=True,
+                                )
+                            )
+
+                        merged.extend(i, signals)
 
         return merged
 
