@@ -3083,10 +3083,11 @@ class MDF4(object):
             samples = gp['data_block']['data'] + samples
             gp['data_block'] = DataBlock(data=samples)
 
+            size = gp['data_block']['block_len'] - v4c.COMMON_SIZE
+
             record_size = gp['channel_group']['samples_byte_nr']
             record_size += gp['data_group']['record_id_len']
-            added_cycles = size // record_size
-            gp['channel_group']['cycles_nr'] += added_cycles
+            gp['channel_group']['cycles_nr'] = size // record_size
 
             if 'record' in gp:
                 del gp['record']
@@ -4963,7 +4964,7 @@ class MDF4(object):
             data_bytes, offset = original_data
             self._master_channel_cache[(index, offset)] = t
 
-        if raster and t:
+        if raster and t.size:
             timestamps = arange(
                 t[0],
                 t[-1],

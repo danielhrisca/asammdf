@@ -3295,7 +3295,7 @@ class MDF3(object):
             data_bytes, offset = original_data
             self._master_channel_cache[(index, offset)] = t
 
-        if raster and t:
+        if raster and t.size:
             timestamps = arange(
                 t[0],
                 t[-1],

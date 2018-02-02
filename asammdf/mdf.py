@@ -1004,6 +1004,7 @@ class MDF(object):
 
             data = self._load_group_data(group)
             for idx, fragment in enumerate(data):
+                print(i, idx, len(fragment[0]))
                 if idx == 0:
                     sigs = []
                     for j, _ in enumerate(group['channels']):
