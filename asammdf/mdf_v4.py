@@ -4967,6 +4967,10 @@ class MDF4(object):
                         t = t * time_a
                         if time_b:
                             t += time_b
+
+        if not t.dtype == float64:
+            t = t.astype(float64)
+
         if original_data is None:
             self._master_channel_cache[index] = t
         else:

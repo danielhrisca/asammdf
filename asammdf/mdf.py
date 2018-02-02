@@ -200,6 +200,14 @@ class MDF(object):
                                 data=fragment,
                                 raw=True,
                             )
+                            if version < '4.00' and sig.samples.dtype.kind == 'S':
+                                strsig = self.get(
+                                    group=i,
+                                    index=j,
+                                    samples_only=True,
+                                )
+                                sig.samples = sig.samples.astype(strsig.dtype)
+                                del strsig
                             if not sig.samples.flags.writeable:
                                 sig.samples = sig.samples.copy()
                             sigs.append(sig)
@@ -700,6 +708,14 @@ class MDF(object):
                             data=fragment,
                             raw=True,
                         )
+                        if self.version < '4.00' and sig.samples.dtype.kind == 'S':
+                            strsig = self.get(
+                                group=group_index,
+                                index=j,
+                                samples_only=True,
+                            )
+                            sig.samples = sig.samples.astype(strsig.dtype)
+                            del strsig
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
@@ -797,9 +813,9 @@ class MDF(object):
                 )
                 raise MdfException(message.format(i))
 
-            signals = []
             mdf = files[0]
             excluded_channels = mdf._excluded_channels(i)
+            channels_nr = len(groups[0]['channels'])
 
             group_channels = [group['channels'] for group in groups]
             for j, channels in enumerate(zip(*group_channels)):
@@ -857,7 +873,6 @@ class MDF(object):
                     )
                     raise MdfException(message.format(i))
 
-            channels_nr = j
             idx = 0
             last_timestamp = None
             for group, mdf in zip(groups, files):
@@ -865,43 +880,79 @@ class MDF(object):
 
                 for fragment in data:
                     if idx == 0:
-                        signals = [
-                            mdf.get(
+                        signals = []
+                        for j in range(channels_nr):
+                            if j in excluded_channels:
+                                continue
+                            sig = mdf.get(
                                 group=i,
                                 index=j,
                                 data=fragment,
                                 raw=True,
                             )
-                            for j in range(channels_nr)
-                            if j not in excluded_channels
-                        ]
-                        last_timestamp = signals[0].timestamps[-1]
-                        delta = last_timestamp / len(signals[0])
+
+                            if version < '4.00' and sig.samples.dtype.kind == 'S':
+                                string_dtypes = []
+                                for tmp_mdf in files:
+                                    strsig = tmp_mdf.get(
+                                        group=i,
+                                        index=j,
+                                        samples_only=True,
+                                    )
+                                    string_dtypes.append(strsig.dtype)
+
+                                sig.samples = sig.samples.astype(max(string_dtypes))
+
+                                del strsig
+                                del string_dtypes
+
+                            if not sig.samples.flags.writeable:
+                                sig.samples = sig.samples.copy()
+                            signals.append(sig)
+                        if len(signals[0]):
+                            last_timestamp = signals[0].timestamps[-1]
+                            delta = last_timestamp / len(signals[0])
+                        # else:
+                        #
+                        # except:
+                        #     print(i, signals, channels_nr, [
+                        #     j
+                        #     for j in range(channels_nr)
+                        #     if j not in excluded_channels
+                        # ])
+                        #     raise
+
 
                         merged.append(signals, common_timebase=True)
                         idx += 1
                     else:
                         master = mdf.get_master(i, fragment)
-                        if last_timestamp >= master[0]:
-                            master += last_timestamp + delta - master[0]
-                        last_timestamp = master[-1]
+                        if len(master):
+                            if last_timestamp is None:
+                                last_timestamp = master[-1]
+                                delta = last_timestamp / len(master)
+                            else:
+                                if last_timestamp >= master[0]:
+                                    master += last_timestamp + delta - master[0]
+                                last_timestamp = master[-1]
 
-                        signals = [master, ]
+                            signals = [master, ]
 
-                        for j in range(channels_nr):
-                            if j in excluded_channels:
-                                continue
-                            signals.append(
-                                mdf.get(
-                                    group=i,
-                                    index=j,
-                                    data=fragment,
-                                    raw=True,
-                                    samples_only=True,
+                            for j in range(channels_nr):
+                                if j in excluded_channels:
+                                    continue
+                                signals.append(
+                                    mdf.get(
+                                        group=i,
+                                        index=j,
+                                        data=fragment,
+                                        raw=True,
+                                        samples_only=True,
+                                    )
                                 )
-                            )
 
-                        merged.extend(i, signals)
+                            merged.extend(i, signals)
+                        idx += 1
 
         return merged
 
@@ -1018,7 +1069,6 @@ class MDF(object):
 
             data = self._load_group_data(group)
             for idx, fragment in enumerate(data):
-                print(i, idx, len(fragment[0]))
                 if idx == 0:
                     sigs = []
                     for j, _ in enumerate(group['channels']):
@@ -1031,6 +1081,14 @@ class MDF(object):
                             raw=True,
                             raster=raster,
                         )
+                        if self.version < '4.00' and sig.samples.dtype.kind == 'S':
+                            strsig = self.get(
+                                group=i,
+                                index=j,
+                                samples_only=True,
+                            )
+                            sig.samples = sig.samples.astype(strsig.dtype)
+                            del strsig
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)

@@ -1125,6 +1125,8 @@ class MDF3(object):
             'channel_group': [],
         }
         gp['signal_types'] = gp_sig_types = []
+        gp['string_dtypes'] = []
+        string_counter = 0
 
         self.groups.append(gp)
 
@@ -1442,6 +1444,9 @@ class MDF3(object):
                 # update the parents as well
                 field_name = get_unique_name(field_names, name)
                 parents[ch_cntr] = field_name, 0
+
+                if signal.samples.dtype.kind == 'S':
+                    gp['string_dtypes'].append(signal.samples.dtype)
 
                 fields.append(signal.samples)
                 if s_type != v23c.DATA_TYPE_BYTEARRAY:
@@ -2227,6 +2232,7 @@ class MDF3(object):
         types = []
 
         cycles_nr = len(signals[0])
+        string_counter = 0
 
         for signal in signals:
             sig = signal
@@ -2246,7 +2252,12 @@ class MDF3(object):
                 sig_type = v23c.SIGNAL_TYPE_ARRAY
 
             if sig_type == v23c.SIGNAL_TYPE_SCALAR:
+                if signal.dtype.kind == 'S':
+                    str_dtype = gp['string_dtypes'][string_counter]
+                    signal = signal.astype(str_dtype)
+                    string_counter += 1
                 fields.append(signal)
+
                 if signal.shape[1:]:
                     types.append(('', signal.dtype, signal.shape[1:]))
                 else:
@@ -2285,10 +2296,11 @@ class MDF3(object):
                         new_gp['data_block'] = DataBlock(data=data)
                 else:
                     if samples:
-                        data_address = self._tempfile.tell()
+                        stream.seek(0, 2)
+                        data_address = stream.tell()
                         new_gp['data_block_addr'].append(data_address)
                         new_gp['data_block_size'].append(extended_size)
-                        self._tempfile.write(samples)
+                        stream.write(samples)
 
             else:
 
@@ -2335,6 +2347,7 @@ class MDF3(object):
             if samples:
                 data = gp['data_block']['data'] + samples
                 gp['data_block'] = DataBlock(data=data)
+                gp['channel_group']['cycles_nr'] += cycles_nr
         else:
             if cycles_nr:
                 stream.seek(0, 2)
@@ -2342,6 +2355,7 @@ class MDF3(object):
                 gp['data_block_addr'].append(data_address)
                 gp['data_block_size'].append(extended_size)
                 stream.write(samples)
+                gp['channel_group']['cycles_nr'] += cycles_nr
 
     def get_channel_name(self, group, index):
         """Gets channel name.
@@ -3291,6 +3305,9 @@ class MDF3(object):
                     t = t * time_a
                     if time_b:
                         t += time_b
+
+        if not t.dtype == float64:
+            t = t.astype(float64)
 
         if original_data is None:
             self._master_channel_cache[index] = t

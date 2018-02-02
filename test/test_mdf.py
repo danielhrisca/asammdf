@@ -21,6 +21,8 @@ from utils import (
 )
 from asammdf import MDF, SUPPORTED_VERSIONS, configure
 
+SUPPORTED_VERSIONS = SUPPORTED_VERSIONS[1:]
+
 CHANNEL_LEN = 100000
 
 
@@ -152,7 +154,7 @@ class TestMDF(unittest.TestCase):
         for enable in (True, ):
             configure(enable)
 
-            for out in SUPPORTED_VERSIONS[1:]:
+            for out in SUPPORTED_VERSIONS:
                 for mdfname in os.listdir('tmpdir_demo'):
                     for memory in MEMORY:
                         input_file = os.path.join('tmpdir_demo', mdfname)
@@ -196,9 +198,11 @@ class TestMDF(unittest.TestCase):
                 for memory in MEMORY:
 
                     input_file = os.path.join('tmpdir_demo', mdfname)
+                    if '2.00' in input_file:
+                        continue
                     files = [input_file, ] * 4
 
-                    outfile = MDF.merge(files, out, memory).save('tmp', overwrite=True)
+                    outfile = MDF.merge(files, out, memory).save('tmp')
 
                     equal = True
 
@@ -213,12 +217,18 @@ class TestMDF(unittest.TestCase):
                                         np.tile(original.samples, 4),
                                         converted.samples):
                                     equal = False
+                                    print('='*80)
+                                    print(input_file, outfile, memory)
+                                    print(original)
+                                    print(converted)
+                                    print('^'*80)
+                                    raise Exception()
 
                     self.assertTrue(equal)
 
         configure(True)
 
-        for out in SUPPORTED_VERSIONS[1:]:
+        for out in SUPPORTED_VERSIONS:
             for mdfname in os.listdir('tmpdir_demo'):
                 for memory in MEMORY:
                     input_file = os.path.join('tmpdir_demo', mdfname)
@@ -307,6 +317,8 @@ class TestMDF(unittest.TestCase):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_demo', mdfname)
 
+                if '2.00' in input_file:
+                    continue
                 print(input_file, memory)
 
                 outfile1 = MDF(input_file, memory=memory).cut(stop=2).save('tmp1', overwrite=True)
@@ -317,6 +329,8 @@ class TestMDF(unittest.TestCase):
                     [outfile1, outfile2, outfile3],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp', overwrite=True)
+
+                print('OUT', outfile)
 
                 equal = True
 
