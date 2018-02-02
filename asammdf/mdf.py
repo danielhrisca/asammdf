@@ -14,6 +14,7 @@ from pandas import DataFrame
 from .mdf_v2 import MDF2
 from .mdf_v3 import MDF3
 from .mdf_v4 import MDF4
+from .signal import Signal
 from .utils import MdfException, get_text_v3, get_text_v4
 from .v2_v3_blocks import Channel as ChannelV3
 from .v4_blocks import Channel as ChannelV4
@@ -259,24 +260,21 @@ class MDF(object):
 
         if whence == 1:
             timestamps = []
-            for i, _ in enumerate(self.groups):
-                master_index = self.masters_db.get(i, None)
-                if master_index is not None:
-                    master = self.get(
-                        group=i,
-                        index=master_index,
-                        samples_only=True,
-                    )
-                    if master.size:
-                        timestamps.append(master[0])
-            first_timestamp = np.amin(timestamps)
+            for i, group in enumerate(self.groups):
+                fragment = next(self._load_group_data(group))
+                master = self.get_master(i, fragment)
+                if master.size:
+                    timestamps.append(master[0])
+                del master
+
+            if timestamps:
+                first_timestamp = np.amin(timestamps)
+            else:
+                first_timestamp = 0
             if start is not None:
                 start += first_timestamp
             if stop is not None:
                 stop += first_timestamp
-
-            timestamps = None
-            del timestamps
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
@@ -934,8 +932,6 @@ class MDF(object):
                 if j != master_index
             ]
 
-            pandas_dict = {}
-
             data = self._load_group_data(group)
             for data_bytes in data:
                 data_bytes = (data_bytes, )
@@ -1140,32 +1136,37 @@ class MDF(object):
                     gps[group] = set()
                 gps[group].add(index)
 
-        signals = {}
+        signal_parts = {}
         for group in gps:
             grp = self.groups[group]
             data = self._load_group_data(grp)
 
-            if PYVERSION == 3:
-                data = b''.join(d[0] for d in data)
-                data = (data, 0)
-            else:
-                data = b''.join(str(d[0]) for d in data)
-                data = (data, 0)
+            for fragment in data:
+                for index in gps[group]:
+                    signal = self.get(group=group, index=index, data=fragment)
+                    if (group, index) not in signal_parts:
+                        signal_parts[(group, index)] = [signal, ]
+                    else:
+                        signal_parts[(group, index)].append(signal)
 
-            for index in gps[group]:
-                signal = self.get(group=group, index=index, data=data)
-                if (group, index) not in signals:
-                    signals[(group, index)] = signal
-                else:
-                    signals[(group, index)] = signals[(group, index)].extend(signal)
-
-        signals = [signals[pair] for pair in indexes]
+        signals = []
+        for pair in indexes:
+            parts = signal_parts[pair]
+            signal = Signal(
+                np.concatenate([part.samples for part in parts]),
+                np.concatenate([part.timestamps for part in parts]),
+                unit=parts[0].unit,
+                name=parts[0].name,
+                comment=parts[0].comment,
+                raw=parts[0].raw,
+                conversion=parts[0].conversion,
+            )
+            signals.append(signal)
 
         if dataframe:
             times = [s.timestamps for s in signals]
             t = reduce(np.union1d, times).flatten().astype(np.float64)
             signals = [s.interp(t) for s in signals]
-            times = None
 
             pandas_dict = {'t': t}
             for sig in signals:
