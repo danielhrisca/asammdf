@@ -253,13 +253,17 @@ class Channel(dict):
 
     def __lt__(self, other):
         self_start = self['start_offset']
-        self_additional_offset = self['aditional_byte_offset']
-        if self_additional_offset:
-            self_start += 8 * self_additional_offset
         other_start = other['start_offset']
-        other_additional_offset = other['aditional_byte_offset']
-        if other_additional_offset:
-            other_start += 8 * other_additional_offset
+        try:
+            self_additional_offset = self['aditional_byte_offset']
+            if self_additional_offset:
+                self_start += 8 * self_additional_offset
+            other_additional_offset = other['aditional_byte_offset']
+            if other_additional_offset:
+                other_start += 8 * other_additional_offset
+        except KeyError:
+            pass
+
         if self_start < other_start:
             result = 1
         elif self_start == other_start:
@@ -535,7 +539,7 @@ class ChannelConversion(dict):
                     'conversion_type',
                     v23c.CONVERSION_TYPE_POLY,
                 )
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
+                self['ref_param_nr'] = kargs.get('ref_param_nr', 6)
                 self['P1'] = kargs.get('P1', 0)
                 self['P2'] = kargs.get('P2', 0)
                 self['P3'] = kargs.get('P3', 0)
@@ -558,7 +562,7 @@ class ChannelConversion(dict):
                     'conversion_type',
                     v23c.CONVERSION_TYPE_EXPO,
                 )
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
+                self['ref_param_nr'] = kargs.get('ref_param_nr', 7)
                 self['P1'] = kargs.get('P1', 0)
                 self['P2'] = kargs.get('P2', 0)
                 self['P3'] = kargs.get('P3', 0)
@@ -568,20 +572,18 @@ class ChannelConversion(dict):
                 self['P7'] = kargs.get('P7', 0)
 
             elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_FORMULA:
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_POLY_BLOCK_SIZE,
-                )
+                formula = kargs['formula']
+                formula = formula.encode('latin-1')
+                formula_len = len(formula)
+                formula += b'\0'
+                self['block_len'] = 46 + formula_len + 1
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = kargs.get(
-                    'conversion_type',
-                    v23c.CONVERSION_TYPE_FORMULA,
-                )
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
-                self['formula'] = kargs.get('formula', b'X1' + b'\0' * 254)
+                self['conversion_type'] = v23c.CONVERSION_TYPE_FORMULA
+                self['ref_param_nr'] = formula_len
+                self['formula'] = formula
 
             elif kargs['conversion_type'] in (
                     v23c.CONVERSION_TYPE_TABI,
