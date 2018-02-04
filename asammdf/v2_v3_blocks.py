@@ -253,7 +253,13 @@ class Channel(dict):
 
     def __lt__(self, other):
         self_start = self['start_offset']
+        self_additional_offset = self['aditional_byte_offset']
+        if self_additional_offset:
+            self_start += 8 * self_additional_offset
         other_start = other['start_offset']
+        other_additional_offset = other['aditional_byte_offset']
+        if other_additional_offset:
+            other_start += 8 * other_additional_offset
         if self_start < other_start:
             result = 1
         elif self_start == other_start:

@@ -18,8 +18,9 @@ except ImportError:
     pass
 
 import psutil
+import numpy as np
 
-from asammdf import MDF
+from asammdf import MDF, Signal, SignalConversions
 from asammdf import __version__ as asammdf_version
 from mdfreader import mdf as MDFreader
 from mdfreader import __version__ as mdfreader_version
@@ -116,6 +117,112 @@ class Timer():
                                                             ram_usage)
 
         return True
+
+
+def generate_test_files():
+    print('Generating test files:')
+    for version in ('3.30', '4.10'):
+        print("-> generating file for version", version)
+        mdf = MDF(version=version, memory='minimum')
+
+        if version == '3.30':
+            cycles = 500
+            channels_count = 8000
+            filename = 'test.mdf'
+        else:
+            cycles = 1000
+            channels_count = 20000
+            filename = 'test.mf4'
+
+        if os.path.exists(filename):
+            continue
+
+        t = np.arange(cycles, dtype=np.float64)
+
+        # no conversion
+        sigs = []
+        for i in range(channels_count):
+            sig = Signal(
+                np.ones(cycles, dtype=np.uint16),
+                t,
+                name='Channel_{}'.format(i),
+                unit='unit_{}'.format(i),
+                conversion=None,
+                comment='Unsinged int 16bit channel {}'.format(i),
+                raw=True,
+            )
+            sigs.append(sig)
+        mdf.append(sigs)
+
+        # linear
+        sigs = []
+        for i in range(channels_count):
+            conversion = {
+                'type': SignalConversions.CONVERSION_LINEAR,
+                'a': float(i),
+                'b': -0.5,
+            }
+            sig = Signal(
+                np.ones(cycles, dtype=np.int16),
+                t,
+                name='Channel_{}'.format(i),
+                unit='unit_{}'.format(i),
+                conversion=conversion,
+                comment='Signed 16bit channel {} with linear conversion'.format(i),
+                raw=True,
+            )
+            sigs.append(sig)
+        mdf.append(sigs)
+
+        # algebraic
+        sigs = []
+        for i in range(channels_count):
+            conversion = {
+                'type': SignalConversions.CONVERSION_ALGEBRAIC,
+                'formula': '{} * sin(X)'.format(i),
+            }
+            sig = Signal(
+                np.arange(cycles, dtype=np.int32) / 100,
+                t,
+                name='Channel_{}'.format(i),
+                unit='unit_{}'.format(i),
+                conversion=conversion,
+                comment='Sinus channel {} with algebraic conversion'.format(i),
+                raw=True,
+            )
+            sigs.append(sig)
+        mdf.append(sigs)
+
+        # rational
+        sigs = []
+        for i in range(channels_count):
+            conversion = {
+                'type': SignalConversions.CONVERSION_RATIONAL,
+                'P1': 0,
+                'P2': i,
+                'P3': -0.5,
+                'P4': 0,
+                'P5': 0,
+                'P6': 1,
+            }
+            sig = Signal(
+                np.ones(cycles, dtype=np.int64),
+                t,
+                name='Channel_{}'.format(i),
+                unit='unit_{}'.format(i),
+                conversion=conversion,
+                comment='Channel {} with rational conversion'.format(i),
+                raw=True,
+            )
+            sigs.append(sig)
+        mdf.append(sigs)
+
+
+        mdf.save(filename, overwrite=True)
+
+        del mdf
+
+        MDF.merge([filename,] * 10, version, memory='minimum').save(filename, overwrite=True)
 
 
 def open_mdf3(output, fmt, memory):
@@ -218,7 +325,7 @@ def merge_v3(output, fmt, memory):
 
 
 def merge_v4(output, fmt, memory):
-    files = [r'test.mf4', ] * 3
+    files = [r'test.mf4', ] * 10
 
     with Timer('Merge 3 files',
                'asammdf {} {} v4'.format(asammdf_version, memory),
@@ -550,6 +657,8 @@ def table_end(fmt='rst'):
 def main(text_output, fmt):
     if os.path.dirname(__file__):
         os.chdir(os.path.dirname(__file__))
+    generate_test_files()
+
     listen, send = multiprocessing.Pipe()
     output = MyList()
     errors = []
@@ -587,9 +696,9 @@ def main(text_output, fmt):
         # open_reader3,
         # open_reader3_compression,
         # open_reader3_nodata,
-        partial(open_mdf4, memory='full'),
-        partial(open_mdf4, memory='low'),
-        partial(open_mdf4, memory='minimum'),
+        # partial(open_mdf4, memory='full'),
+        # partial(open_mdf4, memory='low'),
+        # partial(open_mdf4, memory='minimum'),
         # open_reader4,
         # open_reader4_compression,
         # open_reader4_nodata,
@@ -613,9 +722,9 @@ def main(text_output, fmt):
         # save_reader3,
         # save_reader3_nodata,
         # save_reader3_compression,
-        partial(save_mdf4, memory='full'),
-        partial(save_mdf4, memory='low'),
-        partial(save_mdf4, memory='minimum'),
+        # partial(save_mdf4, memory='full'),
+        # partial(save_mdf4, memory='low'),
+        # partial(save_mdf4, memory='minimum'),
         # save_reader4,
         # save_reader4_nodata,
         # save_reader4_compression,
@@ -662,9 +771,9 @@ def main(text_output, fmt):
         # partial(convert_v3_v4, memory='full'),
         # partial(convert_v3_v4, memory='low'),
         # partial(convert_v3_v4, memory='minimum'),
-        partial(convert_v4_v3, memory='full'),
-        partial(convert_v4_v3, memory='low'),
-        partial(convert_v4_v3, memory='minimum'),
+        # partial(convert_v4_v3, memory='full'),
+        # partial(convert_v4_v3, memory='low'),
+        # partial(convert_v4_v3, memory='minimum'),
     )
 
     if tests:
@@ -685,7 +794,7 @@ def main(text_output, fmt):
         # merge_reader_v3,
         # merge_reader_v3_compress,
         # merge_reader_v3_nodata,
-        partial(merge_v4, memory='full'),
+        # partial(merge_v4, memory='full'),
         partial(merge_v4, memory='low'),
         partial(merge_v4, memory='minimum'),
         # merge_reader_v4,
