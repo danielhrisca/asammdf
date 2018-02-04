@@ -11,6 +11,7 @@ from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
 from itertools import product
+from math import ceil
 from tempfile import TemporaryFile
 from struct import unpack
 
@@ -1382,8 +1383,8 @@ class MDF3(object):
 
                 # compute additional byte offset for large records size
                 if offset > v23c.MAX_UINT16:
-                    additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
-                    start_bit_offset = offset - additional_byte_offset << 3
+                    additional_byte_offset = ceil((offset - v23c.MAX_UINT16) / 8)
+                    start_bit_offset = offset - additional_byte_offset * 8
                 else:
                     start_bit_offset = offset
                     additional_byte_offset = 0

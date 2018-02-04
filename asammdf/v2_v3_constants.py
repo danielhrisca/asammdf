@@ -112,10 +112,10 @@ CC_FORMULA_BLOCK_SIZE = 304
 SR_BLOCK_SIZE = 156
 
 # max int values
-MAX_UINT8 = 2 << 8 - 1
-MAX_UINT16 = 2 << 16 - 1
-MAX_UNIT32 = 2 << 32 - 1
-MAX_UINT64 = 2 << 64 - 1
+MAX_UINT8 = (1 << 8) - 1
+MAX_UINT16 = (1 << 16) - 1
+MAX_UINT32 = (1 << 32) - 1
+MAX_UINT64 = (1 << 64) - 1
 
 # data location
 LOCATION_ORIGINAL_FILE = 0
