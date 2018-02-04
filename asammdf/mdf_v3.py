@@ -44,6 +44,9 @@ from numpy.core.records import fromarrays, fromstring
 from . import v2_v3_constants as v23c
 from .signal import Signal, SignalConversions
 from .utils import (
+    CHANNEL_COUNT,
+    CONVERT_LOW,
+    CONVERT_MINIMUM,
     MdfException,
     as_non_byte_sized_signed_int,
     fix_dtype_fields,
@@ -174,27 +177,30 @@ class MDF3(object):
                 read_size = group['size']
 
                 if group['sorted']:
-                    # only if more then 4MB are found in the group
-                    if read_size > 4 * 2**20:
-                        samples_size = channel_group['samples_byte_nr']
-                        if self.read_split_threshold:
-                            split_size = self.read_split_threshold // samples_size
-                            split_size *= samples_size
-                        else:
-                            split_size_1 = channel_group['cycles_nr'] // 49
-                            split_size_1 *= samples_size
-
-                            split_size_2 = (4 * 2**20) // samples_size
-                            split_size_2 *= samples_size
-
-                            split_size = max(split_size_1, split_size_2)
-
-                        if split_size == 0:
-                            split_size = samples_size
-                        elif split_size > read_size:
-                            split_size = read_size
+                    samples_size = channel_group['samples_byte_nr']
+                    if self.read_split_threshold:
+                        split_size = self.read_split_threshold // samples_size
+                        split_size *= samples_size
                     else:
-                        split_size = read_size
+                        channels_nr = len(group['channels'])
+
+                        if self.memory == 'minimum':
+                            y_axis = CONVERT_MINIMUM
+                        else:
+                            y_axis = CONVERT_LOW
+                        split_size = interp(
+                            channels_nr,
+                            CHANNEL_COUNT,
+                            y_axis,
+                        )
+
+                        split_size = int(split_size)
+
+                        split_size = split_size // samples_size
+                        split_size *= samples_size
+
+                    if split_size == 0:
+                        split_size = samples_size
 
                     blocks = zip(
                         group['data_block_addr'],

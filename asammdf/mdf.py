@@ -15,7 +15,14 @@ from .mdf_v2 import MDF2
 from .mdf_v3 import MDF3
 from .mdf_v4 import MDF4
 from .signal import Signal
-from .utils import MdfException, get_text_v3, get_text_v4
+from .utils import (
+    CHANNEL_COUNT,
+    MERGE_LOW,
+    MERGE_MINIMUM,
+    MdfException,
+    get_text_v3,
+    get_text_v4,
+)
 from .v2_v3_blocks import Channel as ChannelV3
 from .v4_blocks import Channel as ChannelV4
 from .v4_blocks import ChannelArrayBlock
@@ -26,6 +33,8 @@ MDF2_VERSIONS = ('2.00', '2.10', '2.14')
 MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
 MDF4_VERSIONS = ('4.00', '4.10', '4.11')
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
+
+
 
 __all__ = ['MDF', 'SUPPORTED_VERSIONS']
 
@@ -184,13 +193,14 @@ class MDF(object):
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
             excluded_channels = self._excluded_channels(i)
+            channels_nr = len(group['channels'])
 
             data = self._load_group_data(group)
             for idx, fragment in enumerate(data):
 
                 if idx == 0:
                     sigs = []
-                    for j, _ in enumerate(group['channels']):
+                    for j in range(channels_nr):
                         if j in excluded_channels:
                             continue
                         else:
@@ -221,7 +231,7 @@ class MDF(object):
                 else:
                     sigs = [self.get_master(i, data=fragment), ]
 
-                    for j, _ in enumerate(group['channels']):
+                    for j in range(channels_nr):
                         if j in excluded_channels:
                             continue
                         else:
@@ -817,6 +827,17 @@ class MDF(object):
             excluded_channels = mdf._excluded_channels(i)
             channels_nr = len(groups[0]['channels'])
 
+            if memory == 'minimum':
+                y_axis = MERGE_MINIMUM
+            else:
+                y_axis = MERGE_LOW
+
+            read_size = np.interp(
+                channels_nr,
+                CHANNEL_COUNT,
+                y_axis,
+            )
+
             group_channels = [group['channels'] for group in groups]
             for j, channels in enumerate(zip(*group_channels)):
                 if memory == 'minimum':
@@ -876,6 +897,8 @@ class MDF(object):
             idx = 0
             last_timestamp = None
             for group, mdf in zip(groups, files):
+                mdf.set_split_size(int(read_size))
+
                 data = mdf._load_group_data(group)
 
                 for fragment in data:
@@ -906,8 +929,8 @@ class MDF(object):
                                 del strsig
                                 del string_dtypes
 
-                            if not sig.samples.flags.writeable:
-                                sig.samples = sig.samples.copy()
+                            # if not sig.samples.flags.writeable:
+                            #     sig.samples = sig.samples.copy()
                             signals.append(sig)
                         if len(signals[0]):
                             last_timestamp = signals[0].timestamps[-1]

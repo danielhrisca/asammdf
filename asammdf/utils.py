@@ -17,6 +17,11 @@ from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
 __all__ = [
+    'CHANNEL_COUNT',
+    'CONVERT_LOW',
+    'CONVERT_MINIMUM',
+    'MERGE_LOW',
+    'MERGE_MINIMUM',
     'MdfException',
     'get_fmt_v3',
     'get_fmt_v4',
@@ -28,6 +33,51 @@ __all__ = [
     'fmt_to_datatype_v4',
     'bytes',
 ]
+
+CHANNEL_COUNT = (
+    0,
+    200,
+    2000,
+    10000,
+    20000,
+    400000,
+)
+
+CONVERT_LOW = (
+    10 * 2**20,
+    10 * 2**20,
+    20 * 2**20,
+    30 * 2**20,
+    40 * 2**20,
+    100 * 2**20,
+)
+
+CONVERT_MINIMUM = (
+    10 * 2**20,
+    10 * 2**20,
+    30 * 2**20,
+    30 * 2**20,
+    40 * 2**20,
+    100 * 2**20,
+)
+
+MERGE_LOW = (
+    10 * 2**20,
+    10 * 2**20,
+    20 * 2**20,
+    35 * 2**20,
+    60 * 2**20,
+    100 * 2**20,
+)
+
+MERGE_MINIMUM = (
+    10 * 2**20,
+    10 * 2**20,
+    30 * 2**20,
+    50 * 2**20,
+    60 * 2**20,
+    100 * 2**20,
+)
 
 
 class MdfException(Exception):
