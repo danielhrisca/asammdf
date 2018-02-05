@@ -39,28 +39,30 @@ __all__ = ['MDF', 'SUPPORTED_VERSIONS']
 
 
 class MDF(object):
-    """Unified access to MDF v3 and v4 files.
+    """Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
+    methods are linked to the `MDF` object via *setattr*. This is done to expose
+    them to the user code and for performance considerations.
 
     Parameters
     ----------
     name : string
         mdf file name, if provided it must be a real file name
     memory : str
-        memory option; default `full`
+        memory option; default `full`:
 
-            * if *full* the data group binary data block will be loaded in RAM
-            * if *low* the channel data is read from disk on request, and the
-                metadata is loaded into RAM
+        * if *full* the data group binary data block will be loaded in RAM
 
-            * if *minimum* only minimal data is loaded into RAM
+        * if *low* the channel data is read from disk on request, and the
+        metadata is loaded into RAM
+
+        * if *minimum* only minimal data is loaded into RAM
+
 
     version : string
         mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
         '3.30', '4.00', '4.10', '4.11'); default '4.10'
 
     """
-
-    _iter_channels = True
 
     def __init__(self, name=None, memory='full', version='4.10'):
         if name:
@@ -106,7 +108,7 @@ class MDF(object):
                            'Supported versions are {}')
                 raise MdfException(message.format(version, SUPPORTED_VERSIONS))
 
-        # link underlying _file attributes and methods to the new MDF object
+        # link underlying _mdf attributes and methods to the new MDF object
         for attr in set(dir(self._mdf)) - set(dir(self)):
             setattr(self, attr, getattr(self._mdf, attr))
 
@@ -117,6 +119,25 @@ class MDF(object):
         self.close()
 
     def _excluded_channels(self, index):
+        """ get the indexes list of channels that are excluded when processing
+        teh channel group. The candiates for exlusion are the master channel
+        (since it is retrieved as `Signal` timestamps), structure channel
+        composition component channels (since they are retrieved as fields in
+        the `Signal` samples recarray) and channel dependecies (mdf version 3) /
+        channel array axes
+
+        Parameters
+        ----------
+        index : int
+            channel group index
+
+        Returns
+        -------
+        excluded_channels : set
+            set of excluded channels
+
+        """
+
         group = self.groups[index]
 
         excluded_channels = set()
@@ -149,15 +170,20 @@ class MDF(object):
         return excluded_channels
 
     def __contains__(self, channel):
+        """ if *'channel name'* in *'mdf file'* """
         return channel in self.channels_db
 
     def __iter__(self):
-        # the default is to yield from iter_channels
+        """ terate over all the channels found in the file; master channels are
+        skipped from iteration
+
+        """
+
         for signal in self.iter_channels():
             yield signal
 
     def convert(self, to, memory='full'):
-        """convert MDF to other versions
+        """convert *MDF* to other version
 
         Parameters
         ----------
@@ -165,12 +191,12 @@ class MDF(object):
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default '4.10'
         memory : str
-            memory option; default `full`
+            memory option; default *full*
 
         Returns
         -------
         out : MDF
-            new MDF object
+            new *MDF* object
 
         """
         if to not in SUPPORTED_VERSIONS:
@@ -197,6 +223,8 @@ class MDF(object):
             data = self._load_group_data(group)
             for idx, fragment in enumerate(data):
 
+                # the first fragment triggers and append that will add the
+                # metadata for all channels
                 if idx == 0:
                     sigs = []
                     for j in range(channels_nr):
@@ -227,6 +255,8 @@ class MDF(object):
                         common_timebase=True,
                     )
 
+                # the other fragments will trigger onl the extension of
+                # samples records to the data block
                 else:
                     sigs = [self.get_master(i, data=fragment), ]
 
@@ -249,15 +279,17 @@ class MDF(object):
         return out
 
     def cut(self, start=None, stop=None, whence=0):
-        """convert MDF to other versions
+        """cut *MDF* file. *start* and *stop* limits are absolute values
+        or values relative to the first timestamp depending on the *whence*
+        argument.
 
         Parameters
         ----------
         start : float
-            start time, default None. If *None* then the start of measurement
+            start time, default *None*. If *None* then the start of measurement
             is used
         stop : float
-            stop time, default . If *None* then the end of measurement is used
+            stop time, default *None*. If *None* then the end of measurement is used
         whence : int
             how to search for the start and stop values
 
@@ -308,6 +340,8 @@ class MDF(object):
                 if not len(master):
                     continue
 
+                # check if this fragement is within the cut interval or
+                # if the cut interval has ended
                 if start is None and stop is None:
                     fragment_start = None
                     fragment_stop = None
@@ -341,6 +375,8 @@ class MDF(object):
                             fragment_stop = min(stop, master[-1])
                             stop_index = np.searchsorted(master, fragment_stop).flatten()[0] + 1
 
+                    # the first fragment triggers and append that will add the
+                    # metadata for all channels
                     if idx == 0:
                         sigs = []
                         for j in range(channels_nr):
@@ -373,6 +409,8 @@ class MDF(object):
 
                         idx += 1
 
+                    # the other fragments will trigger onl the extension of
+                    # samples records to the data block
                     else:
                         sigs = [master[start_index: stop_index].copy(), ]
 
@@ -394,6 +432,9 @@ class MDF(object):
                             out.extend(i, sigs)
 
                         idx += 1
+
+            # if the cut interval is not found in the measurement
+            # then append an empty data group
             if idx == 0:
                 self.configure(read_fragment_size=1)
                 sigs = []
@@ -432,7 +473,7 @@ class MDF(object):
         return out
 
     def export(self, fmt, filename=None):
-        """ export MDF to other formats. The *MDF* file name is used is
+        """ export *MDF* to other formats. The *MDF* file name is used is
         available, else the *filename* aragument must be provided.
 
         Parameters
@@ -440,23 +481,23 @@ class MDF(object):
         fmt : string
             can be one of the following:
 
-                * `csv` : CSV export that uses the ";" delimiter. This option
-                    will generate a new csv file for each data group
-                    (<MDFNAME>_DataGroup_<cntr>.csv)
+            * `csv` : CSV export that uses the ";" delimiter. This option
+                will generate a new csv file for each data group
+                (<MDFNAME>_DataGroup_<cntr>.csv)
 
-                * `hdf5` : HDF5 file output; each *MDF* data group is mapped to
-                    a *HDF5* group with the name 'DataGroup_<cntr>'
-                    (where <cntr> is the index)
+            * `hdf5` : HDF5 file output; each *MDF* data group is mapped to
+                a *HDF5* group with the name 'DataGroup_<cntr>'
+                (where <cntr> is the index)
 
-                * `excel` : Excel file output (very slow). This option will
-                    generate a new excel file for each data group
-                    (<MDFNAME>_DataGroup_<cntr>.xlsx)
+            * `excel` : Excel file output (very slow). This option will
+                generate a new excel file for each data group
+                (<MDFNAME>_DataGroup_<cntr>.xlsx)
 
-                * `mat` : Matlab .mat version 5 export, for Matlab >= 7.6. In
-                    the mat file the channels will be renamed to
-                    'DataGroup_<cntr>_<channel name>'. The channel group master
-                    will be renamed to 'DataGroup_<cntr>_<channel name>_master'
-                    ( *<cntr>* is the data group index starting from 0)
+            * `mat` : Matlab .mat version 5 export, for Matlab >= 7.6. In
+                the mat file the channels will be renamed to
+                'DataGroup_<cntr>_<channel name>'. The channel group master
+                will be renamed to 'DataGroup_<cntr>_<channel name>_master'
+                ( *<cntr>* is the data group index starting from 0)
 
         filename : string
             export file name
@@ -676,18 +717,17 @@ class MDF(object):
             list of items to be filtered; each item can be :
 
                 * a channel name string
-                * (channel_name, group index, channel index) list or tuple
+                * (channel name, group index, channel index) list or tuple
                 * (channel name, group index) list or tuple
                 * (None, group index, channel index) lsit or tuple
 
         memory : str
-            memory option for filtered mdf; default None in which case the
-            original file's memory option is used
+            memory option for filtered *MDF*; default *full*
 
         Returns
         -------
         mdf : MDF
-            new MDF file
+            new *MDF* file
 
         Examples
         --------
@@ -754,6 +794,7 @@ class MDF(object):
                     gps[group] = set()
                 gps[group].add(index)
 
+        # see if there are exluded channels in the filter list
         for group_index, indexes in gps.items():
             grp = self.groups[group_index]
             excluded_channels = set()
@@ -802,8 +843,9 @@ class MDF(object):
 
             for idx, fragment in enumerate(data):
 
+                # the first fragment triggers and append that will add the
+                # metadata for all channels
                 if idx == 0:
-
                     sigs = []
                     for j in indexes:
                         sig = self.get(
@@ -831,6 +873,8 @@ class MDF(object):
                         common_timebase=True,
                     )
 
+                # the other fragments will trigger onl the extension of
+                # samples records to the data block
                 else:
                     sigs = [self.get_master(group_index, data=fragment), ]
 
@@ -851,23 +895,23 @@ class MDF(object):
 
     @staticmethod
     def merge(files, outversion='4.10', memory='full'):
-        """ merge several files and return the merged MDF object. The files
+        """ merge several files and return the merged *MDF* object. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
 
         Parameters
         ----------
         files : list | tuple
-            list of MDF file names or MDF instances
+            list of *MDF* file names or *MDF* instances
         outversion : str
             merged file version
         memory : str
-            memory option; default `full`
+            memory option; default *full*
 
         Returns
         -------
         merged : MDF
-            new MDF object with merged channels
+            new *MDF* object with merged channels
 
         Raises
         ------
@@ -1066,12 +1110,12 @@ class MDF(object):
         return merged
 
     def iter_channels(self, skip_master=True):
-        """ generator that yields a `Signal` for each non-master channel
+        """ generator that yields a *Signal* for each non-master channel
 
         Parameters
         ----------
         skip_master : bool
-            do not yield master channels; default True
+            do not yield master channels; default *True*
 
         """
         for i, group in enumerate(self.groups):
@@ -1148,19 +1192,19 @@ class MDF(object):
             yield DataFrame.from_dict(pandas_dict)
 
     def resample(self, raster, memory='full'):
-        """ resample all channels to given raster
+        """ resample all channels using the given raster
 
         Parameters
         ----------
         raster : float
             time raster is seconds
         memory : str
-            memory option; default `None`
+            memory option; default *None*
 
         Returns
         -------
         mdf : MDF
-            new MDF with resampled channels
+            new *MDF* with resampled channels
 
         """
 
@@ -1230,7 +1274,8 @@ class MDF(object):
         return mdf
 
     def select(self, channels, dataframe=False):
-        """ return the channels listed in *channels* argument
+        """ retreiv the channels listed in *channels* argument as *Signal*
+        objects
 
         Parameters
         ----------
@@ -1238,12 +1283,12 @@ class MDF(object):
             list of items to be filtered; each item can be :
 
                 * a channel name string
-                * (channel_name, group index, channel index) list or tuple
+                * (channel name, group index, channel index) list or tuple
                 * (channel name, group index) list or tuple
                 * (None, group index, channel index) lsit or tuple
 
         dataframe: bool
-            return a pandas DataFrame instead of a list of Signals; in this
+            return a pandas DataFrame instead of a list of *Signals*; in this
             case the signals will be interpolated using the union of all
             timestamps
 

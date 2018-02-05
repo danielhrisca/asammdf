@@ -10,7 +10,8 @@ from .version import __version__
 
 class SignalConversions(object):
     """
-    types of generic conversions found in the `Signal` conversion attribute
+    types of generic conversions found in the `Signal` conversion attribute.
+    This holds all the conversion types found in the mdf versions 3 and 4
     """
 
     CONVERSION_NONE = 0
@@ -31,10 +32,10 @@ class SignalConversions(object):
 
 class Signal(object):
     """
-    The Signal represents a signal described by it's samples and timestamps.
-    It can do aritmethic operations agains other Signal or numeric type.
+    The *Signal* represents a hannel described by it's samples and timestamps.
+    It can perform aritmethic operations agains other *Signal* or numeric types.
     The operations are computed in respect to the timestamps (time correct).
-    The integer signals are not interpolated, instead the last value relative
+    The non-float signals are not interpolated, instead the last value relative
     to the current timestamp is used.
     *samples*, *timstamps* and *name* are mandatory arguments.
 
@@ -101,15 +102,15 @@ class Signal(object):
             self._plot_axis = None
             self.raw = raw
 
-    def physical(self):
-        """ get Signal with physical conversion appplied
-        to its samples
-
-        """
-        if self.raw:
-            pass
-        else:
-            return self
+#    def physical(self):
+#        """ get Signal with physical conversion appplied
+#        to its samples
+#
+#        """
+#        if self.raw:
+#            pass
+#        else:
+#            return self
 
     def __str__(self):
         string = """<Signal {}:
@@ -133,7 +134,7 @@ class Signal(object):
     def __repr__(self):
         string = (
             'Signal(name={}, samples={}, timestamps={}, '
-            'unit={}, conversion={}, comment={}, raw={}'
+            'unit={}, conversion={}, comment={}, raw={})'
         )
         return string.format(
             self.name,
@@ -437,6 +438,11 @@ class Signal(object):
         ----------
         other : Signal
 
+        Returns
+        -------
+        signal : Signal
+            new extended *Signal*
+
         """
         if len(self.timestamps):
             last_stamp = self.timestamps[-1]
@@ -466,7 +472,19 @@ class Signal(object):
         return result
 
     def interp(self, new_timestamps):
-        """ returns a new *Signal* interpolated using the *new_timestamps* """
+        """ returns a new *Signal* interpolated using the *new_timestamps*
+
+        Parameters
+        ----------
+        new_timestamps : np.array
+            timestamps used for interpolation
+
+        Returns
+        -------
+        signal : Signal
+            new interpolated *Signal*
+
+        """
         if self.samples.dtype.kind == 'f':
             s = np.interp(new_timestamps, self.timestamps, self.samples)
         else:
@@ -488,6 +506,10 @@ class Signal(object):
         )
 
     def __apply_func(self, other, func_name):
+        """ delegate operations to the *samples* attribute, but in a time
+        correct manner by considering the *timestamps*
+
+        """
 
         if isinstance(other, Signal):
             time = np.union1d(self.timestamps, other.timestamps)
@@ -653,7 +675,19 @@ class Signal(object):
         self.samples[idx] = val
 
     def astype(self, np_type):
-        """ returns new *Signal* with samples of dtype *np_type*"""
+        """ returns new *Signal* with samples of dtype *np_type*
+
+        Parameters
+        ----------
+        np_type : np.dtype
+            new numpy dtye
+
+        Returns
+        -------
+        signal : Signal
+            new *Signal* with the samples of *np_type* dtype
+
+        """
         return Signal(
             self.samples.astype(np_type),
             self.timestamps,
