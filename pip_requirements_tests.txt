@@ -2,3 +2,4 @@ xmlrunner
 coverage
 codacy-coverage
 numpy>=1.13.1
+guzzle_sphinx_theme
