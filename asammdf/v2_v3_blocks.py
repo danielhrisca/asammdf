@@ -573,7 +573,6 @@ class ChannelConversion(dict):
 
             elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_FORMULA:
                 formula = kargs['formula']
-                formula = formula.encode('latin-1')
                 formula_len = len(formula)
                 formula += b'\0'
                 self['block_len'] = 46 + formula_len + 1

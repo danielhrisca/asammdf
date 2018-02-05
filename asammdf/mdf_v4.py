@@ -5253,40 +5253,70 @@ class MDF4(object):
 
                     cur_data = b''
 
-                    for i in range(chunks):
-                        while len(cur_data) < split_size:
-                            try:
-                                cur_data += next(data)[0]
-                            except StopIteration:
-                                break
+                    if self.memory == 'low':
+                        for i in range(chunks):
+                            while len(cur_data) < split_size:
+                                try:
+                                    cur_data += next(data)[0]
+                                except StopIteration:
+                                    break
 
-                        data_, cur_data = cur_data[:split_size], cur_data[split_size:]
-                        if compression and self.version > '4.00':
-                            if compression == 1:
-                                zip_type = v4c.FLAG_DZ_DEFLATE
+                            data_, cur_data = cur_data[:split_size], cur_data[split_size:]
+                            if compression and self.version > '4.00':
+                                if compression == 1:
+                                    zip_type = v4c.FLAG_DZ_DEFLATE
+                                else:
+                                    zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                                if compression == 1:
+                                    param = 0
+                                else:
+                                    param = gp['channel_group']['samples_byte_nr']
+                                kargs = {
+                                    'data': data_,
+                                    'zip_type': zip_type,
+                                    'param': param,
+                                }
+                                block = DataZippedBlock(**kargs)
                             else:
-                                zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
-                            if compression == 1:
-                                param = 0
+                                block = DataBlock(data=data_)
+                            address = tell()
+                            block.address = address
+
+                            write(bytes(block))
+
+                            align = block['block_len'] % 8
+                            if align:
+                                write(b'\0' * (8 - align))
+                            dl_block['data_block_addr{}'.format(i)] = address
+                    else:
+                        cur_data = next(data)[0]
+                        for i in range(chunks):
+
+                            data_ = cur_data[i*split_size: (i + 1) * split_size]
+                            if compression and self.version > '4.00':
+                                if compression == 1:
+                                    zip_type = v4c.FLAG_DZ_DEFLATE
+                                    param = 0
+                                else:
+                                    zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                                    param = gp['channel_group']['samples_byte_nr']
+                                kargs = {
+                                    'data': data_,
+                                    'zip_type': zip_type,
+                                    'param': param,
+                                }
+                                block = DataZippedBlock(**kargs)
                             else:
-                                param = gp['channel_group']['samples_byte_nr']
-                            kargs = {
-                                'data': data_,
-                                'zip_type': zip_type,
-                                'param': param,
-                            }
-                            block = DataZippedBlock(**kargs)
-                        else:
-                            block = DataBlock(data=data_)
-                        address = tell()
-                        block.address = address
+                                block = DataBlock(data=data_)
+                            address = tell()
+                            block.address = address
 
-                        write(bytes(block))
+                            write(bytes(block))
 
-                        align = block['block_len'] % 8
-                        if align:
-                            write(b'\0' * (8 - align))
-                        dl_block['data_block_addr{}'.format(i)] = address
+                            align = block['block_len'] % 8
+                            if align:
+                                write(b'\0' * (8 - align))
+                            dl_block['data_block_addr{}'.format(i)] = address
 
                     address = tell()
                     dl_block.address = address
@@ -5896,12 +5926,11 @@ class MDF4(object):
                         if compression and self.version > '4.00':
                             if compression == 1:
                                 zip_type = v4c.FLAG_DZ_DEFLATE
-                            else:
-                                zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
-                            if compression == 1:
                                 param = 0
                             else:
+                                zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
                                 param = gp['channel_group']['samples_byte_nr']
+
                             kargs = {
                                 'data': data_,
                                 'zip_type': zip_type,
