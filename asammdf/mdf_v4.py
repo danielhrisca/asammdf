@@ -1563,7 +1563,7 @@ class MDF4(object):
 
         """
 
-        if read_fragment_size:
+        if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
 
         if write_fragment_size:

@@ -298,29 +298,117 @@ class MDF(object):
             sigs = []
             excluded_channels = self._excluded_channels(i)
 
+            channels_nr = len(group['channels'])
+
             data = self._load_group_data(group)
 
-            if PYVERSION == 3:
-                data = b''.join(d[0] for d in data)
-                data = (data, 0)
-            else:
-                data = b''.join(str(d[0]) for d in data)
-                data = (data, 0)
+            idx = 0
+            for fragment in data:
+                master = self.get_master(i, fragment)
 
-            for j, _ in enumerate(group['channels']):
-                if j in excluded_channels:
-                    continue
-                sig = self.get(
-                    group=i,
-                    index=j,
-                    data=data
-                ).cut(start=start, stop=stop)
-                sigs.append(sig)
+                if start is None and stop is None:
+                    fragment_start = None
+                    fragment_stop = None
+                    start_index = 0
+                    stop_index = len(master)
+                else:
+                    if start is None:
+                        fragment_start = None
+                        start_index = 0
+                        if master[0] > stop:
+                            break
+                        else:
+                            fragment_stop = min(stop, master[-1])
+                            stop_index = np.searchsorted(master, fragment_stop).flatten()[0] + 1
+                    elif stop is None:
+                        fragment_stop = None
+                        if master[-1] < start:
+                            continue
+                        else:
+                            fragment_start = max(start, master[0])
+                            start_index = np.searchsorted(master, fragment_start).flatten()[0]
+                            stop_index = len(master)
+                    else:
+                        if master[0] > stop:
+                            break
+                        elif master[-1] < start:
+                            continue
+                        else:
+                            fragment_start = max(start, master[0])
+                            start_index = np.searchsorted(master, fragment_start).flatten()[0]
+                            fragment_stop = min(stop, master[-1])
+                            stop_index = np.searchsorted(master, fragment_stop).flatten()[0] + 1
 
-            data = None
-            del data
+                    if idx == 0:
+                        sigs = []
+                        for j in range(channels_nr):
+                            if j in excluded_channels:
+                                continue
+                            sig = self.get(
+                                group=i,
+                                index=j,
+                                data=fragment,
+                                raw=True,
+                            ).cut(fragment_start, fragment_stop)
+                            if not sig.samples.flags.writeable:
+                                sig.samples = sig.samples.copy()
+                            sigs.append(sig)
 
-            if sigs:
+                        if start:
+                            start_ = '{}s'.format(start)
+                        else:
+                            start_ = 'start of measurement'
+                        if stop:
+                            stop_ = '{}s'.format(stop)
+                        else:
+                            stop_ = 'end of measurement'
+                        out.append(
+                            sigs,
+                            'Cut from {} to {}'.format(start_, stop_),
+                            common_timebase=True,
+                        )
+
+                        idx += 1
+
+                    else:
+                        sigs = [master[start_index: stop_index].copy(), ]
+
+                        for j in range(channels_nr):
+                            if j in excluded_channels:
+                                continue
+                            sig = self.get(
+                                group=i,
+                                index=j,
+                                data=fragment,
+                                raw=True,
+                                samples_only=True
+                            )[start_index: stop_index]
+                            if not sig.flags.writeable:
+                                sig = sig.copy()
+                            sigs.append(sig)
+
+                        out.extend(i, sigs)
+
+                        idx += 1
+            if idx == 0:
+                self.configure(read_fragment_size=1)
+                sigs = []
+
+                fragment = next(self._load_group_data(group))
+
+                for j in range(channels_nr):
+                    if j in excluded_channels:
+                        continue
+                    sig = self.get(
+                        group=i,
+                        index=j,
+                        data=fragment,
+                        raw=True,
+                    )
+                    sig.samples = sig.samples[:0]
+                    sig.timestamps = sig.timestamps[:0]
+                    sigs.append(sig)
+
                 if start:
                     start_ = '{}s'.format(start)
                 else:
@@ -334,6 +422,9 @@ class MDF(object):
                     'Cut from {} to {}'.format(start_, stop_),
                     common_timebase=True,
                 )
+
+                self.configure(read_fragment_size=0)
+
         return out
 
     def export(self, fmt, filename=None):
