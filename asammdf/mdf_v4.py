@@ -32,7 +32,6 @@ from numpy import (
     float64,
     frombuffer,
     interp,
-    linspace,
     packbits,
     roll,
     searchsorted,
@@ -1015,7 +1014,6 @@ class MDF4(object):
                             stream.seek(current_address)
                             data.append(stream.read(size))
                             cur_size += size
-                            offset += size
                     if data:
                         yield b''.join(data), offset
                 else:
@@ -3987,7 +3985,6 @@ class MDF4(object):
                                         samples_only=True,
                                         data=fragment,
                                     )
-
                                 else:
                                     channel_group = grp['channel_group']
                                     record_size = channel_group['samples_byte_nr']

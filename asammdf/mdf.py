@@ -305,6 +305,8 @@ class MDF(object):
             idx = 0
             for fragment in data:
                 master = self.get_master(i, fragment)
+                if not len(master):
+                    continue
 
                 if start is None and stop is None:
                     fragment_start = None
@@ -354,19 +356,20 @@ class MDF(object):
                                 sig.samples = sig.samples.copy()
                             sigs.append(sig)
 
-                        if start:
-                            start_ = '{}s'.format(start)
-                        else:
-                            start_ = 'start of measurement'
-                        if stop:
-                            stop_ = '{}s'.format(stop)
-                        else:
-                            stop_ = 'end of measurement'
-                        out.append(
-                            sigs,
-                            'Cut from {} to {}'.format(start_, stop_),
-                            common_timebase=True,
-                        )
+                        if sigs:
+                            if start:
+                                start_ = '{}s'.format(start)
+                            else:
+                                start_ = 'start of measurement'
+                            if stop:
+                                stop_ = '{}s'.format(stop)
+                            else:
+                                stop_ = 'end of measurement'
+                            out.append(
+                                sigs,
+                                'Cut from {} to {}'.format(start_, stop_),
+                                common_timebase=True,
+                            )
 
                         idx += 1
 
@@ -387,7 +390,8 @@ class MDF(object):
                                 sig = sig.copy()
                             sigs.append(sig)
 
-                        out.extend(i, sigs)
+                        if sigs:
+                            out.extend(i, sigs)
 
                         idx += 1
             if idx == 0:
@@ -1020,22 +1024,13 @@ class MDF(object):
                                 del strsig
                                 del string_dtypes
 
-                            # if not sig.samples.flags.writeable:
-                            #     sig.samples = sig.samples.copy()
+                            if not sig.samples.flags.writeable:
+                                sig.samples = sig.samples.copy()
                             signals.append(sig)
+
                         if len(signals[0]):
                             last_timestamp = signals[0].timestamps[-1]
                             delta = last_timestamp / len(signals[0])
-                        # else:
-                        #
-                        # except:
-                        #     print(i, signals, channels_nr, [
-                        #     j
-                        #     for j in range(channels_nr)
-                        #     if j not in excluded_channels
-                        # ])
-                        #     raise
-
 
                         merged.append(signals, common_timebase=True)
                         idx += 1
