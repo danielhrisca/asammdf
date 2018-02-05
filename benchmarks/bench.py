@@ -767,17 +767,17 @@ def main(text_output, fmt):
 
     tests = (
         partial(get_all_mdf3, memory='full'),
-        # partial(get_all_mdf3, memory='low'),
-        # partial(get_all_mdf3, memory='minimum'),
+        partial(get_all_mdf3, memory='low'),
+        partial(get_all_mdf3, memory='minimum'),
         get_all_reader3,
-        # get_all_reader3_nodata,
-        # get_all_reader3_compression,
+        get_all_reader3_nodata,
+        get_all_reader3_compression,
         partial(get_all_mdf4, memory='full'),
-        # partial(get_all_mdf4, memory='low'),
-        # partial(get_all_mdf4, memory='minimum'),
+        partial(get_all_mdf4, memory='low'),
+        partial(get_all_mdf4, memory='minimum'),
         get_all_reader4,
-        # get_all_reader4_nodata,
-        # get_all_reader4_compression,
+        get_all_reader4_nodata,
+        get_all_reader4_compression,
     )
 
     if tests:
