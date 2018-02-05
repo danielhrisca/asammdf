@@ -146,7 +146,6 @@ class MDF4(object):
 
     """
 
-    _split_data_blocks = True
     _split_threshold = 1 << 23
     _overwrite = False
 
@@ -162,8 +161,6 @@ class MDF4(object):
         self.attachments = []
         self.file_comment = None
 
-        self.read_split_threshold = 0
-
         self._ch_map = {}
         self._master_channel_cache = {}
         self._invalidation_cache = {}
@@ -173,6 +170,9 @@ class MDF4(object):
         # used for appending when memory=False
         self._tempfile = TemporaryFile()
         self._file = None
+
+        self._read_fragment_size = 0
+        self._write_fragment_size = 8 * 2**20
 
         self._tempfile.write(b'\0')
 
@@ -950,8 +950,8 @@ class MDF4(object):
                     + channel_group['invalidation_bytes_nr']
                 )
 
-                if self.read_split_threshold:
-                    split_size = self.read_split_threshold // samples_size
+                if self._read_fragment_size:
+                    split_size = self._read_fragment_size // samples_size
                     split_size *= samples_size
                 else:
                     channels_nr = len(group['channels'])
@@ -1544,16 +1544,30 @@ class MDF4(object):
 
         return valid_indexes
 
-    def set_split_size(self, size):
-        """ set the split size when reading the group's samples
+    def configure(self,
+            read_fragment_size=None,
+            write_fragment_size=None):
+        """ configure read and write fragment size for chuncked
+        data access
 
         Parameters
         ----------
-        size : int
-            desired split size in bytes
+        read_fragment_size : int
+            size hint of splitted data blocks, default 8MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size
+        write_fragment_size : int
+            size hint of splitted data blocks, default 8MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size
 
         """
-        self.read_split_threshold = size
+
+        if read_fragment_size:
+            self._read_fragment_size = int(read_fragment_size)
+
+        if write_fragment_size:
+            self._write_fragment_size = int(write_fragment_size)
 
     def append(self, signals, source_info='Python', common_timebase=False):
         """
@@ -5045,7 +5059,7 @@ class MDF4(object):
 
         return info
 
-    def save(self, dst='', overwrite=None, compression=0):
+    def save(self, dst='', overwrite=False, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appened with '_<cntr>', were
@@ -5072,9 +5086,6 @@ class MDF4(object):
             output file name
 
         """
-        if overwrite is None:
-            overwrite = self._overwrite
-        output_file = ''
 
         if self.name is None and dst == '':
             message = (
@@ -5195,10 +5206,10 @@ class MDF4(object):
 
                 total_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
 
-                if MDF4._split_data_blocks:
+                if self._write_fragment_size:
 
                     samples_size = gp['channel_group']['samples_byte_nr']
-                    split_size = MDF4._split_threshold // samples_size
+                    split_size = self._write_fragment_size // samples_size
                     split_size *= samples_size
                     if split_size == 0:
                         chunks = 1
@@ -5860,10 +5871,10 @@ class MDF4(object):
 
                 data = self._load_group_data(gp)
 
-                if MDF4._split_data_blocks:
+                if self._write_fragment_size:
                     total_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
                     samples_size = gp['channel_group']['samples_byte_nr']
-                    split_size = MDF4._split_threshold // samples_size
+                    split_size = self._write_fragment_size // samples_size
                     split_size *= samples_size
                     if split_size == 0:
                         chunks = 1

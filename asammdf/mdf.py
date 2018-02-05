@@ -35,7 +35,6 @@ MDF4_VERSIONS = ('4.00', '4.10', '4.11')
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 
-
 __all__ = ['MDF', 'SUPPORTED_VERSIONS']
 
 
@@ -897,7 +896,8 @@ class MDF(object):
             idx = 0
             last_timestamp = None
             for group, mdf in zip(groups, files):
-                mdf.set_split_size(int(read_size))
+                if read_size:
+                    mdf.configure(read_fragment_size=int(read_size))
 
                 data = mdf._load_group_data(group)
 

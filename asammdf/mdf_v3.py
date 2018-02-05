@@ -124,8 +124,6 @@ class MDF3(object):
 
     """
 
-    _overwrite = False
-
     def __init__(self, name=None, memory='full', version='3.30'):
         self.groups = []
         self.header = None
@@ -146,7 +144,8 @@ class MDF3(object):
         self.attachments = None
         self.file_comment = None
 
-        self.read_split_threshold = 0
+        self._read_fragment_size = 0
+        self._write_fragment_size = 8 * 2 ** 20
 
         if name:
             self._file = open(self.name, 'rb')
@@ -179,8 +178,8 @@ class MDF3(object):
 
                 if group['sorted']:
                     samples_size = channel_group['samples_byte_nr']
-                    if self.read_split_threshold:
-                        split_size = self.read_split_threshold // samples_size
+                    if self._read_fragment_size:
+                        split_size = self._read_fragment_size // samples_size
                         split_size *= samples_size
                     else:
                         channels_nr = len(group['channels'])
@@ -953,6 +952,31 @@ class MDF3(object):
 
         if self.memory == 'full':
             self.close()
+
+    def configure(self,
+            read_fragment_size=None,
+            write_fragment_size=None):
+        """ configure read and write fragment size for chuncked
+        data access
+
+        Parameters
+        ----------
+        read_fragment_size : int
+            size hint of splitted data blocks, default 8MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size
+        write_fragment_size : int
+            size hint of splitted data blocks, default 8MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size
+
+        """
+
+        if read_fragment_size:
+            self._read_fragment_size = int(read_fragment_size)
+
+        if write_fragment_size:
+            self._write_fragment_size = int(write_fragment_size)
 
     def add_trigger(self,
                     group,
@@ -3423,18 +3447,7 @@ class MDF3(object):
 
         return info
 
-    def set_split_size(self, size):
-        """ set the split size when reading the group's samples
-
-        Parameters
-        ----------
-        size : int
-            desired split size in bytes
-
-        """
-        self.read_split_threshold = size
-
-    def save(self, dst='', overwrite=None, compression=0):
+    def save(self, dst='', overwrite=False, compression=0):
         """Save MDF to *dst*. If *dst* is not provided the the destination file
         name is the MDF name. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '_<cntr>',
@@ -3457,10 +3470,6 @@ class MDF3(object):
             output file name
 
         """
-
-        if overwrite is None:
-            overwrite = self._overwrite
-        output_file = ''
 
         if self.name is None and dst == '':
             message = ('Must specify a destination file name '

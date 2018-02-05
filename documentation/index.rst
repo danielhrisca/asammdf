@@ -108,7 +108,6 @@ API
 .. toctree::
    :maxdepth: 1
    
-   packagelevel
    mdf
    signal
    examples
