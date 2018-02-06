@@ -96,6 +96,9 @@ http://asammdf.readthedocs.io/en/master/examples.html
 # Documentation
 http://asammdf.readthedocs.io/en/master
 
+# Contributing
+https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md
+
 # Installation
 *asammdf* is available on 
 
