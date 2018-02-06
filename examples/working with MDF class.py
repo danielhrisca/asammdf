@@ -3,13 +3,8 @@
 *asammdf* MDF usage example
 """
 from __future__ import print_function, division
-from asammdf import MDF, Signal, configure
+from asammdf import MDF, Signal
 import numpy as np
-
-# configure asammdf to optimize disk space usage
-configure(integer_compacting=True)
-# configure asammdf to split data blocks on 10KB blocks
-configure(split_data_blocks=True, split_threshold=10*1024)
 
 
 # create 3 Signal objects
@@ -43,7 +38,7 @@ mdf4.append(signals, 'Created by Python')
 # save new file
 mdf4.save('my_new_file.mf4', overwrite=True)
 
-# convert new file to mdf version 3.10 with lower possible RAM usage
+# convert new file to mdf version 3.10 with lowest possible RAM usage
 mdf3 = mdf4.convert(to='3.10', memory='minimum')
 print(mdf3.version)
 

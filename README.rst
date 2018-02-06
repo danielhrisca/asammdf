@@ -24,7 +24,6 @@ Features
 * export to Excel, HDF5, Matlab and CSV
 * merge multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
-* split large data blocks (configurable size) for mdf version 4
 * disk space savings by compacting 1-dimensional integer channels (configurable)
 * full support (read, append, save) for the following map types (multidimensional array channels):
 
@@ -123,6 +122,10 @@ optional dependencies needed for exports
 * h5py : for HDF5 export
 * xlsxwriter : for Excel export
 * scipy : for Matlab .mat export
+
+other optional dependencies
+
+* chardet : to detect non-standard unicode encodings
 
 
 Benchmarks

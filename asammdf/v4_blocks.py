@@ -54,7 +54,7 @@ class AttachmentBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -167,7 +167,7 @@ class Channel(dict):
 
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -244,7 +244,7 @@ class Channel(dict):
             self['name_addr'] = kargs.get('name_addr', 0)
             self['source_addr'] = 0
             self['conversion_addr'] = 0
-            self['data_block_addr'] = 0
+            self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['unit_addr'] = kargs.get('unit_addr', 0)
             self['comment_addr'] = 0
             self['channel_type'] = kargs['channel_type']
@@ -352,7 +352,7 @@ class ChannelArrayBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -391,7 +391,10 @@ class ChannelArrayBlock(dict):
              self['byte_offset_base'],
              self['invalidation_bit_base']) = values
 
-            dim_sizes = unpack('<{}Q'.format(dims_nr), stream.read(8 * dims_nr))
+            dim_sizes = unpack(
+                '<{}Q'.format(dims_nr),
+                stream.read(8 * dims_nr),
+            )
             for i, size in enumerate(dim_sizes):
                 self['dim_size_{}'.format(i)] = size
 
@@ -444,7 +447,10 @@ class ChannelArrayBlock(dict):
             elif ca_type == v4c.CA_TYPE_LOOKUP:
                 flags = kargs['flags']
                 dims_nr = kargs['dims']
-                values = sum(kargs['dim_size_{}'.format(i)] for i in range(dims_nr))
+                values = sum(
+                    kargs['dim_size_{}'.format(i)]
+                    for i in range(dims_nr)
+                )
                 if flags & v4c.FLAG_CA_FIXED_AXIS:
                     self['block_len'] = 48 + dims_nr * 16 + values * 8
                     self['links_nr'] = 1 + dims_nr
@@ -602,7 +608,7 @@ class ChannelGroup(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -680,7 +686,7 @@ class ChannelConversion(dict):
         self.name = self.unit = self.comment = self.formula = ''
 
         if 'raw_bytes' in kargs or 'stream' in kargs:
-            try:  
+            try:
                 (self['id'],
                  self['reserved0'],
                  self['block_len'],
@@ -697,12 +703,12 @@ class ChannelConversion(dict):
 
                 self.address = address = kargs['address']
                 stream = kargs['stream']
-                stream.seek(address, SEEK_START)
+                stream.seek(address)
 
                 (self['id'],
-                self['reserved0'],
-                self['block_len'],
-                self['links_nr']) = unpack(
+                 self['reserved0'],
+                 self['block_len'],
+                 self['links_nr']) = unpack(
                     v4c.FMT_COMMON,
                     stream.read(v4c.COMMON_SIZE),
                 )
@@ -798,7 +804,10 @@ class ChannelConversion(dict):
                 values = unpack('<{}d'.format(nr), block[56:])
                 for i in range(nr // 2):
                     (self['raw_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i * 2], values[2 * i + 1]
+                     self['phys_{}'.format(i)]) = (
+                        values[i * 2],
+                        values[2 * i + 1],
+                    )
 
             elif conv == v4c.CONVERSION_TYPE_RTAB:
                 (self['name_addr'],
@@ -820,7 +829,11 @@ class ChannelConversion(dict):
                 for i in range((nr - 1) // 3):
                     (self['lower_{}'.format(i)],
                      self['upper_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i * 3], values[3 * i + 1], values[3 * i + 2]
+                     self['phys_{}'.format(i)]) = (
+                        values[i * 3],
+                        values[3 * i + 1],
+                        values[3 * i + 2],
+                    )
                 self['default'] = unpack('<d', block[-8:])[0]
 
             elif conv == v4c.CONVERSION_TYPE_TABX:
@@ -1000,7 +1013,7 @@ class ChannelConversion(dict):
                 self['unit_addr'] = kargs.get('unit_addr', 0)
                 self['comment_addr'] = kargs.get('comment_addr', 0)
                 self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
-                self['conv_text_addr'] = kargs.get('conv_text_addr', 0)
+                self['formula_addr'] = kargs.get('formula_addr', 0)
                 self['conversion_type'] = v4c.CONVERSION_TYPE_ALG
                 self['precision'] = kargs.get('precision', 1)
                 self['flags'] = kargs.get('flags', 0)
@@ -1008,6 +1021,69 @@ class ChannelConversion(dict):
                 self['val_param_nr'] = kargs.get('val_param_nr', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
+
+            elif kargs['conversion_type'] in (
+                    v4c.CONVERSION_TYPE_TAB,
+                    v4c.CONVERSION_TYPE_TABI):
+
+                nr = kargs['val_param_nr']
+
+                self['block_len'] = 80 + 8 * nr
+                self['links_nr'] = kargs.get('links_nr', 4)
+                self['name_addr'] = kargs.get('name_addr', 0)
+                self['unit_addr'] = kargs.get('unit_addr', 0)
+                self['comment_addr'] = kargs.get('comment_addr', 0)
+                self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
+                self['conversion_type'] = kargs['conversion_type']
+                self['precision'] = kargs.get('precision', 1)
+                self['flags'] = kargs.get('flags', 0)
+                self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
+                self['val_param_nr'] = kargs.get('val_param_nr', 0)
+                self['min_phy_value'] = kargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kargs.get('max_phy_value', 0)
+
+                for i in range(nr//2):
+                    self['raw_{}'.format(i)] = kargs['raw_{}'.format(i)]
+                    self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
+
+            elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_RTAB:
+                self['block_len'] = kargs['val_param_nr'] * 8 + 80
+                self['links_nr'] = 4
+                self['name_addr'] = kargs.get('name_addr', 0)
+                self['unit_addr'] = kargs.get('unit_addr', 0)
+                self['comment_addr'] = kargs.get('comment_addr', 0)
+                self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
+                self['conversion_type'] = v4c.CONVERSION_TYPE_RTAB
+                self['precision'] = kargs.get('precision', 0)
+                self['flags'] = kargs.get('flags', 0)
+                self['ref_param_nr'] = 0
+                self['val_param_nr'] = kargs['val_param_nr']
+                self['min_phy_value'] = kargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kargs.get('max_phy_value', 0)
+                for i in range((kargs['val_param_nr'] - 1) // 3):
+                    self['lower_{}'.format(i)] = kargs['lower_{}'.format(i)]
+                    self['upper_{}'.format(i)] = kargs['upper_{}'.format(i)]
+                    self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
+                self['default'] = kargs['default']
+
+            elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_RAT:
+
+                self['block_len'] = 80 + 6 * 8
+                self['links_nr'] = kargs.get('links_nr', 4)
+                self['name_addr'] = kargs.get('name_addr', 0)
+                self['unit_addr'] = kargs.get('unit_addr', 0)
+                self['comment_addr'] = kargs.get('comment_addr', 0)
+                self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
+                self['conversion_type'] = kargs['conversion_type']
+                self['precision'] = kargs.get('precision', 1)
+                self['flags'] = kargs.get('flags', 0)
+                self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
+                self['val_param_nr'] = kargs.get('val_param_nr', 6)
+                self['min_phy_value'] = kargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kargs.get('max_phy_value', 0)
+
+                for i in range(1, 7):
+                    self['P{}'.format(i)] = kargs['P{}'.format(i)]
 
             elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_TABX:
                 self['block_len'] = ((kargs['links_nr'] - 5) * 8 * 2) + 88
@@ -1078,6 +1154,11 @@ class ChannelConversion(dict):
                 for i in range(kargs['links_nr'] - 4):
                     self['val_{}'.format(i)] = kargs['val_{}'.format(i)]
                 self['val_default'] = kargs['val_default']
+
+            else:
+                message = 'Conversion {} dynamic creation not implementated'
+                message = message.format(kargs['conversion_type'])
+                raise NotImplementedError(message)
 
     def __bytes__(self):
         fmt = '<4sI{}Q2B3H{}d'.format(
@@ -1255,7 +1336,7 @@ class DataBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1310,7 +1391,7 @@ class DataZippedBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1358,7 +1439,7 @@ class DataZippedBlock(dict):
         self.return_unzipped = True
 
     def __setitem__(self, item, value):
-        if item == 'data' and self.prevent_data_setitem == False:
+        if item == 'data' and not self.prevent_data_setitem:
             data = value
             self['original_size'] = len(data)
 
@@ -1370,7 +1451,7 @@ class DataZippedBlock(dict):
 
                 nd = np.fromstring(data[:lines * cols], dtype=np.uint8)
                 nd = nd.reshape((lines, cols))
-                data = nd.transpose().tostring() + data[lines * cols:]
+                data = nd.T.tostring() + data[lines * cols:]
 
                 data = compress(data)
 
@@ -1391,7 +1472,7 @@ class DataZippedBlock(dict):
 
                     nd = np.fromstring(data[:lines * cols], dtype=np.uint8)
                     nd = nd.reshape((cols, lines))
-                    data = nd.transpose().tostring() + data[lines * cols:]
+                    data = nd.T.tostring() + data[lines * cols:]
             else:
                 data = super(DataZippedBlock, self).__getitem__(item)
             value = data
@@ -1420,7 +1501,7 @@ class DataGroup(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1475,7 +1556,7 @@ class DataList(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1580,7 +1661,7 @@ class FileIdentificationBlock(dict):
         try:
 
             stream = kargs['stream']
-            stream.seek(self.address, SEEK_START)
+            stream.seek(self.address)
 
             (self['file_identification'],
              self['version_str'],
@@ -1633,7 +1714,7 @@ class FileHistory(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1688,7 +1769,7 @@ class HeaderBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved3'],
@@ -1764,7 +1845,7 @@ class HeaderList(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1839,7 +1920,7 @@ class SourceInformation(dict):
         elif 'stream' in kargs:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1895,7 +1976,7 @@ class SignalDataBlock(dict):
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
 
             (self['id'],
              self['reserved0'],
@@ -1942,7 +2023,7 @@ class TextBlock(dict):
             stream = kargs['stream']
             self.address = address = kargs['address']
 
-            stream.seek(address, SEEK_START)
+            stream.seek(address)
             (self['id'],
              self['reserved0'],
              self['block_len'],

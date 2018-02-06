@@ -6,3 +6,4 @@ matplotlib
 wheel
 sphinx-argparse
 sphinx_autobuild
+guzzle_sphinx_theme

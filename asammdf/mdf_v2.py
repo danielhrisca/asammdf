@@ -11,6 +11,7 @@ __all__ = ['MDF2', ]
 
 # MDF versions 2 and 3 share the same implementation
 class MDF2(MDF3):
+    """ shared implementation for mdf version 2 and 3 """
     pass
 
 

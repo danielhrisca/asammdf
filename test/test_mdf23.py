@@ -5,14 +5,9 @@ import unittest
 import numpy as np
 
 from utils import MEMORY
-from asammdf import MDF, MDF2, MDF3, Signal, configure
+from asammdf import MDF, MDF2, MDF3, Signal
 
 CHANNEL_LEN = 10000
-
-configure(integer_compacting=True,
-        split_data_blocks=True,
-        split_threshold=260,
-        overwrite=True)
 
 
 class TestMDF23(unittest.TestCase):

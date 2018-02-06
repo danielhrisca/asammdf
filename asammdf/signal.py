@@ -8,12 +8,34 @@ from .utils import MdfException
 from .version import __version__
 
 
+class SignalConversions(object):
+    """
+    types of generic conversions found in the `Signal` conversion attribute.
+    This holds all the conversion types found in the mdf versions 3 and 4
+    """
+
+    CONVERSION_NONE = 0
+    CONVERSION_LINEAR = 1
+    CONVERSION_RATIONAL = 2
+    CONVERSION_ALGEBRAIC = 3
+    CONVERSION_POLYNOMIAL = 4
+    CONVERSION_TAB = 5
+    CONVERSION_TABI = 6
+    CONVERSION_TABX = 7
+    CONVERSION_RTAB = 8
+    CONVERSION_RTABX = 9
+    CONVERSION_TTAB = 10
+    CONVERSION_TRANS = 11
+    CONVERSION_EXPO = 12
+    CONVERSION_LOGH = 13
+
+
 class Signal(object):
     """
-    The Signal represents a signal described by it's samples and timestamps.
-    It can do aritmethic operations agains other Signal or numeric type.
+    The *Signal* represents a hannel described by it's samples and timestamps.
+    It can perform aritmethic operations agains other *Signal* or numeric types.
     The operations are computed in respect to the timestamps (time correct).
-    The integer signals are not interpolated, instead the last value relative
+    The non-float signals are not interpolated, instead the last value relative
     to the current timestamp is used.
     *samples*, *timstamps* and *name* are mandatory arguments.
 
@@ -27,10 +49,13 @@ class Signal(object):
         signal unit
     name : str
         signal name
-    info : dict
-        dict that contains extra information about the signal , default *None*
+    conversion : dict
+        dict that contains extra conversionrmation about the signal ,
+        default *None*
     comment : str
         signal comment, default ''
+    raw : bool
+        signal samples are raw values, with no physical conversion applied
 
     """
 
@@ -39,9 +64,10 @@ class Signal(object):
         'timestamps',
         'unit',
         'name',
-        'info',
+        'conversion',
         'comment',
         '_plot_axis',
+        'raw',
     ]
 
     def __init__(self,
@@ -49,13 +75,15 @@ class Signal(object):
                  timestamps=None,
                  unit='',
                  name='',
-                 info=None,
-                 comment=''):
+                 conversion=None,
+                 comment='',
+                 raw=False):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
-                       'for Signal class __init__')
-            raise MdfException(message)
+                       'for Signal class __init__: samples={}\n'
+                       'timestamps={}\nname={}')
+            raise MdfException(message.format(samples, timestamps, name))
         else:
             if isinstance(samples, (list, tuple)):
                 samples = np.array(samples)
@@ -69,27 +97,54 @@ class Signal(object):
             self.timestamps = timestamps
             self.unit = unit
             self.name = name
-            self.info = info
+            self.conversion = conversion
             self.comment = comment
             self._plot_axis = None
+            self.raw = raw
+
+#    def physical(self):
+#        """ get Signal with physical conversion appplied
+#        to its samples
+#
+#        """
+#        if self.raw:
+#            pass
+#        else:
+#            return self
 
     def __str__(self):
         string = """<Signal {}:
 \tsamples={}
 \ttimestamps={}
 \tunit="{}"
-\tinfo={}
-\tcomment="{}">
+\tconversion={}
+\tcomment="{}"
+\traw={}>
 """
-        return string.format(self.name,
-                             self.samples,
-                             self.timestamps,
-                             self.unit,
-                             self.info,
-                             self.comment)
+        return string.format(
+            self.name,
+            self.samples,
+            self.timestamps,
+            self.unit,
+            self.conversion,
+            self.comment,
+            self.raw,
+        )
 
     def __repr__(self):
-        return str(self)
+        string = (
+            'Signal(name={}, samples={}, timestamps={}, '
+            'unit={}, conversion={}, comment={}, raw={})'
+        )
+        return string.format(
+            self.name,
+            repr(self.samples),
+            repr(self.timestamps),
+            self.unit,
+            self.conversion,
+            self.comment,
+            self.raw,
+        )
 
     def plot(self):
         """ plot Signal samples """
@@ -160,7 +215,8 @@ class Signal(object):
                     Z = samples[0]
 
                     # Plot a basic wireframe.
-                    self._plot_axis = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
+                    self._plot_axis = ax.plot_wireframe(X, Y, Z,
+                                                        rstride=1, cstride=1)
 
                     # Place Sliders on Graph
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
@@ -178,11 +234,13 @@ class Signal(object):
                                               sa.val,
                                               side='right')
                         Z = samples[idx-1]
-                        self._plot_axis = ax.plot_wireframe(X,
-                                                   Y,
-                                                   Z,
-                                                   rstride=1,
-                                                   cstride=1)
+                        self._plot_axis = ax.plot_wireframe(
+                            X,
+                            Y,
+                            Z,
+                            rstride=1,
+                            cstride=1,
+                        )
                         fig.canvas.draw_idle()
 
                     sa.on_changed(update)
@@ -192,9 +250,16 @@ class Signal(object):
                 else:
                     fig = plt.figure()
                     fig.canvas.set_window_title(self.name)
-                    fig.text(0.95, 0.05, 'asammdf {}'.format(__version__),
-                         fontsize=8, color='red',
-                         ha='right', va='top', alpha=0.5)
+                    fig.text(
+                        0.95,
+                        0.05,
+                        'asammdf {}'.format(__version__),
+                        fontsize=8,
+                        color='red',
+                        ha='right',
+                        va='top',
+                        alpha=0.5,
+                    )
 
                     if self.comment:
                         comment = self.comment.replace('$', '')
@@ -214,7 +279,13 @@ class Signal(object):
                     Z = samples[0]
 
                     # Plot a basic wireframe.
-                    self._plot_axis = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
+                    self._plot_axis = ax.plot_wireframe(
+                        X,
+                        Y,
+                        Z,
+                        rstride=1,
+                        cstride=1,
+                    )
 
                     # Place Sliders on Graph
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
@@ -233,11 +304,13 @@ class Signal(object):
                                               side='right')
                         Z = samples[idx-1]
                         X, Y = np.meshgrid(axis2[idx-1], axis1[idx-1])
-                        self._plot_axis = ax.plot_wireframe(X,
-                                                   Y,
-                                                   Z,
-                                                   rstride=1,
-                                                   cstride=1)
+                        self._plot_axis = ax.plot_wireframe(
+                            X,
+                            Y,
+                            Z,
+                            rstride=1,
+                            cstride=1,
+                        )
                         fig.canvas.draw_idle()
 
                     sa.on_changed(update)
@@ -246,8 +319,6 @@ class Signal(object):
 
             except Exception as err:
                 print(err)
-
-
 
     def cut(self, start=None, stop=None):
         """
@@ -288,8 +359,9 @@ class Signal(object):
                         self.timestamps[:stop],
                         self.unit,
                         self.name,
-                        self.info,
+                        self.conversion,
                         self.comment,
+                        self.raw,
                     )
                 else:
                     result = Signal(
@@ -297,8 +369,9 @@ class Signal(object):
                         np.array([]),
                         self.unit,
                         self.name,
-                        self.info,
+                        self.conversion,
                         self.comment,
+                        self.raw,
                     )
 
             elif stop is None:
@@ -309,8 +382,9 @@ class Signal(object):
                     self.timestamps[start:],
                     self.unit,
                     self.name,
-                    self.info,
+                    self.conversion,
                     self.comment,
+                    self.raw,
                 )
 
             else:
@@ -329,8 +403,9 @@ class Signal(object):
                             self.timestamps[start_: start_ + 1],
                             self.unit,
                             self.name,
-                            self.info,
+                            self.conversion,
                             self.comment,
+                            self.raw,
                         )
                     else:
                         # signal is empty or start and stop are outside the
@@ -340,8 +415,9 @@ class Signal(object):
                             np.array([]),
                             self.unit,
                             self.name,
-                            self.info,
+                            self.conversion,
                             self.comment,
+                            self.raw,
                         )
                 else:
                     result = Signal(
@@ -349,8 +425,9 @@ class Signal(object):
                         self.timestamps[start_: stop_],
                         self.unit,
                         self.name,
-                        self.info,
+                        self.conversion,
                         self.comment,
+                        self.raw,
                     )
         return result
 
@@ -360,6 +437,11 @@ class Signal(object):
         Parameters
         ----------
         other : Signal
+
+        Returns
+        -------
+        signal : Signal
+            new extended *Signal*
 
         """
         if len(self.timestamps):
@@ -380,15 +462,29 @@ class Signal(object):
                 np.append(self.timestamps, timestamps),
                 self.unit,
                 self.name,
-                self.info,
+                self.conversion,
                 self.comment,
+                self.raw,
             )
         else:
             result = self
+
         return result
 
     def interp(self, new_timestamps):
-        """ returns a new *Signal* interpolated using the *new_timestamps* """
+        """ returns a new *Signal* interpolated using the *new_timestamps*
+
+        Parameters
+        ----------
+        new_timestamps : np.array
+            timestamps used for interpolation
+
+        Returns
+        -------
+        signal : Signal
+            new interpolated *Signal*
+
+        """
         if self.samples.dtype.kind == 'f':
             s = np.interp(new_timestamps, self.timestamps, self.samples)
         else:
@@ -400,9 +496,20 @@ class Signal(object):
             idx -= 1
             idx = np.clip(idx, 0, idx[-1])
             s = self.samples[idx]
-        return Signal(s, new_timestamps, self.unit, self.name, self.info)
+        return Signal(
+            s,
+            new_timestamps,
+            self.unit,
+            self.name,
+            self.conversion,
+            self.raw,
+        )
 
     def __apply_func(self, other, func_name):
+        """ delegate operations to the *samples* attribute, but in a time
+        correct manner by considering the *timestamps*
+
+        """
 
         if isinstance(other, Signal):
             time = np.union1d(self.timestamps, other.timestamps)
@@ -422,7 +529,8 @@ class Signal(object):
             time,
             self.unit,
             self.name,
-            self.info,
+            self.conversion,
+            self.raw,
         )
 
     def __pos__(self):
@@ -434,7 +542,8 @@ class Signal(object):
             self.timestamps,
             self.unit,
             self.name,
-            self.info,
+            self.conversion,
+            self.raw,
         )
 
     def __round__(self, n):
@@ -443,7 +552,8 @@ class Signal(object):
             self.timestamps,
             self.unit,
             self.name,
-            self.info,
+            self.conversion,
+            self.raw,
         )
 
     def __sub__(self, other):
@@ -505,7 +615,8 @@ class Signal(object):
             time,
             self.unit,
             self.name,
-            self.info,
+            self.conversion,
+            self.raw,
         )
 
     def __lshift__(self, other):
@@ -541,7 +652,8 @@ class Signal(object):
             yield item
 
     def __reversed__(self):
-        return enumerate(zip(reversed(self.samples), reversed(self.timestamps)))
+        return enumerate(zip(reversed(self.samples),
+                             reversed(self.timestamps)))
 
     def __len__(self):
         return len(self.samples)
@@ -552,7 +664,8 @@ class Signal(object):
             self.timestamps,
             self.unit,
             self.name,
-            self.info,
+            self.conversion,
+            self.raw,
         )
 
     def __getitem__(self, val):
@@ -562,13 +675,26 @@ class Signal(object):
         self.samples[idx] = val
 
     def astype(self, np_type):
-        """ returns new *Signal* with samples of dtype *np_type*"""
+        """ returns new *Signal* with samples of dtype *np_type*
+
+        Parameters
+        ----------
+        np_type : np.dtype
+            new numpy dtye
+
+        Returns
+        -------
+        signal : Signal
+            new *Signal* with the samples of *np_type* dtype
+
+        """
         return Signal(
             self.samples.astype(np_type),
             self.timestamps,
             self.unit,
             self.name,
-            self.info,
+            self.conversion,
+            self.raw,
         )
 
 

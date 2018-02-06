@@ -16,10 +16,17 @@
 .. role:: orange
 .. role:: brown
 
-.. _benchmarks:
+----------
+Benchmarks
+----------
 
-Intro
------
+
+*asammdf* relies heavily on *dict* objects. Starting with Python 3.6 the *dict* objects are more compact and ordered (implementation detail); *asammdf* uses takes advantage of those changes
+so for best performance it is advised to use Python >= 3.6.
+
+
+Test setup
+==========
 
 The benchmarks were done using two test files (available here https://github.com/danielhrisca/asammdf/issues/14) (for mdf version 3 and 4) of around 170MB.
 The files contain 183 data groups and a total of 36424 channels.
@@ -44,7 +51,7 @@ Run the module *bench.py* ( see --help option for available options )
 
 
 x64 Python results
-------------------
+==================
 Benchmark environment
 
 * 3.6.2 (v3.6.2:5fd33b5, Jul  8 2017, 04:57:36) [MSC v.1900 64 bit (AMD64)]
@@ -66,7 +73,7 @@ Files used for benchmark:
 * 36424 channels
 
 Raw data
-^^^^^^^^
+--------
 
 
 ================================================== ========= ========
@@ -155,7 +162,7 @@ mdfreader 2.7.4 compress v4                            26916      974
 
 
 Graphical results
-^^^^^^^^^^^^^^^^^
+-----------------
 
 .. plot::
 
@@ -865,7 +872,7 @@ Graphical results
 
 
 x86 Python results
-------------------
+==================
 Benchmark environment
 
 * 3.6.3 (v3.6.3:2c5fed8, Oct  3 2017, 17:26:49) [MSC v.1900 32 bit (Intel)]
@@ -889,7 +896,7 @@ Files used for benchmark:
 
 
 Raw data
-^^^^^^^^
+--------
 
 
 ================================================== ========= ========
@@ -970,7 +977,7 @@ mdfreader 2.7.4 nodata v4                              24316      948
 * mdfreader got a MemoryError
 
 Graphical results
-^^^^^^^^^^^^^^^^^
+-----------------
 
 .. plot::
 

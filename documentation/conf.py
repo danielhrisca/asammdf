@@ -29,7 +29,28 @@ with open(os.path.join('..', 'asammdf', 'version.py'), 'r') as f:
             break
 
 print('version', asam_version)
+import guzzle_sphinx_theme
 
+html_theme_path = guzzle_sphinx_theme.html_theme_path()
+html_theme = 'guzzle_sphinx_theme'
+# Guzzle theme options (see theme.conf for more information)
+# Register the theme as an extension to generate a sitemap.xml
+
+
+# Guzzle theme options (see theme.conf for more information)
+html_theme_options = {
+
+    # Set the name of the project to appear in the left sidebar.
+    "project_nav_name": "asammdf {}".format(asam_version),
+
+
+
+    # Allow a separate homepage from the master_doc
+    "homepage": "index",
+
+    # Allow the project link to be overriden to a custom URL.
+    "projectlink": "http://github.com/danielhrisca/asammdf",
+}
 
 # -- General configuration ------------------------------------------------
 
@@ -48,6 +69,8 @@ extensions = ['sphinx.ext.autodoc',
     'matplotlib.sphinxext.plot_directive',
     'sphinxarg.ext',
     'numpydoc']
+    
+extensions.append("guzzle_sphinx_theme")
 
 # silence the Sphinx warnings about
 # "WARNING: toctree contains reference to nonexisting document"
@@ -105,13 +128,13 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'classic'
+#html_theme = 'classic'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {'stickysidebar': 'true'}
+#html_theme_options = {'stickysidebar': 'true'}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -122,7 +145,7 @@ html_theme_options = {'stickysidebar': 'true'}
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'asammdfdoc'
+#htmlhelp_basename = 'asammdfdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------

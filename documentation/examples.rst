@@ -18,22 +18,18 @@
 
 .. _examples:
 
+--------
 Examples
-========
+--------
 
 Working with MDF
-----------------
+================
 
 .. code-block:: python
 
     from __future__ import print_function, division
-    from asammdf import MDF, Signal, configure
+    from asammdf import MDF, Signal
     import numpy as np
-
-    # configure asammdf to optimize disk space usage
-    configure(integer_compacting=True)
-    # configure asammdf to split data blocks on 10KB blocks
-    configure(split_data_blocks=True, split_threshold=10*1024)
 
 
     # create 3 Signal objects
@@ -67,7 +63,7 @@ Working with MDF
     # save new file
     mdf4.save('my_new_file.mf4', overwrite=True)
 
-    # convert new file to mdf version 3.10 with lower possible RAM usage
+    # convert new file to mdf version 3.10 with lowest possible RAM usage
     mdf3 = mdf4.convert(to='3.10', memory='minimum')
     print(mdf3.version)
 
@@ -90,8 +86,9 @@ Working with MDF
     mdf4.save('out.mf4', compression=2, overwrite=True)
 
 
+
 Working with Signal
--------------------
+===================
 
 .. code-block:: python
 
@@ -133,7 +130,7 @@ Working with Signal
         phi[i] *= val
     R = 1 - np.sqrt(X**2 + Y**2)
     samples = np.cos(2 * np.pi * X + phi) * R
-    print(phi.shape, samples.shape)
+
     timestamps = np.arange(0, 2, 0.02)
 
     s_map = Signal(samples=samples,
@@ -167,4 +164,5 @@ Working with Signal
     s_int32.plot()
     cut_signal = s_int32.cut(start=0.2, stop=0.35)
     cut_signal.plot()
+
 

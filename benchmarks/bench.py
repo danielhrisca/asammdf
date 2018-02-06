@@ -18,8 +18,9 @@ except ImportError:
     pass
 
 import psutil
+import numpy as np
 
-from asammdf import MDF
+from asammdf import MDF, Signal, SignalConversions
 from asammdf import __version__ as asammdf_version
 from mdfreader import mdf as MDFreader
 from mdfreader import __version__ as mdfreader_version
@@ -118,6 +119,112 @@ class Timer():
         return True
 
 
+def generate_test_files():
+    print('Generating test files:')
+    for version in ('3.30', '4.10'):
+        print("-> generating file for version", version)
+        mdf = MDF(version=version, memory='minimum')
+
+        if version == '3.30':
+            cycles = 500
+            channels_count = 8000
+            filename = 'test.mdf'
+        else:
+            cycles = 500
+            channels_count = 20000
+            filename = 'test.mf4'
+
+        if os.path.exists(filename):
+            continue
+
+        t = np.arange(cycles, dtype=np.float64)
+
+        # no conversion
+        sigs = []
+        for i in range(channels_count):
+            sig = Signal(
+                np.ones(cycles, dtype=np.uint16),
+                t,
+                name='Channel_{}'.format(i),
+                unit='unit_{}'.format(i),
+                conversion=None,
+                comment='Unsinged int 16bit channel {}'.format(i),
+                raw=True,
+            )
+            sigs.append(sig)
+        mdf.append(sigs)
+
+        # linear
+        sigs = []
+        for i in range(channels_count):
+            conversion = {
+                'type': SignalConversions.CONVERSION_LINEAR,
+                'a': float(i),
+                'b': -0.5,
+            }
+            sig = Signal(
+                np.ones(cycles, dtype=np.int16),
+                t,
+                name='Channel_{}'.format(i),
+                unit='unit_{}'.format(i),
+                conversion=conversion,
+                comment='Signed 16bit channel {} with linear conversion'.format(i),
+                raw=True,
+            )
+            sigs.append(sig)
+        mdf.append(sigs)
+
+        # algebraic
+        sigs = []
+        for i in range(channels_count):
+            conversion = {
+                'type': SignalConversions.CONVERSION_ALGEBRAIC,
+                'formula': '{} * sin(X)'.format(i),
+            }
+            sig = Signal(
+                np.arange(cycles, dtype=np.int32) / 100,
+                t,
+                name='Channel_{}'.format(i),
+                unit='unit_{}'.format(i),
+                conversion=conversion,
+                comment='Sinus channel {} with algebraic conversion'.format(i),
+                raw=True,
+            )
+            sigs.append(sig)
+        mdf.append(sigs)
+
+        # rational
+        sigs = []
+        for i in range(channels_count):
+            conversion = {
+                'type': SignalConversions.CONVERSION_RATIONAL,
+                'P1': 0,
+                'P2': i,
+                'P3': -0.5,
+                'P4': 0,
+                'P5': 0,
+                'P6': 1,
+            }
+            sig = Signal(
+                np.ones(cycles, dtype=np.int64),
+                t,
+                name='Channel_{}'.format(i),
+                unit='unit_{}'.format(i),
+                conversion=conversion,
+                comment='Channel {} with rational conversion'.format(i),
+                raw=True,
+            )
+            sigs.append(sig)
+        mdf.append(sigs)
+
+
+        mdf.save(filename, overwrite=True)
+
+        del mdf
+
+        MDF.merge([filename,] * 10, version, memory='minimum').save(filename, overwrite=True)
+
+
 def open_mdf3(output, fmt, memory):
 
     with Timer('Open file',
@@ -195,22 +302,22 @@ def convert_v3_v4(output, fmt, memory):
 
 def convert_v4_v3(output, fmt, memory):
 
-    with MDF(r'test.mf4', memory=memory,) as x:
+    with MDF(r'test.mf4', memory=memory) as x:
         with Timer('Convert file',
                    'asammdf {} {} v4 to v3'.format(
                          asammdf_version,
                          memory,
                     ),
                    fmt) as timer:
-            y = x.convert('3.30', memory=memory)
+            y = x.convert('4.10', memory=memory)
             y.close()
     output.send([timer.output, timer.error])
 
 
 def merge_v3(output, fmt, memory):
 
-    files = [r'test.mdf', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mdf', ] * 3
+    with Timer('Merge 3 files',
                'asammdf {} {} v3'.format(asammdf_version, memory),
                fmt) as timer:
         MDF.merge(files, memory=memory, outversion='3.30')
@@ -218,9 +325,9 @@ def merge_v3(output, fmt, memory):
 
 
 def merge_v4(output, fmt, memory):
-    files = [r'test.mf4', ] * 2
+    files = [r'test.mf4', ] * 10
 
-    with Timer('Merge files',
+    with Timer('Merge 3 files',
                'asammdf {} {} v4'.format(asammdf_version, memory),
                fmt) as timer:
         MDF.merge(files, memory=memory, outversion='4.10')
@@ -421,8 +528,8 @@ def get_all_reader4_compression(output, fmt):
 
 def merge_reader_v3(output, fmt):
 
-    files = [r'test.mdf', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mdf', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} v3'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0])
@@ -430,13 +537,16 @@ def merge_reader_v3(output, fmt):
         x2 = MDFreader(files[1])
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
 
 def merge_reader_v3_compress(output, fmt):
 
-    files = [r'test.mdf', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mdf', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} compress v3'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], compression='blosc')
@@ -444,13 +554,16 @@ def merge_reader_v3_compress(output, fmt):
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
 
 def merge_reader_v3_nodata(output, fmt):
 
-    files = [r'test.mdf', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mdf', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} nodata v3'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], noDataLoading=True)
@@ -458,13 +571,16 @@ def merge_reader_v3_nodata(output, fmt):
         x2 = MDFreader(files[1], noDataLoading=True)
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
 
-def merge_reader_v4(output, fmt):
-    files = [r'test.mf4', ] * 2
+def merge_reader_v4(output, fmt, size):
+    files = [r'test.mf4', ] * 3
 
-    with Timer('Merge files',
+    with Timer('Merge 3 files',
                'mdfreader {} v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0])
@@ -472,13 +588,16 @@ def merge_reader_v4(output, fmt):
         x2 = MDFreader(files[1])
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
 
-def merge_reader_v4_compress(output, fmt):
+def merge_reader_v4_compress(output, fmt, size):
 
-    files = [r'test.mf4', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mf4', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} compress v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], compression='blosc')
@@ -486,17 +605,23 @@ def merge_reader_v4_compress(output, fmt):
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
 
-def merge_reader_v4_nodata(output, fmt):
+def merge_reader_v4_nodata(output, fmt, size):
 
-    files = [r'test.mf4', ] * 2
-    with Timer('Merge files',
+    files = [r'test.mf4', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} nodata v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], noDataLoading=True)
         x1.resample(0.01)
         x2 = MDFreader(files[1], noDataLoading=True)
+        x2.resample(0.01)
+        x1.mergeMdf(x2)
+        x2 = MDFreader(files[2])
         x2.resample(0.01)
         x1.mergeMdf(x2)
     output.send([timer.output, timer.error])
@@ -532,13 +657,33 @@ def table_end(fmt='rst'):
 def main(text_output, fmt):
     if os.path.dirname(__file__):
         os.chdir(os.path.dirname(__file__))
+    generate_test_files()
+
+    mdf = MDF('test.mdf', 'minimum')
+    v3_size = os.path.getsize('test.mdf') // 1024 // 1024
+    v3_groups = len(mdf.groups)
+    v3_channels = sum (
+        len(gp['channels'])
+        for gp in mdf.groups
+    )
+    v3_version = mdf.version
+
+    mdf = MDF('test.mf4', 'minimum')
+    v4_size = os.path.getsize('test.mf4') // 1024 // 1024
+    v4_groups = len(mdf.groups)
+    v4_channels = sum(
+        len(gp['channels'])
+        for gp in mdf.groups
+    )
+    v4_version = mdf.version
+
     listen, send = multiprocessing.Pipe()
     output = MyList()
     errors = []
 
     installed_ram = round(psutil.virtual_memory().total / 1024 / 1024 / 1024)
 
-    output.append('Benchmark environment\n')
+    output.append('\n\nBenchmark environment\n')
     output.append('* {}'.format(sys.version))
     output.append('* {}'.format(platform.platform()))
     output.append('* {}'.format(platform.processor()))
@@ -559,8 +704,14 @@ def main(text_output, fmt):
     output.append(('* noDataLoading = mdfreader mdf object read with '
                    'noDataLoading=True'))
     output.append('\nFiles used for benchmark:\n')
-    output.append('* 183 groups')
-    output.append('* 36424 channels\n\n')
+    output.append('* mdf version {}'.format(v3_version))
+    output.append('    * {} MB file size'.format(v3_size))
+    output.append('    * {} groups'.format(v3_groups))
+    output.append('    * {} channels'.format(v3_channels))
+    output.append('* mdf version {}'.format(v4_version))
+    output.append('    * {} MB file size'.format(v4_size))
+    output.append('    * {} groups'.format(v4_groups))
+    output.append('    * {} channels\n\n'.format(v4_channels))
 
     tests = (
         partial(open_mdf3, memory='full'),
@@ -676,7 +827,7 @@ def main(text_output, fmt):
     )
 
     if tests:
-        output.extend(table_header('Merge files', fmt))
+        output.extend(table_header('Merge 3 files', fmt))
         for func in tests:
             thr = multiprocessing.Process(target=func, args=(send, fmt))
             thr.start()

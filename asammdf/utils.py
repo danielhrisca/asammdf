@@ -17,6 +17,11 @@ from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
 __all__ = [
+    'CHANNEL_COUNT',
+    'CONVERT_LOW',
+    'CONVERT_MINIMUM',
+    'MERGE_LOW',
+    'MERGE_MINIMUM',
     'MdfException',
     'get_fmt_v3',
     'get_fmt_v4',
@@ -29,10 +34,56 @@ __all__ = [
     'bytes',
 ]
 
+CHANNEL_COUNT = (
+    0,
+    200,
+    2000,
+    10000,
+    20000,
+    400000,
+)
+
+CONVERT_LOW = (
+    10 * 2**20,
+    10 * 2**20,
+    20 * 2**20,
+    30 * 2**20,
+    40 * 2**20,
+    100 * 2**20,
+)
+
+CONVERT_MINIMUM = (
+    10 * 2**20,
+    10 * 2**20,
+    30 * 2**20,
+    30 * 2**20,
+    40 * 2**20,
+    100 * 2**20,
+)
+
+MERGE_LOW = (
+    10 * 2**20,
+    10 * 2**20,
+    20 * 2**20,
+    35 * 2**20,
+    60 * 2**20,
+    100 * 2**20,
+)
+
+MERGE_MINIMUM = (
+    10 * 2**20,
+    10 * 2**20,
+    30 * 2**20,
+    50 * 2**20,
+    60 * 2**20,
+    100 * 2**20,
+)
+
 
 class MdfException(Exception):
     """MDF Exception class"""
     pass
+
 
 # pylint: disable=W0622
 def bytes(obj):
@@ -48,7 +99,7 @@ def bytes(obj):
 
 
 def get_text_v3(address, stream):
-    """ faster way extract string from mdf versions 2 and 3 TextBlock
+    """ faster way to extract strings from mdf versions 2 and 3 TextBlock
 
     Parameters
     ----------
@@ -66,17 +117,34 @@ def get_text_v3(address, stream):
 
     stream.seek(address + 2)
     size = unpack('<H', stream.read(2))[0] - 4
-    text = (
-        stream
-        .read(size)
-        .decode('latin-1')
-        .strip(' \r\t\n\0')
-    )
+    text_bytes = stream.read(size)
+    try:
+        text = (
+            text_bytes
+            .decode('latin-1')
+            .strip(' \r\t\n\0')
+        )
+    except UnicodeDecodeError as err:
+        try:
+            from chardet import detect
+            encoding = detect(text_bytes)['encoding']
+            text = (
+                text_bytes
+                .decode(encoding)
+                .strip(' \r\t\n\0')
+            )
+        except ImportError:
+            warnings.warn('Unicode exception occured and "chardet" package is '
+                          'not installed. Mdf version 3 expects "latin-1" '
+                          'strings and this package may detect if a different'
+                          ' encoding was used')
+            raise err
+
     return text
 
 
 def get_text_v4(address, stream):
-    """ faster way extract string from mdf version 4 TextBlock
+    """ faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
     ----------
@@ -122,7 +190,8 @@ def get_text_v4(address, stream):
 
 
 def get_fmt_v3(data_type, size):
-    """convert mdf versions 2 and 3 channel data type to numpy dtype format string
+    """convert mdf versions 2 and 3 channel data type to numpy dtype format
+    string
 
     Parameters
     ----------
@@ -164,7 +233,7 @@ def get_fmt_v3(data_type, size):
         elif data_type == v3c.DATA_TYPE_STRING:
             fmt = 'V{}'.format(size)
         elif data_type == v3c.DATA_TYPE_BYTEARRAY:
-            fmt = 'u1'
+            fmt = '({},)u1'.format(size)
 
     return fmt
 
@@ -201,7 +270,7 @@ def get_fmt_v4(data_type, size):
         elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
             fmt = '>f{}'.format(size)
         elif data_type == v4c.DATA_TYPE_BYTEARRAY:
-            fmt = 'V{}'.format(size)
+            fmt = '({},)u1'.format(size)
         elif data_type in (
                 v4c.DATA_TYPE_STRING_UTF_8,
                 v4c.DATA_TYPE_STRING_LATIN_1,
@@ -232,7 +301,7 @@ def fix_dtype_fields(fields):
     return new_types
 
 
-def fmt_to_datatype_v3(fmt):
+def fmt_to_datatype_v3(fmt, shape):
     """convert numpy dtype format string to mdf versions 2 and 3
     channel data type and size
 
@@ -240,6 +309,8 @@ def fmt_to_datatype_v3(fmt):
     ----------
     fmt : numpy.dtype
         numpy data type
+    shape : tuple
+        numpy array shape
 
     Returns
     -------
@@ -249,37 +320,42 @@ def fmt_to_datatype_v3(fmt):
     """
     size = fmt.itemsize * 8
 
-    if fmt.kind == 'u':
-        if fmt.byteorder in '=<':
-            data_type = v3c.DATA_TYPE_UNSIGNED
-        else:
-            data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
-    elif fmt.kind == 'i':
-        if fmt.byteorder in '=<':
-            data_type = v3c.DATA_TYPE_SIGNED
-        else:
-            data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
-    elif fmt.kind == 'f':
-        if fmt.byteorder in '=<':
-            if size == 32:
-                data_type = v3c.DATA_TYPE_FLOAT
-            else:
-                data_type = v3c.DATA_TYPE_DOUBLE
-        else:
-            if size == 32:
-                data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
-            else:
-                data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
-    elif fmt.kind in 'SV':
-        data_type = v3c.DATA_TYPE_STRING
-    else:
-        # here we have arrays
+    if shape[1:] and fmt.itemsize == 1 and fmt.kind == 'u':
         data_type = v3c.DATA_TYPE_BYTEARRAY
+        for dim in shape[1:]:
+            size *= dim
+    else:
+        if fmt.kind == 'u':
+            if fmt.byteorder in '=<|':
+                data_type = v3c.DATA_TYPE_UNSIGNED
+            else:
+                data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
+        elif fmt.kind == 'i':
+            if fmt.byteorder in '=<|':
+                data_type = v3c.DATA_TYPE_SIGNED
+            else:
+                data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
+        elif fmt.kind == 'f':
+            if fmt.byteorder in '=<':
+                if size == 32:
+                    data_type = v3c.DATA_TYPE_FLOAT
+                else:
+                    data_type = v3c.DATA_TYPE_DOUBLE
+            else:
+                if size == 32:
+                    data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
+                else:
+                    data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
+        elif fmt.kind in 'SV':
+            data_type = v3c.DATA_TYPE_STRING
+        else:
+            message = 'Unknown type: dtype={}, shape={}'
+            raise MdfException(message.format(fmt, shape))
 
     return data_type, size
 
 
-def fmt_to_datatype_v4(fmt):
+def fmt_to_datatype_v4(fmt, shape):
     """convert numpy dtype format string to mdf version 4 channel data
     type and size
 
@@ -287,6 +363,8 @@ def fmt_to_datatype_v4(fmt):
     ----------
     fmt : numpy.dtype
         numpy data type
+    shape : tuple
+        numpy array shape
 
     Returns
     -------
@@ -296,26 +374,32 @@ def fmt_to_datatype_v4(fmt):
     """
     size = fmt.itemsize * 8
 
-    if fmt.kind == 'u':
-        if fmt.byteorder in '=<':
-            data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
-        else:
-            data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
-    elif fmt.kind == 'i':
-        if fmt.byteorder in '=<':
-            data_type = v4c.DATA_TYPE_SIGNED_INTEL
-        else:
-            data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
-    elif fmt.kind == 'f':
-        if fmt.byteorder in '=<':
-            data_type = v4c.DATA_TYPE_REAL_INTEL
-        else:
-            data_type = v4c.DATA_TYPE_REAL_MOTOROLA
-    elif fmt.kind in 'SV':
-        data_type = v4c.DATA_TYPE_STRING_LATIN_1
-    else:
-        # here we have arrays
+    if shape[1:] and fmt.itemsize == 1 and fmt.kind == 'u':
         data_type = v4c.DATA_TYPE_BYTEARRAY
+        for dim in shape[1:]:
+            size *= dim
+
+    else:
+        if fmt.kind == 'u':
+            if fmt.byteorder in '=<|':
+                data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+            else:
+                data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
+        elif fmt.kind == 'i':
+            if fmt.byteorder in '=<|':
+                data_type = v4c.DATA_TYPE_SIGNED_INTEL
+            else:
+                data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
+        elif fmt.kind == 'f':
+            if fmt.byteorder in '=<':
+                data_type = v4c.DATA_TYPE_REAL_INTEL
+            else:
+                data_type = v4c.DATA_TYPE_REAL_MOTOROLA
+        elif fmt.kind in 'SV':
+            data_type = v4c.DATA_TYPE_STRING_LATIN_1
+        else:
+            message = 'Unknown type: dtype={}, shape={}'
+            raise MdfException(message.format(fmt, shape))
 
     return data_type, size
 
@@ -327,7 +411,7 @@ def get_unique_name(used_names, name):
     ----------
     used_names : set
         set of already taken names
-    names : str
+    name : str
         name to be made unique
 
     Returns
@@ -373,9 +457,11 @@ def get_min_max(samples):
 
 def as_non_byte_sized_signed_int(integer_array, bit_length):
     """
-    The MDF spec allows values to be encoded as integers that aren't byte-sized. Numpy only knows how to do two's
-    complement on byte-sized integers (i.e. int16, int32, int64, etc.), so we have to calculate two's complement
-    ourselves in order to handle signed integers with unconventional lengths.
+    The MDF spec allows values to be encoded as integers that aren't
+    byte-sized. Numpy only knows how to do two's complement on byte-sized
+    integers (i.e. int16, int32, int64, etc.), so we have to calculate two's
+    complement ourselves in order to handle signed integers with unconventional
+    lengths.
 
     Parameters
     ----------
@@ -383,13 +469,17 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
         Array of integers to apply two's complement to
     bit_length : int
         Number of bits to sample from the array
+
     Returns
     -------
     integer_array : np.array
         signed integer array with non-byte-sized two's complement applied
+
     """
 
     truncated_integers = integer_array & ((1 << bit_length) - 1)  # Zero out the unwanted bits
-    return where(truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
-                 (2**bit_length - truncated_integers) * -1,  # when negative, do two's complement
-                 truncated_integers)  # when positive, return the truncated int
+    return where(
+        truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
+        (2**bit_length - truncated_integers) * -1,  # when negative, do two's complement
+        truncated_integers,  # when positive, return the truncated int
+    )
