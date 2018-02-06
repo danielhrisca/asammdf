@@ -101,24 +101,26 @@ class MDF3(object):
 
     Attributes
     ----------
-    name : string
-        mdf file name
-    groups : list
-        list of data groups
-    header : OrderedDict
-        mdf file header
-    file_history : TextBlock
-        file history text block; can be None
-    memory : str
-        memory optimization option
-    version : str
-        mdf version
     channels_db : dict
         used for fast channel access by name; for each name key the value is a
         list of (group index, channel index) tuples
+    file_history : TextBlock
+        file history text block; can be None
+    groups : list
+        list of data groups
+    header : HeaderBlock
+        mdf file header
+    identification : FileIdentificationBlock
+        mdf file start block
     masters_db : dict
         used for fast master channel access; for each group index key the value
-        is the master channel index
+         is the master channel index
+    memory : str
+        memory optimization option
+    name : string
+        mdf file name
+    version : str
+        mdf version
 
     """
 
@@ -131,6 +133,7 @@ class MDF3(object):
         self.memory = memory
         self.channels_db = {}
         self.masters_db = {}
+        self.version = version
 
         self._master_channel_cache = {}
 
@@ -138,9 +141,6 @@ class MDF3(object):
         self._tempfile = TemporaryFile()
         self._tempfile.write(b'\0')
         self._file = None
-
-        self.attachments = None
-        self.file_comment = None
 
         self._read_fragment_size = 0
         self._write_fragment_size = 8 * 2 ** 20
@@ -3882,8 +3882,6 @@ class MDF3(object):
             self.file_history = []
             self.channels_db = {}
             self.masters_db = {}
-            self.attachments = []
-            self.file_comment = None
 
             self._master_channel_cache = {}
 
@@ -3930,21 +3928,6 @@ class MDF3(object):
                 __version__,
             )
             self.file_history = TextBlock(text=text)
-
-        # all MDF blocks are appended to the blocks list in the order in which
-        # they will be written to disk. While creating this list, all the
-        # relevant block links are updated so that once all blocks have been
-        # added to the list they can be written using the bytes protocol.
-        # DataGroup blocks are written first after the identification and
-        # header blocks. When memory=False we need to restore the
-        # original data block addresses within the data group block. This is
-        # needed to allow further work with the object after the save method
-        # call (eq. new calls to get method). Since the data group blocks are
-        # written first, it is safe to restor the original links when the data
-        # blocks are written. For memory=False the blocks list will
-        # contain a tuple instead of a DataBlock instance; the tuple will have
-        # the reference to the data group object and the original link to the
-        # data block in the soource MDF file.
 
         if self.name is None and dst == '':
             message = (
@@ -4286,8 +4269,6 @@ class MDF3(object):
             self.file_history = []
             self.channels_db = {}
             self.masters_db = {}
-            self.attachments = []
-            self.file_comment = None
 
             self._master_channel_cache = {}
 

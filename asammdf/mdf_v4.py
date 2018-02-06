@@ -120,33 +120,32 @@ class MDF4(object):
 
     Attributes
     ----------
-    name : string
-        mdf file name
+    attachments : list
+        list of file attachments
+    channels_db : dict
+        used for fast channel access by name; for each name key the value is a
+        list of (group index, channel index) tuples
+    file_comment : TextBlock
+        file comment TextBlock
+    file_history : list
+        list of (FileHistory, TextBlock) pairs
     groups : list
         list of data groups
     header : HeaderBlock
         mdf file header
-    file_history : list
-        list of (FileHistory, TextBlock) pairs
-    comment : TextBlock
-        mdf file comment
     identification : FileIdentificationBlock
         mdf file start block
-    memory : str
-        memory optimization option
-    version : str
-        mdf version
-    channels_db : dict
-        used for fast channel access by name; for each name key the value is a
-        list of (group index, channel index) tuples
     masters_db : dict
         used for fast master channel access; for each group index key the value
          is the master channel index
+    memory : str
+        memory optimization option
+    name : string
+        mdf file name
+    version : str
+        mdf version
 
     """
-
-    _split_threshold = 1 << 23
-    _overwrite = False
 
     def __init__(self, name=None, memory='full', version='4.10'):
         self.groups = []
@@ -166,7 +165,6 @@ class MDF4(object):
         self._si_map = {}
         self._cc_map = {}
 
-        # used for appending when memory=False
         self._tempfile = TemporaryFile()
         self._file = None
 
@@ -290,8 +288,6 @@ class MDF4(object):
                 grp['signal_data'] = []
                 grp['data_block'] = None
                 grp['channel_dependencies'] = []
-                # channel_group is lsit to allow uniform handling of all texts
-                # in save method
                 grp['texts'] = {
                     'conversion_tab': [],
                     'channel_group': [],
@@ -358,7 +354,7 @@ class MDF4(object):
             # store channel groups record sizes dict in each
             # new group data belong to the initial unsorted group, and add
             # the key 'sorted' with the value False to use a flag;
-            # this is used later if memory=False
+            # this is used later if memory is 'low' or 'minimum'
 
             if memory == 'full':
                 grp['data_location'] = v4c.LOCATION_MEMORY
@@ -1542,7 +1538,8 @@ class MDF4(object):
 
         return valid_indexes
 
-    def configure(self,
+    def configure(
+            self,
             read_fragment_size=None,
             write_fragment_size=None):
         """ configure read and write fragment size for chuncked
