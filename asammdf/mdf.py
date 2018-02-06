@@ -51,10 +51,8 @@ class MDF(object):
         memory option; default `full`:
 
         * if *full* the data group binary data block will be loaded in RAM
-
         * if *low* the channel data is read from disk on request, and the
-        metadata is loaded into RAM
-
+          metadata is loaded into RAM
         * if *minimum* only minimal data is loaded into RAM
 
 
@@ -482,22 +480,22 @@ class MDF(object):
             can be one of the following:
 
             * `csv` : CSV export that uses the ";" delimiter. This option
-                will generate a new csv file for each data group
-                (<MDFNAME>_DataGroup_<cntr>.csv)
+              will generate a new csv file for each data group
+              (<MDFNAME>_DataGroup_<cntr>.csv)
 
             * `hdf5` : HDF5 file output; each *MDF* data group is mapped to
-                a *HDF5* group with the name 'DataGroup_<cntr>'
-                (where <cntr> is the index)
+              a *HDF5* group with the name 'DataGroup_<cntr>'
+              (where <cntr> is the index)
 
             * `excel` : Excel file output (very slow). This option will
-                generate a new excel file for each data group
-                (<MDFNAME>_DataGroup_<cntr>.xlsx)
+              generate a new excel file for each data group
+              (<MDFNAME>_DataGroup_<cntr>.xlsx)
 
             * `mat` : Matlab .mat version 5 export, for Matlab >= 7.6. In
-                the mat file the channels will be renamed to
-                'DataGroup_<cntr>_<channel name>'. The channel group master
-                will be renamed to 'DataGroup_<cntr>_<channel name>_master'
-                ( *<cntr>* is the data group index starting from 0)
+              the mat file the channels will be renamed to
+              'DataGroup_<cntr>_<channel name>'. The channel group master
+              will be renamed to 'DataGroup_<cntr>_<channel name>_master'
+              ( *<cntr>* is the data group index starting from 0)
 
         filename : string
             export file name

@@ -18,6 +18,7 @@ Welcome to asammdf's documentation!
    
    intro
    api
+   tips
    examples
    benchmarks
 

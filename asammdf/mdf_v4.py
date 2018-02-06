@@ -111,7 +111,7 @@ class MDF4(object):
 
         * if *full* the data group binary data block will be memorised in RAM
         * if *low* the channel data is read from disk on request, and the
-            metadata is memorized into RAM
+          metadata is memorized into RAM
         * if *minimum* only minimal data is memorized into RAM
 
     version : string
@@ -2894,19 +2894,16 @@ class MDF4(object):
 
     def extend(self, index, signals):
         """
-        Appends a new data group.
-
-        For channel dependencies type Signals, the *samples* attribute must be
-        a numpy.recarray
+        Extend a group with new samples. The first signal is the master channel's samples, and the
+        next signals must respect the same order in which they were appended. The samples must have raw
+        or physical values according to the *Signals* used for the initial append.
 
         Parameters
         ----------
+        index : int
+            group index
         signals : list
-            list on *Signal* objects
-        source_info : str
-            source information; default 'Python'
-        common_timebase : bool
-            flag to hint that the signals have the same timebase
+            list on numpy.ndarray objects
 
         Examples
         --------
@@ -2917,19 +2914,13 @@ class MDF4(object):
         >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
         >>> names = ['Positive', 'Negative', 'Float']
         >>> units = ['+', '-', '.f']
-        >>> info = {}
         >>> s1 = Signal(samples=s1, timstamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timstamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timstamps=t, unit='flts', name='Floats')
         >>> mdf = MDF3('new.mdf')
         >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
-        >>> # case 2: VTAB conversions from channels inside another file
-        >>> mdf1 = MDF3('in.mdf')
-        >>> ch1 = mdf1.get("Channel1_VTAB")
-        >>> ch2 = mdf1.get("Channel2_VTABR")
-        >>> sigs = [ch1, ch2]
-        >>> mdf2 = MDF3('out.mdf')
-        >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
+        >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
+        >>> mdf2.extend(0, [t, s1, s2, s3])
 
         """
         gp = self.groups[index]
@@ -3286,14 +3277,14 @@ class MDF4(object):
         * using the first positional argument *name*
 
             * if there are multiple occurrences for this channel then the
-                *group* and *index* arguments can be used to select a specific
-                group.
+              *group* and *index* arguments can be used to select a specific
+              group.
             * if there are multiple occurrences for this channel and either the
-                *group* or *index* arguments is None then a warning is issued
+              *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-            number (keyword argument *index*). Use *info* method for group and
-            channel numbers
+          number (keyword argument *index*). Use *info* method for group and
+          channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -3380,14 +3371,14 @@ class MDF4(object):
         * using the first positional argument *name*
 
             * if there are multiple occurrences for this channel then the
-                *group* and *index* arguments can be used to select a specific
-                group.
+              *group* and *index* arguments can be used to select a specific
+              group.
             * if there are multiple occurrences for this channel and either the
-                *group* or *index* arguments is None then a warning is issued
+              *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-            number (keyword argument *index*). Use *info* method for group and
-            channel numbers
+          number (keyword argument *index*). Use *info* method for group and
+          channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -3520,14 +3511,14 @@ class MDF4(object):
         * using the first positional argument *name*
 
             * if there are multiple occurances for this channel then the
-                *group* and *index* arguments can be used to select a specific
-                group.
+              *group* and *index* arguments can be used to select a specific
+              group.
             * if there are multiple occurances for this channel and either the
-                *group* or *index* arguments is None then a warning is issued
+              *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-            number (keyword argument *index*). Use *info* method for group and
-            channel numbers
+          number (keyword argument *index*). Use *info* method for group and
+          channel numbers
 
         If the *raster* keyword argument is not *None* the output is
         interpolated accordingly
@@ -3554,13 +3545,13 @@ class MDF4(object):
         Returns
         -------
         res : (numpy.array | Signal)
-            returns *Signal* if *samples_only*=*False* (default option),
+            returns *Signal* if *samples_only* = *False* (default option),
             otherwise returns numpy.array
             The *Signal* samples are:
 
                 * numpy recarray for channels that have composition/channel
-                    array address or for channel of type BYTEARRAY,
-                    CANOPENDATE, CANOPENTIME
+                  array address or for channel of type
+                  CANOPENDATE, CANOPENTIME
                 * numpy array for all the rest
 
         Raises
@@ -5075,7 +5066,7 @@ class MDF4(object):
             * 0 - no compression
             * 1 - deflate (slower, but produces smaller files)
             * 2 - transposition + deflate (slowest, but produces
-                the smallest files)
+              the smallest files)
 
         Returns
         -------
@@ -5124,7 +5115,7 @@ class MDF4(object):
             * 0 - no compression
             * 1 - deflate (slower, but produces smaller files)
             * 2 - transposition + deflate (slowest, but produces
-                the smallest files)
+              the smallest files)
 
         """
         if self.name is None and dst == '':
@@ -5789,7 +5780,7 @@ class MDF4(object):
             * 0 - no compression
             * 1 - deflate (slower, but produces smaller files)
             * 2 - transposition + deflate (slowest, but produces
-                the smallest files)
+              the smallest files)
 
         """
         if self.name is None and dst == '':

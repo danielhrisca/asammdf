@@ -99,7 +99,7 @@ def bytes(obj):
 
 
 def get_text_v3(address, stream):
-    """ faster way extract string from mdf versions 2 and 3 TextBlock
+    """ faster way to extract strings from mdf versions 2 and 3 TextBlock
 
     Parameters
     ----------
@@ -144,7 +144,7 @@ def get_text_v3(address, stream):
 
 
 def get_text_v4(address, stream):
-    """ faster way extract string from mdf version 4 TextBlock
+    """ faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
     ----------
@@ -411,7 +411,7 @@ def get_unique_name(used_names, name):
     ----------
     used_names : set
         set of already taken names
-    names : str
+    name : str
         name to be made unique
 
     Returns
@@ -469,10 +469,12 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
         Array of integers to apply two's complement to
     bit_length : int
         Number of bits to sample from the array
+
     Returns
     -------
     integer_array : np.array
         signed integer array with non-byte-sized two's complement applied
+
     """
 
     truncated_integers = integer_array & ((1 << bit_length) - 1)  # Zero out the unwanted bits

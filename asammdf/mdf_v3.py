@@ -92,7 +92,7 @@ class MDF3(object):
 
         * if *full* the data group binary data block will be memorised in RAM
         * if *low* the channel data is read from disk on request, and the
-            metadata is memorised into RAM
+          metadata is memorised into RAM
         * if *minimum* only minimal data is memorised into RAM
 
     version : string
@@ -533,14 +533,14 @@ class MDF3(object):
         * using the first positional argument *name*
 
             * if there are multiple occurrences for this channel then the
-            *group* and *index* arguments can be used to select a specific
-                group.
+              *group* and *index* arguments can be used to select a specific
+              group.
             * if there are multiple occurrences for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+              *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-            number (keyword argument *index*). Use *info* method for group and
-            channel numbers
+          number (keyword argument *index*). Use *info* method for group and
+          channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -951,7 +951,8 @@ class MDF3(object):
         if self.memory == 'full':
             self.close()
 
-    def configure(self,
+    def configure(
+            self,
             read_fragment_size=None,
             write_fragment_size=None):
         """ configure read and write fragment size for chuncked
@@ -1024,10 +1025,11 @@ class MDF3(object):
 
             group['trigger'] = [trigger, trigger_text]
 
-    def append(self,
-               signals,
-               acquisition_info='Python',
-               common_timebase=False):
+    def append(
+            self,
+            signals,
+            acquisition_info='Python',
+            common_timebase=False):
         """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
@@ -2230,6 +2232,36 @@ class MDF3(object):
             self._file.close()
 
     def extend(self, index, signals):
+        """
+        Extend a group with new samples. The first signal is the master channel's samples, and the
+        next signals must respect the same order in which they were appended. The samples must have raw
+        or physical values according to the *Signals* used for the initial append.
+
+        Parameters
+        ----------
+        index : int
+            group index
+        signals : list
+            list on numpy.ndarray objects
+
+        Examples
+        --------
+        >>> # case 1 conversion type None
+        >>> s1 = np.array([1, 2, 3, 4, 5])
+        >>> s2 = np.array([-1, -2, -3, -4, -5])
+        >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
+        >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
+        >>> names = ['Positive', 'Negative', 'Float']
+        >>> units = ['+', '-', '.f']
+        >>> s1 = Signal(samples=s1, timstamps=t, unit='+', name='Positive')
+        >>> s2 = Signal(samples=s2, timstamps=t, unit='-', name='Negative')
+        >>> s3 = Signal(samples=s3, timstamps=t, unit='flts', name='Floats')
+        >>> mdf = MDF3('new.mdf')
+        >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
+        >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
+        >>> mdf2.extend(0, [t, s1, s2, s3])
+
+        """
         memory = self.memory
         new_group_offset = 0
         gp = self.groups[index]
@@ -2446,14 +2478,14 @@ class MDF3(object):
         * using the first positional argument *name*
 
             * if there are multiple occurances for this channel then the
-                *group* and *index* arguments can be used to select a specific
-                group.
+              *group* and *index* arguments can be used to select a specific
+              group.
             * if there are multiple occurances for this channel and either the
-                *group* or *index* arguments is None then a warning is issued
+              *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-            number (keyword argument *index*). Use *info* method for group and
-            channel numbers
+          number (keyword argument *index*). Use *info* method for group and
+          channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2517,14 +2549,14 @@ class MDF3(object):
         * using the first positional argument *name*
 
             * if there are multiple occurances for this channel then the
-                *group* and *index* arguments can be used to select a specific
-                group.
+              *group* and *index* arguments can be used to select a specific
+              group.
             * if there are multiple occurances for this channel and either the
-                *group* or *index* arguments is None then a warning is issued
+              *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-            number (keyword argument *index*). Use *info* method for group and
-            channel numbers
+          number (keyword argument *index*). Use *info* method for group and
+          channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2597,14 +2629,14 @@ class MDF3(object):
         * using the first positional argument *name*
 
             * if there are multiple occurances for this channel then the
-                *group* and *index* arguments can be used to select a specific
-                group.
+              *group* and *index* arguments can be used to select a specific
+              group.
             * if there are multiple occurances for this channel and either the
-                *group* or *index* arguments is None then a warning is issued
+              *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-            number (keyword argument *index*). Use *info* method for group and
-            channel numbers
+          number (keyword argument *index*). Use *info* method for group and
+          channel numbers
 
 
         If the *raster* keyword argument is not *None* the output is
@@ -2638,7 +2670,7 @@ class MDF3(object):
             The *Signal* samples are:
 
                 * numpy recarray for channels that have CDBLOCK or BYTEARRAY
-                    type channels
+                  type channels
                 * numpy array for all the rest
 
         Raises
