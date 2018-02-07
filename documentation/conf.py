@@ -51,8 +51,6 @@ extensions = ['sphinx.ext.autodoc',
     'sphinxarg.ext',
     'numpydoc']
     
-extensions.append("guzzle_sphinx_theme")
-
 # silence the Sphinx warnings about
 # "WARNING: toctree contains reference to nonexisting document"
 # http://stackoverflow.com/questions/12206334/sphinx-autosummary-toctree-contains-reference-to-nonexisting-document-warnings
