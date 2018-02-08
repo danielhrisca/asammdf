@@ -648,7 +648,7 @@ class ChannelConversion(dict):
         if conv == v23c.CONVERSION_TYPE_NONE:
             fmt = v23c.FMT_CONVERSION_COMMON
         elif conv == v23c.CONVERSION_TYPE_FORMULA:
-            fmt = v23c.FMT_CONVERSION_FORMULA
+            fmt = v23c.FMT_CONVERSION_FORMULA.format(self['block_len'] - v23c.CC_COMMON_BLOCK_SIZE)
         elif conv == v23c.CONVERSION_TYPE_LINEAR:
             fmt = v23c.FMT_CONVERSION_LINEAR
             if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:

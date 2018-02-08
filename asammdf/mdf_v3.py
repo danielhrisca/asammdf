@@ -2185,6 +2185,10 @@ class MDF3(object):
             'cycles_nr': cycles_nr,
             'samples_byte_nr': offset >> 3,
         }
+        if self.version >= '3.30':
+            kargs['block_len'] = v23c.CG_POST_330_BLOCK_SIZE
+        else:
+            kargs['block_len'] = v23c.CG_PRE_330_BLOCK_SIZE
         gp['channel_group'] = ChannelGroup(**kargs)
         gp['channel_group']['ch_nr'] = ch_cntr
         gp['size'] = cycles_nr * (offset >> 3)
