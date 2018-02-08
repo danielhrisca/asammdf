@@ -341,6 +341,12 @@ class MDF3(object):
                 continue
 
             start_offset = new_ch['start_offset']
+            try:
+                additional_byte_offset = new_ch['aditional_byte_offset']
+                start_offset += 8 * additional_byte_offset
+            except KeyError:
+                pass
+
             bit_offset = start_offset % 8
             data_type = new_ch['data_type']
             bit_count = new_ch['bit_count']
