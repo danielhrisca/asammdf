@@ -11,6 +11,7 @@ MEMORY = ('minimum', 'low', 'full')
 
 cycles = 500
 channels_count = 2000
+array_channels_count = 500
 
 
 CHANNELS_DEMO = {
@@ -1750,6 +1751,111 @@ def generate_test_file(version='4.10'):
             raw=True,
         )
         sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
+
+
+    mdf.save(filename, overwrite=True)
+
+    del mdf
+
+    return MDF.merge([filename,] * 10, version, memory='minimum').save(filename, overwrite=True)
+
+def generate_arrays_test_file():
+    version = '4.10'
+    mdf = MDF(version=version, memory='minimum')
+    filename = r'tmpdir_array_big/arrays_big_test_{}.mf4'.format(version)
+
+    if os.path.exists(filename):
+        return filename
+
+    t = np.arange(cycles, dtype=np.float64)
+
+    # lookup tabel with axis
+    sigs = []
+    for i in range(array_channels_count):
+        samples = [
+            np.ones((cycles, 2, 3), dtype=np.uint64) * i,
+            np.ones((cycles, 2), dtype=np.uint64) * i,
+            np.ones((cycles, 3), dtype=np.uint64) * i,
+        ]
+
+        types = [
+            ('Channel_{}'.format(i), '(2, 3)<u8'),
+            ('channel_{}_axis_1'.format(i), '(2, )<u8'),
+            ('channel_{}_axis_2'.format(i), '(3, )<u8'),
+        ]
+
+        sig = Signal(
+            np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=None,
+            comment='Array channel {}'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
+
+    # lookup tabel with default axis
+    sigs = []
+    for i in range(array_channels_count):
+        samples = [
+            np.ones((cycles, 2, 3), dtype=np.uint64) * i,
+        ]
+
+        types = [
+            ('Channel_{}'.format(i), '(2, 3)<u8'),
+        ]
+
+        sig = Signal(
+            np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=None,
+            comment='Array channel {} with default axis'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
+
+    # structure channel composition
+    sigs = []
+    for i in range(array_channels_count):
+        samples = [
+            np.ones(cycles, dtype=np.uint8) * i,
+            np.ones(cycles, dtype=np.uint16) * i,
+            np.ones(cycles, dtype=np.uint32) * i,
+            np.ones(cycles, dtype=np.uint64) * i,
+            np.ones(cycles, dtype=np.int8) * i,
+            np.ones(cycles, dtype=np.int16) * i,
+            np.ones(cycles, dtype=np.int32) * i,
+            np.ones(cycles, dtype=np.int64) * i,
+        ]
+
+        types = [
+            ('struct_{}_channel_0'.format(i), np.uint8),
+            ('struct_{}_channel_1'.format(i), np.uint16),
+            ('struct_{}_channel_2'.format(i), np.uint32),
+            ('struct_{}_channel_3'.format(i), np.uint64),
+            ('struct_{}_channel_4'.format(i), np.int8),
+            ('struct_{}_channel_5'.format(i), np.int16),
+            ('struct_{}_channel_6'.format(i), np.int32),
+            ('struct_{}_channel_7'.format(i), np.int64),
+        ]
+
+        sig = Signal(
+            np.core.records.fromarrays(samples, dtype=np.dtype(types)),
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=None,
+            comment='Structure channel composition {}'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+
     mdf.append(sigs, common_timebase=True)
 
 
