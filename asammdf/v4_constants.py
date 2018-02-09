@@ -254,8 +254,25 @@ FMT_CONVERSION_LINEAR = FMT_CONVERSION_NONE + '2d'
 KEYS_CONVERSION_LINEAR = KEYS_CONVERSION_NONE + ('b', 'a')
 FMT_CONVERSION_LINEAR_INIT = '<4Q2B3H4d'
 
-FMT_CONVERSION_ALGEBRAIC = FMT_CONVERSION_NONE + 'Q'
-KEYS_CONVERSION_ALGEBRAIC = KEYS_CONVERSION_NONE + ('formula_addr',)
+FMT_CONVERSION_ALGEBRAIC = '<4sI7Q2B3H2d'
+KEYS_CONVERSION_ALGEBRAIC = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'name_addr',
+    'unit_addr',
+    'comment_addr',
+    'inv_conv_addr',
+    'formula_addr',
+    'conversion_type',
+    'precision',
+    'flags',
+    'ref_param_nr',
+    'val_param_nr',
+    'min_phy_value',
+    'max_phy_value',
+)
 FMT_CONVERSION_ALGEBRAIC_INIT = '<5Q2B3H2d'
 
 FMT_CONVERSION_RAT = FMT_CONVERSION_NONE + '6d'

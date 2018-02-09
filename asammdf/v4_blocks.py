@@ -1004,10 +1004,7 @@ class ChannelConversion(dict):
                 self['a'] = kargs['a']
 
             elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_ALG:
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v4c.CC_ALG_BLOCK_SIZE,
-                )
+                self['block_len'] = v4c.CC_ALG_BLOCK_SIZE
                 self['links_nr'] = kargs.get('links_nr', 5)
                 self['name_addr'] = kargs.get('name_addr', 0)
                 self['unit_addr'] = kargs.get('unit_addr', 0)
