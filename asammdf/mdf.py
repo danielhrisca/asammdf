@@ -353,14 +353,14 @@ class MDF(object):
                             break
                         else:
                             fragment_stop = min(stop, master[-1])
-                            stop_index = np.searchsorted(master, fragment_stop).flatten()[0] + 1
+                            stop_index = np.searchsorted(master, fragment_stop, side='right')
                     elif stop is None:
                         fragment_stop = None
                         if master[-1] < start:
                             continue
                         else:
                             fragment_start = max(start, master[0])
-                            start_index = np.searchsorted(master, fragment_start).flatten()[0]
+                            start_index = np.searchsorted(master, fragment_start, side='left')
                             stop_index = len(master)
                     else:
                         if master[0] > stop:
@@ -369,9 +369,9 @@ class MDF(object):
                             continue
                         else:
                             fragment_start = max(start, master[0])
-                            start_index = np.searchsorted(master, fragment_start).flatten()[0]
+                            start_index = np.searchsorted(master, fragment_start, side='left')
                             fragment_stop = min(stop, master[-1])
-                            stop_index = np.searchsorted(master, fragment_stop).flatten()[0] + 1
+                            stop_index = np.searchsorted(master, fragment_stop, side='right')
 
                     # the first fragment triggers and append that will add the
                     # metadata for all channels

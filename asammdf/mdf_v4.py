@@ -1854,6 +1854,7 @@ class MDF4(object):
                         else:
                             kargs['conversion_type'] = v4c.CONVERSION_TYPE_RAT
                         block = ChannelConversion(**kargs)
+
                         if memory != 'minimum':
                             gp_conv.append(block)
                         else:
@@ -1874,6 +1875,7 @@ class MDF4(object):
                         kargs = {k: v for k, v in info.items()}
                         kargs['conversion_type'] = v4c.CONVERSION_TYPE_ALG
                         block = ChannelConversion(**kargs)
+
                         if memory == 'minimum':
                             address = tell()
                             text = TextBlock(text=formula)

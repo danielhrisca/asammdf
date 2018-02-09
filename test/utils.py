@@ -3,7 +3,14 @@ import os
 
 import numpy as np
 
+from asammdf import MDF, SUPPORTED_VERSIONS, Signal, SignalConversions
+
+SUPPORTED_VERSIONS = SUPPORTED_VERSIONS[1:]
+
 MEMORY = ('minimum', 'low', 'full')
+
+cycles = 500
+channels_count = 2000
 
 
 CHANNELS_DEMO = {
@@ -1646,8 +1653,114 @@ UNITS = {
     "$ActiveCalibrationPage": "",
 }
 
+
 def get_test_data(filename=""):
     """
     Utility functions needed by all test scripts.
     """
     return os.path.dirname(__file__) + "/data/" + filename
+
+
+def generate_test_file(version='4.10'):
+    mdf = MDF(version=version, memory='minimum')
+
+    if version <= '3.30':
+        filename = r'tmpdir_big/big_test_{}.mdf'.format(version)
+    else:
+        filename = r'tmpdir_big/big_test_{}.mf4'.format(version)
+
+    if os.path.exists(filename):
+        return filename
+
+    t = np.arange(cycles, dtype=np.float64)
+
+    # no conversion
+    sigs = []
+    for i in range(channels_count):
+        sig = Signal(
+            np.ones(cycles, dtype=np.uint64) * i,
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=None,
+            comment='Unsigned int 16bit channel {}'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
+
+    # linear
+    sigs = []
+    for i in range(channels_count):
+        conversion = {
+            'type': SignalConversions.CONVERSION_LINEAR,
+            'a': float(i),
+            'b': -0.5,
+        }
+        sig = Signal(
+            np.ones(cycles, dtype=np.int64),
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=conversion,
+            comment='Signed 16bit channel {} with linear conversion'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
+
+    # algebraic
+    sigs = []
+    for i in range(channels_count):
+        conversion = {
+            'type': SignalConversions.CONVERSION_ALGEBRAIC,
+            'formula': '{} * sin(X)'.format(i),
+        }
+        sig = Signal(
+            np.arange(cycles, dtype=np.int32) / 100.0,
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=conversion,
+            comment='Sinus channel {} with algebraic conversion'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
+
+    # rational
+    sigs = []
+    for i in range(channels_count):
+        conversion = {
+            'type': SignalConversions.CONVERSION_RATIONAL,
+            'P1': 0,
+            'P2': i,
+            'P3': -0.5,
+            'P4': 0,
+            'P5': 0,
+            'P6': 1,
+        }
+        sig = Signal(
+            np.ones(cycles, dtype=np.int64),
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=conversion,
+            comment='Channel {} with rational conversion'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
+
+
+    mdf.save(filename, overwrite=True)
+
+    del mdf
+
+    return MDF.merge([filename,] * 10, version, memory='minimum').save(filename, overwrite=True)
+
+
+def cleanup_files():
+    for filename in os.listdir(os.getcwd()):
+        if os.path.isfile(filename) and filename.startswith('tmp'):
+            os.remove(filename)
