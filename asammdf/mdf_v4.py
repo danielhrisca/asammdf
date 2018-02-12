@@ -4307,7 +4307,7 @@ class MDF4(object):
                             vals = encode(decode(vals, encoding), 'latin-1')
                     else:
                         # no VLSD signal data samples
-                        vals = array([])
+                        vals = array([], dtype=dtype('S'))
 
                 elif channel_type in (v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD) and \
                     (v4c.DATA_TYPE_STRING_LATIN_1 <= data_type <= v4c.DATA_TYPE_STRING_UTF_16_BE):
