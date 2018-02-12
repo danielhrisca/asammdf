@@ -37,7 +37,7 @@ from numpy import (
     unpackbits,
     zeros,
 )
-from numpy.core.defchararray import decode, strip
+from numpy.core.defchararray import strip
 from numpy.core.records import fromarrays, fromstring
 
 from . import v2_v3_constants as v23c
@@ -172,7 +172,6 @@ class MDF3(object):
             # go to the first data block of the current data group
             dat_addr = data_group['data_block_addr']
             if dat_addr:
-                read_size = group['size']
 
                 if group['sorted']:
                     samples_size = channel_group['samples_byte_nr']
@@ -2806,8 +2805,6 @@ class MDF3(object):
         else:
             data = (data, )
 
-        info = None
-
         # check if this is a channel array
         if dep:
             if dep['dependency_type'] == v23c.DEPENDENCY_TYPE_VECTOR:
@@ -2869,7 +2866,7 @@ class MDF3(object):
             timestamps = []
             count = 0
             for fragment in data:
-                data_bytes, offset = fragment
+                data_bytes, _ = fragment
                 try:
                     parents, dtypes = grp['parents'], grp['types']
                 except KeyError:
