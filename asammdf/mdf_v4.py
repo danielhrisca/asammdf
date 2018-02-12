@@ -98,7 +98,7 @@ if PYVERSION == 2:
 __all__ = ['MDF4', ]
 
 
-def load_signal_data(self, address, stream):
+def load_signal_data(address, stream):
     """ this method is used to get the channel signal data, usually for
     VLSD channels
 
