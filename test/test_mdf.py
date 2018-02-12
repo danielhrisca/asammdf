@@ -525,6 +525,7 @@ class TestMDF(unittest.TestCase):
                                     if not np.array_equal(
                                             vals,
                                             v * (j - 1) - 0.5):
+                                        equal = False
                             elif i == 2:
                                 v = np.arange(cycles, dtype=np.int64) / 100.0
                                 form = '{} * sin(v)'
@@ -534,6 +535,7 @@ class TestMDF(unittest.TestCase):
                                     if not np.array_equal(
                                             vals,
                                             numexpr.evaluate(f)):
+                                        equal = False
                             elif i == 3:
                                 v = np.ones(cycles, dtype=np.int64)
                                 form = '({} * v -0.5) / 1'
