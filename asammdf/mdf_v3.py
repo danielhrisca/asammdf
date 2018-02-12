@@ -37,7 +37,7 @@ from numpy import (
     unpackbits,
     zeros,
 )
-from numpy.core.defchararray import encode, decode, strip
+from numpy.core.defchararray import decode, strip
 from numpy.core.records import fromarrays, fromstring
 
 from . import v2_v3_constants as v23c
@@ -1166,7 +1166,6 @@ class MDF3(object):
         }
         gp['signal_types'] = gp_sig_types = []
         gp['string_dtypes'] = []
-        string_counter = 0
 
         self.groups.append(gp)
 
@@ -1362,7 +1361,7 @@ class MDF3(object):
                 elif conv_type == SignalConversions.CONVERSION_TABX:
                     kargs['conversion_type'] = v23c.CONVERSION_TYPE_TABX
 
-                    kargs['ref_param_nr'] = count = len(info['raw'])
+                    kargs['ref_param_nr'] = len(info['raw'])
 
                     for i, (r_, p_) in enumerate(zip(info['raw'], info['phys'])):
                         kargs['text_{}'.format(i)] = p_[:31] + b'\0'
@@ -1516,7 +1515,6 @@ class MDF3(object):
                 }
                 self.groups.append(new_gp)
 
-                new_cycles_nr = len(timestamps)
                 new_fields = []
                 new_types = []
                 new_parents = {}
@@ -2399,7 +2397,7 @@ class MDF3(object):
                     new_samples = [signal[fld] for fld in names[1:]]
                     component_samples.extend(new_samples)
 
-                for i, samples in enumerate(component_samples):
+                for samples in component_samples:
                     shape = samples.shape[1:]
 
                     fields.append(samples)

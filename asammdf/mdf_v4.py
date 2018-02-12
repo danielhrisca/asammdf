@@ -43,7 +43,7 @@ from numpy import (
     zeros,
 )
 
-from numpy.core.defchararray import encode, decode, strip
+from numpy.core.defchararray import encode, decode
 from numpy.core.records import fromarrays, fromstring
 
 from . import v4_constants as v4c
@@ -453,7 +453,7 @@ class MDF4(object):
 
                 if address:
                     stream.seek(address)
-                    id_string, reserved, block_len, links_nr = unpack(
+                    id_string, _, block_len, __ = unpack(
                         v4c.FMT_COMMON,
                         stream.read(v4c.COMMON_SIZE),
                     )
@@ -2939,16 +2939,6 @@ class MDF4(object):
             'ms',
             'days',
         )
-        canopen_date_fields = (
-            'ms',
-            'min',
-            'hour',
-            'day',
-            'month',
-            'year',
-            'summer_time',
-            'day_of_week',
-        )
 
         fields = []
         types = []
@@ -3352,7 +3342,7 @@ class MDF4(object):
                         unit = unit['text'].decode('utf-8').strip(' \n\t\0')
                     else:
                         unit = unit['text'].strip(' \n\t\0')
-                except :
+                except:
                     unit = ''
             else:
                 unit = ''
