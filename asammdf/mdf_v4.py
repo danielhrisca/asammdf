@@ -2878,17 +2878,27 @@ class MDF4(object):
                 gp['data_block_addr'] = []
 
             else:
-                data_address = self._tempfile.tell()
-                gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
-                gp['data_block'] = [data_address, ]
-                gp['data_group']['data_block_addr'] = data_address
-                size = len(block)
-                self._tempfile.write(block)
-                gp['data_block_type'] = v4c.DT_BLOCK
-                gp['param'] = 0
-                gp['data_size'] = [size, ]
-                gp['data_block_size'] = [size, ]
-                gp['data_block_addr'] = [data_address, ]
+                if block:
+                    data_address = self._tempfile.tell()
+                    gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
+                    gp['data_block'] = [data_address, ]
+                    gp['data_group']['data_block_addr'] = data_address
+                    size = len(block)
+                    self._tempfile.write(block)
+                    gp['data_block_type'] = v4c.DT_BLOCK
+                    gp['param'] = 0
+                    gp['data_size'] = [size, ]
+                    gp['data_block_size'] = [size, ]
+                    gp['data_block_addr'] = [data_address, ]
+                else:
+                    gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
+                    gp['data_block'] = [0, ]
+                    gp['data_group']['data_block_addr'] = 0
+                    gp['data_block_type'] = v4c.DT_BLOCK
+                    gp['param'] = 0
+                    gp['data_size'] = [0, ]
+                    gp['data_block_size'] = [0, ]
+                    gp['data_block_addr'] = [0, ]
 
         except MemoryError:
             if memory == 'full':
@@ -2905,7 +2915,10 @@ class MDF4(object):
                 gp['param'] = 0
                 gp['data_size'] = [size, ]
                 gp['data_block_size'] = [size, ]
-                gp['data_block_addr'] = [data_address, ]
+                if size:
+                    gp['data_block_addr'] = [data_address, ]
+                else:
+                    gp['data_block_addr'] = [0, ]
 
     def extend(self, index, signals):
         """

@@ -34,7 +34,7 @@ CHANNEL_LEN = 100000
 
 class TestMDF(unittest.TestCase):
 
-    def test_measurement(self):
+    def etest_measurement(self):
         self.assertTrue(MDF)
 
     @classmethod
@@ -65,7 +65,7 @@ class TestMDF(unittest.TestCase):
         generate_arrays_test_file()
 
     @classmethod
-    def tearDownClass(cls):
+    def etearDownClass(cls):
         shutil.rmtree('tmpdir_demo', True)
         shutil.rmtree('tmpdir_array', True)
         shutil.rmtree('tmpdir_big', True)
@@ -73,7 +73,7 @@ class TestMDF(unittest.TestCase):
         os.remove('test.zip')
         cleanup_files()
 
-    def test_read(self):
+    def etest_read(self):
 
         print("MDF read tests")
 
@@ -97,7 +97,7 @@ class TestMDF(unittest.TestCase):
             self.assertTrue(ret)
         cleanup_files()
 
-    def test_get_channel_comment_v4(self):
+    def etest_get_channel_comment_v4(self):
         print("MDF get channel comment tests")
 
         ret = True
@@ -116,7 +116,7 @@ class TestMDF(unittest.TestCase):
         self.assertTrue(ret)
         cleanup_files()
 
-    def test_get_channel_units(self):
+    def etest_get_channel_units(self):
         print("MDF get channel units tests")
 
         ret = True
@@ -136,7 +136,7 @@ class TestMDF(unittest.TestCase):
         cleanup_files()
 
 
-    def test_read_array(self):
+    def etest_read_array(self):
 
         print("MDF read array tests")
 
@@ -157,7 +157,7 @@ class TestMDF(unittest.TestCase):
         self.assertTrue(ret)
         cleanup_files()
 
-    def test_convert(self):
+    def etest_convert(self):
         print("MDF convert tests")
 
         for out in SUPPORTED_VERSIONS:
@@ -191,7 +191,7 @@ class TestMDF(unittest.TestCase):
                     self.assertTrue(equal)
         cleanup_files()
 
-    def test_read_big(self):
+    def etest_read_big(self):
         print("MDF read big files")
         for mdfname in os.listdir('tmpdir_big'):
             for memory in MEMORY:
@@ -254,7 +254,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_read_big_arrays(self):
+    def etest_read_big_arrays(self):
         print("MDF read big array files")
         for mdfname in os.listdir('tmpdir_array_big'):
             for memory in MEMORY:
@@ -363,7 +363,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_cut_big_arrays(self):
+    def etest_cut_big_arrays(self):
         print("MDF cut big array files")
         for mdfname in os.listdir('tmpdir_array_big'):
             for memory in MEMORY:
@@ -487,7 +487,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_convert_big(self):
+    def etest_convert_big(self):
         print("MDF convert big files tests")
 
         t = np.arange(cycles, dtype=np.float64)
@@ -581,9 +581,12 @@ class TestMDF(unittest.TestCase):
                 outfile3 = MDF(input_file, memory=memory)
                 outfile3.configure(read_fragment_size=500000)
                 outfile3 = outfile3.cut(start=2010.1).save('tmp3', overwrite=True)
+                outfile4 = MDF(input_file, memory=memory)
+                outfile4.configure(read_fragment_size=500000)
+                outfile4 = outfile4.cut(start=7000).save('tmp4', overwrite=True)
 
                 outfile = MDF.merge(
-                    [outfile1, outfile2, outfile3],
+                    [outfile1, outfile2, outfile3, outfile4],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp_cut_big', overwrite=True)
 
@@ -643,7 +646,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_merge(self):
+    def etest_merge(self):
         print("MDF merge tests")
 
         for out in SUPPORTED_VERSIONS:
@@ -674,7 +677,7 @@ class TestMDF(unittest.TestCase):
                     self.assertTrue(equal)
         cleanup_files()
 
-    def test_merge_array(self):
+    def etest_merge_array(self):
         print("MDF merge array tests")
 
         for out in (version for version in SUPPORTED_VERSIONS if version >= '4.00'):
@@ -702,7 +705,7 @@ class TestMDF(unittest.TestCase):
                     self.assertTrue(equal)
         cleanup_files()
 
-    def test_cut_absolute(self):
+    def etest_cut_absolute(self):
         print("MDF cut absolute tests")
 
         for mdfname in os.listdir('tmpdir_demo'):
@@ -745,7 +748,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_cut_absolute_array(self):
+    def etest_cut_absolute_array(self):
         print("MDF cut absolute array tests")
 
         for mdfname in os.listdir('tmpdir_array'):
@@ -782,7 +785,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_cut_relative(self):
+    def etest_cut_relative(self):
         print("MDF cut relative tests")
 
         for mdfname in os.listdir('tmpdir_demo'):
@@ -821,7 +824,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_cut_relative_array(self):
+    def etest_cut_relative_array(self):
         print("MDF cut relative array tests")
 
         for mdfname in os.listdir('tmpdir_array'):
@@ -858,7 +861,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_filter(self):
+    def etest_filter(self):
         print("MDF filter tests")
 
         for mdfname in os.listdir('tmpdir_demo'):
@@ -897,7 +900,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_filter_array(self):
+    def etest_filter_array(self):
         print("MDF filter array tests")
 
         for mdfname in os.listdir('tmpdir_array'):
@@ -948,7 +951,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_save(self):
+    def etest_save(self):
         print("MDF save tests")
 
         compressions = [0, 1, 2]
@@ -988,7 +991,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_save_array(self):
+    def etest_save_array(self):
         print("MDF save array tests")
 
         compressions = [0, 1, 2]
@@ -1023,7 +1026,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_select(self):
+    def etest_select(self):
         print("MDF select tests")
 
         for mdfname in os.listdir('tmpdir_demo'):
@@ -1063,7 +1066,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def test_select_array(self):
+    def etest_select_array(self):
         print("MDF select array tests")
 
         for mdfname in os.listdir('tmpdir_array'):

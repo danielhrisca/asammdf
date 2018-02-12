@@ -2224,7 +2224,7 @@ class MDF3(object):
                 self._tempfile.write(block)
             else:
                 gp['data_group']['data_block_addr'] = 0
-                gp['data_block_addr'] = [data_address, ]
+                gp['data_block_addr'] = [0, ]
                 gp['data_block_size'] = [0, ]
 
         # data group trigger

@@ -439,6 +439,8 @@ class MDF(object):
 
                 fragment = next(self._load_group_data(group))
 
+                fragment = (fragment[0], -1)
+
                 for j in range(channels_nr):
                     if j in excluded_channels:
                         continue
