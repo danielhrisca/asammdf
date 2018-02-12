@@ -37,7 +37,7 @@ from numpy import (
     unpackbits,
     zeros,
 )
-from numpy.core.defchararray import strip
+
 from numpy.core.records import fromarrays, fromstring
 
 from . import v2_v3_constants as v23c
@@ -2967,8 +2967,7 @@ class MDF3(object):
             if cycles_nr:
 
                 if conversion_type == v23c.CONVERSION_TYPE_NONE:
-                    if channel['data_type'] == v23c.DATA_TYPE_STRING:
-                        pass
+                    pass
 
                 elif conversion_type == v23c.CONVERSION_TYPE_LINEAR:
                     signal_conversion = {
