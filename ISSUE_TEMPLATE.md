@@ -1,10 +1,19 @@
-Please write here the output of printing ``sys.version``
+# Python version
+_Please write here the output of printing ``sys.version``_
 
 # Platform information
-Please write here the output of printing ``platform.platform()``
+_Please write here the output of printing ``platform.platform()``_
 
 # _asammdf_ version
-Please write here the output of printing ``asammdf.__version__``
+_Please write here the output of printing ``asammdf.__version__``_
 
+# Code 
+
+  ## Code snippet
+  _please write here the code snippet that triggers the error_
+  
+  ## Traceback
+  _pleaase write here the error traceback_
+  
 # Description
-Please describe the issue here.
+_Please describe the issue here._
