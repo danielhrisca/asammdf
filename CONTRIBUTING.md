@@ -97,6 +97,6 @@ Please follow the following style guide in your new code:
 
     ```
     
-* prefer "()" over line continuation "\"
+* prefer "()" over line continuation "\\"
     
     
