@@ -231,7 +231,7 @@ def get_fmt_v3(data_type, size):
                 v3c.DATA_TYPE_DOUBLE_MOTOROLA):
             fmt = '>f{}'.format(size)
         elif data_type == v3c.DATA_TYPE_STRING:
-            fmt = 'V{}'.format(size)
+            fmt = 'S{}'.format(size)
         elif data_type == v3c.DATA_TYPE_BYTEARRAY:
             fmt = '({},)u1'.format(size)
 
@@ -281,7 +281,7 @@ def get_fmt_v4(data_type, size):
             elif size == 8:
                 fmt = '<u8'
             else:
-                fmt = 'V{}'.format(size)
+                fmt = 'S{}'.format(size)
         elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
             fmt = 'V7'
         elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:

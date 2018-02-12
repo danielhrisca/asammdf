@@ -182,10 +182,6 @@ class TestMDF(unittest.TestCase):
                             if not np.array_equal(
                                     original.samples,
                                     converted.samples):
-                                print('@'*80)
-                                print(input_file, out, memory, name)
-                                print(original)
-                                print(converted)
                                 equal = False
                             if not np.array_equal(
                                     original.timestamps,
@@ -208,42 +204,53 @@ class TestMDF(unittest.TestCase):
 
                     for i, group in enumerate(mdf.groups):
                         if i == 0:
-                            v = np.ones(cycles * 10, dtype=np.uint64)
-                            for j in range(100, 2000, 100):
+                            v = np.ones(cycles, dtype=np.uint64)
+                            for j in range(10, 200, 50):
                                 vals = mdf.get(group=i, index=j, samples_only=True)
                                 if not np.array_equal(
                                         vals,
                                         v * (j - 1)):
                                     equal = False
                         elif i == 1:
-                            v = np.ones(cycles * 10, dtype=np.int64)
-                            for j in range(100, 2000, 100):
+                            v = np.ones(cycles, dtype=np.int64)
+                            for j in range(10, 200, 50):
                                 vals = mdf.get(group=i, index=j, samples_only=True)
                                 if not np.array_equal(
                                         vals,
                                         v * (j - 1) - 0.5):
                                     equal = False
                         elif i == 2:
-                            v = np.concatenate([np.arange(cycles, dtype=np.int64) / 100.0 for _ in range(10)])
+                            v = np.arange(cycles, dtype=np.int64) / 100.0
                             form = '{} * sin(v)'
-                            for j in range(100, 2000, 100):
+                            for j in range(10, 200, 50):
                                 vals = mdf.get(group=i, index=j, samples_only=True)
                                 f = form.format(j-1)
+                                if not np.array_equal(
+                                        vals,
+                                        numexpr.evaluate(f)):
+                                    equal = False
+                        elif i == 3:
+                            v = np.ones(cycles, dtype=np.int64)
+                            form = '({} * v -0.5) / 1'
+                            for j in range(10, 200, 50):
+                                f = form.format(j - 1)
+                                vals = mdf.get(group=i, index=j, samples_only=True)
                                 if not np.array_equal(
                                         vals,
                                         numexpr.evaluate(f)):
                                     equal = False
                         else:
-                            v = np.ones(cycles * 10, dtype=np.int64)
-                            form = '({} * v -0.5) / 1'
-                            for j in range(100, 2000, 100):
-                                f = form.format(j-1)
-                                vals = mdf.get(group=i, index=j, samples_only=True)
+
+                            for j in range(10, 200, 50):
+                                target = np.array([
+                                    'Channel {} sample {}'.format(j, k).encode('ascii')
+                                    for k in range(cycles)
+                                ])
+                                vals = mdf.get(group=i, index=j + 1, samples_only=True)
                                 if not np.array_equal(
                                         vals,
-                                        numexpr.evaluate(f)):
+                                        target):
                                     equal = False
-
                 self.assertTrue(equal)
         cleanup_files()
 
@@ -257,18 +264,19 @@ class TestMDF(unittest.TestCase):
                 equal = True
 
                 with MDF(input_file, memory=memory) as mdf:
+                    mdf.configure(read_fragment_size=500000)
 
                     for i, group in enumerate(mdf.groups):
 
                         if i == 0:
 
                             samples = [
-                                np.ones((cycles * 10, 2, 3), dtype=np.uint64),
-                                np.ones((cycles * 10, 2), dtype=np.uint64),
-                                np.ones((cycles * 10, 3), dtype=np.uint64),
+                                np.ones((cycles, 2, 3), dtype=np.uint64),
+                                np.ones((cycles, 2), dtype=np.uint64),
+                                np.ones((cycles, 3), dtype=np.uint64),
                             ]
 
-                            for j in range(100, 500, 50):
+                            for j in range(10, 200, 50):
 
                                 types = [
                                     ('Channel_{}'.format(j), '(2, 3)<u8'),
@@ -290,11 +298,11 @@ class TestMDF(unittest.TestCase):
 
                         elif i == 1:
 
-                            samples = np.ones((cycles * 10, 2, 3), dtype=np.uint64)
-                            axis_0 = np.ones((cycles * 10, 2), dtype=np.uint64)
-                            axis_1 = np.ones((cycles * 10, 3), dtype=np.uint64)
+                            samples = np.ones((cycles, 2, 3), dtype=np.uint64)
+                            axis_0 = np.ones((cycles, 2), dtype=np.uint64)
+                            axis_1 = np.ones((cycles, 3), dtype=np.uint64)
 
-                            for j in range(100, 500, 50):
+                            for j in range(10, 200, 50):
 
                                 types = [
                                     ('Channel_{}'.format(j), '(2, 3)<u8'),
@@ -317,17 +325,17 @@ class TestMDF(unittest.TestCase):
                         elif i == 2:
 
                             samples = [
-                                np.ones(cycles * 10, dtype=np.uint8),
-                                np.ones(cycles * 10, dtype=np.uint16),
-                                np.ones(cycles * 10, dtype=np.uint32),
-                                np.ones(cycles * 10, dtype=np.uint64),
-                                np.ones(cycles * 10, dtype=np.int8),
-                                np.ones(cycles * 10, dtype=np.int16),
-                                np.ones(cycles * 10, dtype=np.int32),
-                                np.ones(cycles * 10, dtype=np.int64),
+                                np.ones(cycles, dtype=np.uint8),
+                                np.ones(cycles, dtype=np.uint16),
+                                np.ones(cycles, dtype=np.uint32),
+                                np.ones(cycles, dtype=np.uint64),
+                                np.ones(cycles, dtype=np.int8),
+                                np.ones(cycles, dtype=np.int16),
+                                np.ones(cycles, dtype=np.int32),
+                                np.ones(cycles, dtype=np.int64),
                             ]
 
-                            for j in range(100, 500, 50):
+                            for j in range(10, 200, 50):
 
                                 types = [
                                     ('struct_{}_channel_0'.format(j), np.uint8),
@@ -362,9 +370,15 @@ class TestMDF(unittest.TestCase):
                 input_file = os.path.join('tmpdir_array_big', mdfname)
                 print(input_file, memory)
 
-                outfile1 = MDF(input_file, memory=memory).cut(stop=1005).save('tmp1', overwrite=True)
-                outfile2 = MDF(input_file, memory=memory).cut(start=1005, stop=2010).save('tmp2', overwrite=True)
-                outfile3 = MDF(input_file, memory=memory).cut(start=2010).save('tmp3', overwrite=True)
+                outfile1 = MDF(input_file, memory=memory)
+                outfile1.configure(read_fragment_size=500000)
+                outfile1 = outfile1.cut(stop=1005).save('tmp1', overwrite=True)
+                outfile2 = MDF(input_file, memory=memory)
+                outfile2.configure(read_fragment_size=500000)
+                outfile2 = outfile2.cut(start=1005, stop=2010).save('tmp2', overwrite=True)
+                outfile3 = MDF(input_file, memory=memory)
+                outfile3.configure(read_fragment_size=500000)
+                outfile3 = outfile3.cut(start=2010).save('tmp3', overwrite=True)
 
                 outfile = MDF.merge(
                     [outfile1, outfile2, outfile3],
@@ -374,18 +388,19 @@ class TestMDF(unittest.TestCase):
                 equal = True
 
                 with MDF(input_file, memory=memory) as mdf:
+                    mdf.configure(read_fragment_size=500000)
 
                     for i, group in enumerate(mdf.groups):
 
                         if i == 0:
 
                             samples = [
-                                np.ones((cycles * 10, 2, 3), dtype=np.uint64),
-                                np.ones((cycles * 10, 2), dtype=np.uint64),
-                                np.ones((cycles * 10, 3), dtype=np.uint64),
+                                np.ones((cycles, 2, 3), dtype=np.uint64),
+                                np.ones((cycles, 2), dtype=np.uint64),
+                                np.ones((cycles, 3), dtype=np.uint64),
                             ]
 
-                            for j in range(100, 500, 50):
+                            for j in range(10, 200, 50):
 
                                 types = [
                                     ('Channel_{}'.format(j), '(2, 3)<u8'),
@@ -407,11 +422,11 @@ class TestMDF(unittest.TestCase):
 
                         elif i == 1:
 
-                            samples = np.ones((cycles * 10, 2, 3), dtype=np.uint64)
-                            axis_0 = np.ones((cycles * 10, 2), dtype=np.uint64)
-                            axis_1 = np.ones((cycles * 10, 3), dtype=np.uint64)
+                            samples = np.ones((cycles, 2, 3), dtype=np.uint64)
+                            axis_0 = np.ones((cycles, 2), dtype=np.uint64)
+                            axis_1 = np.ones((cycles, 3), dtype=np.uint64)
 
-                            for j in range(100, 500, 50):
+                            for j in range(10, 200, 50):
 
                                 types = [
                                     ('Channel_{}'.format(j), '(2, 3)<u8'),
@@ -434,17 +449,17 @@ class TestMDF(unittest.TestCase):
                         elif i == 2:
 
                             samples = [
-                                np.ones(cycles * 10, dtype=np.uint8),
-                                np.ones(cycles * 10, dtype=np.uint16),
-                                np.ones(cycles * 10, dtype=np.uint32),
-                                np.ones(cycles * 10, dtype=np.uint64),
-                                np.ones(cycles * 10, dtype=np.int8),
-                                np.ones(cycles * 10, dtype=np.int16),
-                                np.ones(cycles * 10, dtype=np.int32),
-                                np.ones(cycles * 10, dtype=np.int64),
+                                np.ones(cycles, dtype=np.uint8),
+                                np.ones(cycles, dtype=np.uint16),
+                                np.ones(cycles, dtype=np.uint32),
+                                np.ones(cycles, dtype=np.uint64),
+                                np.ones(cycles, dtype=np.int8),
+                                np.ones(cycles, dtype=np.int16),
+                                np.ones(cycles, dtype=np.int32),
+                                np.ones(cycles, dtype=np.int64),
                             ]
 
-                            for j in range(100, 500, 50):
+                            for j in range(10, 200, 50):
 
                                 types = [
                                     ('struct_{}_channel_0'.format(j), np.uint8),
@@ -475,7 +490,7 @@ class TestMDF(unittest.TestCase):
     def test_convert_big(self):
         print("MDF convert big files tests")
 
-        t = np.arange(cycles * 10, dtype=np.float64)
+        t = np.arange(cycles, dtype=np.float64)
 
         for out in ('3.30', '4.10'):
             for mdfname in os.listdir('tmpdir_big')[::-1]:
@@ -483,6 +498,7 @@ class TestMDF(unittest.TestCase):
                     input_file = os.path.join('tmpdir_big', mdfname)
                     print(input_file, memory, out)
                     with MDF(input_file, memory=memory) as mdf:
+                        mdf.configure(read_fragment_size=500000)
                         outfile = mdf.convert(out, memory=memory).save(
                             'tmp_convert_{}_{}'.format(out, memory),
                             overwrite=True,
@@ -491,43 +507,54 @@ class TestMDF(unittest.TestCase):
                     equal = True
 
                     with MDF(outfile) as mdf:
+                        mdf.configure(read_fragment_size=500000)
 
                         for i, group in enumerate(mdf.groups):
                             if i == 0:
-                                v = np.ones(cycles * 10, dtype=np.uint64)
-                                for j in range(100, 2000, 100):
+                                v = np.ones(cycles, dtype=np.uint64)
+                                for j in range(10, 200, 50):
                                     vals = mdf.get(group=i, index=j, samples_only=True)
                                     if not np.array_equal(
                                             vals,
-                                                    v * (j - 1)):
+                                            v * (j - 1)):
                                         equal = False
                             elif i == 1:
-                                v = np.ones(cycles * 10, dtype=np.int64)
-                                for j in range(100, 2000, 100):
+                                v = np.ones(cycles, dtype=np.int64)
+                                for j in range(10, 200, 50):
                                     vals = mdf.get(group=i, index=j, samples_only=True)
                                     if not np.array_equal(
                                             vals,
-                                                            v * (j - 1) - 0.5):
-                                        equal = False
+                                            v * (j - 1) - 0.5):
                             elif i == 2:
-                                v = np.concatenate([np.arange(cycles, dtype=np.int64) / 100.0, ] * 10)
+                                v = np.arange(cycles, dtype=np.int64) / 100.0
                                 form = '{} * sin(v)'
-                                for j in range(100, 2000, 100):
+                                for j in range(10, 200, 50):
                                     vals = mdf.get(group=i, index=j, samples_only=True)
                                     f = form.format(j - 1)
+                                    if not np.array_equal(
+                                            vals,
+                                            numexpr.evaluate(f)):
+                            elif i == 3:
+                                v = np.ones(cycles, dtype=np.int64)
+                                form = '({} * v -0.5) / 1'
+                                for j in range(10, 200, 50):
+                                    f = form.format(j - 1)
+                                    vals = mdf.get(group=i, index=j, samples_only=True)
                                     if not np.array_equal(
                                             vals,
                                             numexpr.evaluate(f)):
                                         equal = False
                             else:
-                                v = np.ones(cycles * 10, dtype=np.int64)
-                                form = '({} * v -0.5) / 1'
-                                for j in range(100, 2000, 100):
-                                    f = form.format(j - 1)
-                                    vals = mdf.get(group=i, index=j, samples_only=True)
+
+                                for j in range(10, 200, 50):
+                                    target = np.array([
+                                        'Channel {} sample {}'.format(j, k).encode('ascii')
+                                        for k in range(cycles)
+                                    ])
+                                    vals = mdf.get(group=i, index=j+1, samples_only=True)
                                     if not np.array_equal(
                                             vals,
-                                            numexpr.evaluate(f)):
+                                            target):
                                         equal = False
 
                     self.assertTrue(equal)
@@ -536,16 +563,22 @@ class TestMDF(unittest.TestCase):
     def test_cut_big(self):
         print("MDF cut big files tests")
 
-        t = np.arange(cycles * 10, dtype=np.float64)
+        t = np.arange(cycles, dtype=np.float64)
 
-        for mdfname in os.listdir('tmpdir_big')[::-1]:
+        for mdfname in os.listdir('tmpdir_big'):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_big', mdfname)
                 print(input_file, memory)
 
-                outfile1 = MDF(input_file, memory=memory).cut(stop=1005).save('tmp1', overwrite=True)
-                outfile2 = MDF(input_file, memory=memory).cut(start=1005, stop=2010).save('tmp2', overwrite=True)
-                outfile3 = MDF(input_file, memory=memory).cut(start=2010).save('tmp3', overwrite=True)
+                outfile1 = MDF(input_file, memory=memory)
+                outfile1.configure(read_fragment_size=500000)
+                outfile1 = outfile1.cut(stop=1005).save('tmp1', overwrite=True)
+                outfile2 = MDF(input_file, memory=memory)
+                outfile2.configure(read_fragment_size=500000)
+                outfile2 = outfile2.cut(start=1005.1, stop=2010).save('tmp2', overwrite=True)
+                outfile3 = MDF(input_file, memory=memory)
+                outfile3.configure(read_fragment_size=500000)
+                outfile3 = outfile3.cut(start=2010.1).save('tmp3', overwrite=True)
 
                 outfile = MDF.merge(
                     [outfile1, outfile2, outfile3],
@@ -558,40 +591,52 @@ class TestMDF(unittest.TestCase):
 
                     for i, group in enumerate(mdf.groups):
                         if i == 0:
-                            v = np.ones(cycles * 10, dtype=np.uint64)
-                            for j in range(100, 2000, 100):
+                            v = np.ones(cycles, dtype=np.uint64)
+                            for j in range(10, 200, 50):
                                 vals = mdf.get(group=i, index=j, samples_only=True)
                                 if not np.array_equal(
                                         vals,
                                         v * (j - 1)):
                                     equal = False
                         elif i == 1:
-                            v = np.ones(cycles * 10, dtype=np.int64)
-                            for j in range(100, 2000, 100):
+                            v = np.ones(cycles, dtype=np.int64)
+                            for j in range(10, 200, 50):
                                 vals = mdf.get(group=i, index=j, samples_only=True)
                                 if not np.array_equal(
                                         vals,
                                         v * (j - 1) - 0.5):
                                     equal = False
                         elif i == 2:
-                            v = np.concatenate([np.arange(cycles, dtype=np.int64) / 100.0, ] * 10)
+                            v = np.arange(cycles, dtype=np.int64) / 100.0
                             form = '{} * sin(v)'
-                            for j in range(100, 2000, 100):
+                            for j in range(10, 200, 50):
                                 vals = mdf.get(group=i, index=j, samples_only=True)
                                 f = form.format(j-1)
                                 if not np.array_equal(
                                         vals,
                                         numexpr.evaluate(f)):
                                     equal = False
-                        else:
-                            v = np.ones(cycles * 10, dtype=np.int64)
+                        elif i == 3:
+                            v = np.ones(cycles, dtype=np.int64)
                             form = '({} * v -0.5) / 1'
-                            for j in range(100, 2000, 100):
-                                f = form.format(j-1)
+                            for j in range(10, 200, 50):
+                                f = form.format(j - 1)
                                 vals = mdf.get(group=i, index=j, samples_only=True)
                                 if not np.array_equal(
                                         vals,
                                         numexpr.evaluate(f)):
+                                    equal = False
+                        else:
+
+                            for j in range(10, 200, 50):
+                                target = np.array([
+                                    'Channel {} sample {}'.format(j, k).encode('ascii')
+                                    for k in range(cycles)
+                                ])
+                                vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                if not np.array_equal(
+                                        vals,
+                                        target):
                                     equal = False
                 self.assertTrue(equal)
         cleanup_files()
@@ -608,7 +653,7 @@ class TestMDF(unittest.TestCase):
                         continue
                     files = [input_file, ] * 4
 
-                    outfile = MDF.merge(files, out, memory).save('tmp')
+                    outfile = MDF.merge(files, out, memory).save('tmp', overwrite=True)
 
                     equal = True
 
@@ -846,7 +891,6 @@ class TestMDF(unittest.TestCase):
                                 original.timestamps,
                                 filtered.timestamps):
                             equal = False
-#                                print('ts', mdfname, memory,  original, filtered)
 
                 self.assertTrue(equal)
         cleanup_files()
@@ -863,8 +907,6 @@ class TestMDF(unittest.TestCase):
                 channel_list = random.sample(list(CHANNELS_ARRAY), channels_nr)
 
                 filtered_mdf = MDF(input_file, memory=memory).filter(channel_list, memory=memory)
-
-                filtered_mdf.save('fiteed.mf4', overwrite=True)
 
                 target = set(channel_list)
                 if 'Int16Array' in target:

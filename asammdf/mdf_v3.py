@@ -37,7 +37,7 @@ from numpy import (
     unpackbits,
     zeros,
 )
-from numpy.core.defchararray import encode
+from numpy.core.defchararray import encode, decode, strip
 from numpy.core.records import fromarrays, fromstring
 
 from . import v2_v3_constants as v23c
@@ -2973,13 +2973,7 @@ class MDF3(object):
 
                 if conversion_type == v23c.CONVERSION_TYPE_NONE:
                     if channel['data_type'] == v23c.DATA_TYPE_STRING:
-                        vals = [val.tobytes() for val in vals]
-                        vals = [
-                            x.decode('latin-1').strip(' \n\t\0')
-                            for x in vals
-                        ]
-                        vals = array(vals)
-                        vals = encode(vals, 'latin-1')
+                        pass
 
                 elif conversion_type == v23c.CONVERSION_TYPE_LINEAR:
                     signal_conversion = {

@@ -43,7 +43,7 @@ from numpy import (
     zeros,
 )
 
-from numpy.core.defchararray import encode
+from numpy.core.defchararray import encode, decode, strip
 from numpy.core.records import fromarrays, fromstring
 
 from . import v4_constants as v4c
@@ -4283,48 +4283,43 @@ class MDF4(object):
                                 signal_data[offset + 4: offset + 4 + str_size]
                             )
 
+                        vals = array(values)
+
                         if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                            vals = [v.decode('utf-16-be') for v in values]
+                            encoding = 'utf-16-be'
 
                         elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                            vals = [v.decode('utf-16-le') for v in values]
+                            encoding = 'utf-16-le'
 
                         elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                            vals = [v.decode('utf-8') for v in values]
+                            encoding = 'utf-8'
 
                         elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                            vals = [v.decode('latin-1') for v in values]
+                            encoding = 'latin-1'
 
-                        if PYVERSION == 2:
-                            vals = array([str(val) for val in vals])
-                        else:
-                            vals = array(vals)
-
-                        vals = encode(vals, 'latin-1')
+                        if encoding != 'latin-1':
+                            vals = encode(decode(vals, encoding), 'latin-1')
                     else:
                         # no VLSD signal data samples
                         vals = array([])
 
                 elif channel_type in (v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD) and \
                     (v4c.DATA_TYPE_STRING_LATIN_1 <= data_type <= v4c.DATA_TYPE_STRING_UTF_16_BE):
-                            vals = [val.tobytes() for val in vals]
 
-                            if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                                encoding = 'utf-16-be'
+                    if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                        encoding = 'utf-16-be'
 
-                            elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                                encoding = 'utf-16-le'
+                    elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                        encoding = 'utf-16-le'
 
-                            elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                                encoding = 'utf-8'
+                    elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                        encoding = 'utf-8'
 
-                            elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                                encoding = 'latin-1'
+                    elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                        encoding = 'latin-1'
 
-                            vals = array(
-                                [x.decode(encoding).strip('\0') for x in vals]
-                            )
-                            vals = encode(vals, 'latin-1')
+                    if encoding != 'latin-1':
+                        vals = encode(decode(vals, encoding), 'latin-1')
 
                 # CANopen date
                 if data_type == v4c.DATA_TYPE_CANOPEN_DATE:

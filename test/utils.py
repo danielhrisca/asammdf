@@ -9,9 +9,9 @@ SUPPORTED_VERSIONS = SUPPORTED_VERSIONS[1:]
 
 MEMORY = ('minimum', 'low', 'full')
 
-cycles = 500
-channels_count = 2000
-array_channels_count = 500
+cycles = 5000
+channels_count = 200
+array_channels_count = 200
 
 
 CHANNELS_DEMO = {
@@ -1753,12 +1753,27 @@ def generate_test_file(version='4.10'):
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
 
+    # string
+    sigs = []
+    for i in range(channels_count):
+        sig = [
+            'Channel {} sample {}'.format(i, j).encode('ascii')
+            for j in range(cycles)
+        ]
+        sig = Signal(
+            np.array(sig),
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            comment='String channel {}'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+
+    mdf.append(sigs, common_timebase=True)
 
     mdf.save(filename, overwrite=True)
 
-    del mdf
-
-    return MDF.merge([filename,] * 10, version, memory='minimum').save(filename, overwrite=True)
 
 def generate_arrays_test_file():
     version = '4.10'
@@ -1861,9 +1876,6 @@ def generate_arrays_test_file():
 
     mdf.save(filename, overwrite=True)
 
-    del mdf
-
-    return MDF.merge([filename,] * 10, version, memory='minimum').save(filename, overwrite=True)
 
 
 def cleanup_files():
