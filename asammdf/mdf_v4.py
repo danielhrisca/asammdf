@@ -1238,7 +1238,7 @@ class MDF4(object):
 
                         next_byte_aligned_position = parent_start_offset + size
                         if next_byte_aligned_position <= record_size:
-                            dtype_pair = name, get_fmt_v4(data_type, size)
+                            dtype_pair = name, get_fmt_v4(data_type, size, ch_type)
                             types.append(dtype_pair)
                             parents[original_index] = name, bit_offset
 

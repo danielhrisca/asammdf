@@ -238,7 +238,7 @@ def get_fmt_v3(data_type, size):
     return fmt
 
 
-def get_fmt_v4(data_type, size):
+def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
     """convert mdf version 4 channel data type to numpy dtype format string
 
     Parameters
@@ -247,6 +247,8 @@ def get_fmt_v4(data_type, size):
         mdf channel data type
     size : int
         data byte size
+    channel_type: int
+        mdf channel type
 
     Returns
     -------
@@ -276,12 +278,14 @@ def get_fmt_v4(data_type, size):
                 v4c.DATA_TYPE_STRING_LATIN_1,
                 v4c.DATA_TYPE_STRING_UTF_16_BE,
                 v4c.DATA_TYPE_STRING_UTF_16_LE):
-            if size == 4:
-                fmt = '<u4'
-            elif size == 8:
-                fmt = '<u8'
-            else:
+            if channel_type == v4c.CHANNEL_TYPE_VALUE:
                 fmt = 'S{}'.format(size)
+            else:
+                if size == 4:
+                    fmt = '<u4'
+                elif size == 8:
+                    fmt = '<u8'
+
         elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
             fmt = 'V7'
         elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:

@@ -239,7 +239,7 @@ class TestMDF(unittest.TestCase):
                                         vals,
                                         numexpr.evaluate(f)):
                                     equal = False
-                        else:
+                        elif i == 4:
 
                             for j in range(10, 200, 50):
                                 target = np.array([
@@ -247,10 +247,36 @@ class TestMDF(unittest.TestCase):
                                     for k in range(cycles)
                                 ])
                                 vals = mdf.get(group=i, index=j + 1, samples_only=True)
-                                if not np.array_equal(
-                                        vals,
-                                        target):
-                                    equal = False
+                                cond = np.array_equal(
+                                    vals,
+                                    target)
+                                if not cond:
+                                    print(i, j, vals, target, len(vals), len(target))
+                                self.assertTrue(cond)
+
+                        elif i == 5:
+                            v = np.ones(cycles, dtype=np.dtype('(8,)u1'))
+                            for j in range(10, 200, 50):
+                                target = v * j
+                                vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                cond = np.array_equal(
+                                    vals,
+                                    target)
+                                if not cond:
+                                    print(i, j, vals, target, len(vals), len(target))
+                                self.assertTrue(cond)
+
+                        elif i == 6:
+                            v = np.ones(cycles, dtype=np.uint64)
+                            for j in range(10, 200, 50):
+                                target = v * j
+                                vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                cond = np.array_equal(
+                                    vals,
+                                    target)
+                                if not cond:
+                                    print(i, j, vals, target, len(vals), len(target))
+                                self.assertTrue(cond)
                 self.assertTrue(equal)
         cleanup_files()
 
@@ -546,18 +572,44 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             numexpr.evaluate(f)):
                                         equal = False
-                            else:
+                            elif i == 4:
 
                                 for j in range(10, 200, 50):
                                     target = np.array([
                                         'Channel {} sample {}'.format(j, k).encode('ascii')
                                         for k in range(cycles)
                                     ])
-                                    vals = mdf.get(group=i, index=j+1, samples_only=True)
-                                    if not np.array_equal(
-                                            vals,
-                                            target):
-                                        equal = False
+                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                    cond = np.array_equal(
+                                        vals,
+                                        target)
+                                    if not cond:
+                                        print(i, j, vals, target, len(vals), len(target))
+                                    self.assertTrue(cond)
+
+                            elif i == 5:
+                                v = np.ones(cycles, dtype=np.dtype('(8,)u1'))
+                                for j in range(10, 200, 50):
+                                    target = v * j
+                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                    cond = np.array_equal(
+                                        vals,
+                                        target)
+                                    if not cond:
+                                        print(i, j, vals, target, len(vals), len(target))
+                                    self.assertTrue(cond)
+
+                            elif i == 6:
+                                v = np.ones(cycles, dtype=np.uint64)
+                                for j in range(10, 200, 50):
+                                    target = v * j
+                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                    cond = np.array_equal(
+                                        vals,
+                                        target)
+                                    if not cond:
+                                        print(i, j, vals, target, len(vals), len(target))
+                                    self.assertTrue(cond)
 
                     self.assertTrue(equal)
         cleanup_files()
