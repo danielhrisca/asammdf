@@ -495,6 +495,7 @@ class TestMDF(unittest.TestCase):
                     outfile = MDF.merge(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
                         MDF(input_file, memory='minimum').version,
+                        memory=memory,
                     ).save('tmp_cut', overwrite=True)
 
                     with MDF(outfile) as mdf:
@@ -605,6 +606,7 @@ class TestMDF(unittest.TestCase):
                     outfile = MDF.merge(
                         [outfile1, outfile2, outfile3],
                         MDF(input_file, memory='minimum').version,
+                        memory=memory,
                     ).save('tmp_cut', overwrite=True)
 
                     equal = True
@@ -712,6 +714,8 @@ class TestMDF(unittest.TestCase):
     def test_cut_demo(self):
         print("MDF cut absolute tests")
 
+        cntr = 0
+
         for mdfname in os.listdir('tmpdir_demo'):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_demo', mdfname)
@@ -728,6 +732,7 @@ class TestMDF(unittest.TestCase):
                     outfile = MDF.merge(
                         [outfile1, outfile2, outfile3],
                         MDF(input_file, memory='minimum').version,
+                        memory=memory,
                     ).save('tmp', overwrite=True)
 
                     print('OUT', outfile)
