@@ -572,6 +572,10 @@ class TestMDF(unittest.TestCase):
                 input_file = os.path.join('tmpdir_big', mdfname)
                 print(input_file, memory)
 
+                outfile0 = MDF(input_file, memory=memory)
+                outfile0.configure(read_fragment_size=500000)
+                outfile0 = outfile0.cut(stop=-1).save('tmp0', overwrite=True)
+
                 outfile1 = MDF(input_file, memory=memory)
                 outfile1.configure(read_fragment_size=500000)
                 outfile1 = outfile1.cut(stop=1005).save('tmp1', overwrite=True)
@@ -581,13 +585,14 @@ class TestMDF(unittest.TestCase):
                 outfile3 = MDF(input_file, memory=memory)
                 outfile3.configure(read_fragment_size=500000)
                 outfile3 = outfile3.cut(start=2010.1).save('tmp3', overwrite=True)
+                outfile4 = MDF(input_file, memory=memory)
+                outfile4.configure(read_fragment_size=500000)
+                outfile4 = outfile4.cut(start=7000).save('tmp4', overwrite=True)
 
                 outfile = MDF.merge(
-                    [outfile1, outfile2, outfile3],
+                    [outfile0, outfile1, outfile2, outfile3, outfile4],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp_cut_big', overwrite=True)
-
-                equal = True
 
                 with MDF(outfile) as mdf:
 
@@ -596,38 +601,40 @@ class TestMDF(unittest.TestCase):
                             v = np.ones(cycles, dtype=np.uint64)
                             for j in range(10, 200, 50):
                                 vals = mdf.get(group=i, index=j, samples_only=True)
-                                if not np.array_equal(
+                                cond = np.array_equal(
                                         vals,
-                                        v * (j - 1)):
-                                    equal = False
+                                        v * (j - 1))
+                                self.assertTrue(cond)
                         elif i == 1:
                             v = np.ones(cycles, dtype=np.int64)
                             for j in range(10, 200, 50):
                                 vals = mdf.get(group=i, index=j, samples_only=True)
-                                if not np.array_equal(
+                                cond = np.array_equal(
                                         vals,
-                                        v * (j - 1) - 0.5):
-                                    equal = False
+                                        v * (j - 1) - 0.5)
+                                if not cond:
+                                    print(vals, v * (j - 1) - 0.5, len(vals), len(v) )
+                                self.assertTrue(cond)
                         elif i == 2:
                             v = np.arange(cycles, dtype=np.int64) / 100.0
                             form = '{} * sin(v)'
                             for j in range(10, 200, 50):
                                 vals = mdf.get(group=i, index=j, samples_only=True)
                                 f = form.format(j-1)
-                                if not np.array_equal(
+                                cond = np.array_equal(
                                         vals,
-                                        numexpr.evaluate(f)):
-                                    equal = False
+                                        numexpr.evaluate(f))
+                                self.assertTrue(cond)
                         elif i == 3:
                             v = np.ones(cycles, dtype=np.int64)
                             form = '({} * v -0.5) / 1'
                             for j in range(10, 200, 50):
                                 f = form.format(j - 1)
                                 vals = mdf.get(group=i, index=j, samples_only=True)
-                                if not np.array_equal(
+                                cond = np.array_equal(
                                         vals,
-                                        numexpr.evaluate(f)):
-                                    equal = False
+                                        numexpr.evaluate(f))
+                                self.assertTrue(cond)
                         else:
 
                             for j in range(10, 200, 50):
@@ -636,11 +643,12 @@ class TestMDF(unittest.TestCase):
                                     for k in range(cycles)
                                 ])
                                 vals = mdf.get(group=i, index=j + 1, samples_only=True)
-                                if not np.array_equal(
+                                cond = np.array_equal(
                                         vals,
-                                        target):
-                                    equal = False
-                self.assertTrue(equal)
+                                        target)
+                                if not cond:
+                                    print(vals, target, len(vals), len(target) )
+                                self.assertTrue(cond)
         cleanup_files()
 
     def test_merge(self):
@@ -752,12 +760,14 @@ class TestMDF(unittest.TestCase):
             for memory in MEMORY:
                 input_file = os.path.join('tmpdir_array', mdfname)
 
+                outfile0 = MDF(input_file, memory=memory).cut(stop=-1).save('tmp0', overwrite=True)
                 outfile1 = MDF(input_file, memory=memory).cut(stop=2.1).save('tmp1', overwrite=True)
                 outfile2 = MDF(input_file, memory=memory).cut(start=2.1, stop=6.1).save('tmp2', overwrite=True)
                 outfile3 = MDF(input_file, memory=memory).cut(start=6.1).save('tmp3', overwrite=True)
+                outfile4 = MDF(input_file, memory=memory).cut(start=100.0).save('tmp4', overwrite=True)
 
                 outfile = MDF.merge(
-                    [outfile1, outfile2, outfile3],
+                    [outfile0, outfile1, outfile2, outfile3, outfile4],
                     MDF(input_file, memory='minimum').version,
                 ).save('tmp', overwrite=True)
 

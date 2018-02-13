@@ -2224,7 +2224,7 @@ class MDF3(object):
                 self._tempfile.write(block)
             else:
                 gp['data_group']['data_block_addr'] = 0
-                gp['data_block_addr'] = [data_address, ]
+                gp['data_block_addr'] = [0, ]
                 gp['data_block_size'] = [0, ]
 
         # data group trigger
@@ -2964,230 +2964,228 @@ class MDF3(object):
 
             signal_conversion = None
 
-            if cycles_nr:
+            if conversion_type == v23c.CONVERSION_TYPE_NONE:
+                pass
 
-                if conversion_type == v23c.CONVERSION_TYPE_NONE:
-                    pass
+            elif conversion_type == v23c.CONVERSION_TYPE_LINEAR:
+                signal_conversion = {
+                    'type': SignalConversions.CONVERSION_LINEAR,
+                    'a': conversion['a'],
+                    'b': conversion['b'],
+                }
+                if not raw:
+                    a = conversion['a']
+                    b = conversion['b']
+                    if (a, b) != (1, 0):
+                        vals = vals * a
+                        if b:
+                            vals += b
 
-                elif conversion_type == v23c.CONVERSION_TYPE_LINEAR:
-                    signal_conversion = {
-                        'type': SignalConversions.CONVERSION_LINEAR,
-                        'a': conversion['a'],
-                        'b': conversion['b'],
-                    }
-                    if not raw:
-                        a = conversion['a']
-                        b = conversion['b']
-                        if (a, b) != (1, 0):
-                            vals = vals * a
-                            if b:
-                                vals += b
+            elif conversion_type in (v23c.CONVERSION_TYPE_TABI,
+                                     v23c.CONVERSION_TYPE_TAB):
+                nr = conversion['ref_param_nr']
 
-                elif conversion_type in (v23c.CONVERSION_TYPE_TABI,
-                                         v23c.CONVERSION_TYPE_TAB):
-                    nr = conversion['ref_param_nr']
+                raw_vals = [
+                    conversion['raw_{}'.format(i)]
+                    for i in range(nr)
+                ]
+                raw_vals = array(raw_vals)
+                phys = [
+                    conversion['phys_{}'.format(i)]
+                    for i in range(nr)
+                ]
+                phys = array(phys)
 
-                    raw_vals = [
-                        conversion['raw_{}'.format(i)]
-                        for i in range(nr)
-                    ]
-                    raw_vals = array(raw_vals)
-                    phys = [
-                        conversion['phys_{}'.format(i)]
-                        for i in range(nr)
-                    ]
-                    phys = array(phys)
+                if not raw:
+                    if conversion_type == v23c.CONVERSION_TYPE_TABI:
+                        vals = interp(vals, raw_vals, phys)
+                    else:
+                        idx = searchsorted(raw_vals, vals)
+                        idx = clip(idx, 0, len(raw_vals) - 1)
+                        vals = phys[idx]
 
-                    if not raw:
-                        if conversion_type == v23c.CONVERSION_TYPE_TABI:
-                            vals = interp(vals, raw_vals, phys)
+                if conversion_type == v23c.CONVERSION_TYPE_TAB:
+                    signal_conversion = SignalConversions.CONVERSION_TAB
+                else:
+                    signal_conversion = SignalConversions.CONVERSION_TABI
+
+                signal_conversion = {
+                    'type': signal_conversion,
+                    'raw': raw_vals,
+                    'phys': phys,
+                }
+
+            elif conversion_type == v23c.CONVERSION_TYPE_TABX:
+                nr = conversion['ref_param_nr']
+                raw_vals = [
+                    conversion['param_val_{}'.format(i)]
+                    for i in range(nr)
+                ]
+                raw_vals = array(raw_vals)
+                phys = [
+                    conversion['text_{}'.format(i)]
+                    for i in range(nr)
+                ]
+                phys = array(phys)
+
+                signal_conversion = {
+                    'type': SignalConversions.CONVERSION_TABX,
+                    'raw': raw_vals,
+                    'phys': phys,
+                }
+
+            elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
+                nr = conversion['ref_param_nr']
+
+                conv_texts = grp['texts']['conversion_tab'][ch_nr]
+                texts = []
+                if memory != 'minimum':
+                    for i in range(nr):
+                        key = 'text_{}'.format(i)
+                        if key in conv_texts:
+                            text = conv_texts[key]['text']
+                            texts.append(text)
                         else:
-                            idx = searchsorted(raw_vals, vals)
-                            idx = clip(idx, 0, len(raw_vals) - 1)
-                            vals = phys[idx]
+                            texts.append(b'')
+                else:
+                    for i in range(nr):
+                        key = 'text_{}'.format(i)
+                        if key in conv_texts:
+                            block = TextBlock(
+                                address=conv_texts[key],
+                                stream=stream,
+                            )
+                            text = block['text']
+                            texts.append(text)
+                        else:
+                            texts.append(b'')
 
-                    if conversion_type == v23c.CONVERSION_TYPE_TAB:
-                        signal_conversion = SignalConversions.CONVERSION_TAB
-                    else:
-                        signal_conversion = SignalConversions.CONVERSION_TABI
+                texts = array(texts)
+                lower = [
+                    conversion['lower_{}'.format(i)]
+                    for i in range(nr)
+                ]
+                lower = array(lower)
+                upper = [
+                    conversion['upper_{}'.format(i)]
+                    for i in range(nr)
+                ]
+                upper = array(upper)
 
-                    signal_conversion = {
-                        'type': signal_conversion,
-                        'raw': raw_vals,
-                        'phys': phys,
-                    }
+                signal_conversion = {
+                    'type': SignalConversions.CONVERSION_RTABX,
+                    'lower': lower,
+                    'upper': upper,
+                    'phys': texts,
+                }
 
-                elif conversion_type == v23c.CONVERSION_TYPE_TABX:
-                    nr = conversion['ref_param_nr']
-                    raw_vals = [
-                        conversion['param_val_{}'.format(i)]
-                        for i in range(nr)
-                    ]
-                    raw_vals = array(raw_vals)
-                    phys = [
-                        conversion['text_{}'.format(i)]
-                        for i in range(nr)
-                    ]
-                    phys = array(phys)
+            elif conversion_type in (
+                    v23c.CONVERSION_TYPE_EXPO,
+                    v23c.CONVERSION_TYPE_LOGH):
+                # pylint: disable=C0103
 
-                    signal_conversion = {
-                        'type': SignalConversions.CONVERSION_TABX,
-                        'raw': raw_vals,
-                        'phys': phys,
-                    }
+                if conversion_type == v23c.CONVERSION_TYPE_EXPO:
+                    signal_conversion = SignalConversions.CONVERSION_EXPO
+                else:
+                    signal_conversion = SignalConversions.CONVERSION_LOGH
 
-                elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
-                    nr = conversion['ref_param_nr']
+                signal_conversion = {
+                    'type': signal_conversion,
+                    'P1': conversion['P1'],
+                    'P2': conversion['P2'],
+                    'P3': conversion['P3'],
+                    'P4': conversion['P4'],
+                    'P5': conversion['P5'],
+                    'P6': conversion['P6'],
+                    'P7': conversion['P7'],
+                }
 
-                    conv_texts = grp['texts']['conversion_tab'][ch_nr]
-                    texts = []
-                    if memory != 'minimum':
-                        for i in range(nr):
-                            key = 'text_{}'.format(i)
-                            if key in conv_texts:
-                                text = conv_texts[key]['text']
-                                texts.append(text)
-                            else:
-                                texts.append(b'')
-                    else:
-                        for i in range(nr):
-                            key = 'text_{}'.format(i)
-                            if key in conv_texts:
-                                block = TextBlock(
-                                    address=conv_texts[key],
-                                    stream=stream,
-                                )
-                                text = block['text']
-                                texts.append(text)
-                            else:
-                                texts.append(b'')
-
-                    texts = array(texts)
-                    lower = [
-                        conversion['lower_{}'.format(i)]
-                        for i in range(nr)
-                    ]
-                    lower = array(lower)
-                    upper = [
-                        conversion['upper_{}'.format(i)]
-                        for i in range(nr)
-                    ]
-                    upper = array(upper)
-
-                    signal_conversion = {
-                        'type': SignalConversions.CONVERSION_RTABX,
-                        'lower': lower,
-                        'upper': upper,
-                        'phys': texts,
-                    }
-
-                elif conversion_type in (
-                        v23c.CONVERSION_TYPE_EXPO,
-                        v23c.CONVERSION_TYPE_LOGH):
-                    # pylint: disable=C0103
-
+                if not raw:
                     if conversion_type == v23c.CONVERSION_TYPE_EXPO:
-                        signal_conversion = SignalConversions.CONVERSION_EXPO
+                        func = log
                     else:
-                        signal_conversion = SignalConversions.CONVERSION_LOGH
+                        func = exp
+                    P1 = conversion['P1']
+                    P2 = conversion['P2']
+                    P3 = conversion['P3']
+                    P4 = conversion['P4']
+                    P5 = conversion['P5']
+                    P6 = conversion['P6']
+                    P7 = conversion['P7']
+                    if P4 == 0:
+                        vals = func(((vals - P7) * P6 - P3) / P1) / P2
+                    elif P1 == 0:
+                        vals = func((P3 / (vals - P7) - P6) / P4) / P5
+                    else:
+                        message = 'wrong conversion {}'
+                        message = message.format(conversion_type)
+                        raise ValueError(message)
 
-                    signal_conversion = {
-                        'type': signal_conversion,
-                        'P1': conversion['P1'],
-                        'P2': conversion['P2'],
-                        'P3': conversion['P3'],
-                        'P4': conversion['P4'],
-                        'P5': conversion['P5'],
-                        'P6': conversion['P6'],
-                        'P7': conversion['P7'],
-                    }
+            elif conversion_type == v23c.CONVERSION_TYPE_RAT:
+                # pylint: disable=unused-variable,C0103
+                signal_conversion = {
+                    'type': SignalConversions.CONVERSION_RATIONAL,
+                    'P1': conversion['P1'],
+                    'P2': conversion['P2'],
+                    'P3': conversion['P3'],
+                    'P4': conversion['P4'],
+                    'P5': conversion['P5'],
+                    'P6': conversion['P6'],
+                }
 
-                    if not raw:
-                        if conversion_type == v23c.CONVERSION_TYPE_EXPO:
-                            func = log
-                        else:
-                            func = exp
-                        P1 = conversion['P1']
-                        P2 = conversion['P2']
-                        P3 = conversion['P3']
-                        P4 = conversion['P4']
-                        P5 = conversion['P5']
-                        P6 = conversion['P6']
-                        P7 = conversion['P7']
-                        if P4 == 0:
-                            vals = func(((vals - P7) * P6 - P3) / P1) / P2
-                        elif P1 == 0:
-                            vals = func((P3 / (vals - P7) - P6) / P4) / P5
-                        else:
-                            message = 'wrong conversion {}'
-                            message = message.format(conversion_type)
-                            raise ValueError(message)
-
-                elif conversion_type == v23c.CONVERSION_TYPE_RAT:
-                    # pylint: disable=unused-variable,C0103
-                    signal_conversion = {
-                        'type': SignalConversions.CONVERSION_RATIONAL,
-                        'P1': conversion['P1'],
-                        'P2': conversion['P2'],
-                        'P3': conversion['P3'],
-                        'P4': conversion['P4'],
-                        'P5': conversion['P5'],
-                        'P6': conversion['P6'],
-                    }
-
-                    if not raw:
-                        P1 = conversion['P1']
-                        P2 = conversion['P2']
-                        P3 = conversion['P3']
-                        P4 = conversion['P4']
-                        P5 = conversion['P5']
-                        P6 = conversion['P6']
-                        if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
-                            X = vals
-                            vals = evaluate(v23c.RAT_CONV_TEXT)
-
-                elif conversion_type == v23c.CONVERSION_TYPE_POLY:
-                    # pylint: disable=unused-variable,C0103
-                    signal_conversion = {
-                        'type': SignalConversions.CONVERSION_POLYNOMIAL,
-                        'P1': conversion['P1'],
-                        'P2': conversion['P2'],
-                        'P3': conversion['P3'],
-                        'P4': conversion['P4'],
-                        'P5': conversion['P5'],
-                        'P6': conversion['P6'],
-                    }
-
-                    if not raw:
-                        P1 = conversion['P1']
-                        P2 = conversion['P2']
-                        P3 = conversion['P3']
-                        P4 = conversion['P4']
-                        P5 = conversion['P5']
-                        P6 = conversion['P6']
-
+                if not raw:
+                    P1 = conversion['P1']
+                    P2 = conversion['P2']
+                    P3 = conversion['P3']
+                    P4 = conversion['P4']
+                    P5 = conversion['P5']
+                    P6 = conversion['P6']
+                    if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
                         X = vals
+                        vals = evaluate(v23c.RAT_CONV_TEXT)
 
-                        coefs = (P2, P3, P5, P6)
-                        if coefs == (0, 0, 0, 0):
-                            if P1 != P4:
-                                vals = evaluate(v23c.POLY_CONV_SHORT_TEXT)
-                        else:
-                            vals = evaluate(v23c.POLY_CONV_LONG_TEXT)
+            elif conversion_type == v23c.CONVERSION_TYPE_POLY:
+                # pylint: disable=unused-variable,C0103
+                signal_conversion = {
+                    'type': SignalConversions.CONVERSION_POLYNOMIAL,
+                    'P1': conversion['P1'],
+                    'P2': conversion['P2'],
+                    'P3': conversion['P3'],
+                    'P4': conversion['P4'],
+                    'P5': conversion['P5'],
+                    'P6': conversion['P6'],
+                }
 
-                elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
-                    # pylint: disable=unused-variable,C0103
-                    formula = conversion['formula'].decode('latin-1')
-                    formula = formula.strip(' \n\t\0')
+                if not raw:
+                    P1 = conversion['P1']
+                    P2 = conversion['P2']
+                    P3 = conversion['P3']
+                    P4 = conversion['P4']
+                    P5 = conversion['P5']
+                    P6 = conversion['P6']
 
-                    signal_conversion = {
-                        'type': SignalConversions.CONVERSION_ALGEBRAIC,
-                        'formula': formula,
-                    }
+                    X = vals
 
-                    if not raw:
-                        X1 = vals
-                        vals = evaluate(formula)
+                    coefs = (P2, P3, P5, P6)
+                    if coefs == (0, 0, 0, 0):
+                        if P1 != P4:
+                            vals = evaluate(v23c.POLY_CONV_SHORT_TEXT)
+                    else:
+                        vals = evaluate(v23c.POLY_CONV_LONG_TEXT)
+
+            elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
+                # pylint: disable=unused-variable,C0103
+                formula = conversion['formula'].decode('latin-1')
+                formula = formula.strip(' \n\t\0')
+
+                signal_conversion = {
+                    'type': SignalConversions.CONVERSION_ALGEBRAIC,
+                    'formula': formula,
+                }
+
+                if not raw:
+                    X1 = vals
+                    vals = evaluate(formula)
 
         if samples_only:
             res = vals

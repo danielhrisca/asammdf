@@ -439,6 +439,8 @@ class MDF(object):
 
                 fragment = next(self._load_group_data(group))
 
+                fragment = (fragment[0], -1)
+
                 for j in range(channels_nr):
                     if j in excluded_channels:
                         continue
@@ -579,6 +581,12 @@ class MDF(object):
 
                     data = self._load_group_data(grp)
 
+                    if PYVERSION == 2:
+                        data = b''.join(str(d[0]) for d in data)
+                    else:
+                        data = b''.join(d[0] for d in data)
+                    data = (data, 0)
+
                     group_name = 'DataGroup_{}'.format(i + 1)
                     wb_name = '{}_{}.xlsx'.format(excel_name, group_name)
                     workbook = xlsxwriter.Workbook(wb_name)
@@ -626,6 +634,12 @@ class MDF(object):
             for i, grp in enumerate(self.groups):
                 print('Exporting group {} of {}'.format(i + 1, count))
                 data = self._load_group_data(grp)
+
+                if PYVERSION == 2:
+                    data = b''.join(str(d[0]) for d in data)
+                else:
+                    data = b''.join(d[0] for d in data)
+                data = (data, 0)
 
                 group_name = 'DataGroup_{}'.format(i + 1)
                 group_csv_name = '{}_{}.csv'.format(csv_name, group_name)
