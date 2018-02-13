@@ -1769,7 +1769,45 @@ def generate_test_file(version='4.10'):
             raw=True,
         )
         sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
 
+    # byte array
+    sigs = []
+    ones = np.ones(cycles, dtype=np.dtype('(8,)u1'))
+    for i in range(channels_count):
+        sig = Signal(
+            ones*i,
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            comment='Byte array channel {}'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
+
+    # value to text
+    sigs = []
+    ones = np.ones(cycles, dtype=np.uint64)
+    conversion = {
+        'raw': np.arange(255, dtype=np.float64),
+        'phys': np.array([
+            'Value {}'.format(i).encode('ascii')
+            for i in range(255)
+        ]),
+        'type':  SignalConversions.CONVERSION_TABX,
+    }
+    for i in range(channels_count):
+        sig = Signal(
+            ones * i,
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            comment='Value to text channel {}'.format(i),
+            conversion=conversion,
+            raw=True,
+        )
+        sigs.append(sig)
     mdf.append(sigs, common_timebase=True)
 
     mdf.save(filename, overwrite=True)

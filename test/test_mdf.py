@@ -604,6 +604,8 @@ class TestMDF(unittest.TestCase):
                                 cond = np.array_equal(
                                         vals,
                                         v * (j - 1))
+                                if not cond:
+                                    print(i, j, vals, target, len(vals), len(target) )
                                 self.assertTrue(cond)
                         elif i == 1:
                             v = np.ones(cycles, dtype=np.int64)
@@ -624,6 +626,8 @@ class TestMDF(unittest.TestCase):
                                 cond = np.array_equal(
                                         vals,
                                         numexpr.evaluate(f))
+                                if not cond:
+                                    print(i, j, vals, target, len(vals), len(target) )
                                 self.assertTrue(cond)
                         elif i == 3:
                             v = np.ones(cycles, dtype=np.int64)
@@ -634,8 +638,10 @@ class TestMDF(unittest.TestCase):
                                 cond = np.array_equal(
                                         vals,
                                         numexpr.evaluate(f))
+                                if not cond:
+                                    print(i, j, vals, target, len(vals), len(target) )
                                 self.assertTrue(cond)
-                        else:
+                        elif i == 4:
 
                             for j in range(10, 200, 50):
                                 target = np.array([
@@ -647,7 +653,31 @@ class TestMDF(unittest.TestCase):
                                         vals,
                                         target)
                                 if not cond:
-                                    print(vals, target, len(vals), len(target) )
+                                    print(i, j, vals, target, len(vals), len(target) )
+                                self.assertTrue(cond)
+
+                        elif i == 5:
+                            v = np.ones(cycles, dtype=np.dtype('(8,)u1'))
+                            for j in range(10, 200, 50):
+                                target = v*j
+                                vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                cond = np.array_equal(
+                                        vals,
+                                        target)
+                                if not cond:
+                                    print(i, j, vals, target, len(vals), len(target) )
+                                self.assertTrue(cond)
+
+                        elif i == 6:
+                            v = np.ones(cycles, dtype=np.uint64)
+                            for j in range(10, 200, 50):
+                                target = v * j
+                                vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                cond = np.array_equal(
+                                        vals,
+                                        target)
+                                if not cond:
+                                    print(i, j, vals, target, len(vals), len(target) )
                                 self.assertTrue(cond)
         cleanup_files()
 

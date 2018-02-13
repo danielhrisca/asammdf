@@ -385,10 +385,10 @@ class MDF3(object):
                         parents[original_index] = name, bit_offset
 
                 elif data_type == v23c.DATA_TYPE_BYTEARRAY:
-                    size = size // 8
                     next_byte_aligned_position = parent_start_offset + size
+                    size = size // 8
                     if next_byte_aligned_position <= record_size:
-                        dtype_pair = (name, 'u1', (size, 1))
+                        dtype_pair = (name, get_fmt_v3(data_type, size))
                         types.append(dtype_pair)
                         parents[original_index] = name, bit_offset
 
