@@ -39,14 +39,14 @@ class TestMDF(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # PYVERSION = sys.version_info[0]
-        #
-        # url = 'https://github.com/danielhrisca/asammdf/files/1594267/test.demo.zip'
-        # if PYVERSION == 3:
-        #     urllib.request.urlretrieve(url, 'test.zip')
-        # else:
-        #     urllib.urlretrieve(url, 'test.zip')
-        # ZipFile(r'test.zip').extractall('tmpdir_demo')
+        PYVERSION = sys.version_info[0]
+
+        url = 'https://github.com/danielhrisca/asammdf/files/1594267/test.demo.zip'
+        if PYVERSION == 3:
+            urllib.request.urlretrieve(url, 'test.zip')
+        else:
+            urllib.urlretrieve(url, 'test.zip')
+        ZipFile(r'test.zip').extractall('tmpdir_demo')
 
         if not os.path.exists('tmpdir'):
             os.mkdir('tmpdir')
