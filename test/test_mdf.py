@@ -61,8 +61,7 @@ class TestMDF(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree('tmpdir_demo', True)
         shutil.rmtree('tmpdir_array', True)
-        shutil.rmtree('tmpdir_big', True)
-        shutil.rmtree('tmpdir_array_big', True)
+        shutil.rmtree('tmpdir', True)
         os.remove('test.zip')
         cleanup_files()
 
@@ -336,9 +335,9 @@ class TestMDF(unittest.TestCase):
         t = np.arange(cycles, dtype=np.float64)
 
         for out in ('3.30', '4.10'):
-            for mdfname in os.listdir('tmpdir_big'):
+            for mdfname in os.listdir('tmpdir'):
                 for memory in MEMORY:
-                    input_file = os.path.join('tmpdir_big', mdfname)
+                    input_file = os.path.join('tmpdir', mdfname)
                     print(input_file, memory, out)
                     with MDF(input_file, memory=memory) as mdf:
                         mdf.configure(read_fragment_size=8000)
@@ -470,9 +469,9 @@ class TestMDF(unittest.TestCase):
 
         t = np.arange(cycles, dtype=np.float64)
 
-        for mdfname in os.listdir('tmpdir_big'):
+        for mdfname in os.listdir('tmpdir'):
             for memory in MEMORY:
-                input_file = os.path.join('tmpdir_big', mdfname)
+                input_file = os.path.join('tmpdir', mdfname)
                 for whence in (0, 1):
                     print(input_file, memory)
 
@@ -496,7 +495,7 @@ class TestMDF(unittest.TestCase):
                     outfile = MDF.merge(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
                         MDF(input_file, memory='minimum').version,
-                    ).save('tmp_cut_big', overwrite=True)
+                    ).save('tmp_cut', overwrite=True)
 
                     with MDF(outfile) as mdf:
 
@@ -606,7 +605,7 @@ class TestMDF(unittest.TestCase):
                     outfile = MDF.merge(
                         [outfile1, outfile2, outfile3],
                         MDF(input_file, memory='minimum').version,
-                    ).save('tmp_cut_big', overwrite=True)
+                    ).save('tmp_cut', overwrite=True)
 
                     equal = True
 
