@@ -39,14 +39,14 @@ class TestMDF(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        PYVERSION = sys.version_info[0]
-
-        url = 'https://github.com/danielhrisca/asammdf/files/1594267/test.demo.zip'
-        if PYVERSION == 3:
-            urllib.request.urlretrieve(url, 'test.zip')
-        else:
-            urllib.urlretrieve(url, 'test.zip')
-        ZipFile(r'test.zip').extractall('tmpdir_demo')
+        # PYVERSION = sys.version_info[0]
+        #
+        # url = 'https://github.com/danielhrisca/asammdf/files/1594267/test.demo.zip'
+        # if PYVERSION == 3:
+        #     urllib.request.urlretrieve(url, 'test.zip')
+        # else:
+        #     urllib.urlretrieve(url, 'test.zip')
+        # ZipFile(r'test.zip').extractall('tmpdir_demo')
 
         if not os.path.exists('tmpdir'):
             os.mkdir('tmpdir')
@@ -509,7 +509,7 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             v * (j - 1))
                                     if not cond:
-                                        print(i, j, vals, target, len(vals), len(target) )
+                                        print(i, j, vals, v * (j - 1), len(vals), len(v) )
                                     self.assertTrue(cond)
                             elif i == 1:
                                 v = np.ones(cycles, dtype=np.int64)

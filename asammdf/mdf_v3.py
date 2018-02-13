@@ -170,120 +170,117 @@ class MDF3(object):
                 stream = self._tempfile
 
             # go to the first data block of the current data group
-            dat_addr = data_group['data_block_addr']
-            if dat_addr:
-
-                if group['sorted']:
-                    samples_size = channel_group['samples_byte_nr']
-                    if self._read_fragment_size:
-                        split_size = self._read_fragment_size // samples_size
-                        split_size *= samples_size
-                    else:
-                        channels_nr = len(group['channels'])
-
-                        if self.memory == 'minimum':
-                            y_axis = CONVERT_MINIMUM
-                        else:
-                            y_axis = CONVERT_LOW
-                        split_size = interp(
-                            channels_nr,
-                            CHANNEL_COUNT,
-                            y_axis,
-                        )
-
-                        split_size = int(split_size)
-
-                        split_size = split_size // samples_size
-                        split_size *= samples_size
-
-                    if split_size == 0:
-                        split_size = samples_size
-
-                    blocks = zip(
-                        group['data_block_addr'],
-                        group['data_block_size'],
-                    )
-                    if PYVERSION == 2:
-                        blocks = iter(blocks)
-
-                    cur_size = 0
-                    data = []
-
-                    while True:
-                        try:
-                            address, size = next(blocks)
-                            current_address = address
-                        except StopIteration:
-                            break
-                        stream.seek(address)
-
-                        while size >= split_size - cur_size:
-                            stream.seek(current_address)
-                            if data:
-                                data.append(stream.read(split_size - cur_size))
-                                yield b''.join(data), offset
-                                current_address += split_size - cur_size
-                            else:
-                                yield stream.read(split_size), offset
-                                current_address += split_size
-                            offset += split_size
-
-                            size -= split_size - cur_size
-                            data = []
-                            cur_size = 0
-
-                        if size:
-                            stream.seek(current_address)
-                            data.append(stream.read(size))
-                            cur_size += size
-                            offset += size
-
-                    if data:
-                        yield b''.join(data), offset
-
+            if group['sorted']:
+                samples_size = channel_group['samples_byte_nr']
+                if self._read_fragment_size:
+                    split_size = self._read_fragment_size // samples_size
+                    split_size *= samples_size
                 else:
-                    record_id = group['channel_group']['record_id']
-                    if PYVERSION == 2:
-                        record_id = chr(record_id)
-                    cg_size = group['record_size']
-                    if group['data_group']['record_id_nr'] <= 2:
-                        record_id_nr = group['data_group']['record_id_nr']
+                    channels_nr = len(group['channels'])
+
+                    if self.memory == 'minimum':
+                        y_axis = CONVERT_MINIMUM
                     else:
-                        record_id_nr = 0
-                    cg_data = []
-
-                    blocks = zip(
-                        group['data_block_addr'],
-                        group['data_block_size'],
+                        y_axis = CONVERT_LOW
+                    split_size = interp(
+                        channels_nr,
+                        CHANNEL_COUNT,
+                        y_axis,
                     )
-                    if PYVERSION == 2:
-                        blocks = iter(blocks)
 
-                    for address, size in blocks:
+                    split_size = int(split_size)
 
-                        stream.seek(address)
-                        data = stream.read(size)
+                    split_size = split_size // samples_size
+                    split_size *= samples_size
 
-                        i = 0
-                        while i < size:
-                            rec_id = data[i]
-                            # skip record id
-                            i += 1
-                            rec_size = cg_size[rec_id]
-                            if rec_id == record_id:
-                                rec_data = data[i: i + rec_size]
-                                cg_data.append(rec_data)
-                            # consider the second record ID if it exists
-                            if record_id_nr == 2:
-                                i += rec_size + 1
-                            else:
-                                i += rec_size
-                        cg_data = b''.join(cg_data)
-                        size = len(cg_data)
-                        yield cg_data, offset
+                if split_size == 0:
+                    split_size = samples_size
+
+                blocks = zip(
+                    group['data_block_addr'],
+                    group['data_block_size'],
+                )
+                if PYVERSION == 2:
+                    blocks = iter(blocks)
+
+                cur_size = 0
+                data = []
+
+                while True:
+                    try:
+                        address, size = next(blocks)
+                        current_address = address
+                    except StopIteration:
+                        break
+                    stream.seek(address)
+
+                    while size >= split_size - cur_size:
+                        stream.seek(current_address)
+                        if data:
+                            data.append(stream.read(split_size - cur_size))
+                            yield b''.join(data), offset
+                            current_address += split_size - cur_size
+                        else:
+                            yield stream.read(split_size), offset
+                            current_address += split_size
+                        offset += split_size
+
+                        size -= split_size - cur_size
+                        data = []
+                        cur_size = 0
+
+                    if size:
+                        stream.seek(current_address)
+                        data.append(stream.read(size))
+                        cur_size += size
                         offset += size
+
+                if data:
+                    yield b''.join(data), offset
+                elif not offset:
+                    yield b'', 0
+
             else:
-                yield b'', offset
+                record_id = group['channel_group']['record_id']
+                if PYVERSION == 2:
+                    record_id = chr(record_id)
+                cg_size = group['record_size']
+                if group['data_group']['record_id_nr'] <= 2:
+                    record_id_nr = group['data_group']['record_id_nr']
+                else:
+                    record_id_nr = 0
+                cg_data = []
+
+                blocks = zip(
+                    group['data_block_addr'],
+                    group['data_block_size'],
+                )
+                if PYVERSION == 2:
+                    blocks = iter(blocks)
+
+                for address, size in blocks:
+
+                    stream.seek(address)
+                    data = stream.read(size)
+
+                    i = 0
+                    while i < size:
+                        rec_id = data[i]
+                        # skip record id
+                        i += 1
+                        rec_size = cg_size[rec_id]
+                        if rec_id == record_id:
+                            rec_data = data[i: i + rec_size]
+                            cg_data.append(rec_data)
+                        # consider the second record ID if it exists
+                        if record_id_nr == 2:
+                            i += rec_size + 1
+                        else:
+                            i += rec_size
+                    cg_data = b''.join(cg_data)
+                    size = len(cg_data)
+                    yield cg_data, offset
+                    offset += size
 
     def _prepare_record(self, group):
         """ compute record dtype and parents dict for this group
