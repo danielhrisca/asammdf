@@ -1666,9 +1666,9 @@ def generate_test_file(version='4.10'):
     mdf = MDF(version=version, memory='minimum')
 
     if version <= '3.30':
-        filename = r'tmpdir_big/big_test_{}.mdf'.format(version)
+        filename = r'tmpdir/big_test_{}.mdf'.format(version)
     else:
-        filename = r'tmpdir_big/big_test_{}.mf4'.format(version)
+        filename = r'tmpdir/big_test_{}.mf4'.format(version)
 
     if os.path.exists(filename):
         return filename
@@ -1816,7 +1816,7 @@ def generate_test_file(version='4.10'):
 def generate_arrays_test_file():
     version = '4.10'
     mdf = MDF(version=version, memory='minimum')
-    filename = r'tmpdir_array/arrays_big_test_{}.mf4'.format(version)
+    filename = r'tmpdir_array/arrays_test_{}.mf4'.format(version)
 
     if os.path.exists(filename):
         return filename
