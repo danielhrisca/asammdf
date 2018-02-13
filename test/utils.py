@@ -9,9 +9,9 @@ SUPPORTED_VERSIONS = SUPPORTED_VERSIONS[1:]
 
 MEMORY = ('minimum', 'low', 'full')
 
-cycles = 5000
-channels_count = 200
-array_channels_count = 200
+cycles = 500
+channels_count = 20
+array_channels_count = 20
 
 
 CHANNELS_DEMO = {
@@ -1816,7 +1816,7 @@ def generate_test_file(version='4.10'):
 def generate_arrays_test_file():
     version = '4.10'
     mdf = MDF(version=version, memory='minimum')
-    filename = r'tmpdir_array_big/arrays_big_test_{}.mf4'.format(version)
+    filename = r'tmpdir_array/arrays_big_test_{}.mf4'.format(version)
 
     if os.path.exists(filename):
         return filename
