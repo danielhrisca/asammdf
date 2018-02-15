@@ -136,6 +136,7 @@ class MDF3(object):
         self.version = version
 
         self._master_channel_cache = {}
+        self._master_channel_metadata = {}
 
         # used for appending to MDF created with memory=False
         self._tempfile = TemporaryFile()
@@ -1189,6 +1190,12 @@ class MDF3(object):
         # time channel texts
         gp_texts['conversion_tab'].append(None)
 
+        master_metadata = signals[0].master_metadata
+        if master_metadata:
+            time_name = master_metadata[0]
+        else:
+            time_name = 'Time'
+
         # conversion for time channel
         kargs = {
             'conversion_type': v23c.CONVERSION_TYPE_NONE,
@@ -1216,7 +1223,7 @@ class MDF3(object):
             timestamps.shape,
         )
         kargs = {
-            'short_name': b't',
+            'short_name': time_name.encode('latin-1'),
             'channel_type': v23c.CHANNEL_TYPE_MASTER,
             'data_type': t_type,
             'start_offset': 0,
@@ -1226,7 +1233,7 @@ class MDF3(object):
             'block_len': channel_size,
         }
         channel = Channel(**kargs)
-        channel.name = name = 't'
+        channel.name = name = time_name
         if memory != 'minimum':
             gp_channels.append(channel)
         else:
@@ -1554,7 +1561,7 @@ class MDF3(object):
                     timestamps.shape,
                 )
                 kargs = {
-                    'short_name': b't',
+                    'short_name': time_name.encode('latin-1'),
                     'channel_type': v23c.CHANNEL_TYPE_MASTER,
                     'data_type': t_type,
                     'start_offset': 0,
@@ -1564,7 +1571,7 @@ class MDF3(object):
                     'block_len': channel_size,
                 }
                 channel = Channel(**kargs)
-                channel.name = name = 't'
+                channel.name = name = time_name
                 if memory != 'minimum':
                     new_gp_channels.append(channel)
                 else:
@@ -3215,6 +3222,8 @@ class MDF3(object):
             else:
                 comment = description
 
+            master_metadata = self._master_channel_metadata.get(gp_nr, None)
+
             res = Signal(
                 samples=vals,
                 timestamps=timestamps,
@@ -3223,6 +3232,7 @@ class MDF3(object):
                 comment=comment,
                 conversion=signal_conversion,
                 raw=raw,
+                master_metadata=master_metadata,
             )
 
         return res
@@ -3287,6 +3297,10 @@ class MDF3(object):
 
         if time_ch_nr is None:
             t = arange(cycles_nr, dtype=float64)
+            metadata = [
+                'Time',
+                1,
+            ]
         else:
             time_conv = group['channel_conversions'][time_ch_nr]
             if memory == 'minimum':
@@ -3301,8 +3315,18 @@ class MDF3(object):
                     address=group['channels'][time_ch_nr],
                     stream=stream,
                 )
+                time_name = self.get_channel_name(
+                    index,
+                    time_ch_nr,
+                )
             else:
                 time_ch = group['channels'][time_ch_nr]
+                time_name = time_ch.name
+
+            metadata = [
+                time_name,
+                1,
+            ]
 
             if time_ch['bit_count'] == 0:
                 if time_ch['sampling_rate']:
@@ -3372,6 +3396,8 @@ class MDF3(object):
 
         if not t.dtype == float64:
             t = t.astype(float64)
+
+        self._master_channel_metadata[index] = metadata
 
         if original_data is None:
             self._master_channel_cache[index] = t

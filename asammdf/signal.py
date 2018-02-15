@@ -70,6 +70,7 @@ class Signal(object):
         'comment',
         '_plot_axis',
         'raw',
+        'master_metadata',
     ]
 
     def __init__(self,
@@ -79,7 +80,8 @@ class Signal(object):
                  name='',
                  conversion=None,
                  comment='',
-                 raw=False):
+                 raw=False,
+                 master_metadata=None):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
@@ -103,16 +105,7 @@ class Signal(object):
             self.comment = comment
             self._plot_axis = None
             self.raw = raw
-
-#    def physical(self):
-#        """ get Signal with physical conversion appplied
-#        to its samples
-#
-#        """
-#        if self.raw:
-#            pass
-#        else:
-#            return self
+            self.master_metadata = master_metadata
 
     def __str__(self):
         string = """<Signal {}:
@@ -170,12 +163,23 @@ class Signal(object):
                 plt.title('{}\n({})'.format(self.name, comment))
             else:
                 plt.title(self.name)
-            plt.xlabel('Time [s]')
-            plt.ylabel('[{}]'.format(self.unit))
-            plt.plot(self.timestamps, self.samples, 'b')
-            plt.plot(self.timestamps, self.samples, 'b.')
-            plt.grid(True)
-            plt.show()
+            if self.master_metadata is None:
+                plt.xlabel('Time [s]')
+                plt.ylabel('[{}]'.format(self.unit))
+                plt.plot(self.timestamps, self.samples, 'b')
+                plt.plot(self.timestamps, self.samples, 'b.')
+                plt.grid(True)
+                plt.show()
+            else:
+                master_name, sync_type = self.master_metadata
+                if sync_type in (0, 1):
+                    plt.xlabel('{} [s]'.format(master_name))
+                elif sync_type == 2:
+                    plt.xlabel('{} [deg]'.format(master_name))
+                elif sync_type == 3:
+                    plt.xlabel('{} [m]'.format(master_name))
+                elif sync_type == 4:
+                    plt.xlabel('{} [index]'.format(master_name))
         else:
             try:
                 names = self.samples.dtype.names

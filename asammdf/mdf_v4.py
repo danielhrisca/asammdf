@@ -234,6 +234,7 @@ class MDF4(object):
 
         self._ch_map = {}
         self._master_channel_cache = {}
+        self._master_channel_metadata = {}
         self._invalidation_cache = {}
         self._si_map = {}
         self._cc_map = {}
@@ -1355,6 +1356,8 @@ class MDF4(object):
 
         vals = fromstring(data, dtype=dtype(types))
 
+        vals = vals['vals']
+
         if channel['data_type'] not in big_endian_types:
             vals = flip(vals, 1)
 
@@ -1702,13 +1705,28 @@ class MDF4(object):
 
         seek(0, 2)
 
+        master_metadata = signals[0].master_metadata
+        if master_metadata:
+            time_name, sync_type = master_metadata
+            if sync_type in (0, 1):
+                time_unit = 's'
+            elif sync_type == 2:
+                time_unit = 'deg'
+            elif sync_type == 3:
+                time_unit = 'm'
+            elif sync_type == 4:
+                time_unit = 'index'
+        else:
+            time_name, sync_type = 'Time', v4c.SYNC_TYPE_TIME
+            time_unit = 's'
+
         if memory == 'minimum':
-            block = TextBlock(text='t', meta=False)
+            block = TextBlock(text=time_name, meta=False)
             channel_name_addr = tell()
             write(bytes(block))
 
         if memory == 'minimum':
-            block = TextBlock(text='s', meta=False)
+            block = TextBlock(text=time_unit, meta=False)
             channel_unit_addr = tell()
             write(bytes(block))
 
@@ -1751,7 +1769,7 @@ class MDF4(object):
         kargs = {
             'channel_type': v4c.CHANNEL_TYPE_MASTER,
             'data_type': t_type,
-            'sync_type': 1,
+            'sync_type': sync_type,
             'byte_offset': 0,
             'bit_offset': 0,
             'bit_count': t_size,
@@ -4837,6 +4855,8 @@ class MDF4(object):
                     if match:
                         comment = match.group('text')
 
+            master_metadata = self._master_channel_metadata.get(gp_nr, None)
+
             res = Signal(
                 samples=vals,
                 timestamps=timestamps,
@@ -4845,6 +4865,7 @@ class MDF4(object):
                 comment=comment,
                 conversion=signal_conversion,
                 raw=raw,
+                master_metadata=master_metadata,
             )
 
         return res
@@ -4917,6 +4938,10 @@ class MDF4(object):
             offset = offset // record_size
             t = arange(cycles_nr, dtype=float64)
             t += offset
+            metadata = [
+                'Time',
+                v4c.SYNC_TYPE_INDEX,
+            ]
         else:
             time_conv = group['channel_conversions'][time_ch_nr]
             if memory == 'minimum':
@@ -4931,8 +4956,18 @@ class MDF4(object):
                     address=group['channels'][time_ch_nr],
                     stream=stream,
                 )
+                time_name = get_text_v4(
+                    address=time_ch['name_addr'],
+                    stream=stream,
+                )
             else:
                 time_ch = group['channels'][time_ch_nr]
+                time_name = time_ch.name
+
+            metadata = [
+                time_name,
+                time_ch['sync_type'],
+            ]
 
             if time_ch['channel_type'] == v4c.CHANNEL_TYPE_VIRTUAL_MASTER:
                 offset = offset // record_size
@@ -4942,6 +4977,7 @@ class MDF4(object):
                 t += offset
                 t *= time_a
                 t += time_b
+
             else:
                 # get data group parents and dtypes
                 try:
@@ -4998,6 +5034,8 @@ class MDF4(object):
                         t = t * time_a
                         if time_b:
                             t += time_b
+
+        self._master_channel_metadata[index] = metadata
 
         if not t.dtype == float64:
             t = t.astype(float64)
