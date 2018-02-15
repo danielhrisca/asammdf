@@ -1355,8 +1355,6 @@ class MDF4(object):
 
         vals = fromstring(data, dtype=dtype(types))
 
-        vals = vals['vals'].copy()
-
         if channel['data_type'] not in big_endian_types:
             vals = flip(vals, 1)
 
