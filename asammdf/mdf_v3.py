@@ -1818,6 +1818,7 @@ class MDF3(object):
                 s_type, s_size = fmt_to_datatype_v3(
                     samples.dtype,
                     (),
+                    True,
                 )
                 # compute additional byte offset for large records size
                 if offset > v23c.MAX_UINT16:

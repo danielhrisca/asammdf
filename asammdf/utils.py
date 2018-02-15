@@ -305,7 +305,7 @@ def fix_dtype_fields(fields):
     return new_types
 
 
-def fmt_to_datatype_v3(fmt, shape):
+def fmt_to_datatype_v3(fmt, shape, array=False):
     """convert numpy dtype format string to mdf versions 2 and 3
     channel data type and size
 
@@ -315,6 +315,8 @@ def fmt_to_datatype_v3(fmt, shape):
         numpy data type
     shape : tuple
         numpy array shape
+    array : bool
+        disambiguate between bytearray and channel array
 
     Returns
     -------
@@ -324,7 +326,7 @@ def fmt_to_datatype_v3(fmt, shape):
     """
     size = fmt.itemsize * 8
 
-    if shape[1:] and fmt.itemsize == 1 and fmt.kind == 'u':
+    if not array and shape[1:] and fmt.itemsize == 1 and fmt.kind == 'u':
         data_type = v3c.DATA_TYPE_BYTEARRAY
         for dim in shape[1:]:
             size *= dim
@@ -359,7 +361,7 @@ def fmt_to_datatype_v3(fmt, shape):
     return data_type, size
 
 
-def fmt_to_datatype_v4(fmt, shape):
+def fmt_to_datatype_v4(fmt, shape, array=False):
     """convert numpy dtype format string to mdf version 4 channel data
     type and size
 
@@ -369,6 +371,8 @@ def fmt_to_datatype_v4(fmt, shape):
         numpy data type
     shape : tuple
         numpy array shape
+    array : bool
+        disambiguate between bytearray and channel array
 
     Returns
     -------
@@ -378,7 +382,7 @@ def fmt_to_datatype_v4(fmt, shape):
     """
     size = fmt.itemsize * 8
 
-    if shape[1:] and fmt.itemsize == 1 and fmt.kind == 'u':
+    if not array and shape[1:] and fmt.itemsize == 1 and fmt.kind == 'u':
         data_type = v4c.DATA_TYPE_BYTEARRAY
         for dim in shape[1:]:
             size *= dim

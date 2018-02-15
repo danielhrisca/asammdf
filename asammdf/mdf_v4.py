@@ -37,13 +37,14 @@ from numpy import (
     searchsorted,
     transpose,
     uint8,
+    uint16,
     uint64,
     union1d,
     unpackbits,
     zeros,
 )
 
-from numpy.core.defchararray import encode, decode
+from numpy.core.defchararray import encode, decode, strip
 from numpy.core.records import fromarrays, fromstring
 
 from . import v4_constants as v4c
@@ -2278,7 +2279,12 @@ class MDF4(object):
                 else:
                     vals = []
                     for field in ('ms', 'min', 'hour', 'day', 'month', 'year'):
-                        vals.append(signal.samples[field])
+                        if field == 'hour':
+                            vals.append(signal.samples[field] + (signal.samples['summer_time'] << 7))
+                        elif field == 'day':
+                            vals.append(signal.samples[field] + (signal.samples['day_of_week'] << 4))
+                        else:
+                            vals.append(signal.samples[field])
                     vals = fromarrays(vals).tostring()
 
                     fields.append(frombuffer(vals, dtype='V7'))
@@ -2682,6 +2688,7 @@ class MDF4(object):
                 s_type, s_size = fmt_to_datatype_v4(
                     samples.dtype,
                     samples.shape,
+                    True,
                 )
 
                 # add channel block
@@ -4304,7 +4311,12 @@ class MDF4(object):
                             encoding = 'latin-1'
 
                         if encoding != 'latin-1':
-                            vals = encode(decode(vals, encoding), 'latin-1')
+
+                            if encoding == 'utf-16-le':
+                                vals = vals.view(uint16).byteswap().view(vals.dtype)
+                                vals = encode(decode(vals, 'utf-16-be'), 'latin-1')
+                            else:
+                                vals = encode(decode(vals, encoding), 'latin-1')
                     else:
                         # no VLSD signal data samples
                         vals = array([], dtype=dtype('S'))
@@ -4325,7 +4337,11 @@ class MDF4(object):
                         encoding = 'latin-1'
 
                     if encoding != 'latin-1':
-                        vals = encode(decode(vals, encoding), 'latin-1')
+                        if encoding == 'utf-16-le':
+                            vals = vals.view(uint16).byteswap().view(vals.dtype)
+                            vals = encode(decode(vals, 'utf-16-be'), 'latin-1')
+                        else:
+                            vals = encode(decode(vals, encoding), 'latin-1')
 
                 # CANopen date
                 if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
