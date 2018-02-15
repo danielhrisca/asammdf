@@ -517,10 +517,16 @@ class MDF3(object):
 
         fmt = get_fmt_v3(channel['data_type'], size)
         if size <= byte_count:
-            types = [
-                ('vals', fmt),
-                ('', 'a{}'.format(byte_count - size)),
-            ]
+            if channel['data_type'] in big_endian_types:
+                types = [
+                    ('', 'a{}'.format(byte_count - size)),
+                    ('vals', fmt),
+                ]
+            else:
+                types = [
+                    ('vals', fmt),
+                    ('', 'a{}'.format(byte_count - size)),
+                ]
         else:
             types = [('vals', fmt), ]
 

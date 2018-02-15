@@ -1355,9 +1355,7 @@ class MDF4(object):
 
         vals = fromstring(data, dtype=dtype(types))
 
-        vals.setflags(write=False)
-
-        vals = vals['vals']
+        vals = vals['vals'].copy()
 
         if channel['data_type'] not in big_endian_types:
             vals = flip(vals, 1)
@@ -1404,14 +1402,21 @@ class MDF4(object):
                 ('', extra.dtype, extra.shape[1:]),
             ]
             vals = fromarrays([vals, extra], dtype=dtype(types))
+
         vals = vals.tostring()
 
         fmt = get_fmt_v4(channel['data_type'], size)
         if size <= byte_count:
-            types = [
-                ('vals', fmt),
-                ('', 'a{}'.format(byte_count - size)),
-            ]
+            if channel['data_type'] in big_endian_types:
+                types = [
+                    ('', 'a{}'.format(byte_count - size)),
+                    ('vals', fmt),
+                ]
+            else:
+                types = [
+                    ('vals', fmt),
+                    ('', 'a{}'.format(byte_count - size)),
+                ]
         else:
             types = [('vals', fmt), ]
 
