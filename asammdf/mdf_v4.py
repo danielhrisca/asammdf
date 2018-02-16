@@ -5027,10 +5027,10 @@ class MDF4(object):
             offset = offset // record_size
             t = arange(cycles_nr, dtype=float64)
             t += offset
-            metadata = [
+            metadata = (
                 'Time',
                 v4c.SYNC_TYPE_TIME,
-            ]
+            )
         else:
             time_conv = group['channel_conversions'][time_ch_nr]
             if memory == 'minimum':
@@ -5053,10 +5053,10 @@ class MDF4(object):
                 time_ch = group['channels'][time_ch_nr]
                 time_name = time_ch.name
 
-            metadata = [
+            metadata = (
                 time_name,
                 time_ch['sync_type'],
-            ]
+            )
 
             if time_ch['channel_type'] == v4c.CHANNEL_TYPE_VIRTUAL_MASTER:
                 offset = offset // record_size

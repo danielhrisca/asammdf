@@ -998,11 +998,11 @@ class MDF3(object):
         Parameters
         ----------
         read_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size is
+            size hint of split data blocks, default 8MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size
         write_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size is
+            size hint of split data blocks, default 8MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size
 
@@ -3467,10 +3467,10 @@ class MDF3(object):
 
         if time_ch_nr is None:
             t = arange(cycles_nr, dtype=float64)
-            metadata = [
+            metadata = (
                 'Time',
                 1,
-            ]
+            )
         else:
             time_conv = group['channel_conversions'][time_ch_nr]
             if memory == 'minimum':
@@ -3493,10 +3493,10 @@ class MDF3(object):
                 time_ch = group['channels'][time_ch_nr]
                 time_name = time_ch.name
 
-            metadata = [
+            metadata = (
                 time_name,
                 1,
-            ]
+            )
 
             if time_ch['bit_count'] == 0:
                 if time_ch['sampling_rate']:
