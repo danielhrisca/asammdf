@@ -862,6 +862,16 @@ class MDF3(object):
                             self.channels_db[display_name] = []
                             self.channels_db[display_name].append((dg_cntr, ch_cntr))
 
+                        # check if the source is included in the channel name
+                        display_name = display_name.split('\\')
+                        if len(display_name) > 1:
+                            display_name = display_name[0]
+                            if display_name in self.channels_db:
+                                self.channels_db[display_name].append((dg_cntr, ch_cntr))
+                            else:
+                                self.channels_db[display_name] = []
+                                self.channels_db[display_name].append((dg_cntr, ch_cntr))
+
                     if name in self.channels_db:
                         self.channels_db[name].append((dg_cntr, ch_cntr))
                     else:
@@ -1472,6 +1482,16 @@ class MDF3(object):
                 else:
                     description = b'\0'
                     comment_address = 0
+                display_name = signal.display_name
+                if display_name:
+                    if memory == 'minimum':
+                        block = TextBlock(text=display_name)
+                        display_name_address = tell()
+                        write(bytes(block))
+                    else:
+                        display_name_address = 0
+                else:
+                    display_name_address = 0
                 short_name = (name[:31] + '\0').encode('latin-1')
 
                 kargs = {
@@ -1487,12 +1507,14 @@ class MDF3(object):
                     'block_len': channel_size,
                     'comment_addr': comment_address,
                     'description': description,
+                    'display_name_addr': display_name_address,
                 }
 
                 channel = Channel(**kargs)
                 if memory != 'minimum':
                     channel.name = name
-                    channel.comment = signal.comment
+                    channel.comment = comment
+                    channel.display_name = display_name
                     gp_channels.append(channel)
                 else:
                     address = tell()
@@ -1527,6 +1549,23 @@ class MDF3(object):
                     else:
                         self.channels_db[name] = []
                         self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                if display_name:
+                    if display_name in self.channels_db:
+                        self.channels_db[display_name].append((dg_cntr, ch_cntr))
+                    else:
+                        self.channels_db[display_name] = []
+                        self.channels_db[display_name].append((dg_cntr, ch_cntr))
+
+                    # check if the source is included in the channel name
+                    display_name = display_name.split('\\')
+                    if len(display_name) > 1:
+                        display_name = display_name[0]
+                        if display_name in self.channels_db:
+                            self.channels_db[display_name].append((dg_cntr, ch_cntr))
+                        else:
+                            self.channels_db[display_name] = []
+                            self.channels_db[display_name].append((dg_cntr, ch_cntr))
 
                 ch_cntr += 1
 
@@ -1909,6 +1948,17 @@ class MDF3(object):
                 else:
                     description = b'\0'
                     comment_address = 0
+                display_name = signal.display_name
+                if display_name:
+                    if memory == 'minimum':
+                        block = TextBlock(text=display_name)
+                        display_name_address = tell()
+                        write(bytes(block))
+                    else:
+                        display_name_address = 0
+                else:
+                    display_name_address = 0
+
                 short_name = (name[:31] + '\0').encode('latin-1')
 
                 kargs = {
@@ -1924,12 +1974,14 @@ class MDF3(object):
                     'block_len': channel_size,
                     'comment_addr': comment_address,
                     'description': description,
+                    'display_name_addr': display_name_address,
                 }
 
                 channel = Channel(**kargs)
                 if memory != 'minimum':
                     channel.name = name
-                    channel.comment = signal.comment
+                    channel.comment = comment
+                    channel.display_name = display_name
                     gp_channels.append(channel)
                 else:
                     address = tell()
@@ -1949,6 +2001,23 @@ class MDF3(object):
                     else:
                         self.channels_db[name] = []
                         self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                if display_name:
+                    if display_name in self.channels_db:
+                        self.channels_db[display_name].append((dg_cntr, ch_cntr))
+                    else:
+                        self.channels_db[display_name] = []
+                        self.channels_db[display_name].append((dg_cntr, ch_cntr))
+
+                    # check if the source is included in the channel name
+                    display_name = display_name.split('\\')
+                    if len(display_name) > 1:
+                        display_name = display_name[0]
+                        if display_name in self.channels_db:
+                            self.channels_db[display_name].append((dg_cntr, ch_cntr))
+                        else:
+                            self.channels_db[display_name] = []
+                            self.channels_db[display_name].append((dg_cntr, ch_cntr))
 
                 ch_cntr += 1
 
@@ -2867,6 +2936,7 @@ class MDF3(object):
             channel = grp['channels'][ch_nr]
             conversion = grp['channel_conversions'][ch_nr]
             name = channel.name
+            display_name = channel.display_name
         else:
             channel = Channel(
                 address=grp['channels'][ch_nr],
@@ -2888,9 +2958,12 @@ class MDF3(object):
                         channel['short_name']
                         .decode('latin-1')
                         .strip(' \n\t\0')
-                        .split('\\')[0]
                     )
             channel.name = name
+            if channel.get('display_name_addr', 0):
+                display_name = get_text_v3(channel['display_name_addr'], stream)
+            else:
+                display_name = ''
 
         dep = grp['channel_dependencies'][ch_nr]
         cycles_nr = grp['channel_group']['cycles_nr']
@@ -3309,6 +3382,17 @@ class MDF3(object):
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
+            if memory != 'minimum':
+                display_name = channel.display_name
+            else:
+                if channel.get('display_name_addr', 0):
+                    display_name = get_text_v3(
+                        channel['display_name_addr'],
+                        stream,
+                    )
+                else:
+                    display_name = ''
+
             res = Signal(
                 samples=vals,
                 timestamps=timestamps,
@@ -3318,6 +3402,7 @@ class MDF3(object):
                 conversion=signal_conversion,
                 raw=raw,
                 master_metadata=master_metadata,
+                display_name=display_name,
             )
 
         return res

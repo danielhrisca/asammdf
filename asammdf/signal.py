@@ -58,6 +58,10 @@ class Signal(object):
         signal comment, default ''
     raw : bool
         signal samples are raw values, with no physical conversion applied
+    master_metadata : list
+        master name and sync type
+    display_name : str
+        display name used by mdf version 3
 
     """
 
@@ -71,6 +75,7 @@ class Signal(object):
         '_plot_axis',
         'raw',
         'master_metadata',
+        'display_name',
     ]
 
     def __init__(self,
@@ -81,7 +86,8 @@ class Signal(object):
                  conversion=None,
                  comment='',
                  raw=False,
-                 master_metadata=None):
+                 master_metadata=None,
+                 display_name=''):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
@@ -106,6 +112,7 @@ class Signal(object):
             self._plot_axis = None
             self.raw = raw
             self.master_metadata = master_metadata
+            self.display_name = display_name
 
     def __str__(self):
         string = """<Signal {}:
@@ -368,6 +375,8 @@ class Signal(object):
                         self.conversion,
                         self.comment,
                         self.raw,
+                        self.master_metadata,
+                        self.display_name,
                     )
                 else:
                     result = Signal(
@@ -378,6 +387,8 @@ class Signal(object):
                         self.conversion,
                         self.comment,
                         self.raw,
+                        self.master_metadata,
+                        self.display_name,
                     )
 
             elif stop is None:
@@ -391,6 +402,8 @@ class Signal(object):
                     self.conversion,
                     self.comment,
                     self.raw,
+                    self.master_metadata,
+                    self.display_name,
                 )
 
             else:
@@ -412,6 +425,8 @@ class Signal(object):
                             self.conversion,
                             self.comment,
                             self.raw,
+                            self.master_metadata,
+                            self.display_name,
                         )
                     else:
                         # signal is empty or start and stop are outside the
@@ -424,6 +439,8 @@ class Signal(object):
                             self.conversion,
                             self.comment,
                             self.raw,
+                            self.master_metadata,
+                            self.display_name,
                         )
                 else:
                     result = Signal(
@@ -434,6 +451,8 @@ class Signal(object):
                         self.conversion,
                         self.comment,
                         self.raw,
+                        self.master_metadata,
+                        self.display_name,
                     )
         return result
 
@@ -471,6 +490,8 @@ class Signal(object):
                 self.conversion,
                 self.comment,
                 self.raw,
+                self.master_metadata,
+                self.display_name,
             )
         else:
             result = self
@@ -509,6 +530,8 @@ class Signal(object):
             self.name,
             self.conversion,
             self.raw,
+            self.master_metadata,
+            self.display_name,
         )
 
     def __apply_func(self, other, func_name):
@@ -537,6 +560,8 @@ class Signal(object):
             self.name,
             self.conversion,
             self.raw,
+            self.master_metadata,
+            self.display_name,
         )
 
     def __pos__(self):
@@ -550,6 +575,8 @@ class Signal(object):
             self.name,
             self.conversion,
             self.raw,
+            self.master_metadata,
+            self.display_name,
         )
 
     def __round__(self, n):
@@ -560,6 +587,8 @@ class Signal(object):
             self.name,
             self.conversion,
             self.raw,
+            self.master_metadata,
+            self.display_name,
         )
 
     def __sub__(self, other):
@@ -623,6 +652,8 @@ class Signal(object):
             self.name,
             self.conversion,
             self.raw,
+            self.master_metadata,
+            self.display_name,
         )
 
     def __lshift__(self, other):
@@ -672,6 +703,8 @@ class Signal(object):
             self.name,
             self.conversion,
             self.raw,
+            self.master_metadata,
+            self.display_name,
         )
 
     def __getitem__(self, val):
@@ -701,6 +734,8 @@ class Signal(object):
             self.name,
             self.conversion,
             self.raw,
+            self.master_metadata,
+            self.display_name,
         )
 
     def physical(self):
@@ -827,6 +862,8 @@ class Signal(object):
             name=self.name,
             raw=False,
             comment=self.comment,
+            master_metadata=self.master_metadata,
+            display_name=self.display_name,
         )
 
 
