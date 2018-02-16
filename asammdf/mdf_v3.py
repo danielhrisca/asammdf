@@ -855,7 +855,13 @@ class MDF3(object):
 
                     address = new_ch.get('display_name_addr', 0)
                     if address:
-                        new_ch.display_name = get_text_v3(address, stream)
+                        display_name = get_text_v3(address, stream)
+                        new_ch.display_name = display_name
+                        if display_name in self.channels_db:
+                            self.channels_db[display_name].append((dg_cntr, ch_cntr))
+                        else:
+                            self.channels_db[display_name] = []
+                            self.channels_db[display_name].append((dg_cntr, ch_cntr))
 
                     if name in self.channels_db:
                         self.channels_db[name].append((dg_cntr, ch_cntr))
