@@ -5538,10 +5538,11 @@ class MDF4(object):
 
                 gp['data_group']['comment_addr'] = 0
 
-            for i, dg in enumerate(self.groups[:-1]):
-                addr_ = self.groups[i + 1]['data_group'].address
-                dg['data_group']['next_dg_addr'] = addr_
-            self.groups[-1]['data_group']['next_dg_addr'] = 0
+            if self.groups:
+                for i, dg in enumerate(self.groups[:-1]):
+                    addr_ = self.groups[i + 1]['data_group'].address
+                    dg['data_group']['next_dg_addr'] = addr_
+                self.groups[-1]['data_group']['next_dg_addr'] = 0
 
             tab_conversion = (
                 v4c.CONVERSION_TYPE_TABX,
@@ -6548,10 +6549,11 @@ class MDF4(object):
 
                 gp['data_group']['comment_addr'] = 0
 
-            for i, dg in enumerate(self.groups[:-1]):
-                addr_ = self.groups[i + 1]['data_group'].address
-                dg['data_group']['next_dg_addr'] = addr_
-            self.groups[-1]['data_group']['next_dg_addr'] = 0
+            if self.groups:
+                for i, dg in enumerate(self.groups[:-1]):
+                    addr_ = self.groups[i + 1]['data_group'].address
+                    dg['data_group']['next_dg_addr'] = addr_
+                self.groups[-1]['data_group']['next_dg_addr'] = 0
 
             for block in blocks:
                 write(bytes(block))
