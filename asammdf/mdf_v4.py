@@ -1782,14 +1782,14 @@ class MDF4(object):
             'unit_addr': unit_addr,
         }
         ch = Channel(**kargs)
-        name = 't'
+        name = time_name
         if memory == 'minimum':
             address = tell()
             write(bytes(ch))
             gp_channels.append(address)
         else:
             ch.name = name
-            ch.unit = 's'
+            ch.unit = time_unit
             gp_channels.append(ch)
 
         gp_sdata.append(None)
@@ -4940,7 +4940,7 @@ class MDF4(object):
             t += offset
             metadata = [
                 'Time',
-                v4c.SYNC_TYPE_INDEX,
+                v4c.SYNC_TYPE_TIME,
             ]
         else:
             time_conv = group['channel_conversions'][time_ch_nr]
