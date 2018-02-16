@@ -846,7 +846,6 @@ class MDF3(object):
                             new_ch['short_name']
                             .decode('latin-1')
                             .strip(' \n\t\0')
-                            .split('\\')[0]
                         )
 
                     address = new_ch.get('comment_addr', 0)
@@ -868,6 +867,16 @@ class MDF3(object):
                     else:
                         self.channels_db[name] = []
                         self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                    # check if the source is included in the channel name
+                    name = name.split('\\')
+                    if len(name) > 1:
+                        name = name[0]
+                        if name in self.channels_db:
+                            self.channels_db[name].append((dg_cntr, ch_cntr))
+                        else:
+                            self.channels_db[name] = []
+                            self.channels_db[name].append((dg_cntr, ch_cntr))
 
                     if new_ch['channel_type'] == v23c.CHANNEL_TYPE_MASTER:
                         self.masters_db[dg_cntr] = ch_cntr
@@ -1509,6 +1518,16 @@ class MDF3(object):
                     types.append((field_name, signal.samples.dtype, signal.samples.shape[1:]))
                 field_names.add(field_name)
 
+                # check if the source is included in the channel name
+                name = name.split('\\')
+                if len(name) > 1:
+                    name = name[0]
+                    if name in self.channels_db:
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
+                    else:
+                        self.channels_db[name] = []
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
+
                 ch_cntr += 1
 
                 # simple channels don't have channel dependencies
@@ -1588,6 +1607,7 @@ class MDF3(object):
                 if name not in self.channels_db:
                     self.channels_db[name] = []
                 self.channels_db[name].append((new_dg_cntr, new_ch_cntr))
+
                 self.masters_db[new_dg_cntr] = 0
                 # data group record parents
                 new_parents[new_ch_cntr] = name, 0
@@ -1601,6 +1621,16 @@ class MDF3(object):
 
                 new_offset += t_size
                 new_ch_cntr += 1
+
+                # check if the source is included in the channel name
+                name = name.split('\\')
+                if len(name) > 1:
+                    name = name[0]
+                    if name in self.channels_db:
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
+                    else:
+                        self.channels_db[name] = []
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
 
                 names = signal.samples.dtype.names
                 if names == (
@@ -1725,6 +1755,16 @@ class MDF3(object):
                     new_fields.append(samples)
                     new_types.append((field_name, samples.dtype))
                     new_field_names.add(field_name)
+
+                    # check if the source is included in the channel name
+                    name = name.split('\\')
+                    if len(name) > 1:
+                        name = name[0]
+                        if name in self.channels_db:
+                            self.channels_db[name].append((dg_cntr, ch_cntr))
+                        else:
+                            self.channels_db[name] = []
+                            self.channels_db[name].append((dg_cntr, ch_cntr))
 
                     new_ch_cntr += 1
 
@@ -1900,6 +1940,16 @@ class MDF3(object):
                     self.channels_db[name] = []
                 self.channels_db[name].append((dg_cntr, ch_cntr))
 
+                # check if the source is included in the channel name
+                name = name.split('\\')
+                if len(name) > 1:
+                    name = name[0]
+                    if name in self.channels_db:
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
+                    else:
+                        self.channels_db[name] = []
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
+
                 ch_cntr += 1
 
                 for i, (name, samples) in enumerate(
@@ -1988,6 +2038,16 @@ class MDF3(object):
                     fields.append(samples)
                     types.append((field_name, samples.dtype, shape))
                     field_names.add(field_name)
+
+                    # check if the source is included in the channel name
+                    name = name.split('\\')
+                    if len(name) > 1:
+                        name = name[0]
+                        if name in self.channels_db:
+                            self.channels_db[name].append((dg_cntr, ch_cntr))
+                        else:
+                            self.channels_db[name] = []
+                            self.channels_db[name].append((dg_cntr, ch_cntr))
 
                     gp_dep.append(None)
 
@@ -2101,6 +2161,16 @@ class MDF3(object):
                         self.channels_db[name] = []
                     self.channels_db[name].append((dg_cntr, ch_cntr))
 
+                    # check if the source is included in the channel name
+                    name = name.split('\\')
+                    if len(name) > 1:
+                        name = name[0]
+                        if name in self.channels_db:
+                            self.channels_db[name].append((dg_cntr, ch_cntr))
+                        else:
+                            self.channels_db[name] = []
+                            self.channels_db[name].append((dg_cntr, ch_cntr))
+
                     ch_cntr += 1
 
                     for i, (name, samples) in enumerate(
@@ -2189,6 +2259,16 @@ class MDF3(object):
                         fields.append(samples)
                         types.append((field_name, samples.dtype, shape))
                         field_names.add(field_name)
+
+                        # check if the source is included in the channel name
+                        name = name.split('\\')
+                        if len(name) > 1:
+                            name = name[0]
+                            if name in self.channels_db:
+                                self.channels_db[name].append((dg_cntr, ch_cntr))
+                            else:
+                                self.channels_db[name] = []
+                                self.channels_db[name].append((dg_cntr, ch_cntr))
 
                         gp_dep.append(None)
 
@@ -2489,7 +2569,6 @@ class MDF3(object):
                     channel['short_name']
                     .decode('latin-1')
                     .strip(' \n\t\0')
-                    .split('\\')[0]
                 )
 
         else:
