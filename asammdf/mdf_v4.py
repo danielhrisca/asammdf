@@ -1486,7 +1486,6 @@ class MDF4(object):
                 if index > len(self.groups[gp_nr]['channels']) - 1:
                     raise MdfException('Channel index out of range')
         else:
-            name = name.split('\\')[0]
             if name not in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
@@ -3812,7 +3811,7 @@ class MDF4(object):
                     name = get_text_v4(
                         channel['name_addr'],
                         stream,
-                    ).split('\\')[0]
+                    )
                 channel.name = name
             else:
                 name = channel.name
@@ -4900,7 +4899,7 @@ class MDF4(object):
                     name = get_text_v4(
                         channel['name_addr'],
                         stream,
-                    ).split('\\')[0]
+                    )
 
                 address = (
                     conversion and conversion['unit_addr']
@@ -5183,7 +5182,6 @@ class MDF4(object):
                         name['text']
                         .decode('utf-8')
                         .strip(' \r\t\n\0')
-                        .split('\\')[0]
                     )
                 else:
                     name = channel.name

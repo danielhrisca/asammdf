@@ -355,7 +355,6 @@ class MDF3(object):
                         new_ch['short_name']
                         .decode('latin-1')
                         .strip(' \r\n\t\0')
-                        .split('\\')[0]
                     )
             else:
                 name = new_ch.name
@@ -587,7 +586,6 @@ class MDF3(object):
                 if index > len(self.groups[gp_nr]['channels']) - 1:
                     raise MdfException('Channel index out of range')
         else:
-            name = name.split('\\')[0]
             if name not in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
@@ -3662,7 +3660,6 @@ class MDF3(object):
                             channel['short_name']
                             .decode('utf-8')
                             .strip(' \r\t\n\0')
-                            .split('\\')[0]
                         )
 
                 if channel['channel_type'] == v23c.CHANNEL_TYPE_MASTER:
