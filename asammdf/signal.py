@@ -187,6 +187,11 @@ class Signal(object):
                     plt.xlabel('{} [m]'.format(master_name))
                 elif sync_type == 4:
                     plt.xlabel('{} [index]'.format(master_name))
+                plt.ylabel('[{}]'.format(self.unit))
+                plt.plot(self.timestamps, self.samples, 'b')
+                plt.plot(self.timestamps, self.samples, 'b.')
+                plt.grid(True)
+                plt.show()
         else:
             try:
                 names = self.samples.dtype.names
