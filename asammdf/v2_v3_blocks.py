@@ -492,12 +492,12 @@ class ChannelConversion(dict):
                         values[3*i + 2],
                     )
                     if values[3*i + 2]:
-                        self.rerenced_blocks['text_{}'.format(i)] = TextBlock(
+                        self.referenced_blocks['text_{}'.format(i)] = TextBlock(
                             address=values[3*i + 2],
                             stream=stream,
                         )
                     else:
-                        self.rerenced_blocks['text_{}'.format(i)] = TextBlock(
+                        self.referenced_blocks['text_{}'.format(i)] = TextBlock(
                             text='',
                         )
 
@@ -511,28 +511,22 @@ class ChannelConversion(dict):
             self['id'] = 'CC'.encode('latin-1')
 
             if kargs['conversion_type'] == v23c.CONVERSION_TYPE_NONE:
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_COMMON_BLOCK_SIZE,
-                )
+                self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_NONE
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
+                self['ref_param_nr'] = 0
 
             elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_LINEAR:
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_LIN_BLOCK_SIZE,
-                )
+                self['block_len'] = v23c.CC_LIN_BLOCK_SIZE
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_LINEAR
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
+                self['ref_param_nr'] = 2
                 self['b'] = kargs.get('b', 0)
                 self['a'] = kargs.get('a', 1)
                 if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:
@@ -541,19 +535,13 @@ class ChannelConversion(dict):
             elif kargs['conversion_type'] in (
                     v23c.CONVERSION_TYPE_POLY,
                     v23c.CONVERSION_TYPE_RAT):
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_POLY_BLOCK_SIZE,
-                )
+                self['block_len'] = v23c.CC_POLY_BLOCK_SIZE
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = kargs.get(
-                    'conversion_type',
-                    v23c.CONVERSION_TYPE_POLY,
-                )
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 6)
+                self['conversion_type'] = kargs['conversion_type']
+                self['ref_param_nr'] = 6
                 self['P1'] = kargs.get('P1', 0)
                 self['P2'] = kargs.get('P2', 0)
                 self['P3'] = kargs.get('P3', 0)
@@ -564,19 +552,13 @@ class ChannelConversion(dict):
             elif kargs['conversion_type'] in (
                     v23c.CONVERSION_TYPE_EXPO,
                     v23c.CONVERSION_TYPE_LOGH):
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_EXPO_BLOCK_SIZE,
-                )
+                self['block_len'] = v23c.CC_EXPO_BLOCK_SIZE
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = kargs.get(
-                    'conversion_type',
-                    v23c.CONVERSION_TYPE_EXPO,
-                )
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 7)
+                self['conversion_type'] = v23c.CONVERSION_TYPE_EXPO
+                self['ref_param_nr'] = 7
                 self['P1'] = kargs.get('P1', 0)
                 self['P2'] = kargs.get('P2', 0)
                 self['P3'] = kargs.get('P3', 0)
@@ -607,21 +589,15 @@ class ChannelConversion(dict):
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = kargs.get(
-                    'conversion_type',
-                    v23c.CONVERSION_TYPE_TABI,
-                )
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
+                self['conversion_type'] = kargs['conversion_type']
+                self['ref_param_nr'] = nr
                 for i in range(nr):
                     self['raw_{}'.format(i)] = kargs['raw_{}'.format(i)]
                     self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
 
             elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_TABX:
                 nr = kargs['ref_param_nr']
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_COMMON_BLOCK_SIZE + 40 * nr,
-                )
+                self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + 40 * nr
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
@@ -634,19 +610,16 @@ class ChannelConversion(dict):
                     self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
 
             elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_RTABX:
-                nr = kargs.get('ref_param_nr', 0)
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_COMMON_BLOCK_SIZE + 20 * nr,
-                )
+                nr = kargs['ref_param_nr']
+                self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + 20 * nr
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_RTABX
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
+                self['ref_param_nr'] = nr
 
-                for i in range(self['ref_param_nr']):
+                for i in range(nr):
                     self['lower_{}'.format(i)] = kargs['lower_{}'.format(i)]
                     self['upper_{}'.format(i)] = kargs['upper_{}'.format(i)]
                     self['text_{}'.format(i)] = kargs['text_{}'.format(i)]

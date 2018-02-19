@@ -49,6 +49,7 @@ from numpy.core.records import fromarrays, fromstring
 
 from . import v4_constants as v4c
 from .signal import Signal, SignalConversions
+from .conversion_utils import conversion_transfer
 from .utils import (
     CHANNEL_COUNT,
     CONVERT_LOW,
@@ -1881,7 +1882,7 @@ class MDF4(object):
                         channel_comment_address = 0
 
                 # conversions for channel
-                conversion = signal.conversion
+                conversion = conversion_transfer(signal.conversion, version=4)
                 israw = signal.raw
                 if not israw:
                     if memory != 'minimum':

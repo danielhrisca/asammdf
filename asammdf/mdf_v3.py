@@ -42,6 +42,7 @@ from numpy.core.records import fromarrays, fromstring
 
 from . import v2_v3_constants as v23c
 from .signal import Signal, SignalConversions
+from .conversion_utils import conversion_transfer
 from .utils import (
     CHANNEL_COUNT,
     CONVERT_LOW,
@@ -1306,7 +1307,7 @@ class MDF3(object):
 
             # conversions for channel
 
-            conversion = signal.conversion
+            conversion = conversion_transfer(signal.conversion)
             israw = signal.raw
 
             if not israw:
@@ -3577,6 +3578,9 @@ class MDF3(object):
                     if conv is None:
                         continue
                     else:
+                        blocks.append(conv)
+                        conv.address = address
+                        address += conv['block_len']
                         address = write_cc(conv, defined_texts, blocks, address)
 
                 # Channel Extension

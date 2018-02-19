@@ -109,7 +109,7 @@ class TestMDF(unittest.TestCase):
 
 
 
-    def etest_read(self):
+    def test_read(self):
         print("MDF read big files")
         for mdfname in os.listdir('tmpdir'):
             for memory in MEMORY:

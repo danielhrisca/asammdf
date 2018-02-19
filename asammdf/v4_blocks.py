@@ -1060,9 +1060,9 @@ class ChannelConversion(dict):
             if kargs['conversion_type'] == v4c.CONVERSION_TYPE_NON:
                 self['block_len'] = v4c.CC_NONE_BLOCK_SIZE
                 self['links_nr'] = 4
-                self['name_addr'] = 0
-                self['unit_addr'] = 0
-                self['comment_addr'] = 0
+                self['name_addr'] = kargs.get('name_addr', 0)
+                self['unit_addr'] = kargs.get('unit_addr', 0)
+                self['comment_addr'] = kargs.get('comment_addr', 0)
                 self['inv_conv_addr'] = 0
                 self['conversion_type'] = v4c.CONVERSION_TYPE_NON
                 self['precision'] = 1
@@ -1091,7 +1091,7 @@ class ChannelConversion(dict):
 
             elif kargs['conversion_type'] == v4c.CONVERSION_TYPE_ALG:
                 self['block_len'] = v4c.CC_ALG_BLOCK_SIZE
-                self['links_nr'] = kargs.get('links_nr', 5)
+                self['links_nr'] = 5
                 self['name_addr'] = kargs.get('name_addr', 0)
                 self['unit_addr'] = kargs.get('unit_addr', 0)
                 self['comment_addr'] = kargs.get('comment_addr', 0)
@@ -1100,8 +1100,8 @@ class ChannelConversion(dict):
                 self['conversion_type'] = v4c.CONVERSION_TYPE_ALG
                 self['precision'] = kargs.get('precision', 1)
                 self['flags'] = kargs.get('flags', 0)
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 1)
-                self['val_param_nr'] = kargs.get('val_param_nr', 0)
+                self['ref_param_nr'] = 1
+                self['val_param_nr'] = 0
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self.formula = kargs['formula']
@@ -1113,7 +1113,7 @@ class ChannelConversion(dict):
                 nr = kargs['val_param_nr']
 
                 self['block_len'] = 80 + 8 * nr
-                self['links_nr'] = kargs.get('links_nr', 4)
+                self['links_nr'] = 4
                 self['name_addr'] = kargs.get('name_addr', 0)
                 self['unit_addr'] = kargs.get('unit_addr', 0)
                 self['comment_addr'] = kargs.get('comment_addr', 0)
@@ -1121,8 +1121,8 @@ class ChannelConversion(dict):
                 self['conversion_type'] = kargs['conversion_type']
                 self['precision'] = kargs.get('precision', 1)
                 self['flags'] = kargs.get('flags', 0)
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
-                self['val_param_nr'] = kargs.get('val_param_nr', 0)
+                self['ref_param_nr'] = 0
+                self['val_param_nr'] = 2 * nr
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
 
