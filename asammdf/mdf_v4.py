@@ -104,6 +104,7 @@ def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
         if stream:
             tell = stream.tell
             write = stream.write
+        print(conversion)
         if conversion.name:
             tx_block = TextBlock(text=conversion.name)
             text = tx_block['text']
@@ -4323,7 +4324,7 @@ class MDF4(object):
                     v4c.CONVERSION_TYPE_RTAB,
                     v4c.CONVERSION_TYPE_TRANS):
                 if not raw:
-                    vals = conversion.convert(vals)
+                    vals = conversion.convert(vals, channel)
 
             elif conversion_type in (
                     v4c.CONVERSION_TYPE_TABX,

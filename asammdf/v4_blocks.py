@@ -1205,7 +1205,9 @@ class ChannelConversion(dict):
                 self['comment_addr'] = kargs.get('comment_addr', 0)
                 self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
                 for i in range(kargs['links_nr'] - 5):
-                    self['text_{}'.format(i)] = 0
+                    key = 'text_{}'.format(i)
+                    self[key] = 0
+                    self.referenced_blocks[key] = TextBlock(text=kargs[key])
                 self['default_addr'] = kargs.get('default_addr', 0)
                 self['conversion_type'] = v4c.CONVERSION_TYPE_RTABX
                 self['precision'] = kargs.get('precision', 0)
@@ -1246,7 +1248,7 @@ class ChannelConversion(dict):
                 message = message.format(kargs['conversion_type'])
                 raise NotImplementedError(message)
 
-    def convert(self, values):
+    def convert(self, values, channel=None):
         conversion_type = self['conversion_type']
         if conversion_type == v4c.CONVERSION_TYPE_NON:
             pass
@@ -1313,7 +1315,7 @@ class ChannelConversion(dict):
                             break
                     else:
                         res.append(default)
-                size = max(bits >> 3, 1)
+                size = max(channel['bit_count'] >> 3, 1)
                 ch_fmt = get_fmt_v4(channel['data_type'], size)
                 values = np.array(res).astype(ch_fmt)
 
@@ -1327,7 +1329,7 @@ class ChannelConversion(dict):
                             break
                     else:
                         res.append(default)
-                size = max(bits >> 3, 1)
+                size = max(channel['bit_count'] >> 3, 1)
                 ch_fmt = get_fmt_v4(channel['data_type'], size)
                 values = np.array(res).astype(ch_fmt)
 
