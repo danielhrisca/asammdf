@@ -38,38 +38,38 @@ CHANNEL_LEN = 100000
 
 class TestMDF(unittest.TestCase):
 
-    def etest_measurement(self):
+    def test_measurement(self):
         self.assertTrue(MDF)
 
     @classmethod
     def setUpClass(cls):
-        # PYVERSION = sys.version_info[0]
-        #
-        # url = 'https://github.com/danielhrisca/asammdf/files/1594267/test.demo.zip'
-        # if PYVERSION == 3:
-        #     urllib.request.urlretrieve(url, 'test.zip')
-        # else:
-        #     urllib.urlretrieve(url, 'test.zip')
-        # ZipFile(r'test.zip').extractall('tmpdir_demo')
+        PYVERSION = sys.version_info[0]
+
+        url = 'https://github.com/danielhrisca/asammdf/files/1594267/test.demo.zip'
+        if PYVERSION == 3:
+            urllib.request.urlretrieve(url, 'test.zip')
+        else:
+            urllib.urlretrieve(url, 'test.zip')
+        ZipFile(r'test.zip').extractall('tmpdir_demo')
 
         if not os.path.exists('tmpdir'):
             os.mkdir('tmpdir')
         if not os.path.exists('tmpdir_array'):
             os.mkdir('tmpdir_array')
-        for version in ('4.10', ):
+        for version in ('3.30', '4.10'):
             generate_test_file(version)
 
         generate_arrays_test_file()
 
     @classmethod
-    def etearDownClass(cls):
+    def rtearDownClass(cls):
         shutil.rmtree('tmpdir_demo', True)
         shutil.rmtree('tmpdir_array', True)
         shutil.rmtree('tmpdir', True)
         os.remove('test.zip')
         cleanup_files()
 
-    def etest_get_channel_comment_v4(self):
+    def test_get_channel_comment_v4(self):
         print("MDF get channel comment tests")
 
         ret = True
@@ -88,7 +88,7 @@ class TestMDF(unittest.TestCase):
         self.assertTrue(ret)
         cleanup_files()
 
-    def etest_get_channel_units(self):
+    def test_get_channel_units(self):
         print("MDF get channel units tests")
 
         ret = True
@@ -200,7 +200,7 @@ class TestMDF(unittest.TestCase):
 
         cleanup_files()
 
-    def etest_read_arrays(self):
+    def test_read_arrays(self):
         print("MDF read big array files")
         for mdfname in os.listdir('tmpdir_array'):
             for memory in MEMORY:
@@ -309,7 +309,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def etest_read_demo(self):
+    def test_read_demo(self):
 
         print("MDF read tests")
 
@@ -374,6 +374,7 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             v * (j - 1)):
                                         equal = False
+                                        1/0
                             elif i == 1:
                                 v = np.ones(cycles, dtype=np.int64)
                                 for j in range(1, 20):
@@ -382,6 +383,7 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             v * (j - 1) - 0.5):
                                         equal = False
+                                        1 / 0
                             elif i == 2:
                                 v = np.arange(cycles, dtype=np.int64) / 100.0
                                 form = '{} * sin(v)'
@@ -392,6 +394,7 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             numexpr.evaluate(f)):
                                         equal = False
+                                        1 / 0
                             elif i == 3:
                                 v = np.ones(cycles, dtype=np.int64)
                                 form = '({} * v -0.5) / 1'
@@ -402,6 +405,9 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             numexpr.evaluate(f)):
                                         equal = False
+                                        target = numexpr.evaluate(f)
+                                        print(i, j, vals, target, len(vals), len(target))
+                                        1 / 0
                             elif i == 4:
 
                                 for j in range(1, 20):
@@ -415,6 +421,7 @@ class TestMDF(unittest.TestCase):
                                         target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
+                                        1 / 0
                                     self.assertTrue(cond)
 
                             elif i == 5:
@@ -427,6 +434,7 @@ class TestMDF(unittest.TestCase):
                                         target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
+                                        1 / 0
                                     self.assertTrue(cond)
 
                             elif i == 6:
@@ -439,12 +447,13 @@ class TestMDF(unittest.TestCase):
                                         target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
+                                        1 / 0
                                     self.assertTrue(cond)
 
                     self.assertTrue(equal)
         cleanup_files()
 
-    def etest_convert_demo(self):
+    def test_convert_demo(self):
         print("MDF convert tests")
 
         for out in SUPPORTED_VERSIONS:
@@ -478,7 +487,7 @@ class TestMDF(unittest.TestCase):
                     self.assertTrue(equal)
         cleanup_files()
 
-    def etest_cut(self):
+    def test_cut(self):
         print("MDF cut big files tests")
 
         t = np.arange(cycles, dtype=np.float64)
@@ -556,6 +565,7 @@ class TestMDF(unittest.TestCase):
                                     cond = np.array_equal(
                                             vals,
                                             numexpr.evaluate(f))
+                                    target = numexpr.evaluate(f)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target) )
                                     self.assertTrue(cond)
@@ -599,7 +609,7 @@ class TestMDF(unittest.TestCase):
                                     self.assertTrue(cond)
         cleanup_files()
 
-    def etest_cut_arrays(self):
+    def test_cut_arrays(self):
         print("MDF cut big array files")
         for mdfname in os.listdir('tmpdir_array'):
             for memory in MEMORY:
@@ -725,7 +735,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def etest_cut_demo(self):
+    def test_cut_demo(self):
         print("MDF cut absolute tests")
 
         cntr = 0
@@ -772,7 +782,7 @@ class TestMDF(unittest.TestCase):
                     self.assertTrue(equal)
         cleanup_files()
 
-    def etest_filter(self):
+    def test_filter(self):
         print("MDF filter tests")
 
         for mdfname in os.listdir('tmpdir_demo'):
@@ -822,7 +832,7 @@ class TestMDF(unittest.TestCase):
                 self.assertTrue(equal)
         cleanup_files()
 
-    def etest_select(self):
+    def test_select(self):
         print("MDF select tests")
 
         for mdfname in os.listdir('tmpdir_demo'):

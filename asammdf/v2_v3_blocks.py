@@ -570,7 +570,10 @@ class ChannelConversion(dict):
             elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_FORMULA:
                 formula = kargs['formula']
                 formula_len = len(formula)
-                formula += b'\0'
+                try:
+                    formula += b'\0'
+                except:
+                    formula = formula.encode('latin-1') + b'\0'
                 self['block_len'] = 46 + formula_len + 1
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
@@ -739,9 +742,9 @@ class ChannelConversion(dict):
             P6 = self['P6']
             P7 = self['P7']
             if P4 == 0:
-                vals = func(((values - P7) * P6 - P3) / P1) / P2
+                values = func(((values - P7) * P6 - P3) / P1) / P2
             elif P1 == 0:
-                vals = func((P3 / (values - P7) - P6) / P4) / P5
+                values = func((P3 / (values - P7) - P6) / P4) / P5
             else:
                 message = 'wrong conversion {}'
                 message = message.format(conversion_type)
@@ -758,7 +761,7 @@ class ChannelConversion(dict):
             P6 = self['P6']
             if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
                 X = values
-                vals = evaluate(v23c.RAT_CONV_TEXT)
+                values = evaluate(v23c.RAT_CONV_TEXT)
 
         elif conversion_type == v23c.CONVERSION_TYPE_POLY:
             # pylint: disable=unused-variable,C0103
@@ -782,8 +785,13 @@ class ChannelConversion(dict):
         elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
             # pylint: disable=unused-variable,C0103
 
+            formula = self['formula'].decode('latin-1').strip(' \r\n\t\0')
+            if 'X1' not in formula:
+                formula = formula.replace('X', 'X1')
             X1 = values
-            values = evaluate(self.formula)
+            values = evaluate(formula)
+
+        return values
 
     def __bytes__(self):
         conv = self['conversion_type']
