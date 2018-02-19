@@ -12,9 +12,10 @@ from struct import pack, unpack, unpack_from
 from zlib import compress, decompress
 
 import numpy as np
+from numexpr import evaluate
 
 from . import v4_constants as v4c
-from .utils import MdfException
+from .utils import MdfException, get_text_v4
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
@@ -678,7 +679,7 @@ class ChannelGroup(dict):
 class ChannelConversion(dict):
     """CCBLOCK class"""
 
-    __slots__ = ['address', 'name', 'unit', 'comment', 'formula']
+    __slots__ = ['address', 'name', 'unit', 'comment', 'formula', 'referenced_blocks']
 
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
@@ -965,6 +966,90 @@ class ChannelConversion(dict):
                 message = 'Expected "##CC" block but found "{}"'
                 raise MdfException(message.format(self['id']))
 
+            if 'stream' in kargs:
+                address = self['name_addr']
+                if address:
+                    self.name = get_text_v4(address, stream)
+
+                address = self['unit_addr']
+                if address:
+                    self.unit = get_text_v4(address, stream)
+
+                address = self['comment_addr']
+                if address:
+                    self.comment = get_text_v4(address, stream)
+
+                address = self.get('formula_addr', 0)
+                if address:
+                    self.formula = get_text_v4(address, stream)
+
+                conv_type = conv
+
+                if conv_type in v4c.TABULAR_CONVERSIONS:
+                    refs = self.referenced_blocks = {}
+                    if conv_type == v4c.CONVERSION_TYPE_TTAB:
+                        tabs = self['links_nr'] - 4
+                    else:
+                        tabs = self['links_nr'] - 4 - 1
+                    for i in range(tabs):
+                        address = self['text_{}'.format(i)]
+                        if address:
+                            try:
+                                block = TextBlock(
+                                    address=address,
+                                    stream=stream,
+                                )
+                                refs['text_{}'.format(i)] = block
+                            except MdfException:
+                                block = ChannelConversion(
+                                    address=address,
+                                    stream=stream,
+                                )
+                                refs['text_{}'.format(i)] = block
+
+                        else:
+                            refs['text_{}'.format(i)] = None
+                    if conv_type != v4c.CONVERSION_TYPE_TTAB:
+                        address = self.get('default_addr', 0)
+                        if address:
+                            try:
+                                block = TextBlock(
+                                    address=address,
+                                    stream=stream,
+                                )
+                                refs['default_addr'] = block
+                            except MdfException:
+                                block = ChannelConversion(
+                                    address=address,
+                                    stream=stream,
+                                )
+                                refs['default_addr'] = block
+                        else:
+                            refs['default_addr'] = None
+
+                elif conv_type == v4c.CONVERSION_TYPE_TRANS:
+                    refs = self.referenced_blocks = {}
+                    # link_nr - common links (4) - default text link (1)
+                    for i in range((self['links_nr'] - 4 - 1) // 2):
+                        for key in ('input_{}_addr'.format(i),
+                                    'output_{}_addr'.format(i)):
+                            address = self[key]
+                            if address:
+                                block = TextBlock(
+                                    address=address,
+                                    stream=stream,
+                                )
+                                refs[key] = block
+                    address = self['default_addr']
+                    if address:
+                        block = TextBlock(
+                            address=address,
+                            stream=stream,
+                        )
+                        refs['default_addr'] = block
+                    else:
+                        refs['default_addr'] = None
+
         else:
 
             self.address = 0
@@ -1156,6 +1241,179 @@ class ChannelConversion(dict):
                 message = 'Conversion {} dynamic creation not implementated'
                 message = message.format(kargs['conversion_type'])
                 raise NotImplementedError(message)
+
+    def convert(self, values):
+        conversion_type = self['conversion_type']
+        if conversion_type == v4c.CONVERSION_TYPE_NON:
+            pass
+        elif conversion_type == v4c.CONVERSION_TYPE_LIN:
+            a = self['a']
+            b = self['b']
+            if (a, b) != (1, 0):
+                values = values * a
+                if b:
+                    values += b
+        elif conversion_type == v4c.CONVERSION_TYPE_RAT:
+            P1 = self['P1']
+            P2 = self['P2']
+            P3 = self['P3']
+            P4 = self['P4']
+            P5 = self['P5']
+            P6 = self['P6']
+            if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
+                X = values
+                values = evaluate(v4c.CONV_RAT_TEXT)
+        elif conversion_type == v4c.CONVERSION_TYPE_ALG:
+                X = values
+                values = evaluate(self.formula)
+
+        elif conversion_type in (
+                v4c.CONVERSION_TYPE_TABI,
+                v4c.CONVERSION_TYPE_TAB):
+            nr = self['val_param_nr'] // 2
+            raw_vals = np.array(
+                [self['raw_{}'.format(i)] for i in range(nr)]
+            )
+            phys = np.array(
+                [self['phys_{}'.format(i)] for i in range(nr)]
+            )
+
+            if conversion_type == v4c.CONVERSION_TYPE_TABI:
+                values = np.interp(values, raw_vals, phys)
+            else:
+                idx = np.searchsorted(raw_vals, values)
+                idx = np.clip(idx, 0, len(raw_vals) - 1)
+                values = phys[idx]
+
+        elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
+            nr = (self['val_param_nr'] - 1) // 3
+            lower = np.array(
+                [self['lower_{}'.format(i)] for i in range(nr)]
+            )
+            upper = np.array(
+                [self['upper_{}'.format(i)] for i in range(nr)]
+            )
+            phys = np.array(
+                [self['phys_{}'.format(i)] for i in range(nr)]
+            )
+            default = self['default']
+
+            # INT channel
+            if channel['data_type'] <= 3:
+
+                res = []
+                for v in values:
+                    for l, u, p in zip(lower, upper, phys):
+                        if l <= v <= u:
+                            res.append(p)
+                            break
+                    else:
+                        res.append(default)
+                size = max(bits >> 3, 1)
+                ch_fmt = get_fmt_v4(channel['data_type'], size)
+                values = np.array(res).astype(ch_fmt)
+
+            # else FLOAT channel
+            else:
+                res = []
+                for v in values:
+                    for l, u, p in zip(lower, upper, phys):
+                        if l <= v < u:
+                            res.append(p)
+                            break
+                    else:
+                        res.append(default)
+                size = max(bits >> 3, 1)
+                ch_fmt = get_fmt_v4(channel['data_type'], size)
+                values = np.array(res).astype(ch_fmt)
+
+        elif conversion_type == v4c.CONVERSION_TYPE_TABX:
+            nr = self['val_param_nr']
+            raw_vals = np.array(
+                [self['val_{}'.format(i)] for i in range(nr)]
+            )
+
+            phys = np.array(
+                [self.referenced_blocks['text_{}'.format(i)]['text']
+                 if self.referenced_blocks['text_{}'.format(i)]
+                 else b''
+                 for i in range(nr)]
+            )
+            default = self.referenced_blocks \
+                .get('default_addr', {})
+            if default:
+                default = default['text']
+            else:
+                default = b''
+
+        elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
+            nr = self['val_param_nr'] // 2
+
+            phys = []
+            for i in range(nr):
+                try:
+                    value = self.referenced_blocks['text_{}'.format(i)]['text']
+                except KeyError:
+                    value = self.referenced_blocks['text_{}'.format(i)]
+                except TypeError:
+                    value = b''
+                phys.append(value)
+
+            default = self.referenced_blocks.get('default_addr', {})
+            try:
+                default = default['text']
+            except KeyError:
+                pass
+            except TypeError:
+                default = b''
+
+            lower = np.array(
+                [self['lower_{}'.format(i)] for i in range(nr)]
+            )
+            upper = np.array(
+                [self['upper_{}'.format(i)] for i in range(nr)]
+            )
+
+        elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
+            nr = self['val_param_nr'] - 1
+
+            raw_vals = np.array(
+                [self.referenced_blocks['text_{}'.format(i)]['text']
+                 for i in range(nr)]
+            )
+            phys = np.array(
+                [self['val_{}'.format(i)] for i in range(nr)]
+            )
+            default = self['val_default']
+
+        elif conversion_type == v4c.CONVERSION_TYPE_TRANS:
+            nr = (self['ref_param_nr'] - 1) // 2
+
+            in_ = np.array(
+                [self.referenced_blocks['input_{}_addr'.format(i)]['text']
+                 for i in range(nr)]
+            )
+            out_ = np.array(
+                [self.referenced_blocks['output_{}_addr'.format(i)]['text']
+                 for i in range(nr)]
+            )
+            default = (
+                self
+                ['default_addr']
+                ['text']
+            )
+
+            res = []
+            for v in values:
+                for i, o in zip(in_, out_):
+                    if v == i:
+                        res.append(o)
+                        break
+                else:
+                    res.append(default)
+            values = np.array(res)
+
+        return values
 
     def __bytes__(self):
         fmt = '<4sI{}Q2B3H{}d'.format(

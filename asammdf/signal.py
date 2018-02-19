@@ -187,6 +187,11 @@ class Signal(object):
                     plt.xlabel('{} [m]'.format(master_name))
                 elif sync_type == 4:
                     plt.xlabel('{} [index]'.format(master_name))
+                plt.ylabel('[{}]'.format(self.unit))
+                plt.plot(self.timestamps, self.samples, 'b')
+                plt.plot(self.timestamps, self.samples, 'b.')
+                plt.grid(True)
+                plt.show()
         else:
             try:
                 names = self.samples.dtype.names
@@ -752,108 +757,7 @@ class Signal(object):
         if not self.raw or self.conversion is None:
             samples = self.samples.copy()
         else:
-            conversion = self.conversion
-            conv_type = conversion['type']
-            if conv_type == SignalConversions.CONVERSION_LINEAR:
-                samples = self.samples * conversion['a'] + conversion['b']
-
-            elif conv_type == SignalConversions.CONVERSION_TABI:
-                samples = np.interp(
-                    self.samples,
-                    conversion['raw'],
-                    conversion['phys'],
-                )
-
-            elif conv_type == SignalConversions.CONVERSION_TAB:
-                samples = np.interp(
-                    self.samples,
-                    conversion['raw'],
-                    conversion['phys'],
-                )
-
-                idx = np.searchsorted(
-                    conversion['raw'],
-                    self.samples,
-                )
-                idx = np.clip(
-                    idx,
-                    0,
-                    len(conversion['raw']) - 1,
-                )
-                samples = conversion['phys'][idx]
-
-            elif conv_type == SignalConversions.CONVERSION_RATIONAL:
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                coefs = (P2, P3, P5, P6)
-                if coefs == (0, 0, 0, 0):
-                    if P1 != P4:
-                        samples = evaluate('P4 * X / P1')
-                else:
-                    samples = evaluate('(P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)')
-
-            elif conv_type == SignalConversions.CONVERSION_POLYNOMIAL:
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
-                    X = self.samples
-                    samples = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
-                else:
-                    samples = self.samples.copy()
-
-            elif conv_type in (
-                    SignalConversions.CONVERSION_EXPO,
-                    SignalConversions.CONVERSION_LOGH):
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                P7 = conversion['P7']
-
-                if conv_type == SignalConversions.CONVERSION_EXPO:
-                    func = np.log
-                else:
-                    func = np.exp
-
-                if P4 == 0:
-                    samples = func(((self.samples - P7) * P6 - P3) / P1) / P2
-                elif P1 == 0:
-                    samples = func((P3 / (self.samples - P7) - P6) / P4) / P5
-                else:
-                    message = 'wrong conversion {}'
-                    message = message.format(conversion)
-                    raise ValueError(message)
-
-            elif conv_type == SignalConversions.CONVERSION_TABX:
-                phys = np.insert(conversion['phys'], 0, conversion['default'])
-                raw = np.insert(conversion['raw'], 0, conversion['raw'][0] - 1)
-                indexes = np.searchsorted(raw, self.samples)
-                np.place(indexes, indexes >= len(raw), 0)
-
-                samples = phys[indexes]
-
-            elif conv_type == SignalConversions.CONVERSION_ALGEBRAIC:
-                formula = conversion['formula']
-
-                if 'X1' in formula:
-                    X1 = self.samples
-                    samples = evaluate(formula)
-                else:
-                    X = self.samples
-                    samples = evaluate(formula)
-
-            else:
-                samples = self.samples.copy()
+            samples = self.conversion.convert(self.samples)
 
         return Signal(
             samples,
