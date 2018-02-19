@@ -7,6 +7,11 @@ import warnings
 from numexpr import evaluate
 
 from .utils import MdfException
+from . import v2_v3_constants as v3c
+from . import v2_v3_blocks as v3b
+from . import v4_constants as v4c
+from . import v4_blocks as v4b
+
 from .version import __version__
 
 
@@ -107,12 +112,68 @@ class Signal(object):
             self.timestamps = timestamps
             self.unit = unit
             self.name = name
-            self.conversion = conversion
             self.comment = comment
             self._plot_axis = None
             self.raw = raw
             self.master_metadata = master_metadata
             self.display_name = display_name
+
+            if not isinstance(conversion, (v3b.ChannelConversion, v4b.ChannelConversion)):
+                if 'a' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_LIN
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+
+                elif 'formula' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_ALG
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+
+                elif 'raw_0' in conversion and 'phys_0' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_TAB
+                    nr = 0
+                    while 'phys_{}'.format(nr) in conversion:
+                        nr += 1
+                    conversion['val_param_nr'] = nr
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+
+                elif 'upper_0' in conversion and 'phys_0' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_RTAB
+                    nr = 0
+                    while 'phys_{}'.format(nr) in conversion:
+                        nr += 1
+                    conversion['val_param_nr'] = nr
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+                elif 'val_0' in conversion and 'text_0' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_TABX
+                    nr = 0
+                    while 'text_{}'.format(nr) in conversion:
+                        nr += 1
+                    conversion['ref_param_nr'] = nr + 1
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+                elif 'upper_0' in conversion and 'text_0' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_RTABX
+                    nr = 0
+                    while 'text_{}'.format(nr) in conversion:
+                        nr += 1
+                    conversion['ref_param_nr'] = nr + 1
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+                else:
+                    conversion = v4b.ChannelConversion(
+                        conversion_type=v4c.CONVERSION_TYPE_NON
+                    )
+
+            self.conversion = conversion
 
     def __str__(self):
         string = """<Signal {}:
@@ -757,7 +818,10 @@ class Signal(object):
         if not self.raw or self.conversion is None:
             samples = self.samples.copy()
         else:
-            samples = self.conversion.convert(self.samples)
+            conversion = self.conversion
+
+
+            samples = conversion.convert(self.samples)
 
         return Signal(
             samples,

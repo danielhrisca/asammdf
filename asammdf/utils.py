@@ -32,7 +32,6 @@ __all__ = [
     'fmt_to_datatype_v3',
     'fmt_to_datatype_v4',
     'bytes',
-    'conversion_transfer',
 ]
 
 CHANNEL_COUNT = (
@@ -79,27 +78,6 @@ MERGE_MINIMUM = (
     60 * 2**20,
     100 * 2**20,
 )
-
-
-def conversion_transfer(conversion, version=3):
-    conversion_type = conversion['conversion_type']
-
-    if version <= 3:
-        if conversion['id'] == b'CC':
-            pass
-        elif conversion_type in (v4c.CONVERSION_TYPE_NON,
-                                 v4c.CONVERSION_TYPE_LIN,
-                                 v4c.CONVERSION_TYPE_RAT):
-            conversion = v3b.ChannelConversion(**conversion)
-    else:
-        if conversion['id'] == b'##CC':
-            pass
-        elif conversion_type in (v3c.CONVERSION_TYPE_NONE,
-                                 v3c.CONVERSION_TYPE_LINEAR,
-                                 v3c.CONVERSION_TYPE_RAT):
-            conversion = v4b.ChannelConversion(**conversion)
-
-    return conversion
 
 
 class MdfException(Exception):
