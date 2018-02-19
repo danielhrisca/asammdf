@@ -4,10 +4,7 @@
 import numpy as np
 import warnings
 
-from numexpr import evaluate
-
 from .utils import MdfException
-from . import v2_v3_constants as v3c
 from . import v2_v3_blocks as v3b
 from . import v4_constants as v4c
 from . import v4_blocks as v4b
@@ -15,32 +12,10 @@ from . import v4_blocks as v4b
 from .version import __version__
 
 
-class SignalConversions(object):
-    """
-    types of generic conversions found in the `Signal` conversion attribute.
-    This holds all the conversion types found in the mdf versions 3 and 4
-    """
-
-    CONVERSION_NONE = 0
-    CONVERSION_LINEAR = 1
-    CONVERSION_RATIONAL = 2
-    CONVERSION_ALGEBRAIC = 3
-    CONVERSION_POLYNOMIAL = 4
-    CONVERSION_TAB = 5
-    CONVERSION_TABI = 6
-    CONVERSION_TABX = 7
-    CONVERSION_RTAB = 8
-    CONVERSION_RTABX = 9
-    CONVERSION_TTAB = 10
-    CONVERSION_TRANS = 11
-    CONVERSION_EXPO = 12
-    CONVERSION_LOGH = 13
-
-
 class Signal(object):
     """
-    The *Signal* represents a hannel described by it's samples and timestamps.
-    It can perform aritmethic operations agains other *Signal* or numeric types.
+    The *Signal* represents a channel described by it's samples and timestamps.
+    It can perform arithmetic operations against other *Signal* or numeric types.
     The operations are computed in respect to the timestamps (time correct).
     The non-float signals are not interpolated, instead the last value relative
     to the current timestamp is used.
@@ -56,8 +31,8 @@ class Signal(object):
         signal unit
     name : str
         signal name
-    conversion : dict
-        dict that contains extra conversionrmation about the signal ,
+    conversion : dict | channel conversion block
+        dict that contains extra conversion information about the signal ,
         default *None*
     comment : str
         signal comment, default ''
@@ -105,7 +80,7 @@ class Signal(object):
             if isinstance(timestamps, (list, tuple)):
                 timestamps = np.array(timestamps, dtype=np.float64)
             if not samples.shape[0] == timestamps.shape[0]:
-                message = 'samples and timestamps length missmatch ({} vs {})'
+                message = 'samples and timestamps length mismatch ({} vs {})'
                 message = message.format(samples.shape[0], timestamps.shape[0])
                 raise MdfException(message)
             self.samples = samples
@@ -118,7 +93,7 @@ class Signal(object):
             self.master_metadata = master_metadata
             self.display_name = display_name
 
-            if not isinstance(conversion, (v3b.ChannelConversion, v4b.ChannelConversion)):
+            if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                 if 'a' in conversion:
                     conversion['conversion_type'] = v4c.CONVERSION_TYPE_LIN
                     conversion = v4b.ChannelConversion(
@@ -818,10 +793,7 @@ class Signal(object):
         if not self.raw or self.conversion is None:
             samples = self.samples.copy()
         else:
-            conversion = self.conversion
-
-
-            samples = conversion.convert(self.samples)
+            samples = self.conversion.convert(self.samples)
 
         return Signal(
             samples,

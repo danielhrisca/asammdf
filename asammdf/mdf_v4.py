@@ -8,7 +8,6 @@ from __future__ import division, print_function
 import os
 import re
 import sys
-import time
 import warnings
 from collections import defaultdict
 from copy import deepcopy
@@ -19,14 +18,12 @@ from struct import unpack, unpack_from, pack
 from tempfile import TemporaryFile
 from zlib import decompress
 
-from numexpr import evaluate
 from numpy import (
     arange,
     argwhere,
     array,
     array_equal,
     concatenate,
-    clip,
     dtype,
     flip,
     float64,
@@ -34,7 +31,6 @@ from numpy import (
     interp,
     packbits,
     roll,
-    searchsorted,
     transpose,
     uint8,
     uint16,
@@ -48,7 +44,6 @@ from numpy.core.defchararray import encode, decode, strip
 from numpy.core.records import fromarrays, fromstring
 
 from . import v4_constants as v4c
-from .signal import Signal, SignalConversions
 from .conversion_utils import conversion_transfer
 from .utils import (
     CHANNEL_COUNT,

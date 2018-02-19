@@ -13,25 +13,19 @@ from functools import reduce
 from itertools import product
 from math import ceil
 from tempfile import TemporaryFile
-from struct import unpack
 
-from numexpr import evaluate
 from numpy import (
     arange,
     array,
     array_equal,
-    clip,
     column_stack,
     concatenate,
     dtype,
-    exp,
     flip,
     float64,
     interp,
-    log,
     packbits,
     roll,
-    searchsorted,
     uint8,
     union1d,
     unpackbits,
@@ -41,7 +35,6 @@ from numpy import (
 from numpy.core.records import fromarrays, fromstring
 
 from . import v2_v3_constants as v23c
-from .signal import Signal, SignalConversions
 from .conversion_utils import conversion_transfer
 from .utils import (
     CHANNEL_COUNT,
