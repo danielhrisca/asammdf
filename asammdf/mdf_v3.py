@@ -767,55 +767,17 @@ class MDF3(object):
 
                     # read conversion block
                     address = new_ch['conversion_addr']
-                    if address:
-                        stream.seek(address + 2)
-                        size = unpack('<H', stream.read(2))[0]
-                        stream.seek(address)
-                        raw_bytes = stream.read(size)
-                        if memory == 'minimum':
-                            new_conv = ChannelConversion(
-                                raw_bytes=raw_bytes,
+                    if memory == 'minimum':
+                        grp['channel_conversions'].append(address)
+                    else:
+                        if address:
+                            conv = ChannelConversion(
+                                address=address,
+                                stream=stream,
                             )
-                            grp_conv.append(address)
                         else:
-                            if raw_bytes in cc_map:
-                                new_conv = cc_map[raw_bytes]
-                            else:
-                                new_conv = ChannelConversion(
-                                    raw_bytes=raw_bytes,
-                                )
-                                if new_conv['conversion_type'] != v23c.CONVERSION_TYPE_RTABX:
-                                    cc_map[raw_bytes] = new_conv
-                            grp_conv.append(new_conv)
-                    else:
-                        new_conv = None
-                        if memory != 'minimum':
-                            grp_conv.append(None)
-                        else:
-                            grp_conv.append(0)
-
-                    vtab_texts = {}
-                    if new_conv:
-                        conv_type = new_conv['conversion_type']
-                    else:
-                        conv_type = 0
-                    if conv_type == v23c.CONVERSION_TYPE_RTABX:
-                        for idx in range(new_conv['ref_param_nr']):
-                            address = new_conv['text_{}'.format(idx)]
-                            if address:
-                                if memory != 'minimum':
-                                    block = TextBlock(
-                                        address=address,
-                                        stream=stream,
-                                    )
-                                    vtab_texts['text_{}'.format(idx)] = block
-                                else:
-                                    vtab_texts['text_{}'.format(idx)] = address
-
-                    if vtab_texts:
-                        grp['texts']['conversion_tab'].append(vtab_texts)
-                    else:
-                        grp['texts']['conversion_tab'].append(None)
+                            conv = None
+                        grp_conv.append(conv)
 
                     address = new_ch['source_depend_addr']
 
@@ -1303,143 +1265,30 @@ class MDF3(object):
 
             # conversions for channel
 
-            info = signal.conversion
+            conversion = signal.conversion
             israw = signal.raw
-            if info is None:
-                conv_type = SignalConversions.CONVERSION_NONE
-            else:
-                if israw:
-                    conv_type = info['type']
+
+            if not israw:
+                if memory != 'minimum':
+                    gp_conv.append(None)
                 else:
-                    conv_type = info['type']
-                    if conv_type in (
-                            SignalConversions.CONVERSION_NONE,
-                            SignalConversions.CONVERSION_TAB,
-                            SignalConversions.CONVERSION_TABI,
-                            SignalConversions.CONVERSION_POLYNOMIAL,
-                            SignalConversions.CONVERSION_ALGEBRAIC,
-                            SignalConversions.CONVERSION_LINEAR,
-                            SignalConversions.CONVERSION_EXPO,
-                            SignalConversions.CONVERSION_LOGH,
-                            SignalConversions.CONVERSION_RATIONAL,):
-                        conv_type = SignalConversions.CONVERSION_NONE
-            texts = {}
-            kargs = {}
+                    gp_conv.append(0)
+            else:
+
+                if memory == 'minimum':
+                    if conversion:
+                        write_cc(conversion, defined_texts={}, stream=self._tempfile)
+                        address = tell()
+                        write(bytes(conversion))
+                        gp_conv.append(address)
+                    else:
+                        gp_conv.append(0)
+                else:
+                    gp_conv.append(conversion)
 
             min_val, max_val = get_min_max(signal.samples)
 
             if sig_type == v23c.SIGNAL_TYPE_SCALAR:
-
-                if conv_type == SignalConversions.CONVERSION_NONE:
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_NONE
-
-                elif conv_type == SignalConversions.CONVERSION_LINEAR:
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_LINEAR
-                    kargs['a'] = info['a']
-                    kargs['b'] = info['b']
-
-                elif conv_type == SignalConversions.CONVERSION_RATIONAL:
-                    kargs = {k: v for k, v in info.items()}
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_RAT
-
-                elif conv_type == SignalConversions.CONVERSION_ALGEBRAIC:
-                    formula = info['formula']
-                    if 'X1' not in formula:
-                        formula = formula.replace('X', 'X1')
-                    kargs['formula'] = formula.encode('latin-1')
-
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_FORMULA
-
-                elif conv_type == SignalConversions.CONVERSION_LOGH:
-                    kargs = {k: v for k, v in info.items()}
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_LOGH
-
-                elif conv_type == SignalConversions.CONVERSION_EXPO:
-                    kargs = {k: v for k, v in info.items()}
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_EXPO
-
-                elif conv_type == SignalConversions.CONVERSION_POLYNOMIAL:
-                    kargs = {k: v for k, v in info.items()}
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_POLY
-
-                elif conv_type in (
-                        SignalConversions.CONVERSION_TAB,
-                        SignalConversions.CONVERSION_TABI):
-                    if conv_type == SignalConversions.CONVERSION_TAB:
-                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_TAB
-                    else:
-                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_TABI
-
-                    kargs['ref_param_nr'] = len(info['raw'])
-
-                    for i, (r_, p_) in enumerate(zip(info['raw'], info['phys'])):
-                        kargs['raw_{}'.format(i)] = r_
-                        kargs['phys_{}'.format(i)] = p_
-
-                elif conv_type == SignalConversions.CONVERSION_RTAB:
-                    if israw:
-                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_TABI
-                        kargs['ref_param_nr'] = 2 * len(info['upper'])
-
-                        for i, (u_, l_, p_) in enumerate(zip(
-                                info['upper'],
-                                info['lower'],
-                                info['phys'])):
-                            kargs['raw_{}'.format(2*i)] = l_
-                            kargs['raw_{}'.format(2*i+1)] = u_ - 0.000001
-                            kargs['phys_{}'.format(2 * i)] = p_
-                            kargs['phys_{}'.format(2 * i + 1)] = p_
-                    else:
-                        kargs['conversion_type'] = v23c.CONVERSION_TYPE_NONE
-
-                elif conv_type == SignalConversions.CONVERSION_TABX:
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_TABX
-
-                    kargs['ref_param_nr'] = len(info['raw'])
-
-                    for i, (r_, p_) in enumerate(zip(info['raw'], info['phys'])):
-                        kargs['text_{}'.format(i)] = p_[:31] + b'\0'
-                        kargs['param_val_{}'.format(i)] = r_
-
-                elif conv_type == SignalConversions.CONVERSION_RTABX:
-                    kargs['conversion_type'] = v23c.CONVERSION_TYPE_RTABX
-                    lower = info['lower']
-                    upper = info['upper']
-                    texts_ = info['phys']
-                    kargs['ref_param_nr'] = len(upper)
-
-                    for i, (u_, l_, t_) in enumerate(zip(upper, lower, texts_)):
-                        kargs['lower_{}'.format(i)] = l_
-                        kargs['upper_{}'.format(i)] = u_
-                        kargs['text_{}'.format(i)] = 0
-
-                        block = TextBlock(text=t_)
-                        if memory != 'minimum':
-                            texts['text_{}'.format(i)] = block
-                        else:
-                            address = tell()
-                            texts['text_{}'.format(i)] = address
-                            kargs['text_{}'.format(i)] = address
-                            write(bytes(block))
-
-                else:
-                    raise ValueError(conv_type)
-
-                kargs['min_phy_value'] = min_val if min_val <= max_val else 0
-                kargs['max_phy_value'] = max_val if min_val <= max_val else 0
-
-                if texts:
-                    gp_texts['conversion_tab'].append(texts)
-                else:
-                    gp_texts['conversion_tab'].append(None)
-
-                block = ChannelConversion(**kargs)
-                if memory != 'minimum':
-                    gp_conv.append(block)
-                else:
-                    address = tell()
-                    gp_conv.append(address)
-                    write(bytes(block))
 
                 # source for channel
                 if memory != 'minimum':
@@ -3131,230 +2980,25 @@ class MDF3(object):
             else:
                 conversion_type = conversion['conversion_type']
 
-            signal_conversion = None
-
             if conversion_type == v23c.CONVERSION_TYPE_NONE:
                 pass
 
-            elif conversion_type == v23c.CONVERSION_TYPE_LINEAR:
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_LINEAR,
-                    'a': conversion['a'],
-                    'b': conversion['b'],
-                }
+            elif conversion_type in (
+                    v23c.CONVERSION_TYPE_LINEAR,
+                    v23c.CONVERSION_TYPE_TABI,
+                    v23c.CONVERSION_TYPE_TAB,
+                    v23c.CONVERSION_TYPE_EXPO,
+                    v23c.CONVERSION_TYPE_LOGH,
+                    v23c.CONVERSION_TYPE_RAT,
+                    v23c.CONVERSION_TYPE_POLY,
+                    v23c.CONVERSION_TYPE_FORMULA):
                 if not raw:
-                    a = conversion['a']
-                    b = conversion['b']
-                    if (a, b) != (1, 0):
-                        vals = vals * a
-                        if b:
-                            vals += b
-
-            elif conversion_type in (v23c.CONVERSION_TYPE_TABI,
-                                     v23c.CONVERSION_TYPE_TAB):
-                nr = conversion['ref_param_nr']
-
-                raw_vals = [
-                    conversion['raw_{}'.format(i)]
-                    for i in range(nr)
-                ]
-                raw_vals = array(raw_vals)
-                phys = [
-                    conversion['phys_{}'.format(i)]
-                    for i in range(nr)
-                ]
-                phys = array(phys)
-
-                if not raw:
-                    if conversion_type == v23c.CONVERSION_TYPE_TABI:
-                        vals = interp(vals, raw_vals, phys)
-                    else:
-                        idx = searchsorted(raw_vals, vals)
-                        idx = clip(idx, 0, len(raw_vals) - 1)
-                        vals = phys[idx]
-
-                if conversion_type == v23c.CONVERSION_TYPE_TAB:
-                    signal_conversion = SignalConversions.CONVERSION_TAB
-                else:
-                    signal_conversion = SignalConversions.CONVERSION_TABI
-
-                signal_conversion = {
-                    'type': signal_conversion,
-                    'raw': raw_vals,
-                    'phys': phys,
-                }
-
-            elif conversion_type == v23c.CONVERSION_TYPE_TABX:
-                nr = conversion['ref_param_nr']
-                raw_vals = [
-                    conversion['param_val_{}'.format(i)]
-                    for i in range(nr)
-                ]
-                raw_vals = array(raw_vals)
-                phys = [
-                    conversion['text_{}'.format(i)]
-                    for i in range(nr)
-                ]
-                phys = array(phys)
-
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_TABX,
-                    'raw': raw_vals,
-                    'phys': phys,
-                }
-
-            elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
-                nr = conversion['ref_param_nr']
-
-                conv_texts = grp['texts']['conversion_tab'][ch_nr]
-                texts = []
-                if memory != 'minimum':
-                    for i in range(nr):
-                        key = 'text_{}'.format(i)
-                        if key in conv_texts:
-                            text = conv_texts[key]['text']
-                            texts.append(text)
-                        else:
-                            texts.append(b'')
-                else:
-                    for i in range(nr):
-                        key = 'text_{}'.format(i)
-                        if key in conv_texts:
-                            block = TextBlock(
-                                address=conv_texts[key],
-                                stream=stream,
-                            )
-                            text = block['text']
-                            texts.append(text)
-                        else:
-                            texts.append(b'')
-
-                texts = array(texts)
-                lower = [
-                    conversion['lower_{}'.format(i)]
-                    for i in range(nr)
-                ]
-                lower = array(lower)
-                upper = [
-                    conversion['upper_{}'.format(i)]
-                    for i in range(nr)
-                ]
-                upper = array(upper)
-
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_RTABX,
-                    'lower': lower,
-                    'upper': upper,
-                    'phys': texts,
-                }
+                    vals = conversion.convert(vals)
 
             elif conversion_type in (
-                    v23c.CONVERSION_TYPE_EXPO,
-                    v23c.CONVERSION_TYPE_LOGH):
-                # pylint: disable=C0103
-
-                if conversion_type == v23c.CONVERSION_TYPE_EXPO:
-                    signal_conversion = SignalConversions.CONVERSION_EXPO
-                else:
-                    signal_conversion = SignalConversions.CONVERSION_LOGH
-
-                signal_conversion = {
-                    'type': signal_conversion,
-                    'P1': conversion['P1'],
-                    'P2': conversion['P2'],
-                    'P3': conversion['P3'],
-                    'P4': conversion['P4'],
-                    'P5': conversion['P5'],
-                    'P6': conversion['P6'],
-                    'P7': conversion['P7'],
-                }
-
-                if not raw:
-                    if conversion_type == v23c.CONVERSION_TYPE_EXPO:
-                        func = log
-                    else:
-                        func = exp
-                    P1 = conversion['P1']
-                    P2 = conversion['P2']
-                    P3 = conversion['P3']
-                    P4 = conversion['P4']
-                    P5 = conversion['P5']
-                    P6 = conversion['P6']
-                    P7 = conversion['P7']
-                    if P4 == 0:
-                        vals = func(((vals - P7) * P6 - P3) / P1) / P2
-                    elif P1 == 0:
-                        vals = func((P3 / (vals - P7) - P6) / P4) / P5
-                    else:
-                        message = 'wrong conversion {}'
-                        message = message.format(conversion_type)
-                        raise ValueError(message)
-
-            elif conversion_type == v23c.CONVERSION_TYPE_RAT:
-                # pylint: disable=unused-variable,C0103
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_RATIONAL,
-                    'P1': conversion['P1'],
-                    'P2': conversion['P2'],
-                    'P3': conversion['P3'],
-                    'P4': conversion['P4'],
-                    'P5': conversion['P5'],
-                    'P6': conversion['P6'],
-                }
-
-                if not raw:
-                    P1 = conversion['P1']
-                    P2 = conversion['P2']
-                    P3 = conversion['P3']
-                    P4 = conversion['P4']
-                    P5 = conversion['P5']
-                    P6 = conversion['P6']
-                    if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
-                        X = vals
-                        vals = evaluate(v23c.RAT_CONV_TEXT)
-
-            elif conversion_type == v23c.CONVERSION_TYPE_POLY:
-                # pylint: disable=unused-variable,C0103
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_POLYNOMIAL,
-                    'P1': conversion['P1'],
-                    'P2': conversion['P2'],
-                    'P3': conversion['P3'],
-                    'P4': conversion['P4'],
-                    'P5': conversion['P5'],
-                    'P6': conversion['P6'],
-                }
-
-                if not raw:
-                    P1 = conversion['P1']
-                    P2 = conversion['P2']
-                    P3 = conversion['P3']
-                    P4 = conversion['P4']
-                    P5 = conversion['P5']
-                    P6 = conversion['P6']
-
-                    X = vals
-
-                    coefs = (P2, P3, P5, P6)
-                    if coefs == (0, 0, 0, 0):
-                        if P1 != P4:
-                            vals = evaluate(v23c.POLY_CONV_SHORT_TEXT)
-                    else:
-                        vals = evaluate(v23c.POLY_CONV_LONG_TEXT)
-
-            elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
-                # pylint: disable=unused-variable,C0103
-                formula = conversion['formula'].decode('latin-1')
-                formula = formula.strip(' \n\t\0')
-
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_ALGEBRAIC,
-                    'formula': formula,
-                }
-
-                if not raw:
-                    X1 = vals
-                    vals = evaluate(formula)
+                    v23c.CONVERSION_TYPE_TABX,
+                    v23c.CONVERSION_TYPE_RTABX):
+                raw = True
 
         if samples_only:
             res = vals
@@ -3399,7 +3043,7 @@ class MDF3(object):
                 unit=unit,
                 name=channel.name,
                 comment=comment,
-                conversion=signal_conversion,
+                conversion=conversion,
                 raw=raw,
                 master_metadata=master_metadata,
                 display_name=display_name,

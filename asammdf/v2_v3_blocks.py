@@ -8,6 +8,9 @@ import time
 from getpass import getuser
 from struct import pack, unpack, unpack_from
 
+import numpy as np
+from numexpr import evaluate
+
 from . import v2_v3_constants as v23c
 from .utils import MdfException
 
@@ -360,10 +363,12 @@ class ChannelConversion(dict):
     0, 100.0
 
     '''
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'referrenced_blocks']
 
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
+
+        self.rerenced_blocks = {}
 
         if 'raw_bytes' in kargs or 'stream' in kargs:
             try:
@@ -486,6 +491,15 @@ class ChannelConversion(dict):
                         values[3*i + 1],
                         values[3*i + 2],
                     )
+                    if values[3*i + 2]:
+                        self.rerenced_blocks['text_{}'.format(i)] = TextBlock(
+                            address=values[3*i + 2],
+                            stream=stream,
+                        )
+                    else:
+                        self.rerenced_blocks['text_{}'.format(i)] = TextBlock(
+                            text='',
+                        )
 
             if self['id'] != b'CC':
                 message = 'Expected "CC" block but found "{}"'
@@ -640,6 +654,163 @@ class ChannelConversion(dict):
                 message = 'Conversion type "{}" not implemented'
                 message = message.format(kargs['conversion_type'])
                 raise Exception(message)
+
+    def convert(self, values):
+        conversion_type = self['conversion_type']
+
+        if conversion_type == v23c.CONVERSION_TYPE_NONE:
+            pass
+
+        elif conversion_type == v23c.CONVERSION_TYPE_LINEAR:
+            a = self['a']
+            b = self['b']
+            if (a, b) != (1, 0):
+                values = values * a
+                if b:
+                    values += b
+
+        elif conversion_type in (v23c.CONVERSION_TYPE_TABI,
+                                v23c.CONVERSION_TYPE_TAB):
+            nr = self['ref_param_nr']
+
+            raw_vals = [
+                self['raw_{}'.format(i)]
+                for i in range(nr)
+            ]
+            raw_vals = np.array(raw_vals)
+            phys = [
+                self['phys_{}'.format(i)]
+                for i in range(nr)
+            ]
+            phys = np.array(phys)
+
+            if conversion_type == v23c.CONVERSION_TYPE_TABI:
+                values = np.interp(values, raw_vals, phys)
+            else:
+                idx = np.searchsorted(raw_vals, values)
+                idx = np.clip(idx, 0, len(raw_vals) - 1)
+                values = phys[idx]
+
+        elif conversion_type == v23c.CONVERSION_TYPE_TABX:
+            nr = self['ref_param_nr']
+            raw_vals = [
+                self['param_val_{}'.format(i)]
+                for i in range(nr)
+            ]
+            raw_vals = np.array(raw_vals)
+            phys = [
+                self['text_{}'.format(i)]
+                for i in range(nr)
+            ]
+            phys = np.array(phys)
+
+        elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
+            nr = self['ref_param_nr']
+
+            conv_texts = grp['texts']['conversion_tab'][ch_nr]
+            texts = []
+            if memory != 'minimum':
+                for i in range(nr):
+                    key = 'text_{}'.format(i)
+                    if key in conv_texts:
+                        text = conv_texts[key]['text']
+                        texts.append(text)
+                    else:
+                        texts.append(b'')
+            else:
+                for i in range(nr):
+                    key = 'text_{}'.format(i)
+                    if key in conv_texts:
+                        block = TextBlock(
+                            address=conv_texts[key],
+                            stream=stream,
+                        )
+                        text = block['text']
+                        texts.append(text)
+                    else:
+                        texts.append(b'')
+
+            texts = np.array(texts)
+            lower = [
+                self['lower_{}'.format(i)]
+                for i in range(nr)
+            ]
+            lower = np.array(lower)
+            upper = [
+                self['upper_{}'.format(i)]
+                for i in range(nr)
+            ]
+            upper = np.array(upper)
+
+            signal_conversion = {
+                'type': SignalConversions.CONVERSION_RTABX,
+                'lower': lower,
+                'upper': upper,
+                'phys': texts,
+            }
+
+        elif conversion_type in (
+                v23c.CONVERSION_TYPE_EXPO,
+                v23c.CONVERSION_TYPE_LOGH):
+            # pylint: disable=C0103
+
+            if conversion_type == v23c.CONVERSION_TYPE_EXPO:
+                func = np.log
+            else:
+                func = np.exp
+            P1 = self['P1']
+            P2 = self['P2']
+            P3 = self['P3']
+            P4 = self['P4']
+            P5 = self['P5']
+            P6 = self['P6']
+            P7 = self['P7']
+            if P4 == 0:
+                vals = func(((values - P7) * P6 - P3) / P1) / P2
+            elif P1 == 0:
+                vals = func((P3 / (values - P7) - P6) / P4) / P5
+            else:
+                message = 'wrong conversion {}'
+                message = message.format(conversion_type)
+                raise ValueError(message)
+
+        elif conversion_type == v23c.CONVERSION_TYPE_RAT:
+            # pylint: disable=unused-variable,C0103
+
+            P1 = self['P1']
+            P2 = self['P2']
+            P3 = self['P3']
+            P4 = self['P4']
+            P5 = self['P5']
+            P6 = self['P6']
+            if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
+                X = values
+                vals = evaluate(v23c.RAT_CONV_TEXT)
+
+        elif conversion_type == v23c.CONVERSION_TYPE_POLY:
+            # pylint: disable=unused-variable,C0103
+
+            P1 = self['P1']
+            P2 = self['P2']
+            P3 = self['P3']
+            P4 = self['P4']
+            P5 = self['P5']
+            P6 = self['P6']
+
+            X = values
+
+            coefs = (P2, P3, P5, P6)
+            if coefs == (0, 0, 0, 0):
+                if P1 != P4:
+                    values = evaluate(v23c.POLY_CONV_SHORT_TEXT)
+            else:
+                values = evaluate(v23c.POLY_CONV_LONG_TEXT)
+
+        elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
+            # pylint: disable=unused-variable,C0103
+
+            X1 = values
+            values = evaluate(self.formula)
 
     def __bytes__(self):
         conv = self['conversion_type']

@@ -790,9 +790,7 @@ class MDF4(object):
                         address=address,
                         stream=stream,
                     )
-                    conv_type = conv['conversion_type']
                 else:
-                    conv_type = -1
                     conv = None
                 grp['channel_conversions'].append(conv)
 
