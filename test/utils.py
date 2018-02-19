@@ -4,6 +4,8 @@ import os
 import numpy as np
 
 from asammdf import MDF, SUPPORTED_VERSIONS, Signal, SignalConversions
+import asammdf.v4_constants as v4c
+import asammdf.v4_blocks as v4b
 
 SUPPORTED_VERSIONS = SUPPORTED_VERSIONS[1:]
 
@@ -1694,7 +1696,7 @@ def generate_test_file(version='4.10'):
     sigs = []
     for i in range(channels_count):
         conversion = {
-            'type': SignalConversions.CONVERSION_LINEAR,
+            'conversion_type': v4c.CONVERSION_TYPE_LIN,
             'a': float(i),
             'b': -0.5,
         }
@@ -1703,7 +1705,7 @@ def generate_test_file(version='4.10'):
             t,
             name='Channel_{}'.format(i),
             unit='unit_{}'.format(i),
-            conversion=conversion,
+            conversion=v4b.ChannelConversion(**conversion),
             comment='Signed 16bit channel {} with linear conversion'.format(i),
             raw=True,
         )
@@ -1714,7 +1716,7 @@ def generate_test_file(version='4.10'):
     sigs = []
     for i in range(channels_count):
         conversion = {
-            'type': SignalConversions.CONVERSION_ALGEBRAIC,
+            'conversion_type': v4c.CONVERSION_TYPE_ALG,
             'formula': '{} * sin(X)'.format(i),
         }
         sig = Signal(
@@ -1722,7 +1724,7 @@ def generate_test_file(version='4.10'):
             t,
             name='Channel_{}'.format(i),
             unit='unit_{}'.format(i),
-            conversion=conversion,
+            conversion=v4b.ChannelConversion(**conversion),
             comment='Sinus channel {} with algebraic conversion'.format(i),
             raw=True,
         )
@@ -1733,7 +1735,7 @@ def generate_test_file(version='4.10'):
     sigs = []
     for i in range(channels_count):
         conversion = {
-            'type': SignalConversions.CONVERSION_RATIONAL,
+            'conversion_type': v4c.CONVERSION_TYPE_RAT,
             'P1': 0,
             'P2': i,
             'P3': -0.5,
@@ -1746,7 +1748,7 @@ def generate_test_file(version='4.10'):
             t,
             name='Channel_{}'.format(i),
             unit='unit_{}'.format(i),
-            conversion=conversion,
+            conversion=v4b.ChannelConversion(**conversion),
             comment='Channel {} with rational conversion'.format(i),
             raw=True,
         )
@@ -1795,8 +1797,15 @@ def generate_test_file(version='4.10'):
             'Value {}'.format(i).encode('ascii')
             for i in range(255)
         ]),
-        'type':  SignalConversions.CONVERSION_TABX,
+        'conversion_type': v4c.CONVERSION_TYPE_TABX,
+        'links_nr': 260,
     }
+
+    for i in range(255):
+        conversion['val_{}'.format(i)] = conversion['raw'][i]
+        conversion['text_{}'.format(i)] = conversion['phys'][i]
+    conversion['text_{}'.format(255)] = 'Default'
+
     for i in range(channels_count):
         sig = Signal(
             ones * i,
@@ -1804,7 +1813,7 @@ def generate_test_file(version='4.10'):
             name='Channel_{}'.format(i),
             unit='unit_{}'.format(i),
             comment='Value to text channel {}'.format(i),
-            conversion=conversion,
+            conversion=v4b.ChannelConversion(**conversion),
             raw=True,
         )
         sigs.append(sig)

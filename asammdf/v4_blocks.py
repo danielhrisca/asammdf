@@ -15,7 +15,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v4_constants as v4c
-from .utils import MdfException, get_text_v4
+from .utils import MdfException, get_text_v4, get_fmt_v4
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
@@ -685,6 +685,7 @@ class ChannelConversion(dict):
         super(ChannelConversion, self).__init__()
 
         self.name = self.unit = self.comment = self.formula = ''
+        self.referenced_blocks = {}
 
         if 'raw_bytes' in kargs or 'stream' in kargs:
             try:
@@ -1103,6 +1104,7 @@ class ChannelConversion(dict):
                 self['val_param_nr'] = kargs.get('val_param_nr', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
+                self.formula = kargs['formula']
 
             elif kargs['conversion_type'] in (
                     v4c.CONVERSION_TYPE_TAB,
@@ -1175,7 +1177,9 @@ class ChannelConversion(dict):
                 self['comment_addr'] = kargs.get('comment_addr', 0)
                 self['inv_conv_addr'] = kargs.get('inv_conv_addr', 0)
                 for i in range(kargs['links_nr'] - 5):
-                    self['text_{}'.format(i)] = 0
+                    key = 'text_{}'.format(i)
+                    self[key] = 0
+                    self.referenced_blocks[key] = TextBlock(text=kargs[key])
                 self['default_addr'] = kargs.get('default_addr', 0)
                 self['conversion_type'] = v4c.CONVERSION_TYPE_TABX
                 self['precision'] = kargs.get('precision', 0)
@@ -1345,6 +1349,13 @@ class ChannelConversion(dict):
                 default = default['text']
             else:
                 default = b''
+
+            phys = np.insert(phys, 0, default)
+            raw_vals = np.insert(raw_vals, 0, raw_vals[0] - 1)
+            indexes = np.searchsorted(raw_vals, self.samples)
+            np.place(indexes, indexes >= len(raw_vals), 0)
+
+            values = phys[indexes]
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
             nr = self['val_param_nr'] // 2
