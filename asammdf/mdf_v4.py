@@ -104,7 +104,6 @@ def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
         if stream:
             tell = stream.tell
             write = stream.write
-        print(conversion)
         if conversion.name:
             tx_block = TextBlock(text=conversion.name)
             text = tx_block['text']

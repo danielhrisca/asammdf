@@ -363,12 +363,12 @@ class ChannelConversion(dict):
     0, 100.0
 
     '''
-    __slots__ = ['address', 'referrenced_blocks']
+    __slots__ = ['address', 'referenced_blocks']
 
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
 
-        self.rerenced_blocks = {}
+        self.referenced_blocks = {}
 
         if 'raw_bytes' in kargs or 'stream' in kargs:
             try:

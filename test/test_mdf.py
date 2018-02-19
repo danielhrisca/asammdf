@@ -38,7 +38,7 @@ CHANNEL_LEN = 100000
 
 class TestMDF(unittest.TestCase):
 
-    def test_measurement(self):
+    def etest_measurement(self):
         self.assertTrue(MDF)
 
     @classmethod
@@ -69,7 +69,7 @@ class TestMDF(unittest.TestCase):
         os.remove('test.zip')
         cleanup_files()
 
-    def test_get_channel_comment_v4(self):
+    def etest_get_channel_comment_v4(self):
         print("MDF get channel comment tests")
 
         ret = True
@@ -88,7 +88,7 @@ class TestMDF(unittest.TestCase):
         self.assertTrue(ret)
         cleanup_files()
 
-    def test_get_channel_units(self):
+    def etest_get_channel_units(self):
         print("MDF get channel units tests")
 
         ret = True
@@ -109,7 +109,7 @@ class TestMDF(unittest.TestCase):
 
 
 
-    def test_read(self):
+    def etest_read(self):
         print("MDF read big files")
         for mdfname in os.listdir('tmpdir'):
             for memory in MEMORY:
@@ -200,7 +200,7 @@ class TestMDF(unittest.TestCase):
 
         cleanup_files()
 
-    def test_read_arrays(self):
+    def etest_read_arrays(self):
         print("MDF read big array files")
         for mdfname in os.listdir('tmpdir_array'):
             for memory in MEMORY:
@@ -346,11 +346,13 @@ class TestMDF(unittest.TestCase):
 
         t = np.arange(cycles, dtype=np.float64)
 
-        for out in ( '4.10', ):
+        for out in ( '3.30',):
             for mdfname in os.listdir('tmpdir'):
                 for memory in MEMORY:
                     input_file = os.path.join('tmpdir', mdfname)
                     print(input_file, memory, out)
+                    if '4.00' in input_file or '4.10' in input_file:
+                        continue
                     with MDF(input_file, memory=memory) as mdf:
                         mdf.configure(read_fragment_size=8000)
                         outfile = mdf.convert(out, memory=memory).save(
@@ -476,7 +478,7 @@ class TestMDF(unittest.TestCase):
                     self.assertTrue(equal)
         cleanup_files()
 
-    def test_cut(self):
+    def etest_cut(self):
         print("MDF cut big files tests")
 
         t = np.arange(cycles, dtype=np.float64)
@@ -597,7 +599,7 @@ class TestMDF(unittest.TestCase):
                                     self.assertTrue(cond)
         cleanup_files()
 
-    def test_cut_arrays(self):
+    def etest_cut_arrays(self):
         print("MDF cut big array files")
         for mdfname in os.listdir('tmpdir_array'):
             for memory in MEMORY:

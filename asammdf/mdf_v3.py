@@ -79,6 +79,47 @@ if PYVERSION == 2:
 __all__ = ['MDF3', ]
 
 
+def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
+    if conversion:
+        if stream:
+            tell = stream.tell
+            write = stream.write
+
+        for key, item in conversion.referenced_blocks.items():
+            if isinstance(item, TextBlock):
+                text = item['text']
+                if text in defined_texts:
+                    conversion[key] = defined_texts[text]
+                else:
+                    if stream:
+                        address = tell()
+                    conversion[key] = address
+                    defined_texts[text] = address
+                    item.address = address
+                    if stream:
+                        write(bytes(item))
+                    else:
+                        address += item['block_len']
+                        blocks.append(item)
+
+            elif isinstance(item, ChannelConversion):
+
+                if stream:
+                    write_cc(item, defined_texts, blocks, stream=stream)
+                    address = tell()
+                    item.address = address
+                    conversion[key] = address
+                    write(bytes(item))
+                else:
+                    item.address = address
+                    conversion[key] = address
+                    address += item['block_len']
+                    blocks.append(item)
+                    address = write_cc(item, defined_texts, blocks, address)
+
+    return address
+
+
 class MDF3(object):
     """If the *name* exist it will be loaded otherwise an empty file will be
     created that can be later saved to disk
@@ -3535,26 +3576,8 @@ class MDF3(object):
                 for i, conv in enumerate(cc):
                     if conv is None:
                         continue
-
-                    if conv['conversion_type'] in (
-                            v23c.CONVERSION_TYPE_RTABX,
-                            v23c.CONVERSION_TYPE_TABX):
-                        conv.address = address
-                        conv_tab_texts = gp_texts['conversion_tab'][i]
-                        if conv_tab_texts:
-                            pairs = conv_tab_texts.items()
-                            for key, item in pairs:
-                                conv[key] = item.address
-
-                        blocks.append(conv)
-                        address += conv['block_len']
                     else:
-                        cc_id = id(conv)
-                        if cc_id not in cc_map:
-                            conv.address = address
-                            cc_map[cc_id] = conv
-                            blocks.append(conv)
-                            address += conv['block_len']
+                        address = write_cc(conv, defined_texts, blocks, address)
 
                 # Channel Extension
                 cs = gp['channel_extensions']
@@ -3893,34 +3916,18 @@ class MDF3(object):
 
                 # ChannelConversions
                 for i, addr in enumerate(gp['channel_conversions']):
-                    if not addr:
-                        cc_addrs.append(0)
-                        continue
+                    if addr:
+                        conversion = ChannelConversion(
+                            address=addr,
+                            stream=stream,
+                        )
 
-                    stream.seek(addr+2)
-                    size = unpack('<H', stream.read(2))[0]
-                    stream.seek(addr)
-                    raw_bytes = stream.read(size)
-
-                    if raw_bytes in cc_map:
-                        cc_addrs.append(cc_map[raw_bytes])
-                    else:
-                        conversion = ChannelConversion(raw_bytes=raw_bytes)
+                        write_cc(conversion, defined_texts, stream=dst_)
                         address = tell()
-                        if conversion['conversion_type'] in (
-                                v23c.CONVERSION_TYPE_RTABX,
-                                v23c.CONVERSION_TYPE_TABX):
-                            conv_tab_texts = gp_texts['conversion_tab'][i]
-                            if conv_tab_texts:
-                                pairs = gp_texts['conversion_tab'][i].items()
-                                for key, item in pairs:
-                                    conversion[key] = item
-                            write(bytes(conversion))
-                            cc_addrs.append(address)
-                        else:
-                            cc_addrs.append(address)
-                            cc_map[raw_bytes] = address
-                            write(raw_bytes)
+                        cc_addrs.append(address)
+                        write(bytes(conversion))
+                    else:
+                        cc_addrs.append(0)
 
                 blocks = []
 
