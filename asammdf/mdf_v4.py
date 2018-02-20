@@ -44,6 +44,7 @@ from numpy.core.defchararray import encode, decode, strip
 from numpy.core.records import fromarrays, fromstring
 
 from . import v4_constants as v4c
+from .signal import Signal
 from .conversion_utils import conversion_transfer
 from .utils import (
     CHANNEL_COUNT,

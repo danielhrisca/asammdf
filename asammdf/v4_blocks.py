@@ -1310,22 +1310,36 @@ class ChannelConversion(dict):
             )
             default = self['default']
 
-            # INT channel
-            if channel['data_type'] <= 3:
+            if channel:
 
-                res = []
-                for v in values:
-                    for l, u, p in zip(lower, upper, phys):
-                        if l <= v <= u:
-                            res.append(p)
-                            break
-                    else:
-                        res.append(default)
-                size = max(channel['bit_count'] >> 3, 1)
-                ch_fmt = get_fmt_v4(channel['data_type'], size)
-                values = np.array(res).astype(ch_fmt)
+                # INT channel
+                if channel['data_type'] <= 3:
 
-            # else FLOAT channel
+                    res = []
+                    for v in values:
+                        for l, u, p in zip(lower, upper, phys):
+                            if l <= v <= u:
+                                res.append(p)
+                                break
+                        else:
+                            res.append(default)
+                    size = max(channel['bit_count'] >> 3, 1)
+                    ch_fmt = get_fmt_v4(channel['data_type'], size)
+                    values = np.array(res).astype(ch_fmt)
+
+                # else FLOAT channel
+                else:
+                    res = []
+                    for v in values:
+                        for l, u, p in zip(lower, upper, phys):
+                            if l <= v < u:
+                                res.append(p)
+                                break
+                        else:
+                            res.append(default)
+                    size = max(channel['bit_count'] >> 3, 1)
+                    ch_fmt = get_fmt_v4(channel['data_type'], size)
+                    values = np.array(res).astype(ch_fmt)
             else:
                 res = []
                 for v in values:
@@ -1335,9 +1349,7 @@ class ChannelConversion(dict):
                             break
                     else:
                         res.append(default)
-                size = max(channel['bit_count'] >> 3, 1)
-                ch_fmt = get_fmt_v4(channel['data_type'], size)
-                values = np.array(res).astype(ch_fmt)
+                values = np.array(res)
 
         elif conversion_type == v4c.CONVERSION_TYPE_TABX:
             nr = self['val_param_nr']
@@ -1360,7 +1372,7 @@ class ChannelConversion(dict):
 
             phys = np.insert(phys, 0, default)
             raw_vals = np.insert(raw_vals, 0, raw_vals[0] - 1)
-            indexes = np.searchsorted(raw_vals, self.samples)
+            indexes = np.searchsorted(raw_vals, values)
             np.place(indexes, indexes >= len(raw_vals), 0)
 
             values = phys[indexes]
@@ -1393,44 +1405,100 @@ class ChannelConversion(dict):
                 [self['upper_{}'.format(i)] for i in range(nr)]
             )
 
+            all_values = phys + [default, ]
+            if all(isinstance(val, bytes) for val in all_values):
+                idx1 = np.searchsorted(lower, values, side='right') - 1
+                idx2 = np.searchsorted(upper, values, side='right')
+
+                idx = np.argwhere(idx1 == idx2).flatten()
+
+                new_vals = [default for _ in values]
+                for i in idx:
+                    new_vals[i] = phys[idx1[i]]
+
+                values = np.array(new_vals)
+
+            else:
+
+                idx1 = np.searchsorted(lower, values, side='right') - 1
+                idx2 = np.searchsorted(upper, values, side='left')
+
+                idx = np.argwhere(idx1 == idx2).flatten()
+
+                new_vals = [0 for v in values]
+                for i in idx:
+                    item = phys[idx1[i]]
+                    if isinstance(item, bytes):
+                        new_vals[i] = np.nan
+                    else:
+                        val = item.convert(np.array([values[i]]))[0]
+                        if isinstance(val, bytes):
+                            new_vals[i] = np.nan
+                        else:
+                            new_vals[i] = val
+
+                idx = np.argwhere(idx1 != idx2).flatten()
+
+                if isinstance(default, bytes):
+                    for i in idx:
+                        new_vals[i] = np.nan
+                else:
+                    for i in idx:
+                        val = default.convert(np.array([values[i]]))[0]
+                        if isinstance(val, bytes):
+                            new_vals[i] = np.nan
+                        else:
+                            new_vals[i] = val
+
+                values = np.array(new_vals)
+
         elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
             nr = self['val_param_nr'] - 1
 
-            raw_vals = np.array(
-                [self.referenced_blocks['text_{}'.format(i)]['text']
-                 for i in range(nr)]
-            )
-            phys = np.array(
-                [self['val_{}'.format(i)] for i in range(nr)]
-            )
+            raw_values = [
+                self.referenced_blocks['text_{}'.format(i)]['text'].strip(b'\0')
+                for i in range(nr)
+            ]
+            phys = [self['val_{}'.format(i)] for i in range(nr)]
             default = self['val_default']
+
+            new_values = []
+            for val in values:
+                try:
+                    val = phys[raw_values.index(val)]
+                except ValueError:
+                    val = default
+                new_values.append(val)
+
+            values = np.array(new_values)
 
         elif conversion_type == v4c.CONVERSION_TYPE_TRANS:
             nr = (self['ref_param_nr'] - 1) // 2
 
-            in_ = np.array(
-                [self.referenced_blocks['input_{}_addr'.format(i)]['text']
-                 for i in range(nr)]
-            )
-            out_ = np.array(
-                [self.referenced_blocks['output_{}_addr'.format(i)]['text']
-                 for i in range(nr)]
-            )
+            in_ = [
+                self.referenced_blocks['input_{}_addr'.format(i)]['text'].strip(b'\0')
+                for i in range(nr)
+            ]
+
+            out_ = [
+                self.referenced_blocks['output_{}_addr'.format(i)]['text'].strip(b'\0')
+                for i in range(nr)
+            ]
             default = (
-                self
+                self.referenced_blocks
                 ['default_addr']
                 ['text']
             )
 
-            res = []
-            for v in values:
-                for i, o in zip(in_, out_):
-                    if v == i:
-                        res.append(o)
-                        break
-                else:
-                    res.append(default)
-            values = np.array(res)
+            new_values = []
+            for val in values:
+                try:
+                    val = out_[in_.index(val)]
+                except ValueError:
+                    val = default
+                new_values.append(val)
+
+            values = np.array(new_values)
 
         return values
 

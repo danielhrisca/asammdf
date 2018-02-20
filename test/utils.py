@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from asammdf import MDF, SUPPORTED_VERSIONS, Signal, SignalConversions
+from asammdf import MDF, SUPPORTED_VERSIONS, Signal
 import asammdf.v4_constants as v4c
 import asammdf.v4_blocks as v4b
 import asammdf.v2_v3_constants as v3c

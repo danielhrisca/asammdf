@@ -94,7 +94,10 @@ class Signal(object):
             self.display_name = display_name
 
             if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
-                if 'a' in conversion:
+                if conversion is None:
+                    pass
+
+                elif 'a' in conversion:
                     conversion['conversion_type'] = v4c.CONVERSION_TYPE_LIN
                     conversion = v4b.ChannelConversion(
                         **conversion
@@ -157,6 +160,7 @@ class Signal(object):
 \tunit="{}"
 \tconversion={}
 \tcomment="{}"
+\tmastermeta="{}"
 \traw={}>
 """
         return string.format(
@@ -166,6 +170,7 @@ class Signal(object):
             self.unit,
             self.conversion,
             self.comment,
+            self.master_metadata,
             self.raw,
         )
 
@@ -206,28 +211,31 @@ class Signal(object):
                 plt.title('{}\n({})'.format(self.name, comment))
             else:
                 plt.title(self.name)
-            if self.master_metadata is None:
-                plt.xlabel('Time [s]')
-                plt.ylabel('[{}]'.format(self.unit))
-                plt.plot(self.timestamps, self.samples, 'b')
-                plt.plot(self.timestamps, self.samples, 'b.')
-                plt.grid(True)
-                plt.show()
-            else:
-                master_name, sync_type = self.master_metadata
-                if sync_type in (0, 1):
-                    plt.xlabel('{} [s]'.format(master_name))
-                elif sync_type == 2:
-                    plt.xlabel('{} [deg]'.format(master_name))
-                elif sync_type == 3:
-                    plt.xlabel('{} [m]'.format(master_name))
-                elif sync_type == 4:
-                    plt.xlabel('{} [index]'.format(master_name))
-                plt.ylabel('[{}]'.format(self.unit))
-                plt.plot(self.timestamps, self.samples, 'b')
-                plt.plot(self.timestamps, self.samples, 'b.')
-                plt.grid(True)
-                plt.show()
+            try:
+                if self.master_metadata is None:
+                    plt.xlabel('Time [s]')
+                    plt.ylabel('[{}]'.format(self.unit))
+                    plt.plot(self.timestamps, self.samples, 'b')
+                    plt.plot(self.timestamps, self.samples, 'b.')
+                    plt.grid(True)
+                    plt.show()
+                else:
+                    master_name, sync_type = self.master_metadata
+                    if sync_type in (0, 1):
+                        plt.xlabel('{} [s]'.format(master_name))
+                    elif sync_type == 2:
+                        plt.xlabel('{} [deg]'.format(master_name))
+                    elif sync_type == 3:
+                        plt.xlabel('{} [m]'.format(master_name))
+                    elif sync_type == 4:
+                        plt.xlabel('{} [index]'.format(master_name))
+                    plt.ylabel('[{}]'.format(self.unit))
+                    plt.plot(self.timestamps, self.samples, 'b')
+                    plt.plot(self.timestamps, self.samples, 'b.')
+                    plt.grid(True)
+                    plt.show()
+            except ValueError:
+                plt.close(fig)
         else:
             try:
                 names = self.samples.dtype.names
@@ -569,10 +577,11 @@ class Signal(object):
             new_timestamps,
             self.unit,
             self.name,
-            self.conversion,
-            self.raw,
-            self.master_metadata,
-            self.display_name,
+            comment=self.comment,
+            conversion=self.conversion,
+            raw=self.raw,
+            master_metadata=self.master_metadata,
+            display_name=self.display_name,
         )
 
     def __apply_func(self, other, func_name):

@@ -680,50 +680,36 @@ class ChannelConversion(dict):
             ]
             phys = np.array(phys)
 
+            indexes = np.searchsorted(raw_vals, values)
+
+            values = phys[indexes]
+
         elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
             nr = self['ref_param_nr']
 
-            conv_texts = grp['texts']['conversion_tab'][ch_nr]
-            texts = []
-            if memory != 'minimum':
-                for i in range(nr):
-                    key = 'text_{}'.format(i)
-                    if key in conv_texts:
-                        text = conv_texts[key]['text']
-                        texts.append(text)
-                    else:
-                        texts.append(b'')
-            else:
-                for i in range(nr):
-                    key = 'text_{}'.format(i)
-                    if key in conv_texts:
-                        block = TextBlock(
-                            address=conv_texts[key],
-                            stream=stream,
-                        )
-                        text = block['text']
-                        texts.append(text)
-                    else:
-                        texts.append(b'')
+            phys = []
+            for i in range(nr):
+                try:
+                    value = self.referenced_blocks['text_{}'.format(i)]['text']
+                except KeyError:
+                    value = self.referenced_blocks['text_{}'.format(i)]
+                except TypeError:
+                    value = b''
+                phys.append(value)
 
-            texts = np.array(texts)
-            lower = [
-                self['lower_{}'.format(i)]
-                for i in range(nr)
-            ]
-            lower = np.array(lower)
-            upper = [
-                self['upper_{}'.format(i)]
-                for i in range(nr)
-            ]
-            upper = np.array(upper)
+            lower = np.array(
+                [self['lower_{}'.format(i)] for i in range(nr)]
+            )
+            upper = np.array(
+                [self['upper_{}'.format(i)] for i in range(nr)]
+            )
 
-            signal_conversion = {
-                'type': SignalConversions.CONVERSION_RTABX,
-                'lower': lower,
-                'upper': upper,
-                'phys': texts,
-            }
+            idx1 = np.searchsorted(lower, values, side='right') - 1
+            idx2 = np.searchsorted(upper, values, side='right')
+
+            idx = np.argwhere(idx1 == idx2).flatten()
+
+            values = phys[idx]
 
         elif conversion_type in (
                 v23c.CONVERSION_TYPE_EXPO,

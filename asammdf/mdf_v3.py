@@ -34,6 +34,7 @@ from numpy import (
 
 from numpy.core.records import fromarrays, fromstring
 
+from .signal import Signal
 from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
 from .utils import (

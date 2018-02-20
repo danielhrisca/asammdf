@@ -62,7 +62,7 @@ class TestMDF(unittest.TestCase):
         generate_arrays_test_file()
 
     @classmethod
-    def rtearDownClass(cls):
+    def tearDownClass(cls):
         shutil.rmtree('tmpdir_demo', True)
         shutil.rmtree('tmpdir_array', True)
         shutil.rmtree('tmpdir', True)
