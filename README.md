@@ -71,7 +71,6 @@ The main goals for this library are:
     * handling of unfinished measurements (mdf 4)
     * xml schema for TXBLOCK and MDBLOCK
     * full support for remaining mdf 4 channel arrays types
-    * partial conversions
     * event blocks
     * channels with default X axis
     * channels with reference to attachment
