@@ -20,8 +20,12 @@ except ImportError:
 import psutil
 import numpy as np
 
-from asammdf import MDF, Signal, SignalConversions
+from asammdf import MDF, Signal
 from asammdf import __version__ as asammdf_version
+import asammdf.v4_constants as v4c
+import asammdf.v4_blocks as v4b
+import asammdf.v2_v3_constants as v3c
+import asammdf.v2_v3_blocks as v3b
 from mdfreader import mdf as MDFreader
 from mdfreader import __version__ as mdfreader_version
 
@@ -119,110 +123,167 @@ class Timer():
         return True
 
 
-def generate_test_files():
-    print('Generating test files:')
-    for version in ('3.30', '4.10'):
-        print("-> generating file for version", version)
-        mdf = MDF(version=version, memory='minimum')
+def generate_test_files(version='4.10'):
+    cycles = 3000
+    channels_count = 2000
+    mdf = MDF(version=version, memory='minimum')
 
-        if version == '3.30':
-            cycles = 500
-            channels_count = 8000
-            filename = 'test.mdf'
-        else:
-            cycles = 500
-            channels_count = 20000
-            filename = 'test.mf4'
+    if version <= '3.30':
+        filename = r'test.mdf'.format(version)
+    else:
+        filename = r'test.mf4'.format(version)
 
-        if os.path.exists(filename):
-            continue
+    if os.path.exists(filename):
+        return filename
 
-        t = np.arange(cycles, dtype=np.float64)
+    t = np.arange(cycles, dtype=np.float64)
 
-        # no conversion
-        sigs = []
-        for i in range(channels_count):
-            sig = Signal(
-                np.ones(cycles, dtype=np.uint16),
-                t,
-                name='Channel_{}'.format(i),
-                unit='unit_{}'.format(i),
-                conversion=None,
-                comment='Unsinged int 16bit channel {}'.format(i),
-                raw=True,
-            )
-            sigs.append(sig)
-        mdf.append(sigs)
+    cls = v4b.ChannelConversion if version >= '4.00' else v3b.ChannelConversion
 
-        # linear
-        sigs = []
-        for i in range(channels_count):
-            conversion = {
-                'type': SignalConversions.CONVERSION_LINEAR,
-                'a': float(i),
-                'b': -0.5,
-            }
-            sig = Signal(
-                np.ones(cycles, dtype=np.int16),
-                t,
-                name='Channel_{}'.format(i),
-                unit='unit_{}'.format(i),
-                conversion=conversion,
-                comment='Signed 16bit channel {} with linear conversion'.format(i),
-                raw=True,
-            )
-            sigs.append(sig)
-        mdf.append(sigs)
+    # no conversion
+    sigs = []
+    for i in range(channels_count):
+        sig = Signal(
+            np.ones(cycles, dtype=np.uint64) * i,
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=None,
+            comment='Unsigned int 16bit channel {}'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
 
-        # algebraic
-        sigs = []
-        for i in range(channels_count):
-            conversion = {
-                'type': SignalConversions.CONVERSION_ALGEBRAIC,
-                'formula': '{} * sin(X)'.format(i),
-            }
-            sig = Signal(
-                np.arange(cycles, dtype=np.int32) / 100,
-                t,
-                name='Channel_{}'.format(i),
-                unit='unit_{}'.format(i),
-                conversion=conversion,
-                comment='Sinus channel {} with algebraic conversion'.format(i),
-                raw=True,
-            )
-            sigs.append(sig)
-        mdf.append(sigs)
+    # linear
+    sigs = []
+    for i in range(channels_count):
+        conversion = {
+            'conversion_type': v4c.CONVERSION_TYPE_LIN if version >= '4.00' else v3c.CONVERSION_TYPE_LINEAR,
+            'a': float(i),
+            'b': -0.5,
+        }
+        sig = Signal(
+            np.ones(cycles, dtype=np.int64),
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=cls(**conversion),
+            comment='Signed 16bit channel {} with linear conversion'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
 
-        # rational
-        sigs = []
-        for i in range(channels_count):
-            conversion = {
-                'type': SignalConversions.CONVERSION_RATIONAL,
-                'P1': 0,
-                'P2': i,
-                'P3': -0.5,
-                'P4': 0,
-                'P5': 0,
-                'P6': 1,
-            }
-            sig = Signal(
-                np.ones(cycles, dtype=np.int64),
-                t,
-                name='Channel_{}'.format(i),
-                unit='unit_{}'.format(i),
-                conversion=conversion,
-                comment='Channel {} with rational conversion'.format(i),
-                raw=True,
-            )
-            sigs.append(sig)
-        mdf.append(sigs)
+    # algebraic
+    sigs = []
+    for i in range(channels_count):
+        conversion = {
+            'conversion_type': v4c.CONVERSION_TYPE_ALG if version >= '4.00' else v3c.CONVERSION_TYPE_FORMULA,
+            'formula': '{} * sin(X)'.format(i),
+        }
+        sig = Signal(
+            np.arange(cycles, dtype=np.int32) / 100.0,
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=cls(**conversion),
+            comment='Sinus channel {} with algebraic conversion'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
 
+    # rational
+    sigs = []
+    for i in range(channels_count):
+        conversion = {
+            'conversion_type': v4c.CONVERSION_TYPE_RAT if version >= '4.00' else v3c.CONVERSION_TYPE_RAT,
+            'P1': 0,
+            'P2': i,
+            'P3': -0.5,
+            'P4': 0,
+            'P5': 0,
+            'P6': 1,
+        }
+        sig = Signal(
+            np.ones(cycles, dtype=np.int64),
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            conversion=cls(**conversion),
+            comment='Channel {} with rational conversion'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
 
-        mdf.save(filename, overwrite=True)
+    # string
+    sigs = []
+    for i in range(channels_count):
+        sig = [
+            'Channel {} sample {}'.format(i, j).encode('ascii')
+            for j in range(cycles)
+        ]
+        sig = Signal(
+            np.array(sig),
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            comment='String channel {}'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
 
-        del mdf
+    # byte array
+    sigs = []
+    ones = np.ones(cycles, dtype=np.dtype('(8,)u1'))
+    for i in range(channels_count):
+        sig = Signal(
+            ones*(i%255),
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            comment='Byte array channel {}'.format(i),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
 
-        MDF.merge([filename,] * 10, version, memory='minimum').save(filename, overwrite=True)
+    # value to text
+    sigs = []
+    ones = np.ones(cycles, dtype=np.uint64)
+    conversion = {
+        'raw': np.arange(255, dtype=np.float64),
+        'phys': np.array([
+            'Value {}'.format(i).encode('ascii')
+            for i in range(255)
+        ]),
+        'conversion_type': v4c.CONVERSION_TYPE_TABX if version >= '4.00' else v3c.CONVERSION_TYPE_TABX,
+        'links_nr': 260,
+        'ref_param_nr': 255,
+    }
+
+    for i in range(255):
+        conversion['val_{}'.format(i)] = conversion['param_val_{}'.format(i)] = conversion['raw'][i]
+        conversion['text_{}'.format(i)] = conversion['phys'][i]
+    conversion['text_{}'.format(255)] = 'Default'
+
+    for i in range(channels_count):
+        sig = Signal(
+            ones * i,
+            t,
+            name='Channel_{}'.format(i),
+            unit='unit_{}'.format(i),
+            comment='Value to text channel {}'.format(i),
+            conversion=cls(**conversion),
+            raw=True,
+        )
+        sigs.append(sig)
+    mdf.append(sigs, common_timebase=True)
+
+    mdf.save(filename, overwrite=True)
 
 
 def open_mdf3(output, fmt, memory):
@@ -657,7 +718,8 @@ def table_end(fmt='rst'):
 def main(text_output, fmt):
     if os.path.dirname(__file__):
         os.chdir(os.path.dirname(__file__))
-    generate_test_files()
+    for version in ('3.30', '4.10'):
+        generate_test_files(version)
 
     mdf = MDF('test.mdf', 'minimum')
     v3_size = os.path.getsize('test.mdf') // 1024 // 1024
@@ -714,18 +776,18 @@ def main(text_output, fmt):
     output.append('    * {} channels\n\n'.format(v4_channels))
 
     tests = (
-        # partial(open_mdf3, memory='full'),
-        # partial(open_mdf3, memory='low'),
-        # partial(open_mdf3, memory='minimum'),
-        # open_reader3,
-        # open_reader3_compression,
-        # open_reader3_nodata,
-        # partial(open_mdf4, memory='full'),
-        # partial(open_mdf4, memory='low'),
-        # partial(open_mdf4, memory='minimum'),
-        # open_reader4,
-        # open_reader4_compression,
-        # open_reader4_nodata,
+        partial(open_mdf3, memory='full'),
+        partial(open_mdf3, memory='low'),
+        partial(open_mdf3, memory='minimum'),
+        open_reader3,
+        open_reader3_compression,
+        open_reader3_nodata,
+        partial(open_mdf4, memory='full'),
+        partial(open_mdf4, memory='low'),
+        partial(open_mdf4, memory='minimum'),
+        open_reader4,
+        open_reader4_compression,
+        open_reader4_nodata,
     )
 
     if tests:
@@ -740,18 +802,18 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        # partial(save_mdf3, memory='full'),
-        # partial(save_mdf3, memory='low'),
-        # partial(save_mdf3, memory='minimum'),
-        # save_reader3,
-        # save_reader3_nodata,
-        # save_reader3_compression,
-        # partial(save_mdf4, memory='full'),
-        # partial(save_mdf4, memory='low'),
-        # partial(save_mdf4, memory='minimum'),
-        # save_reader4,
-        # save_reader4_nodata,
-        # save_reader4_compression,
+        partial(save_mdf3, memory='full'),
+        partial(save_mdf3, memory='low'),
+        partial(save_mdf3, memory='minimum'),
+        save_reader3,
+        save_reader3_nodata,
+        save_reader3_compression,
+        partial(save_mdf4, memory='full'),
+        partial(save_mdf4, memory='low'),
+        partial(save_mdf4, memory='minimum'),
+        save_reader4,
+        save_reader4_nodata,
+        save_reader4_compression,
     )
 
     if tests:
@@ -766,18 +828,18 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        # partial(get_all_mdf3, memory='full'),
-        # partial(get_all_mdf3, memory='low'),
-        # partial(get_all_mdf3, memory='minimum'),
-        # get_all_reader3,
-        # get_all_reader3_nodata,
-        # get_all_reader3_compression,
-        # partial(get_all_mdf4, memory='full'),
-        # partial(get_all_mdf4, memory='low'),
-        # partial(get_all_mdf4, memory='minimum'),
-        # get_all_reader4,
-        # get_all_reader4_nodata,
-        # get_all_reader4_compression,
+        partial(get_all_mdf3, memory='full'),
+        partial(get_all_mdf3, memory='low'),
+        partial(get_all_mdf3, memory='minimum'),
+        get_all_reader3,
+        get_all_reader3_nodata,
+        get_all_reader3_compression,
+        partial(get_all_mdf4, memory='full'),
+        partial(get_all_mdf4, memory='low'),
+        partial(get_all_mdf4, memory='minimum'),
+        get_all_reader4,
+        get_all_reader4_nodata,
+        get_all_reader4_compression,
     )
 
     if tests:
@@ -792,12 +854,12 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        # partial(convert_v3_v4, memory='full'),
-        # partial(convert_v3_v4, memory='low'),
-        # partial(convert_v3_v4, memory='minimum'),
-        # partial(convert_v4_v3, memory='full'),
-        # partial(convert_v4_v3, memory='low'),
-        # partial(convert_v4_v3, memory='minimum'),
+        partial(convert_v3_v4, memory='full'),
+        partial(convert_v3_v4, memory='low'),
+        partial(convert_v3_v4, memory='minimum'),
+        partial(convert_v4_v3, memory='full'),
+        partial(convert_v4_v3, memory='low'),
+        partial(convert_v4_v3, memory='minimum'),
     )
 
     if tests:
