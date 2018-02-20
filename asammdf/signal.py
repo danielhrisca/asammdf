@@ -4,38 +4,18 @@
 import numpy as np
 import warnings
 
-from numexpr import evaluate
-
 from .utils import MdfException
+from . import v2_v3_blocks as v3b
+from . import v4_constants as v4c
+from . import v4_blocks as v4b
+
 from .version import __version__
-
-
-class SignalConversions(object):
-    """
-    types of generic conversions found in the `Signal` conversion attribute.
-    This holds all the conversion types found in the mdf versions 3 and 4
-    """
-
-    CONVERSION_NONE = 0
-    CONVERSION_LINEAR = 1
-    CONVERSION_RATIONAL = 2
-    CONVERSION_ALGEBRAIC = 3
-    CONVERSION_POLYNOMIAL = 4
-    CONVERSION_TAB = 5
-    CONVERSION_TABI = 6
-    CONVERSION_TABX = 7
-    CONVERSION_RTAB = 8
-    CONVERSION_RTABX = 9
-    CONVERSION_TTAB = 10
-    CONVERSION_TRANS = 11
-    CONVERSION_EXPO = 12
-    CONVERSION_LOGH = 13
 
 
 class Signal(object):
     """
-    The *Signal* represents a hannel described by it's samples and timestamps.
-    It can perform aritmethic operations agains other *Signal* or numeric types.
+    The *Signal* represents a channel described by it's samples and timestamps.
+    It can perform arithmetic operations against other *Signal* or numeric types.
     The operations are computed in respect to the timestamps (time correct).
     The non-float signals are not interpolated, instead the last value relative
     to the current timestamp is used.
@@ -51,8 +31,8 @@ class Signal(object):
         signal unit
     name : str
         signal name
-    conversion : dict
-        dict that contains extra conversionrmation about the signal ,
+    conversion : dict | channel conversion block
+        dict that contains extra conversion information about the signal ,
         default *None*
     comment : str
         signal comment, default ''
@@ -100,19 +80,78 @@ class Signal(object):
             if isinstance(timestamps, (list, tuple)):
                 timestamps = np.array(timestamps, dtype=np.float64)
             if not samples.shape[0] == timestamps.shape[0]:
-                message = 'samples and timestamps length missmatch ({} vs {})'
+                message = 'samples and timestamps length mismatch ({} vs {})'
                 message = message.format(samples.shape[0], timestamps.shape[0])
                 raise MdfException(message)
             self.samples = samples
             self.timestamps = timestamps
             self.unit = unit
             self.name = name
-            self.conversion = conversion
             self.comment = comment
             self._plot_axis = None
             self.raw = raw
             self.master_metadata = master_metadata
             self.display_name = display_name
+
+            if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
+                if conversion is None:
+                    pass
+
+                elif 'a' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_LIN
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+
+                elif 'formula' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_ALG
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+
+                elif 'raw_0' in conversion and 'phys_0' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_TAB
+                    nr = 0
+                    while 'phys_{}'.format(nr) in conversion:
+                        nr += 1
+                    conversion['val_param_nr'] = nr
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+
+                elif 'upper_0' in conversion and 'phys_0' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_RTAB
+                    nr = 0
+                    while 'phys_{}'.format(nr) in conversion:
+                        nr += 1
+                    conversion['val_param_nr'] = nr
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+                elif 'val_0' in conversion and 'text_0' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_TABX
+                    nr = 0
+                    while 'text_{}'.format(nr) in conversion:
+                        nr += 1
+                    conversion['ref_param_nr'] = nr + 1
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+                elif 'upper_0' in conversion and 'text_0' in conversion:
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_RTABX
+                    nr = 0
+                    while 'text_{}'.format(nr) in conversion:
+                        nr += 1
+                    conversion['ref_param_nr'] = nr + 1
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+                else:
+                    conversion = v4b.ChannelConversion(
+                        conversion_type=v4c.CONVERSION_TYPE_NON
+                    )
+
+            self.conversion = conversion
 
     def __str__(self):
         string = """<Signal {}:
@@ -121,6 +160,7 @@ class Signal(object):
 \tunit="{}"
 \tconversion={}
 \tcomment="{}"
+\tmastermeta="{}"
 \traw={}>
 """
         return string.format(
@@ -130,6 +170,7 @@ class Signal(object):
             self.unit,
             self.conversion,
             self.comment,
+            self.master_metadata,
             self.raw,
         )
 
@@ -170,28 +211,31 @@ class Signal(object):
                 plt.title('{}\n({})'.format(self.name, comment))
             else:
                 plt.title(self.name)
-            if self.master_metadata is None:
-                plt.xlabel('Time [s]')
-                plt.ylabel('[{}]'.format(self.unit))
-                plt.plot(self.timestamps, self.samples, 'b')
-                plt.plot(self.timestamps, self.samples, 'b.')
-                plt.grid(True)
-                plt.show()
-            else:
-                master_name, sync_type = self.master_metadata
-                if sync_type in (0, 1):
-                    plt.xlabel('{} [s]'.format(master_name))
-                elif sync_type == 2:
-                    plt.xlabel('{} [deg]'.format(master_name))
-                elif sync_type == 3:
-                    plt.xlabel('{} [m]'.format(master_name))
-                elif sync_type == 4:
-                    plt.xlabel('{} [index]'.format(master_name))
-                plt.ylabel('[{}]'.format(self.unit))
-                plt.plot(self.timestamps, self.samples, 'b')
-                plt.plot(self.timestamps, self.samples, 'b.')
-                plt.grid(True)
-                plt.show()
+            try:
+                if self.master_metadata is None:
+                    plt.xlabel('Time [s]')
+                    plt.ylabel('[{}]'.format(self.unit))
+                    plt.plot(self.timestamps, self.samples, 'b')
+                    plt.plot(self.timestamps, self.samples, 'b.')
+                    plt.grid(True)
+                    plt.show()
+                else:
+                    master_name, sync_type = self.master_metadata
+                    if sync_type in (0, 1):
+                        plt.xlabel('{} [s]'.format(master_name))
+                    elif sync_type == 2:
+                        plt.xlabel('{} [deg]'.format(master_name))
+                    elif sync_type == 3:
+                        plt.xlabel('{} [m]'.format(master_name))
+                    elif sync_type == 4:
+                        plt.xlabel('{} [index]'.format(master_name))
+                    plt.ylabel('[{}]'.format(self.unit))
+                    plt.plot(self.timestamps, self.samples, 'b')
+                    plt.plot(self.timestamps, self.samples, 'b.')
+                    plt.grid(True)
+                    plt.show()
+            except ValueError:
+                plt.close(fig)
         else:
             try:
                 names = self.samples.dtype.names
@@ -533,10 +577,11 @@ class Signal(object):
             new_timestamps,
             self.unit,
             self.name,
-            self.conversion,
-            self.raw,
-            self.master_metadata,
-            self.display_name,
+            comment=self.comment,
+            conversion=self.conversion,
+            raw=self.raw,
+            master_metadata=self.master_metadata,
+            display_name=self.display_name,
         )
 
     def __apply_func(self, other, func_name):
@@ -757,108 +802,7 @@ class Signal(object):
         if not self.raw or self.conversion is None:
             samples = self.samples.copy()
         else:
-            conversion = self.conversion
-            conv_type = conversion['type']
-            if conv_type == SignalConversions.CONVERSION_LINEAR:
-                samples = self.samples * conversion['a'] + conversion['b']
-
-            elif conv_type == SignalConversions.CONVERSION_TABI:
-                samples = np.interp(
-                    self.samples,
-                    conversion['raw'],
-                    conversion['phys'],
-                )
-
-            elif conv_type == SignalConversions.CONVERSION_TAB:
-                samples = np.interp(
-                    self.samples,
-                    conversion['raw'],
-                    conversion['phys'],
-                )
-
-                idx = np.searchsorted(
-                    conversion['raw'],
-                    self.samples,
-                )
-                idx = np.clip(
-                    idx,
-                    0,
-                    len(conversion['raw']) - 1,
-                )
-                samples = conversion['phys'][idx]
-
-            elif conv_type == SignalConversions.CONVERSION_RATIONAL:
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                coefs = (P2, P3, P5, P6)
-                if coefs == (0, 0, 0, 0):
-                    if P1 != P4:
-                        samples = evaluate('P4 * X / P1')
-                else:
-                    samples = evaluate('(P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)')
-
-            elif conv_type == SignalConversions.CONVERSION_POLYNOMIAL:
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
-                    X = self.samples
-                    samples = evaluate('(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)')
-                else:
-                    samples = self.samples.copy()
-
-            elif conv_type in (
-                    SignalConversions.CONVERSION_EXPO,
-                    SignalConversions.CONVERSION_LOGH):
-                P1 = conversion['P1']
-                P2 = conversion['P2']
-                P3 = conversion['P3']
-                P4 = conversion['P4']
-                P5 = conversion['P5']
-                P6 = conversion['P6']
-                P7 = conversion['P7']
-
-                if conv_type == SignalConversions.CONVERSION_EXPO:
-                    func = np.log
-                else:
-                    func = np.exp
-
-                if P4 == 0:
-                    samples = func(((self.samples - P7) * P6 - P3) / P1) / P2
-                elif P1 == 0:
-                    samples = func((P3 / (self.samples - P7) - P6) / P4) / P5
-                else:
-                    message = 'wrong conversion {}'
-                    message = message.format(conversion)
-                    raise ValueError(message)
-
-            elif conv_type == SignalConversions.CONVERSION_TABX:
-                phys = np.insert(conversion['phys'], 0, conversion['default'])
-                raw = np.insert(conversion['raw'], 0, conversion['raw'][0] - 1)
-                indexes = np.searchsorted(raw, self.samples)
-                np.place(indexes, indexes >= len(raw), 0)
-
-                samples = phys[indexes]
-
-            elif conv_type == SignalConversions.CONVERSION_ALGEBRAIC:
-                formula = conversion['formula']
-
-                if 'X1' in formula:
-                    X1 = self.samples
-                    samples = evaluate(formula)
-                else:
-                    X = self.samples
-                    samples = evaluate(formula)
-
-            else:
-                samples = self.samples.copy()
+            samples = self.conversion.convert(self.samples)
 
         return Signal(
             samples,
