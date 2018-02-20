@@ -8,6 +8,9 @@ import time
 from getpass import getuser
 from struct import pack, unpack, unpack_from
 
+import numpy as np
+from numexpr import evaluate
+
 from . import v2_v3_constants as v23c
 from .utils import MdfException
 
@@ -360,10 +363,12 @@ class ChannelConversion(dict):
     0, 100.0
 
     '''
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'referenced_blocks']
 
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
+
+        self.referenced_blocks = {}
 
         if 'raw_bytes' in kargs or 'stream' in kargs:
             try:
@@ -486,6 +491,15 @@ class ChannelConversion(dict):
                         values[3*i + 1],
                         values[3*i + 2],
                     )
+                    if values[3*i + 2]:
+                        self.referenced_blocks['text_{}'.format(i)] = TextBlock(
+                            address=values[3*i + 2],
+                            stream=stream,
+                        )
+                    else:
+                        self.referenced_blocks['text_{}'.format(i)] = TextBlock(
+                            text='',
+                        )
 
             if self['id'] != b'CC':
                 message = 'Expected "CC" block but found "{}"'
@@ -497,28 +511,22 @@ class ChannelConversion(dict):
             self['id'] = 'CC'.encode('latin-1')
 
             if kargs['conversion_type'] == v23c.CONVERSION_TYPE_NONE:
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_COMMON_BLOCK_SIZE,
-                )
+                self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_NONE
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
+                self['ref_param_nr'] = 0
 
             elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_LINEAR:
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_LIN_BLOCK_SIZE,
-                )
+                self['block_len'] = v23c.CC_LIN_BLOCK_SIZE
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_LINEAR
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
+                self['ref_param_nr'] = 2
                 self['b'] = kargs.get('b', 0)
                 self['a'] = kargs.get('a', 1)
                 if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:
@@ -527,19 +535,13 @@ class ChannelConversion(dict):
             elif kargs['conversion_type'] in (
                     v23c.CONVERSION_TYPE_POLY,
                     v23c.CONVERSION_TYPE_RAT):
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_POLY_BLOCK_SIZE,
-                )
+                self['block_len'] = v23c.CC_POLY_BLOCK_SIZE
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = kargs.get(
-                    'conversion_type',
-                    v23c.CONVERSION_TYPE_POLY,
-                )
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 6)
+                self['conversion_type'] = kargs['conversion_type']
+                self['ref_param_nr'] = 6
                 self['P1'] = kargs.get('P1', 0)
                 self['P2'] = kargs.get('P2', 0)
                 self['P3'] = kargs.get('P3', 0)
@@ -550,19 +552,13 @@ class ChannelConversion(dict):
             elif kargs['conversion_type'] in (
                     v23c.CONVERSION_TYPE_EXPO,
                     v23c.CONVERSION_TYPE_LOGH):
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_EXPO_BLOCK_SIZE,
-                )
+                self['block_len'] = v23c.CC_EXPO_BLOCK_SIZE
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = kargs.get(
-                    'conversion_type',
-                    v23c.CONVERSION_TYPE_EXPO,
-                )
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 7)
+                self['conversion_type'] = v23c.CONVERSION_TYPE_EXPO
+                self['ref_param_nr'] = 7
                 self['P1'] = kargs.get('P1', 0)
                 self['P2'] = kargs.get('P2', 0)
                 self['P3'] = kargs.get('P3', 0)
@@ -574,7 +570,10 @@ class ChannelConversion(dict):
             elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_FORMULA:
                 formula = kargs['formula']
                 formula_len = len(formula)
-                formula += b'\0'
+                try:
+                    formula += b'\0'
+                except:
+                    formula = formula.encode('latin-1') + b'\0'
                 self['block_len'] = 46 + formula_len + 1
                 self['range_flag'] = kargs.get('range_flag', 1)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
@@ -593,21 +592,15 @@ class ChannelConversion(dict):
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = kargs.get(
-                    'conversion_type',
-                    v23c.CONVERSION_TYPE_TABI,
-                )
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 2)
+                self['conversion_type'] = kargs['conversion_type']
+                self['ref_param_nr'] = nr
                 for i in range(nr):
                     self['raw_{}'.format(i)] = kargs['raw_{}'.format(i)]
                     self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
 
             elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_TABX:
                 nr = kargs['ref_param_nr']
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_COMMON_BLOCK_SIZE + 40 * nr,
-                )
+                self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + 40 * nr
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
@@ -620,19 +613,16 @@ class ChannelConversion(dict):
                     self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
 
             elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_RTABX:
-                nr = kargs.get('ref_param_nr', 0)
-                self['block_len'] = kargs.get(
-                    'block_len',
-                    v23c.CC_COMMON_BLOCK_SIZE + 20 * nr,
-                )
+                nr = kargs['ref_param_nr']
+                self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + 20 * nr
                 self['range_flag'] = kargs.get('range_flag', 0)
                 self['min_phy_value'] = kargs.get('min_phy_value', 0)
                 self['max_phy_value'] = kargs.get('max_phy_value', 0)
                 self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_RTABX
-                self['ref_param_nr'] = kargs.get('ref_param_nr', 0)
+                self['ref_param_nr'] = nr
 
-                for i in range(self['ref_param_nr']):
+                for i in range(nr):
                     self['lower_{}'.format(i)] = kargs['lower_{}'.format(i)]
                     self['upper_{}'.format(i)] = kargs['upper_{}'.format(i)]
                     self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
@@ -640,6 +630,154 @@ class ChannelConversion(dict):
                 message = 'Conversion type "{}" not implemented'
                 message = message.format(kargs['conversion_type'])
                 raise Exception(message)
+
+    def convert(self, values):
+        conversion_type = self['conversion_type']
+
+        if conversion_type == v23c.CONVERSION_TYPE_NONE:
+            pass
+
+        elif conversion_type == v23c.CONVERSION_TYPE_LINEAR:
+            a = self['a']
+            b = self['b']
+            if (a, b) != (1, 0):
+                values = values * a
+                if b:
+                    values += b
+
+        elif conversion_type in (v23c.CONVERSION_TYPE_TABI,
+                                v23c.CONVERSION_TYPE_TAB):
+            nr = self['ref_param_nr']
+
+            raw_vals = [
+                self['raw_{}'.format(i)]
+                for i in range(nr)
+            ]
+            raw_vals = np.array(raw_vals)
+            phys = [
+                self['phys_{}'.format(i)]
+                for i in range(nr)
+            ]
+            phys = np.array(phys)
+
+            if conversion_type == v23c.CONVERSION_TYPE_TABI:
+                values = np.interp(values, raw_vals, phys)
+            else:
+                idx = np.searchsorted(raw_vals, values)
+                idx = np.clip(idx, 0, len(raw_vals) - 1)
+                values = phys[idx]
+
+        elif conversion_type == v23c.CONVERSION_TYPE_TABX:
+            nr = self['ref_param_nr']
+            raw_vals = [
+                self['param_val_{}'.format(i)]
+                for i in range(nr)
+            ]
+            raw_vals = np.array(raw_vals)
+            phys = [
+                self['text_{}'.format(i)]
+                for i in range(nr)
+            ]
+            phys = np.array(phys)
+
+            indexes = np.searchsorted(raw_vals, values)
+
+            values = phys[indexes]
+
+        elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
+            nr = self['ref_param_nr']
+
+            phys = []
+            for i in range(nr):
+                try:
+                    value = self.referenced_blocks['text_{}'.format(i)]['text']
+                except KeyError:
+                    value = self.referenced_blocks['text_{}'.format(i)]
+                except TypeError:
+                    value = b''
+                phys.append(value)
+
+            lower = np.array(
+                [self['lower_{}'.format(i)] for i in range(nr)]
+            )
+            upper = np.array(
+                [self['upper_{}'.format(i)] for i in range(nr)]
+            )
+
+            idx1 = np.searchsorted(lower, values, side='right') - 1
+            idx2 = np.searchsorted(upper, values, side='right')
+
+            idx = np.argwhere(idx1 == idx2).flatten()
+
+            values = phys[idx]
+
+        elif conversion_type in (
+                v23c.CONVERSION_TYPE_EXPO,
+                v23c.CONVERSION_TYPE_LOGH):
+            # pylint: disable=C0103
+
+            if conversion_type == v23c.CONVERSION_TYPE_EXPO:
+                func = np.log
+            else:
+                func = np.exp
+            P1 = self['P1']
+            P2 = self['P2']
+            P3 = self['P3']
+            P4 = self['P4']
+            P5 = self['P5']
+            P6 = self['P6']
+            P7 = self['P7']
+            if P4 == 0:
+                values = func(((values - P7) * P6 - P3) / P1) / P2
+            elif P1 == 0:
+                values = func((P3 / (values - P7) - P6) / P4) / P5
+            else:
+                message = 'wrong conversion {}'
+                message = message.format(conversion_type)
+                raise ValueError(message)
+
+        elif conversion_type == v23c.CONVERSION_TYPE_RAT:
+            # pylint: disable=unused-variable,C0103
+
+            P1 = self['P1']
+            P2 = self['P2']
+            P3 = self['P3']
+            P4 = self['P4']
+            P5 = self['P5']
+            P6 = self['P6']
+            if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
+                X = values
+                values = evaluate(v23c.RAT_CONV_TEXT)
+
+        elif conversion_type == v23c.CONVERSION_TYPE_POLY:
+            # pylint: disable=unused-variable,C0103
+
+            P1 = self['P1']
+            P2 = self['P2']
+            P3 = self['P3']
+            P4 = self['P4']
+            P5 = self['P5']
+            P6 = self['P6']
+
+            X = values
+
+            coefs = (P2, P3, P5, P6)
+            if coefs == (0, 0, 0, 0):
+                if P1 != P4:
+                    values = evaluate(v23c.POLY_CONV_SHORT_TEXT)
+            else:
+                values = evaluate(v23c.POLY_CONV_LONG_TEXT)
+
+        elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
+            # pylint: disable=unused-variable,C0103
+
+            formula = self['formula'].decode('latin-1').strip(' \r\n\t\0')
+            if 'X1' not in formula:
+                formula = formula.replace('X', 'X1')
+            X1 = values
+            values = evaluate(formula)
+
+        return values
 
     def __bytes__(self):
         conv = self['conversion_type']

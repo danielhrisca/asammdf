@@ -8,7 +8,6 @@ from __future__ import division, print_function
 import os
 import re
 import sys
-import time
 import warnings
 from collections import defaultdict
 from copy import deepcopy
@@ -19,14 +18,12 @@ from struct import unpack, unpack_from, pack
 from tempfile import TemporaryFile
 from zlib import decompress
 
-from numexpr import evaluate
 from numpy import (
     arange,
     argwhere,
     array,
     array_equal,
     concatenate,
-    clip,
     dtype,
     flip,
     float64,
@@ -34,7 +31,6 @@ from numpy import (
     interp,
     packbits,
     roll,
-    searchsorted,
     transpose,
     uint8,
     uint16,
@@ -48,7 +44,8 @@ from numpy.core.defchararray import encode, decode, strip
 from numpy.core.records import fromarrays, fromstring
 
 from . import v4_constants as v4c
-from .signal import Signal, SignalConversions
+from .signal import Signal
+from .conversion_utils import conversion_transfer
 from .utils import (
     CHANNEL_COUNT,
     CONVERT_LOW,
@@ -97,6 +94,120 @@ if PYVERSION == 2:
     # pylint: enable=W0622
 
 __all__ = ['MDF4', ]
+
+
+def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
+    if conversion:
+        if stream:
+            tell = stream.tell
+            write = stream.write
+        if conversion.name:
+            tx_block = TextBlock(text=conversion.name)
+            text = tx_block['text']
+            if text in defined_texts:
+                conversion['name_addr'] = defined_texts[text]
+            else:
+                if stream:
+                    address = tell()
+                conversion['name_addr'] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                if stream:
+                    write(bytes(tx_block))
+                else:
+                    address += tx_block['block_len']
+                    blocks.append(tx_block)
+        else:
+            conversion['name_addr'] = 0
+
+        if conversion.unit:
+            tx_block = TextBlock(text=conversion.unit)
+            text = tx_block['text']
+            if text in defined_texts:
+                conversion['unit_addr'] = defined_texts[text]
+            else:
+                if stream:
+                    address = tell()
+                conversion['unit_addr'] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                if stream:
+                    write(bytes(tx_block))
+                else:
+                    address += tx_block['block_len']
+                    blocks.append(tx_block)
+        else:
+            conversion['unit_addr'] = 0
+
+        if conversion.comment:
+            tx_block = TextBlock(text=conversion.comment)
+            text = tx_block['text']
+            if text in defined_texts:
+                conversion['comment_addr'] = defined_texts[text]
+            else:
+                if stream:
+                    address = tell()
+                conversion['comment_addr'] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                if stream:
+                    write(bytes(tx_block))
+                else:
+                    address += tx_block['block_len']
+                    blocks.append(tx_block)
+        else:
+            conversion['comment_addr'] = 0
+
+        if conversion['conversion_type'] == v4c.CONVERSION_TYPE_ALG and conversion.formula:
+            tx_block = TextBlock(text=conversion.formula)
+            text = tx_block['text']
+            if text in defined_texts:
+                conversion['formula_addr'] = defined_texts[text]
+            else:
+                if stream:
+                    address = tell()
+                conversion['formula_addr'] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                if stream:
+                    write(bytes(tx_block))
+                else:
+                    address += tx_block['block_len']
+                    blocks.append(tx_block)
+
+        for key, item in conversion.referenced_blocks.items():
+            if isinstance(item, TextBlock):
+                text = item['text']
+                if text in defined_texts:
+                    conversion[key] = defined_texts[text]
+                else:
+                    if stream:
+                        address = tell()
+                    conversion[key] = address
+                    defined_texts[text] = address
+                    item.address = address
+                    if stream:
+                        write(bytes(item))
+                    else:
+                        address += item['block_len']
+                        blocks.append(item)
+
+            elif isinstance(item, ChannelConversion):
+
+                if stream:
+                    write_cc(item, defined_texts, blocks, stream=stream)
+                    address = tell()
+                    item.address = address
+                    conversion[key] = address
+                    write(bytes(item))
+                else:
+                    item.address = address
+                    conversion[key] = address
+                    address += item['block_len']
+                    blocks.append(item)
+                    address = write_cc(item, defined_texts, blocks, address)
+
+    return address
 
 
 def load_signal_data(address, stream):
@@ -666,129 +777,18 @@ class MDF4(object):
 
             # read conversion block and create channel conversion object
             address = channel['conversion_addr']
-            if address:
-                if memory == 'minimum':
+
+            if memory == 'minimum':
+                grp['channel_conversions'].append(address)
+            else:
+                if address:
                     conv = ChannelConversion(
                         address=address,
                         stream=stream,
                     )
-                    conv_type = conv['conversion_type']
                 else:
-                    stream.seek(address+8)
-                    size = unpack('<Q', stream.read(8))[0]
-                    stream.seek(address)
-                    raw_bytes = stream.read(size)
-                    if raw_bytes in self._cc_map:
-                        conv = self._cc_map[raw_bytes]
-                        conv_type = conv['conversion_type']
-                    else:
-                        conv = ChannelConversion(raw_bytes=raw_bytes)
-                        conv_type = conv['conversion_type']
-                        if conv_type not in v4c.CONVERSIONS_WITH_TEXTS:
-                            self._cc_map[raw_bytes] = conv
-            else:
-                conv_type = -1
-                conv = None
-            if memory == 'minimum':
-                grp['channel_conversions'].append(address)
-            else:
+                    conv = None
                 grp['channel_conversions'].append(conv)
-
-            conv_tabx_texts = {}
-            # read text fields for channel conversions
-            if conv:
-                if memory != 'minimum':
-                    address = conv['name_addr']
-                    if address:
-                        conv.name = get_text_v4(address, stream)
-
-                    address = conv['unit_addr']
-                    if address:
-                        conv.unit = get_text_v4(address, stream)
-
-                    address = conv['comment_addr']
-                    if address:
-                        conv.comment = get_text_v4(address, stream)
-
-                    address = conv.get('formula_addr', 0)
-                    if address:
-                        conv.formula = get_text_v4(address, stream)
-
-                if conv_type in v4c.TABULAR_CONVERSIONS:
-                    if conv_type == v4c.CONVERSION_TYPE_TTAB:
-                        tabs = conv['links_nr'] - 4
-                    else:
-                        tabs = conv['links_nr'] - 4 - 1
-                    for i in range(tabs):
-                        address = conv['text_{}'.format(i)]
-                        if memory == 'minimum':
-                            conv_tabx_texts['text_{}'.format(i)] = address
-                        else:
-                            if address:
-                                block = TextBlock(
-                                    address=address,
-                                    stream=stream,
-                                )
-                                conv_tabx_texts['text_{}'.format(i)] = block
-                            else:
-                                conv_tabx_texts['text_{}'.format(i)] = None
-                    if conv_type != v4c.CONVERSION_TYPE_TTAB:
-                        address = conv.get('default_addr', 0)
-                        if address:
-                            if memory == 'minimum':
-                                conv_tabx_texts['default_addr'] = address
-                            else:
-                                stream.seek(address)
-                                blk_id = stream.read(4)
-
-                                if blk_id == b'##TX':
-                                    block = TextBlock(
-                                        address=address,
-                                        stream=stream,
-                                    )
-                                    conv_tabx_texts['default_addr'] = block
-                                elif blk_id == b'##CC':
-                                    block = ChannelConversion(
-                                        address=address,
-                                        stream=stream,
-                                    )
-                                    text = str(time.clock()).encode('utf-8')
-                                    default_text = block
-                                    default_text['text'] = text
-
-                                    conv['unit_addr'] = default_text['unit_addr']
-                                    default_text['unit_addr'] = 0
-
-                elif conv_type == v4c.CONVERSION_TYPE_TRANS:
-                    # link_nr - common links (4) - default text link (1)
-                    for i in range((conv['links_nr'] - 4 - 1) // 2):
-                        for key in ('input_{}_addr'.format(i),
-                                    'output_{}_addr'.format(i)):
-                            address = conv[key]
-                            if address:
-                                if memory == 'minimum':
-                                    conv_tabx_texts[key] = address
-                                else:
-                                    block = TextBlock(
-                                        address=address,
-                                        stream=stream,
-                                    )
-                                    conv_tabx_texts[key] = block
-                    address = conv['default_addr']
-                    if address:
-                        if memory == 'minimum':
-                            conv_tabx_texts['default_addr'] = address
-                        else:
-                            block = TextBlock(
-                                address=address,
-                                stream=stream,
-                            )
-                            conv_tabx_texts['default_addr'] = block
-
-            if conv_tabx_texts:
-                grp['texts']['conversion_tab'].append(conv_tabx_texts)
-            else:
-                grp['texts']['conversion_tab'].append(None)
 
             # read source block and create source information object
             address = channel['source_addr']
@@ -1877,228 +1877,25 @@ class MDF4(object):
                         channel_comment_address = 0
 
                 # conversions for channel
-                info = signal.conversion
+                conversion = conversion_transfer(signal.conversion, version=4)
                 israw = signal.raw
-                conv_texts_tab = {}
-
-                if info:
-                    conv_type = info['type']
-                else:
-                    conv_type = SignalConversions.CONVERSION_NONE
-
-                if conv_type == SignalConversions.CONVERSION_NONE:
+                if not israw:
                     if memory != 'minimum':
                         gp_conv.append(None)
                     else:
                         gp_conv.append(0)
-
-                elif conv_type in (
-                        SignalConversions.CONVERSION_LINEAR,
-                        SignalConversions.CONVERSION_RATIONAL):
-                    if not israw:
-                        if memory != 'minimum':
-                            gp_conv.append(None)
-                        else:
-                            gp_conv.append(0)
-                    else:
-                        kargs = {k: v for k, v in info.items()}
-                        if conv_type == SignalConversions.CONVERSION_LINEAR:
-                            kargs['conversion_type'] = v4c.CONVERSION_TYPE_LIN
-                        else:
-                            kargs['conversion_type'] = v4c.CONVERSION_TYPE_RAT
-                        block = ChannelConversion(**kargs)
-
-                        if memory != 'minimum':
-                            gp_conv.append(block)
-                        else:
-                            address = tell()
-                            gp_conv.append(address)
-                            write(bytes(block))
-
-                elif conv_type == SignalConversions.CONVERSION_ALGEBRAIC:
-                    if not israw:
-                        if memory != 'minimum':
-                            gp_conv.append(None)
-                        else:
-                            gp_conv.append(0)
-                    else:
-                        formula = info['formula']
-                        if 'X1' in formula:
-                            formula = formula.replace('X1', 'X')
-                        kargs = {k: v for k, v in info.items()}
-                        kargs['conversion_type'] = v4c.CONVERSION_TYPE_ALG
-                        block = ChannelConversion(**kargs)
-
-                        if memory == 'minimum':
-                            address = tell()
-                            text = TextBlock(text=formula)
-                            write(bytes(text))
-                            block['formula_addr'] = address
-                            address = tell()
-                            write(bytes(block))
-                            gp_conv.append(address)
-                        else:
-                            block.formula = formula
-                            gp_conv.append(block)
-
-                elif conv_type in (
-                        SignalConversions.CONVERSION_TAB,
-                        SignalConversions.CONVERSION_TABI):
-                    if not israw:
-                        if memory != 'minimum':
-                            gp_conv.append(None)
-                        else:
-                            gp_conv.append(0)
-                    else:
-                        kargs = {}
-                        if conv_type == SignalConversions.CONVERSION_TAB:
-                            kargs['conversion_type'] = v4c.CONVERSION_TYPE_TAB
-                        else:
-                            kargs['conversion_type'] = v4c.CONVERSION_TYPE_TABI
-                        kargs['val_param_nr'] = 2 * len(info['raw'])
-
-                        for i, (r_, p_) in enumerate(
-                                zip(info['raw'], info['phys'])):
-                            kargs['raw_{}'.format(i)] = r_
-                            kargs['phys_{}'.format(i)] = p_
-
-                        block = ChannelConversion(**kargs)
-                        if memory != 'minimum':
-                            gp_conv.append(block)
-                        else:
-                            address = tell()
-                            gp_conv.append(address)
-                            write(bytes(block))
-
-                elif conv_type == SignalConversions.CONVERSION_RTAB:
-                    if not israw:
-                        if memory != 'minimum':
-                            gp_conv.append(None)
-                        else:
-                            gp_conv.append(0)
-                    else:
-                        kargs = {}
-                        kargs['conversion_type'] = v4c.CONVERSION_TYPE_RTAB
-                        kargs['val_param_nr'] = 3 * len(info['upper']) + 1
-
-                        for i, (u_, l_, p_) in enumerate(zip(
-                                info['upper'],
-                                info['lower'],
-                                info['phys'])):
-                            kargs['upper_{}'.format(i)] = u_
-                            kargs['lower_{}'.format(i)] = l_
-                            kargs['phys_{}'.format(i)] = p_
-                        kargs['default'] = info['default']
-
-                        block = ChannelConversion(**kargs)
-                        if memory != 'minimum':
-                            gp_conv.append(block)
-                        else:
-                            address = tell()
-                            gp_conv.append(address)
-                            write(bytes(block))
-
-                elif conv_type == SignalConversions.CONVERSION_TABX:
-                    kargs = {}
-                    kargs['conversion_type'] = v4c.CONVERSION_TYPE_TABX
-
-                    kargs['val_param_nr'] = len(info['raw'])
-
-                    for i, (r_, p_) in enumerate(
-                            zip(info['raw'], info['phys'])):
-                        kargs['text_{}'.format(i)] = 0
-                        kargs['val_{}'.format(i)] = r_
-
-                        block = TextBlock(
-                            text=p_,
-                            meta=False,
-                        )
-
-                        if memory != 'minimum':
-                            conv_texts_tab['text_{}'.format(i)] = block
-                        else:
-                            address = tell()
-                            conv_texts_tab['text_{}'.format(i)] = address
-                            kargs['text_{}'.format(i)] = address
-                            write(bytes(block))
-
-                    block = TextBlock(
-                        text=info.get('default', b''),
-                        meta=False,
-                    )
-                    if memory != 'minimum':
-                        conv_texts_tab['default_addr'] = block
-                    else:
-                        address = tell()
-                        conv_texts_tab['default_addr'] = address
-                        kargs['default_addr'] = address
-                        write(bytes(block))
-                    kargs['links_nr'] = len(info['raw']) + 5
-
-                    block = ChannelConversion(**kargs)
-                    if memory != 'minimum':
-                        gp_conv.append(block)
-                    else:
-                        address = tell()
-                        gp_conv.append(address)
-                        write(bytes(block))
-
-                elif conv_type == SignalConversions.CONVERSION_RTABX:
-                    kargs = {}
-                    kargs['conversion_type'] = v4c.CONVERSION_TYPE_RTABX
-                    lower = info['lower']
-                    upper = info['upper']
-                    texts = info['phys']
-                    kargs['ref_param_nr'] = len(upper)
-                    kargs['links_nr'] = len(lower) + 5
-
-                    for i, (u_, l_, t_) in enumerate(zip(upper, lower, texts)):
-                        kargs['lower_{}'.format(i)] = l_
-                        kargs['upper_{}'.format(i)] = u_
-                        kargs['text_{}'.format(i)] = 0
-
-                        block = TextBlock(
-                            text=t_,
-                            meta=False,
-                        )
-                        if memory != 'minimum':
-                            conv_texts_tab['text_{}'.format(i)] = block
-                        else:
-                            address = tell()
-                            conv_texts_tab['text_{}'.format(i)] = address
-                            kargs['text_{}'.format(i)] = address
-                            write(bytes(block))
-
-                    block = TextBlock(
-                        text=info.get('default', b''),
-                        meta=False,
-                    )
-                    if memory != 'minimum':
-                        conv_texts_tab['default_addr'] = block
-                    else:
-                        address = tell()
-                        conv_texts_tab['default_addr'] = address
-                        kargs['default_addr'] = address
-                        write(bytes(block))
-
-                    block = ChannelConversion(**kargs)
-                    if memory != 'minimum':
-                        gp_conv.append(block)
-                    else:
-                        address = tell()
-                        gp_conv.append(address)
-                        write(bytes(block))
-
                 else:
-                    message = (
-                        'Signal conversion {} not implemented for mdf v4; '
-                        'see SignalConversion class for details'
-                    )
 
-                    raise NotImplementedError(message.format(conv_type))
-
-                if conv_texts_tab:
-                    gp_texts['conversion_tab'][-1] = conv_texts_tab
+                    if memory == 'minimum':
+                        if conversion:
+                            write_cc(conversion, defined_texts={}, stream=self._tempfile)
+                            address = tell()
+                            write(bytes(conversion))
+                            gp_conv.append(address)
+                        else:
+                            gp_conv.append(0)
+                    else:
+                        gp_conv.append(conversion)
 
                 # source for channel
                 if memory != 'minimum':
@@ -2137,7 +1934,7 @@ class MDF4(object):
                     'unit_addr': unit_addr,
                     'comment_addr': comment_addr,
                 }
-                if min_val > max_val:
+                if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
                     kargs['flags'] = 0
                 else:
                     kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
@@ -3764,7 +3561,6 @@ class MDF4(object):
                 address=grp['channels'][ch_nr],
                 stream=stream,
             )
-            addr = grp['channel_conversions'][ch_nr]
         else:
             channel = grp['channels'][ch_nr]
 
@@ -4185,8 +3981,6 @@ class MDF4(object):
             else:
                 conversion = grp['channel_conversions'][ch_nr]
 
-            signal_conversion = None
-
         else:
             # get channel values
             if channel['channel_type'] in (v4c.CHANNEL_TYPE_VIRTUAL,
@@ -4514,379 +4308,22 @@ class MDF4(object):
                     names = ['ms', 'days']
                     vals = fromarrays(arrays, names=names)
 
-            elif conversion_type == v4c.CONVERSION_TYPE_LIN:
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_LINEAR,
-                    'a': conversion['a'],
-                    'b': conversion['b'],
-                }
-
+            elif conversion_type in (
+                    v4c.CONVERSION_TYPE_LIN,
+                    v4c.CONVERSION_TYPE_RAT,
+                    v4c.CONVERSION_TYPE_ALG,
+                    v4c.CONVERSION_TYPE_TABI,
+                    v4c.CONVERSION_TYPE_TAB,
+                    v4c.CONVERSION_TYPE_RTAB,
+                    v4c.CONVERSION_TYPE_TRANS):
                 if not raw:
-                    a = conversion['a']
-                    b = conversion['b']
-                    if (a, b) != (1, 0):
-                        vals = vals * a
-                        if b:
-                            vals += b
-
-            elif conversion_type == v4c.CONVERSION_TYPE_RAT:
-                # pylint: disable=unused-variable,C0103
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_RATIONAL,
-                    'P1': conversion['P1'],
-                    'P2': conversion['P2'],
-                    'P3': conversion['P3'],
-                    'P4': conversion['P4'],
-                    'P5': conversion['P5'],
-                    'P6': conversion['P6'],
-                }
-
-                if not raw:
-                    P1 = conversion['P1']
-                    P2 = conversion['P2']
-                    P3 = conversion['P3']
-                    P4 = conversion['P4']
-                    P5 = conversion['P5']
-                    P6 = conversion['P6']
-                    if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
-                        X = vals
-                        vals = evaluate(v4c.CONV_RAT_TEXT)
-
-            elif conversion_type == v4c.CONVERSION_TYPE_ALG:
-                # pylint: disable=unused-variable,C0103
-                if not memory == 'minimum':
-                    formula = conversion.formula
-                else:
-                    block = TextBlock(
-                        address=conversion['formula_addr'],
-                        stream=stream,
-                    )
-                    formula = (
-                        block['text']
-                        .decode('utf-8')
-                        .strip(' \n\t\0')
-                    )
-
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_ALGEBRAIC,
-                    'formula': formula,
-                }
-
-                if not raw:
-                    X = vals
-                    vals = evaluate(formula)
+                    vals = conversion.convert(vals, channel)
 
             elif conversion_type in (
-                    v4c.CONVERSION_TYPE_TABI,
-                    v4c.CONVERSION_TYPE_TAB):
-                nr = conversion['val_param_nr'] // 2
-                raw_vals = array(
-                    [conversion['raw_{}'.format(i)] for i in range(nr)]
-                )
-                phys = array(
-                    [conversion['phys_{}'.format(i)] for i in range(nr)]
-                )
-
-                if conversion_type == v4c.CONVERSION_TYPE_TABI:
-                    signal_conversion = SignalConversions.CONVERSION_TABI
-                else:
-                    signal_conversion = SignalConversions.CONVERSION_TAB
-
-                signal_conversion = {
-                    'type': signal_conversion,
-                    'raw': raw_vals,
-                    'phys': phys,
-                }
-
-                if not raw:
-                    if conversion_type == v4c.CONVERSION_TYPE_TABI:
-                        vals = interp(vals, raw_vals, phys)
-                    else:
-                        idx = searchsorted(raw_vals, vals)
-                        idx = clip(idx, 0, len(raw_vals) - 1)
-                        vals = phys[idx]
-
-            elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
-                nr = (conversion['val_param_nr'] - 1) // 3
-                lower = array(
-                    [conversion['lower_{}'.format(i)] for i in range(nr)]
-                )
-                upper = array(
-                    [conversion['upper_{}'.format(i)] for i in range(nr)]
-                )
-                phys = array(
-                    [conversion['phys_{}'.format(i)] for i in range(nr)]
-                )
-                default = conversion['default']
-
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_RTAB,
-                    'lower': lower,
-                    'upper': upper,
-                    'phys': phys,
-                    'default': default,
-                }
-
-                if not raw:
-                    # INT channel
-                    if channel['data_type'] <= 3:
-
-                        res = []
-                        for v in vals:
-                            for l, u, p in zip(lower, upper, phys):
-                                if l <= v <= u:
-                                    res.append(p)
-                                    break
-                            else:
-                                res.append(default)
-                        size = max(bits >> 3, 1)
-                        ch_fmt = get_fmt_v4(channel['data_type'], size)
-                        vals = array(res).astype(ch_fmt)
-
-                    # else FLOAT channel
-                    else:
-                        res = []
-                        for v in vals:
-                            for l, u, p in zip(lower, upper, phys):
-                                if l <= v < u:
-                                    res.append(p)
-                                    break
-                            else:
-                                res.append(default)
-                        size = max(bits >> 3, 1)
-                        ch_fmt = get_fmt_v4(channel['data_type'], size)
-                        vals = array(res).astype(ch_fmt)
-
-            elif conversion_type == v4c.CONVERSION_TYPE_TABX:
-                nr = conversion['val_param_nr']
-                raw_vals = array(
-                    [conversion['val_{}'.format(i)] for i in range(nr)]
-                )
-
-                if not memory == 'minimum':
-                    phys = array(
-                        [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
-                            for i in range(nr)]
-                    )
-                    default = grp['texts']['conversion_tab'][ch_nr] \
-                        .get('default_addr', {}) \
-                        .get('text', b'')
-                else:
-                    phys = []
-                    for i in range(nr):
-                        address = (
-                            grp['texts']
-                            ['conversion_tab']
-                            [ch_nr]
-                            ['text_{}'.format(i)]
-                        )
-                        if address:
-                            block = TextBlock(
-                                address=address,
-                                stream=stream,
-                            )
-                            phys.append(block['text'])
-                        else:
-                            phys.append(b'')
-                    phys = array(phys)
-
-                    if grp['texts']['conversion_tab'][ch_nr].get(
-                            'default_addr',
-                            0):
-                        address = (
-                            grp['texts']
-                            ['conversion_tab']
-                            [ch_nr]
-                            ['default_addr']
-                        )
-                        block = TextBlock(
-                            address=address,
-                            stream=stream,
-                        )
-                        default = block['text']
-                    else:
-                        default = b''
-
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_TABX,
-                    'raw': raw_vals,
-                    'phys': phys,
-                    'default': default,
-                }
-
-            elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-                nr = conversion['val_param_nr'] // 2
-
-                if not memory == 'minimum':
-                    phys = array(
-                        [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
-                            for i in range(nr)]
-                    )
-                    default = grp['texts']['conversion_tab'][ch_nr] \
-                        .get('default_addr', {}) \
-                        .get('text', b'')
-                else:
-                    phys = []
-                    for i in range(nr):
-                        address = (
-                            grp['texts']
-                            ['conversion_tab']
-                            [ch_nr]
-                            ['text_{}'.format(i)]
-                        )
-                        if address:
-                            block = TextBlock(
-                                address=address,
-                                stream=stream,
-                            )
-                            phys.append(block['text'])
-                        else:
-                            phys.append(b'')
-                    phys = array(phys)
-                    if grp['texts']['conversion_tab'][ch_nr].get(
-                            'default_addr',
-                            0):
-                        address = (
-                            grp['texts']
-                            ['conversion_tab']
-                            [ch_nr]
-                            ['default_addr']
-                        )
-                        block = TextBlock(
-                            address=address,
-                            stream=stream,
-                        )
-                        default = block['text']
-                    else:
-                        default = b''
-                lower = array(
-                    [conversion['lower_{}'.format(i)] for i in range(nr)]
-                )
-                upper = array(
-                    [conversion['upper_{}'.format(i)] for i in range(nr)]
-                )
-
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_RTABX,
-                    'lower': lower,
-                    'upper': upper,
-                    'phys': phys,
-                    'default': default,
-                }
-
-            elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
-                nr = conversion['val_param_nr'] - 1
-
-                if memory == 'minimum':
-                    raw_vals = []
-                    for i in range(nr):
-                        address = (
-                            grp['texts']
-                            ['conversion_tab']
-                            [ch_nr]
-                            ['text_{}'.format(i)]
-                        )
-                        block = TextBlock(
-                            address=address,
-                            stream=stream,
-                        )
-                        raw_vals.append(block['text'])
-                    raw_vals = array(raw_vals)
-                else:
-                    raw_vals = array(
-                        [grp['texts']['conversion_tab'][ch_nr]['text_{}'.format(i)]['text']
-                            for i in range(nr)]
-                    )
-                phys = array(
-                    [conversion['val_{}'.format(i)] for i in range(nr)]
-                )
-                default = conversion['val_default']
-
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_TTAB,
-                    'raw': raw_vals,
-                    'phys': phys,
-                    'default': default,
-                }
-
-            elif conversion_type == v4c.CONVERSION_TYPE_TRANS:
-                nr = (conversion['ref_param_nr'] - 1) // 2
-                if memory == 'minimum':
-                    in_ = []
-                    for i in range(nr):
-                        address = (
-                            grp['texts']
-                            ['conversion_tab']
-                            [ch_nr]
-                            ['input_{}_addr'.format(i)]
-                        )
-                        block = TextBlock(
-                            address=address,
-                            stream=stream,
-                        )
-                        in_.append(block['text'])
-                    in_ = array(in_)
-
-                    out_ = []
-                    for i in range(nr):
-                        address = (
-                            grp['texts']
-                            ['conversion_tab']
-                            [ch_nr]
-                            ['output_{}_addr'.format(i)]
-                        )
-                        block = TextBlock(
-                            address=address,
-                            stream=stream,
-                        )
-                        out_.append(block['text'])
-                    out_ = array(out_)
-
-                    address = (
-                        grp['texts']
-                        ['conversion_tab']
-                        [ch_nr]
-                        ['default_addr']
-                    )
-                    block = TextBlock(
-                        address=address,
-                        stream=stream,
-                    )
-                    default = block['text']
-                else:
-                    in_ = array(
-                        [grp['texts']['conversion_tab'][ch_nr]['input_{}_addr'.format(i)]['text']
-                            for i in range(nr)]
-                    )
-                    out_ = array(
-                        [grp['texts']['conversion_tab'][ch_nr]['output_{}_addr'.format(i)]['text']
-                            for i in range(nr)]
-                    )
-                    default = (
-                        grp['texts']
-                        ['conversion_tab']
-                        [ch_nr]
-                        ['default_addr']
-                        ['text']
-                    )
-
-                signal_conversion = {
-                    'type': SignalConversions.CONVERSION_TRANS,
-                    'input': in_,
-                    'output': out_,
-                    'default': default,
-                }
-
-                if not raw:
-                    res = []
-                    for v in vals:
-                        for i, o in zip(in_, out_):
-                            if v == i:
-                                res.append(o)
-                                break
-                        else:
-                            res.append(default)
-                    vals = array(res)
+                    v4c.CONVERSION_TYPE_TABX,
+                    v4c.CONVERSION_TYPE_RTABX,
+                    v4c.CONVERSION_TYPE_TTAB):
+                raw = True
 
         if samples_only:
             res = vals
@@ -4951,7 +4388,7 @@ class MDF4(object):
                 unit=unit,
                 name=name,
                 comment=comment,
-                conversion=signal_conversion,
+                conversion=conversion,
                 raw=raw,
                 master_metadata=master_metadata,
             )
@@ -5116,12 +4553,7 @@ class MDF4(object):
 
                 # get timestamps
                 if time_conv:
-                    if time_conv['conversion_type'] == v4c.CONVERSION_TYPE_LIN:
-                        time_a = time_conv['a']
-                        time_b = time_conv['b']
-                        t = t * time_a
-                        if time_b:
-                            t += time_b
+                    t = time_conv.convert(t)
 
         self._master_channel_metadata[index] = metadata
 
@@ -5664,60 +5096,7 @@ class MDF4(object):
                             source['comment_addr'] = 0
 
                 for conversion in gp['channel_conversions']:
-                    if conversion:
-                        if conversion.name:
-                            tx_block = TextBlock(text=conversion.name)
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                conversion['name_addr'] = defined_texts[text]
-                            else:
-                                conversion['name_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                address += tx_block['block_len']
-                                blocks.append(tx_block)
-                        else:
-                            conversion['name_addr'] = 0
-
-                        if conversion.unit:
-                            tx_block = TextBlock(text=conversion.unit)
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                conversion['unit_addr'] = defined_texts[text]
-                            else:
-                                conversion['unit_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                address += tx_block['block_len']
-                                blocks.append(tx_block)
-                        else:
-                            conversion['unit_addr'] = 0
-
-                        if conversion.comment:
-                            tx_block = TextBlock(text=conversion.comment)
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                conversion['comment_addr'] = defined_texts[text]
-                            else:
-                                conversion['comment_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                address += tx_block['block_len']
-                                blocks.append(tx_block)
-                        else:
-                            conversion['comment_addr'] = 0
-
-                        if conversion['conversion_type'] == v4c.CONVERSION_TYPE_ALG and conversion.formula:
-                            tx_block = TextBlock(text=conversion.formula)
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                conversion['formula_addr'] = defined_texts[text]
-                            else:
-                                conversion['formula_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                address += tx_block['block_len']
-                                blocks.append(tx_block)
+                    address = write_cc(conversion, defined_texts, blocks, address)
 
                 # channel conversions
                 for j, conv in enumerate(gp['channel_conversions']):
@@ -5725,16 +5104,6 @@ class MDF4(object):
                         conv.address = address
 
                         conv['inv_conv_addr'] = 0
-
-                        if conv['conversion_type'] in tab_conversion:
-                            for key in gp['texts']['conversion_tab'][j]:
-                                conv[key] = (
-                                    gp['texts']
-                                    ['conversion_tab']
-                                    [j]
-                                    [key]
-                                    .address
-                                )
 
                         address += conv['block_len']
                         blocks.append(conv)
@@ -6279,78 +5648,9 @@ class MDF4(object):
                             stream=stream,
                         )
 
-                        if conversion['name_addr']:
-                            tx_block = TextBlock(
-                                address=conversion['name_addr'],
-                                stream=stream,
-                            )
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                conversion['name_addr'] = defined_texts[text]
-                            else:
-                                address = tell()
-                                conversion['name_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                write(bytes(tx_block))
-                        else:
-                            conversion['name_addr'] = 0
-
-                        if conversion['unit_addr']:
-                            tx_block = TextBlock(
-                                address=conversion['unit_addr'],
-                                stream=stream,
-                            )
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                conversion['unit_addr'] = defined_texts[text]
-                            else:
-                                address = tell()
-                                conversion['unit_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                write(bytes(tx_block))
-                        else:
-                            conversion['unit_addr'] = 0
-
-                        if conversion['comment_addr']:
-                            tx_block = TextBlock(
-                                address=conversion['comment_addr'],
-                                stream=stream,
-                            )
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                conversion['comment_addr'] = defined_texts[text]
-                            else:
-                                address = tell()
-                                conversion['comment_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                write(bytes(tx_block))
-                        else:
-                            conversion['comment_addr'] = 0
-
-                        if conversion['conversion_type'] == v4c.CONVERSION_TYPE_ALG and conversion['formula_addr']:
-                            tx_block = TextBlock(
-                                address=conversion['formula_addr'],
-                                stream=stream,
-                            )
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                conversion['formula_addr'] = defined_texts[text]
-                            else:
-                                address = tell()
-                                conversion['formula_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                write(bytes(tx_block))
-
-                        elif conversion['conversion_type'] in tab_conversion:
-                            for key in temp_texts['conversion_tab'][j]:
-                                conversion[key] = temp_texts['conversion_tab'][j][key]
-
                         conversion['inv_conv_addr'] = 0
 
+                        write_cc(conversion, defined_texts, stream=dst_)
                         address = tell()
                         cc_addrs.append(address)
                         write(bytes(conversion))

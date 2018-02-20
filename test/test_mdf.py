@@ -30,7 +30,7 @@ from asammdf import MDF, SUPPORTED_VERSIONS
 SUPPORTED_VERSIONS = [
     version
     for version in SUPPORTED_VERSIONS
-    if version >= '3.00'
+    if version >= '4.00'
 ]
 
 CHANNEL_LEN = 100000
@@ -346,11 +346,13 @@ class TestMDF(unittest.TestCase):
 
         t = np.arange(cycles, dtype=np.float64)
 
-        for out in ('3.30', '4.10'):
+        for out in ( '3.30',):
             for mdfname in os.listdir('tmpdir'):
                 for memory in MEMORY:
                     input_file = os.path.join('tmpdir', mdfname)
                     print(input_file, memory, out)
+                    if '4.00' in input_file or '4.10' in input_file:
+                        continue
                     with MDF(input_file, memory=memory) as mdf:
                         mdf.configure(read_fragment_size=8000)
                         outfile = mdf.convert(out, memory=memory).save(
@@ -372,6 +374,7 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             v * (j - 1)):
                                         equal = False
+                                        1/0
                             elif i == 1:
                                 v = np.ones(cycles, dtype=np.int64)
                                 for j in range(1, 20):
@@ -380,6 +383,7 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             v * (j - 1) - 0.5):
                                         equal = False
+                                        1 / 0
                             elif i == 2:
                                 v = np.arange(cycles, dtype=np.int64) / 100.0
                                 form = '{} * sin(v)'
@@ -390,6 +394,7 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             numexpr.evaluate(f)):
                                         equal = False
+                                        1 / 0
                             elif i == 3:
                                 v = np.ones(cycles, dtype=np.int64)
                                 form = '({} * v -0.5) / 1'
@@ -400,6 +405,9 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             numexpr.evaluate(f)):
                                         equal = False
+                                        target = numexpr.evaluate(f)
+                                        print(i, j, vals, target, len(vals), len(target))
+                                        1 / 0
                             elif i == 4:
 
                                 for j in range(1, 20):
@@ -413,6 +421,7 @@ class TestMDF(unittest.TestCase):
                                         target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
+                                        1 / 0
                                     self.assertTrue(cond)
 
                             elif i == 5:
@@ -425,6 +434,7 @@ class TestMDF(unittest.TestCase):
                                         target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
+                                        1 / 0
                                     self.assertTrue(cond)
 
                             elif i == 6:
@@ -437,6 +447,7 @@ class TestMDF(unittest.TestCase):
                                         target)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target))
+                                        1 / 0
                                     self.assertTrue(cond)
 
                     self.assertTrue(equal)
@@ -554,6 +565,7 @@ class TestMDF(unittest.TestCase):
                                     cond = np.array_equal(
                                             vals,
                                             numexpr.evaluate(f))
+                                    target = numexpr.evaluate(f)
                                     if not cond:
                                         print(i, j, vals, target, len(vals), len(target) )
                                     self.assertTrue(cond)
