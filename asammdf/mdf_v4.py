@@ -782,10 +782,15 @@ class MDF4(object):
                 grp['channel_conversions'].append(address)
             else:
                 if address:
-                    conv = ChannelConversion(
-                        address=address,
-                        stream=stream,
-                    )
+                    stream.seek(address + 8)
+                    size = unpack('<Q', stream.read(8))[0]
+                    stream.seek(address)
+                    raw_bytes = stream.read(size)
+                    if raw_bytes in self._cc_map:
+                        conv = self._cc_map[raw_bytes]
+                    else:
+                        conv = ChannelConversion(raw_bytes=raw_bytes)
+                        self._cc_map[raw_bytes] = conv
                 else:
                     conv = None
                 grp['channel_conversions'].append(conv)
@@ -4660,19 +4665,25 @@ class MDF4(object):
                 'for MDF created from scratch'
             )
             raise MdfException(message)
+
+        _read_fragment_size = self._read_fragment_size
+        self.configure(read_fragment_size=4 * 2 ** 20)
+
+        if self.memory == 'minimum':
+            output_file = self._save_without_metadata(
+                dst,
+                overwrite,
+                compression,
+            )
         else:
-            if self.memory == 'minimum':
-                output_file = self._save_without_metadata(
-                    dst,
-                    overwrite,
-                    compression,
-                )
-            else:
-                output_file = self._save_with_metadata(
-                    dst,
-                    overwrite,
-                    compression,
-                )
+            output_file = self._save_with_metadata(
+                dst,
+                overwrite,
+                compression,
+            )
+
+        self.configure(read_fragment_size=_read_fragment_size)
+
         return output_file
 
     def _save_with_metadata(self, dst, overwrite, compression):
