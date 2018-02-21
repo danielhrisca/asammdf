@@ -701,6 +701,8 @@ class ChannelConversion(dict):
 
                 block = kargs['raw_bytes'][v4c.COMMON_SIZE:]
 
+                stream = kargs['stream']
+
             except KeyError:
 
                 self.address = address = kargs['address']

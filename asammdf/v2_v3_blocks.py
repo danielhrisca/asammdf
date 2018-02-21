@@ -381,6 +381,7 @@ class ChannelConversion(dict):
                 )
                 size = self['block_len']
                 block = block[4:]
+                stream=kargs['stream']
 
             except KeyError:
                 stream = kargs['stream']
