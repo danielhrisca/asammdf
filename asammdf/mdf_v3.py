@@ -3543,7 +3543,7 @@ class MDF3(object):
                     if self.memory == 'full':
                         data = memoryview(data_bytes)
                         read_size = 4 * 2**20
-                        count = ceil(len(data_bytes) / read_size)
+                        count = int(ceil(len(data_bytes) / read_size))
                         for j in range(count):
                             write(data[j*read_size: (j+1)*read_size])
                     else:
