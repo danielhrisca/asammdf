@@ -789,7 +789,10 @@ class MDF4(object):
                     if raw_bytes in self._cc_map:
                         conv = self._cc_map[raw_bytes]
                     else:
-                        conv = ChannelConversion(raw_bytes=raw_bytes)
+                        conv = ChannelConversion(
+                            raw_bytes=raw_bytes,
+                            stream=stream,
+                        )
                         self._cc_map[raw_bytes] = conv
                 else:
                     conv = None
