@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function
 
+import re
 import sys
 import time
 from getpass import getuser
@@ -19,6 +20,7 @@ PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 SEEK_START = v23c.SEEK_START
 SEEK_END = v23c.SEEK_END
 
+
 __all__ = [
     'Channel',
     'ChannelConversion',
@@ -34,6 +36,9 @@ __all__ = [
     'TextBlock',
     'TriggerBlock',
 ]
+
+
+EMBEDED_CONV = re.compile('(?P<a>.+?)\*?\{X\}(?P<b>.+)')
 
 
 class Channel(dict):
@@ -493,10 +498,22 @@ class ChannelConversion(dict):
                         values[3*i + 2],
                     )
                     if values[3*i + 2]:
-                        self.referenced_blocks['text_{}'.format(i)] = TextBlock(
+                        block = TextBlock(
                             address=values[3*i + 2],
                             stream=stream,
                         )
+                        if b'LINEAR CONV' in block['text']:
+                            text = block['text'].decode('latin-1')
+                            match = EMBEDED_CONV.search(text)
+                            a = float(match.group('a'))
+                            b = float(match.group('b'))
+                            block = ChannelConversion(
+                                conversion_type=v23c.CONVERSION_TYPE_LINEAR,
+                                a=a,
+                                b=b,
+                            )
+                        self.referenced_blocks['text_{}'.format(i)] = block
+
                     else:
                         self.referenced_blocks['text_{}'.format(i)] = TextBlock(
                             text='',
@@ -646,8 +663,9 @@ class ChannelConversion(dict):
                 if b:
                     values += b
 
-        elif conversion_type in (v23c.CONVERSION_TYPE_TABI,
-                                v23c.CONVERSION_TYPE_TAB):
+        elif conversion_type in (
+                v23c.CONVERSION_TYPE_TABI,
+                v23c.CONVERSION_TYPE_TAB):
             nr = self['ref_param_nr']
 
             raw_vals = [
@@ -710,7 +728,25 @@ class ChannelConversion(dict):
 
             idx = np.argwhere(idx1 == idx2).flatten()
 
-            values = phys[idx]
+            if all(isinstance(val, bytes) for val in phys):
+                phys = np.array(phys)
+                values = phys[idx]
+            else:
+                new_values = []
+                all_bytes = True
+                for i, index in enumerate(idx):
+                    val = phys[index]
+                    if isinstance(val, bytes):
+                        new_values.append(val)
+                    else:
+                        new_values.append(val.convert([values[i], ])[0])
+                        all_bytes = False
+                if not all_bytes:
+                    for i, val in new_values:
+                        if isinstance(val, bytes):
+                            new_values[i] = np.nan
+
+                values = np.array(new_values)
 
         elif conversion_type in (
                 v23c.CONVERSION_TYPE_EXPO,
