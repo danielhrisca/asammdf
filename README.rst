@@ -99,10 +99,13 @@ Installation
 
 * github: https://github.com/danielhrisca/asammdf/
 * PyPI: https://pypi.org/project/asammdf/
+* anaconda cloud: https://anaconda.org/daniel.hrisca/asammdf
     
 .. code-block: python
 
    pip install asammdf
+   # or for anaconda
+   conda install -c daniel.hrisca asammdf
 
     
 Dependencies
