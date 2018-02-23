@@ -492,10 +492,15 @@ class ChannelConversion(dict):
                     v23c.CC_COMMON_SHORT_SIZE,
                 )
 
-                self.referenced_blocks['default_addr'] = TextBlock(
-                    address=self['default_addr'],
-                    stream=stream,
-                )
+                if self['default_addr']:
+                    self.referenced_blocks['default_addr'] = TextBlock(
+                        address=self['default_addr'],
+                        stream=stream,
+                    )
+                else:
+                    self.referenced_blocks['default_addr'] = TextBlock(
+                        text='',
+                    )
 
                 values = unpack_from(
                     '<' + '2dI' * nr,
@@ -890,7 +895,7 @@ class ChannelConversion(dict):
                 keys += [
                     'default_lower',
                     'default_upper',
-                    'default',
+                    'default_addr',
                 ]
                 for i in range(nr - 1):
                     keys.append('lower_{}'.format(i))

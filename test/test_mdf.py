@@ -460,6 +460,7 @@ class TestMDF(unittest.TestCase):
             for mdfname in os.listdir('tmpdir_demo'):
                 for memory in MEMORY:
                     input_file = os.path.join('tmpdir_demo', mdfname)
+                    print(input_file)
                     if MDF(input_file).version == '2.00':
                         continue
                     print(input_file, memory, out)
@@ -804,11 +805,6 @@ class TestMDF(unittest.TestCase):
                     for k in filtered_mdf.channels_db
                     if not k.endswith('[0]') and not k.startswith('DI') and '\\' not in k
                 )
-
-                print('='*80)
-                from pprint import pprint
-                pprint(target)
-                pprint(set(channel_list))
 
                 self.assertTrue((target - {'t', 'time'}) == set(channel_list))
 
