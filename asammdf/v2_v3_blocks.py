@@ -482,12 +482,25 @@ class ChannelConversion(dict):
                      self['text_{}'.format(i)]) = values[i*2], values[2*i + 1]
 
             elif conv_type == v23c.CONVERSION_TYPE_RTABX:
-                nr = self['ref_param_nr']
+                nr = self['ref_param_nr'] - 1
+
+                (self['default_lower'],
+                 self['default_upper'],
+                 self['default_addr']) = unpack_from(
+                    '<2dI',
+                    block,
+                    v23c.CC_COMMON_SHORT_SIZE,
+                )
+
+                self.referenced_blocks['default_addr'] = TextBlock(
+                    address=self['default_addr'],
+                    stream=stream,
+                )
 
                 values = unpack_from(
                     '<' + '2dI' * nr,
                     block,
-                    v23c.CC_COMMON_SHORT_SIZE,
+                    v23c.CC_COMMON_SHORT_SIZE + 20,
                 )
                 for i in range(nr):
                     (self['lower_{}'.format(i)],
@@ -502,16 +515,6 @@ class ChannelConversion(dict):
                             address=values[3*i + 2],
                             stream=stream,
                         )
-                        if b'LINEAR CONV' in block['text']:
-                            text = block['text'].decode('latin-1')
-                            match = EMBEDED_CONV.search(text)
-                            a = float(match.group('a'))
-                            b = float(match.group('b'))
-                            block = ChannelConversion(
-                                conversion_type=v23c.CONVERSION_TYPE_LINEAR,
-                                a=a,
-                                b=b,
-                            )
                         self.referenced_blocks['text_{}'.format(i)] = block
 
                     else:
@@ -640,7 +643,11 @@ class ChannelConversion(dict):
                 self['conversion_type'] = v23c.CONVERSION_TYPE_RTABX
                 self['ref_param_nr'] = nr
 
-                for i in range(nr):
+                self['default_lower'] = 0
+                self['default_upper'] = 0
+                self['default_addr'] = 0
+
+                for i in range(nr - 1):
                     self['lower_{}'.format(i)] = kargs['lower_{}'.format(i)]
                     self['upper_{}'.format(i)] = kargs['upper_{}'.format(i)]
                     self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
@@ -704,17 +711,22 @@ class ChannelConversion(dict):
             values = phys[indexes]
 
         elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
-            nr = self['ref_param_nr']
+            nr = self['ref_param_nr'] - 1
 
             phys = []
             for i in range(nr):
-                try:
-                    value = self.referenced_blocks['text_{}'.format(i)]['text']
-                except KeyError:
-                    value = self.referenced_blocks['text_{}'.format(i)]
-                except TypeError:
+                value = self.referenced_blocks['text_{}'.format(i)]
+                if value:
+                    value = value['text']
+                else:
                     value = b''
                 phys.append(value)
+
+            default = self.referenced_blocks['default_addr']
+            if default:
+                default = default['text']
+            else:
+                default = b''
 
             lower = np.array(
                 [self['lower_{}'.format(i)] for i in range(nr)]
@@ -729,8 +741,11 @@ class ChannelConversion(dict):
             idx = np.argwhere(idx1 == idx2).flatten()
 
             if all(isinstance(val, bytes) for val in phys):
-                phys = np.array(phys)
-                values = phys[idx]
+                new_vals = [default for _ in values]
+                for i in idx:
+                    new_vals[i] = phys[idx1[i]]
+
+                values = np.array(new_vals)
             else:
                 new_values = []
                 all_bytes = True
@@ -865,7 +880,12 @@ class ChannelConversion(dict):
             elif conv == v23c.CONVERSION_TYPE_RTABX:
                 nr = self['ref_param_nr']
                 keys = list(v23c.KEYS_CONVESION_NONE)
-                for i in range(nr):
+                keys += [
+                    'default_lower',
+                    'default_upper',
+                    'default',
+                ]
+                for i in range(nr - 1):
                     keys.append('lower_{}'.format(i))
                     keys.append('upper_{}'.format(i))
                     keys.append('text_{}'.format(i))
@@ -877,6 +897,7 @@ class ChannelConversion(dict):
                     keys.append('text_{}'.format(i))
 
         if PYVERSION_MAJOR >= 36:
+            print(fmt, self)
             result = pack(fmt, *self.values())
         else:
             result = pack(fmt, *[self[key] for key in keys])

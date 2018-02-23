@@ -1211,9 +1211,9 @@ class ChannelConversion(dict):
                     key = 'text_{}'.format(i)
                     self[key] = 0
                     self.referenced_blocks[key] = TextBlock(text=kargs[key])
-                self['default_addr'] = kargs.get('default_addr', 0)
+                self['default_addr'] = 0
                 key = 'default_addr'
-                if self['default_addr']:
+                if kargs[key]:
                     self.referenced_blocks[key] = TextBlock(text=kargs[key])
                 else:
                     self.referenced_blocks[key] = None

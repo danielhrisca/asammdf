@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-asammdf utility functions and classes
+asammdf utility functions for channel conversions
 '''
 
 from . import v2_v3_constants as v3c
@@ -132,7 +132,7 @@ def conversion_transfer(conversion, version=3):
                 elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
                     nr = conversion['val_param_nr'] // 2
                     kargs = {
-                        'ref_param_nr': nr,
+                        'ref_param_nr': nr + 1,
                         'unit': unit,
                         'conversion_type': v3c.CONVERSION_TYPE_RTABX,
                     }
@@ -145,6 +145,9 @@ def conversion_transfer(conversion, version=3):
                         **kargs
                     )
 
+                    new_conversion.referenced_blocks['default_addr'] = v3b.TextBlock(
+                        text=conversion.referenced_blocks['default_addr']['text'],
+                    )
                     for i in range(nr):
                         new_conversion.referenced_blocks['text_{}'.format(i)] = v3b.TextBlock(
                             text=conversion.referenced_blocks['text_{}'.format(i)]['text'],
@@ -224,22 +227,21 @@ def conversion_transfer(conversion, version=3):
 
             elif conversion_type == v3c.CONVERSION_TYPE_RTABX:
 
-                nr = conversion['ref_param_nr']
+                nr = conversion['ref_param_nr'] - 1
                 kargs = {
                     'val_param_nr': nr * 2,
                     'ref_param_nr': nr + 1,
                     'conversion_type': v4c.CONVERSION_TYPE_RTABX,
+                    'default_addr': conversion.referenced_blocks['default_addr']['text'],
                 }
                 for i in range(nr):
                     kargs['lower_{}'.format(i)] = conversion['lower_{}'.format(i)]
                     kargs['upper_{}'.format(i)] = conversion['upper_{}'.format(i)]
                     kargs['text_{}'.format(i)] = conversion.referenced_blocks['text_{}'.format(i)]['text']
 
-                new_conversion = v4b.ChannelConversion(
+                conversion = v4b.ChannelConversion(
                     **kargs
                 )
-
-                conversion = new_conversion
 
             conversion.unit = unit
 
