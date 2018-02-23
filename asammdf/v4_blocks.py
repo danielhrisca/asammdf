@@ -1270,7 +1270,7 @@ class ChannelConversion(dict):
                 message = message.format(kargs['conversion_type'])
                 raise NotImplementedError(message)
 
-    def convert(self, values, channel=None):
+    def convert(self, values):
         conversion_type = self['conversion_type']
         if conversion_type == v4c.CONVERSION_TYPE_NON:
             pass
@@ -1326,46 +1326,25 @@ class ChannelConversion(dict):
             )
             default = self['default']
 
-            if channel:
-
-                # INT channel
-                if channel['data_type'] <= 3:
-
-                    res = []
-                    for v in values:
-                        for l, u, p in zip(lower, upper, phys):
-                            if l <= v <= u:
-                                res.append(p)
-                                break
-                        else:
-                            res.append(default)
-                    size = max(channel['bit_count'] >> 3, 1)
-                    ch_fmt = get_fmt_v4(channel['data_type'], size)
-                    values = np.array(res).astype(ch_fmt)
-
-                # else FLOAT channel
-                else:
-                    res = []
-                    for v in values:
-                        for l, u, p in zip(lower, upper, phys):
-                            if l <= v < u:
-                                res.append(p)
-                                break
-                        else:
-                            res.append(default)
-                    size = max(channel['bit_count'] >> 3, 1)
-                    ch_fmt = get_fmt_v4(channel['data_type'], size)
-                    values = np.array(res).astype(ch_fmt)
+            if values.dtype.kind == 'f':
+                idx1 = np.searchsorted(lower, values, side='right') - 1
+                idx2 = np.searchsorted(upper, values, side='right')
             else:
-                res = []
-                for v in values:
-                    for l, u, p in zip(lower, upper, phys):
-                        if l <= v < u:
-                            res.append(p)
-                            break
-                    else:
-                        res.append(default)
-                values = np.array(res)
+                idx1 = np.searchsorted(lower, values, side='right') - 1
+                idx2 = np.searchsorted(upper, values, side='right') - 1
+
+            idx_ne = np.argwhere(idx1 != idx2).flatten()
+            idx_eq = np.argwhere(idx1 == idx2).flatten()
+
+            new_values = np.zeros(
+                len(values),
+                dtype=phys.dtype,
+            )
+
+            new_values[idx_ne] = default
+            new_values[idx_eq] = phys[idx1[idx_eq]]
+
+            values = new_values
 
         elif conversion_type == v4c.CONVERSION_TYPE_TABX:
             nr = self['val_param_nr']
