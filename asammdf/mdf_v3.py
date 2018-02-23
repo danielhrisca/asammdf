@@ -1135,7 +1135,7 @@ class MDF3(object):
                 signals = [s.interp(timestamps) for s in signals]
                 times = None
 
-        if self.version < '3.00':
+        if self.version < '3.10':
             if timestamps.dtype.byteorder == '>':
                 timestamps = timestamps.byteswap().newbyteorder()
             for signal in signals:
