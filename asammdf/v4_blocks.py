@@ -1457,7 +1457,7 @@ class ChannelConversion(dict):
                     if isinstance(item, bytes):
                         new_values.append(item)
                     else:
-                        new_values.append(item.convert([val, ])[0])
+                        new_values.append(item.convert(values[i:i+1])[0])
 
                 if all(isinstance(v, bytes) for v in new_values):
                     values = np.array(new_values)
