@@ -646,11 +646,18 @@ class ChannelConversion(dict):
                 self['default_lower'] = 0
                 self['default_upper'] = 0
                 self['default_addr'] = 0
+                key = 'default_addr'
+                if kargs[key]:
+                    self.referenced_blocks[key] = TextBlock(text=kargs[key])
+                else:
+                    self.referenced_blocks[key] = None
 
                 for i in range(nr - 1):
                     self['lower_{}'.format(i)] = kargs['lower_{}'.format(i)]
                     self['upper_{}'.format(i)] = kargs['upper_{}'.format(i)]
-                    self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
+                    key = 'text_{}'.format(i)
+                    self[key] = 0
+                    self.referenced_blocks[key] = TextBlock(text=kargs[key])
             else:
                 message = 'Conversion type "{}" not implemented'
                 message = message.format(kargs['conversion_type'])
@@ -897,7 +904,6 @@ class ChannelConversion(dict):
                     keys.append('text_{}'.format(i))
 
         if PYVERSION_MAJOR >= 36:
-            print(fmt, self)
             result = pack(fmt, *self.values())
         else:
             result = pack(fmt, *[self[key] for key in keys])
