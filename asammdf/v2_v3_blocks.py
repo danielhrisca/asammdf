@@ -38,9 +38,6 @@ __all__ = [
 ]
 
 
-EMBEDED_CONV = re.compile('(?P<a>.+?)\*?\{X\}(?P<b>.+)')
-
-
 class Channel(dict):
     ''' CNBLOCK class derived from *dict*
 
@@ -734,11 +731,25 @@ class ChannelConversion(dict):
                     value = b''
                 phys.append(value)
 
+            phys = np.array(phys)
+
             default = self.referenced_blocks['default_addr']
             if default:
                 default = default['text']
             else:
                 default = b''
+
+            if b'{X}' in default:
+                default = (
+                    default
+                    .decode('latin-1')
+                    .replace('{X}', 'X')
+                    .split('"')
+                    [1]
+                )
+                partial_convertion = True
+            else:
+                partial_conversion = False
 
             lower = np.array(
                 [self['lower_{}'.format(i)] for i in range(nr)]
@@ -747,33 +758,37 @@ class ChannelConversion(dict):
                 [self['upper_{}'.format(i)] for i in range(nr)]
             )
 
-            idx1 = np.searchsorted(lower, values, side='right') - 1
-            idx2 = np.searchsorted(upper, values, side='right')
-
-            idx = np.argwhere(idx1 == idx2).flatten()
-
-            if all(isinstance(val, bytes) for val in phys):
-                new_vals = [default for _ in values]
-                for i in idx:
-                    new_vals[i] = phys[idx1[i]]
-
-                values = np.array(new_vals)
+            if values.dtype.kind == 'f':
+                idx1 = np.searchsorted(lower, values, side='right') - 1
+                idx2 = np.searchsorted(upper, values, side='right')
             else:
-                new_values = []
-                all_bytes = True
-                for i, index in enumerate(idx):
-                    val = phys[index]
-                    if isinstance(val, bytes):
-                        new_values.append(val)
-                    else:
-                        new_values.append(val.convert([values[i], ])[0])
-                        all_bytes = False
-                if not all_bytes:
-                    for i, val in new_values:
-                        if isinstance(val, bytes):
-                            new_values[i] = np.nan
+                idx1 = np.searchsorted(lower, values, side='right') - 1
+                idx2 = np.searchsorted(upper, values, side='right') - 1
 
-                values = np.array(new_values)
+            idx = np.argwhere(idx1 != idx2).flatten()
+
+            if partial_convertion and len(idx):
+                X = values[idx]
+                new_values = np.zeros(len(values), dtype=np.float64)
+                new_values[idx] = evaluate(default)
+
+                idx = np.argwhere(idx1 == idx2).flatten()
+                new_values[idx] = np.nan
+                values = new_values
+
+            else:
+                if len(idx):
+                    new_values = np.zeros(
+                        len(values),
+                        dtype=max(phys.dtype, np.array([default, ]).dtype),
+                    )
+                    new_values[idx] = default
+
+                    idx = np.argwhere(idx1 == idx2).flatten()
+                    new_values[idx] = phys[values[idx]]
+                    values = new_values
+                else:
+                    values = phys[idx1]
 
         elif conversion_type in (
                 v23c.CONVERSION_TYPE_EXPO,

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ MDF v2 and v3 constants """
 
+
 # byte order
 BYTE_ORDER_INTEL = 0
 BYTE_ORDER_MOTOROLA = 1
