@@ -218,8 +218,15 @@ class MDF(object):
             excluded_channels = self._excluded_channels(i)
             channels_nr = len(group['channels'])
 
+            parents, dtypes = self._prepare_record(group)
+
             data = self._load_group_data(group)
             for idx, fragment in enumerate(data):
+
+                group['record'] = np.core.records.fromstring(
+                    fragment[0],
+                    dtype=dtypes,
+                )
 
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
@@ -273,6 +280,8 @@ class MDF(object):
                                 sig = sig.copy()
                             sigs.append(sig)
                     out.extend(i, sigs)
+
+                del group['record']
 
         return out
 
@@ -1050,9 +1059,15 @@ class MDF(object):
                 if read_size:
                     mdf.configure(read_fragment_size=int(read_size))
 
+                parents, dtypes = mdf._prepare_record(group)
+
                 data = mdf._load_group_data(group)
 
                 for fragment in data:
+                    group['record'] = np.core.records.fromstring(
+                        fragment[0],
+                        dtype=dtypes,
+                    )
                     if idx == 0:
                         signals = []
                         for j in range(channels_nr):
@@ -1118,6 +1133,8 @@ class MDF(object):
 
                             merged.extend(i, signals)
                         idx += 1
+
+                    del group['record']
 
         return merged
 

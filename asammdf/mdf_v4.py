@@ -29,6 +29,7 @@ from numpy import (
     float64,
     frombuffer,
     interp,
+    ones,
     packbits,
     roll,
     transpose,
@@ -38,9 +39,10 @@ from numpy import (
     union1d,
     unpackbits,
     zeros,
+uint32,
 )
 
-from numpy.core.defchararray import encode, decode, strip
+from numpy.core.defchararray import encode, decode
 from numpy.core.records import fromarrays, fromstring
 
 from . import v4_constants as v4c
@@ -1181,145 +1183,151 @@ class MDF4(object):
             mapping of channels to records fields, records fields dtype
 
         """
-        grp = group
-        stream = self._file
-        memory = self.memory
-        channel_group = grp['channel_group']
-        if memory == 'minimum':
-            channels = [
-                Channel(address=ch_addr, stream=stream)
-                for ch_addr in grp['channels']
-            ]
-        else:
-            channels = grp['channels']
+        try:
+            parents, dtypes = group['parents'], group['types']
+        except KeyError:
 
-        record_size = channel_group['samples_byte_nr']
-        invalidation_bytes_nr = channel_group['invalidation_bytes_nr']
-        next_byte_aligned_position = 0
-        types = []
-        current_parent = ""
-        parent_start_offset = 0
-        parents = {}
-        group_channels = set()
-
-        sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
-        for original_index, new_ch in sortedchannels:
-
-            start_offset = new_ch['byte_offset']
-            bit_offset = new_ch['bit_offset']
-            data_type = new_ch['data_type']
-            bit_count = new_ch['bit_count']
-            ch_type = new_ch['channel_type']
-            dependency_list = grp['channel_dependencies'][original_index]
+            grp = group
+            stream = self._file
+            memory = self.memory
+            channel_group = grp['channel_group']
             if memory == 'minimum':
-                name = get_text_v4(
-                    address=new_ch['name_addr'],
-                    stream=stream,
-                )
+                channels = [
+                    Channel(address=ch_addr, stream=stream)
+                    for ch_addr in grp['channels']
+                ]
             else:
-                name = new_ch.name
+                channels = grp['channels']
 
-            # handle multiple occurance of same channel name
-            name = get_unique_name(group_channels, name)
-            group_channels.add(name)
+            record_size = channel_group['samples_byte_nr']
+            invalidation_bytes_nr = channel_group['invalidation_bytes_nr']
+            next_byte_aligned_position = 0
+            types = []
+            current_parent = ""
+            parent_start_offset = 0
+            parents = {}
+            group_channels = set()
 
-            if start_offset >= next_byte_aligned_position:
-                if ch_type not in (v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
-                                   v4c.CHANNEL_TYPE_VIRTUAL):
-                    if not dependency_list:
-                        parent_start_offset = start_offset
+            sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
+            for original_index, new_ch in sortedchannels:
 
-                        # check if there are byte gaps in the record
-                        gap = parent_start_offset - next_byte_aligned_position
-                        if gap:
-                            types.append(('', 'a{}'.format(gap)))
+                start_offset = new_ch['byte_offset']
+                bit_offset = new_ch['bit_offset']
+                data_type = new_ch['data_type']
+                bit_count = new_ch['bit_count']
+                ch_type = new_ch['channel_type']
+                dependency_list = grp['channel_dependencies'][original_index]
+                if memory == 'minimum':
+                    name = get_text_v4(
+                        address=new_ch['name_addr'],
+                        stream=stream,
+                    )
+                else:
+                    name = new_ch.name
 
-                        # adjust size to 1, 2, 4 or 8 bytes
-                        size = bit_offset + bit_count
-                        if data_type not in (
-                                v4c.DATA_TYPE_BYTEARRAY,
-                                v4c.DATA_TYPE_STRING_UTF_8,
-                                v4c.DATA_TYPE_STRING_LATIN_1,
-                                v4c.DATA_TYPE_STRING_UTF_16_BE,
-                                v4c.DATA_TYPE_STRING_UTF_16_LE,
-                                v4c.DATA_TYPE_CANOPEN_TIME,
-                                v4c.DATA_TYPE_CANOPEN_DATE):
-                            if size > 32:
-                                size = 8
-                            elif size > 16:
-                                size = 4
-                            elif size > 8:
-                                size = 2
-                            else:
-                                size = 1
-                        else:
-                            size = size >> 3
+                # handle multiple occurance of same channel name
+                name = get_unique_name(group_channels, name)
+                group_channels.add(name)
 
-                        next_byte_aligned_position = parent_start_offset + size
-                        if next_byte_aligned_position <= record_size:
-                            dtype_pair = name, get_fmt_v4(data_type, size, ch_type)
-                            types.append(dtype_pair)
-                            parents[original_index] = name, bit_offset
-
-                        current_parent = name
-                    else:
-                        if isinstance(dependency_list[0], ChannelArrayBlock):
-                            ca_block = dependency_list[0]
+                if start_offset >= next_byte_aligned_position:
+                    if ch_type not in (v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
+                                       v4c.CHANNEL_TYPE_VIRTUAL):
+                        if not dependency_list:
+                            parent_start_offset = start_offset
 
                             # check if there are byte gaps in the record
-                            gap = start_offset - next_byte_aligned_position
+                            gap = parent_start_offset - next_byte_aligned_position
                             if gap:
-                                dtype_pair = '', 'a{}'.format(gap)
+                                types.append(('', 'a{}'.format(gap)))
+
+                            # adjust size to 1, 2, 4 or 8 bytes
+                            size = bit_offset + bit_count
+                            if data_type not in (
+                                    v4c.DATA_TYPE_BYTEARRAY,
+                                    v4c.DATA_TYPE_STRING_UTF_8,
+                                    v4c.DATA_TYPE_STRING_LATIN_1,
+                                    v4c.DATA_TYPE_STRING_UTF_16_BE,
+                                    v4c.DATA_TYPE_STRING_UTF_16_LE,
+                                    v4c.DATA_TYPE_CANOPEN_TIME,
+                                    v4c.DATA_TYPE_CANOPEN_DATE):
+                                if size > 32:
+                                    size = 8
+                                elif size > 16:
+                                    size = 4
+                                elif size > 8:
+                                    size = 2
+                                else:
+                                    size = 1
+                            else:
+                                size = size >> 3
+
+                            next_byte_aligned_position = parent_start_offset + size
+                            if next_byte_aligned_position <= record_size:
+                                dtype_pair = name, get_fmt_v4(data_type, size, ch_type)
                                 types.append(dtype_pair)
-
-                            size = bit_count >> 3
-                            shape = tuple(
-                                ca_block['dim_size_{}'.format(i)]
-                                for i in range(ca_block['dims'])
-                            )
-
-                            if ca_block['byte_offset_base'] // size > 1 and \
-                                    len(shape) == 1:
-                                shape += ca_block['byte_offset_base'] // size,
-                            dim = 1
-                            for d in shape:
-                                dim *= d
-
-                            dtype_pair = name, get_fmt_v4(data_type, size), shape
-                            types.append(dtype_pair)
+                                parents[original_index] = name, bit_offset
 
                             current_parent = name
-                            next_byte_aligned_position = start_offset + size * dim
-                            parents[original_index] = name, 0
-
                         else:
-                            parents[original_index] = None, None
-                # virtual channels do not have bytes in the record
+                            if isinstance(dependency_list[0], ChannelArrayBlock):
+                                ca_block = dependency_list[0]
+
+                                # check if there are byte gaps in the record
+                                gap = start_offset - next_byte_aligned_position
+                                if gap:
+                                    dtype_pair = '', 'a{}'.format(gap)
+                                    types.append(dtype_pair)
+
+                                size = bit_count >> 3
+                                shape = tuple(
+                                    ca_block['dim_size_{}'.format(i)]
+                                    for i in range(ca_block['dims'])
+                                )
+
+                                if ca_block['byte_offset_base'] // size > 1 and \
+                                        len(shape) == 1:
+                                    shape += ca_block['byte_offset_base'] // size,
+                                dim = 1
+                                for d in shape:
+                                    dim *= d
+
+                                dtype_pair = name, get_fmt_v4(data_type, size), shape
+                                types.append(dtype_pair)
+
+                                current_parent = name
+                                next_byte_aligned_position = start_offset + size * dim
+                                parents[original_index] = name, 0
+
+                            else:
+                                parents[original_index] = None, None
+                    # virtual channels do not have bytes in the record
+                    else:
+                        parents[original_index] = None, None
+
                 else:
-                    parents[original_index] = None, None
+                    max_overlapping_size = (next_byte_aligned_position - start_offset) * 8
+                    needed_size = bit_offset + bit_count
+                    if max_overlapping_size >= needed_size:
+                        parents[original_index] = (
+                            current_parent,
+                            ((start_offset - parent_start_offset) << 3) + bit_offset,
+                        )
+                if next_byte_aligned_position > record_size:
+                    break
 
-            else:
-                max_overlapping_size = (next_byte_aligned_position - start_offset) * 8
-                needed_size = bit_offset + bit_count
-                if max_overlapping_size >= needed_size:
-                    parents[original_index] = (
-                        current_parent,
-                        ((start_offset - parent_start_offset) << 3) + bit_offset,
-                    )
-            if next_byte_aligned_position > record_size:
-                break
+            gap = record_size - next_byte_aligned_position
+            if gap > 0:
+                dtype_pair = '', 'a{}'.format(gap)
+                types.append(dtype_pair)
 
-        gap = record_size - next_byte_aligned_position
-        if gap > 0:
-            dtype_pair = '', 'a{}'.format(gap)
+            dtype_pair = 'invalidation_bytes', '<u1', invalidation_bytes_nr
             types.append(dtype_pair)
+            if PYVERSION == 2:
+                types = fix_dtype_fields(types)
 
-        dtype_pair = 'invalidation_bytes', '<u1', invalidation_bytes_nr
-        types.append(dtype_pair)
-        if PYVERSION == 2:
-            types = fix_dtype_fields(types)
+            dtypes = dtype(types)
 
-        return parents, dtype(types)
+        return parents, dtypes
 
     def _get_not_byte_aligned_data(self, data, group, ch_nr):
         big_endian_types = (
@@ -1687,6 +1695,7 @@ class MDF4(object):
 
         gp = {}
         gp['signal_data'] = gp_sdata = []
+        gp['signal_data_size'] = gp_sdata_size = []
         gp['channels'] = gp_channels = []
         gp['channel_conversions'] = gp_conv = []
         gp['channel_sources'] = gp_source = []
@@ -1809,6 +1818,7 @@ class MDF4(object):
             gp_channels.append(ch)
 
         gp_sdata.append(None)
+        gp_sdata_size.append(0)
         if name not in self.channels_db:
             self.channels_db[name] = []
         self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -1960,6 +1970,7 @@ class MDF4(object):
                 offset += byte_size
 
                 gp_sdata.append(None)
+                gp_sdata_size.append(0)
                 if name not in self.channels_db:
                     self.channels_db[name] = []
                 self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -2057,16 +2068,18 @@ class MDF4(object):
 
                 data = b''.join(values)
                 if memory == 'full':
-                    gp_sdata.append(data)
+                    gp_sdata.append([SignalDataBlock(data=data), ])
                     data_addr = 0
                 else:
                     if data:
                         data_addr = tell()
-                        gp_sdata.append(data_addr)
-                        write(bytes(SignalDataBlock(data=data)))
+                        gp_sdata.append([data_addr, ])
+                        gp_sdata_size.append([len(data), ])
+                        write(data)
                     else:
                         data_addr = 0
-                        gp_sdata.append(data_addr)
+                        gp_sdata.append([data_addr, ])
+                        gp_sdata_size.append([0, ])
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -2245,8 +2258,10 @@ class MDF4(object):
 
                 if memory == 'full':
                     gp_sdata.append(None)
+                    gp_sdata_size.append(0)
                 else:
                     gp_sdata.append(0)
+                    gp_sdata_size.append(0)
 
                 # check if the source is included in the channel name
                 name = name.split('\\')
@@ -2338,6 +2353,7 @@ class MDF4(object):
                     gp_channels.append(address)
 
                 gp_sdata.append(None)
+                gp_sdata_size.append(0)
                 if name not in self.channels_db:
                     self.channels_db[name] = []
                 self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -2453,6 +2469,7 @@ class MDF4(object):
                     offset += byte_size
 
                     gp_sdata.append(None)
+                    gp_sdata_size.append(0)
                     if name not in self.channels_db:
                         self.channels_db[name] = []
                     self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -2618,6 +2635,7 @@ class MDF4(object):
                 offset += size
 
                 gp_sdata.append(None)
+                gp_sdata_size.append(0)
                 if name not in self.channels_db:
                     self.channels_db[name] = []
                 self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -2740,6 +2758,7 @@ class MDF4(object):
                     offset += byte_size
 
                     gp_sdata.append(None)
+                    gp_sdata_size.append(0)
                     if name not in self.channels_db:
                         self.channels_db[name] = []
                     self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -2936,37 +2955,37 @@ class MDF4(object):
                 if self.memory == 'full':
                     data = gp['signal_data'][i]
                 else:
-                    data = load_signal_data(
-                        address=gp['signal_data'][i],
-                        stream=stream,
-                    )
+                    # data = load_signal_data(
+                    #     address=gp['signal_data'][i],
+                    #     stream=stream,
+                    # )
 
-                cur_offset = len(data)
-                offsets = []
-                values = []
-                for string in signal:
-                    if string:
-                        string = string.strip(b' \t\n\r\0')
-                    string = string or b'\0'
-                    offsets.append(cur_offset)
-                    size = len(string)
-                    values.append(pack('<I', size))
-                    values.append(string)
-                    cur_offset += size + 4
+                    cur_offset = sum(gp['signal_data_size'][i])
+
+
+                # cur_offset = len(data)
+                offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4) + cur_offset
+                values = [
+                    ones(len(signal), dtype=uint32),
+                    signal,
+                ]
+
+                types_ = [
+                    ('', uint32),
+                    ('', signal.dtype),
+                ]
+
+                values = fromarrays(values, dtype=types_).tostring()
 
                 if self.memory == 'full':
-                    gp['signal_data'][i] = data + b''.join(values)
+                    gp['signal_data'][i] = data + values
                 else:
                     stream.seek(0, 2)
                     addr = stream.tell()
-                    data += b''.join(values)
-                    if data:
-                        stream.write(bytes(SignalDataBlock(data=data)))
-                        gp['signal_data'][i] = addr
-                    else:
-                        gp['signal_data'][i] = 0
-
-                offsets = array(offsets, dtype=uint64)
+                    if values:
+                        stream.write(values)
+                        gp['signal_data'][i].append(addr)
+                        gp['signal_data_size'][i].append(len(values))
 
                 fields.append(offsets)
                 types.append(('', uint64))
