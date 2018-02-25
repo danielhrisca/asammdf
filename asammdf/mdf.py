@@ -340,9 +340,14 @@ class MDF(object):
             channels_nr = len(group['channels'])
 
             data = self._load_group_data(group)
+            parents, dtypes = self._prepare_record(group)
 
             idx = 0
             for fragment in data:
+                group['record'] = np.core.records.fromstring(
+                    fragment[0],
+                    dtype=dtypes,
+                )
                 master = self.get_master(i, fragment)
                 if not len(master):
                     continue
@@ -440,9 +445,12 @@ class MDF(object):
 
                         idx += 1
 
+                del group['record']
+
             # if the cut interval is not found in the measurement
             # then append an empty data group
             if idx == 0:
+
                 self.configure(read_fragment_size=1)
                 sigs = []
 
@@ -861,8 +869,14 @@ class MDF(object):
             group = self.groups[group_index]
 
             data = self._load_group_data(group)
+            parents, dtypes = self._prepare_record(group)
 
             for idx, fragment in enumerate(data):
+
+                group['record'] = np.core.records.fromstring(
+                    fragment[0],
+                    dtype=dtypes,
+                )
 
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
@@ -911,6 +925,8 @@ class MDF(object):
                             sig = sig.copy()
                         sigs.append(sig)
                     mdf.extend(new_index, sigs)
+
+                del group['record']
 
         return mdf
 
@@ -1399,14 +1415,20 @@ class MDF(object):
         for group in gps:
             grp = self.groups[group]
             data = self._load_group_data(grp)
+            parents, dtypes = self._prepare_record(grp)
 
             for fragment in data:
+                grp['record'] = np.core.records.fromstring(
+                    fragment[0],
+                    dtype=dtypes,
+                )
                 for index in gps[group]:
                     signal = self.get(group=group, index=index, data=fragment)
                     if (group, index) not in signal_parts:
                         signal_parts[(group, index)] = [signal, ]
                     else:
                         signal_parts[(group, index)].append(signal)
+                del grp['record']
 
         signals = []
         for pair in indexes:

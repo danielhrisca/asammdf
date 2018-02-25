@@ -212,78 +212,6 @@ def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
     return address
 
 
-def load_signal_data(address, stream):
-    """ this method is used to get the channel signal data, usually for
-    VLSD channels
-
-    Parameters
-    ----------
-    address : int
-        address of refrerenced block
-    stream : handle
-        file IO stream handle
-
-    Returns
-    -------
-    data : bytes
-        signal data bytes
-
-    """
-
-    if address:
-        stream.seek(address)
-        blk_id = stream.read(4)
-        if blk_id == b'##SD':
-            data = SignalDataBlock(address=address, stream=stream)
-            data = data['data']
-        elif blk_id == b'##DZ':
-            data = DataZippedBlock(address=address, stream=stream)
-            data = data['data']
-        elif blk_id == b'##DL':
-            data = []
-            while address:
-                # the data list will contain only links to SDBLOCK's
-                data_list = DataList(address=address, stream=stream)
-                nr = data_list['links_nr']
-                # aggregate data from all SDBLOCK
-                for i in range(nr - 1):
-                    addr = data_list['data_block_addr{}'.format(i)]
-                    stream.seek(addr)
-                    blk_id = stream.read(4)
-                    if blk_id == b'##SD':
-                        block = SignalDataBlock(
-                            address=addr,
-                            stream=stream,
-                        )
-                        data.append(block['data'])
-                    elif blk_id == b'##DZ':
-                        block = DataZippedBlock(
-                            address=addr,
-                            stream=stream,
-                        )
-                        data.append(block['data'])
-                    else:
-                        message = ('Expected SD, DZ or DL block at {} '
-                                   'but found id="{}"')
-                        message = message.format(hex(address), blk_id)
-                        warnings.warn(message)
-                        return b''
-                address = data_list['next_dl_addr']
-            data = b''.join(data)
-        elif blk_id == b'##CN':
-            data = b''
-        else:
-            message = ('Expected SD, DL, DZ or CN block at {} '
-                       'but found id="{}"')
-            message = message.format(hex(address), blk_id)
-            warnings.warn(message)
-            data = b''
-    else:
-        data = b''
-
-    return data
-
-
 class MDF4(object):
     """If the *name* exist it will be memorised otherwise an empty file will be
     created that can be later saved to disk
@@ -858,7 +786,10 @@ class MDF4(object):
             address = channel['data_block_addr']
             if memory == 'full':
                 grp['signal_data'].append(
-                    load_signal_data(address, stream)
+                    self._load_signal_data(
+                        address=address,
+                        stream=stream,
+                    )
                 )
             else:
                 grp['signal_data'].append(address)
@@ -1007,6 +938,101 @@ class MDF4(object):
                     yield data
         else:
             yield b''
+
+    def _load_signal_data(self, address=None, stream=None, group=None, index=None):
+        """ this method is used to get the channel signal data, usually for
+        VLSD channels
+
+        Parameters
+        ----------
+        address : int
+            address of refrerenced block
+        stream : handle
+            file IO stream handle
+
+        Returns
+        -------
+        data : bytes
+            signal data bytes
+
+        """
+
+        if address == 0:
+            data = b''
+
+        elif address is not None and stream is not None:
+            stream.seek(address)
+            blk_id = stream.read(4)
+            if blk_id == b'##SD':
+                data = SignalDataBlock(address=address, stream=stream)
+                data = data['data']
+            elif blk_id == b'##DZ':
+                data = DataZippedBlock(address=address, stream=stream)
+                data = data['data']
+            elif blk_id == b'##DL':
+                data = []
+                while address:
+                    # the data list will contain only links to SDBLOCK's
+                    data_list = DataList(address=address, stream=stream)
+                    nr = data_list['links_nr']
+                    # aggregate data from all SDBLOCK
+                    for i in range(nr - 1):
+                        addr = data_list['data_block_addr{}'.format(i)]
+                        stream.seek(addr)
+                        blk_id = stream.read(4)
+                        if blk_id == b'##SD':
+                            block = SignalDataBlock(
+                                address=addr,
+                                stream=stream,
+                            )
+                            data.append(block['data'])
+                        elif blk_id == b'##DZ':
+                            block = DataZippedBlock(
+                                address=addr,
+                                stream=stream,
+                            )
+                            data.append(block['data'])
+                        else:
+                            message = ('Expected SD, DZ or DL block at {} '
+                                       'but found id="{}"')
+                            message = message.format(hex(address), blk_id)
+                            warnings.warn(message)
+                            return b''
+                    address = data_list['next_dl_addr']
+                data = b''.join(data)
+            elif blk_id == b'##CN':
+                data = b''
+            else:
+                message = ('Expected SD, DL, DZ or CN block at {} '
+                           'but found id="{}"')
+                message = message.format(hex(address), blk_id)
+                warnings.warn(message)
+                data = b''
+
+        elif group is not None and index is not None:
+            if group['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+                data = self._load_signal_data(
+                    address=group['signal_data'][index],
+                    stream=self._file,
+                )
+            elif group['data_location'] == v4c.LOCATION_MEMORY:
+                data = group['signal_data'][index]
+            else:
+                data = []
+                stream = self._tempfile
+                if group['signal_data'][index]:
+                    for addr, size in zip(
+                            group['signal_data'][index],
+                            group['signal_data_size'][index]):
+                        if not size:
+                            continue
+                        stream.seek(addr)
+                        data.append(stream.read(size))
+                data = b''.join(data)
+        else:
+            data = b''
+
+        return data
 
     def _load_group_data(self, group):
         """ get group's data block bytes """
@@ -2053,22 +2079,25 @@ class MDF4(object):
                     unit_addr = 0
                     comment_addr = 0
 
-                cur_offset = 0
-                offsets = []
-                values = []
-                for string in signal.samples:
-                    string = string or b'\0'
-                    offsets.append(cur_offset)
-                    size = len(string)
-                    values.append(pack('<I', size))
-                    values.append(string)
-                    cur_offset += size + 4
+                offsets = arange(
+                    len(signal),
+                    dtype=uint64,
+                ) * (signal.samples.itemsize + 4)
 
-                offsets = array(offsets, dtype=uint64)
+                values = [
+                    ones(len(signal), dtype=uint32) * signal.samples.itemsize,
+                    signal.samples,
+                ]
 
-                data = b''.join(values)
+                types_ = [
+                    ('', uint32),
+                    ('', signal.samples.dtype),
+                ]
+
+                data = fromarrays(values, dtype=types_).tostring()
+
                 if memory == 'full':
-                    gp_sdata.append([SignalDataBlock(data=data), ])
+                    gp_sdata.append(data)
                     data_addr = 0
                 else:
                     if data:
@@ -2078,8 +2107,8 @@ class MDF4(object):
                         write(data)
                     else:
                         data_addr = 0
-                        gp_sdata.append([data_addr, ])
-                        gp_sdata_size.append([0, ])
+                        gp_sdata.append([])
+                        gp_sdata_size.append([])
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -2954,19 +2983,13 @@ class MDF4(object):
             elif sig_type == v4c.SIGNAL_TYPE_STRING:
                 if self.memory == 'full':
                     data = gp['signal_data'][i]
+                    cur_offset = len(data)
                 else:
-                    # data = load_signal_data(
-                    #     address=gp['signal_data'][i],
-                    #     stream=stream,
-                    # )
-
                     cur_offset = sum(gp['signal_data_size'][i])
 
-
-                # cur_offset = len(data)
                 offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4) + cur_offset
                 values = [
-                    ones(len(signal), dtype=uint32),
+                    ones(len(signal), dtype=uint32) * signal.itemsize,
                     signal,
                 ]
 
@@ -3618,13 +3641,10 @@ class MDF4(object):
         )
 
         # get the channel signal data if available
-        if memory == 'full':
-            signal_data = grp['signal_data'][ch_nr]
-        else:
-            signal_data = load_signal_data(
-                grp['signal_data'][ch_nr],
-                stream,
-            )
+        signal_data = self._load_signal_data(
+            group=grp,
+            index=ch_nr,
+        )
 
         # check if this is a channel array
         if dependency_list:
@@ -5154,9 +5174,10 @@ class MDF4(object):
                 # channel data
                 gp_sd = []
                 for j, sdata in enumerate(gp['signal_data']):
-
-                    if self.memory == 'low':
-                        sdata = load_signal_data(sdata, stream)
+                    sdata = self._load_signal_data(
+                        group=gp,
+                        index=j,
+                    )
                     if sdata:
                         signal_data = SignalDataBlock(data=sdata)
                         signal_data.address = address
@@ -5785,9 +5806,9 @@ class MDF4(object):
 
                     channel['conversion_addr'] = gp['temp_channel_conversions'][j]
                     channel['source_addr'] = gp['temp_channel_sources'][j]
-                    signal_data = load_signal_data(
-                        gp['signal_data'][j],
-                        stream,
+                    signal_data = self._load_signal_data(
+                        group=gp,
+                        index=j,
                     )
                     if signal_data:
                         signal_data = SignalDataBlock(data=signal_data)
