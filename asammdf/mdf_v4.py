@@ -675,9 +675,9 @@ class MDF4(object):
         if self.memory == 'full':
             self.close()
 
-        self._si_map = None
-        self._ch_map = None
-        self._cc_map = None
+        self._si_map.clear()
+        self._ch_map.clear()
+        self._cc_map.clear()
 
     def _read_channels(
             self,
@@ -4216,10 +4216,18 @@ class MDF4(object):
             if memory == 'minimum':
                 addr = grp['channel_conversions'][ch_nr]
                 if addr:
-                    conversion = ChannelConversion(
-                        address=addr,
-                        stream=stream,
-                    )
+                    stream.seek(addr + 8)
+                    cc_size = unpack('<Q', stream.read(8))[0]
+                    stream.seek(addr)
+                    raw_bytes = stream.read(cc_size)
+                    if raw_bytes in self._cc_map:
+                        conversion = self._cc_map[raw_bytes]
+                    else:
+                        conversion = ChannelConversion(
+                            raw_bytes=raw_bytes,
+                            stream=stream,
+                        )
+                        self._cc_map[raw_bytes] = conversion
                 else:
                     conversion = None
             else:
@@ -4844,7 +4852,7 @@ class MDF4(object):
                         data = b''.join(d[0] for d in data)
                     else:
                         data = b''.join(str(d[0]) for d in data)
-                    if compression and self.version != '4.00':
+                    if compression and self.version > '4.00':
                         if compression == 1:
                             param = 0
                         else:
@@ -5179,15 +5187,29 @@ class MDF4(object):
                         index=j,
                     )
                     if sdata:
-                        signal_data = SignalDataBlock(data=sdata)
-                        signal_data.address = address
-                        address += signal_data['block_len']
-                        blocks.append(signal_data)
-                        align = signal_data['block_len'] % 8
-                        if align % 8:
-                            blocks.append(b'\0' * (8 - align))
-                            address += 8 - align
-                        gp_sd.append(signal_data)
+                        if compression and self.version > '4.00':
+                            signal_data = DataZippedBlock(
+                                data=sdata,
+                                zip_type=v4c.FLAG_DZ_DEFLATE,
+                                original_type=b'SD',
+                            )
+                            signal_data.address = address
+                            address += signal_data['block_len']
+                            blocks.append(signal_data)
+                            align = signal_data['block_len'] % 8
+                            if align % 8:
+                                blocks.append(b'\0' * (8 - align))
+                                address += 8 - align
+                        else:
+                            signal_data = SignalDataBlock(data=sdata)
+                            signal_data.address = address
+                            address += signal_data['block_len']
+                            blocks.append(signal_data)
+                            align = signal_data['block_len'] % 8
+                            if align % 8:
+                                blocks.append(b'\0' * (8 - align))
+                                address += 8 - align
+                            gp_sd.append(signal_data)
                     else:
                         gp_sd.append(None)
 
@@ -5811,14 +5833,28 @@ class MDF4(object):
                         index=j,
                     )
                     if signal_data:
-                        signal_data = SignalDataBlock(data=signal_data)
-                        blocks.append(signal_data)
-                        channel['data_block_addr'] = address
-                        address += signal_data['block_len']
-                        align = signal_data['block_len'] % 8
-                        if align % 8:
-                            blocks.append(b'\0' * (8 - align))
-                            address += 8 - align
+                        if compression and self.version > '4.00':
+                            signal_data = DataZippedBlock(
+                                data=signal_data,
+                                zip_type=v4c.FLAG_DZ_DEFLATE,
+                                original_type=b'SD',
+                            )
+                            blocks.append(signal_data)
+                            channel['data_block_addr'] = address
+                            address += signal_data['block_len']
+                            align = signal_data['block_len'] % 8
+                            if align % 8:
+                                blocks.append(b'\0' * (8 - align))
+                                address += 8 - align
+                        else:
+                            signal_data = SignalDataBlock(data=signal_data)
+                            blocks.append(signal_data)
+                            channel['data_block_addr'] = address
+                            address += signal_data['block_len']
+                            align = signal_data['block_len'] % 8
+                            if align % 8:
+                                blocks.append(b'\0' * (8 - align))
+                                address += 8 - align
                     else:
                         channel['data_block_addr'] = 0
 
