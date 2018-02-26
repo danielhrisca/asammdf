@@ -103,6 +103,7 @@ def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
         if stream:
             tell = stream.tell
             write = stream.write
+            stream.seek(0, 2)
         if conversion.name:
             tx_block = TextBlock(text=conversion.name)
             text = tx_block['text']
@@ -197,12 +198,15 @@ def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
             elif isinstance(item, ChannelConversion):
 
                 if stream:
+                    temp = dict(item)
                     write_cc(item, defined_texts, blocks, stream=stream)
                     address = tell()
                     item.address = address
                     conversion[key] = address
                     write(bytes(item))
+                    item.update(temp)
                 else:
+
                     item.address = address
                     conversion[key] = address
                     address += item['block_len']
@@ -1932,9 +1936,11 @@ class MDF4(object):
 
                     if memory == 'minimum':
                         if conversion:
+                            temp = dict(conversion)
                             write_cc(conversion, defined_texts={}, stream=self._tempfile)
                             address = tell()
                             write(bytes(conversion))
+                            conversion.update(temp)
                             gp_conv.append(address)
                         else:
                             gp_conv.append(0)
@@ -4398,6 +4404,7 @@ class MDF4(object):
                     or channel['unit_addr']
                     or 0
                 )
+
                 if address:
                     unit = get_text_v4(
                         address=address,

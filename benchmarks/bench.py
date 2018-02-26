@@ -912,12 +912,17 @@ def main(text_output, fmt):
         with open(file, 'w') as out:
             out.write('\n'.join(output))
 
-
     for file in ('x.mdf', 'x.mf4'):
-        try:
-            os.remove(file)
-        except FileNotFoundError:
-            pass
+        if PYVERSION >= 3:
+            try:
+                os.remove(file)
+            except FileNotFoundError:
+                pass
+        else:
+            try:
+                os.remove(file)
+            except IOError:
+                pass
 
 
 def _cmd_line_parser():
