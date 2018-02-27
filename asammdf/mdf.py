@@ -218,8 +218,19 @@ class MDF(object):
             excluded_channels = self._excluded_channels(i)
             channels_nr = len(group['channels'])
 
+            parents, dtypes = self._prepare_record(group)
+            group['parents'], group['types'] = parents, dtypes
+
             data = self._load_group_data(group)
             for idx, fragment in enumerate(data):
+
+                if dtypes.itemsize:
+                    group['record'] = np.core.records.fromstring(
+                        fragment[0],
+                        dtype=dtypes,
+                    )
+                else:
+                    group['record'] = None
 
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
@@ -273,6 +284,8 @@ class MDF(object):
                                 sig = sig.copy()
                             sigs.append(sig)
                     out.extend(i, sigs)
+
+                del group['record']
 
         return out
 
@@ -331,9 +344,18 @@ class MDF(object):
             channels_nr = len(group['channels'])
 
             data = self._load_group_data(group)
+            parents, dtypes = self._prepare_record(group)
+            group['parents'], group['types'] = parents, dtypes
 
             idx = 0
             for fragment in data:
+                if dtypes.itemsize:
+                    group['record'] = np.core.records.fromstring(
+                        fragment[0],
+                        dtype=dtypes,
+                    )
+                else:
+                    group['record'] = None
                 master = self.get_master(i, fragment)
                 if not len(master):
                     continue
@@ -431,9 +453,12 @@ class MDF(object):
 
                         idx += 1
 
+                del group['record']
+
             # if the cut interval is not found in the measurement
             # then append an empty data group
             if idx == 0:
+
                 self.configure(read_fragment_size=1)
                 sigs = []
 
@@ -852,8 +877,18 @@ class MDF(object):
             group = self.groups[group_index]
 
             data = self._load_group_data(group)
+            parents, dtypes = self._prepare_record(group)
+            group['parents'], group['types'] = parents, dtypes
 
             for idx, fragment in enumerate(data):
+
+                if dtypes.itemsize:
+                    group['record'] = np.core.records.fromstring(
+                        fragment[0],
+                        dtype=dtypes,
+                    )
+                else:
+                    group['record'] = None
 
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
@@ -902,6 +937,8 @@ class MDF(object):
                             sig = sig.copy()
                         sigs.append(sig)
                     mdf.extend(new_index, sigs)
+
+                del group['record']
 
         return mdf
 
@@ -1050,9 +1087,19 @@ class MDF(object):
                 if read_size:
                     mdf.configure(read_fragment_size=int(read_size))
 
+                parents, dtypes = mdf._prepare_record(group)
+                group['parents'], group['types'] = parents, dtypes
+
                 data = mdf._load_group_data(group)
 
                 for fragment in data:
+                    if dtypes.itemsize:
+                        group['record'] = np.core.records.fromstring(
+                            fragment[0],
+                            dtype=dtypes,
+                        )
+                    else:
+                        group['record'] = None
                     if idx == 0:
                         signals = []
                         for j in range(channels_nr):
@@ -1118,6 +1165,8 @@ class MDF(object):
 
                             merged.extend(i, signals)
                         idx += 1
+
+                    del group['record']
 
         return merged
 
@@ -1382,14 +1431,24 @@ class MDF(object):
         for group in gps:
             grp = self.groups[group]
             data = self._load_group_data(grp)
+            parents, dtypes = self._prepare_record(grp)
+            grp['parents'], grp['types'] = parents, dtypes
 
             for fragment in data:
+                if dtypes.itemsize:
+                    grp['record'] = np.core.records.fromstring(
+                        fragment[0],
+                        dtype=dtypes,
+                    )
+                else:
+                    grp['record'] = None
                 for index in gps[group]:
                     signal = self.get(group=group, index=index, data=fragment)
                     if (group, index) not in signal_parts:
                         signal_parts[(group, index)] = [signal, ]
                     else:
                         signal_parts[(group, index)].append(signal)
+                del grp['record']
 
         signals = []
         for pair in indexes:

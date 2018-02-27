@@ -24,6 +24,7 @@ Features
 * export to Excel, HDF5, Matlab and CSV
 * merge multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
+* split large data blocks (configurable size) for mdf version 4
 * full support (read, append, save) for the following map types (multidimensional array channels):
 
     * mdf version 3 channels with CDBLOCK
@@ -35,14 +36,28 @@ Features
         * 2 - look-up
         
 * add and extract attachments for mdf version 4
-* files are loaded in RAM for fast operations
-* handle large files (exceeding the available RAM) using *memory* = *minimum* argument
+* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi) using *memory* = *minimum* argument
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
 * time domain operation using the *Signal* class
 
     * Pandas data frames are good if all the channels have the same time based
-    * usually a measurement will have channels from different sources at different rates
+    * a measurement will usually have channels from different sources at different rates
     * the *Signal* class facilitates operations with such channels
+
+# Major features not implemented (yet)
+* for version 3
+
+    * functionality related to sample reduction block
+    
+* for version 4
+
+    * handling of bus logging measurements
+    * handling of unfinished measurements (mdf 4)
+    * xml schema for TXBLOCK and MDBLOCK
+    * full support for remaining mdf 4 channel arrays types
+    * event blocks
+    * channels with default X axis
+    * channels with reference to attachment
 
 Major features not implemented (yet)
 ====================================

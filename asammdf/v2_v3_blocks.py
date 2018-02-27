@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function
 
+import re
 import sys
 import time
 from getpass import getuser
@@ -18,6 +19,7 @@ PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 SEEK_START = v23c.SEEK_START
 SEEK_END = v23c.SEEK_END
+
 
 __all__ = [
     'Channel',
@@ -381,6 +383,7 @@ class ChannelConversion(dict):
                 )
                 size = self['block_len']
                 block = block[4:]
+                stream=kargs['stream']
 
             except KeyError:
                 stream = kargs['stream']
@@ -476,12 +479,30 @@ class ChannelConversion(dict):
                      self['text_{}'.format(i)]) = values[i*2], values[2*i + 1]
 
             elif conv_type == v23c.CONVERSION_TYPE_RTABX:
-                nr = self['ref_param_nr']
+                nr = self['ref_param_nr'] - 1
+
+                (self['default_lower'],
+                 self['default_upper'],
+                 self['default_addr']) = unpack_from(
+                    '<2dI',
+                    block,
+                    v23c.CC_COMMON_SHORT_SIZE,
+                )
+
+                if self['default_addr']:
+                    self.referenced_blocks['default_addr'] = TextBlock(
+                        address=self['default_addr'],
+                        stream=stream,
+                    )
+                else:
+                    self.referenced_blocks['default_addr'] = TextBlock(
+                        text='',
+                    )
 
                 values = unpack_from(
                     '<' + '2dI' * nr,
                     block,
-                    v23c.CC_COMMON_SHORT_SIZE,
+                    v23c.CC_COMMON_SHORT_SIZE + 20,
                 )
                 for i in range(nr):
                     (self['lower_{}'.format(i)],
@@ -492,10 +513,12 @@ class ChannelConversion(dict):
                         values[3*i + 2],
                     )
                     if values[3*i + 2]:
-                        self.referenced_blocks['text_{}'.format(i)] = TextBlock(
+                        block = TextBlock(
                             address=values[3*i + 2],
                             stream=stream,
                         )
+                        self.referenced_blocks['text_{}'.format(i)] = block
+
                     else:
                         self.referenced_blocks['text_{}'.format(i)] = TextBlock(
                             text='',
@@ -622,10 +645,21 @@ class ChannelConversion(dict):
                 self['conversion_type'] = v23c.CONVERSION_TYPE_RTABX
                 self['ref_param_nr'] = nr
 
-                for i in range(nr):
+                self['default_lower'] = 0
+                self['default_upper'] = 0
+                self['default_addr'] = 0
+                key = 'default_addr'
+                if kargs[key]:
+                    self.referenced_blocks[key] = TextBlock(text=kargs[key])
+                else:
+                    self.referenced_blocks[key] = None
+
+                for i in range(nr - 1):
                     self['lower_{}'.format(i)] = kargs['lower_{}'.format(i)]
                     self['upper_{}'.format(i)] = kargs['upper_{}'.format(i)]
-                    self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
+                    key = 'text_{}'.format(i)
+                    self[key] = 0
+                    self.referenced_blocks[key] = TextBlock(text=kargs[key])
             else:
                 message = 'Conversion type "{}" not implemented'
                 message = message.format(kargs['conversion_type'])
@@ -645,8 +679,9 @@ class ChannelConversion(dict):
                 if b:
                     values += b
 
-        elif conversion_type in (v23c.CONVERSION_TYPE_TABI,
-                                v23c.CONVERSION_TYPE_TAB):
+        elif conversion_type in (
+                v23c.CONVERSION_TYPE_TABI,
+                v23c.CONVERSION_TYPE_TAB):
             nr = self['ref_param_nr']
 
             raw_vals = [
@@ -685,17 +720,36 @@ class ChannelConversion(dict):
             values = phys[indexes]
 
         elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
-            nr = self['ref_param_nr']
+            nr = self['ref_param_nr'] - 1
 
             phys = []
             for i in range(nr):
-                try:
-                    value = self.referenced_blocks['text_{}'.format(i)]['text']
-                except KeyError:
-                    value = self.referenced_blocks['text_{}'.format(i)]
-                except TypeError:
+                value = self.referenced_blocks['text_{}'.format(i)]
+                if value:
+                    value = value['text']
+                else:
                     value = b''
                 phys.append(value)
+
+            phys = np.array(phys)
+
+            default = self.referenced_blocks['default_addr']
+            if default:
+                default = default['text']
+            else:
+                default = b''
+
+            if b'{X}' in default:
+                default = (
+                    default
+                    .decode('latin-1')
+                    .replace('{X}', 'X')
+                    .split('"')
+                    [1]
+                )
+                partial_convertion = True
+            else:
+                partial_conversion = False
 
             lower = np.array(
                 [self['lower_{}'.format(i)] for i in range(nr)]
@@ -704,12 +758,37 @@ class ChannelConversion(dict):
                 [self['upper_{}'.format(i)] for i in range(nr)]
             )
 
-            idx1 = np.searchsorted(lower, values, side='right') - 1
-            idx2 = np.searchsorted(upper, values, side='right')
+            if values.dtype.kind == 'f':
+                idx1 = np.searchsorted(lower, values, side='right') - 1
+                idx2 = np.searchsorted(upper, values, side='right')
+            else:
+                idx1 = np.searchsorted(lower, values, side='right') - 1
+                idx2 = np.searchsorted(upper, values, side='right') - 1
 
-            idx = np.argwhere(idx1 == idx2).flatten()
+            idx = np.argwhere(idx1 != idx2).flatten()
 
-            values = phys[idx]
+            if partial_convertion and len(idx):
+                X = values[idx]
+                new_values = np.zeros(len(values), dtype=np.float64)
+                new_values[idx] = evaluate(default)
+
+                idx = np.argwhere(idx1 == idx2).flatten()
+                new_values[idx] = np.nan
+                values = new_values
+
+            else:
+                if len(idx):
+                    new_values = np.zeros(
+                        len(values),
+                        dtype=max(phys.dtype, np.array([default, ]).dtype),
+                    )
+                    new_values[idx] = default
+
+                    idx = np.argwhere(idx1 == idx2).flatten()
+                    new_values[idx] = phys[values[idx]]
+                    values = new_values
+                else:
+                    values = phys[idx1]
 
         elif conversion_type in (
                 v23c.CONVERSION_TYPE_EXPO,
@@ -828,7 +907,12 @@ class ChannelConversion(dict):
             elif conv == v23c.CONVERSION_TYPE_RTABX:
                 nr = self['ref_param_nr']
                 keys = list(v23c.KEYS_CONVESION_NONE)
-                for i in range(nr):
+                keys += [
+                    'default_lower',
+                    'default_upper',
+                    'default_addr',
+                ]
+                for i in range(nr - 1):
                     keys.append('lower_{}'.format(i))
                     keys.append('upper_{}'.format(i))
                     keys.append('text_{}'.format(i))

@@ -701,6 +701,8 @@ class ChannelConversion(dict):
 
                 block = kargs['raw_bytes'][v4c.COMMON_SIZE:]
 
+                stream = kargs['stream']
+
             except KeyError:
 
                 self.address = address = kargs['address']
@@ -1209,12 +1211,26 @@ class ChannelConversion(dict):
                     key = 'text_{}'.format(i)
                     self[key] = 0
                     self.referenced_blocks[key] = TextBlock(text=kargs[key])
-                self['default_addr'] = kargs.get('default_addr', 0)
-                key = 'default_addr'
-                if self['default_addr']:
-                    self.referenced_blocks[key] = TextBlock(text=kargs[key])
+                self['default_addr'] = 0
+                default = kargs['default_addr']
+                if default:
+                    if b'{X}' in default:
+                        default = (
+                            default
+                            .decode('latin-1')
+                            .replace('{X}', 'X')
+                            .split('"')
+                            [1]
+                        )
+                        default = ChannelConversion(
+                            conversion_type=v4c.CONVERSION_TYPE_ALG,
+                            formula=default,
+                        )
+                        self.referenced_blocks['default_addr'] = default
+                    else:
+                        self.referenced_blocks['default_addr'] = TextBlock(text=default)
                 else:
-                    self.referenced_blocks[key] = None
+                    self.referenced_blocks['default_addr'] = None
                 self['conversion_type'] = v4c.CONVERSION_TYPE_RTABX
                 self['precision'] = kargs.get('precision', 0)
                 self['flags'] = kargs.get('flags', 0)
@@ -1254,7 +1270,7 @@ class ChannelConversion(dict):
                 message = message.format(kargs['conversion_type'])
                 raise NotImplementedError(message)
 
-    def convert(self, values, channel=None):
+    def convert(self, values):
         conversion_type = self['conversion_type']
         if conversion_type == v4c.CONVERSION_TYPE_NON:
             pass
@@ -1310,46 +1326,25 @@ class ChannelConversion(dict):
             )
             default = self['default']
 
-            if channel:
-
-                # INT channel
-                if channel['data_type'] <= 3:
-
-                    res = []
-                    for v in values:
-                        for l, u, p in zip(lower, upper, phys):
-                            if l <= v <= u:
-                                res.append(p)
-                                break
-                        else:
-                            res.append(default)
-                    size = max(channel['bit_count'] >> 3, 1)
-                    ch_fmt = get_fmt_v4(channel['data_type'], size)
-                    values = np.array(res).astype(ch_fmt)
-
-                # else FLOAT channel
-                else:
-                    res = []
-                    for v in values:
-                        for l, u, p in zip(lower, upper, phys):
-                            if l <= v < u:
-                                res.append(p)
-                                break
-                        else:
-                            res.append(default)
-                    size = max(channel['bit_count'] >> 3, 1)
-                    ch_fmt = get_fmt_v4(channel['data_type'], size)
-                    values = np.array(res).astype(ch_fmt)
+            if values.dtype.kind == 'f':
+                idx1 = np.searchsorted(lower, values, side='right') - 1
+                idx2 = np.searchsorted(upper, values, side='right')
             else:
-                res = []
-                for v in values:
-                    for l, u, p in zip(lower, upper, phys):
-                        if l <= v < u:
-                            res.append(p)
-                            break
-                    else:
-                        res.append(default)
-                values = np.array(res)
+                idx1 = np.searchsorted(lower, values, side='right') - 1
+                idx2 = np.searchsorted(upper, values, side='right') - 1
+
+            idx_ne = np.argwhere(idx1 != idx2).flatten()
+            idx_eq = np.argwhere(idx1 == idx2).flatten()
+
+            new_values = np.zeros(
+                len(values),
+                dtype=phys.dtype,
+            )
+
+            new_values[idx_ne] = default
+            new_values[idx_eq] = phys[idx1[idx_eq]]
+
+            values = new_values
 
         elif conversion_type == v4c.CONVERSION_TYPE_TABX:
             nr = self['val_param_nr']
@@ -1406,51 +1401,52 @@ class ChannelConversion(dict):
             )
 
             all_values = phys + [default, ]
-            if all(isinstance(val, bytes) for val in all_values):
+
+            if values.dtype.kind == 'f':
                 idx1 = np.searchsorted(lower, values, side='right') - 1
                 idx2 = np.searchsorted(upper, values, side='right')
-
-                idx = np.argwhere(idx1 == idx2).flatten()
-
-                new_vals = [default for _ in values]
-                for i in idx:
-                    new_vals[i] = phys[idx1[i]]
-
-                values = np.array(new_vals)
-
             else:
-
                 idx1 = np.searchsorted(lower, values, side='right') - 1
-                idx2 = np.searchsorted(upper, values, side='left')
+                idx2 = np.searchsorted(upper, values, side='right') - 1
 
-                idx = np.argwhere(idx1 == idx2).flatten()
+            idx_ne = np.argwhere(idx1 != idx2).flatten()
+            idx_eq = np.argwhere(idx1 == idx2).flatten()
 
-                new_vals = [0 for v in values]
-                for i in idx:
-                    item = phys[idx1[i]]
-                    if isinstance(item, bytes):
-                        new_vals[i] = np.nan
+            if all(isinstance(val, bytes) for val in all_values):
+                phys = np.array(phys)
+                all_values = np.array(all_values)
+
+                new_values = np.zeros(
+                    len(values),
+                    dtype=all_values.dtype,
+                )
+
+                new_values[idx_ne] = default
+                new_values[idx_eq] = phys[idx1[idx_eq]]
+
+                values = new_values
+            else:
+                new_values = []
+                for i, val in enumerate(values):
+                    if i in idx_ne:
+                        item = default
                     else:
-                        val = item.convert(np.array([values[i]]))[0]
-                        if isinstance(val, bytes):
-                            new_vals[i] = np.nan
-                        else:
-                            new_vals[i] = val
+                        item = phys[idx1[i]]
 
-                idx = np.argwhere(idx1 != idx2).flatten()
+                    if isinstance(item, bytes):
+                        new_values.append(item)
+                    else:
+                        new_values.append(item.convert(values[i:i+1])[0])
 
-                if isinstance(default, bytes):
-                    for i in idx:
-                        new_vals[i] = np.nan
+                if all(isinstance(v, bytes) for v in new_values):
+                    values = np.array(new_values)
                 else:
-                    for i in idx:
-                        val = default.convert(np.array([values[i]]))[0]
-                        if isinstance(val, bytes):
-                            new_vals[i] = np.nan
-                        else:
-                            new_vals[i] = val
-
-                values = np.array(new_vals)
+                    values = np.array(
+                        [
+                            np.nan if isinstance(v, bytes) else v
+                            for v in new_values
+                        ]
+                    )
 
         elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
             nr = self['val_param_nr'] - 1

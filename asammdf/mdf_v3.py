@@ -12,6 +12,7 @@ from copy import deepcopy
 from functools import reduce
 from itertools import product
 from math import ceil
+from struct import unpack
 from tempfile import TemporaryFile
 
 from numpy import (
@@ -801,14 +802,25 @@ class MDF3(object):
 
                     # read conversion block
                     address = new_ch['conversion_addr']
+
                     if memory == 'minimum':
-                        grp['channel_conversions'].append(address)
+                        grp_conv.append(address)
                     else:
                         if address:
-                            conv = ChannelConversion(
-                                address=address,
-                                stream=stream,
-                            )
+                            stream.seek(address + 2)
+                            size = unpack('<H', stream.read(2))[0]
+                            stream.seek(address)
+                            raw_bytes = stream.read(size)
+
+                            if raw_bytes in cc_map:
+                                conv = cc_map[raw_bytes]
+                            else:
+                                conv = ChannelConversion(
+                                    raw_bytes=raw_bytes,
+                                    stream=stream,
+                                )
+                                cc_map[raw_bytes] = conv
+
                         else:
                             conv = None
                         grp_conv.append(conv)
@@ -1123,7 +1135,7 @@ class MDF3(object):
                 signals = [s.interp(timestamps) for s in signals]
                 times = None
 
-        if self.version < '3.00':
+        if self.version < '3.10':
             if timestamps.dtype.byteorder == '>':
                 timestamps = timestamps.byteswap().newbyteorder()
             for signal in signals:
@@ -3382,6 +3394,9 @@ class MDF3(object):
                        'for MDF created from scratch')
             raise MdfException(message)
 
+        _read_fragment_size = self._read_fragment_size
+        self.configure(read_fragment_size=4 * 2**20)
+
         if self.memory == 'minimum':
             output_file = self._save_without_metadata(
                 dst,
@@ -3394,6 +3409,8 @@ class MDF3(object):
                 overwrite,
                 compression,
             )
+
+        self.configure(read_fragment_size=_read_fragment_size)
 
         return output_file
 
@@ -3524,7 +3541,14 @@ class MDF3(object):
 
                 # DataBlock
                 for (data_bytes, _) in self._load_group_data(gp):
-                    write(data_bytes)
+                    if self.memory == 'full':
+                        data = memoryview(data_bytes)
+                        read_size = 4 * 2**20
+                        count = int(ceil(len(data_bytes) / read_size))
+                        for j in range(count):
+                            write(data[j*read_size: (j+1)*read_size])
+                    else:
+                        write(data_bytes)
 
                 if gp['size']:
                     gp['data_group']['data_block_addr'] = address
