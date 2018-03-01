@@ -818,6 +818,7 @@ class MDF3(object):
                                 conv = ChannelConversion(
                                     raw_bytes=raw_bytes,
                                     stream=stream,
+                                    address=address,
                                 )
                                 cc_map[raw_bytes] = conv
 

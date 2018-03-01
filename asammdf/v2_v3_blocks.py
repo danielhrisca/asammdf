@@ -382,6 +382,7 @@ class ChannelConversion(dict):
                     block,
                 )
                 size = self['block_len']
+                block_size = len(block)
                 block = block[4:]
                 stream=kargs['stream']
 
@@ -392,8 +393,12 @@ class ChannelConversion(dict):
                 block = stream.read(4)
                 (self['id'],
                  self['block_len']) = unpack('<2sH', block)
+
                 size = self['block_len']
+                block_size = size
                 block = stream.read(size - 4)
+
+            address = kargs.get('address', 0)
 
             (self['range_flag'],
              self['min_phy_value'],
@@ -426,6 +431,7 @@ class ChannelConversion(dict):
             elif conv_type in (
                     v23c.CONVERSION_TYPE_TABI,
                     v23c.CONVERSION_TYPE_TAB):
+
                 nr = self['ref_param_nr']
                 values = unpack_from(
                     '<{}d'.format(2 * nr),
@@ -468,61 +474,96 @@ class ChannelConversion(dict):
             elif conv_type == v23c.CONVERSION_TYPE_TABX:
                 nr = self['ref_param_nr']
 
-                values = unpack_from(
-                    '<' + 'd32s' * nr,
-                    block,
-                    v23c.CC_COMMON_SHORT_SIZE,
-                )
+                size = v23c.CC_COMMON_BLOCK_SIZE + nr * 40
 
-                for i in range(nr):
-                    (self['param_val_{}'.format(i)],
-                     self['text_{}'.format(i)]) = values[i*2], values[2*i + 1]
+                if size > block_size:
+                    stream.seek(address)
+                    raw_bytes = stream.read(size)
+                    conversion = ChannelConversion(
+                        raw_bytes=raw_bytes,
+                        stream=stream,
+                        address=address,
+                    )
+                    conversion['block_len'] = size
+
+                    self.update(conversion)
+                    self.referenced_blocks = conversion.referenced_blocks
+
+                else:
+
+                    values = unpack_from(
+                        '<' + 'd32s' * nr,
+                        block,
+                        v23c.CC_COMMON_SHORT_SIZE,
+                    )
+
+                    for i in range(nr):
+                        (self['param_val_{}'.format(i)],
+                         self['text_{}'.format(i)]) = values[i*2], values[2*i + 1]
 
             elif conv_type == v23c.CONVERSION_TYPE_RTABX:
+
                 nr = self['ref_param_nr'] - 1
 
-                (self['default_lower'],
-                 self['default_upper'],
-                 self['default_addr']) = unpack_from(
-                    '<2dI',
-                    block,
-                    v23c.CC_COMMON_SHORT_SIZE,
-                )
+                size = v23c.CC_COMMON_BLOCK_SIZE + (nr + 1) * 20
 
-                if self['default_addr']:
-                    self.referenced_blocks['default_addr'] = TextBlock(
-                        address=self['default_addr'],
+                if size > block_size:
+                    stream.seek(address)
+                    raw_bytes = stream.read(size)
+                    conversion = ChannelConversion(
+                        raw_bytes=raw_bytes,
                         stream=stream,
+                        address=address,
                     )
+                    conversion['block_len'] = size
+
+                    self.update(conversion)
+                    self.referenced_blocks = conversion.referenced_blocks
+
                 else:
-                    self.referenced_blocks['default_addr'] = TextBlock(
-                        text='',
+
+                    (self['default_lower'],
+                     self['default_upper'],
+                     self['default_addr']) = unpack_from(
+                        '<2dI',
+                        block,
+                        v23c.CC_COMMON_SHORT_SIZE,
                     )
 
-                values = unpack_from(
-                    '<' + '2dI' * nr,
-                    block,
-                    v23c.CC_COMMON_SHORT_SIZE + 20,
-                )
-                for i in range(nr):
-                    (self['lower_{}'.format(i)],
-                     self['upper_{}'.format(i)],
-                     self['text_{}'.format(i)]) = (
-                        values[i*3],
-                        values[3*i + 1],
-                        values[3*i + 2],
-                    )
-                    if values[3*i + 2]:
-                        block = TextBlock(
-                            address=values[3*i + 2],
+                    if self['default_addr']:
+                        self.referenced_blocks['default_addr'] = TextBlock(
+                            address=self['default_addr'],
                             stream=stream,
                         )
-                        self.referenced_blocks['text_{}'.format(i)] = block
-
                     else:
-                        self.referenced_blocks['text_{}'.format(i)] = TextBlock(
+                        self.referenced_blocks['default_addr'] = TextBlock(
                             text='',
                         )
+
+                    values = unpack_from(
+                        '<' + '2dI' * nr,
+                        block,
+                        v23c.CC_COMMON_SHORT_SIZE + 20,
+                    )
+                    for i in range(nr):
+                        (self['lower_{}'.format(i)],
+                         self['upper_{}'.format(i)],
+                         self['text_{}'.format(i)]) = (
+                            values[i*3],
+                            values[3*i + 1],
+                            values[3*i + 2],
+                        )
+                        if values[3*i + 2]:
+                            block = TextBlock(
+                                address=values[3*i + 2],
+                                stream=stream,
+                            )
+                            self.referenced_blocks['text_{}'.format(i)] = block
+
+                        else:
+                            self.referenced_blocks['text_{}'.format(i)] = TextBlock(
+                                text='',
+                            )
 
             if self['id'] != b'CC':
                 message = 'Expected "CC" block but found "{}"'
@@ -923,6 +964,8 @@ class ChannelConversion(dict):
                     keys.append('param_val_{}'.format(i))
                     keys.append('text_{}'.format(i))
 
+        if self['block_len'] > v23c.MAX_UINT16:
+            self['block_len'] = v23c.MAX_UINT16
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
