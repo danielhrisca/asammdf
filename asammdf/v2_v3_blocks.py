@@ -433,14 +433,31 @@ class ChannelConversion(dict):
                     v23c.CONVERSION_TYPE_TAB):
 
                 nr = self['ref_param_nr']
-                values = unpack_from(
-                    '<{}d'.format(2 * nr),
-                    block,
-                    v23c.CC_COMMON_SHORT_SIZE,
-                )
-                for i in range(nr):
-                    (self['raw_{}'.format(i)],
-                     self['phys_{}'.format(i)]) = values[i*2], values[2*i + 1]
+
+                size = v23c.CC_COMMON_BLOCK_SIZE + nr * 16
+
+                if block_size == v23c.MAX_UINT16:
+                    stream.seek(address)
+                    raw_bytes = stream.read(size)
+                    conversion = ChannelConversion(
+                        raw_bytes=raw_bytes,
+                        stream=stream,
+                        address=address,
+                    )
+                    conversion['block_len'] = size
+
+                    self.update(conversion)
+                    self.referenced_blocks = conversion.referenced_blocks
+
+                else:
+                    values = unpack_from(
+                        '<{}d'.format(2 * nr),
+                        block,
+                        v23c.CC_COMMON_SHORT_SIZE,
+                    )
+                    for i in range(nr):
+                        (self['raw_{}'.format(i)],
+                         self['phys_{}'.format(i)]) = values[i*2], values[2*i + 1]
 
             elif conv_type in (
                     v23c.CONVERSION_TYPE_POLY,
@@ -476,7 +493,7 @@ class ChannelConversion(dict):
 
                 size = v23c.CC_COMMON_BLOCK_SIZE + nr * 40
 
-                if size > block_size:
+                if block_size == v23c.MAX_UINT16:
                     stream.seek(address)
                     raw_bytes = stream.read(size)
                     conversion = ChannelConversion(
@@ -507,7 +524,7 @@ class ChannelConversion(dict):
 
                 size = v23c.CC_COMMON_BLOCK_SIZE + (nr + 1) * 20
 
-                if size > block_size:
+                if block_size == v23c.MAX_UINT16:
                     stream.seek(address)
                     raw_bytes = stream.read(size)
                     conversion = ChannelConversion(
