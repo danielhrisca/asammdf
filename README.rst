@@ -44,20 +44,6 @@ Features
     * a measurement will usually have channels from different sources at different rates
     * the *Signal* class facilitates operations with such channels
 
-# Major features not implemented (yet)
-* for version 3
-
-    * functionality related to sample reduction block
-    
-* for version 4
-
-    * handling of bus logging measurements
-    * handling of unfinished measurements (mdf 4)
-    * xml schema for TXBLOCK and MDBLOCK
-    * full support for remaining mdf 4 channel arrays types
-    * event blocks
-    * channels with default X axis
-    * channels with reference to attachment
 
 Major features not implemented (yet)
 ====================================
