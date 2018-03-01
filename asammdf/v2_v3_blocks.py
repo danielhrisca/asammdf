@@ -1339,6 +1339,8 @@ class ChannelGroup(dict):
              self['cycles_nr']) = unpack(v23c.FMT_CHANNEL_GROUP, block)
             if self['block_len'] == v23c.CG_POST_330_BLOCK_SIZE:
                 self['sample_reduction_addr'] = unpack('<I', stream.read(4))[0]
+                # sample reduction blocks are not yet used
+                self['sample_reduction_addr'] = 0
             if self['id'] != b'CG':
                 message = 'Expected "CG" block but found "{}"'
                 raise MdfException(message.format(self['id']))
