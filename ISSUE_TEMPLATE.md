@@ -1,12 +1,25 @@
 # Python version
-_Please write here the output of printing ``sys.version``_
+_Please run the following snippet and write the output here_
+```python
+import platform
+import sys
+from pprint import pprint
 
-# Platform information
-_Please write here the output of printing ``platform.platform()``_
+pprint("python=" + sys.version)
+pprint("os=" + platform.platform())
 
-# _asammdf_ version
-_Please write here the output of printing ``asammdf.__version__``_
+try:
+    import numpy
+    pprint("numpy=" + numpy.__version__)
+except ImportError:
+    pass
 
+try:
+    import asammdf
+    pprint("asammdf=" + asammdf.__version__)
+except ImportError:
+    pass
+```
 # Code 
 
   ## Code snippet
