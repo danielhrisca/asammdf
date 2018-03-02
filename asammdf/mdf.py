@@ -621,39 +621,35 @@ class MDF(object):
                     workbook = xlsxwriter.Workbook(wb_name)
                     bold = workbook.add_format({'bold': True})
 
-                    if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-                        sheet = workbook.add_worksheet(group_name)
-                        for j, item in enumerate(header_items):
-                            sheet.write(j, 0, item.title(), bold)
-                            sheet.write(j, 1, self.header[item].decode('latin-1'))
+                    sheet = workbook.add_worksheet(group_name)
 
-                        # the sheet header has 3 rows
-                        # the channel name and unit 'YY [xx]'
-                        # the channel comment
-                        # the flag for data grup master channel
-                        sheet.write(0, 0, 'Channel', bold)
-                        sheet.write(1, 0, 'comment', bold)
-                        sheet.write(2, 0, 'is master', bold)
+                    # the sheet header has 3 rows
+                    # the channel name and unit 'YY [xx]'
+                    # the channel comment
+                    # the flag for data grup master channel
+                    sheet.write(0, 0, 'Channel', bold)
+                    sheet.write(1, 0, 'comment', bold)
+                    sheet.write(2, 0, 'is master', bold)
 
-                        master_index = self.masters_db.get(i, -1)
+                    master_index = self.masters_db.get(i, -1)
 
-                        for j in range(grp['channel_group']['cycles_nr']):
-                            sheet.write(j + 3, 0, str(j))
+                    for j in range(grp['channel_group']['cycles_nr']):
+                        sheet.write(j + 3, 0, str(j))
 
-                        for j, _ in enumerate(grp['channels']):
-                            sig = self.get(group=i, index=j, data=data)
+                    for j, _ in enumerate(grp['channels']):
+                        sig = self.get(group=i, index=j, data=data)
 
-                            col = j + 1
-                            sig_description = '{} [{}]'.format(
-                                sig.name,
-                                sig.unit,
-                            )
-                            comment = sig.comment if sig.comment else ''
-                            sheet.write(0, col, sig_description)
-                            sheet.write(1, col, comment)
-                            if j == master_index:
-                                sheet.write(2, col, 'x')
-                            sheet.write_column(3, col, sig.samples.astype(str))
+                        col = j + 1
+                        sig_description = '{} [{}]'.format(
+                            sig.name,
+                            sig.unit,
+                        )
+                        comment = sig.comment if sig.comment else ''
+                        sheet.write(0, col, sig_description)
+                        sheet.write(1, col, comment)
+                        if j == master_index:
+                            sheet.write(2, col, 'x')
+                        sheet.write_column(3, col, sig.samples.astype(str))
 
                     workbook.close()
 
