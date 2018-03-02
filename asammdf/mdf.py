@@ -258,11 +258,15 @@ class MDF(object):
                                 sig.samples = sig.samples.copy()
                             sigs.append(sig)
                     source_info = 'Converted from {} to {}'
-                    out.append(
-                        sigs,
-                        source_info.format(self.version, to),
-                        common_timebase=True,
-                    )
+
+                    if sigs:
+                        out.append(
+                            sigs,
+                            source_info.format(self.version, to),
+                            common_timebase=True,
+                        )
+                    else:
+                        break
 
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
