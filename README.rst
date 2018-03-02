@@ -54,6 +54,7 @@ Major features not implemented (yet)
     
 * for version 4
 
+    * handling of channel hierarchy
     * handling of bus logging measurements
     * handling of unfinished measurements (mdf 4)
     * full support for remaining mdf 4 channel arrays types
