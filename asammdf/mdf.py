@@ -669,7 +669,7 @@ class MDF(object):
                 group_name = 'DataGroup_{}'.format(i + 1)
                 group_csv_name = '{}_{}.csv'.format(csv_name, group_name)
                 with open(group_csv_name, 'w', newline='') as csvfile:
-                    writer = csv.writer(csvfile, delimiter=';')
+                    writer = csv.writer(csvfile)
 
                     ch_nr = len(grp['channels'])
                     channels = [
