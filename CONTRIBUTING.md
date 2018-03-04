@@ -5,8 +5,10 @@ Your help is appreciated and welcome!
 The _master_ branch is meant to hold the release code. At any time is should be 
 identical to the code available on PyPI. 
 
-PR's will be pushed on the _development_ branch. When the time comes this branch
+PR's will be pushed on the _development_ branch if the actual package code is changed. When the time comes this branch
 will be merged to the _master_ branch and a new release will be issued.
+
+PR's that deal with documentation, and other addiacent files (README for example) can be pushed to the _master_ branch.
 
 When submitting PR's please take into account:
 * the project's gloals
