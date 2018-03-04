@@ -111,12 +111,12 @@ https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md
 
 * github: https://github.com/danielhrisca/asammdf/
 * PyPI: https://pypi.org/project/asammdf/
-* anaconda cloud: https://anaconda.org/daniel.hrisca/asammdf
+* conda-forge: https://anaconda.org/conda-forge/asammdf
     
 ```
    pip install asammdf
    # or for anaconda
-   conda install -c daniel.hrisca asammdf
+   conda install -c conda-forge asammdf 
 ```
     
 # Dependencies
