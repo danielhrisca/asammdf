@@ -16,10 +16,16 @@ _
 </p>
 
 # Status
-! | Travis CI  | Coverage  |  Codacy  | ReadTheDocs |  PyPI
---|--|--|--|--|--
-master | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=master)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=master)](http://asammdf.readthedocs.io/en/master/?badge=stable) |  [![PyPI version](https://badge.fury.io/py/asammdf.svg)](https://badge.fury.io/py/asammdf) 
+
+! | Travis CI  | Coverage  |  Codacy  | ReadTheDocs 
+--|--|--|--|--
+master | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=master)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=master)](http://asammdf.readthedocs.io/en/master/?badge=stable) |  
 development| [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=development)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=development)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=development)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) | [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=development)](http://asammdf.readthedocs.io/en/development/?badge=stable) |   
+
+PyPI| conda-forge  |  anaconda-cloud 
+--|--|--
+[![PyPI version](https://badge.fury.io/py/asammdf.svg)](https://badge.fury.io/py/asammdf)  | [![conda-forge version](https://anaconda.org/conda-forge/asammdf/badges/version.svg)](https://anaconda.org/conda-forge/asammdf) | [![anaconda-cloud version](https://anaconda.org/daniel.hrisca/asammdf/badges/version.svg)](https://anaconda.org/daniel.hrisca/asammdf)
+
 
 # Project goals
 The main goals for this library are:
@@ -105,19 +111,27 @@ http://asammdf.readthedocs.io/en/master/examples.html
 http://asammdf.readthedocs.io/en/master
 
 # Contributing
-https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md
+Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md)
+
+## Contributors
+Thanks to all who contributed with commits to *asammdf*:
+* Julien Grave [JulienGrv](https://github.com/JulienGrv)
+* Jed Frey [jed-frey](https://github.com/jed-frey)
+* Mihai [yahym](https://github.com/yahym)
+* Isuru Fernando [isuruf](https://github.com/isuruf)
+* Felix Kohlgrüber [fkohlgrueber](https://github.com/fkohlgrueber)
 
 # Installation
 *asammdf* is available on 
 
 * github: https://github.com/danielhrisca/asammdf/
 * PyPI: https://pypi.org/project/asammdf/
-* anaconda cloud: https://anaconda.org/daniel.hrisca/asammdf
+* conda-forge: https://anaconda.org/conda-forge/asammdf
     
 ```
    pip install asammdf
    # or for anaconda
-   conda install -c daniel.hrisca asammdf
+   conda install -c conda-forge asammdf 
 ```
     
 # Dependencies
