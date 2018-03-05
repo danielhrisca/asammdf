@@ -113,7 +113,7 @@ http://asammdf.readthedocs.io/en/master
 Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md)
 
 ## Contributors
-Thanks to all who have contributed with commits to *asammdf*:
+Thanks to all who contributed with commits to *asammdf*:
 * Julien Grave [JulienGrv](https://github.com/JulienGrv)
 * Jed Frey [jed-frey](https://github.com/jed-frey)
 * Mihai [yahym](https://github.com/yahym)

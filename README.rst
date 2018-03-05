@@ -119,7 +119,7 @@ Please have a look over the [contributing guidelines](https://github.com/danielh
 
 Contributors
 ------------
-Thanks to all who have contributed with commits to *asammdf*:
+Thanks to all who contributed with commits to *asammdf*:
 * Julien Grave `JulienGrv <https://github.com/JulienGrv>`_.
 * Jed Frey `jed-frey <https://github.com/jed-frey>`_.
 * Mihai `yahym <https://github.com/yahym>`_.
