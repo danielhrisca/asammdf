@@ -72,6 +72,7 @@ The main goals for this library are:
     
 * for version 4
 
+    * handling of channel hierarchy
     * handling of bus logging measurements
     * handling of unfinished measurements (mdf 4)
     * xml schema for TXBLOCK and MDBLOCK
