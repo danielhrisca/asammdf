@@ -110,7 +110,15 @@ http://asammdf.readthedocs.io/en/master/examples.html
 http://asammdf.readthedocs.io/en/master
 
 # Contributing
-https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md
+Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md)
+
+## Contributors
+Thanks to all who have contributed with commits to *asammdf*:
+* Julien Grave [JulienGrv](https://github.com/JulienGrv)
+* Jed Frey [jed-frey](https://github.com/jed-frey)
+* Mihai [yahym](https://github.com/yahym)
+* Isuru Fernando [isuruf](https://github.com/isuruf)
+* Felix Kohlgrüber [fkohlgrueber](https://github.com/fkohlgrueber)
 
 # Installation
 *asammdf* is available on 
