@@ -4,6 +4,25 @@
 
 *asammdf* works on Python 2.7, and Python >= 3.4 (Travis CI tests done with Python 2.7 and Python >= 3.5)
 
+
+Status
+======
+
++-------------+----------------+-------------------+-----------------+---------------+
+|             | Travis CI      | Coverage          | Codacy          | ReadTheDocs   |
++=============+================+===================+=================+===============+
+| master      | |Build Master| | |Coverage Master| | |Codacy Master| | |Docs Master| |
++-------------+----------------+-------------------+-----------------+---------------+
+| development | |Build Status| | |Coverage Badge|  | |Codacy Badge|  | |Docs Status| |
++-------------+----------------+-------------------+-----------------+---------------+
+
++----------------+-----------------------+--------------------------+
+| PyPI           | conda-forge           | anaconda-cloud           |
++================+=======================+==========================+
+| |PyPI version| | |conda-forge version| | |anaconda-cloud version| |
++----------------+-----------------------+--------------------------+
+
+
 Project goals
 =============
 The main goals for this library are:
@@ -100,13 +119,13 @@ Installation
 
 * github: https://github.com/danielhrisca/asammdf/
 * PyPI: https://pypi.org/project/asammdf/
-* anaconda cloud: https://anaconda.org/daniel.hrisca/asammdf
+* conda-forge: https://anaconda.org/conda-forge/asammdf
     
 .. code-block: python
 
    pip install asammdf
    # or for anaconda
-   conda install -c daniel.hrisca asammdf
+   conda install -c conda-forge asammdf
 
     
 Dependencies
@@ -242,3 +261,28 @@ mdfreader 2.7.5 mdfv4                                  21423     1309
 mdfreader 2.7.5 noDataLoading mdfv4                    20142     1352
 mdfreader 2.7.5 compress mdfv4                         20600     1309
 ================================================== ========= ========
+
+
+.. |Build Master| image:: https://travis-ci.org/danielhrisca/asammdf.svg?branch=master
+   :target: https://travis-ci.org/danielhrisca/asammdf
+.. |Coverage Master| image:: https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=master
+   :target: https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage
+.. |Codacy Master| image:: https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=master
+   :target: https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger
+.. |Docs Master| image:: http://readthedocs.org/projects/asammdf/badge/?version=master
+   :target: http://asammdf.readthedocs.io/en/master/?badge=stable
+.. |Build Status| image:: https://travis-ci.org/danielhrisca/asammdf.svg?branch=development
+   :target: https://travis-ci.org/danielhrisca/asammdf
+.. |Coverage Badge| image:: https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=development
+   :target: https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage
+.. |Codacy Badge| image:: https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=development
+   :target: https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger
+.. |Docs Status| image:: http://readthedocs.org/projects/asammdf/badge/?version=development
+   :target: http://asammdf.readthedocs.io/en/development/?badge=stable
+.. |PyPI version| image:: https://badge.fury.io/py/asammdf.svg
+   :target: https://badge.fury.io/py/asammdf
+.. |conda-forge version| image:: https://anaconda.org/conda-forge/asammdf/badges/version.svg
+   :target: https://anaconda.org/conda-forge/asammdf
+.. |anaconda-cloud version| image:: https://anaconda.org/daniel.hrisca/asammdf/badges/version.svg
+   :target: https://anaconda.org/daniel.hrisca/asammdf
+
