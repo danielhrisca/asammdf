@@ -80,8 +80,12 @@ class Signal(object):
             if isinstance(timestamps, (list, tuple)):
                 timestamps = np.array(timestamps, dtype=np.float64)
             if not samples.shape[0] == timestamps.shape[0]:
-                message = 'samples and timestamps length mismatch ({} vs {})'
-                message = message.format(samples.shape[0], timestamps.shape[0])
+                message = '{} samples and timestamps length mismatch ({} vs {})'
+                message = message.format(
+                    name,
+                    samples.shape[0],
+                    timestamps.shape[0],
+                )
                 raise MdfException(message)
             self.samples = samples
             self.timestamps = timestamps
