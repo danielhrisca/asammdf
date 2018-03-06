@@ -124,6 +124,7 @@ Thanks to all who contributed with commits to *asammdf*:
 * Julien Grave `JulienGrv <https://github.com/JulienGrv>`_.
 * Jed Frey `jed-frey <https://github.com/jed-frey>`_.
 * Mihai `yahym <https://github.com/yahym>`_.
+* Jack Weinstein `jacklev <https://github.com/jacklev>`_.
 * Isuru Fernando `isuruf <https://github.com/isuruf>`_.
 * Felix Kohlgrüber `fkohlgrueber <https://github.com/fkohlgrueber>`_.
 
