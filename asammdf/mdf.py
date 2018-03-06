@@ -719,6 +719,13 @@ class MDF(object):
             for i, grp in enumerate(self.groups):
                 master_index = self.masters_db.get(i, -1)
                 data = self._load_group_data(grp)
+
+                if PYVERSION == 2:
+                    data = b''.join(str(d[0]) for d in data)
+                else:
+                    data = b''.join(d[0] for d in data)
+                data = (data, 0)
+
                 for j, _ in enumerate(grp['channels']):
                     sig = self.get(
                         group=i,
