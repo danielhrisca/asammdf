@@ -491,3 +491,55 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
         (2**bit_length - truncated_integers) * -1,  # when negative, do two's complement
         truncated_integers,  # when positive, return the truncated int
     )
+
+
+def debug_channel(mdf, group, channel, conversion, dependency):
+    """ use this to print debug infromation in case of errors
+
+    Parameters
+    ----------
+    mdf : MDF
+        source MDF object
+    group : dict
+        group
+    channel : Channel
+        channel object
+    conversion : Channelonversion
+        channel conversion object
+
+    """
+    print('MDF', '='*76)
+    print('name:', mdf.name)
+    print('version:', mdf.version)
+    print('memory:', mdf.memory)
+    print('read fragment size:', mdf._read_fragment_size)
+    print('write fragment size:', mdf._write_fragment_size)
+    print()
+
+    parents, dtypes = mdf._prepare_record(group)
+    print('GROUP', '='*74)
+    print('sorted:', group['sorted'])
+    print('data location:', group['data_location'])
+    print('record_size:', group['record_size'])
+    print('parets:', parents)
+    print('dtypes:', dtypes)
+    print()
+
+    cg = group['channel_group']
+    print('CHANNEL GROUP', '='*66)
+    print('record id:', cg['record_id'])
+    print('record size:', cg['samples_byte_nr'])
+    print('invalidation bytes:', cg.get('invalidation_bytes_nr', 0))
+    print('cycles:', cg['cycles_nr'])
+    print()
+
+    print('CHANNEL', '='*72)
+    print('channel:', channel)
+    print('name:', channel.name)
+    print('conversion:', conversion)
+    print('conversion ref blocks:', conversion.referenced_blocks if conversion else None)
+    print()
+    
+    print('CHANNEL ARRAY', '='*66)
+    print('array:', bool(dependency))
+    print()

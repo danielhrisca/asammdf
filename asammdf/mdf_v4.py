@@ -60,6 +60,7 @@ from .utils import (
     get_min_max,
     get_unique_name,
     get_text_v4,
+    debug_channel,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -4258,7 +4259,6 @@ class MDF4(object):
                 conversion_type = conversion['conversion_type']
 
             if conversion_type == v4c.CONVERSION_TYPE_NON:
-                signal_conversion = None
 
                 data_type = channel['data_type']
                 channel_type = channel['channel_type']
@@ -4411,6 +4411,7 @@ class MDF4(object):
                         channel['name_addr'],
                         stream,
                     )
+                channel.name = name
 
                 address = (
                     conversion and conversion['unit_addr']
@@ -4457,16 +4458,26 @@ class MDF4(object):
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
-            res = Signal(
-                samples=vals,
-                timestamps=timestamps,
-                unit=unit,
-                name=name,
-                comment=comment,
-                conversion=conversion,
-                raw=raw,
-                master_metadata=master_metadata,
-            )
+            try:
+                res = Signal(
+                    samples=vals,
+                    timestamps=timestamps,
+                    unit=unit,
+                    name=name,
+                    comment=comment,
+                    conversion=conversion,
+                    raw=raw,
+                    master_metadata=master_metadata,
+                )
+            except:
+                print('SIGNAL', '='*73)
+                print('samples:', len(vals), vals)
+                print('timestamps:', len(timestamps), timestamps)
+                print('master meta:', master_metadata)
+                print()
+                
+                debug_channel(self, grp, channel, conversion, dependency_list)
+                raise
 
         return res
 
