@@ -421,15 +421,15 @@ class MDF4(object):
 
                 grp['record_size'] = cg_size
 
-                if channel_group['flags'] == 0:
+                if channel_group['flags'] & v4c.FLAG_CG_VLSD:
+                    # VLDS flags
+                    record_id = channel_group['record_id']
+                    cg_size[record_id] = 0
+                else:
                     samples_size = channel_group['samples_byte_nr']
                     inval_size = channel_group['invalidation_bytes_nr']
                     record_id = channel_group['record_id']
                     cg_size[record_id] = samples_size + inval_size
-                else:
-                    # VLDS flags
-                    record_id = channel_group['record_id']
-                    cg_size[record_id] = 0
 
                 if record_id_nr:
                     grp['sorted'] = False
@@ -3743,7 +3743,7 @@ class MDF4(object):
                 except:
                     print('SIGNALS', '='*72)
                     for name_, arr in zip(names, arrays):
-                        print(name, len(arr), arr.dtype)
+                        print(name_, len(arr), arr.dtype)
                     debug_channel(self, grp, channel, {}, dependency_list)
                     raise
 
