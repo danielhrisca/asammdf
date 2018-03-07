@@ -4460,26 +4460,16 @@ class MDF4(object):
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
-            try:
-                res = Signal(
-                    samples=vals,
-                    timestamps=timestamps,
-                    unit=unit,
-                    name=name,
-                    comment=comment,
-                    conversion=conversion,
-                    raw=raw,
-                    master_metadata=master_metadata,
-                )
-            except:
-                print('SIGNAL', '='*73)
-                print('samples:', len(vals), vals)
-                print('timestamps:', len(timestamps), timestamps)
-                print('master meta:', master_metadata)
-                print()
-
-                debug_channel(self, grp, channel, conversion, dependency_list)
-                raise
+            res = Signal(
+                samples=vals,
+                timestamps=timestamps,
+                unit=unit,
+                name=name,
+                comment=comment,
+                conversion=conversion,
+                raw=raw,
+                master_metadata=master_metadata,
+            )
 
         return res
 
