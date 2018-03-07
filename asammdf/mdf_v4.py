@@ -3738,7 +3738,14 @@ class MDF4(object):
                     types = fix_dtype_fields(types)
                 types = dtype(types)
 
-                vals = fromarrays(arrays, dtype=types)
+                try:
+                    vals = fromarrays(arrays, dtype=types)
+                except:
+                    print('SIGNALS', '='*72)
+                    for name_, arr in zip(names, arrays):
+                        print(name, len(arr), arr.dtype)
+                    debug_channel(self, grp, channel, {}, dependency_list)
+                    raise
 
                 if not samples_only or raster:
                     if count > 1:
