@@ -1534,6 +1534,7 @@ class MDF4(object):
             selected channel's group and channel index
 
         """
+        suppress = True
         if name is None:
             if group is None or index is None:
                 message = (
@@ -1553,7 +1554,7 @@ class MDF4(object):
             else:
                 if group is None:
                     gp_nr, ch_nr = self.channels_db[name][0]
-                    if len(self.channels_db[name]) > 1:
+                    if len(self.channels_db[name]) > 1 and not suppress:
                         message = (
                             'Multiple occurances for channel "{}". '
                             'Using first occurance from data group {}. '
@@ -3712,6 +3713,7 @@ class MDF4(object):
                     for i, name_ in enumerate(names):
                         vals = self.get(
                             name_,
+                            group=gp_nr,
                             samples_only=True,
                             raw=raw,
                             data=fragment,
@@ -3731,7 +3733,7 @@ class MDF4(object):
                 else:
                     arrays = [lst[0] for lst in channel_values]
                 types = [
-                    (name_, arr.dtype)
+                    (name_, arr.dtype, arr.shape[1:])
                     for name_, arr in zip(names, arrays)
                 ]
                 if PYVERSION == 2:
@@ -3742,8 +3744,9 @@ class MDF4(object):
                     vals = fromarrays(arrays, dtype=types)
                 except:
                     print('SIGNALS', '='*72)
+                    print(types)
                     for name_, arr in zip(names, arrays):
-                        print(name_, len(arr), arr.dtype)
+                        print(name_, len(arr), arr.dtype, arr.shape)
                     debug_channel(self, grp, channel, {}, dependency_list)
                     raise
 
