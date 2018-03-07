@@ -1310,6 +1310,8 @@ class MDF4(object):
                                 dtype_pair = name, get_fmt_v4(data_type, size, ch_type)
                                 types.append(dtype_pair)
                                 parents[original_index] = name, bit_offset
+                            else:
+                                next_byte_aligned_position = parent_start_offset
 
                             current_parent = name
                         else:
@@ -4475,7 +4477,7 @@ class MDF4(object):
                 print('timestamps:', len(timestamps), timestamps)
                 print('master meta:', master_metadata)
                 print()
-                
+
                 debug_channel(self, grp, channel, conversion, dependency_list)
                 raise
 

@@ -417,6 +417,8 @@ class MDF3(object):
                         dtype_pair = (name, get_fmt_v3(data_type, size))
                         types.append(dtype_pair)
                         parents[original_index] = name, bit_offset
+                    else:
+                        next_byte_aligned_position = parent_start_offset
 
                 elif data_type == v23c.DATA_TYPE_BYTEARRAY:
                     next_byte_aligned_position = parent_start_offset + size
@@ -425,6 +427,8 @@ class MDF3(object):
                         dtype_pair = (name, get_fmt_v3(data_type, size))
                         types.append(dtype_pair)
                         parents[original_index] = name, bit_offset
+                    else:
+                        next_byte_aligned_position = parent_start_offset
 
                 else:
                     if size > 32:
@@ -444,6 +448,8 @@ class MDF3(object):
                         dtype_pair = (name, get_fmt_v3(data_type, size))
                         types.append(dtype_pair)
                         parents[original_index] = name, bit_offset
+                    else:
+                        next_byte_aligned_position = parent_start_offset
 
                 current_parent = name
             else:
