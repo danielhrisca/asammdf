@@ -710,7 +710,8 @@ class MDF(object):
                 warn('scipy not found; export to mat is unavailable')
                 return
 
-            name = os.path.splitext(name)[0] + '.mat'
+            if not name.endswith('.mat'):
+                name = name + '.mat'
             mdict = {}
 
             master = 'DataGroup_{}_{}_master'
