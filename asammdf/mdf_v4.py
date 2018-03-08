@@ -886,7 +886,6 @@ class MDF4(object):
 
                         for signal in can_msg.signals:
                             signal_name = signal.name
-                            offset_ = signal.start
 
                             # 0 - name
                             # 1 - message_name.name

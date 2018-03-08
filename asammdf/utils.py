@@ -354,6 +354,8 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
                     data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
         elif fmt.kind in 'SV':
             data_type = v3c.DATA_TYPE_STRING
+        elif fmt.kind == 'b':
+            data_type = v3c.DATA_TYPE_UNSIGNED
         else:
             message = 'Unknown type: dtype={}, shape={}'
             raise MdfException(message.format(fmt, shape))
@@ -405,6 +407,8 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
                 data_type = v4c.DATA_TYPE_REAL_MOTOROLA
         elif fmt.kind in 'SV':
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
+        elif fmt.kind == 'b':
+            data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
         else:
             message = 'Unknown type: dtype={}, shape={}'
             raise MdfException(message.format(fmt, shape))
@@ -539,7 +543,7 @@ def debug_channel(mdf, group, channel, conversion, dependency):
     print('conversion:', conversion)
     print('conversion ref blocks:', conversion.referenced_blocks if conversion else None)
     print()
-    
+
     print('CHANNEL ARRAY', '='*66)
     print('array:', bool(dependency))
     print()
