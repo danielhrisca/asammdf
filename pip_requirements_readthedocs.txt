@@ -1,3 +1,4 @@
+cantools
 numpydoc
 numexpr
 numpy

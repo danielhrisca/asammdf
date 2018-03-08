@@ -39,6 +39,7 @@ The main goals for this library are:
 * create new mdf files from scratch
 * append new channels
 * read unsorted MDF v3 and v4 files
+* read CAN bus logging files
 * filter a subset of channels from original mdf file
 * cut measurement to specified time interval
 * convert to different mdf version
@@ -73,7 +74,7 @@ The main goals for this library are:
 * for version 4
 
     * handling of channel hierarchy
-    * handling of bus logging measurements
+    * full handling of bus logging measurements
     * handling of unfinished measurements (mdf 4)
     * xml schema for TXBLOCK and MDBLOCK
     * full support for remaining mdf 4 channel arrays types
@@ -143,6 +144,7 @@ asammdf uses the following libraries
 * matplotlib : for Signal plotting
 * wheel : for installation in virtual environments
 * pandas : for DataFrame export
+* cantools : to handle CAN bus logging measurements
 
 optional dependencies needed for exports
 

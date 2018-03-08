@@ -15,6 +15,7 @@ Features
 * create new mdf files from scratch
 * append new channels
 * read unsorted MDF v2, v3 and v4 files
+* read CAN bus logging files
 * filter a subset of channels from original mdf file
 * cut measurement to specified time interval
 * convert to different mdf version
@@ -51,7 +52,7 @@ Major features not implemented (yet)
 * for version 4
 
     * handling of channel hierarchy
-    * handling of bus logging measurements
+    * full handling of bus logging measurements
     * handling of unfinnished measurements (mdf 4)
     * full support for remaining mdf 4 channel arrays types
     * xml schema for TXBLOCK and MDBLOCK
@@ -70,6 +71,7 @@ asammdf uses the following libraries
 * matplotlib : for Signal plotting
 * wheel : for installation in virtual environments
 * pandas : for DataFrame export
+* cantools : to handle CAN bus logging measurements
 
 optional dependencies needed for exports
 
