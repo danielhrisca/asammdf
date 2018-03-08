@@ -44,6 +44,7 @@ uint32,
 
 from numpy.core.defchararray import encode, decode
 from numpy.core.records import fromarrays, fromstring
+import cantools
 
 from . import v4_constants as v4c
 from .signal import Signal
@@ -286,6 +287,7 @@ class MDF4(object):
         self._si_map = {}
         self._cc_map = {}
         self._cg_map = {}
+        self._dbc_cache = {}
 
         self._tempfile = TemporaryFile()
         self._file = None
@@ -863,6 +865,19 @@ class MDF4(object):
                         True,
                     )
                     grp['channel_dependencies'][index] = composition
+                    if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
+                        attachment_addr = channel['attachment_0_addr']
+                        if attachment_addr not in self._dbc_cache:
+                            self._dbc_cache[attachment_addr] = cantools.db.load_string(
+                                self.extract_attachment(0).decode('utf-8'),
+                                database_format='dbc'
+                            )
+
+                        message_id = grp['message_id']
+                        can_msg = self._dbc_cache[attachment_addr].get_message_by_frame_id(message_id)
+
+                        for signal in can_msg.signals:
+                            print(message_id, signal.name)
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are
                     # supported so far
