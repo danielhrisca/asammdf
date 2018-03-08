@@ -89,6 +89,7 @@ MASTER_CHANNELS = (
 )
 
 TX = re.compile('<TX>(?P<text>(.|\n)+?)</TX>')
+CAN_INFO = re.compile('<e name="MessageID" ci="(?P<can_id>\d+)">(?P<message_id>\d+)</e>')
 
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
@@ -425,6 +426,24 @@ class MDF4(object):
                     # VLDS flags
                     record_id = channel_group['record_id']
                     cg_size[record_id] = 0
+                elif channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
+                    message_name = get_text_v4(
+                        address=channel_group['acq_name_addr'],
+                        stream=stream,
+                    )
+                    comment = get_text_v4(
+                        address=channel_group['comment_addr'],
+                        stream=stream,
+                    )
+                    match = CAN_INFO.search(comment)
+                    if match:
+                        can_id = int(match.group('can_id'))
+                        message_id = int(match.group('message_id'))
+                    else:
+                        warnings.warn('Invalid bus logging channel group metadata')
+                    grp['can_id'] = can_id
+                    grp['message_name'] = message_name
+                    grp['message_id'] = message_id
                 else:
                     samples_size = channel_group['samples_byte_nr']
                     inval_size = channel_group['invalidation_bytes_nr']
