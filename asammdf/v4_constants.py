@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """ MDF v4 constants """
 
+MAX_UINT64 = (1 << 64) - 1
+
 DATA_TYPE_UNSIGNED_INTEL = 0
 DATA_TYPE_UNSIGNED_MOTOROLA = 1
 DATA_TYPE_SIGNED_INTEL = 2

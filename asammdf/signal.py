@@ -42,6 +42,8 @@ class Signal(object):
         master name and sync type
     display_name : str
         display name used by mdf version 3
+    attachment : bytes, name
+        channel attachment and name from MDF version 4
 
     """
 
@@ -56,6 +58,7 @@ class Signal(object):
         'raw',
         'master_metadata',
         'display_name',
+        'attachment',
     ]
 
     def __init__(self,
@@ -67,7 +70,8 @@ class Signal(object):
                  comment='',
                  raw=False,
                  master_metadata=None,
-                 display_name=''):
+                 display_name='',
+                 attachment=()):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
@@ -96,6 +100,7 @@ class Signal(object):
             self.raw = raw
             self.master_metadata = master_metadata
             self.display_name = display_name
+            self.attachment = attachment
 
             if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                 if conversion is None:
@@ -430,6 +435,7 @@ class Signal(object):
                         self.raw,
                         self.master_metadata,
                         self.display_name,
+                        self.attachment,
                     )
                 else:
                     result = Signal(
@@ -442,6 +448,7 @@ class Signal(object):
                         self.raw,
                         self.master_metadata,
                         self.display_name,
+                        self.attachment,
                     )
 
             elif stop is None:
@@ -457,6 +464,7 @@ class Signal(object):
                     self.raw,
                     self.master_metadata,
                     self.display_name,
+                    self.attachment,
                 )
 
             else:
@@ -480,6 +488,7 @@ class Signal(object):
                             self.raw,
                             self.master_metadata,
                             self.display_name,
+                            self.attachment,
                         )
                     else:
                         # signal is empty or start and stop are outside the
@@ -494,6 +503,7 @@ class Signal(object):
                             self.raw,
                             self.master_metadata,
                             self.display_name,
+                            self.attachment,
                         )
                 else:
                     result = Signal(
@@ -506,6 +516,7 @@ class Signal(object):
                         self.raw,
                         self.master_metadata,
                         self.display_name,
+                        self.attachment,
                     )
         return result
 
@@ -545,6 +556,7 @@ class Signal(object):
                 self.raw,
                 self.master_metadata,
                 self.display_name,
+                self.attachment,
             )
         else:
             result = self
@@ -576,6 +588,7 @@ class Signal(object):
             idx -= 1
             idx = np.clip(idx, 0, idx[-1])
             s = self.samples[idx]
+
         return Signal(
             s,
             new_timestamps,
@@ -586,6 +599,7 @@ class Signal(object):
             raw=self.raw,
             master_metadata=self.master_metadata,
             display_name=self.display_name,
+            attachment=self.attachment,
         )
 
     def __apply_func(self, other, func_name):
@@ -616,6 +630,7 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
+            attachment=self.attachment,
         )
 
     def __pos__(self):
@@ -631,6 +646,7 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
+            self.attachment,
         )
 
     def __round__(self, n):
@@ -643,6 +659,7 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
+            self.attachment,
         )
 
     def __sub__(self, other):
@@ -708,6 +725,7 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
+            self.attachment,
         )
 
     def __lshift__(self, other):
@@ -759,6 +777,7 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
+            self.attachment,
         )
 
     def __getitem__(self, val):
@@ -790,6 +809,7 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
+            self.attachment,
         )
 
     def physical(self):
@@ -817,6 +837,7 @@ class Signal(object):
             comment=self.comment,
             master_metadata=self.master_metadata,
             display_name=self.display_name,
+            attachment=self.attachment,
         )
 
 

@@ -25,7 +25,8 @@ from .utils import (
 )
 from .v2_v3_blocks import Channel as ChannelV3
 from .v4_blocks import Channel as ChannelV4
-from .v4_blocks import ChannelArrayBlock
+from .v4_blocks import ChannelArrayBlock, TextBlock, SourceInformation
+from . import v4_constants as v4c
 
 PYVERSION = sys.version_info[0]
 
@@ -265,6 +266,64 @@ class MDF(object):
                             source_info.format(self.version, to),
                             common_timebase=True,
                         )
+                        if self.version >= '4.00' and version >= '4.00' and (group['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT):
+                            original_texts = group['texts']['channel_group'][0]
+                            cg_texts = {}
+                            if memory == 'minimum':
+                                stream = out._tempfile
+                                tx_block = TextBlock(
+                                    text=original_texts['acq_name_addr']['text'],
+                                )
+                                stream.seek(0, 2)
+                                address = stream.tell()
+                                stream.write(bytes(tx_block))
+                                cg_texts['acq_name_addr'] = address
+
+                                tx_block = TextBlock(
+                                    text=original_texts['comment_addr']['text'],
+                                    meta=True,
+                                )
+                                address = stream.tell()
+                                stream.write(bytes(tx_block))
+                                cg_texts['comment_addr'] = address
+                            else:
+                                cg_texts['acq_name_addr'] = TextBlock(
+                                    text=original_texts['acq_name_addr']['text'],
+                                )
+                                cg_texts['comment_addr'] = TextBlock(
+                                    text=original_texts['comment_addr']['text'],
+                                    meta=True,
+                                )
+
+                            new_group = out.groups[-1]
+                            new_group['texts']['channel_group'][0] = cg_texts
+
+                            new_group['channel_group']['flags'] = group['channel_group']['flags']
+                            new_group['channel_group']['path_separator'] = ord('.')
+
+                            for i, (channel_dep, channel) in enumerate(
+                                    zip(new_group['channel_dependencies'], new_group['channels'])):
+                                if channel_dep:
+                                    if memory == 'minimum':
+                                        channel = ChannelV4(
+                                            address=channel,
+                                            stream=stream,
+                                        )
+
+                                    if channel['attachment_nr']:
+
+                                        source = SourceInformation(
+                                            source_type=v4c.SOURCE_BUS,
+                                            bus_type=v4c.BUS_TYPE_CAN,
+                                        )
+
+                                        if memory == 'minimum':
+                                            stream.seek(0, 2)
+                                            addr = stream.tell()
+                                            stream.write(bytes(source))
+                                            source = addr
+
+                                        new_group['channel_sources'][i] = source
                     else:
                         break
 

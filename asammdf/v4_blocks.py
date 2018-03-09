@@ -87,6 +87,9 @@ class AttachmentBlock(dict):
             size = len(data)
             compression = kargs.get('compression', False)
 
+            md5_worker = md5()
+            md5_worker.update(data)
+
             if compression:
                 data = compress(data)
                 original_size = size
@@ -102,8 +105,6 @@ class AttachmentBlock(dict):
                 self['flags'] = v4c.FLAG_AT_EMBEDDED | v4c.FLAG_AT_MD5_VALID | v4c.FLAG_AT_COMPRESSED_EMBEDDED
                 self['creator_index'] = 0
                 self['reserved1'] = 0
-                md5_worker = md5()
-                md5_worker.update(data)
                 self['md5_sum'] = md5_worker.digest()
                 self['original_size'] = original_size
                 self['embedded_size'] = size
@@ -120,8 +121,6 @@ class AttachmentBlock(dict):
                 self['flags'] = v4c.FLAG_AT_EMBEDDED | v4c.FLAG_AT_MD5_VALID
                 self['creator_index'] = 0
                 self['reserved1'] = 0
-                md5_worker = md5()
-                md5_worker.update(data)
                 self['md5_sum'] = md5_worker.digest()
                 self['original_size'] = size
                 self['embedded_size'] = size
@@ -248,6 +247,13 @@ class Channel(dict):
             self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['unit_addr'] = kargs.get('unit_addr', 0)
             self['comment_addr'] = 0
+            try:
+                self['attachment_0_addr'] = kargs['attachment_0_addr']
+                self['block_len'] += 8
+                self['links_nr'] += 1
+                attachments = 1
+            except KeyError:
+                attachments = 0
             self['channel_type'] = kargs['channel_type']
             self['sync_type'] = kargs.get('sync_type', 0)
             self['data_type'] = kargs['data_type']
@@ -258,7 +264,7 @@ class Channel(dict):
             self['pos_invalidation_bit'] = 0
             self['precision'] = 3
             self['reserved1'] = 0
-            self['attachment_nr'] = 0
+            self['attachment_nr'] = attachments
             self['min_raw_value'] = kargs.get('min_raw_value', 0)
             self['max_raw_value'] = kargs.get('max_raw_value', 0)
             self['lower_limit'] = kargs.get('lower_limit', 0)

@@ -278,6 +278,7 @@ class MDF4(object):
         self.channels_db = {}
         self.masters_db = {}
         self.attachments = OrderedDict()
+        self._attachments_cache = {}
         self.file_comment = None
 
         self._ch_map = {}
@@ -409,6 +410,7 @@ class MDF4(object):
                 grp['channels'] = []
                 grp['channel_conversions'] = []
                 grp['channel_sources'] = []
+                grp['channel_group_source'] = None
                 grp['signal_data'] = []
                 grp['data_block'] = None
                 grp['channel_dependencies'] = []
@@ -421,6 +423,19 @@ class MDF4(object):
                 block = ChannelGroup(address=cg_addr, stream=stream)
                 self._cg_map[cg_addr] = dg_cntr
                 channel_group = grp['channel_group'] = block
+
+                cg_source_addr = channel_group['acq_source_addr']
+
+                if memory == 'minimum':
+                    grp['channel_group_source'] = cg_source_addr
+                else:
+                    if cg_source_addr:
+                        grp['channel_group_source'] = SourceInformation(
+                            address=cg_source_addr,
+                            stream=stream,
+                        )
+                    else:
+                        grp['channel_group_source'] = None
 
                 grp['record_size'] = cg_size
 
@@ -872,8 +887,9 @@ class MDF4(object):
                     if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
                         attachment_addr = channel['attachment_0_addr']
                         if attachment_addr not in self._dbc_cache:
+                            print("\n"*10, self.extract_attachment(address=attachment_addr)[0].decode('utf-8'))
                             self._dbc_cache[attachment_addr] = cantools.db.load_string(
-                                self.extract_attachment(address=attachment_addr).decode('utf-8'),
+                                self.extract_attachment(address=attachment_addr)[0].decode('utf-8'),
                                 database_format='dbc'
                             )
                         grp['dbc_addr'] = attachment_addr
@@ -2573,6 +2589,16 @@ class MDF4(object):
                     unit_addr = 0
                     comment_addr = 0
 
+                if signal.attachment:
+                    at_data, at_name = signal.attachment
+                    attachment_addr = self.attach(
+                        at_data,
+                        at_name,
+                        mime='application/x-dbc',
+                    )
+                else:
+                    attachment_addr = 0
+
                 # add channel block
                 kargs = {
                     'channel_type': v4c.CHANNEL_TYPE_VALUE,
@@ -2589,6 +2615,8 @@ class MDF4(object):
                     'unit_addr': unit_addr,
                     'comment_addr': comment_addr,
                 }
+                if attachment_addr:
+                    kargs['attachment_0_addr'] = attachment_addr
                 ch = Channel(**kargs)
                 if memory != 'minimum':
                     ch.name = name
@@ -2696,11 +2724,14 @@ class MDF4(object):
                         'max_raw_value': max_val if min_val <= max_val else 0,
                         'lower_limit': min_val if min_val <= max_val else 0,
                         'upper_limit': max_val if min_val <= max_val else 0,
-                        'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
                         'name_addr': name_addr,
                         'unit_addr': unit_addr,
                         'comment_addr': comment_addr,
                     }
+                    if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
+                        kargs['flags'] = 0
+                    else:
+                        kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
                     ch = Channel(**kargs)
                     if memory != 'minimum':
                         ch.name = name
@@ -3340,35 +3371,46 @@ class MDF4(object):
         mime : str
             mime type string
 
+        Returns
+        -------
+        index : int
+            new attachment index
+
         """
-        creator_index = len(self.file_history)
-        fh = FileHistory()
-        text = """<FHcomment>
+        if data in self._attachments_cache:
+            return self._attachments_cache[data]
+        else:
+            creator_index = len(self.file_history)
+            fh = FileHistory()
+            text = """<FHcomment>
 <TX>Added new embedded attachment from {}</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor>asammdf</tool_vendor>
 <tool_version>{}</tool_version>
 </FHcomment>"""
-        text = text.format(
-            file_name if file_name else 'bin.bin',
-            __version__,
-        )
-        fh_text = TextBlock(text=text, meta=True)
+            text = text.format(
+                file_name if file_name else 'bin.bin',
+                __version__,
+            )
+            fh_text = TextBlock(text=text, meta=True)
 
-        self.file_history.append((fh, fh_text))
+            self.file_history.append((fh, fh_text))
 
-        texts = {}
-        texts['mime_addr'] = TextBlock(text=mime, meta=False)
-        if comment:
-            texts['comment_addr'] = TextBlock(text=comment, meta=False)
-        text = file_name if file_name else 'bin.bin'
-        texts['file_name_addr'] = TextBlock(text=text)
-        at_block = AttachmentBlock(data=data, compression=compression)
-        at_block['creator_index'] = creator_index
-        index = -1
-        while index in self.attachments:
-            index -= 1
-        self.attachments[index] = at_block, texts
+            texts = {}
+            texts['mime_addr'] = TextBlock(text=mime, meta=False)
+            if comment:
+                texts['comment_addr'] = TextBlock(text=comment, meta=False)
+            text = file_name if file_name else 'bin.bin'
+            texts['file_name_addr'] = TextBlock(text=text)
+            at_block = AttachmentBlock(data=data, compression=compression)
+            at_block['creator_index'] = creator_index
+            index = v4c.MAX_UINT64
+            while index in self.attachments:
+                index -= 1
+            self.attachments[index] = at_block, texts
+
+            self._attachments_cache[data] = index
+            return index
 
     def close(self):
         """ if the MDF was created with memory=False and new
@@ -3398,7 +3440,7 @@ class MDF4(object):
 
         """
         if address is None and index is None:
-            return b''
+            return b'', ''
 
         if address is not None:
             attachment, texts = self.attachments[address]
@@ -3407,7 +3449,7 @@ class MDF4(object):
                 if i == index:
                     break
             else:
-                return b''
+                return b'', ''
 
         try:
             current_path = os.getcwd()
@@ -3432,7 +3474,7 @@ class MDF4(object):
                 with open(file_path, 'wb') as f:
                     f.write(data)
 
-                return data
+                return data, file_path
             else:
                 # for external attachments read the file and return the content
                 if flags & v4c.FLAG_AT_MD5_VALID:
@@ -3451,7 +3493,7 @@ class MDF4(object):
                                 .startswith('text')):
                             with open(file_path, 'r') as f:
                                 data = f.read()
-                        return data
+                        return data, file_path
                     else:
                         message = (
                             'ATBLOCK md5sum="{}" '
@@ -3478,12 +3520,12 @@ class MDF4(object):
                         mode = 'rb'
                     with open(file_path, mode) as f:
                         data = f.read()
-                    return data
+                    return data, file_path
         except Exception as err:
             os.chdir(current_path)
             message = 'Exception during attachment extraction: ' + repr(err)
             warnings.warn(message)
-            return b''
+            return b'', ''
 
     def get_channel_unit(self, name=None, group=None, index=None):
         """Gets channel unit.
@@ -4734,6 +4776,11 @@ class MDF4(object):
                     if match:
                         comment = match.group('text')
 
+            if 'attachment_0_addr' in channel:
+                attachment = self.extract_attachment(address=channel['attachment_0_addr'])
+            else:
+                attachment = ()
+
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
             res = Signal(
@@ -4745,6 +4792,7 @@ class MDF4(object):
                 conversion=conversion,
                 raw=raw,
                 master_metadata=master_metadata,
+                attachment=attachment,
             )
 
         return res
