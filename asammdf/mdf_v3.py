@@ -844,6 +844,7 @@ class MDF3(object):
                             else:
                                 block = ChannelExtension(
                                     raw_bytes=raw_bytes,
+                                    stream=stream,
                                 )
                                 grp['channel_extensions'].append(block)
                                 ce_map[raw_bytes] = block
@@ -3076,6 +3077,18 @@ class MDF3(object):
                 comment = '{}\n{}'.format(comment, description)
             else:
                 comment = description
+                
+            if memory == 'minimum':
+                addr = grp['channel_extensions'][ch_nr]
+                if addr:
+                    source = ChannelExtension(
+                        address=addr,
+                        stream=stream,
+                    )
+                else:
+                    source = None
+            else:
+                source = grp['channel_extensions'][ch_nr]
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
@@ -3100,6 +3113,7 @@ class MDF3(object):
                 raw=raw,
                 master_metadata=master_metadata,
                 display_name=display_name,
+                source=source,
             )
 
         return res

@@ -1159,72 +1159,72 @@ class ChannelExtension(dict):
         block address inside mdf file
 
     '''
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'name', 'path', 'comment']
 
     def __init__(self, **kargs):
         super(ChannelExtension, self).__init__()
+        
+        self.name = self.path = self.comment = ''
 
-        if 'raw_bytes' in kargs:
-
-            (self['id'],
-             self['block_len'],
-             self['type']) = unpack_from(
-                v23c.FMT_SOURCE_COMMON,
-                kargs['raw_bytes'],
-            )
-            if self['type'] == v23c.SOURCE_ECU:
-                (self['module_nr'],
-                 self['module_address'],
-                 self['description'],
-                 self['ECU_identification'],
-                 self['reserved0']) = unpack_from(
-                    v23c.FMT_SOURCE_EXTRA_ECU,
-                    kargs['raw_bytes'],
-                    6,
-                )
-            elif self['type'] == v23c.SOURCE_VECTOR:
-                (self['CAN_id'],
-                 self['CAN_ch_index'],
-                 self['message_name'],
-                 self['sender_name'],
-                 self['reserved0']) = unpack_from(
-                    v23c.FMT_SOURCE_EXTRA_VECTOR,
-                    kargs['raw_bytes'],
-                    6,
-                )
-
-            if self['id'] != b'CE':
-                message = 'Expected "CE" block but found "{}"'
-                raise MdfException(message.format(self['id']))
-
-        elif 'stream' in kargs:
+        if 'stream' in kargs:
             stream = kargs['stream']
-            self.address = address = kargs['address']
-            stream.seek(address)
-            (self['id'],
-             self['block_len'],
-             self['type']) = unpack(v23c.FMT_SOURCE_COMMON, stream.read(6))
-            block = stream.read(self['block_len'] - 6)
+            try:
 
-            if self['type'] == v23c.SOURCE_ECU:
-                (self['module_nr'],
-                 self['module_address'],
-                 self['description'],
-                 self['ECU_identification'],
-                 self['reserved0']) = unpack(v23c.FMT_SOURCE_EXTRA_ECU, block)
-            elif self['type'] == v23c.SOURCE_VECTOR:
-                (self['CAN_id'],
-                 self['CAN_ch_index'],
-                 self['message_name'],
-                 self['sender_name'],
-                 self['reserved0']) = unpack(
-                    v23c.FMT_SOURCE_EXTRA_VECTOR,
-                    block,
+                (self['id'],
+                 self['block_len'],
+                 self['type']) = unpack_from(
+                    v23c.FMT_SOURCE_COMMON,
+                    kargs['raw_bytes'],
                 )
+                if self['type'] == v23c.SOURCE_ECU:
+                    (self['module_nr'],
+                     self['module_address'],
+                     self['description'],
+                     self['ECU_identification'],
+                     self['reserved0']) = unpack_from(
+                        v23c.FMT_SOURCE_EXTRA_ECU,
+                        kargs['raw_bytes'],
+                        6,
+                    )
+                elif self['type'] == v23c.SOURCE_VECTOR:
+                    (self['CAN_id'],
+                     self['CAN_ch_index'],
+                     self['message_name'],
+                     self['sender_name'],
+                     self['reserved0']) = unpack_from(
+                        v23c.FMT_SOURCE_EXTRA_VECTOR,
+                        kargs['raw_bytes'],
+                        6,
+                    )
+            except KeyError:
+                
+                self.address = address = kargs['address']
+                stream.seek(address)
+                (self['id'],
+                 self['block_len'],
+                 self['type']) = unpack(v23c.FMT_SOURCE_COMMON, stream.read(6))
+                block = stream.read(self['block_len'] - 6)
+    
+                if self['type'] == v23c.SOURCE_ECU:
+                    (self['module_nr'],
+                     self['module_address'],
+                     self['description'],
+                     self['ECU_identification'],
+                     self['reserved0']) = unpack(v23c.FMT_SOURCE_EXTRA_ECU, block)
+                elif self['type'] == v23c.SOURCE_VECTOR:
+                    (self['CAN_id'],
+                     self['CAN_ch_index'],
+                     self['message_name'],
+                     self['sender_name'],
+                     self['reserved0']) = unpack(
+                        v23c.FMT_SOURCE_EXTRA_VECTOR,
+                        block,
+                    )
+
             if self['id'] != b'CE':
                 message = 'Expected "CE" block but found "{}"'
                 raise MdfException(message.format(self['id']))
-
+                
         else:
 
             self.address = 0
@@ -1246,6 +1246,21 @@ class ChannelExtension(dict):
                 self['message_name'] = kargs.get('message_name', b'\0')
                 self['sender_name'] = kargs.get('sender_name', b'\0')
                 self['reserved0'] = kargs.get('reserved0', b'\0')
+                
+        if self['type'] == v23c.SOURCE_ECU:
+            self.path = self['ECU_identification'].decode('latin-1')
+            self.name = self['description']
+            self.comment = 'Module number={} @ address={}'.format(
+                self['module_nr'],
+                self['module_address'],
+            ) 
+        else:
+            self.path = self['ECU_identification'].decode('latin-1')
+            self.name = self['description']   
+            self.comment = 'Message ID={} on CAN bus {}'.format(
+                hex(self['CAN_id']),
+                self['CAN_ch_index'],
+            ) 
 
     def __bytes__(self):
         typ = self['type']
