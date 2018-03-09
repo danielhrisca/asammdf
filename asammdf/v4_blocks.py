@@ -262,7 +262,7 @@ class Channel(dict):
             self['bit_count'] = kargs['bit_count']
             self['flags'] = kargs.get('flags', 28)
             self['pos_invalidation_bit'] = 0
-            self['precision'] = 3
+            self['precision'] = kargs.get('precision', 3)
             self['reserved1'] = 0
             self['attachment_nr'] = attachments
             self['min_raw_value'] = kargs.get('min_raw_value', 0)
@@ -2240,50 +2240,62 @@ class SourceInformation(dict):
 
         self.name = self.path = self.comment = ''
 
-        if 'raw_bytes' in kargs:
-            self.address = 0
-            (self['id'],
-             self['reserved0'],
-             self['block_len'],
-             self['links_nr'],
-             self['name_addr'],
-             self['path_addr'],
-             self['comment_addr'],
-             self['source_type'],
-             self['bus_type'],
-             self['flags'],
-             self['reserved1']) = unpack(
-                v4c.FMT_SOURCE_INFORMATION,
-                kargs['raw_bytes'],
-            )
-
-            if self['id'] != b'##SI':
-                message = 'Expected "##SI" block but found "{}"'
-                raise MdfException(message.format(self['id']))
-
-        elif 'stream' in kargs:
-            self.address = address = kargs['address']
+        if 'stream' in kargs:
             stream = kargs['stream']
-            stream.seek(address)
+            try:
+                self.address = 0
+                (self['id'],
+                 self['reserved0'],
+                 self['block_len'],
+                 self['links_nr'],
+                 self['name_addr'],
+                 self['path_addr'],
+                 self['comment_addr'],
+                 self['source_type'],
+                 self['bus_type'],
+                 self['flags'],
+                 self['reserved1']) = unpack(
+                    v4c.FMT_SOURCE_INFORMATION,
+                    kargs['raw_bytes'],
+                )
+            except KeyError:
+                self.address = address = kargs['address']
+                stream = kargs['stream']
+                stream.seek(address)
 
-            (self['id'],
-             self['reserved0'],
-             self['block_len'],
-             self['links_nr'],
-             self['name_addr'],
-             self['path_addr'],
-             self['comment_addr'],
-             self['source_type'],
-             self['bus_type'],
-             self['flags'],
-             self['reserved1']) = unpack(
-                v4c.FMT_SOURCE_INFORMATION,
-                stream.read(v4c.SI_BLOCK_SIZE),
-            )
+                (self['id'],
+                 self['reserved0'],
+                 self['block_len'],
+                 self['links_nr'],
+                 self['name_addr'],
+                 self['path_addr'],
+                 self['comment_addr'],
+                 self['source_type'],
+                 self['bus_type'],
+                 self['flags'],
+                 self['reserved1']) = unpack(
+                    v4c.FMT_SOURCE_INFORMATION,
+                    stream.read(v4c.SI_BLOCK_SIZE),
+                )
 
             if self['id'] != b'##SI':
                 message = 'Expected "##SI" block but found "{}"'
                 raise MdfException(message.format(self['id']))
+
+            self.name = get_text_v4(
+                address=self['name_addr'],
+                stream=stream,
+            )
+
+            self.path = get_text_v4(
+                address=self['path_addr'],
+                stream=stream,
+            )
+
+            self.comment = get_text_v4(
+                address=self['comment_addr'],
+                stream=stream,
+            )
 
         else:
             self.address = 0

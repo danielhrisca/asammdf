@@ -115,6 +115,9 @@ def get_text_v3(address, stream):
 
     """
 
+    if address == 0:
+        return ''
+
     stream.seek(address + 2)
     size = unpack('<H', stream.read(2))[0] - 4
     text_bytes = stream.read(size)
@@ -159,6 +162,9 @@ def get_text_v4(address, stream):
         unicode string
 
     """
+
+    if address == 0:
+        return ''
 
     stream.seek(address + 8)
     size = unpack('<Q', stream.read(8))[0] - 24

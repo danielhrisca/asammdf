@@ -426,16 +426,13 @@ class MDF4(object):
 
                 cg_source_addr = channel_group['acq_source_addr']
 
-                if memory == 'minimum':
-                    grp['channel_group_source'] = cg_source_addr
+                if cg_source_addr:
+                    grp['channel_group_source'] = source = SourceInformation(
+                        address=cg_source_addr,
+                        stream=stream,
+                    )
                 else:
-                    if cg_source_addr:
-                        grp['channel_group_source'] = SourceInformation(
-                            address=cg_source_addr,
-                            stream=stream,
-                        )
-                    else:
-                        grp['channel_group_source'] = None
+                    grp['channel_group_source'] = None
 
                 grp['record_size'] = cg_size
 
@@ -803,20 +800,11 @@ class MDF4(object):
                     else:
                         source = SourceInformation(
                             raw_bytes=raw_bytes,
+                            stream=stream,
                         )
                         grp['channel_sources'].append(source)
 
-                        address = source['name_addr']
-                        if address:
-                            source.name = get_text_v4(address, stream)
-                        address = source['path_addr']
-                        if address:
-                            source.path = get_text_v4(address, stream)
-                        address = source['comment_addr']
-                        if address:
-                            source.comment = get_text_v4(address, stream)
                         self._si_map[raw_bytes] = source
-
             else:
                 if memory == 'minimum':
                     grp['channel_sources'].append(0)
@@ -887,7 +875,6 @@ class MDF4(object):
                     if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
                         attachment_addr = channel['attachment_0_addr']
                         if attachment_addr not in self._dbc_cache:
-                            print("\n"*10, self.extract_attachment(address=attachment_addr)[0].decode('utf-8'))
                             self._dbc_cache[attachment_addr] = cantools.db.load_string(
                                 self.extract_attachment(address=attachment_addr)[0].decode('utf-8'),
                                 database_format='dbc'
@@ -2575,11 +2562,6 @@ class MDF4(object):
                 else:
                     gp_conv.append(0)
 
-                if memory != 'minimum':
-                    gp_source.append(source_block)
-                else:
-                    gp_source.append(source_info_address)
-
                 if memory == 'minimum':
                     name_addr = channel_name_address
                     unit_addr = channel_unit_address
@@ -2599,10 +2581,45 @@ class MDF4(object):
                 else:
                     attachment_addr = 0
 
+                sig_source = signal.source
+                if sig_source:
+                    source = SourceInformation()
+                    source.update(sig_source)
+                    source.name = sig_source.name
+                    source.path = sig_source.path
+                    source.comment = sig_source.comment
+                    if memory == 'minimum':
+                        if source.name:
+                            block = TextBlock(text=source.name)
+                            address = tell()
+                            source['name_addr'] = address
+                            write(bytes(block))
+                        if source.path:
+                            block = TextBlock(text=source.path)
+                            address = tell()
+                            source['path_addr'] = address
+                            write(bytes(block))
+                        if source.comment:
+                            block = TextBlock(text=source.comment)
+                            address = tell()
+                            source['comment_addr'] = address
+                            write(bytes(block))
+                        address = tell()
+                        write(bytes(source))
+                        gp_source.append(address)
+                    else:
+                        gp_source.append(source)
+
+                else:
+                    if memory != 'minimum':
+                        gp_source.append(source_block)
+                    else:
+                        gp_source.append(source_info_address)
+
                 # add channel block
                 kargs = {
                     'channel_type': v4c.CHANNEL_TYPE_VALUE,
-                    'bit_count': 8,
+                    'bit_count': signal.samples.dtype.itemsize * 8,
                     'byte_offset': offset,
                     'bit_offset': 0,
                     'data_type': v4c.DATA_TYPE_BYTEARRAY,
@@ -2614,9 +2631,11 @@ class MDF4(object):
                     'name_addr': name_addr,
                     'unit_addr': unit_addr,
                     'comment_addr': comment_addr,
+                    'precision': 255,
                 }
                 if attachment_addr:
                     kargs['attachment_0_addr'] = attachment_addr
+                    kargs['flags'] |= v4c.FLAG_CN_BUS_EVENT
                 ch = Channel(**kargs)
                 if memory != 'minimum':
                     ch.name = name
@@ -2713,7 +2732,7 @@ class MDF4(object):
                         comment_addr = 0
 
                     # add channel block
-                    min_val, max_val = get_min_max(signal.samples)
+                    min_val, max_val = get_min_max(samples)
                     kargs = {
                         'channel_type': v4c.CHANNEL_TYPE_VALUE,
                         'bit_count': s_size,
@@ -2727,11 +2746,14 @@ class MDF4(object):
                         'name_addr': name_addr,
                         'unit_addr': unit_addr,
                         'comment_addr': comment_addr,
+                        'precision': 255,
                     }
                     if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
-                        kargs['flags'] = 0
+                        kargs['flags'] = v4c.FLAG_CN_PRECISION
                     else:
                         kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
+                    if attachment_addr:
+                        kargs['flags'] |= v4c.FLAG_CN_BUS_EVENT
                     ch = Channel(**kargs)
                     if memory != 'minimum':
                         ch.name = name
@@ -3063,6 +3085,7 @@ class MDF4(object):
             'samples_byte_nr': offset,
         }
         gp['channel_group'] = ChannelGroup(**kargs)
+        gp['channel_group_source'] = None
         gp['size'] = cycles_nr * offset
         gp_texts['channel_group'].append(None)
 
@@ -3079,6 +3102,8 @@ class MDF4(object):
         gp['parents'] = parents
 
         samples = fromarrays(fields, dtype=types)
+
+
 
         signals = None
         del signals
@@ -4465,7 +4490,8 @@ class MDF4(object):
                                 size *= dim
                             data_type = channel['data_type']
 
-                            if vals.dtype.kind not in 'ui' and (bit_offset or not bits == size * 8):
+                            if vals.dtype.kind not in 'ui' and (bit_offset or not bits == size * 8) or \
+                                    (len(vals.shape) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY):
                                 vals = self._get_not_byte_aligned_data(
                                     data_bytes,
                                     grp,
@@ -4762,6 +4788,19 @@ class MDF4(object):
                             comment = ''
                 else:
                     comment = ''
+
+                if ch_nr >= 0:
+                    source = grp['channel_sources'][ch_nr]
+                    if self.memory == 'minimum':
+                        if source:
+                            source = SourceInformation(
+                                address=source,
+                                stream=stream,
+                            )
+                        else:
+                            source = None
+                else:
+                    source = None
             else:
                 name = channel.name
 
@@ -4775,6 +4814,11 @@ class MDF4(object):
                     match = TX.search(comment)
                     if match:
                         comment = match.group('text')
+
+                if ch_nr >= 0:
+                    source = grp['channel_sources'][ch_nr]
+                else:
+                    source = None
 
             if 'attachment_0_addr' in channel:
                 attachment = self.extract_attachment(address=channel['attachment_0_addr'])
@@ -4793,6 +4837,7 @@ class MDF4(object):
                 raw=raw,
                 master_metadata=master_metadata,
                 attachment=attachment,
+                source=source,
             )
 
         return res
@@ -5486,6 +5531,7 @@ class MDF4(object):
                 for source in gp['channel_sources']:
                     if source:
                         if source.name:
+
                             tx_block = TextBlock(text=source.name)
                             text = tx_block['text']
                             if text in defined_texts:
@@ -5660,7 +5706,33 @@ class MDF4(object):
                     if cg_texts and key in cg_texts:
                         addr_ = gp['texts']['channel_group'][0][key].address
                         gp['channel_group'][key] = addr_
-                gp['channel_group']['acq_source_addr'] = 0
+
+                cg_source = gp['channel_group_source']
+                if cg_source:
+                    if cg_source.name:
+                        block = TextBlock(text=cg_source.name)
+                        block.address = address
+                        cg_source['name_addr'] = address
+                        address += block['block_len']
+                        blocks.append(block)
+                    if cg_source.path:
+                        block = TextBlock(text=cg_source.path)
+                        block.address = address
+                        cg_source['path_addr'] = address
+                        address += block['block_len']
+                        blocks.append(block)
+                    if cg_source.comment:
+                        block = TextBlock(text=cg_source.comment)
+                        block.address = address
+                        cg_source['comment_addr'] = address
+                        address += block['block_len']
+                        blocks.append(block)
+                    cg_source.address = address
+                    blocks.append(cg_source)
+                    address += cg_source['block_len']
+                    gp['channel_group']['acq_source_addr'] = cg_source.address
+                else:
+                    gp['channel_group']['acq_source_addr'] = 0
 
                 gp['data_group']['first_cg_addr'] = address
 
@@ -6079,7 +6151,7 @@ class MDF4(object):
                             else:
                                 source['name_addr'] = 0
 
-                            if source.path:
+                            if source['path_addr']:
                                 tx_block = TextBlock(
                                     address=source['path_addr'],
                                     stream=stream,
@@ -6332,6 +6404,30 @@ class MDF4(object):
                         gp['channel_group'][key] = addr_
                 gp['channel_group']['acq_source_addr'] = 0
 
+                cg_source = gp['channel_group_source']
+                if cg_source:
+                    if cg_source.name:
+                        block = TextBlock(text=cg_source.name)
+                        address = tell()
+                        cg_source['name_addr'] = address
+                        write(bytes(block))
+                    if cg_source.path:
+                        block = TextBlock(text=cg_source.path)
+                        address = tell()
+                        cg_source['path_addr'] = address
+                        write(bytes(block))
+                    if cg_source.comment:
+                        block = TextBlock(text=cg_source.comment)
+                        address = tell()
+                        cg_source['comment_addr'] = address
+                        write(bytes(block))
+                    address = tell()
+                    write(bytes(cg_source))
+                    gp['channel_group']['acq_source_addr'] = address
+                else:
+                    gp['channel_group']['acq_source_addr'] = 0
+
+                address = tell()
                 gp['data_group']['first_cg_addr'] = address
 
                 write(bytes(gp['channel_group']))

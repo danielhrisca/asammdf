@@ -59,6 +59,7 @@ class Signal(object):
         'master_metadata',
         'display_name',
         'attachment',
+        'source',
     ]
 
     def __init__(self,
@@ -71,7 +72,8 @@ class Signal(object):
                  raw=False,
                  master_metadata=None,
                  display_name='',
-                 attachment=()):
+                 attachment=(),
+                 source=None):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
@@ -101,6 +103,7 @@ class Signal(object):
             self.master_metadata = master_metadata
             self.display_name = display_name
             self.attachment = attachment
+            self.source = source
 
             if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                 if conversion is None:

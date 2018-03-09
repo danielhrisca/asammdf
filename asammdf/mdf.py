@@ -301,29 +301,18 @@ class MDF(object):
                             new_group['channel_group']['flags'] = group['channel_group']['flags']
                             new_group['channel_group']['path_separator'] = ord('.')
 
-                            for i, (channel_dep, channel) in enumerate(
-                                    zip(new_group['channel_dependencies'], new_group['channels'])):
-                                if channel_dep:
-                                    if memory == 'minimum':
-                                        channel = ChannelV4(
-                                            address=channel,
-                                            stream=stream,
-                                        )
+                            source = group['channel_group_source']
+                            if source:
+                                new_source = SourceInformation()
+                                new_source.update(source)
+                                new_source.name = source.name
+                                new_source.path = source.path
+                                new_source.comment = source.comment
+                            else:
+                                new_source = None
 
-                                    if channel['attachment_nr']:
+                            new_group['channel_group_source'] = new_source
 
-                                        source = SourceInformation(
-                                            source_type=v4c.SOURCE_BUS,
-                                            bus_type=v4c.BUS_TYPE_CAN,
-                                        )
-
-                                        if memory == 'minimum':
-                                            stream.seek(0, 2)
-                                            addr = stream.tell()
-                                            stream.write(bytes(source))
-                                            source = addr
-
-                                        new_group['channel_sources'][i] = source
                     else:
                         break
 
