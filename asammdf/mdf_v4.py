@@ -9,7 +9,7 @@ import os
 import re
 import sys
 import warnings
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from copy import deepcopy
 from functools import reduce
 from hashlib import md5
@@ -277,7 +277,7 @@ class MDF4(object):
         self.memory = memory
         self.channels_db = {}
         self.masters_db = {}
-        self.attachments = []
+        self.attachments = OrderedDict()
         self.file_comment = None
 
         self._ch_map = {}
@@ -382,7 +382,7 @@ class MDF4(object):
                 if addr:
                     texts[key] = TextBlock(address=addr, stream=stream)
 
-            self.attachments.append((at_block, texts))
+            self.attachments[at_addr] = at_block, texts
             at_addr = at_block['next_at_addr']
 
         # go to first date group and read each data group sequentially
@@ -873,7 +873,7 @@ class MDF4(object):
                         attachment_addr = channel['attachment_0_addr']
                         if attachment_addr not in self._dbc_cache:
                             self._dbc_cache[attachment_addr] = cantools.db.load_string(
-                                self.extract_attachment(0).decode('utf-8'),
+                                self.extract_attachment(address=attachment_addr).decode('utf-8'),
                                 database_format='dbc'
                             )
                         grp['dbc_addr'] = attachment_addr
@@ -3365,7 +3365,10 @@ class MDF4(object):
         texts['file_name_addr'] = TextBlock(text=text)
         at_block = AttachmentBlock(data=data, compression=compression)
         at_block['creator_index'] = creator_index
-        self.attachments.append((at_block, texts))
+        index = -1
+        while index in self.attachments:
+            index -= 1
+        self.attachments[index] = at_block, texts
 
     def close(self):
         """ if the MDF was created with memory=False and new
@@ -3376,15 +3379,17 @@ class MDF4(object):
         if self._file is not None:
             self._file.close()
 
-    def extract_attachment(self, index):
-        """ extract attachment *index* data. If it is an embedded attachment,
+    def extract_attachment(self, address=None, index=None):
+        """ extract attachment data by original address or by index. If it is an embedded attachment,
         then this method creates the new file according to the attachment file
         name information
 
         Parameters
         ----------
+        address : int
+            attachment index; default *None*
         index : int
-            attachment index
+            attachment index; default *None*
 
         Returns
         -------
@@ -3392,11 +3397,22 @@ class MDF4(object):
             attachment data
 
         """
+        if address is None and index is None:
+            return b''
+
+        if address is not None:
+            attachment, texts = self.attachments[address]
+        else:
+            for i, (attachment, texts) in enumerate(self.attachments.values()):
+                if i == index:
+                    break
+            else:
+                return b''
+
         try:
             current_path = os.getcwd()
             os.chdir(os.path.dirname(self.name))
 
-            attachment, texts = self.attachments[index]
             flags = attachment['flags']
 
             # for embedded attachments extrat data and create new files
@@ -5264,28 +5280,33 @@ class MDF4(object):
                 address += self.file_comment['block_len']
                 blocks.append(self.file_comment)
 
-            # attachemnts
+            # attachments
+            at_map = {}
+            channels_with_attachments = []
             if self.attachments:
-                for at_block, texts in self.attachments:
+                for at_block, texts in self.attachments.values():
                     for key, text in texts.items():
                         at_block[key] = text.address = address
                         address += text['block_len']
                         blocks.append(text)
 
-                for at_block, texts in self.attachments:
+                for initial_addr, (at_block, texts) in self.attachments.items():
+                    at_map[initial_addr] = address
                     at_block.address = address
                     blocks.append(at_block)
                     align = at_block['block_len'] % 8
-                    # append 8vyte alignemnt bytes for attachments
+                    # append 8 byte alignment bytes for attachments
                     if align % 8:
                         blocks.append(b'\0' * (8 - align))
                         address += at_block['block_len'] + 8 - align
                     else:
                         address += at_block['block_len']
 
-                for i, (at_block, text) in enumerate(self.attachments[:-1]):
-                    at_block['next_at_addr'] = self.attachments[i + 1][0].address
-                self.attachments[-1][0]['next_at_addr'] = 0
+                keys = list(self.attachments)
+                for i, key in enumerate(keys[:-1]):
+                    at_block, text = self.attachments[key]
+                    at_block['next_at_addr'] = self.attachments[keys[i+1]][0].address
+                self.attachments[keys[-1]][0]['next_at_addr'] = 0
 
             # file history blocks
             for i, (fh, fh_text) in enumerate(self.file_history):
@@ -5401,6 +5422,18 @@ class MDF4(object):
                             blocks.append(tx_block)
                     else:
                         channel['comment_addr'] = 0
+
+                    attachment_index = 0
+                    while True:
+                        key = 'attachment_{}_addr'.format(attachment_index)
+                        try:
+                            addr = channel[key]
+                            channel[key] = at_map[addr]
+                            if attachment_index == 0:
+                                channels_with_attachments.append(channel)
+                            attachment_index += 1
+                        except KeyError:
+                            break
 
                 for source in gp['channel_sources']:
                     if source:
@@ -5614,7 +5647,9 @@ class MDF4(object):
                 self.header['first_dg_addr'] = 0
             self.header['file_history_addr'] = self.file_history[0][0].address
             if self.attachments:
-                addr_ = self.attachments[0][0].address
+                attachments = iter(self.attachments.values())
+                first_attachment = next(attachments)
+                addr_ = first_attachment[0].address
                 self.header['first_attachment_addr'] = addr_
             else:
                 self.header['first_attachment_addr'] = 0
@@ -5628,6 +5663,19 @@ class MDF4(object):
 
             for orig_addr, gp in zip(original_data_addresses, self.groups):
                 gp['data_group']['data_block_addr'] = orig_addr
+
+            at_map = {value:key for key, value in at_map.items()}
+
+            for channel in channels_with_attachments:
+                attachment_index = 0
+                while True:
+                    key = 'attachment_{}_addr'.format(attachment_index)
+                    try:
+                        addr = channel[key]
+                        channel[key] = at_map[addr]
+                        attachment_index += 1
+                    except KeyError:
+                        break
 
         if self.memory == 'low' and dst == self.name:
             self.close()
@@ -5864,14 +5912,17 @@ class MDF4(object):
             # attachemnts
             address = tell()
             blocks = []
+            at_map = {}
+            channels_with_attachments = []
             if self.attachments:
-                for at_block, texts in self.attachments:
+                for at_block, texts in self.attachments.values():
                     for key, text in texts.items():
                         at_block[key] = text.address = address
                         address += text['block_len']
                         blocks.append(text)
 
-                for at_block, texts in self.attachments:
+                for initial_addr, (at_block, texts) in self.attachments.items():
+                    at_map[initial_addr] = address
                     at_block.address = address
                     blocks.append(at_block)
                     align = at_block['block_len'] % 8
@@ -5882,9 +5933,11 @@ class MDF4(object):
                     else:
                         address += at_block['block_len']
 
-                for i, (at_block, text) in enumerate(self.attachments[:-1]):
-                    at_block['next_at_addr'] = self.attachments[i + 1][0].address
-                self.attachments[-1][0]['next_at_addr'] = 0
+                keys = list(self.attachments)
+                for i, key in enumerate(keys[:-1]):
+                    at_block, text = self.attachments[key]
+                    at_block['next_at_addr'] = self.attachments[keys[i + 1]][0].address
+                self.attachments[keys[-1]][0]['next_at_addr'] = 0
 
             # file history blocks
             for i, (fh, fh_text) in enumerate(self.file_history):
@@ -6074,6 +6127,18 @@ class MDF4(object):
                     ch_addrs.append(address)
                     chans.append(channel)
                     blocks.append(channel)
+
+                    attachment_index = 0
+                    while True:
+                        key = 'attachment_{}_addr'.format(attachment_index)
+                        try:
+                            addr = channel[key]
+                            channel[key] = at_map[addr]
+                            if attachment_index == 0:
+                                channels_with_attachments.append(channel)
+                            attachment_index += 1
+                        except KeyError:
+                            break
 
                     address += channel['block_len']
 
@@ -6267,8 +6332,11 @@ class MDF4(object):
             else:
                 self.header['first_dg_addr'] = 0
             self.header['file_history_addr'] = self.file_history[0][0].address
+
             if self.attachments:
-                addr_ = self.attachments[0][0].address
+                attachments = iter(self.attachments.values())
+                first_attachment = next(attachments)
+                addr_ = first_attachment[0].address
                 self.header['first_attachment_addr'] = addr_
             else:
                 self.header['first_attachment_addr'] = 0
