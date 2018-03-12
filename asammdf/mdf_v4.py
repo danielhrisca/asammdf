@@ -3571,6 +3571,7 @@ class MDF4(object):
             warnings.warn(message)
             print('ATTACHMENT block:')
             print(attachment)
+            print(texts)
             return b'', ''
 
     def get_channel_unit(self, name=None, group=None, index=None):
