@@ -888,10 +888,16 @@ class MDF4(object):
                     if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
                         attachment_addr = channel['attachment_0_addr']
                         if attachment_addr not in self._dbc_cache:
-                            self._dbc_cache[attachment_addr] = cantools.db.load_string(
-                                self.extract_attachment(address=attachment_addr)[0].decode('utf-8'),
-                                database_format='dbc',
-                            )
+                            try:
+                                self._dbc_cache[attachment_addr] = cantools.db.load_string(
+                                    self.extract_attachment(address=attachment_addr)[0].decode('utf-8'),
+                                    database_format='dbc',
+                                )
+                            except:
+                                attachment, name = self.extract_attachment(address=attachment_addr)
+                                print('ATTACHED database "{}" (first 10 lines):'.format(name))
+                                print(attachment.decode('utf-8').splitlines()[:10])
+                                raise
                         grp['dbc_addr'] = attachment_addr
 
                         message_id = grp['message_id']
