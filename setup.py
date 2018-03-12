@@ -88,7 +88,9 @@ setup(
                       'pandas',
                       'numexpr',
                       'matplotlib',
-                      'wheel'],
+                      'wheel',
+                      'canmatrix'
+                     ],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
