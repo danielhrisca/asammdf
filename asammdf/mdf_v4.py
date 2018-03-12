@@ -453,11 +453,14 @@ class MDF4(object):
                     if match:
                         can_id = int(match.group('can_id'))
                         message_id = int(match.group('message_id'))
+                        grp['can_id'] = can_id
+                        grp['message_name'] = message_name
+                        grp['message_id'] = message_id
                     else:
-                        warnings.warn('Invalid bus logging channel group metadata')
-                    grp['can_id'] = can_id
-                    grp['message_name'] = message_name
-                    grp['message_id'] = message_id
+
+                        warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
+                        channel_group['flags'] &= (~v4c.FLAG_CG_BUS_EVENT)
+
                 else:
                     samples_size = channel_group['samples_byte_nr']
                     inval_size = channel_group['invalidation_bytes_nr']
