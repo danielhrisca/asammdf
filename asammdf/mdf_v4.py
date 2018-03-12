@@ -469,7 +469,7 @@ class MDF4(object):
                     else:
 
                         warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
-                        channel_group['flags'] &= (~v4c.FLAG_CG_BUS_EVENT)
+                        channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
 
                 else:
                     samples_size = channel_group['samples_byte_nr']
@@ -888,62 +888,64 @@ class MDF4(object):
                     if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
                         attachment_addr = channel['attachment_0_addr']
                         if attachment_addr not in self._dbc_cache:
-                            try:
+                            attachment, at_name = self.extract_attachment(address=attachment_addr)
+                            if not at_name.lower().endswith('dbc'):
+                                warnings.warn('Expected .dbc file as CAN channel attachment but got "{}"'.format(at_name))
+                                grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                            else:
                                 self._dbc_cache[attachment_addr] = cantools.db.load_string(
-                                    self.extract_attachment(address=attachment_addr)[0].decode('utf-8'),
+                                    attachment.decode('utf-8'),
                                     database_format='dbc',
                                 )
-                            except:
-                                attachment, name = self.extract_attachment(address=attachment_addr)
-                                print('ATTACHED database "{}" (first 10 lines):'.format(name))
-                                print(attachment.decode('utf-8').splitlines()[:10])
-                                raise
-                        grp['dbc_addr'] = attachment_addr
 
-                        message_id = grp['message_id']
-                        message_name = grp['message_name']
-                        can_id = grp['can_id']
-                        can_msg = self._dbc_cache[attachment_addr].get_message_by_frame_id(message_id)
-                        can_msg_name = can_msg.name
+                        if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
 
-                        for signal in can_msg.signals:
-                            signal_name = signal.name
+                            grp['dbc_addr'] = attachment_addr
 
-                            # 0 - name
-                            # 1 - message_name.name
-                            # 2 - can_id.message_name.name
-                            # 3 - can_msg_name.name
-                            # 4 - can_id.can_msg_name.name
+                            message_id = grp['message_id']
+                            message_name = grp['message_name']
+                            can_id = grp['can_id']
+                            can_msg = self._dbc_cache[attachment_addr].get_message_by_frame_id(message_id)
+                            can_msg_name = can_msg.name
 
-                            name_ = signal_name
-                            if name_ not in self.channels_db:
-                                self.channels_db[name_] = []
-                            self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
-                            neg_ch_cntr -= 1
+                            for signal in can_msg.signals:
+                                signal_name = signal.name
 
-                            name_ = '{}.{}'.format(message_name, signal_name)
-                            if name_ not in self.channels_db:
-                                self.channels_db[name_] = []
-                            self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
-                            neg_ch_cntr -= 1
+                                # 0 - name
+                                # 1 - message_name.name
+                                # 2 - can_id.message_name.name
+                                # 3 - can_msg_name.name
+                                # 4 - can_id.can_msg_name.name
 
-                            name_ = 'CAN{}.{}.{}'.format(can_id, message_name, signal_name)
-                            if name_ not in self.channels_db:
-                                self.channels_db[name_] = []
-                            self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
-                            neg_ch_cntr -= 1
+                                name_ = signal_name
+                                if name_ not in self.channels_db:
+                                    self.channels_db[name_] = []
+                                self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+                                neg_ch_cntr -= 1
 
-                            name_ = '{}.{}'.format(can_msg_name, signal_name)
-                            if name_ not in self.channels_db:
-                                self.channels_db[name_] = []
-                            self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
-                            neg_ch_cntr -= 1
+                                name_ = '{}.{}'.format(message_name, signal_name)
+                                if name_ not in self.channels_db:
+                                    self.channels_db[name_] = []
+                                self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+                                neg_ch_cntr -= 1
 
-                            name_ = 'CAN{}.{}.{}'.format(can_id, can_msg_name, signal_name)
-                            if name_ not in self.channels_db:
-                                self.channels_db[name_] = []
-                            self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
-                            neg_ch_cntr -= 1
+                                name_ = 'CAN{}.{}.{}'.format(can_id, message_name, signal_name)
+                                if name_ not in self.channels_db:
+                                    self.channels_db[name_] = []
+                                self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+                                neg_ch_cntr -= 1
+
+                                name_ = '{}.{}'.format(can_msg_name, signal_name)
+                                if name_ not in self.channels_db:
+                                    self.channels_db[name_] = []
+                                self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+                                neg_ch_cntr -= 1
+
+                                name_ = 'CAN{}.{}.{}'.format(can_id, can_msg_name, signal_name)
+                                if name_ not in self.channels_db:
+                                    self.channels_db[name_] = []
+                                self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+                                neg_ch_cntr -= 1
 
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are
@@ -3497,6 +3499,11 @@ class MDF4(object):
                 return b'', ''
 
         current_path = os.getcwd()
+        file_path = (
+            texts['file_name_addr']['text']
+                .decode('utf-8')
+                .strip(' \n\t\0')
+        )
         try:
             os.chdir(os.path.dirname(self.name))
 
@@ -3506,11 +3513,6 @@ class MDF4(object):
             if flags & v4c.FLAG_AT_EMBEDDED:
                 data = attachment.extract()
 
-                file_path = (
-                    texts['file_name_addr']['text']
-                    .decode('utf-8')
-                    .strip(' \n\t\0')
-                )
                 out_path = os.path.dirname(file_path)
                 if out_path:
                     if not os.path.exists(out_path):
@@ -3523,11 +3525,6 @@ class MDF4(object):
             else:
                 # for external attachments read the file and return the content
                 if flags & v4c.FLAG_AT_MD5_VALID:
-                    file_path = (
-                        texts['file_name_addr']['text']
-                        .decode('utf-8')
-                        .strip(' \n\t\0')
-                    )
                     data = open(file_path, 'rb').read()
                     md5_worker = md5()
                     md5_worker.update(data)
@@ -3552,11 +3549,6 @@ class MDF4(object):
                         )
                         warnings.warn(message)
                 else:
-                    file_path = (
-                        texts['file_name_addr']['text']
-                        .decode('utf-8')
-                        .strip(' \n\t\0')
-                    )
                     if (texts['mime_addr']['text']
                             .decode('utf-8')
                             .startswith('text')):
@@ -3573,7 +3565,7 @@ class MDF4(object):
             print('ATTACHMENT block:')
             print(attachment)
             print(texts)
-            return b'', ''
+            return b'', file_path
 
     def get_channel_unit(self, name=None, group=None, index=None):
         """Gets channel unit.
