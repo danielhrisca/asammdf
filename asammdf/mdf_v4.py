@@ -45,7 +45,7 @@ uint32,
 
 from numpy.core.defchararray import encode, decode
 from numpy.core.records import fromarrays, fromstring
-import cantools
+from canmatrix.formats import loads
 
 from . import v4_constants as v4c
 from .signal import Signal
@@ -452,7 +452,7 @@ class MDF4(object):
                     )
                     common_properties = ET.fromstring(comment).find(".//common_properties")
 
-                    if common_properties:
+                    if common_properties is not None:
 
                         can_id = 1
                         message_id = -1
@@ -889,14 +889,16 @@ class MDF4(object):
                         attachment_addr = channel['attachment_0_addr']
                         if attachment_addr not in self._dbc_cache:
                             attachment, at_name = self.extract_attachment(address=attachment_addr)
-                            if not at_name.lower().endswith('dbc'):
-                                warnings.warn('Expected .dbc file as CAN channel attachment but got "{}"'.format(at_name))
+                            if not at_name.lower().endswith(('dbc', 'arxml')):
+                                warnings.warn('Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name))
                                 grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                             else:
-                                self._dbc_cache[attachment_addr] = cantools.db.load_string(
+                                import_type = 'dbc' if at_name.lower().endswith('dbc') else 'arxml'
+                                self._dbc_cache[attachment_addr] = loads(
                                     attachment.decode('utf-8'),
-                                    database_format='dbc',
-                                )
+                                    importType=import_type,
+                                    key='db',
+                                )['db']
 
                         if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
 
@@ -905,7 +907,7 @@ class MDF4(object):
                             message_id = grp['message_id']
                             message_name = grp['message_name']
                             can_id = grp['can_id']
-                            can_msg = self._dbc_cache[attachment_addr].get_message_by_frame_id(message_id)
+                            can_msg = self._dbc_cache[attachment_addr].frameById(message_id)
                             can_msg_name = can_msg.name
 
                             for signal in can_msg.signals:
@@ -1455,10 +1457,10 @@ class MDF4(object):
                                     message_id = grp['message_id']
 
                                     can_db = self._dbc_cache[new_ch['attachment_0_addr']]
-                                    can_msg = can_db.get_message_by_frame_id(message_id)
+                                    can_msg = can_db.frameById(message_id)
 
                                     for signal in can_msg.signals:
-                                        offset_ = signal.start
+                                        offset_ = signal.startbit
 
                                         # 0 - name
                                         # 1 - message_name.name
@@ -1503,11 +1505,11 @@ class MDF4(object):
 
         record_size = data.shape[1]
 
-        big_endian = True if signal.byte_order == 'big_endian' else False
+        big_endian = False if signal.is_little_endian else True
         signed = signal.is_signed
-        bit_offset = signal.start % 8
-        byte_offset = signal.start // 8
-        bit_count = signal.length
+        bit_offset = signal.startbit % 8
+        byte_offset = signal.startbit // 8
+        bit_count = signal.signalsize
 
         byte_count = bit_offset + bit_count
         if byte_count % 8:
@@ -3513,14 +3515,6 @@ class MDF4(object):
             if flags & v4c.FLAG_AT_EMBEDDED:
                 data = attachment.extract()
 
-                out_path = os.path.dirname(file_path)
-                if out_path:
-                    if not os.path.exists(out_path):
-                        os.makedirs(out_path)
-
-                with open(file_path, 'wb') as f:
-                    f.write(data)
-
                 return data, file_path
             else:
                 # for external attachments read the file and return the content
@@ -3565,6 +3559,7 @@ class MDF4(object):
             print('ATTACHMENT block:')
             print(attachment)
             print(texts)
+            print(os.path.exists(file_path))
             return b'', file_path
 
     def get_channel_unit(self, name=None, group=None, index=None):
@@ -4005,7 +4000,7 @@ class MDF4(object):
 
             message_id = grp['message_id']
             dbc_addr = grp['dbc_addr']
-            can_msg = self._dbc_cache[dbc_addr].get_message_by_frame_id(message_id)
+            can_msg = self._dbc_cache[dbc_addr].frameById(message_id)
 
             signal = can_msg.signals[signal_index]
 
@@ -4608,7 +4603,7 @@ class MDF4(object):
                     conversion = grp['channel_conversions'][ch_nr]
             else:
                 conversion = ChannelConversion(
-                    a=signal.scale,
+                    a=signal.factor,
                     b=signal.offset,
                     conversion_type=v4c.CONVERSION_TYPE_LIN,
                 )
