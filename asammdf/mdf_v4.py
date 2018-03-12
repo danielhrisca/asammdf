@@ -461,7 +461,7 @@ class MDF4(object):
                             if name == 'MessageID':
                                 if e.get('ci') is not None:
                                     can_id = int(e.get('ci'))
-                                    message_id = int(e.text)
+                                message_id = int(e.text)
                         grp['can_id'] = can_id
                         grp['message_name'] = message_name
                         grp['message_id'] = message_id
