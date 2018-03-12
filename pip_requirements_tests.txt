@@ -5,3 +5,4 @@ codacy-coverage
 numpy>=1.13.1
 sphinx_rtd_theme
 pylint >= 1.8
+canmatrix
