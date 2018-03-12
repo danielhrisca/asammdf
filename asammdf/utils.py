@@ -362,6 +362,7 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
             data_type = v3c.DATA_TYPE_STRING
         elif fmt.kind == 'b':
             data_type = v3c.DATA_TYPE_UNSIGNED
+            size = 1
         else:
             message = 'Unknown type: dtype={}, shape={}'
             raise MdfException(message.format(fmt, shape))
@@ -415,6 +416,7 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
         elif fmt.kind == 'b':
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+            size = 1
         else:
             message = 'Unknown type: dtype={}, shape={}'
             raise MdfException(message.format(fmt, shape))

@@ -2219,6 +2219,7 @@ class MDF4(object):
                     'unit_addr': unit_addr,
                     'comment_addr': comment_addr,
                 }
+
                 if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
                     kargs['flags'] = 0
                 else:

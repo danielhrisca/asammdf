@@ -1413,6 +1413,9 @@ class MDF3(object):
                     'display_name_addr': display_name_address,
                 }
 
+                if s_size <8:
+                    s_size = 8
+
                 channel = Channel(**kargs)
                 if memory != 'minimum':
                     channel.name = name
@@ -1675,6 +1678,9 @@ class MDF3(object):
                         'comment_addr': comment_address,
                     }
 
+                    if s_size < 8:
+                        s_size = 8
+
                     channel = Channel(**kargs)
 
                     if memory != 'minimum':
@@ -1880,6 +1886,9 @@ class MDF3(object):
                     'display_name_addr': display_name_address,
                 }
 
+                if s_size <8:
+                    s_size = 8
+
                 channel = Channel(**kargs)
                 if memory != 'minimum':
                     channel.name = name
@@ -1984,6 +1993,9 @@ class MDF3(object):
                         'comment_addr': comment_address,
                         'description': description,
                     }
+
+                    if s_size < 8:
+                        s_size = 8
 
                     channel = Channel(**kargs)
                     if memory != 'minimum':
@@ -2119,6 +2131,9 @@ class MDF3(object):
                         'description': description,
                     }
 
+                    if s_size < 8:
+                        s_size = 8
+
                     channel = Channel(**kargs)
                     if memory != 'minimum':
                         channel.name = name
@@ -2205,6 +2220,9 @@ class MDF3(object):
                             'comment_addr': comment_address,
                             'description': description,
                         }
+
+                        if s_size < 8:
+                            s_size = 8
 
                         channel = Channel(**kargs)
                         if memory != 'minimum':
@@ -3077,7 +3095,7 @@ class MDF3(object):
                 comment = '{}\n{}'.format(comment, description)
             else:
                 comment = description
-                
+
             if memory == 'minimum':
                 addr = grp['channel_extensions'][ch_nr]
                 if addr:
