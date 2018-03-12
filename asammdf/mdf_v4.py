@@ -3495,8 +3495,8 @@ class MDF4(object):
             else:
                 return b'', ''
 
+        current_path = os.getcwd()
         try:
-            current_path = os.getcwd()
             os.chdir(os.path.dirname(self.name))
 
             flags = attachment['flags']
@@ -3569,6 +3569,8 @@ class MDF4(object):
             os.chdir(current_path)
             message = 'Exception during attachment extraction: ' + repr(err)
             warnings.warn(message)
+            print('ATTACHMENT block:')
+            print(attachment)
             return b'', ''
 
     def get_channel_unit(self, name=None, group=None, index=None):
