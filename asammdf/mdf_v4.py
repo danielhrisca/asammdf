@@ -5,6 +5,7 @@ ASAM MDF version 4 file format module
 
 from __future__ import division, print_function
 
+import xml.etree.ElementTree as ET
 import os
 import re
 import sys
@@ -449,13 +450,22 @@ class MDF4(object):
                         address=channel_group['comment_addr'],
                         stream=stream,
                     )
-                    match = CAN_INFO.search(comment)
-                    if match:
-                        can_id = int(match.group('can_id'))
-                        message_id = int(match.group('message_id'))
+                    common_properties = ET.fromstring(comment).find(".//common_properties")
+
+                    if common_properties:
+
+                        can_id = 1
+                        message_id = -1
+                        for e in common_properties:
+                            name = e.get('name')
+                            if name == 'MessageID':
+                                if e.get('ci') is not None:
+                                    can_id = int(e.get('ci'))
+                                    message_id = int(e.text)
                         grp['can_id'] = can_id
                         grp['message_name'] = message_name
                         grp['message_id'] = message_id
+
                     else:
 
                         warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
@@ -880,7 +890,7 @@ class MDF4(object):
                         if attachment_addr not in self._dbc_cache:
                             self._dbc_cache[attachment_addr] = cantools.db.load_string(
                                 self.extract_attachment(address=attachment_addr)[0].decode('utf-8'),
-                                database_format='dbc'
+                                database_format='dbc',
                             )
                         grp['dbc_addr'] = attachment_addr
 
