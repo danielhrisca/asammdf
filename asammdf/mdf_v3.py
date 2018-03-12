@@ -412,7 +412,6 @@ class MDF3(object):
                 size = bit_offset + bit_count
                 if data_type == v23c.DATA_TYPE_STRING:
                     next_byte_aligned_position = parent_start_offset + size
-                    size = size // 8
                     if next_byte_aligned_position <= record_size:
                         dtype_pair = (name, get_fmt_v3(data_type, size))
                         types.append(dtype_pair)
@@ -422,7 +421,6 @@ class MDF3(object):
 
                 elif data_type == v23c.DATA_TYPE_BYTEARRAY:
                     next_byte_aligned_position = parent_start_offset + size
-                    size = size // 8
                     if next_byte_aligned_position <= record_size:
                         dtype_pair = (name, get_fmt_v3(data_type, size))
                         types.append(dtype_pair)
@@ -433,16 +431,12 @@ class MDF3(object):
                 else:
                     if size > 32:
                         next_byte_aligned_position = parent_start_offset + 64
-                        size = 8
                     elif size > 16:
                         next_byte_aligned_position = parent_start_offset + 32
-                        size = 4
                     elif size > 8:
                         next_byte_aligned_position = parent_start_offset + 16
-                        size = 2
                     else:
                         next_byte_aligned_position = parent_start_offset + 8
-                        size = 1
 
                     if next_byte_aligned_position <= record_size:
                         dtype_pair = (name, get_fmt_v3(data_type, size))
@@ -486,10 +480,16 @@ class MDF3(object):
         if self.memory != 'minimum':
             channel = group['channels'][ch_nr]
         else:
-            channel = Channel(
-                address=group['channels'][ch_nr],
-                stream=self._file,
-            )
+            if group['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
+                channel = Channel(
+                    address=group['channels'][ch_nr],
+                    stream=self._file,
+                )
+            else:
+                channel = Channel(
+                    address=group['channels'][ch_nr],
+                    stream=self._tempfile,
+                )
 
         bit_offset = channel['start_offset'] % 8
         byte_offset = channel['start_offset'] // 8
@@ -556,29 +556,30 @@ class MDF3(object):
                 ('', extra.dtype, extra.shape[1:]),
             ]
             vals = fromarrays([vals, extra], dtype=dtype(types))
+
         vals = vals.tostring()
 
-        fmt = get_fmt_v3(channel['data_type'], size)
+        fmt = get_fmt_v3(channel['data_type'], bit_count)
         if size <= byte_count:
             if channel['data_type'] in big_endian_types:
                 types = [
-                    ('', 'a{}'.format(byte_count - size)),
+                    ('', 'a{}'.format(byte_count -  size)),
                     ('vals', fmt),
                 ]
             else:
                 types = [
                     ('vals', fmt),
-                    ('', 'a{}'.format(byte_count - size)),
+                    ('', 'a{}'.format(byte_count -  size)),
                 ]
         else:
             types = [('vals', fmt), ]
 
-        vals = fromstring(vals, dtype=dtype(types))
+        vals = fromstring(vals, dtype=dtype(types))['vals']
 
         if channel['data_type'] in v23c.SIGNED_INT:
-            return as_non_byte_sized_signed_int(vals['vals'], bit_count)
+            return as_non_byte_sized_signed_int(vals, bit_count)
         else:
-            return vals['vals']
+            return vals
 
     def _validate_channel_selection(self, name=None, group=None, index=None):
         """Gets channel comment.
@@ -1413,7 +1414,7 @@ class MDF3(object):
                     'display_name_addr': display_name_address,
                 }
 
-                if s_size <8:
+                if s_size < 8:
                     s_size = 8
 
                 channel = Channel(**kargs)
@@ -2968,6 +2969,8 @@ class MDF3(object):
                 except KeyError:
                     parent, bit_offset = None, None
 
+                bits = channel['bit_count']
+
                 if parent is not None:
                     if 'record' not in grp:
                         if dtypes.itemsize:
@@ -2983,13 +2986,13 @@ class MDF3(object):
                     record.setflags(write=False)
 
                     vals = record[parent]
-                    bits = channel['bit_count']
                     data_type = channel['data_type']
                     size = vals.dtype.itemsize
                     if data_type == v23c.DATA_TYPE_BYTEARRAY:
                         size *= vals.shape[1]
 
-                    if vals.dtype.kind not in 'ui' and (bit_offset or not bits == size * 8):
+                    vals_dtype = vals.dtype.kind
+                    if vals_dtype not in 'ui' and (bit_offset or not bits == size * 8):
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                     else:
                         if bit_offset:
@@ -3015,6 +3018,9 @@ class MDF3(object):
 
                 if not samples_only or raster:
                     timestamps.append(self.get_master(gp_nr, fragment))
+
+                if bits == 1:
+                    vals = array(vals, dtype=bool)
 
                 channel_values.append(vals.copy())
                 count += 1

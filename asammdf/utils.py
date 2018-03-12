@@ -204,42 +204,59 @@ def get_fmt_v3(data_type, size):
     data_type : int
         mdf channel data type
     size : int
-        data byte size
+        data bit size
     Returns
     -------
     fmt : str
         numpy compatible data type format string
 
     """
-    if size == 0:
+    if size <= 1:
         fmt = 'b'
     else:
+
         if data_type in (
-                v3c.DATA_TYPE_UNSIGNED_INTEL,
-                v3c.DATA_TYPE_UNSIGNED):
-            fmt = '<u{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = '>u{}'.format(size)
-        elif data_type in (
-                v3c.DATA_TYPE_SIGNED_INTEL,
-                v3c.DATA_TYPE_SIGNED):
-            fmt = '<i{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = '>i{}'.format(size)
-        elif data_type in (
-                v3c.DATA_TYPE_FLOAT,
-                v3c.DATA_TYPE_DOUBLE,
-                v3c.DATA_TYPE_FLOAT_INTEL,
-                v3c.DATA_TYPE_DOUBLE_INTEL):
-            fmt = '<f{}'.format(size)
-        elif data_type in (
-                v3c.DATA_TYPE_FLOAT_MOTOROLA,
-                v3c.DATA_TYPE_DOUBLE_MOTOROLA):
-            fmt = '>f{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_STRING:
-            fmt = 'S{}'.format(size)
-        elif data_type == v3c.DATA_TYPE_BYTEARRAY:
-            fmt = '({},)u1'.format(size)
+                v3c.DATA_TYPE_STRING,
+                v3c.DATA_TYPE_BYTEARRAY):
+            size = size // 8
+            if data_type == v3c.DATA_TYPE_STRING:
+                fmt = 'S{}'.format(size)
+            elif data_type == v3c.DATA_TYPE_BYTEARRAY:
+                fmt = '({},)u1'.format(size)
+        else:
+            if size <= 8:
+                size = 1
+            elif size <= 16:
+                size = 2
+            elif size <= 32:
+                size = 4
+            elif size <= 64:
+                size = 8
+            else:
+                size = size // 8
+
+            if data_type in (
+                    v3c.DATA_TYPE_UNSIGNED_INTEL,
+                    v3c.DATA_TYPE_UNSIGNED):
+                fmt = '<u{}'.format(size)
+            elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
+                fmt = '>u{}'.format(size)
+            elif data_type in (
+                    v3c.DATA_TYPE_SIGNED_INTEL,
+                    v3c.DATA_TYPE_SIGNED):
+                fmt = '<i{}'.format(size)
+            elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
+                fmt = '>i{}'.format(size)
+            elif data_type in (
+                    v3c.DATA_TYPE_FLOAT,
+                    v3c.DATA_TYPE_DOUBLE,
+                    v3c.DATA_TYPE_FLOAT_INTEL,
+                    v3c.DATA_TYPE_DOUBLE_INTEL):
+                fmt = '<f{}'.format(size)
+            elif data_type in (
+                    v3c.DATA_TYPE_FLOAT_MOTOROLA,
+                    v3c.DATA_TYPE_DOUBLE_MOTOROLA):
+                fmt = '>f{}'.format(size)
 
     return fmt
 
@@ -252,7 +269,7 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
     data_type : int
         mdf channel data type
     size : int
-        data byte size
+        data bit size
     channel_type: int
         mdf channel type
 
@@ -262,40 +279,65 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
         numpy compatible data type format string
 
     """
-    if size == 0:
+    if size <= 1:
         fmt = 'b'
     else:
-        if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
-            fmt = '<u{}'.format(size)
-        elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = '>u{}'.format(size)
-        elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
-            fmt = '<i{}'.format(size)
-        elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = '>i{}'.format(size)
-        elif data_type == v4c.DATA_TYPE_REAL_INTEL:
-            fmt = '<f{}'.format(size)
-        elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
-            fmt = '>f{}'.format(size)
-        elif data_type == v4c.DATA_TYPE_BYTEARRAY:
-            fmt = '({},)u1'.format(size)
-        elif data_type in (
+
+        if data_type in (
+                v4c.DATA_TYPE_BYTEARRAY,
                 v4c.DATA_TYPE_STRING_UTF_8,
                 v4c.DATA_TYPE_STRING_LATIN_1,
                 v4c.DATA_TYPE_STRING_UTF_16_BE,
-                v4c.DATA_TYPE_STRING_UTF_16_LE):
-            if channel_type == v4c.CHANNEL_TYPE_VALUE:
-                fmt = 'S{}'.format(size)
-            else:
-                if size == 4:
-                    fmt = '<u4'
-                elif size == 8:
-                    fmt = '<u8'
+                v4c.DATA_TYPE_STRING_UTF_16_LE,
+                v4c.DATA_TYPE_CANOPEN_DATE,
+                v4c.DATA_TYPE_CANOPEN_TIME):
+            size = size // 8
 
-        elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
-            fmt = 'V7'
-        elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
-            fmt = 'V6'
+            if data_type == v4c.DATA_TYPE_BYTEARRAY:
+                fmt = '({},)u1'.format(size)
+            elif data_type in (
+                    v4c.DATA_TYPE_STRING_UTF_8,
+                    v4c.DATA_TYPE_STRING_LATIN_1,
+                    v4c.DATA_TYPE_STRING_UTF_16_BE,
+                    v4c.DATA_TYPE_STRING_UTF_16_LE):
+                if channel_type == v4c.CHANNEL_TYPE_VALUE:
+                    fmt = 'S{}'.format(size)
+                else:
+                    if size == 4:
+                        fmt = '<u4'
+                    elif size == 8:
+                        fmt = '<u8'
+            elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
+                fmt = 'V7'
+            elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
+                fmt = 'V6'
+
+        else:
+
+            if size <= 8:
+                size = 1
+            elif size <= 16:
+                size = 2
+            elif size <= 32:
+                size = 4
+            elif size <= 64:
+                size = 8
+            else:
+                size = size // 8
+
+            if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
+                fmt = '<u{}'.format(size)
+            elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
+                fmt = '>u{}'.format(size)
+            elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
+                fmt = '<i{}'.format(size)
+            elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
+                fmt = '>i{}'.format(size)
+            elif data_type == v4c.DATA_TYPE_REAL_INTEL:
+                fmt = '<f{}'.format(size)
+            elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
+                fmt = '>f{}'.format(size)
+
     return fmt
 
 

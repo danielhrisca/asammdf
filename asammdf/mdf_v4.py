@@ -1414,7 +1414,7 @@ class MDF4(object):
 
                             next_byte_aligned_position = parent_start_offset + size
                             if next_byte_aligned_position <= record_size:
-                                dtype_pair = name, get_fmt_v4(data_type, size, ch_type)
+                                dtype_pair = name, get_fmt_v4(data_type, bit_count, ch_type)
                                 types.append(dtype_pair)
                                 parents[original_index] = name, bit_offset
                             else:
@@ -1444,7 +1444,7 @@ class MDF4(object):
                                 for d in shape:
                                     dim *= d
 
-                                dtype_pair = name, get_fmt_v4(data_type, size), shape
+                                dtype_pair = name, get_fmt_v4(data_type, bit_count), shape
                                 types.append(dtype_pair)
 
                                 current_parent = name
@@ -1607,10 +1607,16 @@ class MDF4(object):
         record_size = group['channel_group']['samples_byte_nr']
 
         if self.memory == 'minimum':
-            channel = Channel(
-                address=group['channels'][ch_nr],
-                stream=self._file,
-            )
+            if group['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+                channel = Channel(
+                    address=group['channels'][ch_nr],
+                    stream=self._file,
+                )
+            else:
+                channel = Channel(
+                    address=group['channels'][ch_nr],
+                    stream=self._tempfile,
+                )
         else:
             channel = group['channels'][ch_nr]
 
@@ -1699,7 +1705,7 @@ class MDF4(object):
 
         vals = vals.tostring()
 
-        fmt = get_fmt_v4(channel['data_type'], size)
+        fmt = get_fmt_v4(channel['data_type'], bit_count)
         if size <= byte_count:
             if channel['data_type'] in big_endian_types:
                 types = [
@@ -1714,12 +1720,14 @@ class MDF4(object):
         else:
             types = [('vals', fmt), ]
 
-        vals = fromstring(vals, dtype=dtype(types))
+        print(types)
+
+        vals = fromstring(vals, dtype=dtype(types))['vals']
 
         if channel['data_type'] in v4c.SIGNED_INT:
-            return as_non_byte_sized_signed_int(vals['vals'], bit_count)
+            return as_non_byte_sized_signed_int(vals, bit_count)
         else:
-            return vals['vals']
+            return vals
 
     def _validate_channel_selection(self, name=None, group=None, index=None):
         """Gets channel comment.
@@ -3501,11 +3509,14 @@ class MDF4(object):
                 return b'', ''
 
         current_path = os.getcwd()
-        file_path = (
-            texts['file_name_addr']['text']
-                .decode('utf-8')
-                .strip(' \n\t\0')
-        )
+        if 'file_name_addr' in texts:
+            file_path = (
+                texts['file_name_addr']['text']
+                    .decode('utf-8')
+                    .strip(' \n\t\0')
+            )
+        else:
+            file_path = 'embedded'
         try:
             os.chdir(os.path.dirname(self.name))
 
@@ -4394,7 +4405,7 @@ class MDF4(object):
             if channel['channel_type'] in (v4c.CHANNEL_TYPE_VIRTUAL,
                                            v4c.CHANNEL_TYPE_VIRTUAL_MASTER):
                 data_type = channel['data_type']
-                ch_dtype = dtype(get_fmt_v4(data_type, 8))
+                ch_dtype = dtype(get_fmt_v4(data_type, 64))
 
                 channel_values = []
                 timestamps = []
@@ -4472,6 +4483,8 @@ class MDF4(object):
                     except KeyError:
                         parent, bit_offset = None, None
 
+                    bits = channel['bit_count']
+
                     if parent is not None:
                         if 'record' not in grp:
                             if dtypes.itemsize:
@@ -4494,13 +4507,17 @@ class MDF4(object):
                                 signal,
                             )
                         else:
-                            bits = channel['bit_count']
+
                             size = vals.dtype.itemsize
                             for dim in vals.shape[1:]:
                                 size *= dim
                             data_type = channel['data_type']
 
-                            if vals.dtype.kind not in 'ui' and (bit_offset or not bits == size * 8) or \
+                            vals_dtype = vals.dtype.kind
+
+                            if vals_dtype == 'b':
+                                pass
+                            elif vals_dtype not in 'ui' and (bit_offset or not bits == size * 8) or \
                                     (len(vals.shape) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY):
                                 vals = self._get_not_byte_aligned_data(
                                     data_bytes,
@@ -4534,6 +4551,9 @@ class MDF4(object):
                             grp,
                             ch_nr,
                         )
+
+                    if bits == 1:
+                        vals = array(vals, dtype=bool)
 
                     if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
@@ -4613,6 +4633,8 @@ class MDF4(object):
                 conversion_type = v4c.CONVERSION_TYPE_NON
             else:
                 conversion_type = conversion['conversion_type']
+
+
 
             if conversion_type == v4c.CONVERSION_TYPE_NON:
 
@@ -4837,18 +4859,22 @@ class MDF4(object):
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
-            res = Signal(
-                samples=vals,
-                timestamps=timestamps,
-                unit=unit,
-                name=name,
-                comment=comment,
-                conversion=conversion,
-                raw=raw,
-                master_metadata=master_metadata,
-                attachment=attachment,
-                source=source,
-            )
+            try:
+                res = Signal(
+                    samples=vals,
+                    timestamps=timestamps,
+                    unit=unit,
+                    name=name,
+                    comment=comment,
+                    conversion=conversion,
+                    raw=raw,
+                    master_metadata=master_metadata,
+                    attachment=attachment,
+                    source=source,
+                )
+            except:
+                print(grp['types'])
+                raise
 
         return res
 
