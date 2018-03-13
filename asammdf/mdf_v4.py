@@ -888,7 +888,7 @@ class MDF4(object):
                         attachment_addr = channel['attachment_0_addr']
                         if attachment_addr not in self._dbc_cache:
                             attachment, at_name = self.extract_attachment(address=attachment_addr)
-                            if not at_name.lower().endswith(('dbc', 'arxml')):
+                            if not at_name.lower().endswith(('dbc', 'arxml')) or not attachment:
                                 warnings.warn('Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name))
                                 grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                             else:
