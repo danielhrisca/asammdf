@@ -67,7 +67,10 @@ class MDF(object):
         if name:
             if os.path.isfile(name):
                 with open(name, 'rb') as file_stream:
-                    file_stream.read(8)
+                    magic_header = file_stream.read(3)
+                    if magic_header != b'MDF':
+                        raise MdfException('"{}" is not a valid ASAM MDF file'.format(name))
+                    file_stream.seek(8)
                     version = file_stream.read(4).decode('ascii').strip(' \0')
                     if not version:
                         file_stream.read(16)
