@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 ASAM MDF version 4 file format module
 """
@@ -3570,7 +3569,7 @@ class MDF4(object):
             print('ATTACHMENT block:')
             print(attachment)
             print(texts)
-            print(os.path.exists(file_path))
+            print(file_path, os.path.exists(file_path))
             return b'', file_path
 
     def get_channel_unit(self, name=None, group=None, index=None):
