@@ -89,9 +89,6 @@ MASTER_CHANNELS = (
     v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
 )
 
-TX = re.compile('<TX>(?P<text>(.|\n)+?)</TX>')
-CAN_INFO = re.compile('<e name="MessageID" ci="(?P<can_id>\d+)">(?P<message_id>\d+)</e>')
-
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
     # pylint: disable=W0622
@@ -3725,11 +3722,21 @@ class MDF4(object):
                     .strip(' \r\n\t\0')
                 )
                 if comment_block['id'] == b'##MD':
-                    match = TX.search(comment)
-                    if match:
-                        comment = match.group('text')
+                    comment = ET.fromstring(comment)
+                    match = comment.find('.//TX')
+                    if match is None:
+                        common_properties = comment.find('.//common_properties')
+                        if common_properties is not None:
+                            comment = []
+                            for e in common_properties:
+                                field = '{}: {}'.format(e.get('name'), e.text)
+                                comment.append(field)
+                            comment = '\n'.join(field)
+                        else:
+                            comment = ''
                     else:
-                        comment = ''
+                        comment = match.text or ''
+
             else:
                 comment = ''
         else:
