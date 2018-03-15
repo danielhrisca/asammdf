@@ -6,6 +6,7 @@ asammdf utility functions and classes
 import string
 import warnings
 
+from datetime import datetime
 from struct import unpack
 
 from numpy import (

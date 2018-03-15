@@ -5,6 +5,7 @@ import csv
 import os
 import sys
 from collections import OrderedDict
+from datetime import datetime
 from warnings import warn
 from functools import reduce
 from struct import unpack
@@ -219,6 +220,8 @@ class MDF(object):
 
         out = MDF(version=version, memory=memory)
 
+        out.start_time = self.start_time
+
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
             excluded_channels = self._excluded_channels(i)
@@ -375,6 +378,8 @@ class MDF(object):
             memory=self.memory,
         )
 
+        out.start_time = self.start_time
+
         if whence == 1:
             timestamps = []
             for i, group in enumerate(self.groups):
@@ -392,6 +397,8 @@ class MDF(object):
                 start += first_timestamp
             if stop is not None:
                 stop += first_timestamp
+
+        out.start_time = self.start_time
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
@@ -931,6 +938,8 @@ class MDF(object):
             memory=memory,
         )
 
+        mdf.start_time = self.start_time
+
         if self.name:
             origin = os.path.basename(self.name)
         else:
@@ -1064,6 +1073,8 @@ class MDF(object):
             version=version,
             memory=memory,
         )
+
+        merged.start_time = files[0].start_time
 
         for i, groups in enumerate(zip(*(file.groups for file in files))):
             channels_nr = set(len(group['channels']) for group in groups)
@@ -1235,7 +1246,7 @@ class MDF(object):
         return merged
 
     @staticmethod
-    def merge(files, outversion='4.10', memory='full'):
+    def merge(files, outversion='4.10', memory='full', sync=False):
         """ merge several files and return the merged *MDF* object
 
         Parameters
@@ -1261,6 +1272,8 @@ class MDF(object):
             for file in files
         )
 
+
+
         if memory not in ('full', 'low', 'minimum'):
             memory = 'full'
 
@@ -1280,7 +1293,10 @@ class MDF(object):
             memory=memory,
         )
 
+        start_time = datetime.now()
+
         for mdf in files:
+            start_time = min(start_time, mdf.start_time)
             for i, group in enumerate(mdf.groups):
                 idx = 0
                 channels_nr = len(group['channels'])
@@ -1367,6 +1383,7 @@ class MDF(object):
 
                     del group['record']
 
+        merged.start_time = start_time
         return merged
 
     def iter_channels(self, skip_master=True):
@@ -1475,6 +1492,8 @@ class MDF(object):
             version=self.version,
             memory=memory,
         )
+
+        mdf.start_time = self.start_time
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):

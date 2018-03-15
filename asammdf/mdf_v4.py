@@ -11,6 +11,7 @@ import sys
 import warnings
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
+from datetime import datetime
 from functools import reduce
 from hashlib import md5
 from math import ceil
@@ -1813,6 +1814,33 @@ class MDF4(object):
                         raise MdfException(message)
 
         return gp_nr, ch_nr
+
+    @property
+    def start_time(self):
+        """ get the measurement start timestamp
+
+        Returns
+        -------
+        timestamp : datetime
+            start timestamp
+
+        """
+
+        timestamp = self.header['abs_time'] / 10 ** 9
+        utc_offset = self.header['tz_offset'] * 3600
+
+        timestamp = datetime.fromtimestamp(timestamp - utc_offset)
+
+        return timestamp
+
+    @start_time.setter
+    def start_time(self, timestamp):
+        timestamp = timestamp - datetime(1970, 1, 1)
+        timestamp = timestamp.total_seconds()
+        self.header['abs_time'] = timestamp
+        self.header['tz_offset'] = 0
+
+
 
     def get_valid_indexes(self, group_index, channel, fragment):
         """ get invalidation indexes for the channel
