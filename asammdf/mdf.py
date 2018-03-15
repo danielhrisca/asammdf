@@ -4,6 +4,7 @@
 import csv
 import os
 import sys
+from collections import OrderedDict
 from warnings import warn
 from functools import reduce
 from struct import unpack
@@ -1006,8 +1007,8 @@ class MDF(object):
         return mdf
 
     @staticmethod
-    def merge(files, outversion='4.10', memory='full'):
-        """ merge several files and return the merged *MDF* object. The files
+    def concatenate(files, outversion='4.10', memory='full'):
+        """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
 
@@ -1022,13 +1023,13 @@ class MDF(object):
 
         Returns
         -------
-        merged : MDF
-            new *MDF* object with merged channels
+        concatenate : MDF
+            new *MDF* object with concatenated channels
 
         Raises
         ------
         MdfException : if there are inconsistencies between the files
-            merged MDF object
+
         """
         if not files:
             raise MdfException('No files given for merge')
@@ -1149,6 +1150,141 @@ class MDF(object):
             for group, mdf in zip(groups, files):
                 if read_size:
                     mdf.configure(read_fragment_size=int(read_size))
+
+                parents, dtypes = mdf._prepare_record(group)
+                group['parents'], group['types'] = parents, dtypes
+
+                data = mdf._load_group_data(group)
+
+                for fragment in data:
+                    if dtypes.itemsize:
+                        group['record'] = np.core.records.fromstring(
+                            fragment[0],
+                            dtype=dtypes,
+                        )
+                    else:
+                        group['record'] = None
+                    if idx == 0:
+                        signals = []
+                        for j in range(channels_nr):
+                            if j in excluded_channels:
+                                continue
+                            sig = mdf.get(
+                                group=i,
+                                index=j,
+                                data=fragment,
+                                raw=True,
+                            )
+
+                            if version < '4.00' and sig.samples.dtype.kind == 'S':
+                                string_dtypes = []
+                                for tmp_mdf in files:
+                                    strsig = tmp_mdf.get(
+                                        group=i,
+                                        index=j,
+                                        samples_only=True,
+                                    )
+                                    string_dtypes.append(strsig.dtype)
+
+                                sig.samples = sig.samples.astype(max(string_dtypes))
+
+                                del strsig
+                                del string_dtypes
+
+                            if not sig.samples.flags.writeable:
+                                sig.samples = sig.samples.copy()
+                            signals.append(sig)
+
+                        if len(signals[0]):
+                            last_timestamp = signals[0].timestamps[-1]
+                            delta = last_timestamp / len(signals[0])
+
+                        merged.append(signals, common_timebase=True)
+                        idx += 1
+                    else:
+                        master = mdf.get_master(i, fragment)
+                        if len(master):
+                            if last_timestamp is None:
+                                last_timestamp = master[-1]
+                                delta = last_timestamp / len(master)
+                            else:
+                                if last_timestamp >= master[0]:
+                                    master += last_timestamp + delta - master[0]
+                                last_timestamp = master[-1]
+
+                            signals = [master, ]
+
+                            for j in range(channels_nr):
+                                if j in excluded_channels:
+                                    continue
+                                signals.append(
+                                    mdf.get(
+                                        group=i,
+                                        index=j,
+                                        data=fragment,
+                                        raw=True,
+                                        samples_only=True,
+                                    )
+                                )
+
+                            merged.extend(i, signals)
+                        idx += 1
+
+                    del group['record']
+
+        return merged
+
+    @staticmethod
+    def merge(files, outversion='4.10', memory='full'):
+        """ merge several files and return the merged *MDF* object
+
+        Parameters
+        ----------
+        files : list | tuple
+            list of *MDF* file names or *MDF* instances
+        outversion : str
+            merged file version
+        memory : str
+            memory option; default *full*
+
+        Returns
+        -------
+        merged : MDF
+            new *MDF* object with merge channels
+
+        """
+        if not files:
+            raise MdfException('No files given for merge')
+
+        files = (
+            file if isinstance(file, MDF) else MDF(file, memory)
+            for file in files
+        )
+
+        if memory not in ('full', 'low', 'minimum'):
+            memory = 'full'
+
+        if outversion not in SUPPORTED_VERSIONS:
+            message = (
+                'Unknown output mdf version "{}".'
+                ' Available versions are {}.'
+                ' Automatically using version 4.10'
+            )
+            warn(message.format(outversion, SUPPORTED_VERSIONS))
+            version = '4.10'
+        else:
+            version = outversion
+
+        merged = MDF(
+            version=version,
+            memory=memory,
+        )
+
+        for mdf in files:
+            for i, group in enumerate(mdf.groups):
+                idx = 0
+                channels_nr = len(group['channels'])
+                excluded_channels = mdf._excluded_channels(i)
 
                 parents, dtypes = mdf._prepare_record(group)
                 group['parents'], group['types'] = parents, dtypes

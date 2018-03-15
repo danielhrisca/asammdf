@@ -497,7 +497,7 @@ class TestMDF(unittest.TestCase):
                     outfile4.configure(read_fragment_size=8000)
                     outfile4 = outfile4.cut(start=7000, whence=whence).save('tmp4', overwrite=True)
 
-                    outfile = MDF.merge(
+                    outfile = MDF.concatenate(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
                         MDF(input_file, memory='minimum').version,
                         memory=memory,
@@ -609,7 +609,7 @@ class TestMDF(unittest.TestCase):
                     outfile3.configure(read_fragment_size=8000)
                     outfile3 = outfile3.cut(start=201, whence=whence).save('tmp3', overwrite=True)
 
-                    outfile = MDF.merge(
+                    outfile = MDF.concatenate(
                         [outfile1, outfile2, outfile3],
                         MDF(input_file, memory='minimum').version,
                         memory=memory,
@@ -735,7 +735,7 @@ class TestMDF(unittest.TestCase):
                     outfile2 = MDF(input_file, memory=memory).cut(start=2, stop=6, whence=whence).save('tmp2', overwrite=True)
                     outfile3 = MDF(input_file, memory=memory).cut(start=6, whence=whence).save('tmp3', overwrite=True)
 
-                    outfile = MDF.merge(
+                    outfile = MDF.concatenate(
                         [outfile1, outfile2, outfile3],
                         MDF(input_file, memory='minimum').version,
                         memory=memory,
