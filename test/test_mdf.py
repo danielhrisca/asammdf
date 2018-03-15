@@ -69,25 +69,6 @@ class TestMDF(unittest.TestCase):
         os.remove('test.zip')
         cleanup_files()
 
-    def test_get_channel_comment_v4(self):
-        print("MDF get channel comment tests")
-
-        ret = True
-
-        for mdf in os.listdir('tmpdir_demo'):
-            for memory in MEMORY:
-                with MDF(os.path.join('tmpdir_demo', mdf), memory=memory) as input_file:
-                    if input_file.version < '4.00':
-                        continue
-                    print(mdf, memory)
-                    for channel_name, original_comment in COMMENTS.items():
-                        comment = input_file.get_channel_comment(channel_name)
-                        if comment != original_comment:
-                            ret = False
-
-        self.assertTrue(ret)
-        cleanup_files()
-
     def test_get_channel_units(self):
         print("MDF get channel units tests")
 

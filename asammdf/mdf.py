@@ -22,6 +22,7 @@ from .utils import (
     MdfException,
     get_text_v3,
     get_text_v4,
+    matlab_compatible,
 )
 from .v2_v3_blocks import Channel as ChannelV3
 from .v4_blocks import Channel as ChannelV4
@@ -788,6 +789,8 @@ class MDF(object):
                         channel_name = master.format(i, sig.name)
                     else:
                         channel_name = channel.format(i, sig.name)
+
+                    channel_name = matlab_compatible(channel_name)
                     mdict[channel_name] = sig.samples
 
             savemat(
@@ -796,6 +799,7 @@ class MDF(object):
                 long_field_names=True,
                 do_compression=True,
             )
+
         else:
             message = (
                 'Unsopported export type "{}". '

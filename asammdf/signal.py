@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """ asammdf *Signal* class module for time correct signal processing """
 
+import xml.etree.ElementTree as ET
+from textwrap import fill
+
 import numpy as np
 import warnings
 
@@ -218,11 +221,36 @@ class Signal(object):
                      fontsize=8, color='red',
                      ha='right', va='top', alpha=0.5)
 
+            name = self.name
+
             if self.comment:
                 comment = self.comment.replace('$', '')
-                plt.title('{}\n({})'.format(self.name, comment))
+                if comment.startswith('<CNcomment'):
+                    comment = ET.fromstring(comment)
+                    match = comment.find('.//TX')
+                    if match is None:
+                        common_properties = comment.find('.//common_properties')
+                        if common_properties is not None:
+                            comment = []
+                            for e in common_properties:
+                                field = '{}: {}'.format(e.get('name'), e.text)
+                                comment.append(field)
+                            comment = '\n'.join(field)
+                        else:
+                            comment = ''
+                    else:
+                        display_name = comment.find('.//names/display')
+                        if display_name is not None:
+                            name = '{} ({})'.format(display_name.text, name)
+                        comment = match.text
+
+                comment = fill(comment, 120).replace('\\n', ' ')
+
+                title = '{}\n({})'.format(name, comment)
+
+                plt.title(title)
             else:
-                plt.title(self.name)
+                plt.title(name)
             try:
                 if self.master_metadata is None:
                     plt.xlabel('Time [s]')

@@ -825,19 +825,23 @@ class MDF4(object):
                 if address:
                     channel.unit = get_text_v4(address, stream)
 
-                address = channel['comment_addr']
-                if address:
-                    block = TextBlock(
-                        address=address,
-                        stream=stream,
-                    )
-                    name = (
-                        block['text']
-                        .decode('utf-8')
-                        .strip(' \t\n\r\0')
-                    )
-                    channel.comment = name
-                    channel.comment_type = block['id']
+            address = channel['comment_addr']
+            if address:
+                comment = get_text_v4(
+                    address=address,
+                    stream=stream,
+                )
+
+                if comment.startswith('<CNcomment'):
+                    display_name = ET.fromstring(comment).find('.//names/display')
+                    if display_name is not None:
+                        display_name = display_name.text
+                        if display_name not in self.channels_db:
+                            self.channels_db[display_name] = []
+                        self.channels_db[display_name].append((dg_cntr, ch_cntr))
+
+                if memory != 'minimum':
+                    channel.comment = comment
 
             channel.name = name = get_text_v4(channel['name_addr'], stream)
 
@@ -4111,7 +4115,7 @@ class MDF4(object):
                     if not samples_only or raster:
                         timestamps = timestamps[valid_indexes]
 
-                if raster:
+                if raster and len(timestamps):
                     t = arange(
                         timestamps[0],
                         timestamps[-1],
@@ -4376,7 +4380,7 @@ class MDF4(object):
                     if not samples_only or raster:
                         timestamps = timestamps[valid_indexes]
 
-                if raster:
+                if raster and len(timestamps):
                     t = arange(
                         timestamps[0],
                         timestamps[-1],
@@ -4818,12 +4822,21 @@ class MDF4(object):
                         stream=stream,
                     )
 
-                    if channel.comment_type == b'##MD':
-                        match = TX.search(comment)
-                        if match:
-                            comment = match.group('text')
+                    if comment.startswith('CNcomment'):
+                        comment = ET.fromstring(comment)
+                        match = comment.find('.//TX')
+                        if match is None:
+                            common_properties = comment.find('.//common_properties')
+                            if common_properties is not None:
+                                comment = []
+                                for e in common_properties:
+                                    field = '{}: {}'.format(e.get('name'), e.text)
+                                    comment.append(field)
+                                comment = '\n'.join(field)
+                            else:
+                                comment = ''
                         else:
-                            comment = ''
+                            comment = match.text or ''
                 else:
                     comment = ''
 
@@ -4840,7 +4853,8 @@ class MDF4(object):
                 else:
                     source = None
             else:
-                name = channel.name
+                if name is None:
+                    name = channel.name
 
                 unit = (
                     conversion and conversion.unit
@@ -4848,10 +4862,6 @@ class MDF4(object):
                     or ''
                 )
                 comment = channel.comment
-                if channel.comment_type == b'##MD':
-                    match = TX.search(comment)
-                    if match:
-                        comment = match.group('text')
 
                 if ch_nr >= 0:
                     source = grp['channel_sources'][ch_nr]
@@ -5544,7 +5554,7 @@ class MDF4(object):
                         channel['unit_addr'] = 0
 
                     if channel.comment:
-                        meta = channel.comment_type == b'##MD'
+                        meta = channel.comment.startswith('<CNcomment')
                         tx_block = TextBlock(text=channel.comment, meta=meta)
                         text = tx_block['text']
                         if text in defined_texts:

@@ -2936,7 +2936,7 @@ class MDF3(object):
 
             if not samples_only or raster:
                 timestamps = self.get_master(gp_nr, original_data)
-                if raster:
+                if raster and len(timestamps):
                     t = arange(
                         timestamps[0],
                         timestamps[-1],
@@ -3038,7 +3038,7 @@ class MDF3(object):
                 else:
                     timestamps = timestamps[0]
 
-                if raster:
+                if raster and len(timestamps):
                     t = arange(
                         timestamps[0],
                         timestamps[-1],

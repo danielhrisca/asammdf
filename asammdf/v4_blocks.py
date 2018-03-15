@@ -156,12 +156,12 @@ class AttachmentBlock(dict):
 
 class Channel(dict):
     """ CNBLOCK class"""
-    __slots__ = ['address', 'name', 'unit', 'comment', 'comment_type']
+    __slots__ = ['address', 'name', 'unit', 'comment']
 
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
-        self.name = self.unit = self.comment = self.comment_type = ''
+        self.name = self.unit = self.comment = ''
 
         if 'stream' in kargs:
 

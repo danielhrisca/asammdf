@@ -3,6 +3,7 @@
 asammdf utility functions and classes
 '''
 
+import string
 import warnings
 
 from struct import unpack
@@ -32,6 +33,7 @@ __all__ = [
     'fmt_to_datatype_v3',
     'fmt_to_datatype_v4',
     'bytes',
+    'matlab_compatible',
 ]
 
 CHANNEL_COUNT = (
@@ -80,6 +82,9 @@ MERGE_MINIMUM = (
 )
 
 
+ALLOWED_MATLAB_CHARS = string.ascii_letters + string.digits + '_'
+
+
 class MdfException(Exception):
     """MDF Exception class"""
     pass
@@ -96,6 +101,29 @@ def bytes(obj):
         else:
             raise
 # pylint: enable=W0622
+
+
+def matlab_compatible(name):
+    """ make a channel name compatible with Matlab variable naming
+
+    Parameters
+    ----------
+    name : str
+        channel name
+
+    Returns
+    -------
+    compatible_name : str
+        channel name compatible with Matlab
+
+    """
+
+    compatible_name = [
+        ch for ch in name if ch in ALLOWED_MATLAB_CHARS
+    ]
+    compatible_name = ''.join(compatible_name)
+
+    return ''.join(compatible_name)
 
 
 def get_text_v3(address, stream):
