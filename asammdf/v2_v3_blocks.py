@@ -1785,7 +1785,7 @@ class HeaderBlock(dict):
         self['time'] = timestamp.strftime('%H:%M:%S')
         if self['block_len'] > v23c.HEADER_COMMON_SIZE:
             timestamp = timestamp - datetime(1970, 1, 1)
-            timestamp = timestamp.total_seconds()
+            timestamp = int(timestamp.total_seconds() * 10 ** 9)
             self['abs_time'] = timestamp
             self['tz_offset'] = 0
 
