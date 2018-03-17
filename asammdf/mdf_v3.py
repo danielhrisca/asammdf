@@ -1080,48 +1080,6 @@ class MDF3(object):
 
             group['trigger'] = [trigger, trigger_text]
 
-    @property
-    def start_time(self):
-        """ get the measurement start timestamp
-
-        Returns
-        -------
-        timestamp : datetime
-            start timestamp
-
-        """
-
-        if self.version >= '3.20':
-
-            timestamp = self.header['abs_time'] / 10 ** 9
-            utc_offset = self.header['tz_offset'] * 3600
-
-            timestamp = datetime.fromtimestamp(timestamp - utc_offset)
-
-        else:
-
-            timestamp = '{} {}'.format(
-                self.header['date'].decode('ascii'),
-                self.header['time'].decode('ascii'),
-            )
-
-            timestamp = datetime.strptime(
-                timestamp,
-                '%d:%m:%Y %H:%M:%S',
-            )
-
-        return timestamp
-
-    @start_time.setter
-    def start_time(self, timestamp):
-        self.header['date'] = timestamp.strftime('%d:%m:%Y')
-        self.header['time'] = timestamp.strftime('%H:%M:%S')
-        if self.version >= '3.20':
-            timestamp = timestamp - datetime(1970, 1, 1)
-            timestamp = timestamp.total_seconds()
-            self.header['abs_time'] = timestamp
-            self.header['tz_offset'] = 0
-
     def append(
             self,
             signals,

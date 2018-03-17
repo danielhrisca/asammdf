@@ -27,8 +27,10 @@ from .utils import (
     matlab_compatible,
 )
 from .v2_v3_blocks import Channel as ChannelV3
+from .v2_v3_blocks import HeaderBlock as HeaderV3
 from .v4_blocks import Channel as ChannelV4
-from .v4_blocks import ChannelArrayBlock, TextBlock, SourceInformation
+from .v4_blocks import HeaderBlock as HeaderV4
+from .v4_blocks import ChannelArrayBlock, TextBlock, SourceInformation, FileIdentificationBlock
 from . import v4_constants as v4c
 
 PYVERSION = sys.version_info[0]
@@ -220,7 +222,7 @@ class MDF(object):
 
         out = MDF(version=version, memory=memory)
 
-        out.start_time = self.start_time
+        out.header.start_time = self.header.start_time
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
@@ -378,7 +380,7 @@ class MDF(object):
             memory=self.memory,
         )
 
-        out.start_time = self.start_time
+        out.header.start_time = self.header.start_time
 
         if whence == 1:
             timestamps = []
@@ -398,7 +400,7 @@ class MDF(object):
             if stop is not None:
                 stop += first_timestamp
 
-        out.start_time = self.start_time
+        out.header.start_time = self.header.start_time
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
@@ -938,7 +940,7 @@ class MDF(object):
             memory=memory,
         )
 
-        mdf.start_time = self.start_time
+        mdf.header.start_time = self.header.start_time
 
         if self.name:
             origin = os.path.basename(self.name)
@@ -1074,7 +1076,7 @@ class MDF(object):
             memory=memory,
         )
 
-        merged.start_time = files[0].start_time
+        merged.header.start_time = files[0].header.start_time
 
         for i, groups in enumerate(zip(*(file.groups for file in files))):
             channels_nr = set(len(group['channels']) for group in groups)
@@ -1267,12 +1269,40 @@ class MDF(object):
         if not files:
             raise MdfException('No files given for merge')
 
+        timestamps = []
+        for file in files:
+            if isinstance(file, MDF):
+                timestamps.append(file.header.start_time)
+            else:
+                with open(file, 'rb') as mdf:
+                    mdf.seek(64)
+                    blk_id = mdf.read(2)
+                    if blk_id == b'HD':
+                        header = HeaderV3
+                    else:
+                        blk_id += mdf.read(2)
+                        if blk_id == b'##HD':
+                            header = HeaderV4
+                        else:
+                            raise MdfException('"{}" is not a valid MDF file'.format(file))
+
+                    header = header(
+                        address=64,
+                        stream=mdf,
+                    )
+
+                    timestamps.append(header.start_time)
+
+        oldest = min(timestamps)
+        offsets = [
+            (timestamp - oldest).total_seconds()
+            for timestamp in timestamps
+        ]
+
         files = (
             file if isinstance(file, MDF) else MDF(file, memory)
             for file in files
         )
-
-
 
         if memory not in ('full', 'low', 'minimum'):
             memory = 'full'
@@ -1292,11 +1322,9 @@ class MDF(object):
             version=version,
             memory=memory,
         )
+        merged.header.start_time = oldest
 
-        start_time = datetime.now()
-
-        for mdf in files:
-            start_time = min(start_time, mdf.start_time)
+        for offset, mdf in zip(offsets, files):
             for i, group in enumerate(mdf.groups):
                 idx = 0
                 channels_nr = len(group['channels'])
@@ -1326,6 +1354,7 @@ class MDF(object):
                                 data=fragment,
                                 raw=True,
                             )
+                            sig.timestamps = sig.timestamps + offset
 
                             if version < '4.00' and sig.samples.dtype.kind == 'S':
                                 string_dtypes = []
@@ -1346,22 +1375,11 @@ class MDF(object):
                                 sig.samples = sig.samples.copy()
                             signals.append(sig)
 
-                        if len(signals[0]):
-                            last_timestamp = signals[0].timestamps[-1]
-                            delta = last_timestamp / len(signals[0])
-
                         merged.append(signals, common_timebase=True)
                         idx += 1
                     else:
-                        master = mdf.get_master(i, fragment)
+                        master = mdf.get_master(i, fragment) + offset
                         if len(master):
-                            if last_timestamp is None:
-                                last_timestamp = master[-1]
-                                delta = last_timestamp / len(master)
-                            else:
-                                if last_timestamp >= master[0]:
-                                    master += last_timestamp + delta - master[0]
-                                last_timestamp = master[-1]
 
                             signals = [master, ]
 
@@ -1383,7 +1401,6 @@ class MDF(object):
 
                     del group['record']
 
-        merged.start_time = start_time
         return merged
 
     def iter_channels(self, skip_master=True):
@@ -1493,7 +1510,7 @@ class MDF(object):
             memory=memory,
         )
 
-        mdf.start_time = self.start_time
+        mdf.header.start_time = self.header.start_time
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):

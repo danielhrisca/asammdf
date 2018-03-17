@@ -7,6 +7,7 @@ from __future__ import division, print_function
 import sys
 import time
 import warnings
+from datetime import datetime
 from hashlib import md5
 from struct import pack, unpack, unpack_from
 from zlib import compress, decompress
@@ -2166,6 +2167,31 @@ class HeaderBlock(dict):
             self['reserved4'] = kargs.get('reserved4', 0)
             self['start_angle'] = kargs.get('start_angle', 0)
             self['start_distance'] = kargs.get('start_distance', 0)
+
+    @property
+    def start_time(self):
+        """ get the measurement start timestamp
+
+        Returns
+        -------
+        timestamp : datetime
+            start timestamp
+
+        """
+
+        timestamp = self['abs_time'] / 10 ** 9
+        utc_offset = self['tz_offset'] * 3600
+
+        timestamp = datetime.fromtimestamp(timestamp - utc_offset)
+
+        return timestamp
+
+    @start_time.setter
+    def start_time(self, timestamp):
+        timestamp = timestamp - datetime(1970, 1, 1)
+        timestamp = timestamp.total_seconds()
+        self['abs_time'] = timestamp
+        self['tz_offset'] = 0
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:

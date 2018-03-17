@@ -6,6 +6,7 @@ from __future__ import division, print_function
 import re
 import sys
 import time
+from datetime import datetime
 from getpass import getuser
 from struct import pack, unpack, unpack_from
 
@@ -1745,6 +1746,48 @@ class HeaderBlock(dict):
                     .format('Local PC Reference Time')
                     .encode('latin-1')
                 )
+
+    @property
+    def start_time(self):
+        """ get the measurement start timestamp
+
+        Returns
+        -------
+        timestamp : datetime
+            start timestamp
+
+        """
+
+        if self['block_len'] > v23c.HEADER_COMMON_SIZE:
+
+            timestamp = self['abs_time'] / 10 ** 9
+            utc_offset = self['tz_offset'] * 3600
+
+            timestamp = datetime.fromtimestamp(timestamp - utc_offset)
+
+        else:
+
+            timestamp = '{} {}'.format(
+                self['date'].decode('ascii'),
+                self['time'].decode('ascii'),
+            )
+
+            timestamp = datetime.strptime(
+                timestamp,
+                '%d:%m:%Y %H:%M:%S',
+            )
+
+        return timestamp
+
+    @start_time.setter
+    def start_time(self, timestamp):
+        self['date'] = timestamp.strftime('%d:%m:%Y')
+        self['time'] = timestamp.strftime('%H:%M:%S')
+        if self['block_len'] > v23c.HEADER_COMMON_SIZE:
+            timestamp = timestamp - datetime(1970, 1, 1)
+            timestamp = timestamp.total_seconds()
+            self['abs_time'] = timestamp
+            self['tz_offset'] = 0
 
     def __bytes__(self):
         fmt = v23c.HEADER_COMMON_FMT
