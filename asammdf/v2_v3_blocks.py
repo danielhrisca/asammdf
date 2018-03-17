@@ -1781,8 +1781,8 @@ class HeaderBlock(dict):
 
     @start_time.setter
     def start_time(self, timestamp):
-        self['date'] = timestamp.strftime('%d:%m:%Y')
-        self['time'] = timestamp.strftime('%H:%M:%S')
+        self['date'] = timestamp.strftime('%d:%m:%Y').encode('ascii')
+        self['time'] = timestamp.strftime('%H:%M:%S').encode('ascii')
         if self['block_len'] > v23c.HEADER_COMMON_SIZE:
             timestamp = timestamp - datetime(1970, 1, 1)
             timestamp = int(timestamp.total_seconds() * 10 ** 9)
