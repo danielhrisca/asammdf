@@ -1052,6 +1052,17 @@ class MDF(object):
             for file in files
         ]
 
+        timestamps = [
+            file.header.start_time
+            for file in files
+        ]
+
+        oldest = min(timestamps)
+        offsets = [
+            (timestamp - oldest).total_seconds()
+            for timestamp in timestamps
+        ]
+
         if not len(set(len(file.groups) for file in files)) == 1:
             message = (
                 "Can't merge files: "
@@ -1081,6 +1092,7 @@ class MDF(object):
         merged.header.start_time = files[0].header.start_time
 
         for i, groups in enumerate(zip(*(file.groups for file in files))):
+
             channels_nr = set(len(group['channels']) for group in groups)
             if not len(channels_nr) == 1:
                 message = (
@@ -1162,7 +1174,7 @@ class MDF(object):
 
             idx = 0
             last_timestamp = None
-            for group, mdf in zip(groups, files):
+            for offset, group, mdf in zip(offsets, groups, files):
                 if read_size:
                     mdf.configure(read_fragment_size=int(read_size))
 
@@ -1191,6 +1203,9 @@ class MDF(object):
                                 raw=True,
                             )
 
+                            if offset:
+                                sig.timestamps = sig.timestamps + offset
+
                             if version < '4.00' and sig.samples.dtype.kind == 'S':
                                 string_dtypes = []
                                 for tmp_mdf in files:
@@ -1218,6 +1233,8 @@ class MDF(object):
                         idx += 1
                     else:
                         master = mdf.get_master(i, fragment)
+                        if offset:
+                            master = master + offset
                         if len(master):
                             if last_timestamp is None:
                                 last_timestamp = master[-1]
