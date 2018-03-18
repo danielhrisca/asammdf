@@ -281,6 +281,15 @@ class Channel(dict):
             result = 0
         return result
 
+    def __str__(self):
+        return 'Channel (name: {}, display name: {}, comment: {}, address: {}, fields: {})'.format(
+            self.name,
+            self.display_name,
+            self.comment,
+            hex(self.address),
+            super(Channel, self).__str__(),
+        )
+
 
 class ChannelConversion(dict):
     ''' CCBLOCK class derived from *dict*
@@ -990,6 +999,13 @@ class ChannelConversion(dict):
             result = pack(fmt, *[self[key] for key in keys])
         return result
 
+    def __str__(self):
+        return 'ChannelConversion (referneced blocks: {}, address: {}, fields: {})'.format(
+            self.referenced_blocks,
+            hex(self.address),
+            super(ChannelConversion, self).__str__(),
+        )
+
 
 class ChannelDependency(dict):
     ''' CDBLOCK class derived from *dict*
@@ -1277,6 +1293,15 @@ class ChannelExtension(dict):
         else:
             result = pack(fmt, *[self[key] for key in keys])
         return result
+
+    def __str__(self):
+        return 'ChannelExtension (name: {}, path: {}, comment: {}, address: {}, fields: {})'.format(
+            self.name,
+            self.path,
+            self.comment,
+            hex(self.address),
+            super(ChannelExtension, self).__str__(),
+        )
 
 
 class ChannelGroup(dict):
@@ -1759,14 +1784,10 @@ class HeaderBlock(dict):
         """
 
         if self['block_len'] > v23c.HEADER_COMMON_SIZE:
-
             timestamp = self['abs_time'] / 10 ** 9
-            utc_offset = self['tz_offset'] * 3600
-
-            timestamp = datetime.fromtimestamp(timestamp - utc_offset)
+            timestamp = datetime.fromtimestamp(timestamp)
 
         else:
-
             timestamp = '{} {}'.format(
                 self['date'].decode('ascii'),
                 self['time'].decode('ascii'),
@@ -1785,7 +1806,7 @@ class HeaderBlock(dict):
         self['time'] = timestamp.strftime('%H:%M:%S').encode('ascii')
         if self['block_len'] > v23c.HEADER_COMMON_SIZE:
             timestamp = timestamp - datetime(1970, 1, 1)
-            timestamp = int(timestamp.total_seconds() * 10 ** 9)
+            timestamp = int(timestamp.total_seconds() * 10**9)
             self['abs_time'] = timestamp
             self['tz_offset'] = 0
 

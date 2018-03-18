@@ -329,6 +329,15 @@ class Channel(dict):
             result = pack(fmt, *[self[key] for key in keys])
         return result
 
+    def __str__(self):
+        return 'Channel (name: {}, unit: {}, comment: {}, address: {}, fields: {})'.format(
+            self.name,
+            self.unit,
+            self.comment,
+            hex(self.address),
+            super(Channel, self).__str__(),
+        )
+
     def __lt__(self, other):
         self_byte_offset = self['byte_offset']
         other_byte_offset = other['byte_offset']
@@ -1661,6 +1670,17 @@ class ChannelConversion(dict):
             result = pack(fmt, *[self[key] for key in keys])
         return result
 
+    def __str__(self):
+        return 'ChannelConversion (name: {}, unit: {}, comment: {}, formula: {}, referenced blocks: {}, address: {}, fields: {})'.format(
+            self.name,
+            self.unit,
+            self.comment,
+            self.formula,
+            self.referenced_blocks,
+            hex(self.address),
+            super(Channel, self).__str__(),
+        )
+
 
 class DataBlock(dict):
     """DTBLOCK class
@@ -2179,19 +2199,18 @@ class HeaderBlock(dict):
 
         """
 
-        timestamp = self['abs_time'] / 10 ** 9
-        utc_offset = self['tz_offset'] * 3600
-
-        timestamp = datetime.fromtimestamp(timestamp - utc_offset)
+        timestamp = self['abs_time'] / 10**9
+        timestamp = datetime.fromtimestamp(timestamp)
 
         return timestamp
 
     @start_time.setter
     def start_time(self, timestamp):
         timestamp = timestamp - datetime(1970, 1, 1)
-        timestamp = int(timestamp.total_seconds() * 10 ** 9)
+        timestamp = int(timestamp.total_seconds() * 10**9)
         self['abs_time'] = timestamp
         self['tz_offset'] = 0
+        self['daylight_save_time'] = 0
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
@@ -2346,6 +2365,15 @@ class SourceInformation(dict):
                 *[self[key] for key in v4c.KEYS_SOURCE_INFORMATION]
             )
         return result
+
+    def __str__(self):
+        return 'SourceInformation (name: {}, path: {}, comment: {}, address: {}, fields: {})'.format(
+            self.name,
+            self.path,
+            self.comment,
+            hex(self.address),
+            super(SourceInformation, self).__str__(),
+        )
 
 
 class SignalDataBlock(dict):
