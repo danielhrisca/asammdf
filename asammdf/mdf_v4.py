@@ -62,6 +62,7 @@ from .utils import (
     get_unique_name,
     get_text_v4,
     debug_channel,
+    extract_cncomment_xml,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -820,30 +821,14 @@ class MDF4(object):
                 else:
                     grp['channel_sources'].append(None)
 
-            if memory != 'minimum':
-                address = channel['unit_addr']
-                if address:
-                    channel.unit = get_text_v4(address, stream)
+            display_name = channel.display_name
+            if display_name:
+                display_name = display_name.text
+                if display_name not in self.channels_db:
+                    self.channels_db[display_name] = []
+                self.channels_db[display_name].append((dg_cntr, ch_cntr))
 
-            address = channel['comment_addr']
-            if address:
-                comment = get_text_v4(
-                    address=address,
-                    stream=stream,
-                )
-
-                if comment.startswith('<CNcomment'):
-                    display_name = ET.fromstring(comment).find('.//names/display')
-                    if display_name is not None:
-                        display_name = display_name.text
-                        if display_name not in self.channels_db:
-                            self.channels_db[display_name] = []
-                        self.channels_db[display_name].append((dg_cntr, ch_cntr))
-
-                if memory != 'minimum':
-                    channel.comment = comment
-
-            channel.name = name = get_text_v4(channel['name_addr'], stream)
+            name = channel.name
 
             # signal data
             address = channel['data_block_addr']
@@ -2165,7 +2150,8 @@ class MDF4(object):
                         channel_unit_address = 0
 
                     if signal.comment:
-                        block = TextBlock(text=signal.comment, meta=False)
+                        meta = signal.comment.startswith('<CNcomment')
+                        block = TextBlock(text=signal.comment, meta=meta)
                         channel_comment_address = tell()
                         write(bytes(block))
                     else:
@@ -2305,7 +2291,8 @@ class MDF4(object):
                         channel_unit_address = 0
 
                     if signal.comment:
-                        block = TextBlock(text=signal.comment, meta=False)
+                        meta = signal.comment.startswith('<CNcomment')
+                        block = TextBlock(text=signal.comment, meta=meta)
                         channel_comment_address = tell()
                         write(bytes(block))
                     else:
@@ -2472,7 +2459,8 @@ class MDF4(object):
                         channel_unit_address = 0
 
                     if signal.comment:
-                        block = TextBlock(text=signal.comment, meta=False)
+                        meta = signal.comment.startswith('<CNcomment')
+                        block = TextBlock(text=signal.comment, meta=meta)
                         channel_comment_address = tell()
                         write(bytes(block))
                     else:
@@ -2582,7 +2570,8 @@ class MDF4(object):
                         channel_unit_address = 0
 
                     if signal.comment:
-                        block = TextBlock(text=signal.comment, meta=False)
+                        meta = signal.comment.startswith('<CNcomment')
+                        block = TextBlock(text=signal.comment, meta=meta)
                         channel_comment_address = tell()
                         write(bytes(block))
                     else:
@@ -2736,7 +2725,8 @@ class MDF4(object):
                             channel_unit_address = 0
 
                         if signal.comment:
-                            block = TextBlock(text=signal.comment, meta=False)
+                            meta = signal.comment.startswith('<CNcomment')
+                            block = TextBlock(text=signal.comment, meta=meta)
                             channel_comment_address = tell()
                             write(bytes(block))
                         else:
@@ -2902,7 +2892,8 @@ class MDF4(object):
                         channel_unit_address = 0
 
                     if signal.comment:
-                        block = TextBlock(text=signal.comment, meta=False)
+                        meta = signal.comment.startswith('<CNcomment')
+                        block = TextBlock(text=signal.comment, meta=meta)
                         channel_comment_address = tell()
                         write(bytes(block))
                     else:
@@ -3012,7 +3003,8 @@ class MDF4(object):
                             channel_unit_address = 0
 
                         if signal.comment:
-                            block = TextBlock(text=signal.comment, meta=False)
+                            meta = signal.comment.startswith('<CNcomment')
+                            block = TextBlock(text=signal.comment, meta=meta)
                             channel_comment_address = tell()
                             write(bytes(block))
                         else:
@@ -3638,22 +3630,11 @@ class MDF4(object):
                     stream=stream,
                 )
 
-            address = (
-                conversion and conversion['unit_addr']
-                or channel['unit_addr']
-                or 0
-            )
-
-            if address:
-                unit = get_text_v4(address, stream)
-            else:
-                unit = ''
-        else:
-            unit = (
-                conversion and conversion.unit
-                or channel.unit
-                or ''
-            )
+        unit = (
+            conversion and conversion.unit
+            or channel.unit
+            or ''
+        )
 
         return unit
 
@@ -3714,45 +3695,7 @@ class MDF4(object):
                 stream=stream,
             )
 
-            address = channel['comment_addr']
-            if address:
-                comment_block = TextBlock(
-                    address=address,
-                    stream=stream,
-                )
-                comment = (
-                    comment_block['text']
-                    .decode('utf-8')
-                    .strip(' \r\n\t\0')
-                )
-                if comment_block['id'] == b'##MD':
-                    comment = ET.fromstring(comment)
-                    match = comment.find('.//TX')
-                    if match is None:
-                        common_properties = comment.find('.//common_properties')
-                        if common_properties is not None:
-                            comment = []
-                            for e in common_properties:
-                                field = '{}: {}'.format(e.get('name'), e.text)
-                                comment.append(field)
-                            comment = '\n'.join(field)
-                        else:
-                            comment = ''
-                    else:
-                        comment = match.text or ''
-
-            else:
-                comment = ''
-        else:
-            comment = channel.comment
-            if channel.comment_type == b'##MD':
-                match = TX.search(comment)
-                if match:
-                    comment = match.group('text')
-                else:
-                    comment = ''
-
-        return comment
+        return extract_cncomment_xml(channel.comment)
 
     def get_channel_name(self, group, index):
         """Gets channel name.
@@ -3791,13 +3734,7 @@ class MDF4(object):
                 stream=stream,
             )
 
-            name = get_text_v4(
-                address=channel['name_addr'],
-                stream=stream,
-            )
-
-        else:
-            name = channel.name
+        name = channel.name
 
         return name
 
@@ -4792,81 +4729,29 @@ class MDF4(object):
         else:
             # search for unit in conversion texts
 
-            if memory == 'minimum':
+            if name is None:
+                name = channel.name
 
-                if name is None:
-                    name = get_text_v4(
-                        channel['name_addr'],
-                        stream,
-                    )
-                channel.name = name
+            unit = (
+                conversion and conversion.unit
+                or channel.unit
+                or ''
+            )
 
-                address = (
-                    conversion and conversion['unit_addr']
-                    or channel['unit_addr']
-                    or 0
-                )
+            comment = channel.comment
 
-                if address:
-                    unit = get_text_v4(
-                        address=address,
-                        stream=stream,
-                    )
-                else:
-                    unit = ''
-
-                address = channel['comment_addr']
-                if address:
-                    comment = get_text_v4(
-                        address=address,
-                        stream=stream,
-                    )
-
-                    if comment.startswith('CNcomment'):
-                        comment = ET.fromstring(comment)
-                        match = comment.find('.//TX')
-                        if match is None:
-                            common_properties = comment.find('.//common_properties')
-                            if common_properties is not None:
-                                comment = []
-                                for e in common_properties:
-                                    field = '{}: {}'.format(e.get('name'), e.text)
-                                    comment.append(field)
-                                comment = '\n'.join(field)
-                            else:
-                                comment = ''
-                        else:
-                            comment = match.text or ''
-                else:
-                    comment = ''
-
-                if ch_nr >= 0:
-                    source = grp['channel_sources'][ch_nr]
-                    if self.memory == 'minimum':
-                        if source:
-                            source = SourceInformation(
-                                address=source,
-                                stream=stream,
-                            )
-                        else:
-                            source = None
-                else:
-                    source = None
+            if ch_nr >= 0:
+                source = grp['channel_sources'][ch_nr]
+                if self.memory == 'minimum':
+                    if source:
+                        source = SourceInformation(
+                            address=source,
+                            stream=stream,
+                        )
+                    else:
+                        source = None
             else:
-                if name is None:
-                    name = channel.name
-
-                unit = (
-                    conversion and conversion.unit
-                    or channel.unit
-                    or ''
-                )
-                comment = channel.comment
-
-                if ch_nr >= 0:
-                    source = grp['channel_sources'][ch_nr]
-                else:
-                    source = None
+                source = None
 
             if 'attachment_0_addr' in channel:
                 attachment = self.extract_attachment(address=channel['attachment_0_addr'])
@@ -4875,22 +4760,18 @@ class MDF4(object):
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
-            try:
-                res = Signal(
-                    samples=vals,
-                    timestamps=timestamps,
-                    unit=unit,
-                    name=name,
-                    comment=comment,
-                    conversion=conversion,
-                    raw=raw,
-                    master_metadata=master_metadata,
-                    attachment=attachment,
-                    source=source,
-                )
-            except:
-                print(grp['types'])
-                raise
+            res = Signal(
+                samples=vals,
+                timestamps=timestamps,
+                unit=unit,
+                name=name,
+                comment=comment,
+                conversion=conversion,
+                raw=raw,
+                master_metadata=master_metadata,
+                attachment=attachment,
+                source=source,
+            )
 
         return res
 
@@ -4968,6 +4849,7 @@ class MDF4(object):
             )
         else:
             time_conv = group['channel_conversions'][time_ch_nr]
+            time_ch = group['channels'][time_ch_nr]
             if memory == 'minimum':
                 if time_conv:
                     time_conv = ChannelConversion(
@@ -4980,13 +4862,7 @@ class MDF4(object):
                     address=group['channels'][time_ch_nr],
                     stream=stream,
                 )
-                time_name = get_text_v4(
-                    address=time_ch['name_addr'],
-                    stream=stream,
-                )
-            else:
-                time_ch = group['channels'][time_ch_nr]
-                time_name = time_ch.name
+            time_name = time_ch.name
 
             metadata = (
                 time_name,
@@ -5612,7 +5488,8 @@ class MDF4(object):
                             source['path_addr'] = 0
 
                         if source.comment:
-                            tx_block = TextBlock(text=source.comment)
+                            meta = source.comment.startswith('<SIcomment')
+                            tx_block = TextBlock(text=source.comment, meta=meta)
                             text = tx_block['text']
                             if text in defined_texts:
                                 source['comment_addr'] = defined_texts[text]
@@ -5774,7 +5651,8 @@ class MDF4(object):
                         address += block['block_len']
                         blocks.append(block)
                     if cg_source.comment:
-                        block = TextBlock(text=cg_source.comment)
+                        meta = cg_source.comment.startswith('<CGcomment')
+                        block = TextBlock(text=cg_source.comment, meta=meta)
                         block.address = address
                         cg_source['comment_addr'] = address
                         address += block['block_len']
@@ -6469,7 +6347,8 @@ class MDF4(object):
                         cg_source['path_addr'] = address
                         write(bytes(block))
                     if cg_source.comment:
-                        block = TextBlock(text=cg_source.comment)
+                        meta = cg_source.comment.startswith('<CGcomment')
+                        block = TextBlock(text=cg_source.comment, meta=meta)
                         address = tell()
                         cg_source['comment_addr'] = address
                         write(bytes(block))

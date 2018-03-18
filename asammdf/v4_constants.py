@@ -406,3 +406,5 @@ KEYS_HL_BLOCK = (
     'zip_type',
     'reserved1',
 )
+
+ASAM_XML_NAMESPACE = '{http://www.asam.net/mdf/v4}'

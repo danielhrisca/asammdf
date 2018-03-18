@@ -4,6 +4,7 @@ classes that implement the blocks for MDF version 4
 """
 from __future__ import division, print_function
 
+import xml.etree.ElementTree as ET
 import sys
 import time
 import warnings
@@ -157,12 +158,12 @@ class AttachmentBlock(dict):
 
 class Channel(dict):
     """ CNBLOCK class"""
-    __slots__ = ['address', 'name', 'unit', 'comment']
+    __slots__ = ['address', 'name', 'unit', 'comment', 'display_name']
 
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
-        self.name = self.unit = self.comment = ''
+        self.name = self.unit = self.comment = self.display_name = ''
 
         if 'stream' in kargs:
 
@@ -232,6 +233,25 @@ class Channel(dict):
             if self['id'] != b'##CN':
                 message = 'Expected "##CN" block but found "{}"'
                 raise MdfException(message.format(self['id']))
+
+            self.name = get_text_v4(self['name_addr'], stream)
+            address = self['unit_addr']
+            if address:
+                self.unit = get_text_v4(address, stream)
+
+            address = self['comment_addr']
+            if address:
+                comment = get_text_v4(
+                    address=address,
+                    stream=stream,
+                )
+
+                if comment.startswith('<CNcomment'):
+                    display_name = ET.fromstring(comment).find('.//names/display')
+                    if display_name is not None:
+                        self.display_name = display_name.text
+
+                self.comment = comment
 
         else:
             self.address = 0
