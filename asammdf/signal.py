@@ -7,7 +7,7 @@ from textwrap import fill
 import numpy as np
 import warnings
 
-from .utils import MdfException
+from .utils import MdfException, extract_cncomment_xml
 from . import v2_v3_blocks as v3b
 from . import v4_constants as v4c
 from . import v4_blocks as v4b
@@ -225,29 +225,10 @@ class Signal(object):
 
             if self.comment:
                 comment = self.comment.replace('$', '')
-                if comment.startswith('<CNcomment'):
-                    comment = ET.fromstring(comment)
-                    match = comment.find('.//TX')
-                    if match is None:
-                        common_properties = comment.find('.//common_properties')
-                        if common_properties is not None:
-                            comment = []
-                            for e in common_properties:
-                                field = '{}: {}'.format(e.get('name'), e.text)
-                                comment.append(field)
-                            comment = '\n'.join(field)
-                        else:
-                            comment = ''
-                    else:
-                        display_name = comment.find('.//names/display')
-                        if display_name is not None:
-                            name = '{} ({})'.format(display_name.text, name)
-                        comment = match.text
-
+                comment = extract_cncomment_xml(comment)
                 comment = fill(comment, 120).replace('\\n', ' ')
 
                 title = '{}\n({})'.format(name, comment)
-
                 plt.title(title)
             else:
                 plt.title(name)

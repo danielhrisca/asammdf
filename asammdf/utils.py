@@ -5,6 +5,7 @@ asammdf utility functions and classes
 
 import string
 import warnings
+import xml.etree.ElementTree as ET
 
 from datetime import datetime
 from struct import unpack
@@ -35,6 +36,7 @@ __all__ = [
     'fmt_to_datatype_v4',
     'bytes',
     'matlab_compatible',
+    'extract_cncomment_xml',
 ]
 
 CHANNEL_COUNT = (
@@ -102,6 +104,35 @@ def bytes(obj):
         else:
             raise
 # pylint: enable=W0622
+
+
+def extract_cncomment_xml(comment):
+    try:
+        comment = ET.fromstring(comment)
+        match = (
+                comment.find('.//TX')
+                or comment.find('.//{}TX'.format(v4c.ASAM_XML_NAMESPACE))
+        )
+        print('EXT match', match)
+        if match is None:
+            common_properties = (
+                    comment.find('.//common_properties')
+                    or comment.find('.//{}common_properties'.format(v4c.ASAM_XML_NAMESPACE))
+            )
+            if common_properties is not None:
+                comment = []
+                for e in common_properties:
+                    field = '{}: {}'.format(e.get('name'), e.text)
+                    comment.append(field)
+                comment = '\n'.join(field)
+            else:
+                comment = ''
+        else:
+            comment = match.text or ''
+    except ET.ParseError:
+        pass
+    finally:
+        return comment
 
 
 def matlab_compatible(name):

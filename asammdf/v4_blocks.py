@@ -4,6 +4,7 @@ classes that implement the blocks for MDF version 4
 """
 from __future__ import division, print_function
 
+import xml.etree.ElementTree as ET
 import sys
 import time
 import warnings
@@ -157,12 +158,12 @@ class AttachmentBlock(dict):
 
 class Channel(dict):
     """ CNBLOCK class"""
-    __slots__ = ['address', 'name', 'unit', 'comment']
+    __slots__ = ['address', 'name', 'unit', 'comment', 'display_name']
 
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
-        self.name = self.unit = self.comment = ''
+        self.name = self.unit = self.comment = self.display_name = ''
 
         if 'stream' in kargs:
 
@@ -232,6 +233,21 @@ class Channel(dict):
             if self['id'] != b'##CN':
                 message = 'Expected "##CN" block but found "{}"'
                 raise MdfException(message.format(self['id']))
+
+            self.name = get_text_v4(self['name_addr'], stream)
+            self.unit = get_text_v4(self['unit_addr'], stream)
+
+            comment = get_text_v4(
+                address=self['comment_addr'],
+                stream=stream,
+            )
+
+            if comment.startswith('<CNcomment'):
+                display_name = ET.fromstring(comment).find('.//names/display')
+                if display_name is not None:
+                    self.display_name = display_name.text
+
+            self.comment = comment
 
         else:
             self.address = 0
@@ -986,21 +1002,10 @@ class ChannelConversion(dict):
                 raise MdfException(message.format(self['id']))
 
             if 'stream' in kargs:
-                address = self['name_addr']
-                if address:
-                    self.name = get_text_v4(address, stream)
-
-                address = self['unit_addr']
-                if address:
-                    self.unit = get_text_v4(address, stream)
-
-                address = self['comment_addr']
-                if address:
-                    self.comment = get_text_v4(address, stream)
-
-                address = self.get('formula_addr', 0)
-                if address:
-                    self.formula = get_text_v4(address, stream)
+                self.name = get_text_v4(self['name_addr'], stream)
+                self.unit = get_text_v4(self['unit_addr'], stream)
+                self.comment = get_text_v4(self['comment_addr'], stream)
+                self.formula = get_text_v4(self['formula_addr'], stream)
 
                 conv_type = conv
 
