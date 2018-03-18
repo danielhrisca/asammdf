@@ -1005,7 +1005,8 @@ class ChannelConversion(dict):
                 self.name = get_text_v4(self['name_addr'], stream)
                 self.unit = get_text_v4(self['unit_addr'], stream)
                 self.comment = get_text_v4(self['comment_addr'], stream)
-                self.formula = get_text_v4(self['formula_addr'], stream)
+                if 'formula_addr' in self:
+                    self.formula = get_text_v4(self['formula_addr'], stream)
 
                 conv_type = conv
 
