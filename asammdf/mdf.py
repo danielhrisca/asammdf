@@ -25,6 +25,12 @@ from .utils import (
     get_text_v3,
     get_text_v4,
     matlab_compatible,
+    validate_memory_argument,
+    validate_version_argument,
+    MDF2_VERSIONS,
+    MDF3_VERSIONS,
+    MDF4_VERSIONS,
+    SUPPORTED_VERSIONS,
 )
 from .v2_v3_blocks import Channel as ChannelV3
 from .v2_v3_blocks import HeaderBlock as HeaderV3
@@ -34,11 +40,6 @@ from .v4_blocks import ChannelArrayBlock, TextBlock, SourceInformation, FileIden
 from . import v4_constants as v4c
 
 PYVERSION = sys.version_info[0]
-
-MDF2_VERSIONS = ('2.00', '2.10', '2.14')
-MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
-MDF4_VERSIONS = ('4.00', '4.10', '4.11')
-SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 
 __all__ = ['MDF', 'SUPPORTED_VERSIONS']
@@ -71,6 +72,7 @@ class MDF(object):
     def __init__(self, name=None, memory='full', version='4.10'):
         if name:
             if os.path.isfile(name):
+                memory = validate_memory_argument(memory)
                 with open(name, 'rb') as file_stream:
                     magic_header = file_stream.read(3)
                     if magic_header != b'MDF':
@@ -95,6 +97,8 @@ class MDF(object):
             else:
                 raise MdfException('File "{}" does not exist'.format(name))
         else:
+            version = validate_version_argument(version)
+            memory = validate_memory_argument(memory)
             if version in MDF2_VERSIONS:
                 self._mdf = MDF3(
                     version=version,
@@ -176,6 +180,8 @@ class MDF(object):
 
         return excluded_channels
 
+
+
     def __contains__(self, channel):
         """ if *'channel name'* in *'mdf file'* """
         return channel in self.channels_db
@@ -206,19 +212,8 @@ class MDF(object):
             new *MDF* object
 
         """
-        if to not in SUPPORTED_VERSIONS:
-            message = (
-                'Unknown output mdf version "{}".'
-                ' Available versions are {}.'
-                ' Automatically using version 4.10'
-            )
-            warn(message.format(to, SUPPORTED_VERSIONS))
-            version = '4.10'
-        else:
-            version = to
-
-        if memory not in ('full', 'low', 'minimum'):
-            memory = self.memory
+        version = validate_version_argument(to)
+        memory = validate_memory_argument(memory)
 
         out = MDF(version=version, memory=memory)
 
@@ -881,6 +876,8 @@ class MDF(object):
 
         """
 
+        memory = validate_memory_argument(memory)
+
         # group channels by group index
         gps = {}
 
@@ -1068,19 +1065,8 @@ class MDF(object):
             )
             raise MdfException(message)
 
-        if memory not in ('full', 'low', 'minimum'):
-            memory = 'full'
-
-        if outversion not in SUPPORTED_VERSIONS:
-            message = (
-                'Unknown output mdf version "{}".'
-                ' Available versions are {}.'
-                ' Automatically using version 4.10'
-            )
-            warn(message.format(outversion, SUPPORTED_VERSIONS))
-            version = '4.10'
-        else:
-            version = outversion
+        version = validate_version_argument(outversion)
+        memory = validate_memory_argument(memory)
 
         merged = MDF(
             version=version,
@@ -1292,7 +1278,7 @@ class MDF(object):
         return MDF.concatenate(files, outversion, memory)
 
     @staticmethod
-    def stack(files, outversion='4.10', memory='full', sync=False):
+    def stack(files, outversion='4.10', memory='full', sync=True):
         """ merge several files and return the merged *MDF* object
 
         Parameters
@@ -1303,6 +1289,8 @@ class MDF(object):
             merged file version
         memory : str
             memory option; default *full*
+        sync : bool
+            sync the files based on the start of measurement, default *True*
 
         Returns
         -------
@@ -1313,60 +1301,51 @@ class MDF(object):
         if not files:
             raise MdfException('No files given for merge')
 
-        timestamps = []
-        for file in files:
-            if isinstance(file, MDF):
-                timestamps.append(file.header.start_time)
-            else:
-                with open(file, 'rb') as mdf:
-                    mdf.seek(64)
-                    blk_id = mdf.read(2)
-                    if blk_id == b'HD':
-                        header = HeaderV3
-                    else:
-                        blk_id += mdf.read(2)
-                        if blk_id == b'##HD':
-                            header = HeaderV4
-                        else:
-                            raise MdfException('"{}" is not a valid MDF file'.format(file))
-
-                    header = header(
-                        address=64,
-                        stream=mdf,
-                    )
-
-                    timestamps.append(header.start_time)
-
-        oldest = min(timestamps)
-        offsets = [
-            (timestamp - oldest).total_seconds()
-            for timestamp in timestamps
-        ]
-
-        files = (
-            file if isinstance(file, MDF) else MDF(file, memory)
-            for file in files
-        )
-
-        if memory not in ('full', 'low', 'minimum'):
-            memory = 'full'
-
-        if outversion not in SUPPORTED_VERSIONS:
-            message = (
-                'Unknown output mdf version "{}".'
-                ' Available versions are {}.'
-                ' Automatically using version 4.10'
-            )
-            warn(message.format(outversion, SUPPORTED_VERSIONS))
-            version = '4.10'
-        else:
-            version = outversion
+        version = validate_version_argument(outversion)
+        memory = validate_memory_argument(memory)
 
         merged = MDF(
             version=version,
             memory=memory,
         )
-        merged.header.start_time = oldest
+
+        if sync:
+            timestamps = []
+            for file in files:
+                if isinstance(file, MDF):
+                    timestamps.append(file.header.start_time)
+                else:
+                    with open(file, 'rb') as mdf:
+                        mdf.seek(64)
+                        blk_id = mdf.read(2)
+                        if blk_id == b'HD':
+                            header = HeaderV3
+                        else:
+                            blk_id += mdf.read(2)
+                            if blk_id == b'##HD':
+                                header = HeaderV4
+                            else:
+                                raise MdfException('"{}" is not a valid MDF file'.format(file))
+
+                        header = header(
+                            address=64,
+                            stream=mdf,
+                        )
+
+                        timestamps.append(header.start_time)
+
+            oldest = min(timestamps)
+            offsets = [
+                (timestamp - oldest).total_seconds()
+                for timestamp in timestamps
+            ]
+
+            merged.header.start_time = oldest
+
+        files = (
+            file if isinstance(file, MDF) else MDF(file, memory)
+            for file in files
+        )
 
         for offset, mdf in zip(offsets, files):
             for i, group in enumerate(mdf.groups):
@@ -1398,7 +1377,9 @@ class MDF(object):
                                 data=fragment,
                                 raw=True,
                             )
-                            sig.timestamps = sig.timestamps + offset
+
+                            if sync:
+                                sig.timestamps = sig.timestamps + offset
 
                             if version < '4.00' and sig.samples.dtype.kind == 'S':
                                 string_dtypes = []
@@ -1422,7 +1403,9 @@ class MDF(object):
                         merged.append(signals, common_timebase=True)
                         idx += 1
                     else:
-                        master = mdf.get_master(i, fragment) + offset
+                        master = mdf.get_master(i, fragment)
+                        if sync:
+                            master = master + offset
                         if len(master):
 
                             signals = [master, ]
@@ -1546,8 +1529,7 @@ class MDF(object):
 
         """
 
-        if memory not in ('full', 'low', 'minimum'):
-            memory = self.memory
+        memory = validate_memory_argument(memory)
 
         mdf = MDF(
             version=self.version,

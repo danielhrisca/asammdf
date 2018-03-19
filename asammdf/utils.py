@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 from collections import namedtuple
 from datetime import datetime
 from struct import unpack
+from warnings import warn
 
 from numpy import (
     amin,
@@ -39,6 +40,11 @@ __all__ = [
     'bytes',
     'matlab_compatible',
     'extract_cncomment_xml',
+    'validate_memory_argument',
+    'validate_version_argument',
+    'MDF2_VERSIONS',
+    'MDF3_VERSIONS',
+    'MDF4_VERSIONS',
 ]
 
 CHANNEL_COUNT = (
@@ -85,6 +91,12 @@ MERGE_MINIMUM = (
     60 * 2**20,
     100 * 2**20,
 )
+
+MDF2_VERSIONS = ('2.00', '2.10', '2.14')
+MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
+MDF4_VERSIONS = ('4.00', '4.10', '4.11')
+SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
+VALID_MEMORY_ARGUMENT_VALUES = ('full', 'low', 'minimum')
 
 
 ALLOWED_MATLAB_CHARS = string.ascii_letters + string.digits + '_'
@@ -661,3 +673,72 @@ def debug_channel(mdf, group, channel, conversion, dependency):
     print('CHANNEL ARRAY', '='*66)
     print('array:', bool(dependency))
     print()
+
+
+def validate_memory_argument(memory):
+    """ validate the version argument against the supported MDF versions. The
+    default version used depends on the hint MDF major revision
+
+    Parameters
+    ----------
+    version : memory
+        requested memory argument
+
+    Returns
+    -------
+    valid_memory : str
+        valid memory
+
+    """
+    if memory not in VALID_MEMORY_ARGUMENT_VALUES:
+        message = (
+            'The memory argument "{}" is wrong:'
+            ' The available versions are {};'
+            ' automatically using "full"'
+        )
+        warn(message.format(memory, VALID_MEMORY_ARGUMENT_VALUES))
+        valid_memory = 'full'
+    else:
+        valid_memory = memory
+    return valid_memory
+
+
+def validate_version_argument(version, hint=4):
+    """ validate the version argument against the supported MDF versions. The
+    default version used depends on the hint MDF major revision
+
+    Parameters
+    ----------
+    version : str
+        requested MDF version
+    hint : int
+        MDF revision hint
+
+    Returns
+    -------
+    valid_version : str
+        valid version
+
+    """
+    if version not in SUPPORTED_VERSIONS:
+        if hint == 2:
+            valid_version = '2.14'
+        elif hint == 3:
+            valid_version = '3.30'
+        else:
+            valid_version = '4.10'
+        message = (
+            'Unknown mdf version "{}".'
+            ' The available versions are {};'
+            ' automatically using version "{}"'
+        )
+        warn(
+            message.format(
+                version,
+                SUPPORTED_VERSIONS,
+                valid_version,
+            )
+        )
+    else:
+        valid_version = version
+    return valid_version

@@ -64,6 +64,8 @@ from .utils import (
     get_text_v4,
     debug_channel,
     extract_cncomment_xml,
+    validate_memory_argument,
+    validate_version_argument,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -268,6 +270,7 @@ class MDF4(object):
     """
 
     def __init__(self, name=None, memory='full', version='4.10'):
+        memory = validate_memory_argument(memory)
         self.groups = []
         self.header = None
         self.identification = None
@@ -302,6 +305,7 @@ class MDF4(object):
             self._read()
 
         else:
+            version = validate_version_argument(version)
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version

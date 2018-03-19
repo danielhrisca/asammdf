@@ -52,6 +52,8 @@ from .utils import (
     get_min_max,
     get_unique_name,
     get_text_v3,
+    validate_memory_argument,
+    validate_version_argument,
 )
 from .v2_v3_blocks import (
     Channel,
@@ -164,6 +166,7 @@ class MDF3(object):
     """
 
     def __init__(self, name=None, memory='full', version='3.30'):
+        memory = validate_memory_argument(memory)
         self.groups = []
         self.header = None
         self.identification = None
@@ -189,6 +192,7 @@ class MDF3(object):
             self._file = open(self.name, 'rb')
             self._read()
         else:
+            version = validate_version_argument(version, hint=3)
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
             self.header = HeaderBlock(version=self.version)
