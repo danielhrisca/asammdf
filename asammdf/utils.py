@@ -45,6 +45,7 @@ __all__ = [
     'MDF2_VERSIONS',
     'MDF3_VERSIONS',
     'MDF4_VERSIONS',
+    'SUPPORTED_VERSIONS',
 ]
 
 CHANNEL_COUNT = (
@@ -693,7 +694,7 @@ def validate_memory_argument(memory):
     if memory not in VALID_MEMORY_ARGUMENT_VALUES:
         message = (
             'The memory argument "{}" is wrong:'
-            ' The available versions are {};'
+            ' The available memory options are {};'
             ' automatically using "full"'
         )
         warn(message.format(memory, VALID_MEMORY_ARGUMENT_VALUES))
