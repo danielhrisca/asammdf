@@ -7,6 +7,7 @@ import string
 import warnings
 import xml.etree.ElementTree as ET
 
+from collections import namedtuple
 from datetime import datetime
 from struct import unpack
 
@@ -26,6 +27,7 @@ __all__ = [
     'MERGE_LOW',
     'MERGE_MINIMUM',
     'MdfException',
+    'SignalSource,'
     'get_fmt_v3',
     'get_fmt_v4',
     'get_min_max',
@@ -88,6 +90,9 @@ MERGE_MINIMUM = (
 ALLOWED_MATLAB_CHARS = string.ascii_letters + string.digits + '_'
 
 
+SignalSource = namedtuple('SignalSource', ['name', 'path', 'comment', 'source_type', 'bus_type'])
+
+
 class MdfException(Exception):
     """MDF Exception class"""
     pass
@@ -113,7 +118,6 @@ def extract_cncomment_xml(comment):
                 comment.find('.//TX')
                 or comment.find('.//{}TX'.format(v4c.ASAM_XML_NAMESPACE))
         )
-        print('EXT match', match)
         if match is None:
             common_properties = (
                     comment.find('.//common_properties')

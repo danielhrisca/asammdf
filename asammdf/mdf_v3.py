@@ -44,6 +44,7 @@ from .utils import (
     CONVERT_LOW,
     CONVERT_MINIMUM,
     MdfException,
+    SignalSource,
     as_non_byte_sized_signed_int,
     fix_dtype_fields,
     fmt_to_datatype_v3,
@@ -1347,10 +1348,34 @@ class MDF3(object):
             if sig_type == v23c.SIGNAL_TYPE_SCALAR:
 
                 # source for channel
-                if memory != 'minimum':
-                    gp_source.append(ce_block)
+                if signal.source:
+                    source = signal.source
+                    if source.source_type == 0:
+                        kargs = {
+                            'type': v23c.SOURCE_ECU,
+                            'description': source.name.encode('latin-1'),
+                            'ECU_identification': source.path.encode('latin-1'),
+                        }
+                    else:
+                        kargs = {
+                            'type': v23c.SOURCE_VECTOR,
+                            'message_name': source.name.encode('latin-1'),
+                            'sender_name': source.path.encode('latin-1'),
+                        }
+
+                    new_source = ChannelExtension(**kargs)
+
+                    if memory == 'minimum':
+                        addr = tell()
+                        write(bytes(new_source))
+                        gp_source.append(addr)
+                    else:
+                        gp_source.append(new_source)
                 else:
-                    gp_source.append(ce_address)
+                    if memory != 'minimum':
+                        gp_source.append(ce_block)
+                    else:
+                        gp_source.append(ce_address)
 
                 # compute additional byte offset for large records size
                 if offset > v23c.MAX_UINT16:
@@ -1649,10 +1674,34 @@ class MDF3(object):
                         write(bytes(block))
 
                     # source for channel
-                    if memory != 'minimum':
-                        new_gp_source.append(ce_block)
+                    if signal.source:
+                        source = signal.source
+                        if source.source_type == 0:
+                            kargs = {
+                                'type': v23c.SOURCE_ECU,
+                                'description': source.name.encode('latin-1'),
+                                'ECU_identification': source.path.encode('latin-1'),
+                            }
+                        else:
+                            kargs = {
+                                'type': v23c.SOURCE_VECTOR,
+                                'message_name': source.name.encode('latin-1'),
+                                'sender_name': source.path.encode('latin-1'),
+                            }
+
+                        new_source = ChannelExtension(**kargs)
+
+                        if memory == 'minimum':
+                            addr = tell()
+                            write(bytes(new_source))
+                            gp_source.append(addr)
+                        else:
+                            gp_source.append(new_source)
                     else:
-                        new_gp_source.append(ce_address)
+                        if memory != 'minimum':
+                            gp_source.append(ce_block)
+                        else:
+                            gp_source.append(ce_address)
 
                     # compute additional byte offset for large records size
                     if new_offset > v23c.MAX_UINT16:
@@ -1817,10 +1866,34 @@ class MDF3(object):
                     gp_conv.append(0)
 
                 # source for channel
-                if memory != 'minimum':
-                    gp_source.append(ce_block)
+                if signal.source:
+                    source = signal.source
+                    if source.source_type == 0:
+                        kargs = {
+                            'type': v23c.SOURCE_ECU,
+                            'description': source.name.encode('latin-1'),
+                            'ECU_identification': source.path.encode('latin-1'),
+                        }
+                    else:
+                        kargs = {
+                            'type': v23c.SOURCE_VECTOR,
+                            'message_name': source.name.encode('latin-1'),
+                            'sender_name': source.path.encode('latin-1'),
+                        }
+
+                    new_source = ChannelExtension(**kargs)
+
+                    if memory == 'minimum':
+                        addr = tell()
+                        write(bytes(new_source))
+                        gp_source.append(addr)
+                    else:
+                        gp_source.append(new_source)
                 else:
-                    gp_source.append(ce_address)
+                    if memory != 'minimum':
+                        gp_source.append(ce_block)
+                    else:
+                        gp_source.append(ce_address)
 
                 min_val, max_val = get_min_max(samples)
 
@@ -1963,10 +2036,34 @@ class MDF3(object):
                     shape = samples.shape[1:]
 
                     # source for channel
-                    if memory != 'minimum':
-                        gp_source.append(ce_block)
+                    if signal.source:
+                        source = signal.source
+                        if source.source_type == 0:
+                            kargs = {
+                                'type': v23c.SOURCE_ECU,
+                                'description': source.name.encode('latin-1'),
+                                'ECU_identification': source.path.encode('latin-1'),
+                            }
+                        else:
+                            kargs = {
+                                'type': v23c.SOURCE_VECTOR,
+                                'message_name': source.name.encode('latin-1'),
+                                'sender_name': source.path.encode('latin-1'),
+                            }
+
+                        new_source = ChannelExtension(**kargs)
+
+                        if memory == 'minimum':
+                            addr = tell()
+                            write(bytes(new_source))
+                            gp_source.append(addr)
+                        else:
+                            gp_source.append(new_source)
                     else:
-                        gp_source.append(ce_address)
+                        if memory != 'minimum':
+                            gp_source.append(ce_block)
+                        else:
+                            gp_source.append(ce_address)
 
                     if memory != 'minimum':
                         gp_conv.append(None)
@@ -2075,10 +2172,34 @@ class MDF3(object):
                         gp_conv.append(0)
 
                     # source for channel
-                    if memory != 'minimum':
-                        gp_source.append(ce_block)
+                    if signal.source:
+                        source = signal.source
+                        if source.source_type == 0:
+                            kargs = {
+                                'type': v23c.SOURCE_ECU,
+                                'description': source.name.encode('latin-1'),
+                                'ECU_identification': source.path.encode('latin-1'),
+                            }
+                        else:
+                            kargs = {
+                                'type': v23c.SOURCE_VECTOR,
+                                'message_name': source.name.encode('latin-1'),
+                                'sender_name': source.path.encode('latin-1'),
+                            }
+
+                        new_source = ChannelExtension(**kargs)
+
+                        if memory == 'minimum':
+                            addr = tell()
+                            write(bytes(new_source))
+                            gp_source.append(addr)
+                        else:
+                            gp_source.append(new_source)
                     else:
-                        gp_source.append(ce_address)
+                        if memory != 'minimum':
+                            gp_source.append(ce_block)
+                        else:
+                            gp_source.append(ce_address)
 
                     min_val, max_val = get_min_max(samples)
 
@@ -2190,10 +2311,34 @@ class MDF3(object):
                         shape = samples.shape[1:]
 
                         # source for channel
-                        if memory != 'minimum':
-                            gp_source.append(ce_block)
+                        if signal.source:
+                            source = signal.source
+                            if source.source_type == 0:
+                                kargs = {
+                                    'type': v23c.SOURCE_ECU,
+                                    'description': source.name.encode('latin-1'),
+                                    'ECU_identification': source.path.encode('latin-1'),
+                                }
+                            else:
+                                kargs = {
+                                    'type': v23c.SOURCE_VECTOR,
+                                    'message_name': source.name.encode('latin-1'),
+                                    'sender_name': source.path.encode('latin-1'),
+                                }
+
+                            new_source = ChannelExtension(**kargs)
+
+                            if memory == 'minimum':
+                                addr = tell()
+                                write(bytes(new_source))
+                                gp_source.append(addr)
+                            else:
+                                gp_source.append(new_source)
                         else:
-                            gp_source.append(ce_address)
+                            if memory != 'minimum':
+                                gp_source.append(ce_block)
+                            else:
+                                gp_source.append(ce_address)
 
                         if memory != 'minimum':
                             gp_conv.append(None)
@@ -3114,6 +3259,24 @@ class MDF3(object):
                     source = None
             else:
                 source = grp['channel_extensions'][ch_nr]
+
+            if source:
+                if source['type'] == v23c.SOURCE_ECU:
+                    source = SignalSource(
+                        source.name,
+                        source.path,
+                        source.comment,
+                        0, # source type other
+                        0, # bus type none
+                    )
+                else:
+                    source = SignalSource(
+                        source.name,
+                        source.path,
+                        source.comment,
+                        2,  # source type bus
+                        2,  # bus type CAN
+                    )
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 

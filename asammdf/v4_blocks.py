@@ -2206,7 +2206,10 @@ class HeaderBlock(dict):
         """
 
         timestamp = self['abs_time'] / 10**9
-        timestamp = datetime.fromtimestamp(timestamp)
+        try:
+            timestamp = datetime.fromtimestamp(timestamp)
+        except OSError:
+            timestamp = datetime.now()
 
         return timestamp
 

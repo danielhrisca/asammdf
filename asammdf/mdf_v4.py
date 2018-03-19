@@ -54,6 +54,7 @@ from .utils import (
     CONVERT_LOW,
     CONVERT_MINIMUM,
     MdfException,
+    SignalSource,
     as_non_byte_sized_signed_int,
     fix_dtype_fields,
     fmt_to_datatype_v4,
@@ -2175,10 +2176,43 @@ class MDF4(object):
                         gp_conv.append(conversion)
 
                 # source for channel
-                if memory != 'minimum':
-                    gp_source.append(source_block)
+                if signal.source:
+                    source = signal.source
+                    kargs = {
+                        'source_type': source.source_type,
+                        'bus_type': source.bus_type,
+                    }
+                    if memory == 'minimum':
+                        if source.name:
+                            tx_block = TextBlock(text=source.name)
+                            kargs['name_addr'] = tell()
+                            write(bytes(tx_block))
+                        if source.path:
+                            tx_block = TextBlock(text=source.path)
+                            kargs['path_addr'] = tell()
+                            write(bytes(tx_block))
+                        if source.comment:
+                            meta = source.comment.startswith('<SIcomment')
+                            tx_block = TextBlock(text=source.comment, meta=meta)
+                            kargs['comment_addr'] = tell()
+                            write(bytes(tx_block))
+
+                    new_source = SourceInformation(**kargs)
+                    new_source.name = source.name
+                    new_source.path = source.path
+                    new_source.comment = source.comment
+
+                    if memory == 'minimum':
+                        addr = tell()
+                        write(bytes(new_source))
+                        gp_source.append(addr)
+                    else:
+                        gp_source.append(new_source)
                 else:
-                    gp_source.append(source_info_address)
+                    if memory != 'minimum':
+                        gp_source.append(source_block)
+                    else:
+                        gp_source.append(source_info_address)
 
                 if memory == 'minimum':
                     name_addr = channel_name_address
@@ -2300,10 +2334,43 @@ class MDF4(object):
                     gp_conv.append(0)
 
                 # source for channel
-                if memory != 'minimum':
-                    gp_source.append(source_block)
+                if signal.source:
+                    source = signal.source
+                    kargs = {
+                        'source_type': source.source_type,
+                        'bus_type': source.bus_type,
+                    }
+                    if memory == 'minimum':
+                        if source.name:
+                            tx_block = TextBlock(text=source.name)
+                            kargs['name_addr'] = tell()
+                            write(bytes(tx_block))
+                        if source.path:
+                            tx_block = TextBlock(text=source.path)
+                            kargs['path_addr'] = tell()
+                            write(bytes(tx_block))
+                        if source.comment:
+                            meta = source.comment.startswith('<SIcomment')
+                            tx_block = TextBlock(text=source.comment, meta=meta)
+                            kargs['comment_addr'] = tell()
+                            write(bytes(tx_block))
+
+                    new_source = SourceInformation(**kargs)
+                    new_source.name = source.name
+                    new_source.path = source.path
+                    new_source.comment = source.comment
+
+                    if memory == 'minimum':
+                        addr = tell()
+                        write(bytes(new_source))
+                        gp_source.append(addr)
+                    else:
+                        gp_source.append(new_source)
                 else:
-                    gp_source.append(source_info_address)
+                    if memory != 'minimum':
+                        gp_source.append(source_block)
+                    else:
+                        gp_source.append(source_info_address)
 
                 if memory == 'minimum':
                     name_addr = channel_name_address
@@ -2466,10 +2533,44 @@ class MDF4(object):
                 else:
                     gp_conv.append(0)
 
-                if memory != 'minimum':
-                    gp_source.append(source_block)
+                # source for channel
+                if signal.source:
+                    source = signal.source
+                    kargs = {
+                        'source_type': source.source_type,
+                        'bus_type': source.bus_type,
+                    }
+                    if memory == 'minimum':
+                        if source.name:
+                            tx_block = TextBlock(text=source.name)
+                            kargs['name_addr'] = tell()
+                            write(bytes(tx_block))
+                        if source.path:
+                            tx_block = TextBlock(text=source.path)
+                            kargs['path_addr'] = tell()
+                            write(bytes(tx_block))
+                        if source.comment:
+                            meta = source.comment.startswith('<SIcomment')
+                            tx_block = TextBlock(text=source.comment, meta=meta)
+                            kargs['comment_addr'] = tell()
+                            write(bytes(tx_block))
+
+                    new_source = SourceInformation(**kargs)
+                    new_source.name = source.name
+                    new_source.path = source.path
+                    new_source.comment = source.comment
+
+                    if memory == 'minimum':
+                        addr = tell()
+                        write(bytes(new_source))
+                        gp_source.append(addr)
+                    else:
+                        gp_source.append(new_source)
                 else:
-                    gp_source.append(source_info_address)
+                    if memory != 'minimum':
+                        gp_source.append(source_block)
+                    else:
+                        gp_source.append(source_info_address)
 
                 # there is no channel dependency
                 gp_dep.append(None)
@@ -2596,35 +2697,39 @@ class MDF4(object):
                 else:
                     attachment_addr = 0
 
-                sig_source = signal.source
-                if sig_source:
-                    source = SourceInformation()
-                    source.update(sig_source)
-                    source.name = sig_source.name
-                    source.path = sig_source.path
-                    source.comment = sig_source.comment
+                # source for channel
+                if signal.source:
+                    source = signal.source
+                    kargs = {
+                        'source_type': source.source_type,
+                        'bus_type': source.bus_type,
+                    }
                     if memory == 'minimum':
                         if source.name:
-                            block = TextBlock(text=source.name)
-                            address = tell()
-                            source['name_addr'] = address
-                            write(bytes(block))
+                            tx_block = TextBlock(text=source.name)
+                            kargs['name_addr'] = tell()
+                            write(bytes(tx_block))
                         if source.path:
-                            block = TextBlock(text=source.path)
-                            address = tell()
-                            source['path_addr'] = address
-                            write(bytes(block))
+                            tx_block = TextBlock(text=source.path)
+                            kargs['path_addr'] = tell()
+                            write(bytes(tx_block))
                         if source.comment:
-                            block = TextBlock(text=source.comment)
-                            address = tell()
-                            source['comment_addr'] = address
-                            write(bytes(block))
-                        address = tell()
-                        write(bytes(source))
-                        gp_source.append(address)
-                    else:
-                        gp_source.append(source)
+                            meta = source.comment.startswith('<SIcomment')
+                            tx_block = TextBlock(text=source.comment, meta=meta)
+                            kargs['comment_addr'] = tell()
+                            write(bytes(tx_block))
 
+                    new_source = SourceInformation(**kargs)
+                    new_source.name = source.name
+                    new_source.path = source.path
+                    new_source.comment = source.comment
+
+                    if memory == 'minimum':
+                        addr = tell()
+                        write(bytes(new_source))
+                        gp_source.append(addr)
+                    else:
+                        gp_source.append(new_source)
                 else:
                     if memory != 'minimum':
                         gp_source.append(source_block)
@@ -2734,9 +2839,9 @@ class MDF4(object):
 
                     # source
                     if memory != 'minimum':
-                        gp_source.append(source_block)
+                        gp_source.append(0)
                     else:
-                        gp_source.append(source_info_address)
+                        gp_source.append(None)
 
                     if memory == 'minimum':
                         name_addr = channel_name_address
@@ -2900,10 +3005,43 @@ class MDF4(object):
                     gp_conv.append(0)
 
                 # source for channel
-                if memory != 'minimum':
-                    gp_source.append(source_block)
+                if signal.source:
+                    source = signal.source
+                    kargs = {
+                        'source_type': source.source_type,
+                        'bus_type': source.bus_type,
+                    }
+                    if memory == 'minimum':
+                        if source.name:
+                            tx_block = TextBlock(text=source.name)
+                            kargs['name_addr'] = tell()
+                            write(bytes(tx_block))
+                        if source.path:
+                            tx_block = TextBlock(text=source.path)
+                            kargs['path_addr'] = tell()
+                            write(bytes(tx_block))
+                        if source.comment:
+                            meta = source.comment.startswith('<SIcomment')
+                            tx_block = TextBlock(text=source.comment, meta=meta)
+                            kargs['comment_addr'] = tell()
+                            write(bytes(tx_block))
+
+                    new_source = SourceInformation(**kargs)
+                    new_source.name = source.name
+                    new_source.path = source.path
+                    new_source.comment = source.comment
+
+                    if memory == 'minimum':
+                        addr = tell()
+                        write(bytes(new_source))
+                        gp_source.append(addr)
+                    else:
+                        gp_source.append(new_source)
                 else:
-                    gp_source.append(source_info_address)
+                    if memory != 'minimum':
+                        gp_source.append(source_block)
+                    else:
+                        gp_source.append(source_info_address)
 
                 if memory == 'minimum':
                     name_addr = channel_name_address
@@ -3012,9 +3150,9 @@ class MDF4(object):
 
                     # source for channel
                     if memory != 'minimum':
-                        gp_source.append(source_block)
+                        gp_source.append(None)
                     else:
-                        gp_source.append(source_info_address)
+                        gp_source.append(0)
 
                     if memory == 'minimum':
                         name_addr = channel_name_address
@@ -4731,6 +4869,17 @@ class MDF4(object):
                         )
                     else:
                         source = None
+                cg_source = grp['channel_group_source']
+                if source:
+                    source = SignalSource(
+                        source.name or (cg_source and cg_source.name) or '',
+                        source.path,
+                        source.comment,
+                        source['source_type'],
+                        source['bus_type'],
+                    )
+                else:
+                    source = None
             else:
                 source = None
 

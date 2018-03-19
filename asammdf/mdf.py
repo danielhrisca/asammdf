@@ -119,8 +119,6 @@ class MDF(object):
         for attr in set(dir(self._mdf)) - set(dir(self)):
             setattr(self, attr, getattr(self._mdf, attr))
 
-        self.merge = self.concatenate
-
     def __enter__(self):
         return self
 
@@ -1265,6 +1263,33 @@ class MDF(object):
                     del group['record']
 
         return merged
+
+    @staticmethod
+    def merge(files, outversion='4.10', memory='full'):
+        """ concatenates several files. The files
+        must have the same internal structure (same number of groups, and same
+        channels in each group)
+
+        Parameters
+        ----------
+        files : list | tuple
+            list of *MDF* file names or *MDF* instances
+        outversion : str
+            merged file version
+        memory : str
+            memory option; default *full*
+
+        Returns
+        -------
+        concatenate : MDF
+            new *MDF* object with concatenated channels
+
+        Raises
+        ------
+        MdfException : if there are inconsistencies between the files
+
+        """
+        return MDF.concatenate(files, outversion, memory)
 
     @staticmethod
     def stack(files, outversion='4.10', memory='full', sync=False):

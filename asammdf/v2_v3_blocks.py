@@ -1180,7 +1180,7 @@ class ChannelExtension(dict):
 
     def __init__(self, **kargs):
         super(ChannelExtension, self).__init__()
-        
+
         self.name = self.path = self.comment = ''
 
         if 'stream' in kargs:
@@ -1214,14 +1214,14 @@ class ChannelExtension(dict):
                         6,
                     )
             except KeyError:
-                
+
                 self.address = address = kargs['address']
                 stream.seek(address)
                 (self['id'],
                  self['block_len'],
                  self['type']) = unpack(v23c.FMT_SOURCE_COMMON, stream.read(6))
                 block = stream.read(self['block_len'] - 6)
-    
+
                 if self['type'] == v23c.SOURCE_ECU:
                     (self['module_nr'],
                      self['module_address'],
@@ -1241,7 +1241,7 @@ class ChannelExtension(dict):
             if self['id'] != b'CE':
                 message = 'Expected "CE" block but found "{}"'
                 raise MdfException(message.format(self['id']))
-                
+
         else:
 
             self.address = 0
@@ -1263,21 +1263,21 @@ class ChannelExtension(dict):
                 self['message_name'] = kargs.get('message_name', b'\0')
                 self['sender_name'] = kargs.get('sender_name', b'\0')
                 self['reserved0'] = kargs.get('reserved0', b'\0')
-                
+
         if self['type'] == v23c.SOURCE_ECU:
             self.path = self['ECU_identification'].decode('latin-1')
-            self.name = self['description']
+            self.name = self['description'].decode('latin-1')
             self.comment = 'Module number={} @ address={}'.format(
                 self['module_nr'],
                 self['module_address'],
-            ) 
+            )
         else:
-            self.path = self['ECU_identification'].decode('latin-1')
-            self.name = self['description']   
+            self.path = self['sender_name'].decode('latin-1')
+            self.name = self['message_name'].decode('latin-1')
             self.comment = 'Message ID={} on CAN bus {}'.format(
                 hex(self['CAN_id']),
                 self['CAN_ch_index'],
-            ) 
+            )
 
     def __bytes__(self):
         typ = self['type']
@@ -1785,7 +1785,10 @@ class HeaderBlock(dict):
 
         if self['block_len'] > v23c.HEADER_COMMON_SIZE:
             timestamp = self['abs_time'] / 10 ** 9
-            timestamp = datetime.fromtimestamp(timestamp)
+            try:
+                timestamp = datetime.fromtimestamp(timestamp)
+            except OSError:
+                timestamp = datetime.now()
 
         else:
             timestamp = '{} {}'.format(
