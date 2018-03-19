@@ -139,7 +139,7 @@ def conversion_transfer(conversion, version=3):
                     for i in range(nr):
                         kargs['lower_{}'.format(i)] = conversion['lower_{}'.format(i)]
                         kargs['upper_{}'.format(i)] = conversion['upper_{}'.format(i)]
-                        kargs['text_{}'.format(i)] = 0
+                        kargs['text_{}'.format(i)] = conversion.referenced_blocks['text_{}'.format(i)]['text']
 
                     new_conversion = v3b.ChannelConversion(
                         **kargs
@@ -148,10 +148,6 @@ def conversion_transfer(conversion, version=3):
                     new_conversion.referenced_blocks['default_addr'] = v3b.TextBlock(
                         text=conversion.referenced_blocks['default_addr']['text'],
                     )
-                    for i in range(nr):
-                        new_conversion.referenced_blocks['text_{}'.format(i)] = v3b.TextBlock(
-                            text=conversion.referenced_blocks['text_{}'.format(i)]['text'],
-                        )
 
                     conversion = new_conversion
 

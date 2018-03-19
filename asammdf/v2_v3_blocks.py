@@ -717,7 +717,7 @@ class ChannelConversion(dict):
                 self['default_upper'] = 0
                 self['default_addr'] = 0
                 key = 'default_addr'
-                if kargs[key]:
+                if key in kargs:
                     self.referenced_blocks[key] = TextBlock(text=kargs[key])
                 else:
                     self.referenced_blocks[key] = None

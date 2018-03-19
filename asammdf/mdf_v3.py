@@ -1350,7 +1350,7 @@ class MDF3(object):
                 # source for channel
                 if signal.source:
                     source = signal.source
-                    if source.source_type == 0:
+                    if source.source_type != 2:
                         kargs = {
                             'type': v23c.SOURCE_ECU,
                             'description': source.name.encode('latin-1'),
@@ -1676,7 +1676,7 @@ class MDF3(object):
                     # source for channel
                     if signal.source:
                         source = signal.source
-                        if source.source_type == 0:
+                        if source.source_type != 2:
                             kargs = {
                                 'type': v23c.SOURCE_ECU,
                                 'description': source.name.encode('latin-1'),
@@ -1868,7 +1868,7 @@ class MDF3(object):
                 # source for channel
                 if signal.source:
                     source = signal.source
-                    if source.source_type == 0:
+                    if source.source_type != 2:
                         kargs = {
                             'type': v23c.SOURCE_ECU,
                             'description': source.name.encode('latin-1'),
@@ -2038,7 +2038,7 @@ class MDF3(object):
                     # source for channel
                     if signal.source:
                         source = signal.source
-                        if source.source_type == 0:
+                        if source.source_type != 2:
                             kargs = {
                                 'type': v23c.SOURCE_ECU,
                                 'description': source.name.encode('latin-1'),
@@ -2174,7 +2174,7 @@ class MDF3(object):
                     # source for channel
                     if signal.source:
                         source = signal.source
-                        if source.source_type == 0:
+                        if source.source_type != 2:
                             kargs = {
                                 'type': v23c.SOURCE_ECU,
                                 'description': source.name.encode('latin-1'),
@@ -2313,7 +2313,7 @@ class MDF3(object):
                         # source for channel
                         if signal.source:
                             source = signal.source
-                            if source.source_type == 0:
+                            if source.source_type != 2:
                                 kargs = {
                                     'type': v23c.SOURCE_ECU,
                                     'description': source.name.encode('latin-1'),

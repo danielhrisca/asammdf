@@ -1700,8 +1700,6 @@ class MDF4(object):
         else:
             types = [('vals', fmt), ]
 
-        print(types)
-
         vals = fromstring(vals, dtype=dtype(types))['vals']
 
         if channel['data_type'] in v4c.SIGNED_INT:
@@ -2208,6 +2206,7 @@ class MDF4(object):
                         gp_source.append(addr)
                     else:
                         gp_source.append(new_source)
+
                 else:
                     if memory != 'minimum':
                         gp_source.append(source_block)
@@ -5653,7 +5652,7 @@ class MDF4(object):
                             source.address = address
                             address += source['block_len']
                             blocks.append(source)
-                            si_map[source_id] = 0
+                            si_map[source_id] = address
 
                 # channel data
                 gp_sd = []
