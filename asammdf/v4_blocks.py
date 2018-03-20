@@ -1684,7 +1684,7 @@ class ChannelConversion(dict):
             self.formula,
             self.referenced_blocks,
             hex(self.address),
-            super(Channel, self).__str__(),
+            super(ChannelConversion, self).__str__(),
         )
 
 

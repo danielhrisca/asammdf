@@ -176,7 +176,8 @@ class Signal(object):
 \tconversion={}
 \tcomment="{}"
 \tmastermeta="{}"
-\traw={}>
+\traw={}
+\tdisplay_name={}>
 """
         return string.format(
             self.name,
@@ -187,6 +188,7 @@ class Signal(object):
             self.comment,
             self.master_metadata,
             self.raw,
+            self.display_name,
         )
 
     def __repr__(self):
@@ -589,30 +591,44 @@ class Signal(object):
             new interpolated *Signal*
 
         """
-        if self.samples.dtype.kind == 'f':
-            s = np.interp(new_timestamps, self.timestamps, self.samples)
-        else:
-            idx = np.searchsorted(
-                self.timestamps,
-                new_timestamps,
-                side='right',
+        if not len(self.samples):
+            return Signal(
+                self.samples.copy(),
+                self.timestamps.copy(),
+                self.unit,
+                self.name,
+                comment=self.comment,
+                conversion=self.conversion,
+                raw=self.raw,
+                master_metadata=self.master_metadata,
+                display_name=self.display_name,
+                attachment=self.attachment,
             )
-            idx -= 1
-            idx = np.clip(idx, 0, idx[-1])
-            s = self.samples[idx]
+        else:
+            if self.samples.dtype.kind == 'f':
+                s = np.interp(new_timestamps, self.timestamps, self.samples)
+            else:
+                idx = np.searchsorted(
+                    self.timestamps,
+                    new_timestamps,
+                    side='right',
+                )
+                idx -= 1
+                idx = np.clip(idx, 0, idx[-1])
+                s = self.samples[idx]
 
-        return Signal(
-            s,
-            new_timestamps,
-            self.unit,
-            self.name,
-            comment=self.comment,
-            conversion=self.conversion,
-            raw=self.raw,
-            master_metadata=self.master_metadata,
-            display_name=self.display_name,
-            attachment=self.attachment,
-        )
+            return Signal(
+                s,
+                new_timestamps,
+                self.unit,
+                self.name,
+                comment=self.comment,
+                conversion=self.conversion,
+                raw=self.raw,
+                master_metadata=self.master_metadata,
+                display_name=self.display_name,
+                attachment=self.attachment,
+            )
 
     def __apply_func(self, other, func_name):
         """ delegate operations to the *samples* attribute, but in a time

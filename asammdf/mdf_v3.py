@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import warnings
+import xml.etree.ElementTree as ET
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime
@@ -187,6 +188,7 @@ class MDF3(object):
 
         self._read_fragment_size = 0
         self._write_fragment_size = 8 * 2 ** 20
+        self._use_display_names = False
 
         if name:
             self._file = open(self.name, 'rb')
@@ -1014,20 +1016,23 @@ class MDF3(object):
     def configure(
             self,
             read_fragment_size=None,
-            write_fragment_size=None):
+            write_fragment_size=None,
+            use_display_names=None):
         """ configure read and write fragment size for chuncked
         data access
 
         Parameters
         ----------
         read_fragment_size : int
-            size hint of split data blocks, default 8MB; if the initial size is
+            size hint of splitted data blocks, default 8MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size
         write_fragment_size : int
-            size hint of split data blocks, default 8MB; if the initial size is
+            size hint of splitted data blocks, default 8MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size
+        use_display_names : bool
+            use display name if available for the Signal's name returned by the get method
 
         """
 
@@ -1036,6 +1041,9 @@ class MDF3(object):
 
         if write_fragment_size:
             self._write_fragment_size = int(write_fragment_size)
+
+        if use_display_names is not None:
+            self._use_display_names = bool(use_display_names)
 
     def add_trigger(self,
                     group,
@@ -3284,16 +3292,20 @@ class MDF3(object):
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
-            if memory != 'minimum':
-                display_name = channel.display_name
-            else:
-                if channel.get('display_name_addr', 0):
-                    display_name = get_text_v3(
-                        channel['display_name_addr'],
-                        stream,
-                    )
-                else:
-                    display_name = ''
+            if display_name and not comment.startswith('<CNcomment'):
+                CNcomment = ET.Element('CNcomment')
+
+                tx = ET.Element('TX')
+                tx.text = comment
+                CNcomment.append(tx)
+
+                display = ET.Element('display')
+                display.text = display_name
+                names = ET.Element('names')
+                names.append(display)
+                CNcomment.append(names)
+
+                comment = ET.tostring(CNcomment).decode('utf-8')
 
             res = Signal(
                 samples=vals,

@@ -297,6 +297,7 @@ class MDF4(object):
 
         self._read_fragment_size = 0
         self._write_fragment_size = 8 * 2**20
+        self._use_display_names = False
 
         self._tempfile.write(b'\0')
 
@@ -828,7 +829,6 @@ class MDF4(object):
 
             display_name = channel.display_name
             if display_name:
-                display_name = display_name.text
                 if display_name not in self.channels_db:
                     self.channels_db[display_name] = []
                 self.channels_db[display_name].append((dg_cntr, ch_cntr))
@@ -1847,7 +1847,8 @@ class MDF4(object):
     def configure(
             self,
             read_fragment_size=None,
-            write_fragment_size=None):
+            write_fragment_size=None,
+            use_display_names=None):
         """ configure read and write fragment size for chuncked
         data access
 
@@ -1861,6 +1862,8 @@ class MDF4(object):
             size hint of splitted data blocks, default 8MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size
+        use_display_names : bool
+            use display name if available for the Signal's name returned by the get method
 
         """
 
@@ -1869,6 +1872,9 @@ class MDF4(object):
 
         if write_fragment_size:
             self._write_fragment_size = int(write_fragment_size)
+
+        if use_display_names is not None:
+            self._use_display_names = bool(use_display_names)
 
     def append(self, signals, source_info='Python', common_timebase=False):
         """
@@ -2258,6 +2264,7 @@ class MDF4(object):
                     ch.name = name
                     ch.unit = signal.unit
                     ch.comment = signal.comment
+                    ch.display_name = signal.display_name
                     gp_channels.append(ch)
                 else:
                     address = tell()
@@ -2438,6 +2445,7 @@ class MDF4(object):
                     ch.name = name
                     ch.unit = signal.unit
                     ch.comment = signal.comment
+                    ch.display_name = signal.display_name
                     gp_channels.append(ch)
                 else:
                     address = tell()
@@ -2608,6 +2616,7 @@ class MDF4(object):
                     ch.name = name
                     ch.unit = signal.unit
                     ch.comment = signal.comment
+                    ch.display_name = signal.display_name
                     gp_channels.append(ch)
                 else:
                     address = tell()
@@ -2764,6 +2773,7 @@ class MDF4(object):
                     ch.name = name
                     ch.unit = signal.unit
                     ch.comment = signal.comment
+                    ch.display_name = signal.display_name
                     gp_channels.append(ch)
                 else:
                     address = tell()
@@ -3082,6 +3092,7 @@ class MDF4(object):
                     ch.name = name
                     ch.unit = signal.unit
                     ch.comment = signal.comment
+                    ch.display_name = signal.display_name
                     gp_channels.append(ch)
                 else:
                     address = tell()
@@ -4904,6 +4915,7 @@ class MDF4(object):
                 master_metadata=master_metadata,
                 attachment=attachment,
                 source=source,
+                display_name=channel.display_name,
             )
 
         return res

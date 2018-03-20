@@ -168,9 +168,13 @@ def matlab_compatible(name):
     """
 
     compatible_name = [
-        ch for ch in name if ch in ALLOWED_MATLAB_CHARS
+        ch if ch in ALLOWED_MATLAB_CHARS else '_'
+        for ch in name
     ]
     compatible_name = ''.join(compatible_name)
+
+    if compatible_name[0] not in string.ascii_letters:
+        compatible_name = 'M_' + compatible_name
 
     return ''.join(compatible_name)
 
@@ -637,6 +641,8 @@ def debug_channel(mdf, group, channel, conversion, dependency):
         channel object
     conversion : Channelonversion
         channel conversion object
+    dependency : ChannelDependency
+        channel dependecy object
 
     """
     print('MDF', '='*76)

@@ -24,6 +24,7 @@ from .utils import (
     MdfException,
     get_text_v3,
     get_text_v4,
+    get_unique_name,
     matlab_compatible,
     validate_memory_argument,
     validate_version_argument,
@@ -558,7 +559,7 @@ class MDF(object):
 
         return out
 
-    def export(self, fmt, filename=None):
+    def export(self, fmt, filename=None, **kargs):
         """ export *MDF* to other formats. The *MDF* file name is used is
         available, else the *filename* aragument must be provided.
 
@@ -584,9 +585,21 @@ class MDF(object):
               'DataGroup_<cntr>_<channel name>'. The channel group master
               will be renamed to 'DataGroup_<cntr>_<channel name>_master'
               ( *<cntr>* is the data group index starting from 0)
-
         filename : string
             export file name
+        **kwargs
+
+            * `single_time_base`: resample all channels to common time base, default *False*.
+              Only valid for *mat* export.
+            * `raster`: float time raster for resampling. Valid for *mat* export if *single_time_base* is *True*
+              and for *pandas* export
+            * `time_from_zero`: adjust time channel to start from 0. Valid for *mat* and *pandas* export.
+            * `use_display_names`: use display name instead of standard channel name, if available.
+
+        Returns
+        -------
+        dataframe : pandas.DataFrame
+            only in case of *pandas* export
 
         """
 
@@ -769,10 +782,137 @@ class MDF(object):
 
             if not name.endswith('.mat'):
                 name = name + '.mat'
+
             mdict = {}
 
-            master = 'DataGroup_{}_{}_master'
-            channel = 'DataGroup_{}_{}'
+            single_time_base = kargs.get('single_time_base', False)
+            raster = kargs.get('raster', 0)
+            time_from_zero = kargs.get('time_from_zero', True)
+            use_display_names = kargs.get('use_display_names', True)
+
+            if single_time_base:
+                masters = [
+                    self.get_master(i)
+                    for i in range(len(self.groups))
+                ]
+                master = reduce(np.union1d, masters)
+                if raster:
+                    master = np.arange(
+                        master[0],
+                        master[-1],
+                        raster,
+                        dtype=np.float64,
+                    )
+                if time_from_zero:
+                    mdict['t'] = master - master[0]
+                else:
+                    mdict['t'] = master
+
+                used_names = {'t'}
+
+                for i, grp in enumerate(self.groups):
+                    master_index = self.masters_db.get(i, -1)
+                    data = self._load_group_data(grp)
+
+                    if PYVERSION == 2:
+                        data = b''.join(str(d[0]) for d in data)
+                    else:
+                        data = b''.join(d[0] for d in data)
+                    data = (data, 0)
+
+                    for j, _ in enumerate(grp['channels']):
+                        if j == master_index:
+                            continue
+                        sig = self.get(
+                            group=i,
+                            index=j,
+                            data=data,
+                        ).interp(master)
+
+                        if use_display_names:
+                            channel_name = sig.display_name or sig.name
+                        else:
+                            channel_name = sig.name
+
+                        channel_name = matlab_compatible(channel_name)
+
+                        channel_name = get_unique_name(used_names, channel_name)
+                        used_names.add(channel_name)
+
+                        mdict[channel_name] = sig.samples
+
+            else:
+                master_name_template = 'DataGroup_{}_{}_master'
+                channel_name_template = 'DataGroup_{}_{}'
+                used_names = set()
+
+                for i, grp in enumerate(self.groups):
+                    master_index = self.masters_db.get(i, -1)
+                    data = self._load_group_data(grp)
+
+                    if PYVERSION == 2:
+                        data = b''.join(str(d[0]) for d in data)
+                    else:
+                        data = b''.join(d[0] for d in data)
+                    data = (data, 0)
+
+                    for j, _ in enumerate(grp['channels']):
+                        sig = self.get(
+                            group=i,
+                            index=j,
+                            data=data,
+                        )
+                        if j == master_index:
+                            channel_name = master_name_template.format(i, sig.name)
+                        else:
+                            if use_display_names:
+                                channel_name = sig.display_name or sig.name
+                            else:
+                                channel_name = sig.name
+                            channel_name = channel_name_template.format(i, channel_name)
+
+                        channel_name = matlab_compatible(channel_name)
+                        channel_name = get_unique_name(used_names, channel_name)
+                        used_names.add(channel_name)
+
+                        mdict[channel_name] = sig.samples
+
+            savemat(
+                name,
+                mdict,
+                long_field_names=True,
+                do_compression=True,
+            )
+
+        elif fmt == 'pandas':
+
+            if not name.endswith('.mat'):
+                name = name + '.mat'
+
+            mdict = {}
+
+            raster = kargs.get('raster', 0)
+            time_from_zero = kargs.get('time_from_zero', True)
+            use_display_names = kargs.get('use_display_names', True)
+
+            masters = [
+                self.get_master(i)
+                for i in range(len(self.groups))
+            ]
+            master = reduce(np.union1d, masters)
+            if raster:
+                master = np.arange(
+                    master[0],
+                    master[-1],
+                    raster,
+                    dtype=np.float64,
+                )
+            if time_from_zero:
+                mdict['t'] = master - master[0]
+            else:
+                mdict['t'] = master
+
+            used_names = {'t'}
 
             for i, grp in enumerate(self.groups):
                 master_index = self.masters_db.get(i, -1)
@@ -785,25 +925,27 @@ class MDF(object):
                 data = (data, 0)
 
                 for j, _ in enumerate(grp['channels']):
+                    if j == master_index:
+                        continue
                     sig = self.get(
                         group=i,
                         index=j,
                         data=data,
-                    )
-                    if j == master_index:
-                        channel_name = master.format(i, sig.name)
+                    ).interp(master)
+
+                    if use_display_names:
+                        channel_name = sig.display_name or sig.name
                     else:
-                        channel_name = channel.format(i, sig.name)
+                        channel_name = sig.name
 
                     channel_name = matlab_compatible(channel_name)
+
+                    channel_name = get_unique_name(used_names, channel_name)
+                    used_names.add(channel_name)
+
                     mdict[channel_name] = sig.samples
 
-            savemat(
-                name,
-                mdict,
-                long_field_names=True,
-                do_compression=True,
-            )
+            return DataFrame.from_dict(mdict)
 
         else:
             message = (
@@ -1191,7 +1333,7 @@ class MDF(object):
                                 sig.timestamps = sig.timestamps + offset
 
                             if version < '4.00' and sig.samples.dtype.kind == 'S':
-                                string_dtypes = []
+                                string_dtypes = [np.dtype('S'), ]
                                 for tmp_mdf in files:
                                     strsig = tmp_mdf.get(
                                         group=i,
@@ -1199,10 +1341,10 @@ class MDF(object):
                                         samples_only=True,
                                     )
                                     string_dtypes.append(strsig.dtype)
+                                    del strsig
 
                                 sig.samples = sig.samples.astype(max(string_dtypes))
 
-                                del strsig
                                 del string_dtypes
 
                             if not sig.samples.flags.writeable:
@@ -1382,7 +1524,7 @@ class MDF(object):
                                 sig.timestamps = sig.timestamps + offset
 
                             if version < '4.00' and sig.samples.dtype.kind == 'S':
-                                string_dtypes = []
+                                string_dtypes = [np.dtype('S'), ]
                                 for tmp_mdf in files:
                                     strsig = tmp_mdf.get(
                                         group=i,
@@ -1390,10 +1532,10 @@ class MDF(object):
                                         samples_only=True,
                                     )
                                     string_dtypes.append(strsig.dtype)
+                                    del strsig
 
                                 sig.samples = sig.samples.astype(max(string_dtypes))
 
-                                del strsig
                                 del string_dtypes
 
                             if not sig.samples.flags.writeable:
