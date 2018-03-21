@@ -133,8 +133,8 @@ class MDF(object):
         teh channel group. The candiates for exlusion are the master channel
         (since it is retrieved as `Signal` timestamps), structure channel
         composition component channels (since they are retrieved as fields in
-        the `Signal` samples recarray) and channel dependecies (mdf version 3) /
-        channel array axes
+        the `Signal` samples recarray) and channel dependecies (mdf version 3)
+        / channel array axes
 
         Parameters
         ----------
@@ -270,7 +270,9 @@ class MDF(object):
                             source_info.format(self.version, to),
                             common_timebase=True,
                         )
-                        if self.version >= '4.00' and version >= '4.00' and (group['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT):
+                        if (self.version >= '4.00'
+                                and version >= '4.00'
+                                and (group['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT)):
                             original_texts = group['texts']['channel_group'][0]
                             cg_texts = {}
                             if memory == 'minimum':
@@ -302,7 +304,11 @@ class MDF(object):
                             new_group = out.groups[-1]
                             new_group['texts']['channel_group'][0] = cg_texts
 
-                            new_group['channel_group']['flags'] = group['channel_group']['flags']
+                            new_group['channel_group']['flags'] = (
+                                group
+                                ['channel_group']
+                                ['flags']
+                            )
                             new_group['channel_group']['path_separator'] = ord('.')
 
                             source = group['channel_group_source']
@@ -356,7 +362,8 @@ class MDF(object):
             start time, default *None*. If *None* then the start of measurement
             is used
         stop : float
-            stop time, default *None*. If *None* then the end of measurement is used
+            stop time, default *None*. If *None* then the end of measurement is
+            used
         whence : int
             how to search for the start and stop values
 
@@ -435,14 +442,22 @@ class MDF(object):
                             break
                         else:
                             fragment_stop = min(stop, master[-1])
-                            stop_index = np.searchsorted(master, fragment_stop, side='right')
+                            stop_index = np.searchsorted(
+                                master,
+                                fragment_stop,
+                                side='right',
+                            )
                     elif stop is None:
                         fragment_stop = None
                         if master[-1] < start:
                             continue
                         else:
                             fragment_start = max(start, master[0])
-                            start_index = np.searchsorted(master, fragment_start, side='left')
+                            start_index = np.searchsorted(
+                                master,
+                                fragment_start,
+                                side='left',
+                            )
                             stop_index = len(master)
                     else:
                         if master[0] > stop:
@@ -451,9 +466,17 @@ class MDF(object):
                             continue
                         else:
                             fragment_start = max(start, master[0])
-                            start_index = np.searchsorted(master, fragment_start, side='left')
+                            start_index = np.searchsorted(
+                                master,
+                                fragment_start,
+                                side='left',
+                            )
                             fragment_stop = min(stop, master[-1])
-                            stop_index = np.searchsorted(master, fragment_stop, side='right')
+                            stop_index = np.searchsorted(
+                                master,
+                                fragment_stop,
+                                side='right',
+                            )
 
                     # the first fragment triggers and append that will add the
                     # metadata for all channels
@@ -587,12 +610,14 @@ class MDF(object):
             export file name
         **kwargs
 
-            * `single_time_base`: resample all channels to common time base, default *False*.
-              Only valid for *mat* export.
-            * `raster`: float time raster for resampling. Valid for *mat* export if *single_time_base* is *True*
-              and for *pandas* export
-            * `time_from_zero`: adjust time channel to start from 0. Valid for *mat* and *pandas* export.
-            * `use_display_names`: use display name instead of standard channel name, if available.
+            * `single_time_base`: resample all channels to common time base,
+              default *False*. Only valid for *mat* export.
+            * `raster`: float time raster for resampling. Valid for *mat*
+              export if *single_time_base* is *True* and for *pandas* export
+            * `time_from_zero`: adjust time channel to start from 0. Valid for
+              *mat* and *pandas* export.
+            * `use_display_names`: use display name instead of standard channel
+              name, if available.
 
         Returns
         -------
@@ -834,7 +859,10 @@ class MDF(object):
 
                         channel_name = matlab_compatible(channel_name)
 
-                        channel_name = get_unique_name(used_names, channel_name)
+                        channel_name = get_unique_name(
+                            used_names,
+                            channel_name,
+                        )
                         used_names.add(channel_name)
 
                         mdict[channel_name] = sig.samples
@@ -861,16 +889,25 @@ class MDF(object):
                             data=data,
                         )
                         if j == master_index:
-                            channel_name = master_name_template.format(i, sig.name)
+                            channel_name = master_name_template.format(
+                                i,
+                                sig.name,
+                            )
                         else:
                             if use_display_names:
                                 channel_name = sig.display_name or sig.name
                             else:
                                 channel_name = sig.name
-                            channel_name = channel_name_template.format(i, channel_name)
+                            channel_name = channel_name_template.format(
+                                i,
+                                channel_name,
+                            )
 
                         channel_name = matlab_compatible(channel_name)
-                        channel_name = get_unique_name(used_names, channel_name)
+                        channel_name = get_unique_name(
+                            used_names,
+                            channel_name,
+                        )
                         used_names.add(channel_name)
 
                         mdict[channel_name] = sig.samples
@@ -940,7 +977,10 @@ class MDF(object):
 
                         channel_name = matlab_compatible(channel_name)
 
-                        channel_name = get_unique_name(used_names, channel_name)
+                        channel_name = get_unique_name(
+                            used_names,
+                            channel_name,
+                        )
                         used_names.add(channel_name)
 
                         mdict[channel_name] = sig.samples
@@ -1343,7 +1383,9 @@ class MDF(object):
                                     string_dtypes.append(strsig.dtype)
                                     del strsig
 
-                                sig.samples = sig.samples.astype(max(string_dtypes))
+                                sig.samples = sig.samples.astype(
+                                    max(string_dtypes)
+                                )
 
                                 del string_dtypes
 
@@ -1534,7 +1576,9 @@ class MDF(object):
                                     string_dtypes.append(strsig.dtype)
                                     del strsig
 
-                                sig.samples = sig.samples.astype(max(string_dtypes))
+                                sig.samples = sig.samples.astype(
+                                    max(string_dtypes)
+                                )
 
                                 del string_dtypes
 

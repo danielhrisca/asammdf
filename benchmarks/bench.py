@@ -129,9 +129,9 @@ def generate_test_files(version='4.10'):
     mdf = MDF(version=version, memory='minimum')
 
     if version <= '3.30':
-        filename = r'test.mdf'.format(version)
+        filename = r'test.mdf'
     else:
-        filename = r'test.mf4'.format(version)
+        filename = r'test.mf4'
 
     if os.path.exists(filename):
         return filename

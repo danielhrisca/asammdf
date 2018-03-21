@@ -243,9 +243,12 @@ class Channel(dict):
             )
 
             if comment.startswith('<CNcomment'):
-                display_name = ET.fromstring(comment).find('.//names/display')
-                if display_name is not None:
-                    self.display_name = display_name.text
+                try:
+                    display_name = ET.fromstring(comment).find('.//names/display')
+                    if display_name is not None:
+                        self.display_name = display_name.text
+                except UnicodeEncodeError:
+                    pass
 
             self.comment = comment
 
