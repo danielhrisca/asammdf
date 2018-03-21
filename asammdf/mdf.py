@@ -933,24 +933,26 @@ class MDF(object):
                         data=data,
                     ).interp(master)
 
-                    if use_display_names:
-                        channel_name = sig.display_name or sig.name
-                    else:
-                        channel_name = sig.name
+                    if len(sig):
 
-                    channel_name = matlab_compatible(channel_name)
+                        if use_display_names:
+                            channel_name = sig.display_name or sig.name
+                        else:
+                            channel_name = sig.name
 
-                    channel_name = get_unique_name(used_names, channel_name)
-                    used_names.add(channel_name)
+                        channel_name = matlab_compatible(channel_name)
 
-                    mdict[channel_name] = sig.samples
+                        channel_name = get_unique_name(used_names, channel_name)
+                        used_names.add(channel_name)
+
+                        mdict[channel_name] = sig.samples
 
             return DataFrame.from_dict(mdict)
 
         else:
             message = (
                 'Unsopported export type "{}". '
-                'Please select "csv", "excel", "hdf5" or "mat"'
+                'Please select "csv", "excel", "hdf5", "mat" or "pandas"'
             )
             warn(message.format(fmt))
 
