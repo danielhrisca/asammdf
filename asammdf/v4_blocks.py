@@ -32,6 +32,7 @@ __all__ = [
     'ChannelConversion',
     'DataBlock',
     'DataZippedBlock',
+    'EventBlock',
     'FileIdentificationBlock',
     'HeaderBlock',
     'HeaderList',
@@ -2020,6 +2021,186 @@ class DataList(dict):
         else:
             result = pack(fmt, *[self[key] for key in keys])
         return result
+
+
+class EventBlock(dict):
+    """ EVBLOCK class"""
+    __slots__ = ['address', 'name', 'comment', 'referenced_blocks']
+
+    def __init__(self, **kargs):
+        super(EventBlock, self).__init__()
+
+        self.name = self.comment = ''
+        self.referenced_blocks = []
+
+        if 'stream' in kargs:
+
+            self.address = address = kargs['address']
+            stream = kargs['stream']
+            stream.seek(address)
+
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr']) = unpack(
+                v4c.FMT_COMMON,
+                stream.read(v4c.COMMON_SIZE),
+            )
+
+            block = stream.read(self['block_len'] - v4c.COMMON_SIZE)
+
+            links_nr = self['links_nr']
+
+            links = unpack_from('<{}Q'.format(links_nr), block)
+            params = unpack_from(v4c.FMT_EVENT_PARAMS, block, links_nr * 8)
+
+            (self['next_ev_addr'],
+             self['parent_ev_addr'],
+             self['range_start_ev_addr'],
+             self['name_addr'],
+             self['comment_addr']) = links[:5]
+
+            scope_nr = params[6]
+            for i in range(scope_nr):
+                self['scope_{}_addr'.format(i)] = links[5 + i]
+
+            attachment_nr = params[7]
+            for i in range(attachment_nr):
+                self['attachment_{}_addr'.format(i)] = links[5 + scope_nr + i]
+
+            (self['event_type'],
+             self['sync_type'],
+             self['range_type'],
+             self['cause'],
+             self['flags'],
+             self['reserved0'],
+             self['scope_nr'],
+             self['attachment_nr'],
+             self['creator_index'],
+             self['sync_base'],
+             self['sync_factor']) = params
+
+            if self['id'] != b'##EV':
+                message = 'Expected "##EV" block but found "{}"'
+                raise MdfException(message.format(self['id']))
+
+            self.name = get_text_v4(self['name_addr'], stream)
+            self.comment = get_text_v4(self['comment_addr'], stream)
+
+        else:
+            self.address = 0
+
+            self['id'] = b'##CN'
+            self['reserved0'] = 0
+            self['block_len'] = v4c.CN_BLOCK_SIZE
+            self['links_nr'] = 8
+            self['next_ch_addr'] = 0
+            self['component_addr'] = 0
+            self['name_addr'] = kargs.get('name_addr', 0)
+            self['source_addr'] = 0
+            self['conversion_addr'] = 0
+            self['data_block_addr'] = kargs.get('data_block_addr', 0)
+            self['unit_addr'] = kargs.get('unit_addr', 0)
+            self['comment_addr'] = 0
+            try:
+                self['attachment_0_addr'] = kargs['attachment_0_addr']
+                self['block_len'] += 8
+                self['links_nr'] += 1
+                attachments = 1
+            except KeyError:
+                attachments = 0
+            self['channel_type'] = kargs['channel_type']
+            self['sync_type'] = kargs.get('sync_type', 0)
+            self['data_type'] = kargs['data_type']
+            self['bit_offset'] = kargs['bit_offset']
+            self['byte_offset'] = kargs['byte_offset']
+            self['bit_count'] = kargs['bit_count']
+            self['flags'] = kargs.get('flags', 28)
+            self['pos_invalidation_bit'] = 0
+            self['precision'] = kargs.get('precision', 3)
+            self['reserved1'] = 0
+            self['attachment_nr'] = attachments
+            self['min_raw_value'] = kargs.get('min_raw_value', 0)
+            self['max_raw_value'] = kargs.get('max_raw_value', 0)
+            self['lower_limit'] = kargs.get('lower_limit', 0)
+            self['upper_limit'] = kargs.get('upper_limit', 100)
+            self['lower_ext_limit'] = kargs.get('lower_ext_limit', 0)
+            self['upper_ext_limit'] = kargs.get('upper_ext_limit', 0)
+
+    def update_references(self, ch_map, cg_map):
+        self.referenced_blocks[:] = []
+        for i in range(self['scope_nr']):
+            addr = self['scope_{}_addr'.format(i)]
+            if addr in ch_map:
+                self.referenced_blocks.append(ch_map[addr])
+            elif addr in cg_map:
+                self.referenced_blocks.append(cg_map[addr])
+            else:
+                error = (
+                    '{} is not a valid CNBLOCK or CGBLOCK '
+                    'address for the event scope'
+                )
+                raise MdfException(error.format(hex(addr)))
+
+    def __bytes__(self):
+
+        fmt = v4c.FMT_CHANNEL.format(self['links_nr'])
+
+        if PYVERSION_MAJOR >= 36:
+            result = pack(fmt, *self.values())
+        else:
+            keys = [
+                'id',
+                'reserved0',
+                'block_len',
+                'links_nr',
+                'next_ch_addr',
+                'component_addr',
+                'name_addr',
+                'source_addr',
+                'conversion_addr',
+                'data_block_addr',
+                'unit_addr',
+                'comment_addr',
+            ]
+            for i in range(self['attachment_nr']):
+                keys.append('attachment_{}_addr'.format(i))
+            if self['flags'] & v4c.FLAG_CN_DEFAULT_X:
+                keys += [
+                    'default_X_dg_addr',
+                    'default_X_cg_addr',
+                    'default_X_ch_addr',
+                ]
+            keys += [
+                'channel_type',
+                'sync_type',
+                'data_type',
+                'bit_offset',
+                'byte_offset',
+                'bit_count',
+                'flags',
+                'pos_invalidation_bit',
+                'precision',
+                'reserved1',
+                'attachment_nr',
+                'min_raw_value',
+                'max_raw_value',
+                'lower_limit',
+                'upper_limit',
+                'lower_ext_limit',
+                'upper_ext_limit',
+            ]
+            result = pack(fmt, *[self[key] for key in keys])
+        return result
+
+    def __str__(self):
+        return 'EventBlock (name: {}, comment: {}, address: {}, referenced_blocks: {}, fields: {})'.format(
+            self.name,
+            self.comment,
+            hex(self.address),
+            self.referenced_blocks,
+            super(EventBlock, self).__str__(),
+        )
 
 
 class FileIdentificationBlock(dict):

@@ -76,6 +76,7 @@ from .v4_blocks import (
     DataGroup,
     DataList,
     DataZippedBlock,
+    EventBlock,
     FileHistory,
     FileIdentificationBlock,
     HeaderBlock,
@@ -281,6 +282,7 @@ class MDF4(object):
         self.attachments = OrderedDict()
         self._attachments_cache = {}
         self.file_comment = None
+        self.events = []
 
         self._ch_map = {}
         self._master_channel_cache = {}
@@ -546,7 +548,7 @@ class MDF4(object):
                     size *= channel_group['cycles_nr']
                 else:
                     size = 0
-                    for k, gp in enumerate(new_groups):
+                    for gp in new_groups:
                         cg = gp['channel_group']
                         if cg['flags'] & v4c.FLAG_CG_VLSD:
                             total_vlsd_bytes = (cg['invalidation_bytes_nr'] << 32) + cg['samples_byte_nr']
@@ -752,6 +754,18 @@ class MDF4(object):
                         address=signal_data_addr,
                         stream=stream,
                     )
+
+        # read events
+        addr = self.header['first_event_addr']
+        while addr:
+            event = EventBlock(address=addr, stream=stream)
+            event.update_references(
+                self._ch_map,
+                self._cg_map,
+            )
+            self.events.append(event)
+
+            addr = event['next_ev_addr']
 
         if self.memory == 'full':
             self.close()
@@ -1459,7 +1473,7 @@ class MDF4(object):
                                         # 3 - can_msg_name.name
                                         # 4 - can_id.can_msg_name.name
 
-                                        for k in range(5):
+                                        for _ in range(5):
                                             parents[neg_index] = 'CAN_DataFrame.DataBytes', offset_
                                             neg_index -= 1
 
@@ -5518,22 +5532,10 @@ class MDF4(object):
                     dg['next_dg_addr'] = addr_
                 valid_data_groups[-1]['next_dg_addr'] = 0
 
-            tab_conversion = (
-                v4c.CONVERSION_TYPE_TABX,
-                v4c.CONVERSION_TYPE_RTABX,
-                v4c.CONVERSION_TYPE_TTAB,
-                v4c.CONVERSION_TYPE_TRANS,
-            )
-
             si_map = {}
 
             # go through each data group and append the rest of the blocks
             for i, gp in enumerate(self.groups):
-                if gp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
-
-                    stream = self._file
-                else:
-                    stream = self._tempfile
 
                 # write TXBLOCK's
                 for item_list in gp['texts'].values():
