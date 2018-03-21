@@ -452,7 +452,15 @@ class MDF4(object):
                         address=channel_group['comment_addr'],
                         stream=stream,
                     )
-                    common_properties = ET.fromstring(comment).find(".//common_properties")
+
+                    try:
+                        common_properties = ET.fromstring(comment).find(".//common_properties")
+                    except ET.ParseError:
+                        print('-'*80)
+                        print('INVALID Bus logging channel group comment:')
+                        print(comment)
+                        print('-'*80)
+                        common_properties = None
 
                     if common_properties is not None:
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """ asammdf *Signal* class module for time correct signal processing """
 
-import xml.etree.ElementTree as ET
 from textwrap import fill
 
 import numpy as np

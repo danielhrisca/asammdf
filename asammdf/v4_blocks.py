@@ -17,7 +17,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v4_constants as v4c
-from .utils import MdfException, get_text_v4, get_fmt_v4
+from .utils import MdfException, get_text_v4
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
