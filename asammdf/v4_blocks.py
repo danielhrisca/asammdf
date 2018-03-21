@@ -2025,13 +2025,13 @@ class DataList(dict):
 
 class EventBlock(dict):
     """ EVBLOCK class"""
-    __slots__ = ['address', 'name', 'comment', 'referenced_blocks']
+    __slots__ = ['address', 'name', 'comment', 'scopes']
 
     def __init__(self, **kargs):
         super(EventBlock, self).__init__()
 
         self.name = self.comment = ''
-        self.referenced_blocks = []
+        self.scopes = []
 
         if 'stream' in kargs:
 
@@ -2128,13 +2128,13 @@ class EventBlock(dict):
             self['upper_ext_limit'] = kargs.get('upper_ext_limit', 0)
 
     def update_references(self, ch_map, cg_map):
-        self.referenced_blocks[:] = []
+        self.scopes[:] = []
         for i in range(self['scope_nr']):
             addr = self['scope_{}_addr'.format(i)]
             if addr in ch_map:
-                self.referenced_blocks.append(ch_map[addr])
+                self.scopes.append(ch_map[addr])
             elif addr in cg_map:
-                self.referenced_blocks.append(cg_map[addr])
+                self.scopes.append(cg_map[addr])
             else:
                 error = (
                     '{} is not a valid CNBLOCK or CGBLOCK '
@@ -2192,11 +2192,11 @@ class EventBlock(dict):
         return result
 
     def __str__(self):
-        return 'EventBlock (name: {}, comment: {}, address: {}, referenced_blocks: {}, fields: {})'.format(
+        return 'EventBlock (name: {}, comment: {}, address: {}, scopes: {}, fields: {})'.format(
             self.name,
             self.comment,
             hex(self.address),
-            self.referenced_blocks,
+            self.scopes,
             super(EventBlock, self).__str__(),
         )
 

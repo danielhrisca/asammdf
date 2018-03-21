@@ -5842,7 +5842,7 @@ class MDF4(object):
 
             if self.events:
                 for event in self.events:
-                    for i, ref in enumerate(event.referenced_blocks):
+                    for i, ref in enumerate(event.scopes):
                         try:
                             ch_cntr, dg_cntr = ref
                             event['scope_{}_addr'.format(i)] = (
@@ -5870,16 +5870,36 @@ class MDF4(object):
                     event.address = address
                     address += event['block_len']
 
+                    if event.name:
+                        tx_block = TextBlock(text=event.name)
+                        tx_block.address = address
+                        blocks.append(tx_block)
+                        address += tx_block['block_len']
+                        event['name_addr'] = tx_block.address
+                    else:
+                        event['name_addr'] = 0
+
+                    if event.comment:
+                        meta = event.comment.startswith('<EVcomment')
+                        tx_block = TextBlock(text=event.comment, meta=meta)
+                        tx_block.address = address
+                        blocks.append(tx_block)
+                        address += tx_block['block_len']
+                        event['comment_addr'] = tx_block.address
+                    else:
+                        event['comment_addr'] = 0
+
                 for event in self.events:
                     if event['parent_ev_addr']:
                         event['parent_ev_addr'] = ev_map[event['parent_ev_addr']]
+                    if event['range_start_ev_addr']:
+                        event['range_start_ev_addr'] = ev_map[event['range_start_ev_addr']]
 
                 for i in range(len(self.events) - 1):
                     self.events[i]['next_ev_addr'] = self.events[i+1].address
                 self.events[-1]['next_ev_addr'] = 0
 
                 self.header['first_event_addr'] = self.events[0].address
-                print("MUAHHA", hex(self.events[0].address))
 
             for block in blocks:
                 write(bytes(block))
@@ -5917,6 +5937,8 @@ class MDF4(object):
             for event in self.events:
                 if event['parent_ev_addr']:
                     event['parent_ev_addr'] = ev_map[event['parent_ev_addr']]
+                if event['range_start_ev_addr']:
+                    event['range_start_ev_addr'] = ev_map[event['range_start_ev_addr']]
                 for i in range(event['attachment_nr']):
                     key = 'attachment_{}_addr'.format(i)
                     addr = event[key]
@@ -6601,6 +6623,68 @@ class MDF4(object):
             for gp in self.groups:
                 gp['data_group']['record_id_len'] = 0
 
+            ev_map = {}
+            if self.events:
+                for event in self.events:
+                    for i, ref in enumerate(event.scopes):
+                        try:
+                            ch_cntr, dg_cntr = ref
+                            event['scope_{}_addr'.format(i)] = (
+                                self.groups
+                                [dg_cntr]
+                                ['channels']
+                                [ch_cntr]
+                                .address
+                            )
+                        except TypeError:
+                            dg_cntr = ref
+                            event['scope_{}_addr'.format(i)] = (
+                                self.groups
+                                [dg_cntr]
+                                ['channel_group']
+                                .address
+                            )
+                    for i in range(event['attachment_nr']):
+                        key = 'attachment_{}_addr'.format(i)
+                        addr = event[key]
+                        event[key] = at_map[addr]
+
+                    blocks.append(event)
+                    ev_map[event.address] = address
+                    event.address = address
+                    address += event['block_len']
+
+                    if event.name:
+                        tx_block = TextBlock(text=event.name)
+                        tx_block.address = address
+                        blocks.append(tx_block)
+                        address += tx_block['block_len']
+                        event['name_addr'] = tx_block.address
+                    else:
+                        event['name_addr'] = 0
+
+                    if event.comment:
+                        meta = event.comment.startswith('<EVcomment')
+                        tx_block = TextBlock(text=event.comment, meta=meta)
+                        tx_block.address = address
+                        blocks.append(tx_block)
+                        address += tx_block['block_len']
+                        event['comment_addr'] = tx_block.address
+                    else:
+                        event['comment_addr'] = 0
+
+                for event in self.events:
+                    if event['parent_ev_addr']:
+                        event['parent_ev_addr'] = ev_map[event['parent_ev_addr']]
+                    if event['range_start_ev_addr']:
+                        event['range_start_ev_addr'] = ev_map[event['range_start_ev_addr']]
+
+                for i in range(len(self.events) - 1):
+                    self.events[i]['next_ev_addr'] = self.events[i+1].address
+                self.events[-1]['next_ev_addr'] = 0
+
+                self.header['first_event_addr'] = self.events[0].address
+
             for block in blocks:
                 write(bytes(block))
 
@@ -6631,6 +6715,18 @@ class MDF4(object):
 
             for orig_addr, gp in zip(original_data_addresses, self.groups):
                 gp['data_group']['data_block_addr'] = orig_addr
+
+            ev_map = {value: key for key, value in ev_map.items()}
+
+            for event in self.events:
+                if event['parent_ev_addr']:
+                    event['parent_ev_addr'] = ev_map[event['parent_ev_addr']]
+                if event['range_start_ev_addr']:
+                    event['range_start_ev_addr'] = ev_map[event['range_start_ev_addr']]
+                for i in range(event['attachment_nr']):
+                    key = 'attachment_{}_addr'.format(i)
+                    addr = event[key]
+                    event[key] = at_map[addr]
 
             for gp in self.groups:
                 for dep_list in gp['channel_dependencies']:
