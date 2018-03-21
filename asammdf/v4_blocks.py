@@ -50,10 +50,12 @@ class AttachmentBlock(dict):
 
     When adding new attachments only embedded attachemnts are allowed, with
     keyword argument *data* of type bytes"""
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'file_name', 'mime', 'comment']
 
     def __init__(self, **kargs):
         super(AttachmentBlock, self).__init__()
+
+        self.file_name = self.mime = self.comment = ''
 
         try:
             self.address = address = kargs['address']
@@ -83,6 +85,10 @@ class AttachmentBlock(dict):
             if self['id'] != b'##AT':
                 message = 'Expected "##AT" block but found "{}"'
                 raise MdfException(message.format(self['id']))
+
+            self.file_name = get_text_v4(self['file_name_addr'], stream)
+            self.mime = get_text_v4(self['mime_addr'], stream)
+            self.comment = get_text_v4(self['comment_addr'], stream)
 
         except KeyError:
 
@@ -637,10 +643,13 @@ class ChannelArrayBlock(dict):
 class ChannelGroup(dict):
     """CGBLOCK class"""
 
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'acq_name', 'comment', 'acq_source']
 
     def __init__(self, **kargs):
         super(ChannelGroup, self).__init__()
+
+        self.acq_name = self.comment = ''
+        self.acq_source = None
 
         try:
             self.address = address = kargs['address']
@@ -671,6 +680,15 @@ class ChannelGroup(dict):
             if self['id'] != b'##CG':
                 message = 'Expected "##CG" block but found "{}"'
                 raise MdfException(message.format(self['id']))
+
+            self.acq_name = get_text_v4(self['acq_name_addr'], stream)
+            self.comment = get_text_v4(self['comment_addr'], stream)
+
+            if self['acq_source_addr']:
+                self.acq_source = SourceInformation(
+                    address=self['acq_source_addr'],
+                    stream=stream,
+                )
 
         except KeyError:
             self.address = 0
@@ -1868,10 +1886,12 @@ class DataZippedBlock(dict):
 
 class DataGroup(dict):
     """DGBLOCK class"""
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'comment']
 
     def __init__(self, **kargs):
         super(DataGroup, self).__init__()
+
+        self.comment = ''
 
         try:
             self.address = address = kargs['address']
@@ -1895,6 +1915,8 @@ class DataGroup(dict):
             if self['id'] != b'##DG':
                 message = 'Expected "##DG" block but found "{}"'
                 raise MdfException(message.format(self['id']))
+
+            self.comment = get_text_v4(self['comment_addr'], stream)
 
         except KeyError:
 
@@ -2259,10 +2281,12 @@ class FileIdentificationBlock(dict):
 
 class FileHistory(dict):
     """FHBLOCK class"""
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'comment']
 
     def __init__(self, **kargs):
         super(FileHistory, self).__init__()
+
+        self.comment = ''
 
         try:
             self.address = address = kargs['address']
@@ -2287,6 +2311,11 @@ class FileHistory(dict):
             if self['id'] != b'##FH':
                 message = 'Expected "##FH" block but found "{}"'
                 raise MdfException(message.format(self['id']))
+
+            self.comment = get_text_v4(
+                address=self['comment_addr'],
+                stream=stream,
+            )
 
         except KeyError:
             self['id'] = b'##FH'
@@ -2314,10 +2343,12 @@ class FileHistory(dict):
 
 class HeaderBlock(dict):
     """HDBLOCK class"""
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'comment']
 
     def __init__(self, **kargs):
         super(HeaderBlock, self).__init__()
+
+        self.comment = ''
 
         try:
             self.address = address = kargs['address']
@@ -2350,6 +2381,11 @@ class HeaderBlock(dict):
             if self['id'] != b'##HD':
                 message = 'Expected "##HD" block but found "{}"'
                 raise MdfException(message.format(self['id']))
+
+            self.comment = get_text_v4(
+                address=self['comment_addr'],
+                stream=stream,
+            )
 
         except KeyError:
 

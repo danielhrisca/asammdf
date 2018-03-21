@@ -360,35 +360,21 @@ class MDF4(object):
 
         self.header = HeaderBlock(address=0x40, stream=stream)
 
-        # read file comment
-        if self.header['comment_addr']:
-            self.file_comment = TextBlock(
-                address=self.header['comment_addr'],
-                stream=stream,
-            )
-
         # read file history
         fh_addr = self.header['file_history_addr']
         while fh_addr:
-            history_block = FileHistory(address=fh_addr, stream=stream)
-            history_text = TextBlock(
-                address=history_block['comment_addr'],
+            history_block = FileHistory(
+                address=fh_addr,
                 stream=stream,
             )
-            self.file_history.append((history_block, history_text))
+            self.file_history.append(history_block)
             fh_addr = history_block['next_fh_addr']
 
         # read attachments
         at_addr = self.header['first_attachment_addr']
         while at_addr:
-            texts = {}
             at_block = AttachmentBlock(address=at_addr, stream=stream)
-            for key in ('file_name_addr', 'mime_addr', 'comment_addr'):
-                addr = at_block[key]
-                if addr:
-                    texts[key] = TextBlock(address=addr, stream=stream)
-
-            self.attachments[at_addr] = at_block, texts
+            self.attachments[at_addr] = at_block
             at_addr = at_block['next_at_addr']
 
         # go to first date group and read each data group sequentially
@@ -415,29 +401,14 @@ class MDF4(object):
                 grp['channels'] = []
                 grp['channel_conversions'] = []
                 grp['channel_sources'] = []
-                grp['channel_group_source'] = None
                 grp['signal_data'] = []
                 grp['data_block'] = None
                 grp['channel_dependencies'] = []
-                grp['texts'] = {
-                    'conversion_tab': [],
-                    'channel_group': [],
-                }
 
                 # read each channel group sequentially
                 block = ChannelGroup(address=cg_addr, stream=stream)
                 self._cg_map[cg_addr] = dg_cntr
                 channel_group = grp['channel_group'] = block
-
-                cg_source_addr = channel_group['acq_source_addr']
-
-                if cg_source_addr:
-                    grp['channel_group_source'] = SourceInformation(
-                        address=cg_source_addr,
-                        stream=stream,
-                    )
-                else:
-                    grp['channel_group_source'] = None
 
                 grp['record_size'] = cg_size
 
@@ -446,15 +417,8 @@ class MDF4(object):
                     record_id = channel_group['record_id']
                     cg_size[record_id] = 0
                 elif channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
-                    message_name = get_text_v4(
-                        address=channel_group['acq_name_addr'],
-                        stream=stream,
-                    )
-                    comment = get_text_v4(
-                        address=channel_group['comment_addr'],
-                        stream=stream,
-                    )
-
+                    message_name = channel_group.acq_name
+                    comment = channel_group.comment
                     try:
                         common_properties = ET.fromstring(comment).find(".//common_properties")
                     except ET.ParseError:
@@ -496,23 +460,6 @@ class MDF4(object):
 
                 data_group = DataGroup(address=dg_addr, stream=stream)
                 grp['data_group'] = data_group
-
-                # read acquisition name and comment for current channel group
-                channel_group_texts = {}
-
-                for key in ('acq_name_addr', 'comment_addr'):
-                    address = channel_group[key]
-                    if address:
-                        block = TextBlock(address=address, stream=stream)
-                        if memory == 'minimum':
-                            channel_group_texts[key] = address
-                        else:
-                            channel_group_texts[key] = block
-
-                if channel_group_texts:
-                    grp['texts']['channel_group'].append(channel_group_texts)
-                else:
-                    grp['texts']['channel_group'].append(None)
 
                 # go to first channel of the current channel group
                 ch_addr = channel_group['first_ch_addr']
@@ -3275,9 +3222,7 @@ class MDF4(object):
             'samples_byte_nr': offset,
         }
         gp['channel_group'] = ChannelGroup(**kargs)
-        gp['channel_group_source'] = None
         gp['size'] = cycles_nr * offset
-        gp_texts['channel_group'].append(None)
 
         # data group
         gp['data_group'] = DataGroup()
@@ -3292,8 +3237,6 @@ class MDF4(object):
         gp['parents'] = parents
 
         samples = fromarrays(fields, dtype=types)
-
-
 
         signals = None
         del signals
@@ -3597,32 +3540,28 @@ class MDF4(object):
         else:
             creator_index = len(self.file_history)
             fh = FileHistory()
-            text = """<FHcomment>
+            fh.comment = """<FHcomment>
 <TX>Added new embedded attachment from {}</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor>asammdf</tool_vendor>
 <tool_version>{}</tool_version>
-</FHcomment>"""
-            text = text.format(
+</FHcomment>""".format(
                 file_name if file_name else 'bin.bin',
                 __version__,
             )
-            fh_text = TextBlock(text=text, meta=True)
 
-            self.file_history.append((fh, fh_text))
+            self.file_history.append(fh)
 
-            texts = {}
-            texts['mime_addr'] = TextBlock(text=mime, meta=False)
-            if comment:
-                texts['comment_addr'] = TextBlock(text=comment, meta=False)
-            text = file_name if file_name else 'bin.bin'
-            texts['file_name_addr'] = TextBlock(text=text)
             at_block = AttachmentBlock(data=data, compression=compression)
             at_block['creator_index'] = creator_index
             index = v4c.MAX_UINT64
             while index in self.attachments:
                 index -= 1
-            self.attachments[index] = at_block, texts
+            self.attachments[index] = at_block
+
+            at_block.file_name = file_name if file_name else 'bin.bin'
+            at_block.mime = mime
+            at_block.comment = comment
 
             self._attachments_cache[data] = index
             return index
@@ -3658,23 +3597,16 @@ class MDF4(object):
             return b'', ''
 
         if address is not None:
-            attachment, texts = self.attachments[address]
+            attachment = self.attachments[address]
         else:
-            for i, (attachment, texts) in enumerate(self.attachments.values()):
+            for i, attachment in enumerate(self.attachments.values()):
                 if i == index:
                     break
             else:
                 return b'', ''
 
         current_path = os.getcwd()
-        if 'file_name_addr' in texts:
-            file_path = (
-                texts['file_name_addr']['text']
-                    .decode('utf-8')
-                    .strip(' \n\t\0')
-            )
-        else:
-            file_path = 'embedded'
+        file_path = attachment.file_name or 'embedded'
         try:
             os.chdir(os.path.dirname(self.name))
 
@@ -3693,9 +3625,7 @@ class MDF4(object):
                     md5_worker.update(data)
                     md5_sum = md5_worker.digest()
                     if attachment['md5_sum'] == md5_sum:
-                        if (texts['mime_addr']['text']
-                                .decode('utf-8')
-                                .startswith('text')):
+                        if attachment.mime.startswith('text'):
                             with open(file_path, 'r') as f:
                                 data = f.read()
                         return data, file_path
@@ -3712,9 +3642,7 @@ class MDF4(object):
                         )
                         warnings.warn(message)
                 else:
-                    if (texts['mime_addr']['text']
-                            .decode('utf-8')
-                            .startswith('text')):
+                    if attachment.mime.startswith('text'):
                         mode = 'r'
                     else:
                         mode = 'rb'
@@ -3727,7 +3655,6 @@ class MDF4(object):
             warnings.warn(message)
             print('ATTACHMENT block:')
             print(attachment)
-            print(texts)
             print(file_path, os.path.exists(file_path))
             return b'', file_path
 
@@ -4903,7 +4830,7 @@ class MDF4(object):
                         )
                     else:
                         source = None
-                cg_source = grp['channel_group_source']
+                cg_source = grp['channel_group'].acq_source
                 if source:
                     source = SignalSource(
                         source.name or (cg_source and cg_source.name) or '',
@@ -5146,17 +5073,7 @@ class MDF4(object):
                         address=channel,
                         stream=stream,
                     )
-                    name = TextBlock(
-                        address=channel['name_addr'],
-                        stream=stream,
-                    )
-                    name = (
-                        name['text']
-                        .decode('utf-8')
-                        .strip(' \r\t\n\0')
-                    )
-                else:
-                    name = channel.name
+                name = channel.name
 
                 ch_type = v4c.CHANNEL_TYPE_TO_DESCRIPTION[channel['channel_type']]
                 inf['channel {}'.format(j)] = 'name="{}" type={}'.format(
@@ -5273,17 +5190,15 @@ class MDF4(object):
         else:
             comment = 'updated'
 
-        text = """<FHcomment>
+        fh = FileHistory()
+        fh.comment = """<FHcomment>
 <TX>{}</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor>asammdf</tool_vendor>
 <tool_version>{}</tool_version>
-</FHcomment>"""
-        text = text.format(comment, __version__)
-        self.file_history.append(
-            [FileHistory(),
-             TextBlock(text=text, meta=True)]
-        )
+</FHcomment>""".format(comment, __version__)
+
+        self.file_history.append(fh)
 
         if self.memory == 'low' and dst == self.name:
             destination = dst + '.temp'
@@ -5461,22 +5376,44 @@ class MDF4(object):
 
             blocks = []
 
-            if self.file_comment:
-                self.file_comment.address = address
-                address += self.file_comment['block_len']
-                blocks.append(self.file_comment)
+            if self.header.comment:
+                meta = self.header.comment.startswith('<HDcomment')
+                block = TextBlock(
+                    text=self.header.comment,
+                    meta=meta,
+                )
+                blocks.append(block)
+                self.header['comment_addr'] = address
+                address += block['block_len']
 
             # attachments
             at_map = {}
             channels_with_attachments = []
             if self.attachments:
-                for at_block, texts in self.attachments.values():
-                    for key, text in texts.items():
-                        at_block[key] = text.address = address
-                        address += text['block_len']
-                        blocks.append(text)
+                for at_block in self.attachments.values():
+                    if at_block.comment:
+                        meta = at_block.comment.startswith('<ATcomment')
+                        block = TextBlock(
+                            text=at_block.comment,
+                            meta=meta,
+                        )
+                        blocks.append(block)
+                        at_block['comment_addr'] = address
+                        address += block['block_len']
 
-                for initial_addr, (at_block, texts) in self.attachments.items():
+                    if at_block.file_name:
+                        block = TextBlock(text=at_block.file_name)
+                        blocks.append(block)
+                        at_block['file_name_addr'] = address
+                        address += block['block_len']
+
+                    if at_block.mime:
+                        block = TextBlock(text=at_block.mime)
+                        blocks.append(block)
+                        at_block['mime_addr'] = address
+                        address += block['block_len']
+
+                for initial_addr, at_block  in self.attachments.items():
                     at_map[initial_addr] = address
                     at_block.address = address
                     blocks.append(at_block)
@@ -5490,26 +5427,29 @@ class MDF4(object):
 
                 keys = list(self.attachments)
                 for i, key in enumerate(keys[:-1]):
-                    at_block, text = self.attachments[key]
+                    at_block = self.attachments[key]
                     at_block['next_at_addr'] = self.attachments[keys[i+1]][0].address
                 self.attachments[keys[-1]][0]['next_at_addr'] = 0
 
             # file history blocks
-            for i, (fh, fh_text) in enumerate(self.file_history):
-                fh_text.address = address
-                blocks.append(fh_text)
-                address += fh_text['block_len']
+            for fh in self.file_history:
+                if fh.comment:
+                    meta = fh.comment.startswith('<FHcomment')
+                    block = TextBlock(
+                        text=fh.comment,
+                        meta=meta,
+                    )
+                    blocks.append(block)
+                    fh['comment_addr'] = address
+                    address += block['block_len']
 
-                fh['comment_addr'] = fh_text.address
-
-            for i, (fh, fh_text) in enumerate(self.file_history):
                 fh.address = address
                 address += fh['block_len']
                 blocks.append(fh)
 
-            for i, (fh, fh_text) in enumerate(self.file_history[:-1]):
-                fh['next_fh_addr'] = self.file_history[i + 1][0].address
-            self.file_history[-1][0]['next_fh_addr'] = 0
+            for i, fh in enumerate(self.file_history[:-1]):
+                fh['next_fh_addr'] = self.file_history[i + 1].address
+            self.file_history[-1]['next_fh_addr'] = 0
 
             # data groups
             gp_rec_ids = []
@@ -5517,14 +5457,24 @@ class MDF4(object):
             for gp in self.groups:
                 if gp['channel_group']['flags'] & v4c.FLAG_CG_VLSD:
                     continue
-                valid_data_groups.append(gp['data_group'])
 
+                valid_data_groups.append(gp['data_group'])
                 gp_rec_ids.append(gp['data_group']['record_id_len'])
+
+                if gp['data_group'].comment:
+                    meta = gp['data_group'].comment.startswith('<DGcomment')
+                    block = TextBlock(
+                        text=gp['data_group'].comment,
+                        meta=meta,
+                    )
+                    blocks.append(block)
+                    gp['data_group']['comment_addr'] = address
+                    address += block['block_len']
+                else:
+                    gp['data_group']['comment_addr'] = 0
                 gp['data_group'].address = address
                 address += gp['data_group']['block_len']
                 blocks.append(gp['data_group'])
-
-                gp['data_group']['comment_addr'] = 0
 
             if valid_data_groups:
                 for i, dg in enumerate(valid_data_groups[:-1]):
@@ -5536,22 +5486,6 @@ class MDF4(object):
 
             # go through each data group and append the rest of the blocks
             for i, gp in enumerate(self.groups):
-
-                # write TXBLOCK's
-                for item_list in gp['texts'].values():
-                    for dict_ in item_list:
-                        if dict_ is None:
-                            continue
-                        for key, tx_block in dict_.items():
-                            # text blocks can be shared
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                tx_block.address = defined_texts[text]
-                            else:
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                address += tx_block['block_len']
-                                blocks.append(tx_block)
 
                 for channel in gp['channels']:
                     if channel.name:
@@ -5611,49 +5545,55 @@ class MDF4(object):
 
                 for source in gp['channel_sources']:
                     if source:
-                        if source.name:
+                        source_id = id(source)
+                        if source_id not in si_map:
+                            source.address = address
+                            address += source['block_len']
+                            blocks.append(source)
+                            si_map[source_id] = address
 
-                            tx_block = TextBlock(text=source.name)
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                source['name_addr'] = defined_texts[text]
+                            if source.name:
+                                tx_block = TextBlock(text=source.name)
+                                text = tx_block['text']
+                                if text in defined_texts:
+                                    source['name_addr'] = defined_texts[text]
+                                else:
+                                    source['name_addr'] = address
+                                    defined_texts[text] = address
+                                    tx_block.address = address
+                                    address += tx_block['block_len']
+                                    blocks.append(tx_block)
                             else:
-                                source['name_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                address += tx_block['block_len']
-                                blocks.append(tx_block)
-                        else:
-                            source['name_addr'] = 0
+                                source['name_addr'] = 0
 
-                        if source.path:
-                            tx_block = TextBlock(text=source.path)
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                source['path_addr'] = defined_texts[text]
+                            if source.path:
+                                tx_block = TextBlock(text=source.path)
+                                text = tx_block['text']
+                                if text in defined_texts:
+                                    source['path_addr'] = defined_texts[text]
+                                else:
+                                    source['path_addr'] = address
+                                    defined_texts[text] = address
+                                    tx_block.address = address
+                                    address += tx_block['block_len']
+                                    blocks.append(tx_block)
                             else:
-                                source['path_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                address += tx_block['block_len']
-                                blocks.append(tx_block)
-                        else:
-                            source['path_addr'] = 0
+                                source['path_addr'] = 0
 
-                        if source.comment:
-                            meta = source.comment.startswith('<SIcomment')
-                            tx_block = TextBlock(text=source.comment, meta=meta)
-                            text = tx_block['text']
-                            if text in defined_texts:
-                                source['comment_addr'] = defined_texts[text]
+                            if source.comment:
+                                meta = source.comment.startswith('<SIcomment')
+                                tx_block = TextBlock(text=source.comment, meta=meta)
+                                text = tx_block['text']
+                                if text in defined_texts:
+                                    source['comment_addr'] = defined_texts[text]
+                                else:
+                                    source['comment_addr'] = address
+                                    defined_texts[text] = address
+                                    tx_block.address = address
+                                    address += tx_block['block_len']
+                                    blocks.append(tx_block)
                             else:
-                                source['comment_addr'] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                address += tx_block['block_len']
-                                blocks.append(tx_block)
-                        else:
-                            source['comment_addr'] = 0
+                                source['comment_addr'] = 0
 
                 for conversion in gp['channel_conversions']:
                     address = write_cc(conversion, defined_texts, blocks, address)
@@ -5667,16 +5607,6 @@ class MDF4(object):
 
                         address += conv['block_len']
                         blocks.append(conv)
-
-                # channel sources
-                for j, source in enumerate(gp['channel_sources']):
-                    if source:
-                        source_id = id(source)
-                        if source_id not in si_map:
-                            source.address = address
-                            address += source['block_len']
-                            blocks.append(source)
-                            si_map[source_id] = address
 
                 # channel data
                 gp_sd = []
@@ -5783,13 +5713,23 @@ class MDF4(object):
                 else:
                     gp['channel_group']['first_ch_addr'] = 0
                 gp['channel_group']['next_cg_addr'] = 0
-                cg_texts = gp['texts']['channel_group'][0]
-                for key in ('acq_name_addr', 'comment_addr'):
-                    if cg_texts and key in cg_texts:
-                        addr_ = gp['texts']['channel_group'][0][key].address
-                        gp['channel_group'][key] = addr_
+                if gp['channel_group'].comment:
+                    meta = gp['channel_group'].comment.startswith('<CGcomment')
+                    block = TextBlock(
+                        text=gp['channel_group'].comment,
+                        meta=meta,
+                    )
+                    blocks.append(block)
+                    gp['channel_group']['comment_addr'] = address
+                    address += block['block_len']
 
-                cg_source = gp['channel_group_source']
+                if gp['channel_group'].acq_name:
+                    block = TextBlock(text=gp['channel_group'].acq_name)
+                    blocks.append(block)
+                    gp['channel_group']['acq_name_addr'] = address
+                    address += block['block_len']
+
+                cg_source = gp['channel_group'].acq_source
                 if cg_source:
                     if cg_source.name:
                         block = TextBlock(text=cg_source.name)
@@ -5911,18 +5851,14 @@ class MDF4(object):
                 self.header['first_dg_addr'] = addr_
             else:
                 self.header['first_dg_addr'] = 0
-            self.header['file_history_addr'] = self.file_history[0][0].address
+            self.header['file_history_addr'] = self.file_history[0].address
             if self.attachments:
                 attachments = iter(self.attachments.values())
                 first_attachment = next(attachments)
-                addr_ = first_attachment[0].address
+                addr_ = first_attachment.address
                 self.header['first_attachment_addr'] = addr_
             else:
                 self.header['first_attachment_addr'] = 0
-            if self.file_comment:
-                self.header['comment_addr'] = self.file_comment.address
-            else:
-                self.header['comment_addr'] = 0
 
             seek(v4c.IDENTIFICATION_BLOCK_SIZE)
             write(bytes(self.header))
@@ -6031,17 +5967,15 @@ class MDF4(object):
         else:
             comment = 'updated'
 
-        text = """<FHcomment>
+        fh = FileHistory()
+        fh.comment = """<FHcomment>
 <TX>{}</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor>asammdf</tool_vendor>
 <tool_version>{}</tool_version>
-</FHcomment>"""
-        text = text.format(comment, __version__)
-        self.file_history.append(
-            [FileHistory(),
-             TextBlock(text=text, meta=True)]
-        )
+</FHcomment>""".format(comment, __version__)
+
+        self.file_history.append(fh)
 
         if dst == self.name:
             destination = dst + '.temp'
@@ -6181,29 +6115,52 @@ class MDF4(object):
 
             address = tell()
 
-            if self.file_comment:
-                address = tell()
-                self.file_comment.address = address
-                write(bytes(self.file_comment))
+            if self.header.comment:
+                meta = self.header.comment.startswith('<HDcomment')
+                block = TextBlock(
+                    text=self.header.comment,
+                    meta=meta,
+                )
+                write(bytes(block))
+                self.header['comment_addr'] = address
+            else:
+                self.header['comment_addr'] = 0
 
-            # attachemnts
+            # attachments
             address = tell()
             blocks = []
             at_map = {}
             channels_with_attachments = []
             if self.attachments:
-                for at_block, texts in self.attachments.values():
-                    for key, text in texts.items():
-                        at_block[key] = text.address = address
-                        address += text['block_len']
-                        blocks.append(text)
+                for at_block in self.attachments.values():
+                    if at_block.comment:
+                        meta = at_block.comment.startswith('<ATcomment')
+                        block = TextBlock(
+                            text=at_block.comment,
+                            meta=meta,
+                        )
+                        blocks.append(block)
+                        at_block['comment_addr'] = address
+                        address += block['block_len']
 
-                for initial_addr, (at_block, texts) in self.attachments.items():
+                    if at_block.file_name:
+                        block = TextBlock(text=at_block.file_name)
+                        blocks.append(block)
+                        at_block['file_name_addr'] = address
+                        address += block['block_len']
+
+                    if at_block.mime:
+                        block = TextBlock(text=at_block.mime)
+                        blocks.append(block)
+                        at_block['mime_addr'] = address
+                        address += block['block_len']
+
+                for initial_addr, at_block  in self.attachments.items():
                     at_map[initial_addr] = address
                     at_block.address = address
                     blocks.append(at_block)
                     align = at_block['block_len'] % 8
-                    # append 8vyte alignemnt bytes for attachments
+                    # append 8 byte alignment bytes for attachments
                     if align % 8:
                         blocks.append(b'\0' * (8 - align))
                         address += at_block['block_len'] + 8 - align
@@ -6212,26 +6169,29 @@ class MDF4(object):
 
                 keys = list(self.attachments)
                 for i, key in enumerate(keys[:-1]):
-                    at_block, text = self.attachments[key]
-                    at_block['next_at_addr'] = self.attachments[keys[i + 1]][0].address
+                    at_block = self.attachments[key]
+                    at_block['next_at_addr'] = self.attachments[keys[i+1]][0].address
                 self.attachments[keys[-1]][0]['next_at_addr'] = 0
 
             # file history blocks
-            for i, (fh, fh_text) in enumerate(self.file_history):
-                fh_text.address = address
-                blocks.append(fh_text)
-                address += fh_text['block_len']
+            for fh in self.file_history:
+                if fh.comment:
+                    meta = fh.comment.startswith('<FHcomment')
+                    block = TextBlock(
+                        text=fh.comment,
+                        meta=meta,
+                    )
+                    blocks.append(block)
+                    fh['comment_addr'] = address
+                    address += block['block_len']
 
-                fh['comment_addr'] = fh_text.address
-
-            for i, (fh, fh_text) in enumerate(self.file_history):
                 fh.address = address
                 address += fh['block_len']
                 blocks.append(fh)
 
-            for i, (fh, fh_text) in enumerate(self.file_history[:-1]):
-                fh['next_fh_addr'] = self.file_history[i + 1][0].address
-            self.file_history[-1][0]['next_fh_addr'] = 0
+            for i, fh in enumerate(self.file_history[:-1]):
+                fh['next_fh_addr'] = self.file_history[i + 1].address
+            self.file_history[-1]['next_fh_addr'] = 0
 
             for blk in blocks:
                 write(bytes(blk))
@@ -6259,27 +6219,6 @@ class MDF4(object):
                 else:
                     stream = self._tempfile
 
-                temp_texts = deepcopy(gp['texts'])
-                # write TXBLOCK's
-                for item_list in temp_texts.values():
-                    for dict_ in item_list:
-                        if not dict_:
-                            continue
-                        for key, tx_block in dict_.items():
-                            # text blocks can be shared
-                            block = TextBlock(
-                                address=tx_block,
-                                stream=stream,
-                            )
-                            text = block['text']
-                            if text in defined_texts:
-                                dict_[key] = defined_texts[text]
-                            else:
-                                address = tell()
-                                defined_texts[text] = address
-                                dict_[key] = address
-                                write(bytes(block))
-
                 for source in gp['channel_sources']:
                     if source:
                         stream.seek(source)
@@ -6291,11 +6230,8 @@ class MDF4(object):
                                 raw_bytes=raw_bytes,
                             )
 
-                            if source['name_addr']:
-                                tx_block = TextBlock(
-                                    address=source['name_addr'],
-                                    stream=stream,
-                                )
+                            if source.name:
+                                tx_block = TextBlock(text=source.name)
                                 text = tx_block['text']
                                 if text in defined_texts:
                                     source['name_addr'] = defined_texts[text]
@@ -6308,11 +6244,8 @@ class MDF4(object):
                             else:
                                 source['name_addr'] = 0
 
-                            if source['path_addr']:
-                                tx_block = TextBlock(
-                                    address=source['path_addr'],
-                                    stream=stream,
-                                )
+                            if source.path:
+                                tx_block = TextBlock(text=source.path)
                                 text = tx_block['text']
                                 if text in defined_texts:
                                     source['path_addr'] = defined_texts[text]
@@ -6325,11 +6258,10 @@ class MDF4(object):
                             else:
                                 source['path_addr'] = 0
 
-                            if source['comment_addr']:
-                                tx_block = TextBlock(
-                                    address=source['comment_addr'],
-                                    stream=stream,
-                                )
+                            if source.comment:
+
+                                meta = source.comment.startswith('<SIcomment')
+                                tx_block = TextBlock(text=source.comment, meta=meta)
                                 text = tx_block['text']
                                 if text in defined_texts:
                                     source['comment_addr'] = defined_texts[text]
@@ -6419,11 +6351,8 @@ class MDF4(object):
 
                     address += channel['block_len']
 
-                    if channel['name_addr']:
-                        tx_block = TextBlock(
-                            address=channel['name_addr'],
-                            stream=stream,
-                        )
+                    if channel.name:
+                        tx_block = TextBlock(text=channel.name)
                         text = tx_block['text']
                         if text in defined_texts:
                             channel['name_addr'] = defined_texts[text]
@@ -6436,11 +6365,8 @@ class MDF4(object):
                     else:
                         channel['name_addr'] = 0
 
-                    if channel['unit_addr']:
-                        tx_block = TextBlock(
-                            address=channel['unit_addr'],
-                            stream=stream,
-                        )
+                    if channel.unit:
+                        tx_block = TextBlock(text=channel.unit)
                         text = tx_block['text']
                         if text in defined_texts:
                             channel['unit_addr'] = defined_texts[text]
@@ -6453,11 +6379,9 @@ class MDF4(object):
                     else:
                         channel['unit_addr'] = 0
 
-                    if channel['comment_addr']:
-                        tx_block = TextBlock(
-                            address=channel['comment_addr'],
-                            stream=stream,
-                        )
+                    if channel.comment:
+                        meta = channel.comment.startswith('<CNcomment')
+                        tx_block = TextBlock(text=channel.comment, meta=meta)
                         text = tx_block['text']
                         if text in defined_texts:
                             channel['comment_addr'] = defined_texts[text]
@@ -6554,14 +6478,23 @@ class MDF4(object):
                 # channel group
                 gp['channel_group'].address = address
                 gp['channel_group']['next_cg_addr'] = 0
-                cg_texts = temp_texts['channel_group'][0]
-                for key in ('acq_name_addr', 'comment_addr'):
-                    if cg_texts and key in cg_texts:
-                        addr_ = temp_texts['channel_group'][0][key]
-                        gp['channel_group'][key] = addr_
-                gp['channel_group']['acq_source_addr'] = 0
+                if gp['channel_group'].comment:
+                    meta = gp['channel_group'].comment.startswith('<CGcomment')
+                    block = TextBlock(
+                        text=gp['channel_group'].comment,
+                        meta=meta,
+                    )
+                    address = tell()
+                    write(bytes(block))
+                    gp['channel_group']['comment_addr'] = address
 
-                cg_source = gp['channel_group_source']
+                if gp['channel_group'].acq_name:
+                    block = TextBlock(text=gp['channel_group'].acq_name)
+                    address = tell()
+                    write(bytes(block))
+                    gp['channel_group']['acq_name_addr'] = address
+
+                cg_source = gp['channel_group'].acq_source
                 if cg_source:
                     if cg_source.name:
                         block = TextBlock(text=cg_source.name)
@@ -6611,7 +6544,17 @@ class MDF4(object):
                     address += gp['data_group']['block_len']
                     blocks.append(gp['data_group'])
 
-                    gp['data_group']['comment_addr'] = 0
+                    if gp['data_group'].comment:
+                        meta = gp['data_group'].comment.startswith('<DGcomment')
+                        block = TextBlock(
+                            text=gp['data_group'].comment,
+                            meta=meta,
+                        )
+                        blocks.append(block)
+                        gp['data_group']['comment_addr'] = address
+                        address += block['block_len']
+                    else:
+                        gp['data_group']['comment_addr'] = 0
 
             if valid_data_groups:
                 for i, dg in enumerate(valid_data_groups[:-1]):
@@ -6695,19 +6638,15 @@ class MDF4(object):
                 self.header['first_dg_addr'] = addr_
             else:
                 self.header['first_dg_addr'] = 0
-            self.header['file_history_addr'] = self.file_history[0][0].address
+            self.header['file_history_addr'] = self.file_history[0].address
 
             if self.attachments:
                 attachments = iter(self.attachments.values())
                 first_attachment = next(attachments)
-                addr_ = first_attachment[0].address
+                addr_ = first_attachment.address
                 self.header['first_attachment_addr'] = addr_
             else:
                 self.header['first_attachment_addr'] = 0
-            if self.file_comment:
-                self.header['comment_addr'] = self.file_comment.address
-            else:
-                self.header['comment_addr'] = 0
 
             seek(v4c.IDENTIFICATION_BLOCK_SIZE)
             write(bytes(self.header))

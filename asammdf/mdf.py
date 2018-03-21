@@ -273,56 +273,27 @@ class MDF(object):
                         if (self.version >= '4.00'
                                 and version >= '4.00'
                                 and (group['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT)):
-                            original_texts = group['texts']['channel_group'][0]
-                            cg_texts = {}
-                            if memory == 'minimum':
-                                stream = out._tempfile
-                                tx_block = TextBlock(
-                                    text=original_texts['acq_name_addr']['text'],
-                                )
-                                stream.seek(0, 2)
-                                address = stream.tell()
-                                stream.write(bytes(tx_block))
-                                cg_texts['acq_name_addr'] = address
-
-                                tx_block = TextBlock(
-                                    text=original_texts['comment_addr']['text'],
-                                    meta=True,
-                                )
-                                address = stream.tell()
-                                stream.write(bytes(tx_block))
-                                cg_texts['comment_addr'] = address
-                            else:
-                                cg_texts['acq_name_addr'] = TextBlock(
-                                    text=original_texts['acq_name_addr']['text'],
-                                )
-                                cg_texts['comment_addr'] = TextBlock(
-                                    text=original_texts['comment_addr']['text'],
-                                    meta=True,
-                                )
-
                             new_group = out.groups[-1]
-                            new_group['texts']['channel_group'][0] = cg_texts
-
-                            new_group['channel_group']['flags'] = (
+                            new_channel_group = new_group['channel_group']
+                            old_channel_group = group['channel_group']
+                            new_channel_group['flags'] = (
                                 group
                                 ['channel_group']
                                 ['flags']
                             )
-                            new_group['channel_group']['path_separator'] = ord('.')
+                            new_channel_group['path_separator'] = ord('.')
+                            new_channel_group.acq_name = old_channel_group.acq_name
+                            new_channel_group.comment = old_channel_group.comment
 
-                            source = group['channel_group_source']
+                            source = old_channel_group.acq_source
                             if source:
                                 new_source = SourceInformation()
                                 new_source.update(source)
                                 new_source.name = source.name
                                 new_source.path = source.path
                                 new_source.comment = source.comment
-                            else:
-                                new_source = None
 
-                            new_group['channel_group_source'] = new_source
-
+                                new_channel_group.acq_source = new_source
                     else:
                         break
 
