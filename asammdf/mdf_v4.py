@@ -6,7 +6,6 @@ from __future__ import division, print_function
 
 import xml.etree.ElementTree as ET
 import os
-import re
 import sys
 import warnings
 from collections import defaultdict, OrderedDict
@@ -14,7 +13,7 @@ from copy import deepcopy
 from functools import reduce
 from hashlib import md5
 from math import ceil
-from struct import unpack, unpack_from, pack
+from struct import unpack, unpack_from
 from tempfile import TemporaryFile
 from zlib import decompress
 
@@ -431,7 +430,7 @@ class MDF4(object):
                 cg_source_addr = channel_group['acq_source_addr']
 
                 if cg_source_addr:
-                    grp['channel_group_source'] = source = SourceInformation(
+                    grp['channel_group_source'] = SourceInformation(
                         address=cg_source_addr,
                         stream=stream,
                     )
@@ -2337,7 +2336,6 @@ class MDF4(object):
                         channel_comment_address = 0
 
                 # conversions for channel
-                info = signal.conversion
                 if memory != 'minimum':
                     gp_conv.append(None)
                 else:

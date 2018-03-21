@@ -8,7 +8,6 @@ import warnings
 import xml.etree.ElementTree as ET
 
 from collections import namedtuple
-from datetime import datetime
 from struct import unpack
 from warnings import warn
 
@@ -28,7 +27,7 @@ __all__ = [
     'MERGE_LOW',
     'MERGE_MINIMUM',
     'MdfException',
-    'SignalSource,'
+    'SignalSource',
     'get_fmt_v3',
     'get_fmt_v4',
     'get_min_max',
@@ -103,7 +102,10 @@ VALID_MEMORY_ARGUMENT_VALUES = ('full', 'low', 'minimum')
 ALLOWED_MATLAB_CHARS = string.ascii_letters + string.digits + '_'
 
 
-SignalSource = namedtuple('SignalSource', ['name', 'path', 'comment', 'source_type', 'bus_type'])
+SignalSource = namedtuple(
+    'SignalSource',
+    ['name', 'path', 'comment', 'source_type', 'bus_type'],
+)
 
 
 class MdfException(Exception):
@@ -128,13 +130,13 @@ def extract_cncomment_xml(comment):
     try:
         comment = ET.fromstring(comment)
         match = (
-                comment.find('.//TX')
-                or comment.find('.//{}TX'.format(v4c.ASAM_XML_NAMESPACE))
+            comment.find('.//TX')
+            or comment.find('.//{}TX'.format(v4c.ASAM_XML_NAMESPACE))
         )
         if match is None:
             common_properties = (
-                    comment.find('.//common_properties')
-                    or comment.find('.//{}common_properties'.format(v4c.ASAM_XML_NAMESPACE))
+                comment.find('.//common_properties')
+                or comment.find('.//{}common_properties'.format(v4c.ASAM_XML_NAMESPACE))
             )
             if common_properties is not None:
                 comment = []
@@ -218,10 +220,12 @@ def get_text_v3(address, stream):
                 .strip(' \r\t\n\0')
             )
         except ImportError:
-            warnings.warn('Unicode exception occured and "chardet" package is '
-                          'not installed. Mdf version 3 expects "latin-1" '
-                          'strings and this package may detect if a different'
-                          ' encoding was used')
+            warnings.warn(
+                'Unicode exception occured and "chardet" package is '
+                'not installed. Mdf version 3 expects "latin-1" '
+                'strings and this package may detect if a different'
+                ' encoding was used'
+            )
             raise err
 
     return text
@@ -267,10 +271,12 @@ def get_text_v4(address, stream):
                 .strip(' \r\t\n\0')
             )
         except ImportError:
-            warnings.warn('Unicode exception occured and "chardet" package is '
-                          'not installed. Mdf version 4 expects "utf-8" '
-                          'strings and this package may detect if a different'
-                          ' encoding was used')
+            warnings.warn(
+                'Unicode exception occured and "chardet" package is '
+                'not installed. Mdf version 4 expects "utf-8" '
+                'strings and this package may detect if a different'
+                ' encoding was used'
+            )
             raise err
 
     return text
@@ -320,20 +326,25 @@ def get_fmt_v3(data_type, size):
                     v3c.DATA_TYPE_UNSIGNED_INTEL,
                     v3c.DATA_TYPE_UNSIGNED):
                 fmt = '<u{}'.format(size)
+
             elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
                 fmt = '>u{}'.format(size)
+
             elif data_type in (
                     v3c.DATA_TYPE_SIGNED_INTEL,
                     v3c.DATA_TYPE_SIGNED):
                 fmt = '<i{}'.format(size)
+
             elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
                 fmt = '>i{}'.format(size)
+
             elif data_type in (
                     v3c.DATA_TYPE_FLOAT,
                     v3c.DATA_TYPE_DOUBLE,
                     v3c.DATA_TYPE_FLOAT_INTEL,
                     v3c.DATA_TYPE_DOUBLE_INTEL):
                 fmt = '<f{}'.format(size)
+
             elif data_type in (
                     v3c.DATA_TYPE_FLOAT_MOTOROLA,
                     v3c.DATA_TYPE_DOUBLE_MOTOROLA):
@@ -376,6 +387,7 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
 
             if data_type == v4c.DATA_TYPE_BYTEARRAY:
                 fmt = '({},)u1'.format(size)
+
             elif data_type in (
                     v4c.DATA_TYPE_STRING_UTF_8,
                     v4c.DATA_TYPE_STRING_LATIN_1,
@@ -388,8 +400,10 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
                         fmt = '<u4'
                     elif size == 8:
                         fmt = '<u8'
+
             elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
                 fmt = 'V7'
+
             elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
                 fmt = 'V6'
 
@@ -408,14 +422,19 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
 
             if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
                 fmt = '<u{}'.format(size)
+
             elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
                 fmt = '>u{}'.format(size)
+
             elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
                 fmt = '<i{}'.format(size)
+
             elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
                 fmt = '>i{}'.format(size)
+
             elif data_type == v4c.DATA_TYPE_REAL_INTEL:
                 fmt = '<f{}'.format(size)
+
             elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
                 fmt = '>f{}'.format(size)
 

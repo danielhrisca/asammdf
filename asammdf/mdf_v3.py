@@ -10,7 +10,6 @@ import warnings
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from copy import deepcopy
-from datetime import datetime
 from functools import reduce
 from itertools import product
 from math import ceil
@@ -206,7 +205,6 @@ class MDF3(object):
         if self.memory == 'full':
             yield group['data_block']['data'], offset
         else:
-            data_group = group['data_group']
             channel_group = group['channel_group']
 
             if group['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
@@ -849,7 +847,9 @@ class MDF3(object):
                             raw_bytes = stream.read(v23c.CE_BLOCK_SIZE)
 
                             if raw_bytes in ce_map:
-                                grp['channel_extensions'].append(ce_map[raw_bytes])
+                                grp['channel_extensions'].append(
+                                    ce_map[raw_bytes]
+                                )
                             else:
                                 block = ChannelExtension(
                                     raw_bytes=raw_bytes,
@@ -882,20 +882,28 @@ class MDF3(object):
                         display_name = get_text_v3(address, stream)
                         new_ch.display_name = display_name
                         if display_name in self.channels_db:
-                            self.channels_db[display_name].append((dg_cntr, ch_cntr))
+                            self.channels_db[display_name].append(
+                                (dg_cntr, ch_cntr)
+                            )
                         else:
                             self.channels_db[display_name] = []
-                            self.channels_db[display_name].append((dg_cntr, ch_cntr))
+                            self.channels_db[display_name].append(
+                                (dg_cntr, ch_cntr)
+                            )
 
                         # check if the source is included in the channel name
                         display_name = display_name.split('\\')
                         if len(display_name) > 1:
                             display_name = display_name[0]
                             if display_name in self.channels_db:
-                                self.channels_db[display_name].append((dg_cntr, ch_cntr))
+                                self.channels_db[display_name].append(
+                                    (dg_cntr, ch_cntr)
+                                )
                             else:
                                 self.channels_db[display_name] = []
-                                self.channels_db[display_name].append((dg_cntr, ch_cntr))
+                                self.channels_db[display_name].append(
+                                    (dg_cntr, ch_cntr)
+                                )
 
                     if name in self.channels_db:
                         self.channels_db[name].append((dg_cntr, ch_cntr))
@@ -1024,15 +1032,16 @@ class MDF3(object):
         Parameters
         ----------
         read_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size is
-            smaller, then no data list is used. The actual split size depends on
-            the data groups' records size
+            size hint of splitted data blocks, default 8MB; if the initial size
+            is smaller, then no data list is used. The actual split size
+            depends on the data groups' records size
         write_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size is
-            smaller, then no data list is used. The actual split size depends on
-            the data groups' records size
+            size hint of splitted data blocks, default 8MB; if the initial size
+            is smaller, then no data list is used. The actual split size
+            depends on the data groups' records size
         use_display_names : bool
-            use display name if available for the Signal's name returned by the get method
+            use display name if available for the Signal's name returned by the
+            get method
 
         """
 
@@ -1346,7 +1355,11 @@ class MDF3(object):
 
                 if memory == 'minimum':
                     if conversion:
-                        write_cc(conversion, defined_texts={}, stream=self._tempfile)
+                        write_cc(
+                            conversion,
+                            defined_texts={},
+                            stream=self._tempfile,
+                        )
                         address = tell()
                         write(bytes(conversion))
                         gp_conv.append(address)
@@ -1402,7 +1415,9 @@ class MDF3(object):
                     signal.samples.shape,
                 )
 
-                if memory == 'minimum' and len(name) >= 32 and self.version >= '2.10':
+                if (memory == 'minimum'
+                        and len(name) >= 32
+                        and self.version >= '2.10'):
                     block = TextBlock(text=name)
                     long_name_address = tell()
                     write(bytes(block))
@@ -3090,8 +3105,6 @@ class MDF3(object):
             types = dtype(types)
             vals = fromarrays(arrays, dtype=types)
 
-            signal_conversion = None
-
             if not samples_only or raster:
                 timestamps = self.get_master(gp_nr, original_data)
                 if raster and len(timestamps):
@@ -3746,7 +3759,6 @@ class MDF3(object):
             address += self.file_history['block_len']
 
             ce_map = {}
-            cc_map = {}
 
             # DataGroup
             # put them first in the block list so they will be written first to
@@ -3801,7 +3813,7 @@ class MDF3(object):
                     for my_dict in item_list:
                         if my_dict is None:
                             continue
-                        for key, tx_block in my_dict.items():
+                        for tx_block in my_dict.values():
                             # text blocks can be shared
                             text = tx_block['text']
                             if text in defined_texts:
@@ -4098,7 +4110,6 @@ class MDF3(object):
             data_address = []
 
             ce_map = {}
-            cc_map = {}
 
             for gp in self.groups:
                 gp['temp_channels'] = ch_addrs = []

@@ -4,8 +4,6 @@
 import csv
 import os
 import sys
-from collections import OrderedDict
-from datetime import datetime
 from warnings import warn
 from functools import reduce
 from struct import unpack
@@ -37,7 +35,7 @@ from .v2_v3_blocks import Channel as ChannelV3
 from .v2_v3_blocks import HeaderBlock as HeaderV3
 from .v4_blocks import Channel as ChannelV4
 from .v4_blocks import HeaderBlock as HeaderV4
-from .v4_blocks import ChannelArrayBlock, TextBlock, SourceInformation, FileIdentificationBlock
+from .v4_blocks import ChannelArrayBlock, TextBlock, SourceInformation
 from . import v4_constants as v4c
 
 PYVERSION = sys.version_info[0]

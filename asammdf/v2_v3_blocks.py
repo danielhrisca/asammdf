@@ -3,7 +3,6 @@
 
 from __future__ import division, print_function
 
-import re
 import sys
 import time
 from datetime import datetime
@@ -815,7 +814,7 @@ class ChannelConversion(dict):
                     .split('"')
                     [1]
                 )
-                partial_convertion = True
+                partial_conversion = True
             else:
                 partial_conversion = False
 
@@ -835,7 +834,7 @@ class ChannelConversion(dict):
 
             idx = np.argwhere(idx1 != idx2).flatten()
 
-            if partial_convertion and len(idx):
+            if partial_conversion and len(idx):
                 X = values[idx]
                 new_values = np.zeros(len(values), dtype=np.float64)
                 new_values[idx] = evaluate(default)
