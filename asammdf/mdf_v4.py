@@ -758,6 +758,7 @@ class MDF4(object):
         # read events
         addr = self.header['first_event_addr']
         while addr:
+            print(hex(addr))
             event = EventBlock(address=addr, stream=stream)
             event.update_references(
                 self._ch_map,
@@ -5837,6 +5838,49 @@ class MDF4(object):
             for gp in self.groups:
                 gp['data_group']['record_id_len'] = 0
 
+            ev_map = {}
+
+            if self.events:
+                for event in self.events:
+                    for i, ref in enumerate(event.referenced_blocks):
+                        try:
+                            ch_cntr, dg_cntr = ref
+                            event['scope_{}_addr'.format(i)] = (
+                                self.groups
+                                [dg_cntr]
+                                ['channels']
+                                [ch_cntr]
+                                .address
+                            )
+                        except TypeError:
+                            dg_cntr = ref
+                            event['scope_{}_addr'.format(i)] = (
+                                self.groups
+                                [dg_cntr]
+                                ['channel_group']
+                                .address
+                            )
+                    for i in range(event['attachment_nr']):
+                        key = 'attachment_{}_addr'.format(i)
+                        addr = event[key]
+                        event[key] = at_map[addr]
+
+                    blocks.append(event)
+                    ev_map[event.address] = address
+                    event.address = address
+                    address += event['block_len']
+
+                for event in self.events:
+                    if event['parent_ev_addr']:
+                        event['parent_ev_addr'] = ev_map[event['parent_ev_addr']]
+
+                for i in range(len(self.events) - 1):
+                    self.events[i]['next_ev_addr'] = self.events[i+1].address
+                self.events[-1]['next_ev_addr'] = 0
+
+                self.header['first_event_addr'] = self.events[0].address
+                print("MUAHHA", hex(self.events[0].address))
+
             for block in blocks:
                 write(bytes(block))
 
@@ -5868,6 +5912,15 @@ class MDF4(object):
                 gp['data_group']['data_block_addr'] = orig_addr
 
             at_map = {value:key for key, value in at_map.items()}
+            ev_map = {value:key for key, value in ev_map.items()}
+
+            for event in self.events:
+                if event['parent_ev_addr']:
+                    event['parent_ev_addr'] = ev_map[event['parent_ev_addr']]
+                for i in range(event['attachment_nr']):
+                    key = 'attachment_{}_addr'.format(i)
+                    addr = event[key]
+                    event[key] = at_map[addr]
 
             for channel in channels_with_attachments:
                 attachment_index = 0

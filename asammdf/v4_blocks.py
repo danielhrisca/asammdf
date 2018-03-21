@@ -2073,7 +2073,7 @@ class EventBlock(dict):
              self['range_type'],
              self['cause'],
              self['flags'],
-             self['reserved0'],
+             self['reserved1'],
              self['scope_nr'],
              self['attachment_nr'],
              self['creator_index'],
@@ -2144,53 +2144,51 @@ class EventBlock(dict):
 
     def __bytes__(self):
 
-        fmt = v4c.FMT_CHANNEL.format(self['links_nr'])
+        fmt = v4c.FMT_EVENT.format(self['links_nr'])
+
+        print(fmt, self)
 
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
-            keys = [
+            keys = (
                 'id',
                 'reserved0',
                 'block_len',
                 'links_nr',
-                'next_ch_addr',
-                'component_addr',
+                'next_ev_addr',
+                'parent_ev_addr',
+                'range_start_ev_addr',
                 'name_addr',
-                'source_addr',
-                'conversion_addr',
-                'data_block_addr',
-                'unit_addr',
                 'comment_addr',
-            ]
-            for i in range(self['attachment_nr']):
-                keys.append('attachment_{}_addr'.format(i))
-            if self['flags'] & v4c.FLAG_CN_DEFAULT_X:
-                keys += [
-                    'default_X_dg_addr',
-                    'default_X_cg_addr',
-                    'default_X_ch_addr',
-                ]
-            keys += [
-                'channel_type',
+            )
+
+            keys += tuple(
+                'scope_{}_addr'.format(i)
+                for i in range(self['scope_nr'])
+            )
+
+            keys += tuple(
+                'attachment_{}_addr'.format(i)
+                for i in range(self['attachment_nr'])
+            )
+
+            keys += (
+                'event_type',
                 'sync_type',
-                'data_type',
-                'bit_offset',
-                'byte_offset',
-                'bit_count',
+                'range_type',
+                'cause',
                 'flags',
-                'pos_invalidation_bit',
-                'precision',
                 'reserved1',
+                'scope_nr',
                 'attachment_nr',
-                'min_raw_value',
-                'max_raw_value',
-                'lower_limit',
-                'upper_limit',
-                'lower_ext_limit',
-                'upper_ext_limit',
-            ]
+                'creator_index',
+                'sync_base',
+                'sync_factor',
+            )
             result = pack(fmt, *[self[key] for key in keys])
+
+        print(len(result), self['block_len'])
         return result
 
     def __str__(self):

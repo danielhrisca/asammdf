@@ -432,5 +432,6 @@ KEYS_HL_BLOCK = (
 )
 
 FMT_EVENT_PARAMS = '<5B3sI2HQd'
+FMT_EVENT = '<4sI2Q{}Q5B3sI2HQd'
 
 ASAM_XML_NAMESPACE = '{http://www.asam.net/mdf/v4}'
