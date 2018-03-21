@@ -45,7 +45,7 @@ class TestMDF(unittest.TestCase):
     def setUpClass(cls):
         PYVERSION = sys.version_info[0]
 
-        url = 'https://github.com/danielhrisca/asammdf/files/1594267/test.demo.zip'
+        url = 'https://github.com/danielhrisca/asammdf/files/1834464/test.demo.zip'
         if PYVERSION == 3:
             urllib.request.urlretrieve(url, 'test.zip')
         else:

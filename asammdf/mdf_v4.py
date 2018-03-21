@@ -758,7 +758,6 @@ class MDF4(object):
         # read events
         addr = self.header['first_event_addr']
         while addr:
-            print(hex(addr))
             event = EventBlock(address=addr, stream=stream)
             event.update_references(
                 self._ch_map,
