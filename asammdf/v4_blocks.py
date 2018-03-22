@@ -165,12 +165,13 @@ class AttachmentBlock(dict):
 
 class Channel(dict):
     """ CNBLOCK class"""
-    __slots__ = ['address', 'name', 'unit', 'comment', 'display_name']
+    __slots__ = ['address', 'name', 'unit', 'comment', 'display_name', 'conversion', 'source']
 
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
         self.name = self.unit = self.comment = self.display_name = ''
+        self.conversion = self.source = None
 
         if 'stream' in kargs:
 
@@ -258,6 +259,17 @@ class Channel(dict):
                     pass
 
             self.comment = comment
+
+            if self['conversion_addr']:
+                self.conversion = ChannelConversion(
+                    address=self['conversion_addr'],
+                    stream=stream,
+                )
+            if self['source_addr']:
+                self.source = SourceInformation(
+                    address=self['source_addr'],
+                    stream=stream,
+                )
 
         else:
             self.address = 0

@@ -399,11 +399,9 @@ class MDF4(object):
                 new_groups.append(grp)
 
                 grp['channels'] = []
-                grp['channel_conversions'] = []
-                grp['channel_sources'] = []
-                grp['signal_data'] = []
                 grp['data_block'] = None
                 grp['channel_dependencies'] = []
+                grp['signal_data'] = []
 
                 # read each channel group sequentially
                 block = ChannelGroup(address=cg_addr, stream=stream)
@@ -747,53 +745,6 @@ class MDF4(object):
             channels.append(value)
             if channel_composition:
                 composition.append(value)
-
-            # read conversion block and create channel conversion object
-            address = channel['conversion_addr']
-
-            if memory == 'minimum':
-                grp['channel_conversions'].append(address)
-            else:
-                if address:
-                    stream.seek(address + 8)
-                    size = unpack('<Q', stream.read(8))[0]
-                    stream.seek(address)
-                    raw_bytes = stream.read(size)
-                    if raw_bytes in self._cc_map:
-                        conv = self._cc_map[raw_bytes]
-                    else:
-                        conv = ChannelConversion(
-                            raw_bytes=raw_bytes,
-                            stream=stream,
-                        )
-                        self._cc_map[raw_bytes] = conv
-                else:
-                    conv = None
-                grp['channel_conversions'].append(conv)
-
-            # read source block and create source information object
-            address = channel['source_addr']
-            if address:
-                if memory == 'minimum':
-                    grp['channel_sources'].append(address)
-                else:
-                    stream.seek(address)
-                    raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
-                    if raw_bytes in self._si_map:
-                        grp['channel_sources'].append(self._si_map[raw_bytes])
-                    else:
-                        source = SourceInformation(
-                            raw_bytes=raw_bytes,
-                            stream=stream,
-                        )
-                        grp['channel_sources'].append(source)
-
-                        self._si_map[raw_bytes] = source
-            else:
-                if memory == 'minimum':
-                    grp['channel_sources'].append(0)
-                else:
-                    grp['channel_sources'].append(None)
 
             display_name = channel.display_name
             if display_name:
@@ -4629,25 +4580,7 @@ class MDF4(object):
 
             if ch_nr >= 0:
             # get the channel conversion
-                if memory == 'minimum':
-                    addr = grp['channel_conversions'][ch_nr]
-                    if addr:
-                        stream.seek(addr + 8)
-                        cc_size = unpack('<Q', stream.read(8))[0]
-                        stream.seek(addr)
-                        raw_bytes = stream.read(cc_size)
-                        if raw_bytes in self._cc_map:
-                            conversion = self._cc_map[raw_bytes]
-                        else:
-                            conversion = ChannelConversion(
-                                raw_bytes=raw_bytes,
-                                stream=stream,
-                            )
-                            self._cc_map[raw_bytes] = conversion
-                    else:
-                        conversion = None
-                else:
-                    conversion = grp['channel_conversions'][ch_nr]
+                conversion = channel.conversion
             else:
                 conversion = ChannelConversion(
                     a=signal.factor,
@@ -4660,8 +4593,6 @@ class MDF4(object):
                 conversion_type = v4c.CONVERSION_TYPE_NON
             else:
                 conversion_type = conversion['conversion_type']
-
-
 
             if conversion_type == v4c.CONVERSION_TYPE_NON:
 
@@ -4815,21 +4746,12 @@ class MDF4(object):
             unit = (
                 conversion and conversion.unit
                 or channel.unit
-                or ''
             )
 
             comment = channel.comment
 
             if ch_nr >= 0:
-                source = grp['channel_sources'][ch_nr]
-                if self.memory == 'minimum':
-                    if source:
-                        source = SourceInformation(
-                            address=source,
-                            stream=stream,
-                        )
-                    else:
-                        source = None
+                source = channel.source
                 cg_source = grp['channel_group'].acq_source
                 if source:
                     source = SignalSource(
@@ -5543,7 +5465,7 @@ class MDF4(object):
                         except KeyError:
                             break
 
-                for source in gp['channel_sources']:
+                    source = channel.source
                     if source:
                         source_id = id(source)
                         if source_id not in si_map:
@@ -5595,18 +5517,15 @@ class MDF4(object):
                             else:
                                 source['comment_addr'] = 0
 
-                for conversion in gp['channel_conversions']:
+                    conversion = channel.conversion
                     address = write_cc(conversion, defined_texts, blocks, address)
+                    if conversion:
+                        conversion.address = address
 
-                # channel conversions
-                for j, conv in enumerate(gp['channel_conversions']):
-                    if conv:
-                        conv.address = address
+                        conversion['inv_conv_addr'] = 0
 
-                        conv['inv_conv_addr'] = 0
-
-                        address += conv['block_len']
-                        blocks.append(conv)
+                        address += conversion['block_len']
+                        blocks.append(conversion)
 
                 # channel data
                 gp_sd = []
@@ -5663,13 +5582,13 @@ class MDF4(object):
                     address += channel['block_len']
                     blocks.append(channel)
 
-                    if not gp['channel_conversions'][j]:
+                    if not channel.conversion:
                         channel['conversion_addr'] = 0
                     else:
-                        addr_ = gp['channel_conversions'][j].address
+                        addr_ = channel.conversion.address
                         channel['conversion_addr'] = addr_
-                    if gp['channel_sources'][j]:
-                        addr_ = gp['channel_sources'][j].address
+                    if channel.source:
+                        addr_ = channel.source.address
                         channel['source_addr'] = addr_
                     else:
                         channel['source_addr'] = 0
