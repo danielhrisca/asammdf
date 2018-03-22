@@ -6137,84 +6137,6 @@ class MDF4(object):
                 else:
                     stream = self._tempfile
 
-                for source in gp['channel_sources']:
-                    if source:
-                        stream.seek(source)
-                        raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
-                        if raw_bytes in si_map:
-                            si_addrs.append(si_map[raw_bytes])
-                        else:
-                            source = SourceInformation(
-                                raw_bytes=raw_bytes,
-                            )
-
-                            if source.name:
-                                tx_block = TextBlock(text=source.name)
-                                text = tx_block['text']
-                                if text in defined_texts:
-                                    source['name_addr'] = defined_texts[text]
-                                else:
-                                    address = tell()
-                                    source['name_addr'] = address
-                                    defined_texts[text] = address
-                                    tx_block.address = address
-                                    write(bytes(tx_block))
-                            else:
-                                source['name_addr'] = 0
-
-                            if source.path:
-                                tx_block = TextBlock(text=source.path)
-                                text = tx_block['text']
-                                if text in defined_texts:
-                                    source['path_addr'] = defined_texts[text]
-                                else:
-                                    address = tell()
-                                    source['path_addr'] = address
-                                    defined_texts[text] = address
-                                    tx_block.address = address
-                                    write(bytes(tx_block))
-                            else:
-                                source['path_addr'] = 0
-
-                            if source.comment:
-
-                                meta = source.comment.startswith('<SIcomment')
-                                tx_block = TextBlock(text=source.comment, meta=meta)
-                                text = tx_block['text']
-                                if text in defined_texts:
-                                    source['comment_addr'] = defined_texts[text]
-                                else:
-                                    address = tell()
-                                    source['comment_addr'] = address
-                                    defined_texts[text] = address
-                                    tx_block.address = address
-                                    write(bytes(tx_block))
-                            else:
-                                source['comment_addr'] = 0
-
-                            address = tell()
-                            si_addrs.append(address)
-                            si_map[raw_bytes] = address
-                            write(bytes(source))
-                    else:
-                        si_addrs.append(0)
-
-                for j, conversion in enumerate(gp['channel_conversions']):
-                    if conversion:
-                        conversion = ChannelConversion(
-                            address=conversion,
-                            stream=stream,
-                        )
-
-                        conversion['inv_conv_addr'] = 0
-
-                        write_cc(conversion, defined_texts, stream=dst_)
-                        address = tell()
-                        cc_addrs.append(address)
-                        write(bytes(conversion))
-                    else:
-                        cc_addrs.append(0)
-
                 # channel dependecies
                 temp_deps = []
                 for j, dep_list in enumerate(gp['channel_dependencies']):
@@ -6254,6 +6176,74 @@ class MDF4(object):
                     ch_addrs.append(address)
                     chans.append(channel)
                     blocks.append(channel)
+                    address += channel['block_len']
+
+                    source = channel.source
+                    if source:
+
+                        if source.name:
+                            tx_block = TextBlock(text=source.name)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                source['name_addr'] = defined_texts[text]
+                            else:
+                                source['name_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                blocks.append(tx_block)
+                                address += tx_block['block_len']
+                        else:
+                            source['name_addr'] = 0
+
+                        if source.path:
+                            tx_block = TextBlock(text=source.path)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                source['path_addr'] = defined_texts[text]
+                            else:
+                                source['path_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                blocks.append(tx_block)
+                                address += tx_block['block_len']
+                        else:
+                            source['path_addr'] = 0
+
+                        if source.comment:
+
+                            meta = source.comment.startswith('<SIcomment')
+                            tx_block = TextBlock(text=source.comment, meta=meta)
+                            text = tx_block['text']
+                            if text in defined_texts:
+                                source['comment_addr'] = defined_texts[text]
+                            else:
+                                source['comment_addr'] = address
+                                defined_texts[text] = address
+                                tx_block.address = address
+                                blocks.append(tx_block)
+                                address += tx_block['block_len']
+                        else:
+                            source['comment_addr'] = 0
+
+                        source.address = address
+                        channel['source_addr'] = address
+                        # si_map[raw_bytes] = address
+                        blocks.append(source)
+                        address += source['block_len']
+                    else:
+                        channel['source_addr'] = 0
+
+                    conversion = channel.conversion
+                    address = write_cc(conversion, defined_texts, blocks, address)
+                    if conversion:
+                        conversion.address = address
+                        channel['conversion_addr'] = address
+                        conversion['inv_conv_addr'] = 0
+                        address += conversion['block_len']
+                        blocks.append(conversion)
+
+                    else:
+                        channel['conversion_addr'] = 0
 
                     attachment_index = 0
                     while True:
@@ -6266,8 +6256,6 @@ class MDF4(object):
                             attachment_index += 1
                         except KeyError:
                             break
-
-                    address += channel['block_len']
 
                     if channel.name:
                         tx_block = TextBlock(text=channel.name)
@@ -6312,8 +6300,6 @@ class MDF4(object):
                     else:
                         channel['comment_addr'] = 0
 
-                    channel['conversion_addr'] = gp['temp_channel_conversions'][j]
-                    channel['source_addr'] = gp['temp_channel_sources'][j]
                     signal_data = self._load_signal_data(
                         group=gp,
                         index=j,

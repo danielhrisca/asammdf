@@ -387,11 +387,13 @@ class Channel(dict):
             result = pack(fmt, *[self[key] for key in keys])
         return result
 
-    def __str__(self):
-        return 'Channel (name: {}, unit: {}, comment: {}, address: {}, fields: {})'.format(
+    def __repr__(self):
+        return '<Channel (name: {}, unit: {}, comment: {}, address: {}, conversion: {}, source: {}, fields: {})>'.format(
             self.name,
             self.unit,
             self.comment,
+            self.conversion,
+            self.source,
             hex(self.address),
             super(Channel, self).__str__(),
         )
@@ -1730,15 +1732,15 @@ class ChannelConversion(dict):
             result = pack(fmt, *[self[key] for key in keys])
         return result
 
-    def __str__(self):
-        return 'ChannelConversion (name: {}, unit: {}, comment: {}, formula: {}, referenced blocks: {}, address: {}, fields: {})'.format(
+    def __repr__(self):
+        return '<ChannelConversion (name: {}, unit: {}, comment: {}, formula: {}, referenced blocks: {}, address: {}, fields: {})>'.format(
             self.name,
             self.unit,
             self.comment,
             self.formula,
             self.referenced_blocks,
             hex(self.address),
-            super(ChannelConversion, self).__str__(),
+            super(ChannelConversion, self).__repr__(),
         )
 
 
@@ -2622,8 +2624,8 @@ class SourceInformation(dict):
             )
         return result
 
-    def __str__(self):
-        return 'SourceInformation (name: {}, path: {}, comment: {}, address: {}, fields: {})'.format(
+    def __repr__(self):
+        return '<SourceInformation (name: {}, path: {}, comment: {}, address: {}, fields: {})>'.format(
             self.name,
             self.path,
             self.comment,
