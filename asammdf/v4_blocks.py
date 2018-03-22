@@ -242,54 +242,56 @@ class Channel(dict):
                 message = 'Expected "##CN" block but found "{}"'
                 raise MdfException(message.format(self['id']))
 
-            self.name = get_text_v4(self['name_addr'], stream)
-            self.unit = get_text_v4(self['unit_addr'], stream)
+            if kargs.get('load_metadata', True):
 
-            comment = get_text_v4(
-                address=self['comment_addr'],
-                stream=stream,
-            )
+                self.name = get_text_v4(self['name_addr'], stream)
+                self.unit = get_text_v4(self['unit_addr'], stream)
 
-            if comment.startswith('<CNcomment'):
-                try:
-                    display_name = ET.fromstring(comment).find('.//names/display')
-                    if display_name is not None:
-                        self.display_name = display_name.text
-                except UnicodeEncodeError:
-                    pass
+                comment = get_text_v4(
+                    address=self['comment_addr'],
+                    stream=stream,
+                )
 
-            self.comment = comment
+                if comment.startswith('<CNcomment'):
+                    try:
+                        display_name = ET.fromstring(comment).find('.//names/display')
+                        if display_name is not None:
+                            self.display_name = display_name.text
+                    except UnicodeEncodeError:
+                        pass
 
-            si_map = kargs.get('si_map', {})
-            cc_map = kargs.get('cc_map', {})
+                self.comment = comment
 
-            if self['conversion_addr']:
-                stream.seek(self['conversion_addr'] + 8)
-                size = unpack('<Q', stream.read(8))[0]
-                stream.seek(self['conversion_addr'])
-                raw_bytes = stream.read(size)
-                if raw_bytes in cc_map:
-                    conv = cc_map[raw_bytes]
-                else:
-                    conv = ChannelConversion(
-                        raw_bytes=raw_bytes,
-                        stream=stream,
-                    )
-                    cc_map[raw_bytes] = conv
-                self.conversion = conv
+                si_map = kargs.get('si_map', {})
+                cc_map = kargs.get('cc_map', {})
 
-            if self['source_addr']:
-                stream.seek(self['source_addr'])
-                raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
-                if raw_bytes in si_map:
-                    source = si_map[raw_bytes]
-                else:
-                    source = SourceInformation(
-                        raw_bytes=raw_bytes,
-                        stream=stream,
-                    )
-                    si_map[raw_bytes] = source
-                self.source = source
+                if self['conversion_addr']:
+                    stream.seek(self['conversion_addr'] + 8)
+                    size = unpack('<Q', stream.read(8))[0]
+                    stream.seek(self['conversion_addr'])
+                    raw_bytes = stream.read(size)
+                    if raw_bytes in cc_map:
+                        conv = cc_map[raw_bytes]
+                    else:
+                        conv = ChannelConversion(
+                            raw_bytes=raw_bytes,
+                            stream=stream,
+                        )
+                        cc_map[raw_bytes] = conv
+                    self.conversion = conv
+
+                if self['source_addr']:
+                    stream.seek(self['source_addr'])
+                    raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                    if raw_bytes in si_map:
+                        source = si_map[raw_bytes]
+                    else:
+                        source = SourceInformation(
+                            raw_bytes=raw_bytes,
+                            stream=stream,
+                        )
+                        si_map[raw_bytes] = source
+                    self.source = source
 
         else:
             self.address = 0
@@ -305,7 +307,7 @@ class Channel(dict):
             self['conversion_addr'] = 0
             self['data_block_addr'] = kargs.get('data_block_addr', 0)
             self['unit_addr'] = kargs.get('unit_addr', 0)
-            self['comment_addr'] = 0
+            self['comment_addr'] = kargs.get('comment_addr', 0)
             try:
                 self['attachment_0_addr'] = kargs['attachment_0_addr']
                 self['block_len'] += 8
