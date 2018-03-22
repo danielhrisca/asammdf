@@ -260,16 +260,36 @@ class Channel(dict):
 
             self.comment = comment
 
+            si_map = kargs.get('si_map', {})
+            cc_map = kargs.get('cc_map', {})
+
             if self['conversion_addr']:
-                self.conversion = ChannelConversion(
-                    address=self['conversion_addr'],
-                    stream=stream,
-                )
+                stream.seek(self['conversion_addr'] + 8)
+                size = unpack('<Q', stream.read(8))[0]
+                stream.seek(self['conversion_addr'])
+                raw_bytes = stream.read(size)
+                if raw_bytes in cc_map:
+                    conv = cc_map[raw_bytes]
+                else:
+                    conv = ChannelConversion(
+                        raw_bytes=raw_bytes,
+                        stream=stream,
+                    )
+                    cc_map[raw_bytes] = conv
+                self.conversion = conv
+
             if self['source_addr']:
-                self.source = SourceInformation(
-                    address=self['source_addr'],
-                    stream=stream,
-                )
+                stream.seek(self['source_addr'])
+                raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                if raw_bytes in si_map:
+                    source = si_map[raw_bytes]
+                else:
+                    source = SourceInformation(
+                        raw_bytes=raw_bytes,
+                        stream=stream,
+                    )
+                    si_map[raw_bytes] = source
+                self.source = source
 
         else:
             self.address = 0
@@ -2180,8 +2200,6 @@ class EventBlock(dict):
 
         fmt = v4c.FMT_EVENT.format(self['links_nr'])
 
-        print(fmt, self)
-
         if PYVERSION_MAJOR >= 36:
             result = pack(fmt, *self.values())
         else:
@@ -2222,7 +2240,6 @@ class EventBlock(dict):
             )
             result = pack(fmt, *[self[key] for key in keys])
 
-        print(len(result), self['block_len'])
         return result
 
     def __str__(self):
