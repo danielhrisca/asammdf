@@ -715,9 +715,9 @@ class MDF4(object):
         if self.memory == 'full':
             self.close()
 
-        # self._si_map.clear()
-        # self._ch_map.clear()
-        # self._cc_map.clear()
+        self._si_map.clear()
+        self._ch_map.clear()
+        self._cc_map.clear()
 
     def _read_channels(
             self,
@@ -1281,7 +1281,13 @@ class MDF4(object):
             channel_group = grp['channel_group']
             if memory == 'minimum':
                 channels = [
-                    Channel(address=ch_addr, stream=stream, load_metadata=False)
+                    Channel(
+                        address=ch_addr,
+                        stream=stream,
+                        cc_map=self._cc_map,
+                        si_map=self._si_map,
+                        load_metadata=False,
+                    )
                     for ch_addr in grp['channels']
                 ]
             else:
@@ -3596,7 +3602,7 @@ class MDF4(object):
                 stream=stream,
             )
 
-            conversion = channel.conversion
+        conversion = channel.conversion
 
         unit = (
             conversion and conversion.unit
@@ -3849,6 +3855,8 @@ class MDF4(object):
                 channel = Channel(
                     address=grp['channels'][ch_nr],
                     stream=stream,
+                    cc_map=self._cc_map,
+                    si_map=self._si_map,
                 )
             else:
                 channel = grp['channels'][ch_nr]
@@ -3949,10 +3957,15 @@ class MDF4(object):
                         channel = Channel(
                             address=address,
                             stream=stream,
+                            cc_map=self._cc_map,
+                            si_map=self._si_map,
                             load_metadata=False,
                         )
 
-                        name_ = channel.name
+                        name_ = get_text_v4(
+                            address=channel['name_addr'],
+                            stream=stream,
+                        )
                         names.append(name_)
                 else:
                     # TODO : get exactly the group and channel
@@ -4127,6 +4140,8 @@ class MDF4(object):
                                         ref_channel = Channel(
                                             address=address,
                                             stream=stream,
+                                            cc_map=self._cc_map,
+                                            si_map=self._si_map,
                                         )
                                         axisname = ref_channel.name
                                     else:
@@ -4200,6 +4215,8 @@ class MDF4(object):
                                     ref_channel = Channel(
                                         address=address,
                                         stream=stream,
+                                        cc_map=self._cc_map,
+                                        si_map=self._si_map,
                                     )
                                     axisname = ref_channel.name
                                 else:
@@ -4782,6 +4799,8 @@ class MDF4(object):
                 time_ch = Channel(
                     address=group['channels'][time_ch_nr],
                     stream=stream,
+                    cc_map=self._cc_map,
+                    si_map=self._si_map,
                 )
             time_conv = time_ch.conversion
             time_name = time_ch.name
@@ -5821,6 +5840,8 @@ class MDF4(object):
 
             original_data_addresses = []
 
+            cc_map = {}
+
             if compression == 1:
                 zip_type = v4c.FLAG_DZ_DEFLATE
             else:
@@ -6078,6 +6099,8 @@ class MDF4(object):
                     channel = Channel(
                         address=channel,
                         stream=stream,
+                        cc_map=self._cc_map,
+                        si_map=self._si_map,
                     )
                     channel.address = address
                     ch_addrs.append(address)
