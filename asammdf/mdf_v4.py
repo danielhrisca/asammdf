@@ -5239,7 +5239,6 @@ class MDF4(object):
 
             # attachments
             at_map = {}
-            channels_with_attachments = []
             if self.attachments:
                 for at_block in self.attachments:
                     address = at_block.to_blocks(address, blocks, defined_texts)
@@ -5284,8 +5283,6 @@ class MDF4(object):
                     for j, idx in enumerate(channel.attachments):
                         key = 'attachment_{}_addr'.format(j)
                         channel[key] = self.attachments[idx].address
-                        if j == 0:
-                            channels_with_attachments.append(channel)
 
                     address = channel.to_blocks(address, blocks, defined_texts)
 
@@ -5500,17 +5497,6 @@ class MDF4(object):
                     addr = event[key]
                     event[key] = at_map[addr]
 
-            for channel in channels_with_attachments:
-                attachment_index = 0
-                while True:
-                    key = 'attachment_{}_addr'.format(attachment_index)
-                    try:
-                        addr = channel[key]
-                        channel[key] = at_map[addr]
-                        attachment_index += 1
-                    except KeyError:
-                        break
-
         if self.memory == 'low' and dst == self.name:
             self.close()
             os.remove(self.name)
@@ -5614,8 +5600,6 @@ class MDF4(object):
             write(bytes(self.header))
 
             original_data_addresses = []
-
-            cc_map = {}
 
             if compression == 1:
                 zip_type = v4c.FLAG_DZ_DEFLATE
@@ -5753,7 +5737,6 @@ class MDF4(object):
             address = tell()
             blocks = []
             at_map = {}
-            channels_with_attachments = []
             if self.attachments:
                 for at_block in self.attachments:
                     address = at_block.to_blocks(address, blocks, defined_texts)
@@ -5774,16 +5757,9 @@ class MDF4(object):
             for blk in blocks:
                 write(bytes(blk))
 
-            blocks = []
+            del blocks
 
-            tab_conversion = (
-                v4c.CONVERSION_TYPE_TABX,
-                v4c.CONVERSION_TYPE_RTABX,
-                v4c.CONVERSION_TYPE_TTAB,
-                v4c.CONVERSION_TYPE_TRANS,
-            )
-
-            si_map = {}
+            address = tell()
 
             # go through each data group and append the rest of the blocks
             for i, gp in enumerate(self.groups):
@@ -5796,6 +5772,10 @@ class MDF4(object):
                     stream = self._tempfile
 
                 # channel dependecies
+                structs = [
+                    0 for _ in gp['channels']
+                ]
+
                 temp_deps = []
                 for j, dep_list in enumerate(gp['channel_dependencies']):
                     if dep_list:
@@ -5812,27 +5792,39 @@ class MDF4(object):
                                 dep['composition_addr'] = dep_list[k + 1].address
                             dep_list[-1]['composition_addr'] = 0
                         else:
+                            for k in range(j, j + len(dep_list)):
+                                structs[k] += 1
                             temp_deps.append([])
                             for _ in dep_list:
                                 temp_deps[-1].append(0)
                     else:
                         temp_deps.append(0)
 
+                next_ch_addr = [
+                    0 for _ in range(max(structs) + 1)
+                ]
+
                 # channels
-                blocks = []
-                chans = []
                 address = blocks_start_addr = tell()
 
-                gp['channel_group']['first_ch_addr'] = address
-
-                for j, channel in enumerate(gp['channels']):
+                size = len(gp['channels'])
+                previous_level = structs[-1] if structs else 0
+                for j in range(size-1, -1, -1):
+                    channel = gp['channels'][j]
+                    level = structs[j]
 
                     channel = Channel(
                         address=channel,
                         stream=stream,
-                        cc_map=self._cc_map,
-                        si_map=self._si_map,
                     )
+
+                    channel['next_ch_addr'] = next_ch_addr[level]
+                    if level:
+                        channel.source = None
+                    if level < previous_level:
+                        channel['component_addr'] = next_ch_addr[previous_level]
+                        next_ch_addr[previous_level] = 0
+                    previous_level = level
 
                     signal_data = self._load_signal_data(
                         group=gp,
@@ -5845,78 +5837,38 @@ class MDF4(object):
                                 zip_type=v4c.FLAG_DZ_DEFLATE,
                                 original_type=b'SD',
                             )
-                            blocks.append(signal_data)
                             channel['data_block_addr'] = address
                             address += signal_data['block_len']
+                            write(bytes(signal_data))
                             align = signal_data['block_len'] % 8
                             if align % 8:
-                                blocks.append(b'\0' * (8 - align))
+                                write(b'\0' * (8 - align))
                                 address += 8 - align
                         else:
                             signal_data = SignalDataBlock(data=signal_data)
-                            blocks.append(signal_data)
                             channel['data_block_addr'] = address
+                            write(bytes(signal_data))
                             address += signal_data['block_len']
                             align = signal_data['block_len'] % 8
                             if align % 8:
-                                blocks.append(b'\0' * (8 - align))
+                                write(b'\0' * (8 - align))
                                 address += 8 - align
                     else:
                         channel['data_block_addr'] = 0
 
+                    del signal_data
+
                     for j, idx in enumerate(channel.attachments):
                         key = 'attachment_{}_addr'.format(j)
                         channel[key] = self.attachments[idx].address
-                        if j == 0:
-                            channels_with_attachments.append(channel)
 
-                    ch_addrs.append(address)
-                    chans.append(channel)
+                    address = channel.to_stream(dst_, defined_texts)
+                    ch_addrs.append(channel.address)
+                    next_ch_addr[level] = channel.address
 
-                    address = channel.to_blocks(address, blocks, defined_texts)
+                    del channel
 
-                    channel.conversion = None
-                    channel.source = None
-
-                group_channels = gp['channels']
-                if group_channels:
-                    for j, channel in enumerate(chans[:-1]):
-                        channel['next_ch_addr'] = chans[j + 1].address
-                    chans[-1]['next_ch_addr'] = 0
-
-                # channel dependecies
-                j = 0
-                while j < len(gp['channels']):
-                    dep_list = gp['channel_dependencies'][j]
-                    if dep_list and all(
-                            not isinstance(dep, ChannelArrayBlock) for dep in dep_list):
-
-                        dep = chans[j+1]
-
-                        channel = chans[j]
-                        channel['component_addr'] = dep.address
-
-                        dep = chans[j+len(dep_list)]
-                        channel['next_ch_addr'] = dep['next_ch_addr']
-                        dep['next_ch_addr'] = 0
-
-                        for k, _ in enumerate(dep_list):
-                            dep = chans[j+1+k]
-                            dep['source_addr'] = 0
-
-                        j += len(dep_list)
-                    else:
-                        j += 1
-
-                seek(blocks_start_addr)
-                gp['channel_group']['first_ch_addr'] = chans[0].address
-
-                for block in blocks:
-                    write(bytes(block))
-
-                blocks = []
-                chans = []
-                address = tell()
+                gp['channel_group']['first_ch_addr'] = next_ch_addr[0]
 
                 if gp['channel_group']['flags'] & v4c.FLAG_CG_VLSD:
                     continue
@@ -6015,6 +5967,8 @@ class MDF4(object):
 
             for block in blocks:
                 write(bytes(block))
+
+            del blocks
 
             for gp, rec_id in zip(self.groups, gp_rec_ids):
                 gp['data_group']['record_id_len'] = rec_id

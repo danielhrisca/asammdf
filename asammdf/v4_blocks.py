@@ -154,7 +154,7 @@ class AttachmentBlock(dict):
         else:
             warnings.warn('external attachments not supported')
 
-    def to_blocks(self, address, blocks, defined_texts={}):
+    def to_blocks(self, address, blocks, defined_texts):
         key = 'file_name_addr'
         text = self.file_name
         if text:
@@ -201,7 +201,7 @@ class AttachmentBlock(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts={}):
+    def to_stream(self, stream, defined_texts):
         address = stream.tell()
 
         key = 'file_name_addr'
@@ -437,7 +437,7 @@ class Channel(dict):
             self['data_block_addr'] = 0
             self['channel_type'] = v4c.CHANNEL_TYPE_VALUE
 
-    def to_blocks(self, address, blocks, defined_texts={}):
+    def to_blocks(self, address, blocks, defined_texts):
         key = 'name_addr'
         text = self.name
         if text:
@@ -498,7 +498,7 @@ class Channel(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts={}):
+    def to_stream(self, stream, defined_texts):
         address = stream.tell()
 
         key = 'name_addr'
@@ -978,7 +978,7 @@ class ChannelGroup(dict):
         # sample reduction blocks are not supported yet
         self['first_sample_reduction_addr'] = 0
 
-    def to_blocks(self, address, blocks, defined_texts={}):
+    def to_blocks(self, address, blocks, defined_texts):
         key = 'acq_name_addr'
         text = self.acq_name
         if text:
@@ -1019,7 +1019,7 @@ class ChannelGroup(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts={}):
+    def to_stream(self, stream, defined_texts):
         address = stream.tell()
 
         key = 'acq_name_addr'
@@ -1657,7 +1657,7 @@ class ChannelConversion(dict):
                 message = message.format(kargs['conversion_type'])
                 raise NotImplementedError(message)
 
-    def to_blocks(self, address, blocks, defined_texts={}):
+    def to_blocks(self, address, blocks, defined_texts):
         key = 'name_addr'
         text = self.name
         if text:
@@ -1703,7 +1703,7 @@ class ChannelConversion(dict):
             if text in defined_texts:
                 self[key] = defined_texts[text]
             else:
-                meta = text.startswith('<CNcomment')
+                meta = text.startswith('<CCcomment')
                 tx_block = TextBlock(text=text, meta=meta)
                 self[key] = address
                 defined_texts[text] = address
@@ -1734,7 +1734,7 @@ class ChannelConversion(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts={}):
+    def to_stream(self, stream, defined_texts):
         address = stream.tell()
 
         key = 'name_addr'
@@ -1782,7 +1782,7 @@ class ChannelConversion(dict):
             if text in defined_texts:
                 self[key] = defined_texts[text]
             else:
-                meta = text.startswith('<CNcomment')
+                meta = text.startswith('<CCcomment')
                 tx_block = TextBlock(text=text, meta=meta)
                 self[key] = address
                 defined_texts[text] = address
@@ -2431,7 +2431,7 @@ class DataGroup(dict):
             self['record_id_len'] = kargs.get('record_id_len', 0)
             self['reserved1'] = kargs.get('reserved1', b'\00' * 7)
 
-    def to_blocks(self, address, blocks, defined_texts={}):
+    def to_blocks(self, address, blocks, defined_texts):
         key = 'comment_addr'
         text = self.comment
         if text:
@@ -2452,7 +2452,7 @@ class DataGroup(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts={}):
+    def to_stream(self, stream, defined_texts):
         address = stream.tell()
 
         key = 'comment_addr'
@@ -2870,7 +2870,7 @@ class FileHistory(dict):
             self['time_flags'] = kargs.get('time_flags', 2)
             self['reserved1'] = kargs.get('reserved1', b'\x00' * 3)
 
-    def to_blocks(self, address, blocks, defined_texts={}):
+    def to_blocks(self, address, blocks, defined_texts):
         key = 'comment_addr'
         text = self.comment
         if text:
@@ -2891,7 +2891,7 @@ class FileHistory(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts={}):
+    def to_stream(self, stream, defined_texts):
         address = stream.tell()
 
         key = 'comment_addr'
@@ -3167,7 +3167,7 @@ class SourceInformation(dict):
             self['flags'] = 0
             self['reserved1'] = b'\x00' * 5
 
-    def to_blocks(self, address, blocks, defined_texts={}):
+    def to_blocks(self, address, blocks, defined_texts):
         key = 'name_addr'
         text = self.name
         if text:
@@ -3214,7 +3214,7 @@ class SourceInformation(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts={}):
+    def to_stream(self, stream, defined_texts):
         address = stream.tell()
 
         key = 'name_addr'
