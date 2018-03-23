@@ -279,11 +279,12 @@ class MDF4(object):
         self.memory = memory
         self.channels_db = {}
         self.masters_db = {}
-        self.attachments = OrderedDict()
+        self.attachments = []
         self._attachments_cache = {}
         self.file_comment = None
         self.events = []
 
+        self._attachments_map = {}
         self._ch_map = {}
         self._master_channel_cache = {}
         self._master_channel_metadata = {}
@@ -372,10 +373,13 @@ class MDF4(object):
 
         # read attachments
         at_addr = self.header['first_attachment_addr']
+        index = 0
         while at_addr:
             at_block = AttachmentBlock(address=at_addr, stream=stream)
-            self.attachments[at_addr] = at_block
+            self._attachments_map[at_addr] = index
+            self.attachments.append(at_block)
             at_addr = at_block['next_at_addr']
+            index += 1
 
         # go to first date group and read each data group sequentially
         dg_addr = self.header['first_dg_addr']
@@ -741,6 +745,7 @@ class MDF4(object):
                     cc_map=self._cc_map,
                     si_map=self._si_map,
                     load_metadata=False,
+                    at_map=self._attachments_map,
                 )
                 value = ch_addr
                 name = get_text_v4(
@@ -768,6 +773,7 @@ class MDF4(object):
                     stream=stream,
                     cc_map=self._cc_map,
                     si_map=self._si_map,
+                    at_map=self._attachments_map,
                 )
                 value = channel
                 display_name = channel.display_name
@@ -825,9 +831,9 @@ class MDF4(object):
                     )
                     grp['channel_dependencies'][index] = composition
                     if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
-                        attachment_addr = channel['attachment_0_addr']
+                        attachment_addr = self._attachments_map[channel['attachment_0_addr']]
                         if attachment_addr not in self._dbc_cache:
-                            attachment, at_name = self.extract_attachment(address=attachment_addr)
+                            attachment, at_name = self.extract_attachment(index=attachment_addr)
                             if not at_name.lower().endswith(('dbc', 'arxml')) or not attachment:
                                 warnings.warn('Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name))
                                 grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
@@ -1401,7 +1407,8 @@ class MDF4(object):
                                 if channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
                                     message_id = grp['message_id']
 
-                                    can_db = self._dbc_cache[new_ch['attachment_0_addr']]
+                                    at_index = self._attachments_map[new_ch['attachment_0_addr']]
+                                    can_db = self._dbc_cache[at_index]
                                     can_msg = can_db.frameById(message_id)
 
                                     for signal in can_msg.signals:
@@ -3483,13 +3490,8 @@ class MDF4(object):
             return b'', ''
 
         if address is not None:
-            attachment = self.attachments[address]
-        else:
-            for i, attachment in enumerate(self.attachments.values()):
-                if i == index:
-                    break
-            else:
-                return b'', ''
+            index = self._attachments_map[address]
+        attachment = self.attachments[index]
 
         current_path = os.getcwd()
         file_path = attachment.file_name or 'embedded'
@@ -5239,62 +5241,17 @@ class MDF4(object):
             at_map = {}
             channels_with_attachments = []
             if self.attachments:
-                for at_block in self.attachments.values():
-                    if at_block.comment:
-                        meta = at_block.comment.startswith('<ATcomment')
-                        block = TextBlock(
-                            text=at_block.comment,
-                            meta=meta,
-                        )
-                        blocks.append(block)
-                        at_block['comment_addr'] = address
-                        address += block['block_len']
+                for at_block in self.attachments:
+                    address = at_block.to_blocks(address, blocks, defined_texts)
 
-                    if at_block.file_name:
-                        block = TextBlock(text=at_block.file_name)
-                        blocks.append(block)
-                        at_block['file_name_addr'] = address
-                        address += block['block_len']
-
-                    if at_block.mime:
-                        block = TextBlock(text=at_block.mime)
-                        blocks.append(block)
-                        at_block['mime_addr'] = address
-                        address += block['block_len']
-
-                for initial_addr, at_block  in self.attachments.items():
-                    at_map[initial_addr] = address
-                    at_block.address = address
-                    blocks.append(at_block)
-                    align = at_block['block_len'] % 8
-                    # append 8 byte alignment bytes for attachments
-                    if align % 8:
-                        blocks.append(b'\0' * (8 - align))
-                        address += at_block['block_len'] + 8 - align
-                    else:
-                        address += at_block['block_len']
-
-                keys = list(self.attachments)
-                for i, key in enumerate(keys[:-1]):
-                    at_block = self.attachments[key]
-                    at_block['next_at_addr'] = self.attachments[keys[i+1]][0].address
-                self.attachments[keys[-1]][0]['next_at_addr'] = 0
+                for i in range(len(self.attachments) - 1):
+                    at_block = self.attachments[i]
+                    at_block['next_at_addr'] = self.attachments[i+1].address
+                self.attachments[-1]['next_at_addr'] = 0
 
             # file history blocks
             for fh in self.file_history:
-                if fh.comment:
-                    meta = fh.comment.startswith('<FHcomment')
-                    block = TextBlock(
-                        text=fh.comment,
-                        meta=meta,
-                    )
-                    blocks.append(block)
-                    fh['comment_addr'] = address
-                    address += block['block_len']
-
-                fh.address = address
-                address += fh['block_len']
-                blocks.append(fh)
+                address = fh.to_blocks(address, blocks, defined_texts)
 
             for i, fh in enumerate(self.file_history[:-1]):
                 fh['next_fh_addr'] = self.file_history[i + 1].address
@@ -5310,20 +5267,7 @@ class MDF4(object):
                 valid_data_groups.append(gp['data_group'])
                 gp_rec_ids.append(gp['data_group']['record_id_len'])
 
-                if gp['data_group'].comment:
-                    meta = gp['data_group'].comment.startswith('<DGcomment')
-                    block = TextBlock(
-                        text=gp['data_group'].comment,
-                        meta=meta,
-                    )
-                    blocks.append(block)
-                    gp['data_group']['comment_addr'] = address
-                    address += block['block_len']
-                else:
-                    gp['data_group']['comment_addr'] = 0
-                gp['data_group'].address = address
-                address += gp['data_group']['block_len']
-                blocks.append(gp['data_group'])
+                address = gp['data_group'].to_blocks(address, blocks, defined_texts)
 
             if valid_data_groups:
                 for i, dg in enumerate(valid_data_groups[:-1]):
@@ -5337,122 +5281,13 @@ class MDF4(object):
             for i, gp in enumerate(self.groups):
 
                 for channel in gp['channels']:
-                    if channel.name:
-                        tx_block = TextBlock(text=channel.name)
-                        text = tx_block['text']
-                        if text in defined_texts:
-                            channel['name_addr'] = defined_texts[text]
-                        else:
-                            channel['name_addr'] = address
-                            defined_texts[text] = address
-                            tx_block.address = address
-                            address += tx_block['block_len']
-                            blocks.append(tx_block)
-                    else:
-                        channel['name_addr'] = 0
+                    for j, idx in enumerate(channel.attachments):
+                        key = 'attachment_{}_addr'.format(j)
+                        channel[key] = self.attachments[idx].address
+                        if j == 0:
+                            channels_with_attachments.append(channel)
 
-                    if channel.unit:
-                        tx_block = TextBlock(text=channel.unit)
-                        text = tx_block['text']
-                        if text in defined_texts:
-                            channel['unit_addr'] = defined_texts[text]
-                        else:
-                            channel['unit_addr'] = address
-                            defined_texts[text] = address
-                            tx_block.address = address
-                            address += tx_block['block_len']
-                            blocks.append(tx_block)
-                    else:
-                        channel['unit_addr'] = 0
-
-                    if channel.comment:
-                        meta = channel.comment.startswith('<CNcomment')
-                        tx_block = TextBlock(text=channel.comment, meta=meta)
-                        text = tx_block['text']
-                        if text in defined_texts:
-                            channel['comment_addr'] = defined_texts[text]
-                        else:
-                            channel['comment_addr'] = address
-                            defined_texts[text] = address
-                            tx_block.address = address
-                            address += tx_block['block_len']
-                            blocks.append(tx_block)
-                    else:
-                        channel['comment_addr'] = 0
-
-                    attachment_index = 0
-                    while True:
-                        key = 'attachment_{}_addr'.format(attachment_index)
-                        try:
-                            addr = channel[key]
-                            channel[key] = at_map[addr]
-                            if attachment_index == 0:
-                                channels_with_attachments.append(channel)
-                            attachment_index += 1
-                        except KeyError:
-                            break
-
-                    source = channel.source
-                    if source:
-                        source_id = id(source)
-                        if source_id not in si_map:
-                            source.address = address
-                            address += source['block_len']
-                            blocks.append(source)
-                            si_map[source_id] = address
-
-                            if source.name:
-                                tx_block = TextBlock(text=source.name)
-                                text = tx_block['text']
-                                if text in defined_texts:
-                                    source['name_addr'] = defined_texts[text]
-                                else:
-                                    source['name_addr'] = address
-                                    defined_texts[text] = address
-                                    tx_block.address = address
-                                    address += tx_block['block_len']
-                                    blocks.append(tx_block)
-                            else:
-                                source['name_addr'] = 0
-
-                            if source.path:
-                                tx_block = TextBlock(text=source.path)
-                                text = tx_block['text']
-                                if text in defined_texts:
-                                    source['path_addr'] = defined_texts[text]
-                                else:
-                                    source['path_addr'] = address
-                                    defined_texts[text] = address
-                                    tx_block.address = address
-                                    address += tx_block['block_len']
-                                    blocks.append(tx_block)
-                            else:
-                                source['path_addr'] = 0
-
-                            if source.comment:
-                                meta = source.comment.startswith('<SIcomment')
-                                tx_block = TextBlock(text=source.comment, meta=meta)
-                                text = tx_block['text']
-                                if text in defined_texts:
-                                    source['comment_addr'] = defined_texts[text]
-                                else:
-                                    source['comment_addr'] = address
-                                    defined_texts[text] = address
-                                    tx_block.address = address
-                                    address += tx_block['block_len']
-                                    blocks.append(tx_block)
-                            else:
-                                source['comment_addr'] = 0
-
-                    conversion = channel.conversion
-                    address = write_cc(conversion, defined_texts, blocks, address)
-                    if conversion:
-                        conversion.address = address
-
-                        conversion['inv_conv_addr'] = 0
-
-                        address += conversion['block_len']
-                        blocks.append(conversion)
+                    address = channel.to_blocks(address, blocks, defined_texts)
 
                 # channel data
                 gp_sd = []
@@ -5504,21 +5339,7 @@ class MDF4(object):
                 # channels
                 for j, (channel, signal_data) in enumerate(
                         zip(gp['channels'], gp_sd)):
-                    channel.address = address
 
-                    address += channel['block_len']
-                    blocks.append(channel)
-
-                    if not channel.conversion:
-                        channel['conversion_addr'] = 0
-                    else:
-                        addr_ = channel.conversion.address
-                        channel['conversion_addr'] = addr_
-                    if channel.source:
-                        addr_ = channel.source.address
-                        channel['source_addr'] = addr_
-                    else:
-                        channel['source_addr'] = 0
                     if signal_data:
                         channel['data_block_addr'] = signal_data.address
                     else:
@@ -5553,60 +5374,15 @@ class MDF4(object):
                 # channel group
                 if gp['channel_group']['flags'] & v4c.FLAG_CG_VLSD:
                     continue
-                gp['channel_group'].address = address
+
                 if gp['channels']:
                     gp['channel_group']['first_ch_addr'] = gp['channels'][0].address
                 else:
                     gp['channel_group']['first_ch_addr'] = 0
                 gp['channel_group']['next_cg_addr'] = 0
-                if gp['channel_group'].comment:
-                    meta = gp['channel_group'].comment.startswith('<CGcomment')
-                    block = TextBlock(
-                        text=gp['channel_group'].comment,
-                        meta=meta,
-                    )
-                    blocks.append(block)
-                    gp['channel_group']['comment_addr'] = address
-                    address += block['block_len']
 
-                if gp['channel_group'].acq_name:
-                    block = TextBlock(text=gp['channel_group'].acq_name)
-                    blocks.append(block)
-                    gp['channel_group']['acq_name_addr'] = address
-                    address += block['block_len']
-
-                cg_source = gp['channel_group'].acq_source
-                if cg_source:
-                    if cg_source.name:
-                        block = TextBlock(text=cg_source.name)
-                        block.address = address
-                        cg_source['name_addr'] = address
-                        address += block['block_len']
-                        blocks.append(block)
-                    if cg_source.path:
-                        block = TextBlock(text=cg_source.path)
-                        block.address = address
-                        cg_source['path_addr'] = address
-                        address += block['block_len']
-                        blocks.append(block)
-                    if cg_source.comment:
-                        meta = cg_source.comment.startswith('<CGcomment')
-                        block = TextBlock(text=cg_source.comment, meta=meta)
-                        block.address = address
-                        cg_source['comment_addr'] = address
-                        address += block['block_len']
-                        blocks.append(block)
-                    cg_source.address = address
-                    blocks.append(cg_source)
-                    address += cg_source['block_len']
-                    gp['channel_group']['acq_source_addr'] = cg_source.address
-                else:
-                    gp['channel_group']['acq_source_addr'] = 0
-
-                gp['data_group']['first_cg_addr'] = address
-
-                address += gp['channel_group']['block_len']
-                blocks.append(gp['channel_group'])
+                address = gp['channel_group'].to_blocks(address, blocks, defined_texts)
+                gp['data_group']['first_cg_addr'] = gp['channel_group'].address
 
             for gp in self.groups:
                 for dep_list in gp['channel_dependencies']:
@@ -5699,8 +5475,7 @@ class MDF4(object):
                 self.header['first_dg_addr'] = 0
             self.header['file_history_addr'] = self.file_history[0].address
             if self.attachments:
-                attachments = iter(self.attachments.values())
-                first_attachment = next(attachments)
+                first_attachment = self.attachments[0]
                 addr_ = first_attachment.address
                 self.header['first_attachment_addr'] = addr_
             else:
@@ -5980,62 +5755,17 @@ class MDF4(object):
             at_map = {}
             channels_with_attachments = []
             if self.attachments:
-                for at_block in self.attachments.values():
-                    if at_block.comment:
-                        meta = at_block.comment.startswith('<ATcomment')
-                        block = TextBlock(
-                            text=at_block.comment,
-                            meta=meta,
-                        )
-                        blocks.append(block)
-                        at_block['comment_addr'] = address
-                        address += block['block_len']
+                for at_block in self.attachments:
+                    address = at_block.to_blocks(address, blocks, defined_texts)
 
-                    if at_block.file_name:
-                        block = TextBlock(text=at_block.file_name)
-                        blocks.append(block)
-                        at_block['file_name_addr'] = address
-                        address += block['block_len']
-
-                    if at_block.mime:
-                        block = TextBlock(text=at_block.mime)
-                        blocks.append(block)
-                        at_block['mime_addr'] = address
-                        address += block['block_len']
-
-                for initial_addr, at_block  in self.attachments.items():
-                    at_map[initial_addr] = address
-                    at_block.address = address
-                    blocks.append(at_block)
-                    align = at_block['block_len'] % 8
-                    # append 8 byte alignment bytes for attachments
-                    if align % 8:
-                        blocks.append(b'\0' * (8 - align))
-                        address += at_block['block_len'] + 8 - align
-                    else:
-                        address += at_block['block_len']
-
-                keys = list(self.attachments)
-                for i, key in enumerate(keys[:-1]):
-                    at_block = self.attachments[key]
-                    at_block['next_at_addr'] = self.attachments[keys[i+1]][0].address
-                self.attachments[keys[-1]][0]['next_at_addr'] = 0
+                for i in range(len(self.attachments) - 1):
+                    at_block = self.attachments[i]
+                    at_block['next_at_addr'] = self.attachments[i + 1].address
+                self.attachments[-1]['next_at_addr'] = 0
 
             # file history blocks
             for fh in self.file_history:
-                if fh.comment:
-                    meta = fh.comment.startswith('<FHcomment')
-                    block = TextBlock(
-                        text=fh.comment,
-                        meta=meta,
-                    )
-                    blocks.append(block)
-                    fh['comment_addr'] = address
-                    address += block['block_len']
-
-                fh.address = address
-                address += fh['block_len']
-                blocks.append(fh)
+                address = fh.to_blocks(address, blocks, defined_texts)
 
             for i, fh in enumerate(self.file_history[:-1]):
                 fh['next_fh_addr'] = self.file_history[i + 1].address
@@ -6096,144 +5826,13 @@ class MDF4(object):
                 gp['channel_group']['first_ch_addr'] = address
 
                 for j, channel in enumerate(gp['channels']):
+
                     channel = Channel(
                         address=channel,
                         stream=stream,
                         cc_map=self._cc_map,
                         si_map=self._si_map,
                     )
-                    channel.address = address
-                    ch_addrs.append(address)
-                    chans.append(channel)
-                    blocks.append(channel)
-                    address += channel['block_len']
-
-                    source = channel.source
-                    if source:
-
-                        text = source.name
-                        key = 'name_addr'
-                        if text:
-                            if text in defined_texts:
-                                source[key] = defined_texts[text]
-                            else:
-                                tx_block = TextBlock(text=text)
-                                source[key] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                blocks.append(tx_block)
-                                address += tx_block['block_len']
-                        else:
-                            source[key] = 0
-
-                        text = source.path
-                        key = 'path_addr'
-                        if text:
-                            if text in defined_texts:
-                                source[key] = defined_texts[text]
-                            else:
-                                tx_block = TextBlock(text=text)
-                                source[key] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                blocks.append(tx_block)
-                                address += tx_block['block_len']
-                        else:
-                            source[key] = 0
-
-                        text = source.comment
-                        key = 'comment_addr'
-                        if text:
-                            if text in defined_texts:
-                                source[key] = defined_texts[text]
-                            else:
-                                meta = source.comment.startswith('<SIcomment')
-                                tx_block = TextBlock(text=text, meta=meta)
-                                source[key] = address
-                                defined_texts[text] = address
-                                tx_block.address = address
-                                blocks.append(tx_block)
-                                address += tx_block['block_len']
-                        else:
-                            source[key] = 0
-
-                        source.address = address
-                        channel['source_addr'] = address
-                        # si_map[raw_bytes] = address
-                        blocks.append(source)
-                        address += source['block_len']
-                    else:
-                        channel['source_addr'] = 0
-
-                    conversion = channel.conversion
-                    address = write_cc(conversion, defined_texts, blocks, address)
-                    if conversion:
-                        conversion.address = address
-                        channel['conversion_addr'] = address
-                        conversion['inv_conv_addr'] = 0
-                        address += conversion['block_len']
-                        blocks.append(conversion)
-
-                    else:
-                        channel['conversion_addr'] = 0
-
-                    attachment_index = 0
-                    while True:
-                        key = 'attachment_{}_addr'.format(attachment_index)
-                        try:
-                            addr = channel[key]
-                            channel[key] = at_map[addr]
-                            if attachment_index == 0:
-                                channels_with_attachments.append(channel)
-                            attachment_index += 1
-                        except KeyError:
-                            break
-
-                    text = channel.name
-                    key = 'name_addr'
-                    if text:
-                        if text in defined_texts:
-                            channel[key] = defined_texts[text]
-                        else:
-                            tx_block = TextBlock(text=text)
-                            channel[key] = address
-                            defined_texts[text] = address
-                            tx_block.address = address
-                            blocks.append(tx_block)
-                            address += tx_block['block_len']
-                    else:
-                        channel[key] = 0
-
-                    text = channel.unit
-                    key = 'unit_addr'
-                    if text:
-                        if text in defined_texts:
-                            channel[key] = defined_texts[text]
-                        else:
-                            tx_block = TextBlock(text=text)
-                            channel[key] = address
-                            defined_texts[text] = address
-                            tx_block.address = address
-                            blocks.append(tx_block)
-                            address += tx_block['block_len']
-                    else:
-                        channel[key] = 0
-
-                    text = channel.comment
-                    key = 'comment_addr'
-                    if text:
-                        if text in defined_texts:
-                            channel[key] = defined_texts[text]
-                        else:
-                            meta = channel.comment.startswith('<CNcomment')
-                            tx_block = TextBlock(text=text, meta=meta)
-                            channel[key] = address
-                            defined_texts[text] = address
-                            tx_block.address = address
-                            blocks.append(tx_block)
-                            address += tx_block['block_len']
-                    else:
-                        channel[key] = 0
 
                     signal_data = self._load_signal_data(
                         group=gp,
@@ -6265,12 +5864,19 @@ class MDF4(object):
                     else:
                         channel['data_block_addr'] = 0
 
-                    if gp['channel_dependencies'][j]:
-                        block = gp['channel_dependencies'][j][0]
-                        if isinstance(block, (ChannelArrayBlock, Channel)):
-                            channel['component_addr'] = block.address
-                        else:
-                            channel['component_addr'] = block
+                    for j, idx in enumerate(channel.attachments):
+                        key = 'attachment_{}_addr'.format(j)
+                        channel[key] = self.attachments[idx].address
+                        if j == 0:
+                            channels_with_attachments.append(channel)
+
+                    ch_addrs.append(address)
+                    chans.append(channel)
+
+                    address = channel.to_blocks(address, blocks, defined_texts)
+
+                    channel.conversion = None
+                    channel.source = None
 
                 group_channels = gp['channels']
                 if group_channels:
@@ -6303,6 +5909,7 @@ class MDF4(object):
                         j += 1
 
                 seek(blocks_start_addr)
+                gp['channel_group']['first_ch_addr'] = chans[0].address
 
                 for block in blocks:
                     write(bytes(block))
@@ -6315,53 +5922,10 @@ class MDF4(object):
                     continue
 
                 # channel group
-                gp['channel_group'].address = address
                 gp['channel_group']['next_cg_addr'] = 0
-                if gp['channel_group'].comment:
-                    meta = gp['channel_group'].comment.startswith('<CGcomment')
-                    block = TextBlock(
-                        text=gp['channel_group'].comment,
-                        meta=meta,
-                    )
-                    address = tell()
-                    write(bytes(block))
-                    gp['channel_group']['comment_addr'] = address
 
-                if gp['channel_group'].acq_name:
-                    block = TextBlock(text=gp['channel_group'].acq_name)
-                    address = tell()
-                    write(bytes(block))
-                    gp['channel_group']['acq_name_addr'] = address
-
-                cg_source = gp['channel_group'].acq_source
-                if cg_source:
-                    if cg_source.name:
-                        block = TextBlock(text=cg_source.name)
-                        address = tell()
-                        cg_source['name_addr'] = address
-                        write(bytes(block))
-                    if cg_source.path:
-                        block = TextBlock(text=cg_source.path)
-                        address = tell()
-                        cg_source['path_addr'] = address
-                        write(bytes(block))
-                    if cg_source.comment:
-                        meta = cg_source.comment.startswith('<CGcomment')
-                        block = TextBlock(text=cg_source.comment, meta=meta)
-                        address = tell()
-                        cg_source['comment_addr'] = address
-                        write(bytes(block))
-                    address = tell()
-                    write(bytes(cg_source))
-                    gp['channel_group']['acq_source_addr'] = address
-                else:
-                    gp['channel_group']['acq_source_addr'] = 0
-
-                address = tell()
-                gp['data_group']['first_cg_addr'] = address
-
-                write(bytes(gp['channel_group']))
-                address = tell()
+                gp['channel_group'].to_stream(dst_, defined_texts)
+                gp['data_group']['first_cg_addr'] = gp['channel_group'].address
 
             blocks = []
             address = tell()
@@ -6369,26 +5933,14 @@ class MDF4(object):
             valid_data_groups = []
             # data groups
             for gp in self.groups:
-                gp['data_group'].address = address
+
                 gp_rec_ids.append(gp['data_group']['record_id_len'])
                 if gp['channel_group']['flags'] & v4c.FLAG_CG_VLSD:
                     continue
                 else:
                     valid_data_groups.append(gp['data_group'])
-                    address += gp['data_group']['block_len']
-                    blocks.append(gp['data_group'])
 
-                    if gp['data_group'].comment:
-                        meta = gp['data_group'].comment.startswith('<DGcomment')
-                        block = TextBlock(
-                            text=gp['data_group'].comment,
-                            meta=meta,
-                        )
-                        blocks.append(block)
-                        gp['data_group']['comment_addr'] = address
-                        address += block['block_len']
-                    else:
-                        gp['data_group']['comment_addr'] = 0
+                    address = gp['data_group'].to_blocks(address, blocks, defined_texts)
 
             if valid_data_groups:
                 for i, dg in enumerate(valid_data_groups[:-1]):
@@ -6475,8 +6027,7 @@ class MDF4(object):
             self.header['file_history_addr'] = self.file_history[0].address
 
             if self.attachments:
-                attachments = iter(self.attachments.values())
-                first_attachment = next(attachments)
+                first_attachment = self.attachments[0]
                 addr_ = first_attachment.address
                 self.header['first_attachment_addr'] = addr_
             else:

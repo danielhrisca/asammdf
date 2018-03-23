@@ -154,6 +154,102 @@ class AttachmentBlock(dict):
         else:
             warnings.warn('external attachments not supported')
 
+    def to_blocks(self, address, blocks, defined_texts={}):
+        key = 'file_name_addr'
+        text = self.file_name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        key = 'mime_addr'
+        text = self.mime
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<ATcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts={}):
+        address = stream.tell()
+
+        key = 'file_name_addr'
+        text = self.file_name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        key = 'mime_addr'
+        text = self.mime
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<ATcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
+
     def __bytes__(self):
         fmt = v4c.FMT_AT_COMMON + '{}s'.format(self['embedded_size'])
         if PYVERSION_MAJOR >= 36:
@@ -165,13 +261,14 @@ class AttachmentBlock(dict):
 
 class Channel(dict):
     """ CNBLOCK class"""
-    __slots__ = ['address', 'name', 'unit', 'comment', 'display_name', 'conversion', 'source']
+    __slots__ = ['address', 'attachments', 'name', 'unit', 'comment', 'display_name', 'conversion', 'source']
 
     def __init__(self, **kargs):
         super(Channel, self).__init__()
 
         self.name = self.unit = self.comment = self.display_name = ''
         self.conversion = self.source = None
+        self.attachments = []
 
         if 'stream' in kargs:
 
@@ -203,8 +300,10 @@ class Channel(dict):
              self['unit_addr'],
              self['comment_addr']) = links[:8]
 
+            at_map = kargs.get('at_map', {})
             for i in range(params[10]):
                 self['attachment_{}_addr'.format(i)] = links[8 + i]
+                self.attachments.append(at_map.get(links[8 + i], 0))
 
             if params[6] & v4c.FLAG_CN_DEFAULT_X:
                 (self['default_X_dg_addr'],
@@ -337,6 +436,130 @@ class Channel(dict):
         if self['channel_type'] == v4c.CHANNEL_TYPE_MLSD:
             self['data_block_addr'] = 0
             self['channel_type'] = v4c.CHANNEL_TYPE_VALUE
+
+    def to_blocks(self, address, blocks, defined_texts={}):
+        key = 'name_addr'
+        text = self.name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        key = 'unit_addr'
+        text = self.unit
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<CNcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        conversion = self.conversion
+        if conversion:
+            address = conversion.to_blocks(address, blocks, defined_texts)
+            self['conversion_addr'] = conversion.address
+        else:
+            self['conversion_addr'] = 0
+
+        source = self.source
+        if source:
+            address = source.to_blocks(address, blocks, defined_texts)
+            self['source_addr'] = source.address
+        else:
+            self['source_addr'] = 0
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts={}):
+        address = stream.tell()
+
+        key = 'name_addr'
+        text = self.name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        key = 'unit_addr'
+        text = self.unit
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<CNcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        conversion = self.conversion
+        if conversion:
+            address = conversion.to_stream(stream, defined_texts)
+            self['conversion_addr'] = conversion.address
+        else:
+            self['conversion_addr'] = 0
+
+        source = self.source
+        if source:
+            address = source.to_stream(stream, defined_texts)
+            self['source_addr'] = source.address
+        else:
+            self['source_addr'] = 0
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
 
     def __bytes__(self):
 
@@ -754,6 +977,90 @@ class ChannelGroup(dict):
 
         # sample reduction blocks are not supported yet
         self['first_sample_reduction_addr'] = 0
+
+    def to_blocks(self, address, blocks, defined_texts={}):
+        key = 'acq_name_addr'
+        text = self.acq_name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<CGcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        source = self.acq_source
+        if source:
+            address = source.to_blocks(address, blocks, defined_texts)
+            self['acq_source_addr'] = source.address
+        else:
+            self['acq_source_addr'] = 0
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts={}):
+        address = stream.tell()
+
+        key = 'acq_name_addr'
+        text = self.acq_name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<CGcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        source = self.acq_source
+        if source:
+            address = source.to_stream(stream, defined_texts)
+            self['acq_source_addr'] = source.address
+        else:
+            self['acq_source_addr'] = 0
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
@@ -1349,6 +1656,162 @@ class ChannelConversion(dict):
                 message = 'Conversion {} dynamic creation not implementated'
                 message = message.format(kargs['conversion_type'])
                 raise NotImplementedError(message)
+
+    def to_blocks(self, address, blocks, defined_texts={}):
+        key = 'name_addr'
+        text = self.name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        key = 'unit_addr'
+        text = self.unit
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        key = 'formula_addr'
+        text = self.formula
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<CNcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        for key, block in self.referenced_blocks.items():
+            if block:
+                if block['id'] == b'##TX':
+                    text = block['text']
+                    if text in defined_texts:
+                        self[key] = defined_texts[text]
+                    else:
+                        defined_texts[text] = address
+                        blocks.append(block)
+                        self[key] = address
+                        address += block['block_len']
+                else:
+                    address = block.to_blocks(address, blocks, defined_texts)
+                    self[key] = block.address
+            else:
+                self[key] = 0
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts={}):
+        address = stream.tell()
+
+        key = 'name_addr'
+        text = self.name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        key = 'unit_addr'
+        text = self.unit
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        key = 'formula_addr'
+        text = self.formula
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<CNcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        for key, block in self.referenced_blocks.items():
+            if block:
+                if block['id'] == b'##TX':
+                    text = block['text']
+                    if text in defined_texts:
+                        self[key] = defined_texts[text]
+                    else:
+                        defined_texts[text] = address
+                        self[key] = address
+                        address += block['block_len']
+                        stream.write(bytes(block))
+                else:
+                    address = block.to_stream(stream, defined_texts)
+                    self[key] = block.address
+            else:
+                self[key] = 0
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
 
     def convert(self, values):
         conversion_type = self['conversion_type']
@@ -1968,6 +2431,50 @@ class DataGroup(dict):
             self['record_id_len'] = kargs.get('record_id_len', 0)
             self['reserved1'] = kargs.get('reserved1', b'\00' * 7)
 
+    def to_blocks(self, address, blocks, defined_texts={}):
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<DGcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts={}):
+        address = stream.tell()
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<DGcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
+
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
             result = pack(v4c.FMT_DATA_GROUP, *self.values())
@@ -2363,6 +2870,50 @@ class FileHistory(dict):
             self['time_flags'] = kargs.get('time_flags', 2)
             self['reserved1'] = kargs.get('reserved1', b'\x00' * 3)
 
+    def to_blocks(self, address, blocks, defined_texts={}):
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<FHcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts={}):
+        address = stream.tell()
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<FHcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
+
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
             result = pack(v4c.FMT_FILE_HISTORY, *self.values())
@@ -2615,6 +3166,102 @@ class SourceInformation(dict):
             self['bus_type'] = kargs.get('bus_type', v4c.BUS_TYPE_NONE)
             self['flags'] = 0
             self['reserved1'] = b'\x00' * 5
+
+    def to_blocks(self, address, blocks, defined_texts={}):
+        key = 'name_addr'
+        text = self.name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        key = 'path_addr'
+        text = self.path
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<SIcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts={}):
+        address = stream.tell()
+
+        key = 'name_addr'
+        text = self.name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        key = 'path_addr'
+        text = self.path
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith('<SIcomment')
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
 
     def __bytes__(self):
         if PYVERSION_MAJOR >= 36:
