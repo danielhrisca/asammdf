@@ -5798,7 +5798,7 @@ class MDF4(object):
                                 dep['composition_addr'] = dep_list[k + 1].address
                             dep_list[-1]['composition_addr'] = 0
                         else:
-                            for k in range(j, j + len(dep_list)):
+                            for k in range(j + 1, j + len(dep_list) + 1):
                                 structs[k] += 1
                             temp_deps.append([])
                             for _ in dep_list:
@@ -5828,9 +5828,12 @@ class MDF4(object):
                     channel['next_ch_addr'] = next_ch_addr[level]
                     if level:
                         channel.source = None
+                    elif temp_deps[j]:
+                        channel['component_addr'] = temp_deps[j][0]
                     if level < previous_level:
                         channel['component_addr'] = next_ch_addr[previous_level]
                         next_ch_addr[previous_level] = 0
+
                     previous_level = level
 
                     signal_data = self._load_signal_data(
@@ -5874,6 +5877,8 @@ class MDF4(object):
                     next_ch_addr[level] = channel.address
 
                     del channel
+
+                ch_addrs.reverse()
 
                 gp['channel_group']['first_ch_addr'] = next_ch_addr[0]
 
