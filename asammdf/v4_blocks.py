@@ -351,7 +351,7 @@ class Channel(dict):
                     stream=stream,
                 )
 
-                if comment.startswith('<CNcomment'):
+                if kargs.get('parse_xml_comment', True) and comment.startswith('<CNcomment'):
                     try:
                         display_name = ET.fromstring(comment).find('.//names/display')
                         if display_name is not None:

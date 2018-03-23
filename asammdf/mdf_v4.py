@@ -3854,12 +3854,17 @@ class MDF4(object):
 
             # get the channel object
             if memory == 'minimum':
-                channel = Channel(
-                    address=grp['channels'][ch_nr],
-                    stream=stream,
-                    cc_map=self._cc_map,
-                    si_map=self._si_map,
-                )
+                if samples_only and raw:
+                    channel = Channel(
+                        address=grp['channels'][ch_nr],
+                        stream=stream,
+                        load_metadata=False,
+                    )
+                else:
+                    channel = Channel(
+                        address=grp['channels'][ch_nr],
+                        stream=stream,
+                    )
             else:
                 channel = grp['channels'][ch_nr]
 
@@ -3971,6 +3976,7 @@ class MDF4(object):
                         names.append(name_)
                 else:
                     # TODO : get exactly the group and channel
+                    # possibly use ch_addr for all memory options
                     names = [ch.name for ch in dependency_list]
 
                 channel_values = [
@@ -5816,6 +5822,7 @@ class MDF4(object):
                     channel = Channel(
                         address=channel,
                         stream=stream,
+                        parse_xml_comment=False,
                     )
 
                     channel['next_ch_addr'] = next_ch_addr[level]
