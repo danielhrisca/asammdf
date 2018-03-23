@@ -3253,7 +3253,7 @@ class MDF3(object):
             res = vals
         else:
             if conversion:
-                unit = conversion['unit'].decode('latin-1').strip(' \n\t\0')
+                unit = conversion['unit'].decode('latin-1').strip(' \n\r\t\0')
             else:
                 unit = ''
 

@@ -1264,15 +1264,15 @@ class ChannelExtension(dict):
                 self['reserved0'] = kargs.get('reserved0', b'\0')
 
         if self['type'] == v23c.SOURCE_ECU:
-            self.path = self['ECU_identification'].decode('latin-1')
-            self.name = self['description'].decode('latin-1')
+            self.path = self['ECU_identification'].decode('latin-1').strip(' \t\n\r\0')
+            self.name = self['description'].decode('latin-1').strip(' \t\n\r\0')
             self.comment = 'Module number={} @ address={}'.format(
                 self['module_nr'],
                 self['module_address'],
             )
         else:
-            self.path = self['sender_name'].decode('latin-1')
-            self.name = self['message_name'].decode('latin-1')
+            self.path = self['sender_name'].decode('latin-1').strip(' \t\n\r\0')
+            self.name = self['message_name'].decode('latin-1').strip(' \t\n\r\0')
             self.comment = 'Message ID={} on CAN bus {}'.format(
                 hex(self['CAN_id']),
                 self['CAN_ch_index'],

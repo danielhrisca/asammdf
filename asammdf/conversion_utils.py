@@ -40,7 +40,7 @@ def conversion_transfer(conversion, version=3):
             if conversion['id'] == b'CC':
                 pass
             else:
-                unit = conversion.unit.encode('latin-1')
+                unit = conversion.unit.encode('latin-1').strip(' \r\n\t\0')
 
                 if conversion_type == v4c.CONVERSION_TYPE_NON:
                     conversion = dict(conversion)
@@ -156,7 +156,7 @@ def conversion_transfer(conversion, version=3):
             pass
         else:
             conversion_type = conversion['conversion_type']
-            unit = conversion['unit'].decode('latin-1')
+            unit = conversion['unit'].decode('latin-1').strip(' \r\n\t\0')
             if conversion_type == v3c.CONVERSION_TYPE_NONE:
                 conversion = dict(conversion)
                 conversion['conversion_type'] = v4c.CONVERSION_TYPE_NON
