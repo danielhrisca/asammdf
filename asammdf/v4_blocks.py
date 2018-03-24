@@ -17,7 +17,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v4_constants as v4c
-from .utils import MdfException, get_text_v4
+from .utils import MdfException, get_text_v4, bytes
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
@@ -167,6 +167,8 @@ class AttachmentBlock(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         key = 'mime_addr'
         text = self.mime
@@ -180,6 +182,8 @@ class AttachmentBlock(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         key = 'comment_addr'
         text = self.comment
@@ -194,6 +198,8 @@ class AttachmentBlock(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         blocks.append(self)
         self.address = address
@@ -216,6 +222,8 @@ class AttachmentBlock(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         key = 'mime_addr'
         text = self.mime
@@ -229,6 +237,8 @@ class AttachmentBlock(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         key = 'comment_addr'
         text = self.comment
@@ -243,6 +253,8 @@ class AttachmentBlock(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         stream.write(bytes(self))
         self.address = address
@@ -345,6 +357,8 @@ class Channel(dict):
 
                 self.name = get_text_v4(self['name_addr'], stream)
                 self.unit = get_text_v4(self['unit_addr'], stream)
+                if not self.unit:
+                    self['unit_addr'] = 0
 
                 comment = get_text_v4(
                     address=self['comment_addr'],
@@ -450,6 +464,8 @@ class Channel(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         key = 'unit_addr'
         text = self.unit
@@ -463,6 +479,8 @@ class Channel(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         key = 'comment_addr'
         text = self.comment
@@ -477,6 +495,8 @@ class Channel(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         conversion = self.conversion
         if conversion:
@@ -513,6 +533,8 @@ class Channel(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         key = 'unit_addr'
         text = self.unit
@@ -526,6 +548,8 @@ class Channel(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         key = 'comment_addr'
         text = self.comment
@@ -540,6 +564,8 @@ class Channel(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         conversion = self.conversion
         if conversion:
@@ -991,6 +1017,8 @@ class ChannelGroup(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         key = 'comment_addr'
         text = self.comment
@@ -1005,6 +1033,8 @@ class ChannelGroup(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         source = self.acq_source
         if source:
@@ -1034,6 +1064,8 @@ class ChannelGroup(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         key = 'comment_addr'
         text = self.comment
@@ -1048,6 +1080,8 @@ class ChannelGroup(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         source = self.acq_source
         if source:
@@ -1670,6 +1704,8 @@ class ChannelConversion(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         key = 'unit_addr'
         text = self.unit
@@ -1683,19 +1719,24 @@ class ChannelConversion(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
-        key = 'formula_addr'
-        text = self.formula
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
+        if 'formula_addr' in self:
+            key = 'formula_addr'
+            text = self.formula
+            if text:
+                if text in defined_texts:
+                    self[key] = defined_texts[text]
+                else:
+                    tx_block = TextBlock(text=text)
+                    self[key] = address
+                    defined_texts[text] = address
+                    tx_block.address = address
+                    address += tx_block['block_len']
+                    blocks.append(tx_block)
             else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block['block_len']
-                blocks.append(tx_block)
+                self[key] = 0
 
         key = 'comment_addr'
         text = self.comment
@@ -1710,6 +1751,8 @@ class ChannelConversion(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         for key, block in self.referenced_blocks.items():
             if block:
@@ -1749,6 +1792,8 @@ class ChannelConversion(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         key = 'unit_addr'
         text = self.unit
@@ -1762,19 +1807,24 @@ class ChannelConversion(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
-        key = 'formula_addr'
-        text = self.formula
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
+        if 'formula_addr' in self:
+            key = 'formula_addr'
+            text = self.formula
+            if text:
+                if text in defined_texts:
+                    self[key] = defined_texts[text]
+                else:
+                    tx_block = TextBlock(text=text)
+                    self[key] = address
+                    defined_texts[text] = address
+                    tx_block.address = address
+                    address += tx_block['block_len']
+                    stream.write(bytes(tx_block))
             else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block['block_len']
-                stream.write(bytes(tx_block))
+                self[key] = 0
 
         key = 'comment_addr'
         text = self.comment
@@ -1789,6 +1839,8 @@ class ChannelConversion(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         for key, block in self.referenced_blocks.items():
             if block:
@@ -2445,6 +2497,8 @@ class DataGroup(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         blocks.append(self)
         self.address = address
@@ -2468,6 +2522,8 @@ class DataGroup(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         stream.write(bytes(self))
         self.address = address
@@ -2884,6 +2940,8 @@ class FileHistory(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         blocks.append(self)
         self.address = address
@@ -2907,6 +2965,8 @@ class FileHistory(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         stream.write(bytes(self))
         self.address = address
@@ -3180,6 +3240,8 @@ class SourceInformation(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         key = 'path_addr'
         text = self.path
@@ -3193,6 +3255,8 @@ class SourceInformation(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         key = 'comment_addr'
         text = self.comment
@@ -3207,6 +3271,8 @@ class SourceInformation(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 blocks.append(tx_block)
+        else:
+            self[key] = 0
 
         blocks.append(self)
         self.address = address
@@ -3229,6 +3295,8 @@ class SourceInformation(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         key = 'path_addr'
         text = self.path
@@ -3242,6 +3310,8 @@ class SourceInformation(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         key = 'comment_addr'
         text = self.comment
@@ -3256,6 +3326,8 @@ class SourceInformation(dict):
                 tx_block.address = address
                 address += tx_block['block_len']
                 stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
 
         stream.write(bytes(self))
         self.address = address
