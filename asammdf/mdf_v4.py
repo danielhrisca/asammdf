@@ -421,17 +421,10 @@ class MDF4(object):
                 elif channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
                     message_name = channel_group.acq_name
                     comment = channel_group.comment
-                    try:
-                        common_properties = ET.fromstring(comment).find(".//common_properties")
-                    except ET.ParseError:
-                        print('-'*80)
-                        print('INVALID Bus logging channel group comment:')
-                        print(comment)
-                        print('-'*80)
-                        common_properties = None
-
-                    if common_properties is not None:
-
+                    comment_xml = ET.fromstring(comment)
+                    can_msg_type = comment_xml.find('.//TX').text.strip(' \t\r\n')
+                    if can_msg_type == 'CAN_DataFrame':
+                        common_properties = comment_xml.find(".//common_properties")
                         can_id = 1
                         message_id = -1
                         for e in common_properties:
@@ -445,7 +438,6 @@ class MDF4(object):
                         grp['message_id'] = message_id
 
                     else:
-
                         warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
                         channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
 
@@ -6058,3 +6050,4 @@ class MDF4(object):
             self._file = open(self.name, 'rb')
             self._read()
         return dst
+
