@@ -8,8 +8,7 @@ import xml.etree.ElementTree as ET
 import os
 import sys
 import warnings
-from collections import defaultdict, OrderedDict
-from copy import deepcopy
+from collections import defaultdict
 from functools import reduce
 from hashlib import md5
 from math import ceil
@@ -698,6 +697,8 @@ class MDF4(object):
 
         # read events
         addr = self.header['first_event_addr']
+        ev_map = {}
+        event_index = 0
         while addr:
             event = EventBlock(address=addr, stream=stream)
             event.update_references(
@@ -705,8 +706,19 @@ class MDF4(object):
                 self._cg_map,
             )
             self.events.append(event)
+            ev_map[addr] = index
+            index += 1
 
             addr = event['next_ev_addr']
+
+        for event in self.events:
+            addr = event['parent_ev_addr']
+            if addr:
+                event.parent = ev_map[addr]
+
+            addr = event['range_start_ev_addr']
+            if addr:
+                event.range_start = ev_map[addr]
 
         if self.memory == 'full':
             self.close()
@@ -5401,7 +5413,7 @@ class MDF4(object):
                     gp['channel_group']['first_ch_addr'] = 0
                 gp['channel_group']['next_cg_addr'] = 0
 
-                address = gp['channel_group'].to_blocks(address, blocks, defined_texts)
+                address = gp['channel_group'].to_blocks(address, blocks, defined_texts, si_map)
                 gp['data_group']['first_cg_addr'] = gp['channel_group'].address
 
             for gp in self.groups:
@@ -5419,7 +5431,7 @@ class MDF4(object):
             for gp in self.groups:
                 gp['data_group']['record_id_len'] = 0
 
-            ev_map = {}
+            ev_map = []
 
             if self.events:
                 for event in self.events:
@@ -5447,7 +5459,7 @@ class MDF4(object):
                         event[key] = at_map[addr]
 
                     blocks.append(event)
-                    ev_map[event.address] = address
+                    ev_map.append(address)
                     event.address = address
                     address += event['block_len']
 
@@ -5470,11 +5482,10 @@ class MDF4(object):
                     else:
                         event['comment_addr'] = 0
 
-                for event in self.events:
-                    if event['parent_ev_addr']:
-                        event['parent_ev_addr'] = ev_map[event['parent_ev_addr']]
-                    if event['range_start_ev_addr']:
-                        event['range_start_ev_addr'] = ev_map[event['range_start_ev_addr']]
+                    if event.parent is not None:
+                        event['parent_ev_addr'] = ev_map[event.parent]
+                    if event.range_start is not None:
+                        event['range_start_ev_addr'] = ev_map[event.range_start]
 
                 for i in range(len(self.events) - 1):
                     self.events[i]['next_ev_addr'] = self.events[i+1].address
@@ -5508,13 +5519,8 @@ class MDF4(object):
                 gp['data_group']['data_block_addr'] = orig_addr
 
             at_map = {value:key for key, value in at_map.items()}
-            ev_map = {value:key for key, value in ev_map.items()}
 
             for event in self.events:
-                if event['parent_ev_addr']:
-                    event['parent_ev_addr'] = ev_map[event['parent_ev_addr']]
-                if event['range_start_ev_addr']:
-                    event['range_start_ev_addr'] = ev_map[event['range_start_ev_addr']]
                 for i in range(event['attachment_nr']):
                     key = 'attachment_{}_addr'.format(i)
                     addr = event[key]
@@ -5908,7 +5914,7 @@ class MDF4(object):
                 # channel group
                 gp['channel_group']['next_cg_addr'] = 0
 
-                gp['channel_group'].to_stream(dst_, defined_texts)
+                gp['channel_group'].to_stream(dst_, defined_texts, si_map)
                 gp['data_group']['first_cg_addr'] = gp['channel_group'].address
 
             blocks = []

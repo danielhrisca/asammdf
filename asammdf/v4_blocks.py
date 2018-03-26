@@ -1004,7 +1004,7 @@ class ChannelGroup(dict):
         # sample reduction blocks are not supported yet
         self['first_sample_reduction_addr'] = 0
 
-    def to_blocks(self, address, blocks, defined_texts):
+    def to_blocks(self, address, blocks, defined_texts, si_map):
         key = 'acq_name_addr'
         text = self.acq_name
         if text:
@@ -1038,7 +1038,7 @@ class ChannelGroup(dict):
 
         source = self.acq_source
         if source:
-            address = source.to_blocks(address, blocks, defined_texts)
+            address = source.to_blocks(address, blocks, defined_texts, si_map)
             self['acq_source_addr'] = source.address
         else:
             self['acq_source_addr'] = 0
@@ -1049,7 +1049,7 @@ class ChannelGroup(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts):
+    def to_stream(self, stream, defined_texts, si_map):
         address = stream.tell()
 
         key = 'acq_name_addr'
@@ -1085,7 +1085,7 @@ class ChannelGroup(dict):
 
         source = self.acq_source
         if source:
-            address = source.to_stream(stream, defined_texts)
+            address = source.to_stream(stream, defined_texts, si_map)
             self['acq_source_addr'] = source.address
         else:
             self['acq_source_addr'] = 0
@@ -2656,13 +2656,15 @@ class DataList(dict):
 
 class EventBlock(dict):
     """ EVBLOCK class"""
-    __slots__ = ['address', 'name', 'comment', 'scopes']
+    __slots__ = ['address', 'name', 'comment', 'scopes', 'parent', 'range_start']
 
     def __init__(self, **kargs):
         super(EventBlock, self).__init__()
 
         self.name = self.comment = ''
         self.scopes = []
+        self.parent = None
+        self.range_start = None
 
         if 'stream' in kargs:
 

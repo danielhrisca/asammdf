@@ -4,6 +4,7 @@
 import csv
 import os
 import sys
+from copy import deepcopy
 from warnings import warn
 from functools import reduce
 from struct import unpack
@@ -33,9 +34,10 @@ from .utils import (
 )
 from .v2_v3_blocks import Channel as ChannelV3
 from .v2_v3_blocks import HeaderBlock as HeaderV3
+from .v2_v3_blocks import TriggerBlock
 from .v4_blocks import Channel as ChannelV4
 from .v4_blocks import HeaderBlock as HeaderV4
-from .v4_blocks import ChannelArrayBlock, TextBlock, SourceInformation
+from .v4_blocks import ChannelArrayBlock, EventBlock
 from . import v4_constants as v4c
 
 PYVERSION = sys.version_info[0]
@@ -128,6 +130,44 @@ class MDF(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
+    def _transfer_events(self, other):
+        if other.version >= '4.00':
+            for event in other.events:
+                if self.version >= '4.00':
+                    new_event = deepcopy(event)
+                    event_valid = True
+                    for i, ref in enumerate(new_event.scopes):
+                        try:
+                            ch_cntr, dg_cntr = ref
+                            try:
+                                (self.groups
+                                    [dg_cntr]
+                                    ['channels']
+                                    [ch_cntr])
+                            except:
+                                event_valid = False
+                        except TypeError:
+                            dg_cntr = ref
+                            try:
+                                (
+                                    self.groups
+                                    [dg_cntr]
+                                    ['channel_group'])
+                            except:
+                                event_valid = False
+                    # ignore attachments for now
+                    for i in range(new_event['attachment_nr']):
+                        key = 'attachment_{}_addr'.format(i)
+                        event[key] = 0
+                    if event_valid:
+                        self.events.append(new_event)
+                else:
+                    pass
+
+
+
+
+
     def _excluded_channels(self, index):
         """ get the indexes list of channels that are excluded when processing
         teh channel group. The candiates for exlusion are the master channel
@@ -215,10 +255,10 @@ class MDF(object):
 
     def _included_channels(self, index):
         """ get the indexes list of channels that are excluded when processing
-        teh channel group. The candiates for exlusion are the master channel
+        teh channel group. The candidates for exclusion are the master channel
         (since it is retrieved as `Signal` timestamps), structure channel
         composition component channels (since they are retrieved as fields in
-        the `Signal` samples recarray) and channel dependecies (mdf version 3)
+        the `Signal` samples recarray) and channel dependencies (mdf version 3)
         / channel array axes
 
         Parameters
@@ -427,6 +467,7 @@ class MDF(object):
 
                 del group['record']
 
+        out._transfer_events(self)
         return out
 
     def cut(self, start=None, stop=None, whence=0):
