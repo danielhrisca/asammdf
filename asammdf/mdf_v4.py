@@ -3925,7 +3925,7 @@ class MDF4(object):
                 'unit_addr': 0,
             }
             channel = Channel(**kargs)
-            channel.name = name
+
             channel_invalidation_present = False
             dependency_list = None
 
@@ -3936,7 +3936,28 @@ class MDF4(object):
             can_msg = self._dbc_cache[dbc_addr].frameById(message_id)
 
             signal = can_msg.signals[signal_index]
+            signal_name = signal.name
+            message_name = grp['message_name']
+            can_id = grp['can_id']
+            can_msg_name = can_msg.name
 
+            ch_pos = - (ch_nr + 1) % 5
+            # 0 - name
+            # 1 - message_name.name
+            # 2 - can_id.message_name.name
+            # 3 - can_msg_name.name
+            # 4 - can_id.can_msg_name.name
+            if ch_pos == 0:
+                name = signal_name
+            elif ch_pos == 1:
+                name = '{}.{}'.format(message_name, signal_name)
+            elif ch_pos == 2:
+                name = 'CAN{}.{}.{}'.format(can_id, message_name, signal_name)
+            elif ch_pos == 3:
+                name = '{}.{}'.format(can_msg_name, signal_name)
+            else:
+                name = 'CAN{}.{}.{}'.format(can_id, can_msg_name, signal_name)
+            channel.name = name
             channel.comment = signal.comment or ''
 
         # check if this is a channel array
