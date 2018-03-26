@@ -4,6 +4,7 @@
 import csv
 import os
 import sys
+import xml.etree.ElementTree as ET
 from copy import deepcopy
 from warnings import warn
 from functools import reduce
@@ -162,11 +163,87 @@ class MDF(object):
                     if event_valid:
                         self.events.append(new_event)
                 else:
-                    pass
+                    for i, ref in enumerate(new_event.scopes):
+                        try:
+                            ch_cntr, dg_cntr = ref
+                            try:
+                                (self.groups
+                                    [dg_cntr]
+                                    )
+                            except:
+                                event_valid = False
+                        except TypeError:
+                            dg_cntr = ref
+                            try:
+                                (
+                                    self.groups
+                                    [dg_cntr])
+                            except:
+                                event_valid = False
+                        if event_valid:
+                            ev_type = event['type']
+                            ev_cause = event['cause']
+                            ev_range = event['range_type']
+                            ev_base = event['sync_base']
+                            ev_factor = event['sync_factor']
+                            ev_sync_type = event['sync_type']
 
+                            timestamp = ev_base * ev_factor
 
+                            try:
+                                comment = ET.fromstring(event.comment)
+                            except:
+                                comment = """
+<EVcomment>
+    <TX>{comment}</TX>
+    <pre_trigger_interval>{pre_interval}</pre_trigger_interval>
+    <post_trigger_interval>{post_interval}</post_trigger_interval>
+    <formula>
+        <syntax>negedge(StairsOut, 100)</syntax>
+    </formula>
+    <timeout triggered="true">20.591</timeout>
+</EVcomment>"""
 
+        else:
+            for trigger_info in other.iter_get_triggers():
+                if not trigger_info['comment'].startswith('<EVcomment'):
+                    comment = """<EVcomment>
+    <TX>{comment}</TX>
+    <pre_trigger_interval>{pre}</pre_trigger_interval>
+    <post_trigger_interval>{post}</post_trigger_interval>
+</EVcomment>"""
+                    comment = comment.format(
+                        comment=trigger_info['comment'],
+                        pre=trigger_info['pre_time'],
+                        post=trigger_info['post_time'],
+                    )
+                else:
+                    comment = trigger_info['comment']
+                timestamp = trigger_info['time']
+                group = trigger_info['group']
 
+                if self.version < '4.00':
+                    self.add_trigger(
+                        group,
+                        timestamp,
+                        pre_time=trigger_info['pre_time'],
+                        post_time=trigger_info['post_time'],
+                        comment=comment,
+                    )
+                else:
+                    if timestamp:
+                        ev_type = v4c.EVENT_TYPE_TRIGGER
+                    else:
+                        ev_type = v4c.EVENT_TYPE_START_RECORDING_TRIGGER
+                    event = EventBlock(
+                        event_type=ev_type,
+                        sync_base=int(timestamp * 10**9),
+                        sync_factor=10**-9,
+                        scope_0_addr=0,
+                    )
+                    event.comment = comment
+                    event.scopes.append(group)
+                    self.events.append(event)
 
     def _excluded_channels(self, index):
         """ get the indexes list of channels that are excluded when processing

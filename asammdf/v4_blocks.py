@@ -2723,42 +2723,38 @@ class EventBlock(dict):
         else:
             self.address = 0
 
-            self['id'] = b'##CN'
+            scopes = 0
+            while True:
+                try:
+                    kargs['scope_{}_addr'.format(scopes)]
+                    scopes += 1
+                except KeyError:
+                    break
+
+            self['id'] = b'##EV'
             self['reserved0'] = 0
-            self['block_len'] = v4c.CN_BLOCK_SIZE
-            self['links_nr'] = 8
-            self['next_ch_addr'] = 0
-            self['component_addr'] = 0
+            self['block_len'] = 56 + (scopes + 5) * 8
+            self['links_nr'] = scopes + 5
+            self['next_ev_addr'] = kargs.get('next_ev_addr', 0)
+            self['parent_ev_addr'] = kargs.get('parent_ev_addr', 0)
+            self['range_start_ev_addr'] = kargs.get('range_start_ev_addr', 0)
             self['name_addr'] = kargs.get('name_addr', 0)
-            self['source_addr'] = 0
-            self['conversion_addr'] = 0
-            self['data_block_addr'] = kargs.get('data_block_addr', 0)
-            self['unit_addr'] = kargs.get('unit_addr', 0)
-            self['comment_addr'] = 0
-            try:
-                self['attachment_0_addr'] = kargs['attachment_0_addr']
-                self['block_len'] += 8
-                self['links_nr'] += 1
-                attachments = 1
-            except KeyError:
-                attachments = 0
-            self['channel_type'] = kargs['channel_type']
-            self['sync_type'] = kargs.get('sync_type', 0)
-            self['data_type'] = kargs['data_type']
-            self['bit_offset'] = kargs['bit_offset']
-            self['byte_offset'] = kargs['byte_offset']
-            self['bit_count'] = kargs['bit_count']
-            self['flags'] = kargs.get('flags', 28)
-            self['pos_invalidation_bit'] = 0
-            self['precision'] = kargs.get('precision', 3)
-            self['reserved1'] = 0
-            self['attachment_nr'] = attachments
-            self['min_raw_value'] = kargs.get('min_raw_value', 0)
-            self['max_raw_value'] = kargs.get('max_raw_value', 0)
-            self['lower_limit'] = kargs.get('lower_limit', 0)
-            self['upper_limit'] = kargs.get('upper_limit', 100)
-            self['lower_ext_limit'] = kargs.get('lower_ext_limit', 0)
-            self['upper_ext_limit'] = kargs.get('upper_ext_limit', 0)
+            self['comment_addr'] = kargs.get('comment_addr', 0)
+
+            for i in range(scopes):
+                self['scope_{}_addr'.format(i)] = kargs['scope_{}_addr'.format(i)]
+
+            self['event_type'] = kargs.get('event_type', v4c.EVENT_TYPE_TRIGGER)
+            self['sync_type'] = kargs.get('sync_type', v4c.EVENT_SYNC_TYPE_S)
+            self['range_type'] = kargs.get('range_type', v4c.EVENT_RANGE_TYPE_POINT)
+            self['cause'] = kargs.get('cause', v4c.EVENT_CAUSE_TOOL)
+            self['flags'] = kargs.get('flags', v4c.FLAG_EV_POST_PROCESSING)
+            self['reserved1'] = b'\x00\x00\x00'
+            self['scope_nr'] = scopes
+            self['attachment_nr'] = 0
+            self['creator_index'] = 0
+            self['sync_base'] = kargs.get('sync_base', 0)
+            self['sync_factor'] = kargs.get('sync_factor', 1.0)
 
     def update_references(self, ch_map, cg_map):
         self.scopes[:] = []

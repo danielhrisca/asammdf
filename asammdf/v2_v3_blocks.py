@@ -2116,12 +2116,19 @@ class TriggerBlock(dict):
                 raise MdfException(message.format(self['id']))
 
         except KeyError:
-            self['id'] = b'TR'
-            self['block_len'] = 10 + kargs['trigger_events_nr'] * 8 * 3
-            self['text_addr'] = 0
-            self['trigger_events_nr'] = kargs['trigger_events_nr']
+            nr = 0
+            while True:
+                try:
+                    kargs['trigger_{}_time'.format(nr)]
+                    nr += 1
+                except KeyError:
+                    break
 
-            nr = self['trigger_events_nr']
+            self['id'] = b'TR'
+            self['block_len'] = 10 + nr * 8 * 3
+            self['text_addr'] = 0
+            self['trigger_events_nr'] = nr
+
             for i in range(nr):
                 key = 'trigger_{}_time'.format(i)
                 self[key] = kargs[key]
