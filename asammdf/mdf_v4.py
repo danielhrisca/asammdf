@@ -3856,6 +3856,8 @@ class MDF4(object):
                     channel = Channel(
                         address=grp['channels'][ch_nr],
                         stream=stream,
+                        cc_map=self._cc_map,
+                        si_map=self._si_map,
                     )
             else:
                 channel = grp['channels'][ch_nr]
