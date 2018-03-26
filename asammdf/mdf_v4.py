@@ -3908,6 +3908,7 @@ class MDF4(object):
             else:
                 data = (data,)
             parent, bit_offset = parents[ch_nr]
+            parent_sig = self.get('CAN_DataFrame', group=group)
             signal_data = None
             kargs = {
                 'channel_type': v4c.CHANNEL_TYPE_VALUE,
@@ -3925,6 +3926,7 @@ class MDF4(object):
                 'unit_addr': 0,
             }
             channel = Channel(**kargs)
+            channel.source = parent_sig.source
 
             channel_invalidation_present = False
             dependency_list = None
@@ -4716,7 +4718,7 @@ class MDF4(object):
                 else:
                     source = None
             else:
-                source = None
+                source = channel.source
 
             if 'attachment_0_addr' in channel:
                 attachment = self.extract_attachment(address=channel['attachment_0_addr'])

@@ -228,7 +228,7 @@ class MDF(object):
 
         Returns
         -------
-        excluded_channels : set
+        included_channels : set
             set of excluded channels
 
         """
@@ -249,7 +249,7 @@ class MDF(object):
                     continue
                 for ch_nr, gp_nr in dep.referenced_channels:
                     if gp_nr == index:
-                        excluded_channels.add(ch_nr)
+                        included_channels.add(ch_nr)
         else:
             if channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
                 where = self.whereis('CAN_DataFrame')
@@ -349,138 +349,7 @@ class MDF(object):
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
-            excluded_channels = self._excluded_channels(i)
-            channels_nr = len(group['channels'])
-
-            parents, dtypes = self._prepare_record(group)
-            group['parents'], group['types'] = parents, dtypes
-
-            data = self._load_group_data(group)
-            for idx, fragment in enumerate(data):
-
-                if dtypes.itemsize:
-                    group['record'] = np.core.records.fromstring(
-                        fragment[0],
-                        dtype=dtypes,
-                    )
-                else:
-                    group['record'] = None
-
-
-
-                # the first fragment triggers and append that will add the
-                # metadata for all channels
-                if idx == 0:
-                    sigs = []
-                    for j in range(channels_nr):
-                        if j in excluded_channels:
-                            continue
-                        else:
-                            sig = self.get(
-                                group=i,
-                                index=j,
-                                data=fragment,
-                                raw=True,
-                            )
-                            if version < '4.00' and sig.samples.dtype.kind == 'S':
-                                strsig = self.get(
-                                    group=i,
-                                    index=j,
-                                    samples_only=True,
-                                )
-                                sig.samples = sig.samples.astype(strsig.dtype)
-                                del strsig
-                            if not sig.samples.flags.writeable:
-                                sig.samples = sig.samples.copy()
-                            sigs.append(sig)
-                    source_info = 'Converted from {} to {}'
-
-                    if sigs:
-                        out.append(
-                            sigs,
-                            source_info.format(self.version, to),
-                            common_timebase=True,
-                        )
-                        if (self.version >= '4.00'
-                                and version >= '4.00'
-                                and (group['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT)):
-                            new_group = out.groups[-1]
-                            new_channel_group = new_group['channel_group']
-                            old_channel_group = group['channel_group']
-                            new_channel_group['flags'] = (
-                                group
-                                ['channel_group']
-                                ['flags']
-                            )
-                            new_channel_group['path_separator'] = ord('.')
-                            new_channel_group.acq_name = old_channel_group.acq_name
-                            new_channel_group.comment = old_channel_group.comment
-
-                            source = old_channel_group.acq_source
-                            if source:
-                                new_source = SourceInformation()
-                                new_source.update(source)
-                                new_source.name = source.name
-                                new_source.path = source.path
-                                new_source.comment = source.comment
-
-                                new_channel_group.acq_source = new_source
-                    else:
-                        break
-
-                # the other fragments will trigger onl the extension of
-                # samples records to the data block
-                else:
-                    sigs = [self.get_master(i, data=fragment), ]
-
-                    for j in range(channels_nr):
-                        if j in excluded_channels:
-                            continue
-                        else:
-                            sig = self.get(
-                                group=i,
-                                index=j,
-                                data=fragment,
-                                raw=True,
-                                samples_only=True,
-                            )
-                            if not sig.flags.writeable:
-                                sig = sig.copy()
-                            sigs.append(sig)
-                    out.extend(i, sigs)
-
-                del group['record']
-
-        return out
-
-    def convert_inc(self, to, memory='full'):
-        """convert *MDF* to other version
-
-        Parameters
-        ----------
-        to : str
-            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11'); default '4.10'
-        memory : str
-            memory option; default *full*
-
-        Returns
-        -------
-        out : MDF
-            new *MDF* object
-
-        """
-        version = validate_version_argument(to)
-        memory = validate_memory_argument(memory)
-
-        out = MDF(version=version, memory=memory)
-
-        out.header.start_time = self.header.start_time
-
-        # walk through all groups and get all channels
-        for i, group in enumerate(self.groups):
             included_channels = self._included_channels(i)
-            channels_nr = len(group['channels'])
 
             parents, dtypes = self._prepare_record(group)
             group['parents'], group['types'] = parents, dtypes
@@ -495,8 +364,6 @@ class MDF(object):
                     )
                 else:
                     group['record'] = None
-
-
 
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
@@ -528,30 +395,15 @@ class MDF(object):
                             source_info.format(self.version, to),
                             common_timebase=True,
                         )
-                        if (self.version >= '4.00'
-                                and version >= '4.00'
-                                and (group['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT)):
-                            new_group = out.groups[-1]
-                            new_channel_group = new_group['channel_group']
-                            old_channel_group = group['channel_group']
-                            new_channel_group['flags'] = (
-                                group
-                                ['channel_group']
-                                ['flags']
-                            )
+                        new_group = out.groups[-1]
+                        new_channel_group = new_group['channel_group']
+                        old_channel_group = group['channel_group']
+                        new_channel_group.comment = old_channel_group.comment
+                        if version >= '4.00':
                             new_channel_group['path_separator'] = ord('.')
-                            new_channel_group.acq_name = old_channel_group.acq_name
-                            new_channel_group.comment = old_channel_group.comment
-
-                            source = old_channel_group.acq_source
-                            if source:
-                                new_source = SourceInformation()
-                                new_source.update(source)
-                                new_source.name = source.name
-                                new_source.path = source.path
-                                new_source.comment = source.comment
-
-                                new_channel_group.acq_source = new_source
+                            if self.version >= '4.00':
+                                new_channel_group.acq_name = old_channel_group.acq_name
+                                new_channel_group.acq_source = old_channel_group.acq_source
                     else:
                         break
 
@@ -632,7 +484,7 @@ class MDF(object):
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
             sigs = []
-            excluded_channels = self._excluded_channels(i)
+            included_channels = self._included_channels(i)
 
             channels_nr = len(group['channels'])
 
@@ -708,9 +560,7 @@ class MDF(object):
                     # metadata for all channels
                     if idx == 0:
                         sigs = []
-                        for j in range(channels_nr):
-                            if j in excluded_channels:
-                                continue
+                        for j in included_channels:
                             sig = self.get(
                                 group=i,
                                 index=j,
@@ -743,9 +593,7 @@ class MDF(object):
                     else:
                         sigs = [master[start_index: stop_index].copy(), ]
 
-                        for j in range(channels_nr):
-                            if j in excluded_channels:
-                                continue
+                        for j in included_channels:
                             sig = self.get(
                                 group=i,
                                 index=j,
@@ -775,9 +623,7 @@ class MDF(object):
 
                 fragment = (fragment[0], -1)
 
-                for j in range(channels_nr):
-                    if j in excluded_channels:
-                        continue
+                for j in included_channels:
                     sig = self.get(
                         group=i,
                         index=j,
@@ -1312,14 +1158,14 @@ class MDF(object):
         # see if there are exluded channels in the filter list
         for group_index, indexes in gps.items():
             grp = self.groups[group_index]
-            excluded_channels = set()
+            included_channels = set(indexes)
             for index in indexes:
                 if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                     dep = grp['channel_dependencies'][index]
                     if dep:
                         for ch_nr, gp_nr in dep.referenced_channels:
                             if gp_nr == group:
-                                excluded_channels.add(ch_nr)
+                                included_channels.remove(ch_nr)
                 else:
                     dependencies = grp['channel_dependencies'][index]
                     if dependencies is None:
@@ -1328,14 +1174,14 @@ class MDF(object):
                            for dep in dependencies):
                         channels = grp['channels']
                         for channel in dependencies:
-                            excluded_channels.add(channels.index(channel))
+                            included_channels.add(channels.index(channel))
                     else:
                         for dep in dependencies:
                             for ch_nr, gp_nr in dep.referenced_channels:
                                 if gp_nr == group:
-                                    excluded_channels.add(ch_nr)
+                                    included_channels.remove(ch_nr)
 
-            gps[group_index] = gps[group_index] - excluded_channels
+            gps[group_index] = included_channels
 
         if memory not in ('full', 'low', 'minimum'):
             memory = self.memory
@@ -1494,7 +1340,7 @@ class MDF(object):
                 raise MdfException(message.format(i))
 
             mdf = files[0]
-            excluded_channels = mdf._excluded_channels(i)
+            included_channels = mdf._included_channels(i)
             channels_nr = len(groups[0]['channels'])
 
             if memory == 'minimum':
@@ -1585,9 +1431,7 @@ class MDF(object):
                         group['record'] = None
                     if idx == 0:
                         signals = []
-                        for j in range(channels_nr):
-                            if j in excluded_channels:
-                                continue
+                        for j in included_channels:
                             sig = mdf.get(
                                 group=i,
                                 index=j,
@@ -1640,9 +1484,7 @@ class MDF(object):
 
                             signals = [master, ]
 
-                            for j in range(channels_nr):
-                                if j in excluded_channels:
-                                    continue
+                            for j in included_channels:
                                 signals.append(
                                     mdf.get(
                                         group=i,
@@ -1761,7 +1603,7 @@ class MDF(object):
             for i, group in enumerate(mdf.groups):
                 idx = 0
                 channels_nr = len(group['channels'])
-                excluded_channels = mdf._excluded_channels(i)
+                included_channels = mdf._included_channels(i)
 
                 parents, dtypes = mdf._prepare_record(group)
                 group['parents'], group['types'] = parents, dtypes
@@ -1778,9 +1620,7 @@ class MDF(object):
                         group['record'] = None
                     if idx == 0:
                         signals = []
-                        for j in range(channels_nr):
-                            if j in excluded_channels:
-                                continue
+                        for j in included_channels:
                             sig = mdf.get(
                                 group=i,
                                 index=j,
@@ -1822,9 +1662,7 @@ class MDF(object):
 
                             signals = [master, ]
 
-                            for j in range(channels_nr):
-                                if j in excluded_channels:
-                                    continue
+                            for j in included_channels:
                                 signals.append(
                                     mdf.get(
                                         group=i,
@@ -1952,15 +1790,13 @@ class MDF(object):
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
-            excluded_channels = self._excluded_channels(i)
+            included_channels = self._included_channels(i)
 
             data = self._load_group_data(group)
             for idx, fragment in enumerate(data):
                 if idx == 0:
                     sigs = []
-                    for j, _ in enumerate(group['channels']):
-                        if j in excluded_channels:
-                            continue
+                    for j in included_channels:
                         sig = self.get(
                             group=i,
                             index=j,
@@ -1989,21 +1825,18 @@ class MDF(object):
                 else:
                     sigs = [self.get_master(i, data=fragment, raster=raster), ]
 
-                    for j, _ in enumerate(group['channels']):
-                        if j in excluded_channels:
-                            continue
-                        else:
-                            sig = self.get(
-                                group=i,
-                                index=j,
-                                data=fragment,
-                                raw=True,
-                                samples_only=True,
-                                raster=raster,
-                            )
-                            if not sig.flags.writeable:
-                                sig = sig.copy()
-                            sigs.append(sig)
+                    for j in included_channels:
+                        sig = self.get(
+                            group=i,
+                            index=j,
+                            data=fragment,
+                            raw=True,
+                            samples_only=True,
+                            raster=raster,
+                        )
+                        if not sig.flags.writeable:
+                            sig = sig.copy()
+                        sigs.append(sig)
                     mdf.extend(i, sigs)
         return mdf
 

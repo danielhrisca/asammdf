@@ -167,12 +167,13 @@ class Signal(object):
 
             self.conversion = conversion
 
-    def __str__(self):
+    def __repr__(self):
         string = """<Signal {}:
 \tsamples={}
 \ttimestamps={}
 \tunit="{}"
 \tconversion={}
+\tsource={}
 \tcomment="{}"
 \tmastermeta="{}"
 \traw={}
@@ -184,25 +185,11 @@ class Signal(object):
             self.timestamps,
             self.unit,
             self.conversion,
+            self.source,
             self.comment,
             self.master_metadata,
             self.raw,
             self.display_name,
-        )
-
-    def __repr__(self):
-        string = (
-            'Signal(name={}, samples={}, timestamps={}, '
-            'unit={}, conversion={}, comment={}, raw={})'
-        )
-        return string.format(
-            self.name,
-            repr(self.samples),
-            repr(self.timestamps),
-            self.unit,
-            self.conversion,
-            self.comment,
-            self.raw,
         )
 
     def plot(self):

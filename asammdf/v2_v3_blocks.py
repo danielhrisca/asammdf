@@ -13,7 +13,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v2_v3_constants as v23c
-from .utils import MdfException
+from .utils import MdfException, get_text_v3
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
@@ -1356,10 +1356,11 @@ class ChannelGroup(dict):
     b'CG'
 
     '''
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'comment']
 
     def __init__(self, **kargs):
         super(ChannelGroup, self).__init__()
+        self.comment = ''
 
         try:
 
@@ -1384,6 +1385,11 @@ class ChannelGroup(dict):
             if self['id'] != b'CG':
                 message = 'Expected "CG" block but found "{}"'
                 raise MdfException(message.format(self['id']))
+            if self['comment_addr']:
+                self.comment = get_text_v3(
+                    address=self['comment_addr'],
+                    stream=stream,
+                )
         except KeyError:
             self.address = 0
             self['id'] = b'CG'
