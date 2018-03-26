@@ -46,6 +46,7 @@ The main goals for this library are:
 * export to Excel, HDF5, Matlab and CSV
 * merge multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
+* space optimizations for saved files (no duplicated blocks)
 * split large data blocks (configurable size) for mdf version 4
 * full support (read, append, save) for the following map types (multidimensional array channels):
 
@@ -78,7 +79,7 @@ The main goals for this library are:
     * handling of unfinished measurements (mdf 4)
     * xml schema for TXBLOCK and MDBLOCK
     * full support for remaining mdf 4 channel arrays types
-    * event blocks
+    * full handling of event blocks
     * channels with default X axis
     * channels with reference to attachment
 
@@ -106,13 +107,13 @@ The main goals for this library are:
 ```  
  
 Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/master/examples.html
+http://asammdf.readthedocs.io/en/development/examples.html
 
 # Documentation
-http://asammdf.readthedocs.io/en/master
+http://asammdf.readthedocs.io/en/development
 
 # Contributing
-Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md)
+Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/development/CONTRIBUTING.md)
 
 ## Contributors
 Thanks to all who contributed with commits to *asammdf*:
@@ -144,7 +145,7 @@ asammdf uses the following libraries
 * matplotlib : for Signal plotting
 * wheel : for installation in virtual environments
 * pandas : for DataFrame export
-* cantools : to handle CAN bus logging measurements
+* canmatrix : to handle CAN bus logging measurements
 
 optional dependencies needed for exports
 
@@ -158,5 +159,5 @@ other optional dependencies
 
 # Benchmarks
 
-http://asammdf.readthedocs.io/en/master/benchmarks.html
+http://asammdf.readthedocs.io/en/development/benchmarks.html
 

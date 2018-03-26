@@ -44,6 +44,7 @@ Features
 * export to Excel, HDF5, Matlab, CSV and pandas
 * merge (concatenate) multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
+* space optimizations for saved files (no duplicated blocks)
 * split large data blocks (configurable size) for mdf version 4
 * full support (read, append, save) for the following map types (multidimensional array channels):
 
@@ -79,7 +80,7 @@ Major features not implemented (yet)
     * handling of unfinished measurements (mdf 4)
     * full support for remaining mdf 4 channel arrays types
     * xml schema for TXBLOCK and MDBLOCK
-    * event blocks
+    * full handling of event blocks
     * channels with default X axis
     * chanenls with reference to attachment
 
@@ -109,15 +110,15 @@ Usage
 
  
 Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/master/examples.html
+http://asammdf.readthedocs.io/en/development/examples.html
 
 Documentation
 =============
-http://asammdf.readthedocs.io/en/master
+http://asammdf.readthedocs.io/en/development
 
 Contributing
 ============
-Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md)
+Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/development/CONTRIBUTING.md)
 
 Contributors
 ------------
@@ -153,7 +154,7 @@ asammdf uses the following libraries
 * matplotlib : for Signal plotting
 * wheel : for installation in virtual environments
 * pandas : for DataFrame export
-* cantools : to handle CAN bus logging measurements
+* canmatrix : to handle CAN bus logging measurements
 
 optional dependencies needed for exports
 
@@ -169,7 +170,7 @@ other optional dependencies
 Benchmarks
 ==========
 
-Graphical results can be seen here at http://asammdf.readthedocs.io/en/master/benchmarks.html
+Graphical results can be seen here at http://asammdf.readthedocs.io/en/development/benchmarks.html
 
 
 Python 3 x64
