@@ -451,7 +451,7 @@ class Channel(dict):
             self['data_block_addr'] = 0
             self['channel_type'] = v4c.CHANNEL_TYPE_VALUE
 
-    def to_blocks(self, address, blocks, defined_texts):
+    def to_blocks(self, address, blocks, defined_texts, cc_map, si_map):
         key = 'name_addr'
         text = self.name
         if text:
@@ -500,14 +500,14 @@ class Channel(dict):
 
         conversion = self.conversion
         if conversion:
-            address = conversion.to_blocks(address, blocks, defined_texts)
+            address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
             self['conversion_addr'] = conversion.address
         else:
             self['conversion_addr'] = 0
 
         source = self.source
         if source:
-            address = source.to_blocks(address, blocks, defined_texts)
+            address = source.to_blocks(address, blocks, defined_texts, si_map)
             self['source_addr'] = source.address
         else:
             self['source_addr'] = 0
@@ -518,7 +518,7 @@ class Channel(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts):
+    def to_stream(self, stream, defined_texts, cc_map, si_map):
         address = stream.tell()
 
         key = 'name_addr'
@@ -569,14 +569,14 @@ class Channel(dict):
 
         conversion = self.conversion
         if conversion:
-            address = conversion.to_stream(stream, defined_texts)
+            address = conversion.to_stream(stream, defined_texts, cc_map)
             self['conversion_addr'] = conversion.address
         else:
             self['conversion_addr'] = 0
 
         source = self.source
         if source:
-            address = source.to_stream(stream, defined_texts)
+            address = source.to_stream(stream, defined_texts, si_map)
             self['source_addr'] = source.address
         else:
             self['source_addr'] = 0
@@ -1691,7 +1691,7 @@ class ChannelConversion(dict):
                 message = message.format(kargs['conversion_type'])
                 raise NotImplementedError(message)
 
-    def to_blocks(self, address, blocks, defined_texts):
+    def to_blocks(self, address, blocks, defined_texts, cc_map):
         key = 'name_addr'
         text = self.name
         if text:
@@ -1771,13 +1771,18 @@ class ChannelConversion(dict):
             else:
                 self[key] = 0
 
-        blocks.append(self)
-        self.address = address
-        address += self['block_len']
+        bts = bytes(self)
+        if bts in cc_map:
+            self.address = cc_map[bts]
+        else:
+            blocks.append(bts)
+            self.address = address
+            cc_map[bts] = address
+            address += self['block_len']
 
         return address
 
-    def to_stream(self, stream, defined_texts):
+    def to_stream(self, stream, defined_texts, cc_map):
         address = stream.tell()
 
         key = 'name_addr'
@@ -1859,9 +1864,14 @@ class ChannelConversion(dict):
             else:
                 self[key] = 0
 
-        stream.write(bytes(self))
-        self.address = address
-        address += self['block_len']
+        bts = bytes(self)
+        if bts in cc_map:
+            self.address = cc_map[bts]
+        else:
+            cc_map[bts] = address
+            stream.write(bytes(self))
+            self.address = address
+            address += self['block_len']
 
         return address
 
@@ -3227,7 +3237,7 @@ class SourceInformation(dict):
             self['flags'] = 0
             self['reserved1'] = b'\x00' * 5
 
-    def to_blocks(self, address, blocks, defined_texts):
+    def to_blocks(self, address, blocks, defined_texts, si_map):
         key = 'name_addr'
         text = self.name
         if text:
@@ -3274,13 +3284,18 @@ class SourceInformation(dict):
         else:
             self[key] = 0
 
-        blocks.append(self)
-        self.address = address
-        address += self['block_len']
+        bts = bytes(self)
+        if bts in si_map:
+            self.address = si_map[bts]
+        else:
+            blocks.append(bts)
+            si_map[bts] = address
+            self.address = address
+            address += self['block_len']
 
         return address
 
-    def to_stream(self, stream, defined_texts):
+    def to_stream(self, stream, defined_texts, si_map):
         address = stream.tell()
 
         key = 'name_addr'
@@ -3329,9 +3344,14 @@ class SourceInformation(dict):
         else:
             self[key] = 0
 
-        stream.write(bytes(self))
-        self.address = address
-        address += self['block_len']
+        bts = bytes(self)
+        if bts in si_map:
+            self.address = si_map[bts]
+        else:
+            si_map[bts] = address
+            stream.write(bts)
+            self.address = address
+            address += self['block_len']
 
         return address
 

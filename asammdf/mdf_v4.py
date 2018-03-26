@@ -5081,6 +5081,8 @@ class MDF4(object):
 
         with open(destination, 'wb+') as dst_:
             defined_texts = {}
+            cc_map = {}
+            si_map = {}
 
             write = dst_.write
             tell = dst_.tell
@@ -5297,8 +5299,6 @@ class MDF4(object):
                     dg['next_dg_addr'] = addr_
                 valid_data_groups[-1]['next_dg_addr'] = 0
 
-            si_map = {}
-
             # go through each data group and append the rest of the blocks
             for i, gp in enumerate(self.groups):
 
@@ -5307,7 +5307,7 @@ class MDF4(object):
                         key = 'attachment_{}_addr'.format(j)
                         channel[key] = self.attachments[idx].address
 
-                    address = channel.to_blocks(address, blocks, defined_texts)
+                    address = channel.to_blocks(address, blocks, defined_texts, cc_map, si_map)
 
                 # channel data
                 gp_sd = []
@@ -5614,6 +5614,8 @@ class MDF4(object):
 
         with open(destination, 'wb+') as dst_:
             defined_texts = {}
+            cc_map = {}
+            si_map = {}
 
             write = dst_.write
             tell = dst_.tell
@@ -5760,6 +5762,7 @@ class MDF4(object):
             address = tell()
             blocks = []
             at_map = {}
+
             if self.attachments:
                 for at_block in self.attachments:
                     address = at_block.to_blocks(address, blocks, defined_texts)
@@ -5889,7 +5892,7 @@ class MDF4(object):
                         key = 'attachment_{}_addr'.format(j)
                         channel[key] = self.attachments[idx].address
 
-                    address = channel.to_stream(dst_, defined_texts)
+                    address = channel.to_stream(dst_, defined_texts, cc_map, si_map)
                     ch_addrs.append(channel.address)
                     next_ch_addr[level] = channel.address
 
