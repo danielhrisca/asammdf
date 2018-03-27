@@ -823,6 +823,7 @@ class MDF(object):
 
                 self.configure(read_fragment_size=0)
 
+        out._transfer_events(self)
         return out
 
     def export(self, fmt, filename=None, **kargs):
@@ -1439,6 +1440,7 @@ class MDF(object):
 
                 del group['record']
 
+        mdf._transfer_events(self)
         return mdf
 
     @staticmethod
@@ -1673,6 +1675,8 @@ class MDF(object):
 
                     del group['record']
 
+        for file in files:
+            merged._transfer_events(file)
         return merged
 
     @staticmethod
@@ -2011,6 +2015,7 @@ class MDF(object):
                             sig = sig.copy()
                         sigs.append(sig)
                     mdf.extend(i, sigs)
+        mdf._transfer_events(self)
         return mdf
 
     def select(self, channels, dataframe=False):
