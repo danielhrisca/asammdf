@@ -950,6 +950,14 @@ class MDF(object):
                         data=data,
                     ).interp(master)
 
+                    if len(sig.samples.shape) > 1:
+                        arr = [sig.samples, ]
+                        types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:]), ]
+                        sig.samples = np.core.records.fromarrays(
+                            arr,
+                            dtype=types,
+                        )
+
                     if use_display_names:
                         channel_name = sig.display_name or sig.name
                     else:
