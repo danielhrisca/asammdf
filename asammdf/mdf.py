@@ -5,6 +5,7 @@ import csv
 import os
 import sys
 import xml.etree.ElementTree as ET
+from collections import OrderedDict
 from copy import deepcopy
 from warnings import warn
 from functools import reduce
@@ -857,13 +858,15 @@ class MDF(object):
         **kwargs
 
             * `single_time_base`: resample all channels to common time base,
-              default *False*. Only valid for *mat* export.
-            * `raster`: float time raster for resampling. Valid for *mat*
-              export if *single_time_base* is *True* and for *pandas* export
-            * `time_from_zero`: adjust time channel to start from 0. Valid for
-              *mat* and *pandas* export.
+              default *False*.
+            * `raster`: float time raster for resampling. Valid if
+              *single_time_base* is *True* and for *pandas*
+              export
+            * `time_from_zero`: adjust time channel to start from 0
             * `use_display_names`: use display name instead of standard channel
               name, if available.
+            * `empty_channels`: behaviour for channels without samples; the
+              options are *skip* or *zeros*; default is *zeros*
 
         Returns
         -------
@@ -886,6 +889,12 @@ class MDF(object):
                        'if MDF was created without a file name')
             warn(message)
             return
+
+        single_time_base = kargs.get('single_time_base', False)
+        raster = kargs.get('raster', 0)
+        time_from_zero = kargs.get('time_from_zero', True)
+        use_display_names = kargs.get('use_display_names', True)
+        empty_channels = kargs.get('empty_channels', 'zeros')
 
         name = filename if filename else self.name
         if fmt == 'hdf5':
@@ -942,11 +951,276 @@ class MDF(object):
                 warn('xlsxwriter not found; export to Excel unavailable')
                 return
             else:
-                excel_name = os.path.splitext(name)[0]
+
+                if single_time_base:
+                    mdict = OrderedDict()
+                    units = OrderedDict()
+                    masters = [
+                        self.get_master(i)
+                        for i in range(len(self.groups))
+                    ]
+                    master = reduce(np.union1d, masters)
+                    if raster:
+                        master = np.arange(
+                            master[0],
+                            master[-1],
+                            raster,
+                            dtype=np.float64,
+                        )
+
+                    if time_from_zero:
+                        mdict['t'] = master - master[0]
+                    else:
+                        mdict['t'] = master
+                    units['t'] = 's'
+
+                    used_names = {'t'}
+                    count = len(self.groups)
+
+                    for i, grp in enumerate(self.groups):
+                        print('Exporting group {} of {}'.format(i + 1, count))
+                        master_index = self.masters_db.get(i, -1)
+                        data = self._load_group_data(grp)
+
+                        if PYVERSION == 2:
+                            data = b''.join(str(d[0]) for d in data)
+                        else:
+                            data = b''.join(d[0] for d in data)
+                        data = (data, 0)
+
+                        for j, _ in enumerate(grp['channels']):
+                            if j == master_index:
+                                continue
+                            sig = self.get(
+                                group=i,
+                                index=j,
+                                data=data,
+                            ).interp(master)
+
+                            if use_display_names:
+                                channel_name = sig.display_name or sig.name
+                            else:
+                                channel_name = sig.name
+
+                            if channel_name in used_names:
+                                channel_name = '{}_{}'.format(channel_name, i)
+
+                                channel_name = get_unique_name(
+                                    used_names,
+                                    channel_name,
+                                )
+                                used_names.add(channel_name)
+                            else:
+                                used_names.add(channel_name)
+
+                            if len(sig):
+                                mdict[channel_name] = sig.samples
+                                units[channel_name] = sig.unit
+                            else:
+                                if empty_channels == 'zeros':
+                                    mdict[channel_name] = np.zeros(len(master), dtype=sig.samples.dtype)
+                                    units[channel_name] = sig.unit
+
+                    if not name.endswith('.xlsx'):
+                        name += '.xlsx'
+                    print('Writing excel export to file "{}"'.format(name))
+                    print(len(units))
+
+                    workbook = xlsxwriter.Workbook(name)
+                    bold = workbook.add_format({'bold': True})
+                    sheet = workbook.add_worksheet('Channels')
+
+                    for col, (channel_name, channel_unit) in enumerate(units.items()):
+                        samples = mdict[channel_name]
+                        sig_description = '{} [{}]'.format(
+                            channel_name,
+                            channel_unit,
+                        )
+                        sheet.write(0, col, sig_description)
+                        sheet.write_column(1, col, samples.astype(str))
+
+                    workbook.close()
+
+                else:
+                    while name.endswith('.xlsx'):
+                        name = name[:-5]
+
+                    count = len(self.groups)
+
+                    for i, grp in enumerate(self.groups):
+                        print('Exporting group {} of {}'.format(i + 1, count))
+
+                        data = self._load_group_data(grp)
+
+                        if PYVERSION == 2:
+                            data = b''.join(str(d[0]) for d in data)
+                        else:
+                            data = b''.join(d[0] for d in data)
+                        data = (data, 0)
+
+                        master_index = self.masters_db.get(i, None)
+                        if master_index is not None:
+                            master = self.get(group=i, index=master_index, data=data)
+
+                            if raster:
+                                raster_ = np.arange(
+                                    master[0],
+                                    master[-1],
+                                    raster,
+                                    dtype=np.float64,
+                                )
+                                master = master.interp(raster_)
+                            else:
+                                raster_ = None
+                        else:
+                            master = None
+                            raster_ = None
+
+                        if time_from_zero:
+                            master.samples -= master.samples[0]
+
+                        group_name = 'DataGroup_{}'.format(i + 1)
+                        wb_name = '{}_{}.xlsx'.format(name, group_name)
+                        workbook = xlsxwriter.Workbook(wb_name)
+                        bold = workbook.add_format({'bold': True})
+
+                        sheet = workbook.add_worksheet(group_name)
+
+                        if master is not None:
+
+                            sig_description = '{} [{}]'.format(
+                                master.name,
+                                master.unit,
+                            )
+                            sheet.write(0, 0, sig_description)
+                            sheet.write_column(1, 0, master.samples.astype(str))
+
+                            offset = 1
+                        else:
+                            offset = 0
+
+                        for col, _ in enumerate(grp['channels']):
+                            if col == master_index:
+                                offset -= 1
+                                continue
+
+                            sig = self.get(group=i, index=col, data=data)
+                            if raster_ is not None:
+                                sig = sig.interp(raster_)
+
+                            sig_description = '{} [{}]'.format(
+                                sig.name,
+                                sig.unit,
+                            )
+                            sheet.write(0, col + offset, sig_description)
+                            sheet.write_column(1, col + offset, sig.samples.astype(str))
+
+                        workbook.close()
+
+        elif fmt == 'csv':
+
+            single_time_base = kargs.get('single_time_base', False)
+            raster = kargs.get('raster', 0)
+            time_from_zero = kargs.get('time_from_zero', True)
+            use_display_names = kargs.get('use_display_names', True)
+
+            if single_time_base:
+                mdict = OrderedDict()
+                units = OrderedDict()
+                masters = [
+                    self.get_master(i)
+                    for i in range(len(self.groups))
+                ]
+                master = reduce(np.union1d, masters)
+                if raster:
+                    master = np.arange(
+                        master[0],
+                        master[-1],
+                        raster,
+                        dtype=np.float64,
+                    )
+
+                if time_from_zero:
+                    mdict['t'] = master - master[0]
+                else:
+                    mdict['t'] = master
+                units['t'] = 's'
+
+                used_names = {'t'}
+                count = len(self.groups)
+
+                for i, grp in enumerate(self.groups):
+                    print('Exporting group {} of {}'.format(i + 1, count))
+                    master_index = self.masters_db.get(i, -1)
+                    data = self._load_group_data(grp)
+
+                    if PYVERSION == 2:
+                        data = b''.join(str(d[0]) for d in data)
+                    else:
+                        data = b''.join(d[0] for d in data)
+                    data = (data, 0)
+
+                    for j, _ in enumerate(grp['channels']):
+                        if j == master_index:
+                            continue
+                        sig = self.get(
+                            group=i,
+                            index=j,
+                            data=data,
+                        ).interp(master)
+
+                        if use_display_names:
+                            channel_name = sig.display_name or sig.name
+                        else:
+                            channel_name = sig.name
+
+                        if channel_name in used_names:
+                            channel_name = '{}_{}'.format(channel_name, i)
+
+                            channel_name = get_unique_name(
+                                used_names,
+                                channel_name,
+                            )
+                            used_names.add(channel_name)
+                        else:
+                            used_names.add(channel_name)
+
+                        if len(sig):
+                            mdict[channel_name] = sig.samples
+                            units[channel_name] = sig.unit
+                        else:
+                            if empty_channels == 'zeros':
+                                units[channel_name] = sig.unit
+                                mdict[channel_name] = np.zeros(len(master), dtype=sig.samples.dtype)
+
+
+                if not name.endswith('.csv'):
+                    name += '.csv'
+                print('Writing csv export to file "{}"'.format(name))
+                with open(name, 'w', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+
+                    names_row = [
+                        '{} [{}]'.format(channel_name, channel_unit)
+                        for (channel_name, channel_unit) in units.items()
+                    ]
+                    writer.writerow(names_row)
+
+                    vals = [
+                        samples
+                        for samples in mdict.values()
+                    ]
+
+                    writer.writerows(zip(*vals))
+
+            else:
+
+                while name.endswith('.csv'):
+                    name = name[:-4]
+
                 count = len(self.groups)
                 for i, grp in enumerate(self.groups):
                     print('Exporting group {} of {}'.format(i + 1, count))
-
                     data = self._load_group_data(grp)
 
                     if PYVERSION == 2:
@@ -956,91 +1230,77 @@ class MDF(object):
                     data = (data, 0)
 
                     group_name = 'DataGroup_{}'.format(i + 1)
-                    wb_name = '{}_{}.xlsx'.format(excel_name, group_name)
-                    workbook = xlsxwriter.Workbook(wb_name)
-                    bold = workbook.add_format({'bold': True})
+                    group_csv_name = '{}_{}.csv'.format(name, group_name)
+                    with open(group_csv_name, 'w', newline='') as csvfile:
+                        writer = csv.writer(csvfile)
 
-                    sheet = workbook.add_worksheet(group_name)
+                        master_index = self.masters_db.get(i, None)
+                        if master_index is not None:
+                            master = self.get(group=i, index=master_index, data=data)
 
-                    # the sheet header has 3 rows
-                    # the channel name and unit 'YY [xx]'
-                    # the channel comment
-                    # the flag for data grup master channel
-                    sheet.write(0, 0, 'Channel', bold)
-                    sheet.write(1, 0, 'comment', bold)
-                    sheet.write(2, 0, 'is master', bold)
+                            if raster:
+                                raster_ = np.arange(
+                                    master[0],
+                                    master[-1],
+                                    raster,
+                                    dtype=np.float64,
+                                )
+                                master = master.interp(raster_)
+                            else:
+                                raster_ = None
+                        else:
+                            master = None
+                            raster_ = None
 
-                    master_index = self.masters_db.get(i, -1)
+                        if time_from_zero:
+                            master.samples -= master.samples[0]
 
-                    for j in range(grp['channel_group']['cycles_nr']):
-                        sheet.write(j + 3, 0, str(j))
+                        ch_nr = len(grp['channels'])
+                        if master is None:
+                            channels = [
+                                self.get(group=i, index=j, data=data)
+                                for j in range(ch_nr)
+                            ]
+                        else:
+                            if raster_ is not None:
+                                channels = [
+                                    self.get(group=i, index=j, data=data).interp(raster_)
+                                    for j in range(ch_nr)
+                                    if j != master_index
+                                ]
+                            else:
+                                channels = [
+                                    self.get(group=i, index=j, data=data)
+                                    for j in range(ch_nr)
+                                    if j != master_index
+                                ]
 
-                    for j, _ in enumerate(grp['channels']):
-                        sig = self.get(group=i, index=j, data=data)
+                        if raster_:
+                            cycles = len(raster_)
+                        else:
+                            cycles = grp['channel_group']['cycles_nr']
 
-                        col = j + 1
-                        sig_description = '{} [{}]'.format(
-                            sig.name,
-                            sig.unit,
-                        )
-                        comment = sig.comment if sig.comment else ''
-                        sheet.write(0, col, sig_description)
-                        sheet.write(1, col, comment)
-                        if j == master_index:
-                            sheet.write(2, col, 'x')
-                        sheet.write_column(3, col, sig.samples.astype(str))
+                        if empty_channels == 'zeros':
+                            channels = [
+                                ch if len(ch) else np.zeros(cycles, dtype=ch.samples.dtype)
+                                for ch in channels
+                            ]
 
-                    workbook.close()
+                        if master is not None:
+                            names_row = [master.name, ]
+                            vals = [master.samples]
+                        else:
+                            names_row = []
+                            vals = []
+                        names_row += [
+                            '{} [{}]'.format(ch.name, ch.unit)
+                            for ch in channels
+                        ]
+                        writer.writerow(names_row)
 
-        elif fmt == 'csv':
-            csv_name = os.path.splitext(name)[0]
-            count = len(self.groups)
-            for i, grp in enumerate(self.groups):
-                print('Exporting group {} of {}'.format(i + 1, count))
-                data = self._load_group_data(grp)
+                        vals += [ch.samples for ch in channels]
 
-                if PYVERSION == 2:
-                    data = b''.join(str(d[0]) for d in data)
-                else:
-                    data = b''.join(d[0] for d in data)
-                data = (data, 0)
-
-                group_name = 'DataGroup_{}'.format(i + 1)
-                group_csv_name = '{}_{}.csv'.format(csv_name, group_name)
-                with open(group_csv_name, 'w', newline='') as csvfile:
-                    writer = csv.writer(csvfile)
-
-                    ch_nr = len(grp['channels'])
-                    channels = [
-                        self.get(group=i, index=j, data=data)
-                        for j in range(ch_nr)
-                    ]
-
-                    master_index = self.masters_db.get(i, -1)
-                    cycles = grp['channel_group']['cycles_nr']
-
-                    names_row = ['Channel', ]
-                    names_row += [
-                        '{} [{}]'.format(ch.name, ch.unit)
-                        for ch in channels
-                    ]
-                    writer.writerow(names_row)
-
-                    comment_row = ['comment', ]
-                    comment_row += [ch.comment for ch in channels]
-                    writer.writerow(comment_row)
-
-                    master_row = ['Is master', ]
-                    master_row += [
-                        'x' if j == master_index else ''
-                        for j in range(ch_nr)
-                    ]
-                    writer.writerow(master_row)
-
-                    vals = [np.array(range(cycles), dtype=np.uint32), ]
-                    vals += [ch.samples for ch in channels]
-
-                    writer.writerows(zip(*vals))
+                        writer.writerows(zip(*vals))
 
         elif fmt == 'mat':
             try:
@@ -1105,11 +1365,16 @@ class MDF(object):
 
                         channel_name = matlab_compatible(channel_name)
 
-                        channel_name = get_unique_name(
-                            used_names,
-                            channel_name,
-                        )
-                        used_names.add(channel_name)
+                        if channel_name in used_names:
+                            channel_name = '{}_{}'.format(channel_name, i)
+
+                            channel_name = get_unique_name(
+                                used_names,
+                                channel_name,
+                            )
+                            used_names.add(channel_name)
+                        else:
+                            used_names.add(channel_name)
 
                         mdict[channel_name] = sig.samples
 
@@ -1167,9 +1432,6 @@ class MDF(object):
 
         elif fmt == 'pandas':
 
-            if not name.endswith('.mat'):
-                name = name + '.mat'
-
             mdict = {}
 
             raster = kargs.get('raster', 0)
@@ -1214,22 +1476,27 @@ class MDF(object):
                         data=data,
                     ).interp(master)
 
-                    if len(sig):
+                    if use_display_names:
+                        channel_name = sig.display_name or sig.name
+                    else:
+                        channel_name = sig.name
 
-                        if use_display_names:
-                            channel_name = sig.display_name or sig.name
-                        else:
-                            channel_name = sig.name
-
-                        channel_name = matlab_compatible(channel_name)
+                    if channel_name in used_names:
+                        channel_name = '{}_{}'.format(channel_name, i)
 
                         channel_name = get_unique_name(
                             used_names,
                             channel_name,
                         )
                         used_names.add(channel_name)
+                    else:
+                        used_names.add(channel_name)
 
+                    if len(sig):
                         mdict[channel_name] = sig.samples
+                    else:
+                        if empty_channels == 'zeros':
+                            mdict[channel_name] = np.zeros(len(master), dtype=sig.samples.dtype)
 
             return DataFrame.from_dict(mdict)
 
