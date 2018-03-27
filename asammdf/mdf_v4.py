@@ -4716,6 +4716,9 @@ class MDF4(object):
                 or channel.unit
             )
 
+            if unit:
+                unit = unit.strip(' \t\r\n\0')
+
             comment = channel.comment
 
             if ch_nr >= 0:
@@ -4800,7 +4803,7 @@ class MDF4(object):
                     )
                 return timestamps
             except KeyError:
-                pass
+                offset = 0
 
         group = self.groups[index]
 

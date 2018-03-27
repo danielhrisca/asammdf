@@ -577,7 +577,7 @@ class Signal(object):
             new interpolated *Signal*
 
         """
-        if not len(self.samples):
+        if not len(self.samples) or not len(new_timestamps):
             return Signal(
                 self.samples.copy(),
                 self.timestamps.copy(),
