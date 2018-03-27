@@ -1766,7 +1766,7 @@ class ChannelConversion(dict):
                         self[key] = address
                         address += block['block_len']
                 else:
-                    address = block.to_blocks(address, blocks, defined_texts)
+                    address = block.to_blocks(address, blocks, defined_texts, cc_map)
                     self[key] = block.address
             else:
                 self[key] = 0
@@ -1859,7 +1859,7 @@ class ChannelConversion(dict):
                         address += block['block_len']
                         stream.write(bytes(block))
                 else:
-                    address = block.to_stream(stream, defined_texts)
+                    address = block.to_stream(stream, defined_texts, cc_map)
                     self[key] = block.address
             else:
                 self[key] = 0

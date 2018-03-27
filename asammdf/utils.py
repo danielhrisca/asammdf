@@ -127,17 +127,12 @@ def bytes(obj):
 
 
 def extract_cncomment_xml(comment):
+    comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
     try:
         comment = ET.fromstring(comment)
-        match = (
-            comment.find('.//TX')
-            or comment.find('.//{}TX'.format(v4c.ASAM_XML_NAMESPACE))
-        )
+        match = comment.find('.//TX')
         if match is None:
-            common_properties = (
-                comment.find('.//common_properties')
-                or comment.find('.//{}common_properties'.format(v4c.ASAM_XML_NAMESPACE))
-            )
+            common_properties = comment.find('.//common_properties')
             if common_properties is not None:
                 comment = []
                 for e in common_properties:

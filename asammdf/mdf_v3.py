@@ -1079,7 +1079,11 @@ class MDF3(object):
         comment_template = """<EVcomment>
     <TX>{}</TX>
 </EVcomment>"""
-        group = self.groups[group]
+        try:
+            group = self.groups[group]
+        except IndexError:
+            return
+
         trigger, trigger_text = group['trigger']
 
         if comment:
