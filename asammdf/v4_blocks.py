@@ -363,7 +363,7 @@ class Channel(dict):
                 comment = get_text_v4(
                     address=self['comment_addr'],
                     stream=stream,
-                )
+                ).replace(' xmlns="http://www.asam.net/mdf/v4"', '')
 
                 if kargs.get('parse_xml_comment', True) and comment.startswith('<CNcomment'):
                     try:

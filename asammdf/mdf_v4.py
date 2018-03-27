@@ -419,7 +419,7 @@ class MDF4(object):
                     cg_size[record_id] = 0
                 elif channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
                     message_name = channel_group.acq_name
-                    comment = channel_group.comment
+                    comment = channel_group.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
                     comment_xml = ET.fromstring(comment)
                     can_msg_type = comment_xml.find('.//TX').text.strip(' \t\r\n')
                     if can_msg_type == 'CAN_DataFrame':
@@ -759,7 +759,7 @@ class MDF4(object):
                 comment = get_text_v4(
                     address=channel['comment_addr'],
                     stream=stream,
-                )
+                ).replace(' xmlns="http://www.asam.net/mdf/v4"', '')
 
                 if comment.startswith('<CNcomment'):
                     try:

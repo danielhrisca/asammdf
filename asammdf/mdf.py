@@ -132,6 +132,18 @@ class MDF(object):
         self.close()
 
     def _transfer_events(self, other):
+
+        def get_scopes(event, events):
+            if event.scopes:
+                return event.scopes
+            else:
+                if event.parent is not None:
+                    return get_scopes(events[event.parent], events)
+                elif event.range_start is not None:
+                    return get_scopes(events[event.range_start], events)
+                else:
+                    return event.scopes
+
         if other.version >= '4.00':
             for event in other.events:
                 if self.version >= '4.00':
@@ -163,62 +175,105 @@ class MDF(object):
                     if event_valid:
                         self.events.append(new_event)
                 else:
-                    for i, ref in enumerate(new_event.scopes):
-                        try:
-                            ch_cntr, dg_cntr = ref
-                            try:
-                                (self.groups
-                                    [dg_cntr]
-                                    )
-                            except:
-                                event_valid = False
-                        except TypeError:
-                            dg_cntr = ref
-                            try:
-                                (
-                                    self.groups
-                                    [dg_cntr])
-                            except:
-                                event_valid = False
-                        if event_valid:
-                            ev_type = event['type']
-                            ev_cause = event['cause']
-                            ev_range = event['range_type']
-                            ev_base = event['sync_base']
-                            ev_factor = event['sync_factor']
-                            ev_sync_type = event['sync_type']
+                    ev_type = event['event_type']
+                    ev_cause = event['cause']
+                    ev_range = event['range_type']
+                    ev_base = event['sync_base']
+                    ev_factor = event['sync_factor']
+                    ev_sync_type = event['sync_type']
 
-                            timestamp = ev_base * ev_factor
+                    timestamp = ev_base * ev_factor
 
+                    try:
+                        comment = ET.fromstring(event.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', ''))
+                        pre = comment.find('.//pre_trigger_interval')
+                        if pre is not None:
+                            pre = float(pre.text)
+                        else:
+                            pre = 0.0
+                        post = comment.find('.//post_trigger_interval')
+                        if post is not None:
+                            post = float(post.text)
+                        else:
+                            post = 0.0
+                        comment = comment.find('.//TX')
+                        if comment is not None:
+                            comment = comment.text
+                        else:
+                            comment = ''
+
+                    except:
+                        pre = 0.0
+                        post = 0.0
+                        comment = event.comment
+
+                    if comment:
+                        comment += ': '
+
+                    if ev_range == v4c.EVENT_RANGE_TYPE_BEGINNING:
+                        comment += 'Begin of '
+                    elif ev_range == v4c.EVENT_RANGE_TYPE_END:
+                        comment += 'End of '
+                    else:
+                        comment += 'Single point '
+
+                    if ev_type == v4c.EVENT_TYPE_RECORDING:
+                        comment += 'recording'
+                    elif ev_type == v4c.EVENT_TYPE_RECORDING_INTERRUPT:
+                        comment += 'recording interrupt'
+                    elif ev_type == v4c.EVENT_TYPE_ACQUISITION_INTERRUPT:
+                        comment += 'acquisition interrupt'
+                    elif ev_type == v4c.EVENT_TYPE_START_RECORDING_TRIGGER:
+                        comment += 'measurement start trigger'
+                    elif ev_type == v4c.EVENT_TYPE_STOP_RECORDING_TRIGGER:
+                        comment += 'measurement stop trigger'
+                    elif ev_type == v4c.EVENT_TYPE_TRIGGER:
+                        comment += 'trigger'
+                    else:
+                        comment += 'marker'
+
+                    scopes = get_scopes(event, other.events)
+                    if scopes:
+                        for i, ref in enumerate(scopes):
+                            event_valid = True
                             try:
-                                comment = ET.fromstring(event.comment)
-                            except:
-                                comment = """
-<EVcomment>
-    <TX>{comment}</TX>
-    <pre_trigger_interval>{pre_interval}</pre_trigger_interval>
-    <post_trigger_interval>{post_interval}</post_trigger_interval>
-    <formula>
-        <syntax>negedge(StairsOut, 100)</syntax>
-    </formula>
-    <timeout triggered="true">20.591</timeout>
-</EVcomment>"""
+                                ch_cntr, dg_cntr = ref
+                                try:
+                                    (self.groups
+                                        [dg_cntr]
+                                        )
+                                except:
+                                    event_valid = False
+                            except TypeError:
+                                dg_cntr = ref
+                                try:
+                                    (
+                                        self.groups
+                                        [dg_cntr])
+                                except:
+                                    event_valid = False
+                            if event_valid:
+
+                                self.add_trigger(
+                                    dg_cntr,
+                                    timestamp,
+                                    pre_time=pre,
+                                    post_time=post,
+                                    comment=comment,
+                                )
+                    else:
+                        for i, _ in enumerate(self.groups):
+                            self.add_trigger(
+                                i,
+                                timestamp,
+                                pre_time=pre,
+                                post_time=post,
+                                comment=comment,
+                            )
 
         else:
             for trigger_info in other.iter_get_triggers():
-                if not trigger_info['comment'].startswith('<EVcomment'):
-                    comment = """<EVcomment>
-    <TX>{comment}</TX>
-    <pre_trigger_interval>{pre}</pre_trigger_interval>
-    <post_trigger_interval>{post}</post_trigger_interval>
-</EVcomment>"""
-                    comment = comment.format(
-                        comment=trigger_info['comment'],
-                        pre=trigger_info['pre_time'],
-                        post=trigger_info['post_time'],
-                    )
-                else:
-                    comment = trigger_info['comment']
+                comment = trigger_info['comment']
                 timestamp = trigger_info['time']
                 group = trigger_info['group']
 

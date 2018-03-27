@@ -1076,18 +1076,51 @@ class MDF3(object):
             trigger comment
 
         """
+        comment_template = """<EVcomment>
+    <TX>{}</TX>
+</EVcomment>"""
         group = self.groups[group]
         trigger, trigger_text = group['trigger']
+
+        if comment:
+            try:
+                comment = ET.fromstring(comment)
+                comment = comment.find('.//TX').text
+            except:
+                pass
+
         if trigger:
-            count = trigger['trigger_event_nr']
-            trigger['trigger_event_nr'] += 1
+            count = trigger['trigger_events_nr']
+            trigger['trigger_events_nr'] += 1
             trigger['block_len'] += 24
             trigger['trigger_{}_time'.format(count)] = timestamp
             trigger['trigger_{}_pretime'.format(count)] = pre_time
             trigger['trigger_{}_posttime'.format(count)] = post_time
-            if trigger_text is None and comment:
-                trigger_text = TextBlock(text=comment)
-                group['trigger'][1] = trigger_text
+            if comment:
+                if trigger_text is None:
+                    comment = '{}. {}'.format(
+                        count + 1,
+                        comment,
+                    )
+                    comment = comment_template.format(comment)
+                    trigger_text = TextBlock(text=comment)
+                    group['trigger'][1] = trigger_text
+                else:
+                    current_comment = trigger_text['text'].decode('latin-1').strip(' \r\t\n\0')
+                    try:
+                        current_comment = ET.fromstring(current_comment)
+                        current_comment = current_comment.find('.//TX').text
+                    except:
+                        raise
+
+                    comment = '{}\n{}. {}'.format(
+                        current_comment,
+                        count + 1,
+                        comment,
+                    )
+                    comment = comment_template.format(comment)
+                    trigger_text = TextBlock(text=comment)
+                    group['trigger'][1] = trigger_text
         else:
             trigger = TriggerBlock(
                 trigger_event_nr=1,
@@ -1096,6 +1129,10 @@ class MDF3(object):
                 trigger_0_posttime=post_time,
             )
             if comment:
+                comment = '1. {}'.format(
+                    comment,
+                )
+                comment = comment_template.format(comment)
                 trigger_text = TextBlock(text=comment)
             else:
                 trigger_text = None
