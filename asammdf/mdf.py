@@ -176,11 +176,9 @@ class MDF(object):
                         self.events.append(new_event)
                 else:
                     ev_type = event['event_type']
-                    ev_cause = event['cause']
                     ev_range = event['range_type']
                     ev_base = event['sync_base']
                     ev_factor = event['sync_factor']
-                    ev_sync_type = event['sync_type']
 
                     timestamp = ev_base * ev_factor
 
@@ -458,7 +456,7 @@ class MDF(object):
                 message_id = group['message_id']
                 can_msg = self._dbc_cache[dbc_addr].frameById(message_id)
 
-                for i, signal in enumerate(can_msg.signals, 1):
+                for i, _ in enumerate(can_msg.signals, 1):
                     included_channels.add(-5*i)
 
             for dependencies in group['channel_dependencies']:
@@ -656,10 +654,7 @@ class MDF(object):
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
-            sigs = []
             included_channels = self._included_channels(i)
-
-            channels_nr = len(group['channels'])
 
             data = self._load_group_data(group)
             parents, dtypes = self._prepare_record(group)
@@ -1081,7 +1076,6 @@ class MDF(object):
                     print('Writing excel export to file "{}"'.format(name))
 
                     workbook = xlsxwriter.Workbook(name)
-                    bold = workbook.add_format({'bold': True})
                     sheet = workbook.add_worksheet('Channels')
 
                     for col, (channel_name, channel_unit) in enumerate(units.items()):

@@ -706,8 +706,8 @@ class MDF4(object):
                 self._cg_map,
             )
             self.events.append(event)
-            ev_map[addr] = index
-            index += 1
+            ev_map[addr] = event_index
+            event_index += 1
 
             addr = event['next_ev_addr']
 

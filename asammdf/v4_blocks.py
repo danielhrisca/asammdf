@@ -2723,13 +2723,8 @@ class EventBlock(dict):
         else:
             self.address = 0
 
-            scopes = 0
-            while True:
-                try:
-                    kargs['scope_{}_addr'.format(scopes)]
-                    scopes += 1
-                except KeyError:
-                    break
+            while 'scope_{}_addr'.format(nr) in kargs:
+                scopes += 1
 
             self['id'] = b'##EV'
             self['reserved0'] = 0

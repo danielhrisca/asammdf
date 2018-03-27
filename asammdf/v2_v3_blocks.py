@@ -2116,13 +2116,10 @@ class TriggerBlock(dict):
                 raise MdfException(message.format(self['id']))
 
         except KeyError:
+            self.address = 0
             nr = 0
-            while True:
-                try:
-                    kargs['trigger_{}_time'.format(nr)]
-                    nr += 1
-                except KeyError:
-                    break
+            while 'trigger_{}_time'.format(nr) in kargs:
+                nr += 1
 
             self['id'] = b'TR'
             self['block_len'] = 10 + nr * 8 * 3
