@@ -5531,20 +5531,18 @@ class MDF4(object):
                     group_channels[-1]['next_ch_addr'] = 0
 
                 # channel dependecies
-                j = 0
-                while j < len(gp['channels']):
+                j = len(gp['channels']) - 1
+                while j >= 0:
                     dep_list = gp['channel_dependencies'][j]
                     if dep_list and all(
                             isinstance(dep, Channel) for dep in dep_list):
                         gp['channels'][j]['component_addr'] = dep_list[0].address
                         gp['channels'][j]['next_ch_addr'] = dep_list[-1]['next_ch_addr']
                         dep_list[-1]['next_ch_addr'] = 0
-                        j += len(dep_list)
 
                         for dep in dep_list:
                             dep['source_addr'] = 0
-                    else:
-                        j += 1
+                    j -= 1
 
                 # channel group
                 if gp['channel_group']['flags'] & v4c.FLAG_CG_VLSD:
@@ -5952,6 +5950,7 @@ class MDF4(object):
                 ]
 
                 temp_deps = []
+                incs = []
                 for j, dep_list in enumerate(gp['channel_dependencies']):
                     if dep_list:
                         if all(isinstance(dep, ChannelArrayBlock)
@@ -5967,6 +5966,7 @@ class MDF4(object):
                                 dep['composition_addr'] = dep_list[k + 1].address
                             dep_list[-1]['composition_addr'] = 0
                         else:
+
                             for k in range(j + 1, j + len(dep_list) + 1):
                                 structs[k] += 1
                             temp_deps.append([])
