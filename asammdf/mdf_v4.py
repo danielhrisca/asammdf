@@ -346,6 +346,10 @@ class MDF4(object):
                        'in case a VLSD CG block is used')
             warnings.warn(message.format(self.name))
 
+
+    def _read_CAN_bus_logging_group(self):
+        pass
+
     def _read(self):
         stream = self._file
         memory = self.memory
@@ -399,7 +403,6 @@ class MDF4(object):
                 cg_nr += 1
 
                 grp = {}
-                new_groups.append(grp)
 
                 grp['channels'] = []
                 grp['data_block'] = None
@@ -419,28 +422,38 @@ class MDF4(object):
                     cg_size[record_id] = 0
                 elif channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
                     message_name = channel_group.acq_name
-                    comment = channel_group.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
-                    comment_xml = ET.fromstring(comment)
-                    can_msg_type = comment_xml.find('.//TX').text.strip(' \t\r\n')
-                    if can_msg_type == 'CAN_DataFrame':
-                        common_properties = comment_xml.find(".//common_properties")
-                        can_id = 1
-                        message_id = -1
-                        for e in common_properties:
-                            name = e.get('name')
-                            if name == 'MessageID':
-                                if e.get('ci') is not None:
-                                    can_id = int(e.get('ci'))
-                                message_id = int(e.text)
-                        grp['can_id'] = can_id
-                        grp['message_name'] = message_name
-                        grp['message_id'] = message_id
 
-                    else:
-                        warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
+                    if message_name == 'CAN_DataFrame':
+                        grp['raw_can'] = True
                         channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
 
+                    elif message_name in (
+                            'CAN_ErrorFrame',
+                            'CAN_RemoteFrame'):
+                        channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                    else:
+                        comment = channel_group.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
+                        comment_xml = ET.fromstring(comment)
+                        can_msg_type = comment_xml.find('.//TX').text.strip(' \t\r\n')
+                        if can_msg_type == 'CAN_DataFrame':
+                            common_properties = comment_xml.find(".//common_properties")
+                            can_id = 1
+                            message_id = -1
+                            for e in common_properties:
+                                name = e.get('name')
+                                if name == 'MessageID':
+                                    if e.get('ci') is not None:
+                                        can_id = int(e.get('ci'))
+                                    message_id = int(e.text)
+                            grp['can_id'] = can_id
+                            grp['message_name'] = message_name
+                            grp['message_id'] = message_id
+
+                        else:
+                            warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
+                            channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                 else:
+
                     samples_size = channel_group['samples_byte_nr']
                     inval_size = channel_group['invalidation_bytes_nr']
                     record_id = channel_group['record_id']
@@ -472,6 +485,8 @@ class MDF4(object):
 
                 cg_addr = channel_group['next_cg_addr']
                 dg_cntr += 1
+
+                new_groups.append(grp)
 
             # store channel groups record sizes dict in each
             # new group data belong to the initial unsorted group, and add
@@ -694,6 +709,96 @@ class MDF4(object):
                         address=signal_data_addr,
                         stream=stream,
                     )
+
+        raw_can = []
+        processed_can = []
+        for i, group in enumerate(self.groups):
+            if group.get('raw_can', False):
+                can_ids = self.get('CAN_DataFrame.ID', group=i)
+                all_can_ids = set(can_ids.samples)
+                payload = self.get('CAN_DataFrame.DataBytes', group=i, samples_only=True)
+                attachment, at_name = self.get('CAN_DataFrame', group=i).attachment
+
+                if not at_name.lower().endswith(('dbc', 'arxml')) or not attachment:
+                    warnings.warn('Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name))
+                    grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                else:
+                    raw_can.append(i)
+                    import_type = 'dbc' if at_name.lower().endswith('dbc') else 'arxml'
+                    db = loads(
+                        attachment.decode('utf-8'),
+                        importType=import_type,
+                        key='db',
+                    )['db']
+
+                    cg_source = group['channel_group'].acq_source
+
+                    for message_id in all_can_ids:
+                        sigs = []
+                        can_msg = db.frameById(message_id)
+                        message_name = can_msg.name
+
+                        source = SignalSource(
+                            '',
+                            can_msg.name,
+                            '',
+                            v4c.SOURCE_BUS,
+                            v4c.BUS_TYPE_CAN,
+                        )
+
+                        idx = argwhere(can_ids.samples == message_id).flatten()
+                        data = payload[idx]
+                        t = can_ids.timestamps[idx].copy()
+
+                        for signal in can_msg.signals:
+                            sig_vals = self._get_can_data(data, signal)
+                            conversion = ChannelConversion(
+                                a=signal.factor,
+                                b=signal.offset,
+                                conversion_type=v4c.CONVERSION_TYPE_LIN,
+                            )
+                            conversion.unit = signal.unit or ''
+                            sigs.append(
+                                Signal(
+                                    sig_vals,
+                                    t,
+                                    name=signal.name,
+                                    conversion=conversion,
+                                    source=source,
+                                    unit=signal.unit,
+                                    raw=True,
+                                )
+                            )
+                        processed_can.append([sigs, message_id, message_name, cg_source])
+
+        for index in reversed(raw_can):
+            group = self.groups[index]
+            for ch in group['channels']:
+                if self.memory == 'minimum':
+                    ch = Channel(
+                        address=ch,
+                        stream=stream,
+                    )
+                name = ch.name
+                db_entry = self.channels_db[name]
+                if len(db_entry) == 1:
+                    del self.channels_db[name]
+                else:
+                    self.channels_db[name] = [
+                        entry
+                        for entry in db_entry
+                        if entry[0] != index
+                    ]
+            self.groups.pop(index)
+
+        for sigs, message_id, message_name, cg_source in processed_can:
+            self.append(sigs, 'Extracted from raw CAN bus logging', common_timebase=True)
+            group = self.groups[-1]
+            group['channel_group'].acq_source = cg_source
+            group['data_group'].comment = 'From message {}="{}"'.format(
+                hex(message_id),
+                message_name,
+            )
 
         # read events
         addr = self.header['first_event_addr']
@@ -2335,6 +2440,20 @@ class MDF4(object):
                     'data_block_addr': data_addr,
                 }
                 ch = Channel(**kargs)
+
+                # conversions for channel
+                conversion = conversion_transfer(signal.conversion, version=4)
+                if signal.raw:
+                    if memory == 'minimum':
+                        if conversion:
+                            temp = dict(conversion)
+                            write_cc(conversion, defined_texts={}, stream=self._tempfile)
+                            address = tell()
+                            write(bytes(conversion))
+                            conversion.update(temp)
+                            ch['conversion_addr'] = address
+                    else:
+                        ch.conversion = conversion
 
                 # source for channel
                 if signal.source:

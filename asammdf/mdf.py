@@ -1349,11 +1349,7 @@ class MDF(object):
             )
 
         elif fmt == 'pandas':
-            try:
-                return DataFrame.from_dict(mdict)
-            except:
-                print(single_time_base, [(v, len(h)) for v, h in mdict.items()])
-                raise
+            return DataFrame.from_dict(mdict)
 
         else:
             message = (
