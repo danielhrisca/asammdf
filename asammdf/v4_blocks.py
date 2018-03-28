@@ -643,10 +643,10 @@ class Channel(dict):
             self.name,
             self.unit,
             self.comment,
+            hex(self.address),
             self.conversion,
             self.source,
-            hex(self.address),
-            super(Channel, self).__str__(),
+            dict(self),
         )
 
     def __lt__(self, other):
@@ -2089,12 +2089,13 @@ class ChannelConversion(dict):
                 self.referenced_blocks
                 ['default_addr']
                 ['text']
+                .strip(b'\0')
             )
 
             new_values = []
             for val in values:
                 try:
-                    val = out_[in_.index(val)]
+                    val = out_[in_.index(val.strip(b'\0'))]
                 except ValueError:
                     val = default
                 new_values.append(val)
@@ -2267,7 +2268,7 @@ class ChannelConversion(dict):
             self.formula,
             self.referenced_blocks,
             hex(self.address),
-            super(ChannelConversion, self).__repr__(),
+            dict(self),
         )
 
 
@@ -3365,7 +3366,7 @@ class SourceInformation(dict):
             self.path,
             self.comment,
             hex(self.address),
-            super(SourceInformation, self).__str__(),
+            dict(self),
         )
 
 

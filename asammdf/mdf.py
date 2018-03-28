@@ -1087,7 +1087,7 @@ class MDF(object):
                         sheet.write(0, col, sig_description)
                         try:
                             sheet.write_column(1, col, samples.astype(str))
-                        except TypeError:
+                        except:
                             vals = [str(e) for e in sig.samples]
                             sheet.write_column(1, col, vals)
 

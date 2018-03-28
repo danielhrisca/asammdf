@@ -715,7 +715,7 @@ class MDF4(object):
         for i, group in enumerate(self.groups):
             if group.get('raw_can', False):
                 can_ids = self.get('CAN_DataFrame.ID', group=i)
-                all_can_ids = set(can_ids.samples)
+                all_can_ids = sorted(set(can_ids.samples))
                 payload = self.get('CAN_DataFrame.DataBytes', group=i, samples_only=True)
                 attachment, at_name = self.get('CAN_DataFrame', group=i).attachment
 
@@ -731,15 +731,23 @@ class MDF4(object):
                         key='db',
                     )['db']
 
+                    board_units = set(bu.name for bu in db.boardUnits)
+
                     cg_source = group['channel_group'].acq_source
 
                     for message_id in all_can_ids:
                         sigs = []
                         can_msg = db.frameById(message_id)
+
+                        for transmitter in can_msg.transmitter:
+                            if transmitter in board_units:
+                                break
+                        else:
+                            transmitter = ''
                         message_name = can_msg.name
 
                         source = SignalSource(
-                            '',
+                            transmitter,
                             can_msg.name,
                             '',
                             v4c.SOURCE_BUS,
@@ -750,7 +758,7 @@ class MDF4(object):
                         data = payload[idx]
                         t = can_ids.timestamps[idx].copy()
 
-                        for signal in can_msg.signals:
+                        for signal in sorted(can_msg.signals, key=lambda x: x.name):
                             sig_vals = self._get_can_data(data, signal)
                             conversion = ChannelConversion(
                                 a=signal.factor,
@@ -771,34 +779,39 @@ class MDF4(object):
                             )
                         processed_can.append([sigs, message_id, message_name, cg_source])
 
-        for index in reversed(raw_can):
-            group = self.groups[index]
-            for ch in group['channels']:
-                if self.memory == 'minimum':
-                    ch = Channel(
-                        address=ch,
-                        stream=stream,
-                    )
-                name = ch.name
-                db_entry = self.channels_db[name]
-                if len(db_entry) == 1:
-                    del self.channels_db[name]
-                else:
-                    self.channels_db[name] = [
-                        entry
-                        for entry in db_entry
-                        if entry[0] != index
-                    ]
-            self.groups.pop(index)
 
-        for sigs, message_id, message_name, cg_source in processed_can:
-            self.append(sigs, 'Extracted from raw CAN bus logging', common_timebase=True)
-            group = self.groups[-1]
-            group['channel_group'].acq_source = cg_source
-            group['data_group'].comment = 'From message {}="{}"'.format(
-                hex(message_id),
-                message_name,
-            )
+        if raw_can:
+            for index in reversed(raw_can):
+                self.groups.pop(index)
+
+            excluded_channels = []
+            for name, db_entry in self.channels_db.items():
+                new_entry = []
+                for i, entry in enumerate(db_entry):
+                    new_group_index = entry[0]
+                    if new_group_index in raw_can:
+                        continue
+                    for index in raw_can:
+                        if new_group_index > index:
+                            new_group_index += 1
+                        else:
+                            break
+                    new_entry.append((new_group_index, entry[1]))
+                if new_entry:
+                    self.channels_db[name] = new_entry
+                else:
+                    excluded_channels.append(name)
+            for name in excluded_channels:
+                del self.channels_db[name]
+
+            for sigs, message_id, message_name, cg_source in processed_can:
+                self.append(sigs, 'Extracted from raw CAN bus logging', common_timebase=True)
+                group = self.groups[-1]
+                group['channel_group'].acq_source = cg_source
+                group['data_group'].comment = 'From message {}="{}"'.format(
+                    hex(message_id),
+                    message_name,
+                )
 
         # read events
         addr = self.header['first_event_addr']
@@ -831,6 +844,7 @@ class MDF4(object):
         self._si_map.clear()
         self._ch_map.clear()
         self._cc_map.clear()
+        self._master_channel_cache.clear()
 
     def _read_channels(
             self,
@@ -1516,7 +1530,7 @@ class MDF4(object):
                                 if channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
                                     message_id = grp['message_id']
 
-                                    at_index = self._attachments_map[new_ch['attachment_0_addr']]
+                                    at_index = new_ch.attachments[0]
                                     can_db = self._dbc_cache[at_index]
                                     can_msg = can_db.frameById(message_id)
 
@@ -4681,7 +4695,10 @@ class MDF4(object):
             else:
                 conversion_type = conversion['conversion_type']
 
-            if conversion_type == v4c.CONVERSION_TYPE_NON:
+            if conversion_type in (
+                    v4c.CONVERSION_TYPE_NON,
+                    v4c.CONVERSION_TYPE_TRANS,
+                    v4c.CONVERSION_TYPE_TTAB):
 
                 data_type = channel['data_type']
                 channel_type = channel['channel_type']
@@ -4805,21 +4822,25 @@ class MDF4(object):
                     names = ['ms', 'days']
                     vals = fromarrays(arrays, names=names)
 
+                if conversion_type == v4c.CONVERSION_TYPE_TRANS:
+                    if not raw:
+                        vals = conversion.convert(vals)
+                if conversion_type == v4c.CONVERSION_TYPE_TTAB:
+                    raw = True
+
             elif conversion_type in (
                     v4c.CONVERSION_TYPE_LIN,
                     v4c.CONVERSION_TYPE_RAT,
                     v4c.CONVERSION_TYPE_ALG,
                     v4c.CONVERSION_TYPE_TABI,
                     v4c.CONVERSION_TYPE_TAB,
-                    v4c.CONVERSION_TYPE_RTAB,
-                    v4c.CONVERSION_TYPE_TRANS):
+                    v4c.CONVERSION_TYPE_RTAB):
                 if not raw:
                     vals = conversion.convert(vals)
 
             elif conversion_type in (
                     v4c.CONVERSION_TYPE_TABX,
-                    v4c.CONVERSION_TYPE_RTABX,
-                    v4c.CONVERSION_TYPE_TTAB):
+                    v4c.CONVERSION_TYPE_RTABX):
                 raw = True
 
         if samples_only:
@@ -4856,8 +4877,8 @@ class MDF4(object):
             else:
                 source = channel.source
 
-            if 'attachment_0_addr' in channel:
-                attachment = self.extract_attachment(address=channel['attachment_0_addr'])
+            if channel.attachments:
+                attachment = self.extract_attachment(index=channel.attachments[0])
             else:
                 attachment = ()
 
