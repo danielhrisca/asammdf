@@ -943,7 +943,7 @@ class MDF4(object):
                 if blk_id == b'##CN':
                     index = ch_cntr - 1
                     grp['channel_dependencies'].append(None)
-                    ch_cntr, neg_ch_cntr, composition = self._read_channels(
+                    ch_cntr, neg_ch_cntr, ret_composition = self._read_channels(
                         channel['component_addr'],
                         grp,
                         stream,
@@ -952,7 +952,7 @@ class MDF4(object):
                         neg_ch_cntr,
                         True,
                     )
-                    grp['channel_dependencies'][index] = composition
+                    grp['channel_dependencies'][index] = ret_composition
                     if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
                         attachment_addr = self._attachments_map[channel['attachment_0_addr']]
                         if attachment_addr not in self._dbc_cache:
