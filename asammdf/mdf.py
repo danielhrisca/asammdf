@@ -2039,19 +2039,13 @@ class MDF(object):
                     )
                     idx += 1
 
-            pandas_dict = {}
+            pandas_dict = {master_name: np.concatenate(master)}
 
-            pandas_dict[master_name] = np.concatenate(master)
-
+            used_names = {master_name}
             for name, sig in zip(names, sigs):
+                name = get_unique_name(used_names, name)
+                used_names.add(name)
                 pandas_dict[name] = np.concatenate(sig)
-
-                if master_index is not None:
-                    master = self.get(
-                        group=i,
-                        index=master_index,
-                    )
-                    pandas_dict = {master.name: master.samples}
 
             yield DataFrame.from_dict(pandas_dict)
 
