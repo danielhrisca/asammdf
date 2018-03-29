@@ -1672,6 +1672,321 @@ class MDF4(object):
         else:
             return vals['vals']
 
+    def _append_structure_composition(
+            self, grp, signal, field_names, offset,
+            dg_cntr, ch_cntr, parents):
+
+        fields = []
+        types = []
+
+        canopen_time_fields = (
+            'ms',
+            'days',
+        )
+        canopen_date_fields = (
+            'ms',
+            'min',
+            'hour',
+            'day',
+            'month',
+            'year',
+            'summer_time',
+            'day_of_week',
+        )
+
+        memory = self.memory
+        file = self._tempfile
+        write = file.write
+        tell = file.tell
+        seek = file.seek
+        seek(0, 2)
+
+        gp = grp
+        gp_sdata = gp['signal_data']
+        gp_sdata_size = gp['signal_data_size']
+        gp_channels = gp['channels']
+        gp_dep = gp['channel_dependencies']
+        gp_sig_types = gp['signal_types']
+
+        name = signal.name
+        names = signal.samples.dtype.names
+
+        field_name = get_unique_name(field_names, name)
+        field_names.add(field_name)
+
+        # first we add the structure channel
+
+        if memory == 'minimum':
+            block = TextBlock(text=name, meta=False)
+            channel_name_address = tell()
+            write(bytes(block))
+
+            if signal.unit:
+                block = TextBlock(text=signal.unit, meta=False)
+                channel_unit_address = tell()
+                write(bytes(block))
+            else:
+                channel_unit_address = 0
+
+            if signal.comment:
+                meta = signal.comment.startswith('<CNcomment')
+                block = TextBlock(text=signal.comment, meta=meta)
+                channel_comment_address = tell()
+                write(bytes(block))
+            else:
+                channel_comment_address = 0
+
+        if memory == 'minimum':
+            name_addr = channel_name_address
+            unit_addr = channel_unit_address
+            comment_addr = channel_comment_address
+        else:
+            name_addr = 0
+            unit_addr = 0
+            comment_addr = 0
+
+        if signal.attachment:
+            at_data, at_name = signal.attachment
+            attachment_addr = self.attach(
+                at_data,
+                at_name,
+                mime='application/x-dbc',
+            )
+        else:
+            attachment_addr = 0
+
+        # add channel block
+        kargs = {
+            'channel_type': v4c.CHANNEL_TYPE_VALUE,
+            'bit_count': signal.samples.dtype.itemsize * 8,
+            'byte_offset': offset,
+            'bit_offset': 0,
+            'data_type': v4c.DATA_TYPE_BYTEARRAY,
+            'min_raw_value': 0,
+            'max_raw_value': 0,
+            'lower_limit': 0,
+            'upper_limit': 0,
+            'flags': 0,
+            'name_addr': name_addr,
+            'unit_addr': unit_addr,
+            'comment_addr': comment_addr,
+            'precision': 255,
+        }
+        if attachment_addr:
+            kargs['attachment_0_addr'] = attachment_addr
+            kargs['flags'] |= v4c.FLAG_CN_BUS_EVENT
+        ch = Channel(**kargs)
+
+        # source for channel
+        if signal.source:
+            source = signal.source
+            kargs = {
+                'source_type': source.source_type,
+                'bus_type': source.bus_type,
+            }
+            if memory == 'minimum':
+                if source.name:
+                    tx_block = TextBlock(text=source.name)
+                    kargs['name_addr'] = tell()
+                    write(bytes(tx_block))
+                if source.path:
+                    tx_block = TextBlock(text=source.path)
+                    kargs['path_addr'] = tell()
+                    write(bytes(tx_block))
+                if source.comment:
+                    meta = source.comment.startswith('<SIcomment')
+                    tx_block = TextBlock(text=source.comment, meta=meta)
+                    kargs['comment_addr'] = tell()
+                    write(bytes(tx_block))
+
+            new_source = SourceInformation(**kargs)
+            new_source.name = source.name
+            new_source.path = source.path
+            new_source.comment = source.comment
+
+            if memory == 'minimum':
+                addr = tell()
+                write(bytes(new_source))
+                ch['source_addr'] = addr
+            else:
+                ch.source = new_source
+
+        if memory != 'minimum':
+            ch.name = name
+            ch.unit = signal.unit
+            ch.comment = signal.comment
+            ch.display_name = signal.display_name
+            gp_channels.append(ch)
+            struct_self = ch
+        else:
+            address = tell()
+            write(bytes(ch))
+            gp_channels.append(address)
+            struct_self = address
+
+        gp_sdata.append(None)
+        gp_sdata_size.append(0)
+        if name not in self.channels_db:
+            self.channels_db[name] = []
+        self.channels_db[name].append((dg_cntr, ch_cntr))
+
+        # update the parents as well
+        parents[ch_cntr] = name, 0
+
+        # check if the source is included in the channel name
+        name = name.split('\\')
+        if len(name) > 1:
+            name = name[0]
+            if name in self.channels_db:
+                self.channels_db[name].append((dg_cntr, ch_cntr))
+            else:
+                self.channels_db[name] = []
+                self.channels_db[name].append((dg_cntr, ch_cntr))
+
+        ch_cntr += 1
+
+        dep_list = []
+        gp_dep.append(dep_list)
+
+        # then we add the fields
+
+        for name in names:
+            field_name = get_unique_name(field_names, name)
+            field_names.add(field_name)
+
+            samples = signal.samples[name]
+            fld_names = samples.dtype.names
+
+            if fld_names is None:
+                sig_type = v4c.SIGNAL_TYPE_SCALAR
+                if samples.dtype.kind in 'SV':
+                    sig_type = v4c.SIGNAL_TYPE_STRING
+            else:
+                if fld_names in (canopen_time_fields, canopen_date_fields):
+                    sig_type = v4c.SIGNAL_TYPE_CANOPEN
+                elif fld_names[0] != name:
+                    sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
+                else:
+                    sig_type = v4c.SIGNAL_TYPE_ARRAY
+
+            print(name, sig_type)
+
+            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
+
+                s_type, s_size = fmt_to_datatype_v4(
+                    samples.dtype,
+                    samples.shape,
+                )
+                byte_size = s_size >> 3
+
+                fields.append(samples)
+                types.append((field_name, samples.dtype, samples.shape[1:]))
+
+                if memory == 'minimum':
+                    block = TextBlock(text=name, meta=False)
+                    channel_name_address = tell()
+                    write(bytes(block))
+
+                    if signal.unit:
+                        block = TextBlock(text=signal.unit, meta=False)
+                        channel_unit_address = tell()
+                        write(bytes(block))
+                    else:
+                        channel_unit_address = 0
+
+                    if signal.comment:
+                        meta = signal.comment.startswith('<CNcomment')
+                        block = TextBlock(text=signal.comment, meta=meta)
+                        channel_comment_address = tell()
+                        write(bytes(block))
+                    else:
+                        channel_comment_address = 0
+
+                if memory == 'minimum':
+                    name_addr = channel_name_address
+                    unit_addr = channel_unit_address
+                    comment_addr = channel_comment_address
+                else:
+                    name_addr = 0
+                    unit_addr = 0
+                    comment_addr = 0
+
+                # add channel block
+                min_val, max_val = get_min_max(samples)
+                kargs = {
+                    'channel_type': v4c.CHANNEL_TYPE_VALUE,
+                    'bit_count': s_size,
+                    'byte_offset': offset,
+                    'bit_offset': 0,
+                    'data_type': s_type,
+                    'min_raw_value': min_val if min_val <= max_val else 0,
+                    'max_raw_value': max_val if min_val <= max_val else 0,
+                    'lower_limit': min_val if min_val <= max_val else 0,
+                    'upper_limit': max_val if min_val <= max_val else 0,
+                    'name_addr': name_addr,
+                    'unit_addr': unit_addr,
+                    'comment_addr': comment_addr,
+                    'precision': 255,
+                }
+                if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
+                    kargs['flags'] = v4c.FLAG_CN_PRECISION
+                else:
+                    kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
+                if attachment_addr:
+                    kargs['flags'] |= v4c.FLAG_CN_BUS_EVENT
+                ch = Channel(**kargs)
+                if memory != 'minimum':
+                    ch.name = name
+                    ch.unit = signal.unit
+                    ch.comment = signal.comment
+                    gp_channels.append(ch)
+                    dep_list.append(ch)
+                else:
+                    address = tell()
+                    write(bytes(ch))
+                    gp_channels.append(address)
+                    dep_list.append(address)
+
+                offset += byte_size
+
+                gp_sdata.append(None)
+                gp_sdata_size.append(0)
+                if name not in self.channels_db:
+                    self.channels_db[name] = []
+                self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                # update the parents as well
+                parents[ch_cntr] = field_name, 0
+
+                # check if the source is included in the channel name
+                name = name.split('\\')
+                if len(name) > 1:
+                    name = name[0]
+                    if name in self.channels_db:
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
+                    else:
+                        self.channels_db[name] = []
+                        self.channels_db[name].append((dg_cntr, ch_cntr))
+
+                ch_cntr += 1
+                gp_dep.append(None)
+
+            elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
+                struct = Signal(
+                    samples,
+                    samples,
+                    name=name,
+                )
+                offset, dg_cntr, ch_cntr, struct_self, new_fields, new_types = self._append_structure_composition(
+                    grp, struct, field_names, offset, dg_cntr, ch_cntr,
+                    parents,
+                )
+                dep_list.append(struct_self)
+                fields.extend(new_fields)
+                types.extend(new_types)
+
+        return offset, dg_cntr, ch_cntr, struct_self, fields, types
+
     def _get_not_byte_aligned_data(self, data, group, ch_nr):
         big_endian_types = (
             v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
@@ -2703,249 +3018,12 @@ class MDF4(object):
                 ch_cntr += 1
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
-
-                # here we have a structure channel composition
-
-                field_name = get_unique_name(field_names, name)
-                field_names.add(field_name)
-
-                # first we add the structure channel
-
-                if memory == 'minimum':
-                    block = TextBlock(text=name, meta=False)
-                    channel_name_address = tell()
-                    write(bytes(block))
-
-                    if signal.unit:
-                        block = TextBlock(text=signal.unit, meta=False)
-                        channel_unit_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_unit_address = 0
-
-                    if signal.comment:
-                        meta = signal.comment.startswith('<CNcomment')
-                        block = TextBlock(text=signal.comment, meta=meta)
-                        channel_comment_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_comment_address = 0
-
-                if memory == 'minimum':
-                    name_addr = channel_name_address
-                    unit_addr = channel_unit_address
-                    comment_addr = channel_comment_address
-                else:
-                    name_addr = 0
-                    unit_addr = 0
-                    comment_addr = 0
-
-                if signal.attachment:
-                    at_data, at_name = signal.attachment
-                    attachment_addr = self.attach(
-                        at_data,
-                        at_name,
-                        mime='application/x-dbc',
-                    )
-                else:
-                    attachment_addr = 0
-
-                # add channel block
-                kargs = {
-                    'channel_type': v4c.CHANNEL_TYPE_VALUE,
-                    'bit_count': signal.samples.dtype.itemsize * 8,
-                    'byte_offset': offset,
-                    'bit_offset': 0,
-                    'data_type': v4c.DATA_TYPE_BYTEARRAY,
-                    'min_raw_value': 0,
-                    'max_raw_value': 0,
-                    'lower_limit': 0,
-                    'upper_limit': 0,
-                    'flags': 0,
-                    'name_addr': name_addr,
-                    'unit_addr': unit_addr,
-                    'comment_addr': comment_addr,
-                    'precision': 255,
-                }
-                if attachment_addr:
-                    kargs['attachment_0_addr'] = attachment_addr
-                    kargs['flags'] |= v4c.FLAG_CN_BUS_EVENT
-                ch = Channel(**kargs)
-
-                # source for channel
-                if signal.source:
-                    source = signal.source
-                    kargs = {
-                        'source_type': source.source_type,
-                        'bus_type': source.bus_type,
-                    }
-                    if memory == 'minimum':
-                        if source.name:
-                            tx_block = TextBlock(text=source.name)
-                            kargs['name_addr'] = tell()
-                            write(bytes(tx_block))
-                        if source.path:
-                            tx_block = TextBlock(text=source.path)
-                            kargs['path_addr'] = tell()
-                            write(bytes(tx_block))
-                        if source.comment:
-                            meta = source.comment.startswith('<SIcomment')
-                            tx_block = TextBlock(text=source.comment, meta=meta)
-                            kargs['comment_addr'] = tell()
-                            write(bytes(tx_block))
-
-                    new_source = SourceInformation(**kargs)
-                    new_source.name = source.name
-                    new_source.path = source.path
-                    new_source.comment = source.comment
-
-                    if memory == 'minimum':
-                        addr = tell()
-                        write(bytes(new_source))
-                        ch['source_addr'] = addr
-                    else:
-                        ch.source = new_source
-
-                if memory != 'minimum':
-                    ch.name = name
-                    ch.unit = signal.unit
-                    ch.comment = signal.comment
-                    ch.display_name = signal.display_name
-                    gp_channels.append(ch)
-                else:
-                    address = tell()
-                    write(bytes(ch))
-                    gp_channels.append(address)
-
-                gp_sdata.append(None)
-                gp_sdata_size.append(0)
-                if name not in self.channels_db:
-                    self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                # update the parents as well
-                parents[ch_cntr] = name, 0
-
-                # check if the source is included in the channel name
-                name = name.split('\\')
-                if len(name) > 1:
-                    name = name[0]
-                    if name in self.channels_db:
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-                    else:
-                        self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                ch_cntr += 1
-
-                dep_list = []
-                gp_dep.append(dep_list)
-
-                # then we add the fields
-
-                for name in names:
-                    field_name = get_unique_name(field_names, name)
-                    field_names.add(field_name)
-
-                    samples = signal.samples[name]
-
-                    s_type, s_size = fmt_to_datatype_v4(
-                        samples.dtype,
-                        samples.shape,
-                    )
-                    byte_size = s_size >> 3
-
-                    fields.append(samples)
-                    types.append((field_name, samples.dtype, samples.shape[1:]))
-
-                    if memory == 'minimum':
-                        block = TextBlock(text=name, meta=False)
-                        channel_name_address = tell()
-                        write(bytes(block))
-
-                        if signal.unit:
-                            block = TextBlock(text=signal.unit, meta=False)
-                            channel_unit_address = tell()
-                            write(bytes(block))
-                        else:
-                            channel_unit_address = 0
-
-                        if signal.comment:
-                            meta = signal.comment.startswith('<CNcomment')
-                            block = TextBlock(text=signal.comment, meta=meta)
-                            channel_comment_address = tell()
-                            write(bytes(block))
-                        else:
-                            channel_comment_address = 0
-
-                    if memory == 'minimum':
-                        name_addr = channel_name_address
-                        unit_addr = channel_unit_address
-                        comment_addr = channel_comment_address
-                    else:
-                        name_addr = 0
-                        unit_addr = 0
-                        comment_addr = 0
-
-                    # add channel block
-                    min_val, max_val = get_min_max(samples)
-                    kargs = {
-                        'channel_type': v4c.CHANNEL_TYPE_VALUE,
-                        'bit_count': s_size,
-                        'byte_offset': offset,
-                        'bit_offset': 0,
-                        'data_type': s_type,
-                        'min_raw_value': min_val if min_val <= max_val else 0,
-                        'max_raw_value': max_val if min_val <= max_val else 0,
-                        'lower_limit': min_val if min_val <= max_val else 0,
-                        'upper_limit': max_val if min_val <= max_val else 0,
-                        'name_addr': name_addr,
-                        'unit_addr': unit_addr,
-                        'comment_addr': comment_addr,
-                        'precision': 255,
-                    }
-                    if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
-                        kargs['flags'] = v4c.FLAG_CN_PRECISION
-                    else:
-                        kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
-                    if attachment_addr:
-                        kargs['flags'] |= v4c.FLAG_CN_BUS_EVENT
-                    ch = Channel(**kargs)
-                    if memory != 'minimum':
-                        ch.name = name
-                        ch.unit = signal.unit
-                        ch.comment = signal.comment
-                        gp_channels.append(ch)
-                        dep_list.append(ch)
-                    else:
-                        address = tell()
-                        write(bytes(ch))
-                        gp_channels.append(address)
-                        dep_list.append(address)
-
-                    offset += byte_size
-
-                    gp_sdata.append(None)
-                    gp_sdata_size.append(0)
-                    if name not in self.channels_db:
-                        self.channels_db[name] = []
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                    # update the parents as well
-                    parents[ch_cntr] = field_name, 0
-
-                    # check if the source is included in the channel name
-                    name = name.split('\\')
-                    if len(name) > 1:
-                        name = name[0]
-                        if name in self.channels_db:
-                            self.channels_db[name].append((dg_cntr, ch_cntr))
-                        else:
-                            self.channels_db[name] = []
-                            self.channels_db[name].append((dg_cntr, ch_cntr))
-
-                    ch_cntr += 1
-                    gp_dep.append(None)
+                offset, dg_cntr, ch_cntr, struct_self, new_fields, new_types = self._append_structure_composition(
+                    gp, signal, field_names,
+                    offset, dg_cntr, ch_cntr,
+                    parents)
+                fields.extend(new_fields)
+                types.extend(new_types)
 
             else:
                 # here we have channel arrays or mdf v3 channel dependencies
@@ -3259,6 +3337,8 @@ class MDF4(object):
         # data block
         if PYVERSION == 2:
             types = fix_dtype_fields(types)
+
+        print(types)
         types = dtype(types)
 
         gp['sorted'] = True
@@ -3325,6 +3405,8 @@ class MDF4(object):
                     gp['data_block_addr'] = [data_address, ]
                 else:
                     gp['data_block_addr'] = [0, ]
+
+        print(gp_dep)
 
     def extend(self, index, signals):
         """
@@ -5981,7 +6063,7 @@ class MDF4(object):
                                 temp_deps[-1].append(0)
                     else:
                         temp_deps.append(0)
-                        
+
                 next_ch_addr = [
                     0 for _ in range(max(structs) + 1)
                 ]
