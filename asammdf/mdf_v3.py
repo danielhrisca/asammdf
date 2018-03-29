@@ -3233,6 +3233,11 @@ class MDF3(object):
 
                 if bits == 1:
                     vals = array(vals, dtype=bool)
+                else:
+                    data_type = channel['data_type']
+                    channel_dtype = array([], dtype=get_fmt_v3(data_type, bits))
+                    if vals.dtype != channel_dtype.dtype:
+                        vals = vals.astype(channel_dtype.dtype)
 
                 channel_values.append(vals.copy())
                 count += 1

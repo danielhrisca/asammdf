@@ -3337,7 +3337,6 @@ class MDF4(object):
         if PYVERSION == 2:
             types = fix_dtype_fields(types)
 
-        print(types)
         types = dtype(types)
 
         gp['sorted'] = True
@@ -3404,8 +3403,6 @@ class MDF4(object):
                     gp['data_block_addr'] = [data_address, ]
                 else:
                     gp['data_block_addr'] = [0, ]
-
-        print(*gp_channels, sep='\n\n')
 
     def extend(self, index, signals):
         """
@@ -4714,6 +4711,11 @@ class MDF4(object):
 
                     if bits == 1:
                         vals = array(vals, dtype=bool)
+                    else:
+                        data_type = channel['data_type']
+                        channel_dtype = array([], dtype=get_fmt_v4(data_type, bits))
+                        if vals.dtype != channel_dtype.dtype:
+                            vals = vals.astype(channel_dtype.dtype)
 
                     if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
@@ -5581,7 +5583,6 @@ class MDF4(object):
 
                 # channel dependecies
                 for j, dep_list in enumerate(gp['channel_dependencies']):
-                    print(j, dep_list)
                     if dep_list:
                         if all(isinstance(dep, ChannelArrayBlock)
                                for dep in dep_list):
