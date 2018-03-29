@@ -1706,7 +1706,6 @@ class MDF4(object):
         gp_sdata_size = gp['signal_data_size']
         gp_channels = gp['channels']
         gp_dep = gp['channel_dependencies']
-        gp_sig_types = gp['signal_types']
 
         name = signal.name
         names = signal.samples.dtype.names
@@ -1869,8 +1868,6 @@ class MDF4(object):
                 else:
                     sig_type = v4c.SIGNAL_TYPE_ARRAY
 
-            print(name, sig_type)
-
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
                 s_type, s_size = fmt_to_datatype_v4(
@@ -1977,11 +1974,11 @@ class MDF4(object):
                     samples,
                     name=name,
                 )
-                offset, dg_cntr, ch_cntr, struct_self, new_fields, new_types = self._append_structure_composition(
+                offset, dg_cntr, ch_cntr, sub_structure, new_fields, new_types = self._append_structure_composition(
                     grp, struct, field_names, offset, dg_cntr, ch_cntr,
                     parents,
                 )
-                dep_list.append(struct_self)
+                dep_list.append(sub_structure)
                 fields.extend(new_fields)
                 types.extend(new_types)
 
@@ -3025,6 +3022,8 @@ class MDF4(object):
                 fields.extend(new_fields)
                 types.extend(new_types)
 
+
+
             else:
                 # here we have channel arrays or mdf v3 channel dependencies
                 samples = signal.samples[names[0]]
@@ -3406,7 +3405,7 @@ class MDF4(object):
                 else:
                     gp['data_block_addr'] = [0, ]
 
-        print(gp_dep)
+        print(*gp_channels, sep='\n\n')
 
     def extend(self, index, signals):
         """
@@ -5582,6 +5581,7 @@ class MDF4(object):
 
                 # channel dependecies
                 for j, dep_list in enumerate(gp['channel_dependencies']):
+                    print(j, dep_list)
                     if dep_list:
                         if all(isinstance(dep, ChannelArrayBlock)
                                for dep in dep_list):
