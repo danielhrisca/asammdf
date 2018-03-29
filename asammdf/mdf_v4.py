@@ -37,9 +37,8 @@ from numpy import (
     union1d,
     unpackbits,
     zeros,
-uint32,
+    uint32,
 )
-
 from numpy.core.defchararray import encode, decode
 from numpy.core.records import fromarrays, fromstring
 from canmatrix.formats import loads
@@ -300,6 +299,7 @@ class MDF4(object):
         self._write_fragment_size = 8 * 2**20
         self._use_display_names = False
 
+        # make sure no appended block has the address 0
         self._tempfile.write(b'\0')
 
         if name:
@@ -345,10 +345,6 @@ class MDF4(object):
                        'Update of offset values for VLSD channel required '
                        'in case a VLSD CG block is used')
             warnings.warn(message.format(self.name))
-
-
-    def _read_CAN_bus_logging_group(self):
-        pass
 
     def _read(self):
         stream = self._file
@@ -424,12 +420,16 @@ class MDF4(object):
                     message_name = channel_group.acq_name
 
                     if message_name == 'CAN_DataFrame':
+                        # this is a raw CAN bus logging channel group
+                        # it will be later processed to extract all
+                        # signals to new groups (one group per CAN message)
                         grp['raw_can'] = True
                         channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
 
                     elif message_name in (
                             'CAN_ErrorFrame',
                             'CAN_RemoteFrame'):
+                        # for now ignore bus logging flag
                         channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                     else:
                         comment = channel_group.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
@@ -680,6 +680,9 @@ class MDF4(object):
 
             dg_addr = group['next_dg_addr']
 
+
+        # all channels have been loaded so now we can link the
+        # channel dependencies and load the signal data for VLSD channels
         for grp in self.groups:
             for dep_list in grp['channel_dependencies']:
                 if not dep_list:
@@ -710,6 +713,9 @@ class MDF4(object):
                         stream=stream,
                     )
 
+        # append indexes of groups that contain raw CAN bus logging and
+        # store signals and metadata that will be used to create the new
+        # groups.
         raw_can = []
         processed_can = []
         for i, group in enumerate(self.groups):
@@ -777,9 +783,13 @@ class MDF4(object):
                                     raw=True,
                                 )
                             )
-                        processed_can.append([sigs, message_id, message_name, cg_source])
+                        processed_can.append(
+                            [sigs, message_id, message_name, cg_source]
+                        )
 
-
+        # delete the groups that contain raw CAN bus logging and also
+        # delete the channel entries from the channels_db. Update data group
+        # index for the remaining channel entries. Append new data groups
         if raw_can:
             for index in reversed(raw_can):
                 self.groups.pop(index)
@@ -805,7 +815,11 @@ class MDF4(object):
                 del self.channels_db[name]
 
             for sigs, message_id, message_name, cg_source in processed_can:
-                self.append(sigs, 'Extracted from raw CAN bus logging', common_timebase=True)
+                self.append(
+                    sigs,
+                    'Extracted from raw CAN bus logging',
+                    common_timebase=True,
+                )
                 group = self.groups[-1]
                 group['channel_group'].acq_source = cg_source
                 group['data_group'].comment = 'From message {}="{}"'.format(
@@ -969,6 +983,10 @@ class MDF4(object):
                                 )['db']
 
                         if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
+
+                            # here we make available multiple ways to refer to
+                            # CAN signals by using fake negative indexes for
+                            # the channel entries in the channels_db
 
                             grp['dbc_addr'] = attachment_addr
 

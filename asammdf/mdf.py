@@ -2021,10 +2021,9 @@ class MDF(object):
             ]
 
             data = self._load_group_data(group)
-            for data_bytes in data:
-                data_bytes = (data_bytes, )
+            for fragment in data:
 
-                master.append(self.get_master(i, data=data_bytes))
+                master.append(self.get_master(i, data=fragment))
 
                 idx = 0
                 for j, _ in enumerate(group['channels']):
@@ -2034,7 +2033,7 @@ class MDF(object):
                         self.get(
                             group=i,
                             index=j,
-                            data=data_bytes,
+                            data=fragment,
                             samples_only=True,
                         )
                     )
@@ -2051,7 +2050,6 @@ class MDF(object):
                     master = self.get(
                         group=i,
                         index=master_index,
-                        data=data_bytes,
                     )
                     pandas_dict = {master.name: master.samples}
 
