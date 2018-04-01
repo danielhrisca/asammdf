@@ -1925,10 +1925,7 @@ def generate_arrays_test_file():
 
     mdf.append(sigs, common_timebase=True)
 
-
     mdf.save(filename, overwrite=True)
-
-
 
 def cleanup_files():
     for filename in os.listdir(os.getcwd()):

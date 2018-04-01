@@ -1692,7 +1692,7 @@ class MDF4(object):
 
     def _append_structure_composition(
             self, grp, signal, field_names, offset,
-            dg_cntr, ch_cntr, parents):
+            dg_cntr, ch_cntr, parents, defined_texts, cc_map, si_map):
 
         fields = []
         types = []
@@ -1733,35 +1733,6 @@ class MDF4(object):
 
         # first we add the structure channel
 
-        if memory == 'minimum':
-            block = TextBlock(text=name, meta=False)
-            channel_name_address = tell()
-            write(bytes(block))
-
-            if signal.unit:
-                block = TextBlock(text=signal.unit, meta=False)
-                channel_unit_address = tell()
-                write(bytes(block))
-            else:
-                channel_unit_address = 0
-
-            if signal.comment:
-                meta = signal.comment.startswith('<CNcomment')
-                block = TextBlock(text=signal.comment, meta=meta)
-                channel_comment_address = tell()
-                write(bytes(block))
-            else:
-                channel_comment_address = 0
-
-        if memory == 'minimum':
-            name_addr = channel_name_address
-            unit_addr = channel_unit_address
-            comment_addr = channel_comment_address
-        else:
-            name_addr = 0
-            unit_addr = 0
-            comment_addr = 0
-
         if signal.attachment:
             at_data, at_name = signal.attachment
             attachment_addr = self.attach(
@@ -1784,62 +1755,37 @@ class MDF4(object):
             'lower_limit': 0,
             'upper_limit': 0,
             'flags': 0,
-            'name_addr': name_addr,
-            'unit_addr': unit_addr,
-            'comment_addr': comment_addr,
             'precision': 255,
         }
         if attachment_addr:
             kargs['attachment_0_addr'] = attachment_addr
             kargs['flags'] |= v4c.FLAG_CN_BUS_EVENT
         ch = Channel(**kargs)
+        ch.name = name
+        ch.unit = signal.unit
+        ch.comment = signal.comment
+        ch.display_name = signal.display_name
 
         # source for channel
         if signal.source:
             source = signal.source
-            kargs = {
-                'source_type': source.source_type,
-                'bus_type': source.bus_type,
-            }
-            if memory == 'minimum':
-                if source.name:
-                    tx_block = TextBlock(text=source.name)
-                    kargs['name_addr'] = tell()
-                    write(bytes(tx_block))
-                if source.path:
-                    tx_block = TextBlock(text=source.path)
-                    kargs['path_addr'] = tell()
-                    write(bytes(tx_block))
-                if source.comment:
-                    meta = source.comment.startswith('<SIcomment')
-                    tx_block = TextBlock(text=source.comment, meta=meta)
-                    kargs['comment_addr'] = tell()
-                    write(bytes(tx_block))
-
-            new_source = SourceInformation(**kargs)
+            new_source = SourceInformation(
+                source_type=signal.source.source_type,
+                bus_type=signal.source.bus_type,
+            )
             new_source.name = source.name
             new_source.path = source.path
             new_source.comment = source.comment
 
-            if memory == 'minimum':
-                addr = tell()
-                write(bytes(new_source))
-                ch['source_addr'] = addr
-            else:
-                ch.source = new_source
+            ch.source = new_source
 
         if memory != 'minimum':
-            ch.name = name
-            ch.unit = signal.unit
-            ch.comment = signal.comment
-            ch.display_name = signal.display_name
             gp_channels.append(ch)
             struct_self = ch
         else:
-            address = tell()
-            write(bytes(ch))
-            gp_channels.append(address)
-            struct_self = address
+            ch.to_stream(file, defined_texts, cc_map, si_map)
+            gp_channels.append(ch.address)
+            struct_self = ch.address
 
         gp_sdata.append(None)
         gp_sdata_size.append(0)
@@ -1897,35 +1843,6 @@ class MDF4(object):
                 fields.append(samples)
                 types.append((field_name, samples.dtype, samples.shape[1:]))
 
-                if memory == 'minimum':
-                    block = TextBlock(text=name, meta=False)
-                    channel_name_address = tell()
-                    write(bytes(block))
-
-                    if signal.unit:
-                        block = TextBlock(text=signal.unit, meta=False)
-                        channel_unit_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_unit_address = 0
-
-                    if signal.comment:
-                        meta = signal.comment.startswith('<CNcomment')
-                        block = TextBlock(text=signal.comment, meta=meta)
-                        channel_comment_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_comment_address = 0
-
-                if memory == 'minimum':
-                    name_addr = channel_name_address
-                    unit_addr = channel_unit_address
-                    comment_addr = channel_comment_address
-                else:
-                    name_addr = 0
-                    unit_addr = 0
-                    comment_addr = 0
-
                 # add channel block
                 min_val, max_val = get_min_max(samples)
                 kargs = {
@@ -1938,9 +1855,6 @@ class MDF4(object):
                     'max_raw_value': max_val if min_val <= max_val else 0,
                     'lower_limit': min_val if min_val <= max_val else 0,
                     'upper_limit': max_val if min_val <= max_val else 0,
-                    'name_addr': name_addr,
-                    'unit_addr': unit_addr,
-                    'comment_addr': comment_addr,
                     'precision': 255,
                 }
                 if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
@@ -1949,18 +1863,17 @@ class MDF4(object):
                     kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
                 if attachment_addr:
                     kargs['flags'] |= v4c.FLAG_CN_BUS_EVENT
+
                 ch = Channel(**kargs)
+                ch.name = name
+
                 if memory != 'minimum':
-                    ch.name = name
-                    ch.unit = signal.unit
-                    ch.comment = signal.comment
                     gp_channels.append(ch)
                     dep_list.append(ch)
                 else:
-                    address = tell()
-                    write(bytes(ch))
-                    gp_channels.append(address)
-                    dep_list.append(address)
+                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    gp_channels.append(ch.address)
+                    dep_list.append(ch.address)
 
                 offset += byte_size
 
@@ -1994,7 +1907,7 @@ class MDF4(object):
                 )
                 offset, dg_cntr, ch_cntr, sub_structure, new_fields, new_types = self._append_structure_composition(
                     grp, struct, field_names, offset, dg_cntr, ch_cntr,
-                    parents,
+                    parents, defined_texts, cc_map, si_map,
                 )
                 dep_list.append(sub_structure)
                 fields.extend(new_fields)
@@ -2398,6 +2311,10 @@ class MDF4(object):
         offset = 0
         field_names = set()
 
+        defined_texts = {}
+        si_map = {}
+        cc_map = {}
+
         # setup all blocks related to the time master channel
 
         memory = self.memory
@@ -2423,38 +2340,8 @@ class MDF4(object):
             time_name, sync_type = 'Time', v4c.SYNC_TYPE_TIME
             time_unit = 's'
 
-        if memory == 'minimum':
-            block = TextBlock(text=time_name, meta=False)
-            channel_name_addr = tell()
-            write(bytes(block))
-
-        if memory == 'minimum':
-            block = TextBlock(text=time_unit, meta=False)
-            channel_unit_addr = tell()
-            write(bytes(block))
-
-        if memory == 'minimum':
-            block = TextBlock(text=source_info, meta=False)
-            source_text_address = tell()
-            write(bytes(block))
-        else:
-            source_text_address = 0
-
-        source_block = SourceInformation(
-            name_addr=source_text_address,
-            path_addr=source_text_address,
-        )
+        source_block = SourceInformation()
         source_block.name = source_block.path = source_info
-
-        source_info_address = tell()
-        write(bytes(source_block))
-
-        if memory == 'minimum':
-            name_addr = channel_name_addr
-            unit_addr = channel_unit_addr
-        else:
-            name_addr = 0
-            unit_addr = 0
 
         # time channel
         t_type, t_size = fmt_to_datatype_v4(
@@ -2473,19 +2360,16 @@ class MDF4(object):
             'lower_limit': t[0] if cycles_nr else 0,
             'upper_limit': t[-1] if cycles_nr else 0,
             'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
-            'name_addr': name_addr,
-            'unit_addr': unit_addr,
         }
         ch = Channel(**kargs)
+        ch.unit = time_unit
+        ch.name = time_name
+        ch.source = source_block
         name = time_name
         if memory == 'minimum':
-            address = tell()
-            write(bytes(ch))
-            gp_channels.append(address)
+            ch.to_stream(file, defined_texts, cc_map, si_map)
+            gp_channels.append(ch.address)
         else:
-            ch.name = name
-            ch.unit = time_unit
-            ch.source = source_block
             gp_channels.append(ch)
 
         gp_sdata.append(None)
@@ -2541,39 +2425,6 @@ class MDF4(object):
             # first add the signals in the simple signal list
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
-                if memory == 'minimum':
-                    block = TextBlock(text=name, meta=False)
-                    channel_name_address = tell()
-                    write(bytes(block))
-
-                    if signal.unit:
-                        block = TextBlock(
-                            text=signal.unit,
-                            meta=False,
-                        )
-
-                        channel_unit_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_unit_address = 0
-
-                    if signal.comment:
-                        meta = signal.comment.startswith('<CNcomment')
-                        block = TextBlock(text=signal.comment, meta=meta)
-                        channel_comment_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_comment_address = 0
-
-                if memory == 'minimum':
-                    name_addr = channel_name_address
-                    unit_addr = channel_unit_address
-                    comment_addr = channel_comment_address
-                else:
-                    name_addr = 0
-                    unit_addr = 0
-                    comment_addr = 0
-
                 # compute additional byte offset for large records size
                 s_type, s_size = fmt_to_datatype_v4(
                     signal.samples.dtype,
@@ -2592,9 +2443,6 @@ class MDF4(object):
                     'max_raw_value': max_val if min_val <= max_val else 0,
                     'lower_limit': min_val if min_val <= max_val else 0,
                     'upper_limit': max_val if min_val <= max_val else 0,
-                    'name_addr': name_addr,
-                    'unit_addr': unit_addr,
-                    'comment_addr': comment_addr,
                 }
 
                 if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
@@ -2602,65 +2450,34 @@ class MDF4(object):
                 else:
                     kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
                 ch = Channel(**kargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
 
                 # conversions for channel
                 conversion = conversion_transfer(signal.conversion, version=4)
                 if signal.raw:
-                    if memory == 'minimum':
-                        if conversion:
-                            temp = dict(conversion)
-                            write_cc(conversion, defined_texts={}, stream=self._tempfile)
-                            address = tell()
-                            write(bytes(conversion))
-                            conversion.update(temp)
-                            ch['conversion_addr'] = address
-                    else:
-                        ch.conversion = conversion
+                    ch.conversion = conversion
 
                 # source for channel
                 if signal.source:
                     source = signal.source
-                    kargs = {
-                        'source_type': source.source_type,
-                        'bus_type': source.bus_type,
-                    }
-                    if memory == 'minimum':
-                        if source.name:
-                            tx_block = TextBlock(text=source.name)
-                            kargs['name_addr'] = tell()
-                            write(bytes(tx_block))
-                        if source.path:
-                            tx_block = TextBlock(text=source.path)
-                            kargs['path_addr'] = tell()
-                            write(bytes(tx_block))
-                        if source.comment:
-                            meta = source.comment.startswith('<SIcomment')
-                            tx_block = TextBlock(text=source.comment, meta=meta)
-                            kargs['comment_addr'] = tell()
-                            write(bytes(tx_block))
-
-                    new_source = SourceInformation(**kargs)
+                    new_source = SourceInformation(
+                        source_type=signal.source.source_type,
+                        bus_type=signal.source.bus_type,
+                    )
                     new_source.name = source.name
                     new_source.path = source.path
                     new_source.comment = source.comment
 
-                    if memory == 'minimum':
-                        addr = tell()
-                        write(bytes(new_source))
-                        ch['source_addr'] = addr
-                    else:
-                        ch.source = new_source
+                    ch.source = new_source
 
                 if memory != 'minimum':
-                    ch.name = name
-                    ch.unit = signal.unit
-                    ch.comment = signal.comment
-                    ch.display_name = signal.display_name
                     gp_channels.append(ch)
                 else:
-                    address = tell()
-                    write(bytes(ch))
-                    gp_channels.append(address)
+                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    gp_channels.append(ch.address)
 
                 offset += byte_size
 
@@ -2701,39 +2518,6 @@ class MDF4(object):
                 gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRING:
-                if memory == 'minimum':
-                    block = TextBlock(text=name, meta=False)
-                    channel_name_address = tell()
-                    write(bytes(block))
-
-                    if signal.unit:
-                        block = TextBlock(
-                            text=signal.unit,
-                            meta=False,
-                        )
-
-                        channel_unit_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_unit_address = 0
-
-                    if signal.comment:
-                        meta = signal.comment.startswith('<CNcomment')
-                        block = TextBlock(text=signal.comment, meta=meta)
-                        channel_comment_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_comment_address = 0
-
-                if memory == 'minimum':
-                    name_addr = channel_name_address
-                    unit_addr = channel_unit_address
-                    comment_addr = channel_comment_address
-                else:
-                    name_addr = 0
-                    unit_addr = 0
-                    comment_addr = 0
-
                 offsets = arange(
                     len(signal),
                     dtype=uint64,
@@ -2777,72 +2561,38 @@ class MDF4(object):
                     'max_raw_value': 0,
                     'lower_limit': 0,
                     'upper_limit': 0,
-                    'name_addr': name_addr,
-                    'unit_addr': unit_addr,
-                    'comment_addr': comment_addr,
                     'flags': 0,
                     'data_block_addr': data_addr,
                 }
                 ch = Channel(**kargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
 
                 # conversions for channel
                 conversion = conversion_transfer(signal.conversion, version=4)
                 if signal.raw:
-                    if memory == 'minimum':
-                        if conversion:
-                            temp = dict(conversion)
-                            write_cc(conversion, defined_texts={}, stream=self._tempfile)
-                            address = tell()
-                            write(bytes(conversion))
-                            conversion.update(temp)
-                            ch['conversion_addr'] = address
-                    else:
-                        ch.conversion = conversion
+                    ch.conversion = conversion
 
                 # source for channel
                 if signal.source:
                     source = signal.source
-                    kargs = {
-                        'source_type': source.source_type,
-                        'bus_type': source.bus_type,
-                    }
-                    if memory == 'minimum':
-                        if source.name:
-                            tx_block = TextBlock(text=source.name)
-                            kargs['name_addr'] = tell()
-                            write(bytes(tx_block))
-                        if source.path:
-                            tx_block = TextBlock(text=source.path)
-                            kargs['path_addr'] = tell()
-                            write(bytes(tx_block))
-                        if source.comment:
-                            meta = source.comment.startswith('<SIcomment')
-                            tx_block = TextBlock(text=source.comment, meta=meta)
-                            kargs['comment_addr'] = tell()
-                            write(bytes(tx_block))
-
-                    new_source = SourceInformation(**kargs)
+                    new_source = SourceInformation(
+                        source_type=signal.source.source_type,
+                        bus_type=signal.source.bus_type,
+                    )
                     new_source.name = source.name
                     new_source.path = source.path
                     new_source.comment = source.comment
 
-                    if memory == 'minimum':
-                        addr = tell()
-                        write(bytes(new_source))
-                        ch['source_addr'] = addr
-                    else:
-                        ch.source = new_source
+                    ch.source = new_source
 
                 if memory != 'minimum':
-                    ch.name = name
-                    ch.unit = signal.unit
-                    ch.comment = signal.comment
-                    ch.display_name = signal.display_name
                     gp_channels.append(ch)
                 else:
-                    address = tell()
-                    write(bytes(ch))
-                    gp_channels.append(address)
+                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    gp_channels.append(ch.address)
 
                 offset += byte_size
 
@@ -2905,39 +2655,8 @@ class MDF4(object):
 
                 s_size = byte_size << 3
 
-                if memory == 'minimum':
-                    block = TextBlock(text=name, meta=False)
-                    channel_name_address = tell()
-                    write(bytes(block))
-                    if signal.unit:
-                        block = TextBlock(
-                            text=signal.unit,
-                            meta=False,
-                        )
-                        channel_unit_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_unit_address = 0
-
-                    if signal.comment:
-                        meta = signal.comment.startswith('<CNcomment')
-                        block = TextBlock(text=signal.comment, meta=meta)
-                        channel_comment_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_comment_address = 0
-
                 # there is no channel dependency
                 gp_dep.append(None)
-
-                if memory == 'minimum':
-                    name_addr = channel_name_address
-                    unit_addr = channel_unit_address
-                    comment_addr = channel_comment_address
-                else:
-                    name_addr = 0
-                    unit_addr = 0
-                    comment_addr = 0
 
                 # add channel block
                 kargs = {
@@ -2951,56 +2670,31 @@ class MDF4(object):
                     'lower_limit': 0,
                     'upper_limit': 0,
                     'flags': 0,
-                    'name_addr': name_addr,
-                    'unit_addr': unit_addr,
-                    'comment_addr': comment_addr,
                 }
                 ch = Channel(**kargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
 
                 # source for channel
                 if signal.source:
                     source = signal.source
-                    kargs = {
-                        'source_type': source.source_type,
-                        'bus_type': source.bus_type,
-                    }
-                    if memory == 'minimum':
-                        if source.name:
-                            tx_block = TextBlock(text=source.name)
-                            kargs['name_addr'] = tell()
-                            write(bytes(tx_block))
-                        if source.path:
-                            tx_block = TextBlock(text=source.path)
-                            kargs['path_addr'] = tell()
-                            write(bytes(tx_block))
-                        if source.comment:
-                            meta = source.comment.startswith('<SIcomment')
-                            tx_block = TextBlock(text=source.comment, meta=meta)
-                            kargs['comment_addr'] = tell()
-                            write(bytes(tx_block))
-
-                    new_source = SourceInformation(**kargs)
+                    new_source = SourceInformation(
+                        source_type=signal.source.source_type,
+                        bus_type=signal.source.bus_type,
+                    )
                     new_source.name = source.name
                     new_source.path = source.path
                     new_source.comment = source.comment
 
-                    if memory == 'minimum':
-                        addr = tell()
-                        write(bytes(new_source))
-                        ch['source_addr'] = addr
-                    else:
-                        ch.source = new_source
+                    ch.source = new_source
 
                 if memory != 'minimum':
-                    ch.name = name
-                    ch.unit = signal.unit
-                    ch.comment = signal.comment
-                    ch.display_name = signal.display_name
                     gp_channels.append(ch)
                 else:
-                    address = tell()
-                    write(bytes(ch))
-                    gp_channels.append(address)
+                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    gp_channels.append(ch.address)
 
                 offset += byte_size
 
@@ -3036,11 +2730,9 @@ class MDF4(object):
                 offset, dg_cntr, ch_cntr, struct_self, new_fields, new_types = self._append_structure_composition(
                     gp, signal, field_names,
                     offset, dg_cntr, ch_cntr,
-                    parents)
+                    parents, defined_texts, cc_map, si_map)
                 fields.extend(new_fields)
                 types.extend(new_types)
-
-
 
             else:
                 # here we have channel arrays or mdf v3 channel dependencies
@@ -3105,36 +2797,6 @@ class MDF4(object):
                 types.append(dtype_pair)
 
                 # first we add the structure channel
-
-                if memory == 'minimum':
-                    block = TextBlock(text=name, meta=False)
-                    channel_name_address = tell()
-                    write(bytes(block))
-
-                    if signal.unit:
-                        block = TextBlock(text=signal.unit, meta=False)
-                        channel_unit_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_unit_address = 0
-
-                    if signal.comment:
-                        meta = signal.comment.startswith('<CNcomment')
-                        block = TextBlock(text=signal.comment, meta=meta)
-                        channel_comment_address = tell()
-                        write(bytes(block))
-                    else:
-                        channel_comment_address = 0
-
-                if memory == 'minimum':
-                    name_addr = channel_name_address
-                    unit_addr = channel_unit_address
-                    comment_addr = channel_comment_address
-                else:
-                    name_addr = 0
-                    unit_addr = 0
-                    comment_addr = 0
-
                 s_type, s_size = fmt_to_datatype_v4(
                     samples.dtype,
                     samples.shape,
@@ -3153,56 +2815,31 @@ class MDF4(object):
                     'lower_limit': 0,
                     'upper_limit': 0,
                     'flags': 0,
-                    'name_addr': name_addr,
-                    'unit_addr': unit_addr,
-                    'comment_addr': comment_addr,
                 }
                 ch = Channel(**kargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
 
                 # source for channel
                 if signal.source:
                     source = signal.source
-                    kargs = {
-                        'source_type': source.source_type,
-                        'bus_type': source.bus_type,
-                    }
-                    if memory == 'minimum':
-                        if source.name:
-                            tx_block = TextBlock(text=source.name)
-                            kargs['name_addr'] = tell()
-                            write(bytes(tx_block))
-                        if source.path:
-                            tx_block = TextBlock(text=source.path)
-                            kargs['path_addr'] = tell()
-                            write(bytes(tx_block))
-                        if source.comment:
-                            meta = source.comment.startswith('<SIcomment')
-                            tx_block = TextBlock(text=source.comment, meta=meta)
-                            kargs['comment_addr'] = tell()
-                            write(bytes(tx_block))
-
-                    new_source = SourceInformation(**kargs)
+                    new_source = SourceInformation(
+                        source_type=signal.source.source_type,
+                        bus_type=signal.source.bus_type,
+                    )
                     new_source.name = source.name
                     new_source.path = source.path
                     new_source.comment = source.comment
 
-                    if memory == 'minimum':
-                        addr = tell()
-                        write(bytes(new_source))
-                        ch['source_addr'] = addr
-                    else:
-                        ch.source = new_source
+                    ch.source = new_source
 
                 if memory != 'minimum':
-                    ch.name = name
-                    ch.unit = signal.unit
-                    ch.comment = signal.comment
-                    ch.display_name = signal.display_name
                     gp_channels.append(ch)
                 else:
-                    address = tell()
-                    write(bytes(ch))
-                    gp_channels.append(address)
+                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    gp_channels.append(ch.address)
 
                 size = s_size >> 3
                 for dim in shape:
@@ -3239,35 +2876,6 @@ class MDF4(object):
                     fields.append(samples)
                     types.append((field_name, samples.dtype, shape))
 
-                    if memory == 'minimum':
-                        block = TextBlock(text=name, meta=False)
-                        channel_name_address = tell()
-                        write(bytes(block))
-
-                        if signal.unit:
-                            block = TextBlock(text=signal.unit, meta=False)
-                            channel_unit_address = tell()
-                            write(bytes(block))
-                        else:
-                            channel_unit_address = 0
-
-                        if signal.comment:
-                            meta = signal.comment.startswith('<CNcomment')
-                            block = TextBlock(text=signal.comment, meta=meta)
-                            channel_comment_address = tell()
-                            write(bytes(block))
-                        else:
-                            channel_comment_address = 0
-
-                    if memory == 'minimum':
-                        name_addr = channel_name_address
-                        unit_addr = channel_unit_address
-                        comment_addr = channel_comment_address
-                    else:
-                        name_addr = 0
-                        unit_addr = 0
-                        comment_addr = 0
-
                     # add channel dependency block
                     kargs = {
                         'dims': 1,
@@ -3297,22 +2905,19 @@ class MDF4(object):
                         'lower_limit': min_val if min_val <= max_val else 0,
                         'upper_limit': max_val if min_val <= max_val else 0,
                         'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
-                        'name_addr': name_addr,
-                        'unit_addr': unit_addr,
-                        'comment_addr': comment_addr,
                     }
 
                     ch = Channel(**kargs)
+                    ch.name = name
+                    ch.unit = signal.unit
+                    ch.comment = signal.comment
+                    ch.display_name = signal.display_name
+
                     if memory != 'minimum':
-                        ch.name = name
-                        ch.unit = signal.unit
-                        ch.comment = signal.comment
                         gp_channels.append(ch)
                     else:
-
-                        address = tell()
-                        write(bytes(ch))
-                        gp_channels.append(address)
+                        ch.to_stream(file, defined_texts, cc_map, si_map)
+                        gp_channels.append(ch.address)
 
                     parent_dep.referenced_channels.append((ch_cntr, dg_cntr))
                     for dim in shape:

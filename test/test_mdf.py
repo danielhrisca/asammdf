@@ -245,6 +245,7 @@ class TestMDF(unittest.TestCase):
                                         vals,
                                         target):
                                     equal = False
+                                    1/0
 
                         elif i == 1:
 
@@ -271,6 +272,7 @@ class TestMDF(unittest.TestCase):
                                         vals,
                                         target):
                                     equal = False
+                                    1 / 0
 
                         elif i == 2:
 
@@ -309,6 +311,9 @@ class TestMDF(unittest.TestCase):
                                         vals,
                                         target):
                                     equal = False
+                                    print(target)
+                                    print(vals)
+                                    1 / 0
 
                 self.assertTrue(equal)
         cleanup_files()
