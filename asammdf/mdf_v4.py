@@ -3810,6 +3810,9 @@ class MDF4(object):
             channel.name = name
             channel.comment = signal.comment or ''
 
+        data_type = channel['data_type']
+        channel_type = channel['channel_type']
+
         # check if this is a channel array
         if dependency_list:
             arrays = []
@@ -4336,7 +4339,14 @@ class MDF4(object):
                         vals = array(vals, dtype=bool)
                     else:
                         data_type = channel['data_type']
-                        channel_dtype = array([], dtype=get_fmt_v4(data_type, bits))
+                        channel_dtype = array(
+                            [],
+                            dtype=get_fmt_v4(
+                                data_type,
+                                bits,
+                                channel_type,
+                            ),
+                        )
                         if vals.dtype != channel_dtype.dtype:
                             vals = vals.astype(channel_dtype.dtype)
 
@@ -4405,9 +4415,6 @@ class MDF4(object):
                     v4c.CONVERSION_TYPE_NON,
                     v4c.CONVERSION_TYPE_TRANS,
                     v4c.CONVERSION_TYPE_TTAB):
-
-                data_type = channel['data_type']
-                channel_type = channel['channel_type']
 
                 if channel_type == v4c.CHANNEL_TYPE_VLSD:
                     if signal_data:
