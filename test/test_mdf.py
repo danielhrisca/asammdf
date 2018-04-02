@@ -629,13 +629,13 @@ class TestMDF(unittest.TestCase):
 
                     outfile1 = MDF(input_file, memory=memory)
                     outfile1.configure(read_fragment_size=8000)
-                    outfile1 = outfile1.cut(stop=105, whence=whence).save('tmp1', overwrite=True)
+                    outfile1 = outfile1.cut(stop=105.5, whence=whence).save('tmp1', overwrite=True)
                     outfile2 = MDF(input_file, memory=memory)
                     outfile2.configure(read_fragment_size=8000)
-                    outfile2 = outfile2.cut(start=105, stop=201, whence=whence).save('tmp2', overwrite=True)
+                    outfile2 = outfile2.cut(start=105.5, stop=201.5, whence=whence).save('tmp2', overwrite=True)
                     outfile3 = MDF(input_file, memory=memory)
                     outfile3.configure(read_fragment_size=8000)
-                    outfile3 = outfile3.cut(start=201, whence=whence).save('tmp3', overwrite=True)
+                    outfile3 = outfile3.cut(start=201.5, whence=whence).save('tmp3', overwrite=True)
 
                     outfile = MDF.concatenate(
                         [outfile1, outfile2, outfile3],
@@ -645,7 +645,7 @@ class TestMDF(unittest.TestCase):
 
                     equal = True
 
-                    with MDF(input_file, memory=memory) as mdf:
+                    with MDF(outfile, memory=memory) as mdf:
                         mdf.configure(read_fragment_size=8000)
 
                         for i, group in enumerate(mdf.groups):
@@ -677,6 +677,8 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             target):
                                         equal = False
+                                        print(i,j,len(target), len(vals), vals, target, sep='\n\n')
+                                        1/0
 
                             elif i == 1:
 
@@ -703,6 +705,7 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             target):
                                         equal = False
+                                        1 / 0
 
                             elif i == 2:
 
@@ -741,6 +744,7 @@ class TestMDF(unittest.TestCase):
                                             vals,
                                             target):
                                         equal = False
+                                        1 / 0
 
                 self.assertTrue(equal)
         cleanup_files()
