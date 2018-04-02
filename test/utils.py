@@ -1931,3 +1931,7 @@ def cleanup_files():
     for filename in os.listdir(os.getcwd()):
         if os.path.isfile(filename) and filename.startswith('tmp'):
             os.remove(filename)
+
+if __name__ == '__main__':
+    generate_test_file('3.30')
+    generate_test_file('4.10')

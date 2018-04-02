@@ -221,7 +221,7 @@ class Signal(object):
             else:
                 plt.title(name)
             try:
-                if self.master_metadata is None:
+                if not self.master_metadata:
                     plt.xlabel('Time [s]')
                     plt.ylabel('[{}]'.format(self.unit))
                     plt.plot(self.timestamps, self.samples, 'b')
@@ -244,6 +244,8 @@ class Signal(object):
                     plt.grid(True)
                     plt.show()
             except ValueError:
+                raise
+                print('NU POT')
                 plt.close(fig)
         else:
             try:

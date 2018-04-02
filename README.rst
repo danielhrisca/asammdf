@@ -71,15 +71,16 @@ Major features not implemented (yet)
 
 * for version 3
 
-    * functionality related to sample reduction block (but the class is defined)
+    * functionality related to sample reduction block
     
 * for version 4
 
+    * functionality related to sample reduction block
     * handling of channel hierarchy
     * full handling of bus logging measurements
     * handling of unfinished measurements (mdf 4)
     * full support for remaining mdf 4 channel arrays types
-    * xml schema for TXBLOCK and MDBLOCK
+    * xml schema for MDBLOCK
     * full handling of event blocks
     * channels with default X axis
     * chanenls with reference to attachment
