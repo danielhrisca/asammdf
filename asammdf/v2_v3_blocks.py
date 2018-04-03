@@ -1686,12 +1686,13 @@ class HeaderBlock(dict):
         block address inside mdf file; should be 64 always
 
     '''
-    __slots__ = ['address', ]
+    __slots__ = ['address', 'program']
 
     def __init__(self, **kargs):
         super(HeaderBlock, self).__init__()
 
         self.address = 64
+        self.program = None
         try:
 
             stream = kargs['stream']
@@ -1725,6 +1726,12 @@ class HeaderBlock(dict):
             if self['id'] != b'HD':
                 message = 'Expected "HD" block but found "{}"'
                 raise MdfException(message.format(self['id']))
+
+            if self['program_addr']:
+                self.program = ProgramBlock(
+                    address=self['program_addr'],
+                    stream=stream,
+                )
 
         except KeyError:
             version = kargs.get('version', '3.20')

@@ -1935,3 +1935,4 @@ def cleanup_files():
 if __name__ == '__main__':
     generate_test_file('3.30')
     generate_test_file('4.10')
+    generate_arrays_test_file()
