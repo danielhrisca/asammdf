@@ -111,15 +111,15 @@ Usage
 
  
 Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/development/examples.html
+http://asammdf.readthedocs.io/en/master/examples.html
 
 Documentation
 =============
-http://asammdf.readthedocs.io/en/development
+http://asammdf.readthedocs.io/en/master
 
 Contributing
 ============
-Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/development/CONTRIBUTING.md)
+Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md)
 
 Contributors
 ------------
@@ -171,7 +171,7 @@ other optional dependencies
 Benchmarks
 ==========
 
-Graphical results can be seen here at http://asammdf.readthedocs.io/en/development/benchmarks.html
+Graphical results can be seen here at http://asammdf.readthedocs.io/en/master/benchmarks.html
 
 
 Python 3 x64
@@ -297,7 +297,7 @@ mdfreader 2.7.5 compress mdfv4                         20600     1309
 .. |Codacy Badge| image:: https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=development
    :target: https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger
 .. |Docs Status| image:: http://readthedocs.org/projects/asammdf/badge/?version=development
-   :target: http://asammdf.readthedocs.io/en/development/?badge=stable
+   :target: http://asammdf.readthedocs.io/en/master/?badge=stable
 .. |PyPI version| image:: https://badge.fury.io/py/asammdf.svg
    :target: https://badge.fury.io/py/asammdf
 .. |conda-forge version| image:: https://anaconda.org/conda-forge/asammdf/badges/version.svg
