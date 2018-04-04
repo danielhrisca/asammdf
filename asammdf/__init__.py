@@ -11,9 +11,6 @@ from .version import __version__
 __all__ = [
     '__version__',
     'MDF',
-    'MDF2',
-    'MDF3',
-    'MDF4',
     'Signal',
     'SUPPORTED_VERSIONS',
 ]
