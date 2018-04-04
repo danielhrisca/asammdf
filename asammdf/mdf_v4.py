@@ -455,7 +455,6 @@ class MDF4(object):
                                         message_id = int(e.text)
 
                                 if message_id > 0x80000000:
-                                    m = message_id
                                     message_id -= 0x80000000
                                 grp['can_id'] = can_id
                                 grp['message_name'] = message_name
@@ -3427,9 +3426,6 @@ class MDF4(object):
             os.chdir(current_path)
             message = 'Exception during attachment extraction: ' + repr(err)
             warnings.warn(message)
-            print('ATTACHMENT block:')
-            print(attachment)
-            print(file_path, os.path.exists(file_path))
             return b'', file_path
 
     def get_channel_unit(self, name=None, group=None, index=None):
