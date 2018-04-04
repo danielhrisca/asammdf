@@ -454,7 +454,7 @@ class MDF4(object):
                             else:
                                 warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
                                 channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
-                        except ET.ParseError as e:
+                        except ET.ParseError:
                             channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                 else:
 
