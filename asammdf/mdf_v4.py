@@ -427,12 +427,14 @@ class MDF4(object):
                             # signals to new groups (one group per CAN message)
                             grp['raw_can'] = True
                             channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                            channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
 
                         elif message_name in (
                                 'CAN_ErrorFrame',
                                 'CAN_RemoteFrame'):
                             # for now ignore bus logging flag
                             channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                            channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
                         elif message_name.startswith('CAN_DataFrame'):
                             comment = channel_group.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
                             comment_xml = ET.fromstring(comment)
@@ -462,11 +464,14 @@ class MDF4(object):
                             else:
                                 warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
                                 channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                                channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
                         else:
                             channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                            channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
                     else:
                         # only CAN bus logging is supported
                         channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                        channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
                 else:
 
                     samples_size = channel_group['samples_byte_nr']
