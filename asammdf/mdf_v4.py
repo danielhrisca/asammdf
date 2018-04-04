@@ -924,7 +924,9 @@ class MDF4(object):
 
             channels.append(value)
             if channel_composition:
-                composition.append(value)
+                composition.append(
+                    (ch_cntr, dg_cntr)
+                )
 
             if display_name:
                 if display_name not in self.channels_db:
@@ -1718,8 +1720,6 @@ class MDF4(object):
 
         memory = self.memory
         file = self._tempfile
-        write = file.write
-        tell = file.tell
         seek = file.seek
         seek(0, 2)
 
@@ -1785,11 +1785,11 @@ class MDF4(object):
 
         if memory != 'minimum':
             gp_channels.append(ch)
-            struct_self = ch
+            struct_self = ch_cntr, dg_cntr
         else:
             ch.to_stream(file, defined_texts, cc_map, si_map)
             gp_channels.append(ch.address)
-            struct_self = ch.address
+            struct_self = ch_cntr, dg_cntr
 
         gp_sdata.append(None)
         gp_sdata_size.append(0)
@@ -1873,11 +1873,15 @@ class MDF4(object):
 
                 if memory != 'minimum':
                     gp_channels.append(ch)
-                    dep_list.append(ch)
+                    dep_list.append(
+                        (ch_cntr, dg_cntr)
+                    )
                 else:
                     ch.to_stream(file, defined_texts, cc_map, si_map)
                     gp_channels.append(ch.address)
-                    dep_list.append(ch.address)
+                    dep_list.append(
+                        (ch_cntr, dg_cntr)
+                    )
 
                 offset += byte_size
 
@@ -3827,15 +3831,15 @@ class MDF4(object):
                     not isinstance(dep, ChannelArrayBlock)
                     for dep in dependency_list):
                 # structure channel composition
+
                 if memory == 'minimum':
                     names = []
 
-                    for address in dependency_list:
+                    for ch_nr, _ in dependency_list:
+                        address = grp['channels'][ch_nr]
                         channel = Channel(
                             address=address,
                             stream=stream,
-                            cc_map=self._cc_map,
-                            si_map=self._si_map,
                             load_metadata=False,
                         )
 
@@ -3845,23 +3849,24 @@ class MDF4(object):
                         )
                         names.append(name_)
                 else:
-                    # TODO : get exactly the group and channel
-                    # possibly use ch_addr for all memory options
-                    names = [ch.name for ch in dependency_list]
+                    names = [
+                        grp['channels'][ch_nr].name
+                        for ch_nr, _ in dependency_list
+                    ]
 
                 channel_values = [
                     []
-                    for _ in names
+                    for _ in dependency_list
                 ]
                 timestamps = []
                 valid_indexes = []
 
                 count = 0
                 for fragment in data:
-                    for i, name_ in enumerate(names):
+                    for i, (ch_nr, dg_nr) in enumerate(dependency_list):
                         vals = self.get(
-                            name_,
-                            group=gp_nr,
+                            group=dg_nr,
+                            index=ch_nr,
                             samples_only=True,
                             raw=raw,
                             data=fragment,
@@ -5238,7 +5243,12 @@ class MDF4(object):
                         channel['data_block_addr'] = 0
 
                     if gp['channel_dependencies'][j]:
-                        addr_ = gp['channel_dependencies'][j][0].address
+                        dep = gp['channel_dependencies'][j][0]
+                        if isinstance(dep, tuple):
+                            index = dep[0]
+                            addr_ = gp['channels'][index].address
+                        else:
+                            addr_ = dep.address
                         channel['component_addr'] = addr_
 
                 group_channels = gp['channels']
@@ -5252,13 +5262,15 @@ class MDF4(object):
                 while j >= 0:
                     dep_list = gp['channel_dependencies'][j]
                     if dep_list and all(
-                            isinstance(dep, Channel) for dep in dep_list):
-                        gp['channels'][j]['component_addr'] = dep_list[0].address
-                        gp['channels'][j]['next_ch_addr'] = dep_list[-1]['next_ch_addr']
-                        dep_list[-1]['next_ch_addr'] = 0
+                            isinstance(dep, tuple) for dep in dep_list):
+                        index = dep_list[0][0]
+                        gp['channels'][j]['component_addr'] = gp['channels'][index].address
+                        index = dep_list[-1][0]
+                        gp['channels'][j]['next_ch_addr'] = gp['channels'][index]['next_ch_addr']
+                        gp['channels'][index]['next_ch_addr'] = 0
 
-                        for dep in dep_list:
-                            dep['source_addr'] = 0
+                        for ch_nr, _ in dep_list:
+                            gp['channels'][ch_nr]['source_addr'] = 0
                     j -= 1
 
                 # channel group

@@ -464,9 +464,9 @@ class MDF(object):
                     continue
                 if all(not isinstance(dep, ChannelArrayBlock)
                        for dep in dependencies):
-                    for channel in dependencies:
+                    for ch_nr, _ in dependencies:
                         try:
-                            included_channels.remove(channels.index(channel))
+                            included_channels.remove(ch_nr)
                         except KeyError:
                             pass
                 else:

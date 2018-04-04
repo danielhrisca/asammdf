@@ -65,6 +65,7 @@ from .v2_v3_blocks import (
     DataGroup,
     FileIdentificationBlock,
     HeaderBlock,
+    ProgramBlock,
     TextBlock,
     TriggerBlock,
 )
@@ -3800,6 +3801,13 @@ class MDF3(object):
             write(bytes(self.header))
             address += self.header['block_len']
 
+            if self.header.program:
+                write(bytes(self.header.program))
+                self.header['program_addr'] = address
+                address += self.header.program['block_len']
+            else:
+                self.header['program_addr'] = 0
+
             self.file_history.address = address
             write(bytes(self.file_history))
             address += self.file_history['block_len']
@@ -4023,7 +4031,6 @@ class MDF3(object):
                 self.header['first_dg_addr'] = address
                 self.header['dg_nr'] = len(self.groups)
                 self.header['comment_addr'] = self.file_history.address
-                self.header['program_addr'] = 0
 
             for block in blocks:
                 write(bytes(block))
@@ -4143,6 +4150,13 @@ class MDF3(object):
             write(bytes(self.identification))
 
             write(bytes(self.header))
+
+            if self.header.program:
+                address = tell()
+                write(bytes(self.header.program))
+                self.header['program_addr'] = address
+            else:
+                self.header['program_addr'] = 0
 
             address = tell()
             self.file_history.address = address
@@ -4386,7 +4400,6 @@ class MDF3(object):
                 self.header['first_dg_addr'] = address
                 self.header['dg_nr'] = len(self.groups)
                 self.header['comment_addr'] = self.file_history.address
-                self.header['program_addr'] = 0
 
             # update referenced channels addresses in the channel dependecies
             for gp in self.groups:
