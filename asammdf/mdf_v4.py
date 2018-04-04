@@ -1015,6 +1015,7 @@ class MDF4(object):
                                             attachment_string,
                                             importType=import_type,
                                             key='db',
+                                            encoding=encoding,
                                         )['db']
                                     except ImportError:
                                         warnings.warn((
@@ -4471,27 +4472,43 @@ class MDF4(object):
                                 signal_data[offset + 4: offset + 4 + str_size]
                             )
 
-                        vals = array(values)
-
-                        if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                            encoding = 'utf-16-be'
-
-                        elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                            encoding = 'utf-16-le'
-
-                        elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                            encoding = 'utf-8'
-
-                        elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                            encoding = 'latin-1'
-
-                        if encoding != 'latin-1':
-
-                            if encoding == 'utf-16-le':
-                                vals = vals.view(uint16).byteswap().view(vals.dtype)
-                                vals = encode(decode(vals, 'utf-16-be'), 'latin-1')
+                        if data_type == v4c.DATA_TYPE_BYTEARRAY:
+                            if PYVERSION >= 3:
+                                values = [
+                                    list(val)
+                                    for val in values
+                                ]
                             else:
-                                vals = encode(decode(vals, encoding), 'latin-1')
+                                values = [
+                                    [ord(byte) for byte in val]
+                                    for val in values
+                                ]
+
+                            vals = array(values, dtype=uint8)
+
+                        else:
+
+                            vals = array(values)
+
+                            if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                                encoding = 'utf-16-be'
+
+                            elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                                encoding = 'utf-16-le'
+
+                            elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                                encoding = 'utf-8'
+
+                            elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                                encoding = 'latin-1'
+
+                            if encoding != 'latin-1':
+
+                                if encoding == 'utf-16-le':
+                                    vals = vals.view(uint16).byteswap().view(vals.dtype)
+                                    vals = encode(decode(vals, 'utf-16-be'), 'latin-1')
+                                else:
+                                    vals = encode(decode(vals, encoding), 'latin-1')
                     else:
                         # no VLSD signal data samples
                         vals = array([], dtype=dtype('S'))

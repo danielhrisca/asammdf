@@ -381,7 +381,13 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
             size = size // 8
 
             if data_type == v4c.DATA_TYPE_BYTEARRAY:
-                fmt = '({},)u1'.format(size)
+                if channel_type == v4c.CHANNEL_TYPE_VALUE:
+                    fmt = '({},)u1'.format(size)
+                else:
+                    if size == 4:
+                        fmt = '<u4'
+                    elif size == 8:
+                        fmt = '<u8'
 
             elif data_type in (
                     v4c.DATA_TYPE_STRING_UTF_8,
