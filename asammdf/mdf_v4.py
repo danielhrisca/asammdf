@@ -417,41 +417,56 @@ class MDF4(object):
                     record_id = channel_group['record_id']
                     cg_size[record_id] = 0
                 elif channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
-                    message_name = channel_group.acq_name
+                    bus_type = channel_group.acq_source['bus_type']
+                    if bus_type == v4c.BUS_TYPE_CAN:
+                        message_name = channel_group.acq_name
 
-                    if message_name == 'CAN_DataFrame':
-                        # this is a raw CAN bus logging channel group
-                        # it will be later processed to extract all
-                        # signals to new groups (one group per CAN message)
-                        grp['raw_can'] = True
-                        channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
-
-                    elif message_name in (
-                            'CAN_ErrorFrame',
-                            'CAN_RemoteFrame'):
-                        # for now ignore bus logging flag
-                        channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
-                    else:
-                        comment = channel_group.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
-                        comment_xml = ET.fromstring(comment)
-                        can_msg_type = comment_xml.find('.//TX').text.strip(' \t\r\n')
-                        if can_msg_type == 'CAN_DataFrame':
-                            common_properties = comment_xml.find(".//common_properties")
-                            can_id = 1
-                            message_id = -1
-                            for e in common_properties:
-                                name = e.get('name')
-                                if name == 'MessageID':
-                                    if e.get('ci') is not None:
-                                        can_id = int(e.get('ci'))
-                                    message_id = int(e.text)
-                            grp['can_id'] = can_id
-                            grp['message_name'] = message_name
-                            grp['message_id'] = message_id
-
-                        else:
-                            warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
+                        if message_name == 'CAN_DataFrame':
+                            # this is a raw CAN bus logging channel group
+                            # it will be later processed to extract all
+                            # signals to new groups (one group per CAN message)
+                            grp['raw_can'] = True
                             channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+
+                        elif message_name in (
+                                'CAN_ErrorFrame',
+                                'CAN_RemoteFrame'):
+                            # for now ignore bus logging flag
+                            channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                        elif message_name.startswith('CAN_DataFrame'):
+                            comment = channel_group.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
+                            comment_xml = ET.fromstring(comment)
+                            can_msg_type = comment_xml.find('.//TX').text
+                            if can_msg_type is not None:
+                                can_msg_type = can_msg_type.strip(' \t\r\n')
+                            else:
+                                can_msg_type = 'CAN_DataFrame'
+                            if can_msg_type == 'CAN_DataFrame':
+                                common_properties = comment_xml.find(".//common_properties")
+                                can_id = 1
+                                message_id = -1
+                                for e in common_properties:
+                                    name = e.get('name')
+                                    if name == 'MessageID':
+                                        if e.get('ci') is not None:
+                                            can_id = int(e.get('ci'))
+                                        message_id = int(e.text)
+
+                                if message_id > 0x80000000:
+                                    m = message_id
+                                    message_id -= 0x80000000
+                                grp['can_id'] = can_id
+                                grp['message_name'] = message_name
+                                grp['message_id'] = message_id
+
+                            else:
+                                warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
+                                channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                        else:
+                            channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                    else:
+                        # only CAN bus logging is supported
+                        channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                 else:
 
                     samples_size = channel_group['samples_byte_nr']
@@ -978,11 +993,34 @@ class MDF4(object):
                                 grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                             else:
                                 import_type = 'dbc' if at_name.lower().endswith('dbc') else 'arxml'
-                                self._dbc_cache[attachment_addr] = loads(
-                                    attachment.decode('utf-8'),
-                                    importType=import_type,
-                                    key='db',
-                                )['db']
+                                try:
+                                    attachment_string = attachment.decode('utf-8')
+                                    self._dbc_cache[attachment_addr] = \
+                                        loads(
+                                            attachment_string,
+                                            importType=import_type,
+                                            key='db',
+                                        )['db']
+                                except UnicodeDecodeError:
+                                    try:
+                                        from chardet import detect
+                                        encoding = detect(attachment)['encoding']
+                                        attachment_string = attachment.decode(encoding)
+                                        self._dbc_cache[attachment_addr] = \
+                                        loads(
+                                            attachment_string,
+                                            importType=import_type,
+                                            key='db',
+                                        )['db']
+                                    except ImportError:
+                                        warnings.warn((
+                                            'Unicode exception occured while processing the database '
+                                            'attachment "{}" and "chardet" package is '
+                                            'not installed. Mdf version 4 expects "utf-8" '
+                                            'strings and this package may detect if a different'
+                                            ' encoding was used'
+                                        ).format(at_name))
+                                        grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
 
                         if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
 
@@ -995,6 +1033,7 @@ class MDF4(object):
                             message_id = grp['message_id']
                             message_name = grp['message_name']
                             can_id = grp['can_id']
+
                             can_msg = self._dbc_cache[attachment_addr].frameById(message_id)
                             can_msg_name = can_msg.name
 

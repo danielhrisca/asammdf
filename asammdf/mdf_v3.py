@@ -1386,9 +1386,12 @@ class MDF3(object):
             # conversions for channel
 
             conversion = conversion_transfer(signal.conversion)
+            unit = signal.unit.strip(' \r\n\t\0')
+            if unit:
+                conversion['unit'] = unit.encode('latin-1')
             israw = signal.raw
 
-            if not israw:
+            if not israw and not unit:
                 if memory != 'minimum':
                     gp_conv.append(None)
                 else:
