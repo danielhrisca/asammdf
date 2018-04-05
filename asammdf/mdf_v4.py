@@ -1650,7 +1650,6 @@ class MDF4(object):
         return parents, dtypes
 
     def _get_can_data(self, data, signal):
-
         record_size = data.shape[1]
 
         big_endian = False if signal.is_little_endian else True
@@ -3804,13 +3803,14 @@ class MDF4(object):
                 cycles_nr = len(data[0]) // grp['channel_group']['samples_byte_nr']
             else:
                 cycles_nr = grp['channel_group']['cycles_nr']
-            # get group data
-            if data is None:
-                data = self._load_group_data(grp)
-            else:
-                data = (data,)
+
             parent, bit_offset = parents[ch_nr]
-            parent_sig = self.get('CAN_DataFrame', group=group)
+            parent_sig = self.get(
+                'CAN_DataFrame.DataBytes',
+                group=gp_nr,
+            )
+            parent_vals = parent_sig.samples
+
             signal_data = None
             kargs = {
                 'channel_type': v4c.CHANNEL_TYPE_VALUE,
@@ -3863,6 +3863,12 @@ class MDF4(object):
                 name = 'CAN{}.{}.{}'.format(can_id, can_msg_name, signal_name)
             channel.name = name
             channel.comment = signal.comment or ''
+
+            # get group data
+            if data is None:
+                data = self._load_group_data(grp)
+            else:
+                data = (data,)
 
         data_type = channel['data_type']
         channel_type = channel['channel_type']
@@ -3981,6 +3987,7 @@ class MDF4(object):
                 valid_indexes = []
                 count = 0
                 for fragment in data:
+
                     data_bytes, offset = fragment
 
                     arrays = []
@@ -4315,6 +4322,7 @@ class MDF4(object):
 
                 count = 0
                 for fragment in data:
+
                     data_bytes, offset = fragment
                     try:
                         parent, bit_offset = parents[ch_nr]
@@ -4323,72 +4331,79 @@ class MDF4(object):
 
                     bits = channel['bit_count']
 
-                    if parent is not None:
-                        if 'record' not in grp:
-                            if dtypes.itemsize:
-                                record = fromstring(data_bytes, dtype=dtypes)
-                            else:
-                                record = None
-
-                            if memory == 'full':
-                                grp['record'] = record
-                        else:
-                            record = grp['record']
-
-                        record.setflags(write=False)
-
-                        vals = record[parent]
-
-                        if ch_nr < 0:
-                            vals = self._get_can_data(
-                                vals,
-                                signal,
-                            )
-                        else:
-
-                            size = vals.dtype.itemsize
-                            for dim in vals.shape[1:]:
-                                size *= dim
-                            data_type = channel['data_type']
-
-                            vals_dtype = vals.dtype.kind
-
-                            if vals_dtype == 'b':
-                                pass
-                            elif vals_dtype not in 'ui' and (bit_offset or not bits == size * 8) or \
-                                    (len(vals.shape) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY):
-                                vals = self._get_not_byte_aligned_data(
-                                    data_bytes,
-                                    grp,
-                                    ch_nr,
-                                )
-                            else:
-                                if bit_offset:
-                                    dtype_ = vals.dtype
-                                    if dtype_.kind == 'i':
-                                        vals = vals.astype(dtype('<u{}'.format(size)))
-                                        vals >>= bit_offset
-                                    else:
-                                        vals = vals >> bit_offset
-
-                                if not bits == size * 8:
-                                    if data_type in v4c.SIGNED_INT:
-                                        vals = as_non_byte_sized_signed_int(
-                                            vals,
-                                            bits,
-                                        )
-                                    else:
-                                        mask = (1 << bits) - 1
-                                        if vals.flags.writeable:
-                                            vals &= mask
-                                        else:
-                                            vals = vals & mask
-                    else:
-                        vals = self._get_not_byte_aligned_data(
-                            data_bytes,
-                            grp,
-                            ch_nr,
+                    if ch_nr < 0:
+                        vals = self.get(
+                            parent,
+                            group=gp_nr,
+                            data=fragment,
                         )
+                        vals = vals.samples
+                        vals = self._get_can_data(
+                            vals,
+                            signal,
+                        )
+                    else:
+
+                        if parent is not None:
+                            if 'record' not in grp:
+                                if dtypes.itemsize:
+                                    record = fromstring(data_bytes, dtype=dtypes)
+                                else:
+                                    record = None
+
+                                if memory == 'full':
+                                    grp['record'] = record
+                            else:
+                                record = grp['record']
+
+                            record.setflags(write=False)
+
+                            vals = record[parent]
+
+                            if ch_nr >= 0:
+                                size = vals.dtype.itemsize
+                                for dim in vals.shape[1:]:
+                                    size *= dim
+                                data_type = channel['data_type']
+
+                                vals_dtype = vals.dtype.kind
+
+                                if vals_dtype == 'b':
+                                    pass
+                                elif vals_dtype not in 'ui' and (bit_offset or not bits == size * 8) or \
+                                        (len(vals.shape) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY):
+                                    vals = self._get_not_byte_aligned_data(
+                                        data_bytes,
+                                        grp,
+                                        ch_nr,
+                                    )
+                                else:
+                                    if bit_offset:
+                                        dtype_ = vals.dtype
+                                        if dtype_.kind == 'i':
+                                            vals = vals.astype(dtype('<u{}'.format(size)))
+                                            vals >>= bit_offset
+                                        else:
+                                            vals = vals >> bit_offset
+
+                                    if not bits == size * 8:
+                                        if data_type in v4c.SIGNED_INT:
+                                            vals = as_non_byte_sized_signed_int(
+                                                vals,
+                                                bits,
+                                            )
+                                        else:
+                                            mask = (1 << bits) - 1
+                                            if vals.flags.writeable:
+                                                vals &= mask
+                                            else:
+                                                vals = vals & mask
+                        else:
+                            vals = self._get_not_byte_aligned_data(
+                                data_bytes,
+                                grp,
+                                ch_nr,
+                            )
 
                     if bits == 1:
                         vals = array(vals, dtype=bool)
@@ -4482,6 +4497,7 @@ class MDF4(object):
                             )
 
                         if data_type == v4c.DATA_TYPE_BYTEARRAY:
+
                             if PYVERSION >= 3:
                                 values = [
                                     list(val)
@@ -4493,7 +4509,7 @@ class MDF4(object):
                                     for val in values
                                 ]
 
-                            dim = max(len(arr) for arr in values)
+                            dim = max(len(arr) for arr in values) if values else 0
 
                             for lst in values:
                                 lst.extend([0, ] * (dim - len(lst)))
