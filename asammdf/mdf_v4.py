@@ -1257,6 +1257,15 @@ class MDF4(object):
                 data = b''.join(data)
             elif blk_id == b'##CN':
                 data = b''
+            elif blk_id == b'##HL':
+                hl = HeaderList(address=address, stream=stream)
+
+                data = self._load_signal_data(
+                    address=hl['first_dl_addr'],
+                    stream=stream,
+                    group=group,
+                    index=index,
+                )
             else:
                 message = ('Expected CG, SD, DL, DZ or CN block at {} '
                            'but found id="{}"')
@@ -4484,7 +4493,15 @@ class MDF4(object):
                                     for val in values
                                 ]
 
-                            vals = array(values, dtype=uint8)
+                            dim = max(len(arr) for arr in values)
+
+                            for lst in values:
+                                lst.extend([0, ] * (dim - len(lst)))
+
+                            vals = array(
+                                values,
+                                dtype=uint8,
+                            )
 
                         else:
 
