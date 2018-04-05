@@ -4336,8 +4336,8 @@ class MDF4(object):
                             parent,
                             group=gp_nr,
                             data=fragment,
+                            samples_only=True,
                         )
-                        vals = vals.samples
                         vals = self._get_can_data(
                             vals,
                             signal,
