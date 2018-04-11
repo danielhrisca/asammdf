@@ -71,7 +71,7 @@ class Signal(object):
                  name='',
                  conversion=None,
                  comment='',
-                 raw=False,
+                 raw=True,
                  master_metadata=None,
                  display_name='',
                  attachment=(),
@@ -123,12 +123,20 @@ class Signal(object):
                         **conversion
                     )
 
+                elif all(
+                        key in conversion
+                        for key in ['P{}'.format(i) for i in range(1, 7)]):
+                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_RAT
+                    conversion = v4b.ChannelConversion(
+                        **conversion
+                    )
+
                 elif 'raw_0' in conversion and 'phys_0' in conversion:
                     conversion['conversion_type'] = v4c.CONVERSION_TYPE_TAB
                     nr = 0
                     while 'phys_{}'.format(nr) in conversion:
                         nr += 1
-                    conversion['val_param_nr'] = nr
+                    conversion['val_param_nr'] = nr * 2
                     conversion = v4b.ChannelConversion(
                         **conversion
                     )
@@ -138,10 +146,11 @@ class Signal(object):
                     nr = 0
                     while 'phys_{}'.format(nr) in conversion:
                         nr += 1
-                    conversion['val_param_nr'] = nr
+                    conversion['val_param_nr'] = nr * 3 + 1
                     conversion = v4b.ChannelConversion(
                         **conversion
                     )
+
                 elif 'val_0' in conversion and 'text_0' in conversion:
                     conversion['conversion_type'] = v4c.CONVERSION_TYPE_TABX
                     nr = 0
@@ -151,6 +160,7 @@ class Signal(object):
                     conversion = v4b.ChannelConversion(
                         **conversion
                     )
+
                 elif 'upper_0' in conversion and 'text_0' in conversion:
                     conversion['conversion_type'] = v4c.CONVERSION_TYPE_RTABX
                     nr = 0
@@ -160,6 +170,7 @@ class Signal(object):
                     conversion = v4b.ChannelConversion(
                         **conversion
                     )
+
                 else:
                     conversion = v4b.ChannelConversion(
                         conversion_type=v4c.CONVERSION_TYPE_NON

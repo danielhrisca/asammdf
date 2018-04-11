@@ -1599,10 +1599,14 @@ class ChannelConversion(dict):
                     key = 'text_{}'.format(i)
                     self[key] = 0
                     self.referenced_blocks[key] = TextBlock(text=kargs[key])
-                self['default_addr'] = kargs.get('default_addr', 0)
+                self['default_addr'] = 0
                 key = 'default_addr'
-                if self['default_addr']:
-                    self.referenced_blocks[key] = TextBlock(text=kargs[key])
+                if 'default_addr' in kargs:
+                    default = kargs['default_addr']
+                else:
+                    default = kargs.get('default', b'')
+                if default:
+                    self.referenced_blocks[key] = TextBlock(text=default)
                 else:
                     self.referenced_blocks[key] = None
                 self['conversion_type'] = v4c.CONVERSION_TYPE_TABX
@@ -1628,7 +1632,10 @@ class ChannelConversion(dict):
                     self[key] = 0
                     self.referenced_blocks[key] = TextBlock(text=kargs[key])
                 self['default_addr'] = 0
-                default = kargs['default_addr']
+                if 'default_addr' in kargs:
+                    default = kargs['default_addr']
+                else:
+                    default = kargs.get('default', b'')
                 if default:
                     if b'{X}' in default:
                         default = (
