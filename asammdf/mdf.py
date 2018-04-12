@@ -841,10 +841,11 @@ class MDF(object):
               generate a new excel file for each data group
               (<MDFNAME>_DataGroup_<cntr>.xlsx)
 
-            * `mat` : Matlab .mat version 5 export, for Matlab >= 7.6. In
-              the mat file the channels will be renamed to
-              'DataGroup_<cntr>_<channel name>'. The channel group master
-              will be renamed to 'DataGroup_<cntr>_<channel name>_master'
+            * `mat` : Matlab .mat version 4, 5 or 7.3 export. If
+              *single_time_base==False* the channels will be renamed in the mat
+              file to 'DataGroup_<cntr>_<channel name>'. The channel group
+              master will be renamed to
+              'DataGroup_<cntr>_<channel name>_master'
               ( *<cntr>* is the data group index starting from 0)
 
             * `pandas` : export all channels as a single pandas DataFrame
@@ -1376,6 +1377,7 @@ class MDF(object):
                     name,
                     mdict,
                     long_field_names=True,
+
                 )
 
         elif fmt == 'pandas':
@@ -1918,6 +1920,10 @@ class MDF(object):
             ]
 
             merged.header.start_time = oldest
+        else:
+            offsets = [
+                0 for file in files
+            ]
 
         files = (
             file if isinstance(file, MDF) else MDF(file, memory)
@@ -1958,14 +1964,14 @@ class MDF(object):
 
                             if version < '4.00' and sig.samples.dtype.kind == 'S':
                                 string_dtypes = [np.dtype('S'), ]
-                                for tmp_mdf in files:
-                                    strsig = tmp_mdf.get(
-                                        group=i,
-                                        index=j,
-                                        samples_only=True,
-                                    )
-                                    string_dtypes.append(strsig.dtype)
-                                    del strsig
+
+                                strsig = mdf.get(
+                                    group=i,
+                                    index=j,
+                                    samples_only=True,
+                                )
+                                string_dtypes.append(strsig.dtype)
+                                del strsig
 
                                 sig.samples = sig.samples.astype(
                                     max(string_dtypes)
