@@ -43,7 +43,7 @@ The main goals for this library are:
 * filter a subset of channels from original mdf file
 * cut measurement to specified time interval
 * convert to different mdf version
-* export to Excel, HDF5, Matlab and CSV
+* export to pandas, Excel, HDF5, Matlab (v4, v5 and v7.3) and CSV
 * merge multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
 * space optimizations for saved files (no duplicated blocks)
@@ -153,7 +153,8 @@ optional dependencies needed for exports
 
 * h5py : for HDF5 export
 * xlsxwriter : for Excel export
-* scipy : for Matlab .mat export
+* scipy : for Matlab v4 and v5 .mat export
+* hdf5storage : for Matlab v7.3 .mat export
 
 other optional dependencies
 

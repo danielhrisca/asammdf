@@ -864,6 +864,8 @@ class MDF(object):
               name, if available.
             * `empty_channels`: behaviour for channels without samples; the
               options are *skip* or *zeros*; default is *zeros*
+            * `format`: only valid for *mat* export; can be '4', '5' or '7.3',
+              default is '5'
 
         Returns
         -------
@@ -892,6 +894,7 @@ class MDF(object):
         time_from_zero = kargs.get('time_from_zero', True)
         use_display_names = kargs.get('use_display_names', True)
         empty_channels = kargs.get('empty_channels', 'zeros')
+        format = kargs.get('format', '5')
 
         name = filename if filename else self.name
 
@@ -1285,11 +1288,18 @@ class MDF(object):
                         writer.writerows(zip(*vals))
 
         elif fmt == 'mat':
-            try:
-                from scipy.io import savemat
-            except ImportError:
-                warn('scipy not found; export to mat is unavailable')
-                return
+            if format == '7.3':
+                try:
+                    from hdf5storage import savemat
+                except ImportError:
+                    warn('hdf5storage not found; export to mat v7.3 is unavailable')
+                    return
+            else:
+                try:
+                    from scipy.io import savemat
+                except ImportError:
+                    warn('scipy not found; export to mat is unavailable')
+                    return
 
             if not name.endswith('.mat'):
                 name = name + '.mat'
@@ -1340,13 +1350,33 @@ class MDF(object):
                         used_names.add(channel_name)
 
                         mdict[channel_name] = sig.samples
+            else:
+                used_names = set()
+                new_mdict = {}
+                for channel_name, samples in mdict.items():
+                    channel_name = matlab_compatible(channel_name)
+                    channel_name = get_unique_name(
+                        used_names,
+                        channel_name,
+                    )
+                    used_names.add(channel_name)
 
-            savemat(
-                name,
-                mdict,
-                long_field_names=True,
-                do_compression=True,
-            )
+                    new_mdict[channel_name] = samples
+                mdict = new_mdict
+
+            if format == '7.3':
+                savemat(
+                    name,
+                    mdict,
+                    long_field_names=True,
+                    format='7.3',
+                )
+            else:
+                savemat(
+                    name,
+                    mdict,
+                    long_field_names=True,
+                )
 
         elif fmt == 'pandas':
             return DataFrame.from_dict(mdict)
@@ -1620,7 +1650,7 @@ class MDF(object):
             memory=memory,
         )
 
-        merged.header.start_time = files[0].header.start_time
+        merged.header.start_time = oldest
 
         for i, groups in enumerate(zip(*(file.groups for file in files))):
 

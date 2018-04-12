@@ -173,7 +173,7 @@ def matlab_compatible(name):
     if compatible_name[0] not in string.ascii_letters:
         compatible_name = 'M_' + compatible_name
 
-    return ''.join(compatible_name)
+    return compatible_name
 
 
 def get_text_v3(address, stream):
