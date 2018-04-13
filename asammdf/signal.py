@@ -492,8 +492,8 @@ class Signal(object):
                         # start and stop are found between 2 signal samples
                         # so return the previous sample
                         result = Signal(
-                            self.samples[start_: start_ + 1],
-                            self.timestamps[start_: start_ + 1],
+                            self.samples[start_ - 1: start_],
+                            self.timestamps[start_ - 1: start_],
                             self.unit,
                             self.name,
                             self.conversion,
