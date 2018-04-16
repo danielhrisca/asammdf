@@ -1593,6 +1593,35 @@ class MDF(object):
         mdf._transfer_events(self)
         return mdf
 
+    def iter_get(
+            self,
+            name=None,
+            group=None,
+            index=None,
+            raster=None,
+            samples_only=False,
+            raw=False):
+        """ iterator over a channel"""
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+
+        data = self._load_group_data(grp)
+
+        for fragment in data:
+            yield self.get(
+                group=gp_nr,
+                index=ch_nr,
+                raster=raster,
+                samples_only=samples_only,
+                data=fragment,
+                raw=raw,
+            )
+
     @staticmethod
     def concatenate(files, outversion='4.10', memory='full'):
         """ concatenates several files. The files
