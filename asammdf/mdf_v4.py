@@ -4405,20 +4405,17 @@ class MDF4(object):
                                 ch_nr,
                             )
 
-                    if bits == 1:
-                        vals = array(vals, dtype=bool)
-                    else:
-                        data_type = channel['data_type']
-                        channel_dtype = array(
-                            [],
-                            dtype=get_fmt_v4(
-                                data_type,
-                                bits,
-                                channel_type,
-                            ),
-                        )
-                        if vals.dtype != channel_dtype.dtype:
-                            vals = vals.astype(channel_dtype.dtype)
+                    data_type = channel['data_type']
+                    channel_dtype = array(
+                        [],
+                        dtype=get_fmt_v4(
+                            data_type,
+                            bits,
+                            channel_type,
+                        ),
+                    )
+                    if vals.dtype != channel_dtype.dtype:
+                        vals = vals.astype(channel_dtype.dtype)
 
                     if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
