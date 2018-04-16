@@ -22,11 +22,14 @@ except ImportError:
 ```
 # Code 
 
+  ## MDF version
+  _please write here the file version (you can run ``print(MDF(file).version)``)
+
   ## Code snippet
   _please write here the code snippet that triggers the error_
   
   ## Traceback
-  _pleaase write here the error traceback_
+  _please write here the error traceback_
   
 # Description
 _Please describe the issue here._
