@@ -189,6 +189,7 @@ class MDF3(object):
         self._read_fragment_size = 0
         self._write_fragment_size = 8 * 2 ** 20
         self._use_display_names = False
+        self._single_bit_uint_as_bool = False
 
         if name:
             self._file = open(self.name, 'rb')
@@ -1026,7 +1027,8 @@ class MDF3(object):
             self,
             read_fragment_size=None,
             write_fragment_size=None,
-            use_display_names=None):
+            use_display_names=None,
+            single_bit_uint_as_bool=None):
         """ configure read and write fragment size for chuncked
         data access
 
@@ -1054,6 +1056,9 @@ class MDF3(object):
 
         if use_display_names is not None:
             self._use_display_names = bool(use_display_names)
+
+        if single_bit_uint_as_bool is not None:
+            self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
 
     def add_trigger(self,
                     group,
@@ -1496,6 +1501,11 @@ class MDF3(object):
                     display_name_address = 0
                 short_name = (name[:31] + '\0').encode('latin-1')
 
+                if signal.samples.dtype.kind == 'u' and signal.bit_count <= 4:
+                    s_size_ = signal.bit_count
+                else:
+                    s_size_ = s_size
+
                 kargs = {
                     'short_name': short_name,
                     'channel_type': v23c.CHANNEL_TYPE_VALUE,
@@ -1503,7 +1513,7 @@ class MDF3(object):
                     'min_raw_value': min_val if min_val <= max_val else 0,
                     'max_raw_value': max_val if min_val <= max_val else 0,
                     'start_offset': start_bit_offset,
-                    'bit_count': s_size,
+                    'bit_count': s_size_,
                     'aditional_byte_offset': additional_byte_offset,
                     'long_name_addr': long_name_address,
                     'block_len': channel_size,
@@ -3105,6 +3115,8 @@ class MDF3(object):
             else:
                 display_name = ''
 
+        bit_count = channel['bit_count'] or 64
+
         dep = grp['channel_dependencies'][ch_nr]
         cycles_nr = grp['channel_group']['cycles_nr']
 
@@ -3235,7 +3247,7 @@ class MDF3(object):
                 if not samples_only or raster:
                     timestamps.append(self.get_master(gp_nr, fragment))
 
-                if bits == 1:
+                if bits == 1 and self._single_bit_uint_as_bool:
                     vals = array(vals, dtype=bool)
                 else:
                     data_type = channel['data_type']
@@ -3381,6 +3393,7 @@ class MDF3(object):
                 master_metadata=master_metadata,
                 display_name=display_name,
                 source=source,
+                bit_count=bit_count,
             )
 
         return res

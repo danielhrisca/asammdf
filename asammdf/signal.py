@@ -49,21 +49,6 @@ class Signal(object):
 
     """
 
-    __slots__ = [
-        'samples',
-        'timestamps',
-        'unit',
-        'name',
-        'conversion',
-        'comment',
-        '_plot_axis',
-        'raw',
-        'master_metadata',
-        'display_name',
-        'attachment',
-        'source',
-    ]
-
     def __init__(self,
                  samples=None,
                  timestamps=None,
@@ -75,7 +60,8 @@ class Signal(object):
                  master_metadata=None,
                  display_name='',
                  attachment=(),
-                 source=None):
+                 source=None,
+                 bit_count=None):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
@@ -106,6 +92,10 @@ class Signal(object):
             self.display_name = display_name
             self.attachment = attachment
             self.source = source
+            if bit_count is None:
+                self.bit_count = samples.dtype.itemsize * 8
+            else:
+                self.bit_count = bit_count
 
             if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                 if conversion is None:
@@ -255,8 +245,6 @@ class Signal(object):
                     plt.grid(True)
                     plt.show()
             except ValueError:
-                raise
-                print('NU POT')
                 plt.close(fig)
         else:
             try:
@@ -439,7 +427,7 @@ class Signal(object):
                 stop = np.searchsorted(self.timestamps, stop, side='right')
                 if stop:
                     result = Signal(
-                        self.samples[: stop],
+                        self.samples[:stop],
                         self.timestamps[:stop],
                         self.unit,
                         self.name,
@@ -483,9 +471,11 @@ class Signal(object):
             else:
                 # cut between start and stop
                 start_ = np.searchsorted(self.timestamps, start, side='left')
+                start_ = max(0, start_)
                 stop_ = np.searchsorted(self.timestamps, stop, side='right')
+                if start not in self.timestamps and start_ == stop_:
+                    start_ -= 1
                 if stop_ == start_:
-
                     if (len(self.timestamps)
                             and stop >= self.timestamps[0]
                             and start <= self.timestamps[-1]):

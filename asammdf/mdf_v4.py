@@ -298,6 +298,7 @@ class MDF4(object):
         self._read_fragment_size = 0
         self._write_fragment_size = 8 * 2**20
         self._use_display_names = False
+        self._single_bit_uint_as_bool = False
 
         # make sure no appended block has the address 0
         self._tempfile.write(b'\0')
@@ -2240,7 +2241,8 @@ class MDF4(object):
             self,
             read_fragment_size=None,
             write_fragment_size=None,
-            use_display_names=None):
+            use_display_names=None,
+            single_bit_uint_as_bool=None):
         """ configure read and write fragment size for chuncked
         data access
 
@@ -2267,6 +2269,9 @@ class MDF4(object):
 
         if use_display_names is not None:
             self._use_display_names = bool(use_display_names)
+
+        if single_bit_uint_as_bool is not None:
+            self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
 
     def append(self, signals, source_info='Python', common_timebase=False):
         """
@@ -2489,6 +2494,10 @@ class MDF4(object):
 
                 byte_size = max(s_size // 8, 1)
                 min_val, max_val = get_min_max(signal.samples)
+
+                if signal.samples.dtype.kind == 'u' and signal.bit_count <= 4:
+                    s_size = signal.bit_count
+
                 kargs = {
                     'channel_type': v4c.CHANNEL_TYPE_VALUE,
                     'bit_count': s_size,
@@ -3792,6 +3801,8 @@ class MDF4(object):
                 group=grp,
                 index=ch_nr,
             )
+
+            bit_count = channel['bit_count']
         else:
             # get data group record
             try:
@@ -3841,6 +3852,7 @@ class MDF4(object):
 
             signal = can_msg.signals[signal_index]
             signal_name = signal.name
+            bit_count = signal.signalsize
             message_name = grp['message_name']
             can_id = grp['can_id']
             can_msg_name = can_msg.name
@@ -4405,7 +4417,7 @@ class MDF4(object):
                                 ch_nr,
                             )
 
-                    if bits == 1:
+                    if bits == 1 and self._single_bit_uint_as_bool:
                         vals = array(vals, dtype=bool)
                     else:
                         data_type = channel['data_type']
@@ -4704,6 +4716,7 @@ class MDF4(object):
                 attachment=attachment,
                 source=source,
                 display_name=channel.display_name,
+                bit_count=bit_count,
             )
 
         return res

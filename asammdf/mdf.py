@@ -1601,7 +1601,11 @@ class MDF(object):
             raster=None,
             samples_only=False,
             raw=False):
-        """ iterator over a channel"""
+        """ iterator over a channel
+
+        This is usefull in case of large files with a small number of channels.
+
+        """
         gp_nr, ch_nr = self._validate_channel_selection(
             name,
             group,

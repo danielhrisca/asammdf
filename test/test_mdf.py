@@ -489,10 +489,13 @@ class TestMDF(unittest.TestCase):
                                     original.samples,
                                     converted.samples):
                                 equal = False
+                                print(original, converted, outfile)
+                                1/0
                             if not np.array_equal(
                                     original.timestamps,
                                     converted.timestamps):
                                 equal = False
+                                1/0
 
                     self.assertTrue(equal)
         cleanup_files()
@@ -515,12 +518,15 @@ class TestMDF(unittest.TestCase):
                     outfile1 = MDF(input_file, memory=memory)
                     outfile1.configure(read_fragment_size=8000)
                     outfile1 = outfile1.cut(stop=105, whence=whence).save('tmp1', overwrite=True)
+
                     outfile2 = MDF(input_file, memory=memory)
                     outfile2.configure(read_fragment_size=8000)
                     outfile2 = outfile2.cut(start=105.1, stop=201, whence=whence).save('tmp2', overwrite=True)
+
                     outfile3 = MDF(input_file, memory=memory)
                     outfile3.configure(read_fragment_size=8000)
                     outfile3 = outfile3.cut(start=201.1, whence=whence).save('tmp3', overwrite=True)
+
                     outfile4 = MDF(input_file, memory=memory)
                     outfile4.configure(read_fragment_size=8000)
                     outfile4 = outfile4.cut(start=7000, whence=whence).save('tmp4', overwrite=True)
