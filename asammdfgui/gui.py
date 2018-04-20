@@ -592,9 +592,43 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         self.setupUi(self)
 
         self.open_file_btn.clicked.connect(self.open_file)
+        self.open_multiple_files_btn.clicked.connect(self.open_multiple_files)
         self.files.tabCloseRequested.connect(self.close_file)
 
+        self.cs_btn.clicked.connect(self.cs_clicked)
+
         self.show()
+
+    def cs_clicked(self, event):
+        if self.concatenate.isChecked():
+            func = MDF.concatenate
+        else:
+            func = MDF.stack
+
+        version = self.cs_format.currentText()
+
+        if version < '4.00':
+            filter = "MDF version 3 files (*.dat *.mdf)"
+        else:
+            filter = "MDF version 4 files (*.mf4)"
+
+        split = self.cs_split.checkState() == Qt.Checked
+        if split:
+            split_size = int(self.cs_split_size.value() * 1024 * 1024)
+        else:
+            split_size = 0
+
+        pass
+
+    def open_multiple_files(self, event):
+        file_names, _ = QFileDialog.getOpenFileNames(
+            self,
+            "Select measurement file",
+            self.last_folder,
+            "MDF files (*.dat *.mdf *.mf4)",
+        )
+        if file_names:
+            self.files_list.addItems(file_names)
 
     def open_file(self, event):
         file_name, _ = QFileDialog.getOpenFileName(
@@ -632,12 +666,5 @@ def main():
 
 
 if __name__ == '__main__':
-    try:
-        main()
-    except:
-        buffer = StringIO()
-        traceback.print_exception(*sys.exc_info(), file=buffer)
-        buffer.seek(0)
-        trace = buffer.read()
-        log.error(trace)
-        raise
+    main()
+

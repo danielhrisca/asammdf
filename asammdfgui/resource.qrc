@@ -8,5 +8,6 @@
     <file alias="icon.png">images/icon.png</file>
     <file alias="open.png">images/open.png</file>
     <file alias="resample.png">images/resample.png</file>
+    <file alias="stack.png">images/stack.png</file>
 </qresource>
 </RCC>

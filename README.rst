@@ -64,6 +64,8 @@ Features
     * Pandas data frames are good if all the channels have the same time based
     * a measurement will usually have channels from different sources at different rates
     * the *Signal* class facilitates operations with such channels
+    
+ * graphical interface to visualize channels and perform operations with the files
 
 
 Major features not implemented (yet)
@@ -163,6 +165,7 @@ optional dependencies needed for exports
 * xlsxwriter : for Excel export
 * scipy : for Matlab v4 and v5 .mat export
 * hdf5storage : for Matlab v7.3 .mat export
+* PyQt5 : for GUI tool
 
 other optional dependencies
 
