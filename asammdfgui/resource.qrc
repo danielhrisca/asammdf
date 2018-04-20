@@ -1,0 +1,12 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <file alias="convert.png">images/convert.png</file>
+    <file alias="cut.png">images/cut.png</file>
+    <file alias="export.png">images/export.png</file>
+    <file alias="filter.png">images/filter.png</file>
+    <file alias="graph.png">images/graph.png</file>
+    <file alias="icon.png">images/icon.png</file>
+    <file alias="open.png">images/open.png</file>
+    <file alias="resample.png">images/resample.png</file>
+</qresource>
+</RCC>

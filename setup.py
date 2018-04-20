@@ -96,15 +96,16 @@ setup(
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
+        'gui': ['PyQt5',],
     },
 
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
 
-    package_data={
-        'asammdf': [],
-    },
+  #  package_data={
+  #      'asammdf': [],
+ #   },
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
@@ -115,9 +116,9 @@ setup(
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
-#    entry_points={
-#        'console_scripts': [
-#            'sample=sample:main',
-#        ],
-#    },
+    entry_points={
+        'console_scripts': [
+            'asammdf=asammdfgui.gui:main',
+        ],
+    },
 )
