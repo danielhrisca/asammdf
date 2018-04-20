@@ -1077,7 +1077,7 @@ class MDF(object):
                 if single_time_base:
                     if not name.endswith('.xlsx'):
                         name += '.xlsx'
-                    print('Writing excel export to file "{}"'.format(name))
+                    # print('Writing excel export to file "{}"'.format(name))
 
                     workbook = xlsxwriter.Workbook(name)
                     sheet = workbook.add_worksheet('Channels')
@@ -1104,7 +1104,7 @@ class MDF(object):
                     count = len(self.groups)
 
                     for i, grp in enumerate(self.groups):
-                        print('Exporting group {} of {}'.format(i + 1, count))
+                        # print('Exporting group {} of {}'.format(i + 1, count))
 
                         data = self._load_group_data(grp)
 
@@ -1183,7 +1183,7 @@ class MDF(object):
             if single_time_base:
                 if not name.endswith('.csv'):
                     name += '.csv'
-                print('Writing csv export to file "{}"'.format(name))
+                # print('Writing csv export to file "{}"'.format(name))
                 with open(name, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile)
 
@@ -1207,7 +1207,7 @@ class MDF(object):
 
                 count = len(self.groups)
                 for i, grp in enumerate(self.groups):
-                    print('Exporting group {} of {}'.format(i + 1, count))
+                    # print('Exporting group {} of {}'.format(i + 1, count))
                     data = self._load_group_data(grp)
 
                     if PYVERSION == 2:
@@ -1402,7 +1402,7 @@ class MDF(object):
                 * a channel name string
                 * (channel name, group index, channel index) list or tuple
                 * (channel name, group index) list or tuple
-                * (None, group index, channel index) lsit or tuple
+                * (None, group index, channel index) list or tuple
 
         memory : str
             memory option for filtered *MDF*; default *full*
