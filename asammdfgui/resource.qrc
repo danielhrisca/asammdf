@@ -5,7 +5,7 @@
     <file alias="export.png">images/export.png</file>
     <file alias="filter.png">images/filter.png</file>
     <file alias="graph.png">images/graph.png</file>
-    <file alias="icon.png">images/icon.png</file>
+    <file alias="asammdf.png">images/asammdf.png</file>
     <file alias="open.png">images/open.png</file>
     <file alias="resample.png">images/resample.png</file>
     <file alias="stack.png">images/stack.png</file>

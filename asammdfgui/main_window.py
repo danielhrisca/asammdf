@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'main_window.ui'
 #
-# Created by: PyQt5 UI code generator 5.8.1
+# Created by: PyQt5 UI code generator 5.9
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -13,7 +13,7 @@ class Ui_PyMDFMainWindow(object):
         PyMDFMainWindow.setObjectName("PyMDFMainWindow")
         PyMDFMainWindow.resize(800, 709)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/asammdf.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         PyMDFMainWindow.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(PyMDFMainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -45,6 +45,7 @@ class Ui_PyMDFMainWindow(object):
         self.verticalLayout_2.addWidget(self.files)
         self.toolBox.addItem(self.page, "")
         self.page_2 = QtWidgets.QWidget()
+        self.page_2.setGeometry(QtCore.QRect(0, 0, 782, 596))
         self.page_2.setObjectName("page_2")
         self.gridLayout = QtWidgets.QGridLayout(self.page_2)
         self.gridLayout.setContentsMargins(0, 0, 0, 0)
@@ -90,13 +91,13 @@ class Ui_PyMDFMainWindow(object):
         self.groupBox.setObjectName("groupBox")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.groupBox)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.radioButton = QtWidgets.QRadioButton(self.groupBox)
-        self.radioButton.setChecked(True)
-        self.radioButton.setObjectName("radioButton")
-        self.verticalLayout_3.addWidget(self.radioButton)
-        self.radioButton_2 = QtWidgets.QRadioButton(self.groupBox)
-        self.radioButton_2.setObjectName("radioButton_2")
-        self.verticalLayout_3.addWidget(self.radioButton_2)
+        self.concatenate = QtWidgets.QRadioButton(self.groupBox)
+        self.concatenate.setChecked(True)
+        self.concatenate.setObjectName("concatenate")
+        self.verticalLayout_3.addWidget(self.concatenate)
+        self.stack = QtWidgets.QRadioButton(self.groupBox)
+        self.stack.setObjectName("stack")
+        self.verticalLayout_3.addWidget(self.stack)
         self.gridLayout_2.addWidget(self.groupBox, 0, 0, 1, 2)
         self.label = QtWidgets.QLabel(self.page_2)
         self.label.setObjectName("label")
@@ -116,13 +117,13 @@ class Ui_PyMDFMainWindow(object):
         PyMDFMainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(PyMDFMainWindow)
-        self.toolBox.setCurrentIndex(1)
+        self.toolBox.setCurrentIndex(0)
         self.files.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(PyMDFMainWindow)
 
     def retranslateUi(self, PyMDFMainWindow):
         _translate = QtCore.QCoreApplication.translate
-        PyMDFMainWindow.setWindowTitle(_translate("PyMDFMainWindow", "PyMDF"))
+        PyMDFMainWindow.setWindowTitle(_translate("PyMDFMainWindow", "asammdf"))
         self.open_file_btn.setText(_translate("PyMDFMainWindow", "Open"))
         self.toolBox.setItemText(self.toolBox.indexOf(self.page), _translate("PyMDFMainWindow", "Single files"))
         self.open_multiple_files_btn.setText(_translate("PyMDFMainWindow", "Open"))
@@ -130,10 +131,10 @@ class Ui_PyMDFMainWindow(object):
         self.label_2.setText(_translate("PyMDFMainWindow", "Split block size"))
         self.cs_split.setText(_translate("PyMDFMainWindow", "Split data blocks"))
         self.cs_split_size.setSuffix(_translate("PyMDFMainWindow", "MB"))
-        self.cs_btn.setText(_translate("PyMDFMainWindow", "PushButton"))
+        self.cs_btn.setText(_translate("PyMDFMainWindow", "Concatenate"))
         self.groupBox.setTitle(_translate("PyMDFMainWindow", "Operation"))
-        self.radioButton.setText(_translate("PyMDFMainWindow", "Concatenate"))
-        self.radioButton_2.setText(_translate("PyMDFMainWindow", "Stack"))
+        self.concatenate.setText(_translate("PyMDFMainWindow", "Concatenate"))
+        self.stack.setText(_translate("PyMDFMainWindow", "Stack"))
         self.label.setText(_translate("PyMDFMainWindow", "Output format"))
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2), _translate("PyMDFMainWindow", "Multiple files"))
 

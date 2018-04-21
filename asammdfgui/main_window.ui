@@ -11,18 +11,18 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>PyMDF</string>
+   <string>asammdf</string>
   </property>
   <property name="windowIcon">
    <iconset resource="resource.qrc">
-    <normaloff>:/icon.png</normaloff>:/icon.png</iconset>
+    <normaloff>:/asammdf.png</normaloff>:/asammdf.png</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <widget class="QToolBox" name="toolBox">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="page">
        <property name="geometry">
@@ -81,6 +81,14 @@
        </layout>
       </widget>
       <widget class="QWidget" name="page_2">
+       <property name="geometry">
+        <rect>
+         <x>0</x>
+         <y>0</y>
+         <width>782</width>
+         <height>596</height>
+        </rect>
+       </property>
        <attribute name="label">
         <string>Multiple files</string>
        </attribute>
@@ -158,7 +166,7 @@
           <item row="6" column="0">
            <widget class="QPushButton" name="cs_btn">
             <property name="text">
-             <string>PushButton</string>
+             <string>Concatenate</string>
             </property>
             <property name="icon">
              <iconset resource="resource.qrc">

@@ -595,9 +595,29 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         self.open_multiple_files_btn.clicked.connect(self.open_multiple_files)
         self.files.tabCloseRequested.connect(self.close_file)
 
+        self.concatenate.toggled.connect(self.function_select)
         self.cs_btn.clicked.connect(self.cs_clicked)
+        self.cs_format.insertItems(
+            0,
+            SUPPORTED_VERSIONS,
+        )
+        self.cs_compression.insertItems(
+            0,
+            (
+                'no compression',
+                'deflate',
+                'transposed deflate',
+            ),
+        )
+        self.cs_split_size.setValue(10)
 
         self.show()
+
+    def function_select(self, val):
+        if self.concatenate.isChecked():
+            self.cs_btn.setText('Concatenate')
+        else:
+            self.cs_btn.setText('Stack')
 
     def cs_clicked(self, event):
         if self.concatenate.isChecked():
@@ -618,7 +638,36 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         else:
             split_size = 0
 
-        pass
+        compression = self.cs_compression.currentIndex()
+
+        count = self.files_list.count()
+
+        files = [
+            self.files_list.item(row).text()
+            for row in range(count)
+        ]
+
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Select output measurement file",
+            '',
+            filter,
+        )
+
+        if file_name:
+
+            mdf = func(
+                files,
+                outversion=version,
+            )
+            mdf.configure(write_fragment_size=split_size)
+
+            mdf.save(
+                file_name,
+                compression=compression,
+                overwrite=True,
+            )
+
 
     def open_multiple_files(self, event):
         file_names, _ = QFileDialog.getOpenFileNames(
