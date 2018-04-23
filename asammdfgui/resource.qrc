@@ -3,6 +3,7 @@
     <file alias="convert.png">images/convert.png</file>
     <file alias="cut.png">images/cut.png</file>
     <file alias="export.png">images/export.png</file>
+    <file alias="file.png">images/file.png</file>
     <file alias="filter.png">images/filter.png</file>
     <file alias="graph.png">images/graph.png</file>
     <file alias="asammdf.png">images/asammdf.png</file>

@@ -24,11 +24,15 @@ from PyQt5.QtWidgets import (
     QTreeWidgetItem,
     QTreeWidgetItemIterator,
     QVBoxLayout,
+    QLabel,
 )
 
 from PyQt5.QtCore import Qt
 
+from PyQt5.QtGui import QIcon, QPixmap
+
 from asammdf import MDF, SUPPORTED_VERSIONS
+from asammdf import __version__ as libversion
 
 import asammdfgui.main_window as main_window
 import asammdfgui.file_widget as file_widget
@@ -611,7 +615,16 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         )
         self.cs_split_size.setValue(10)
 
+        self.files_list.itemDoubleClicked.connect(self.delete_item)
+
+        self.statusbar.addPermanentWidget(
+            QLabel('asammdfgui {} with asammdf {}'.format(__version__, libversion)))
+
         self.show()
+
+    def delete_item(self, item):
+        index = self.files_list.row(item)
+        self.files_list.takeItem(index)
 
     def function_select(self, val):
         if self.concatenate.isChecked():
@@ -668,7 +681,6 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
                 overwrite=True,
             )
 
-
     def open_multiple_files(self, event):
         file_names, _ = QFileDialog.getOpenFileNames(
             self,
@@ -678,6 +690,17 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         )
         if file_names:
             self.files_list.addItems(file_names)
+            count = self.files_list.count()
+
+            icon = QIcon()
+            icon.addPixmap(
+                QPixmap(":/file.png"),
+                QIcon.Normal,
+                QIcon.Off,
+            )
+
+            for row in range(count):
+                self.files_list.item(row).setIcon(icon)
 
     def open_file(self, event):
         file_name, _ = QFileDialog.getOpenFileName(

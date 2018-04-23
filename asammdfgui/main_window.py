@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'main_window.ui'
 #
-# Created by: PyQt5 UI code generator 5.9
+# Created by: PyQt5 UI code generator 5.8.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -57,6 +57,7 @@ class Ui_PyMDFMainWindow(object):
         self.files_list = QtWidgets.QListWidget(self.page_2)
         self.files_list.setDragEnabled(True)
         self.files_list.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.files_list.setAlternatingRowColors(True)
         self.files_list.setObjectName("files_list")
         self.gridLayout.addWidget(self.files_list, 1, 0, 1, 2)
         spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -117,7 +118,7 @@ class Ui_PyMDFMainWindow(object):
         PyMDFMainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(PyMDFMainWindow)
-        self.toolBox.setCurrentIndex(0)
+        self.toolBox.setCurrentIndex(1)
         self.files.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(PyMDFMainWindow)
 
