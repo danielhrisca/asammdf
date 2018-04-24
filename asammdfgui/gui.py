@@ -1040,10 +1040,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         while self.scroll_layout.count():
             self.scroll_layout.takeAt(0)
 
-        item = self.channels_grid.itemAtPosition(2, 1)
-        if item:
-            item.widget().setParent(None)
-
         iterator = QTreeWidgetItemIterator(
             self.channels_tree,
         )
