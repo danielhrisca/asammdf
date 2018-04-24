@@ -71,7 +71,7 @@ class MDF(object):
 
     """
 
-    def __init__(self, name=None, memory='full', version='4.10'):
+    def __init__(self, name=None, memory='full', version='4.10', callback=None):
         if name:
             if os.path.isfile(name):
                 memory = validate_memory_argument(memory)
@@ -87,11 +87,11 @@ class MDF(object):
                         version = str(version)
                         version = '{}.{}'.format(version[0], version[1:])
                 if version in MDF3_VERSIONS:
-                    self._mdf = MDF3(name, memory)
+                    self._mdf = MDF3(name, memory, callback=callback)
                 elif version in MDF4_VERSIONS:
-                    self._mdf = MDF4(name, memory)
+                    self._mdf = MDF4(name, memory, callback=callback)
                 elif version in MDF2_VERSIONS:
-                    self._mdf = MDF2(name, memory)
+                    self._mdf = MDF2(name, memory, callback=callback)
                 else:
                     message = ('"{}" is not a supported MDF file; '
                                '"{}" file version was found')
@@ -105,16 +105,19 @@ class MDF(object):
                 self._mdf = MDF3(
                     version=version,
                     memory=memory,
+                    callback = callback,
                 )
             elif version in MDF3_VERSIONS:
                 self._mdf = MDF3(
                     version=version,
                     memory=memory,
+                    callback=callback,
                 )
             elif version in MDF4_VERSIONS:
                 self._mdf = MDF4(
                     version=version,
                     memory=memory,
+                    callback=callback,
                 )
             else:
                 message = ('"{}" is not a supported MDF file version; '
@@ -517,6 +520,8 @@ class MDF(object):
 
         out.header.start_time = self.header.start_time
 
+        groups_nr = len(self.groups)
+
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
             included_channels = self._included_channels(i)
@@ -597,7 +602,12 @@ class MDF(object):
 
                 del group['record']
 
+            if self._callback:
+                self._callback(i+1, groups_nr)
+
         out._transfer_events(self)
+        if self._callback:
+            out._callback = out._mdf._callback = self._callback
         return out
 
     def cut(self, start=None, stop=None, whence=0):
@@ -651,6 +661,8 @@ class MDF(object):
                 stop += first_timestamp
 
         out.header.start_time = self.header.start_time
+
+        groups_nr = len(self.groups)
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
@@ -817,7 +829,12 @@ class MDF(object):
 
                 self.configure(read_fragment_size=0)
 
+            if self._callback:
+                self._callback(i+1, groups_nr)
+
         out._transfer_events(self)
+        if self._callback:
+            out._callback = out._mdf._callback = self._callback
         return out
 
     def export(self, fmt, filename=None, **kargs):
@@ -1522,6 +1539,8 @@ class MDF(object):
         else:
             origin = 'New MDF'
 
+        groups_nr = len(gps)
+
         # append filtered channels to new MDF
         for new_index, (group_index, indexes) in enumerate(gps.items()):
             group = self.groups[group_index]
@@ -1590,7 +1609,12 @@ class MDF(object):
 
                 del group['record']
 
+            if self._callback:
+                self._callback(new_index+1, groups_nr)
+
         mdf._transfer_events(self)
+        if self._callback:
+            mdf._callback = mdf._mdf._callback = self._callback
         return mdf
 
     def iter_get(
@@ -2144,6 +2168,8 @@ class MDF(object):
 
         mdf.header.start_time = self.header.start_time
 
+        groups_nr = len(self.groups)
+
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
             included_channels = self._included_channels(i)
@@ -2194,7 +2220,13 @@ class MDF(object):
                             sig = sig.copy()
                         sigs.append(sig)
                     mdf.extend(i, sigs)
+
+            if self._callback:
+                self._callback(i+1, groups_nr)
+
         mdf._transfer_events(self)
+        if self._callback:
+            mdf._callback = mdf._mdf._callback = self._callback
         return mdf
 
     def select(self, channels, dataframe=False):

@@ -17,11 +17,11 @@ __all__ = ['MDF2', ]
 class MDF2(MDF3):
     """ shared implementation for mdf version 2 and 3 """
 
-    def __init__(self, name=None, memory='full', version='2.14'):
+    def __init__(self, name=None, memory='full', version='2.14', callback=None):
         memory = validate_memory_argument(memory)
         version = validate_version_argument(version, hint=2)
 
-        super(MDF2, self).__init__(name, memory, version)
+        super(MDF2, self).__init__(name, memory, version, callback)
 
 
 if __name__ == '__main__':

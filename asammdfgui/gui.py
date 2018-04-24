@@ -74,6 +74,15 @@ def excepthook(exc_type, exc_value, tracebackobj):
 sys.excepthook = excepthook
 
 
+class WorkerThread(Thread):
+    def __init__(self, output=None, *args, **kargs):
+        super(WorkerThread, self).__init__(*args, **kargs)
+        self.output = None
+
+    def run(self):
+        self.output = self._target(*self._args, **self._kwargs)
+
+
 class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
 
     selectionChanged = pyqtSignal()
@@ -133,7 +142,48 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         super().__init__(parent)
         self.setupUi(self)
         self.file_name = file_name
-        self.mdf = MDF(file_name, memory=memory)
+        self.progress = None
+
+        thr = WorkerThread(
+            target=MDF,
+            kwargs={
+                'name': file_name,
+                'memory': memory,
+                'callback': self.update_progress,
+            }
+        )
+
+        thr.start()
+
+        while self.progress is None:
+            sleep(0.1)
+
+        progress = QProgressDialog(
+            'Opening "{}"'.format(self.file_name),
+            "",
+            0,
+            self.progress[1],
+            self,
+        )
+
+        progress.setWindowModality(Qt.ApplicationModal)
+        progress.setCancelButton(None)
+        progress.setAutoClose(True)
+        progress.setWindowTitle('Opening measurement')
+
+        progress.show()
+
+        while thr.is_alive():
+            QApplication.processEvents()
+            progress.setValue(self.progress[0])
+            sleep(0.1)
+
+        self.mdf = thr.output
+        thr = None
+        self.progress = None
+
+        progress.cancel()
+
         self.memory = memory
 
         self.search_field = SearchWidget(
@@ -313,6 +363,9 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.plot_btn.clicked.connect(self.plot)
         self.clear_filter_btn.clicked.connect(self.clear_filter)
 
+    def update_progress(self, current_index, max_index):
+        self.progress = current_index, max_index
+
     def clear_filter(self):
         iterator = QTreeWidgetItemIterator(
             self.filter_tree,
@@ -328,7 +381,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             iterator += 1
 
     def new_search_result(self):
-        group_index, channel_index = self.search_filed.entries[self.search_filed.current_index]
+        group_index, channel_index = self.search_field.entries[self.search_field.current_index]
 
         iterator = QTreeWidgetItemIterator(
             self.channels_tree,
@@ -410,11 +463,78 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         if file_name:
-            self.mdf.convert(version, memory=memory).save(
-                file_name,
-                compression=compression,
-                overwrite=True,
+
+            thr = WorkerThread(
+                target=self.mdf.convert,
+                kwargs={
+                    'to': version,
+                    'memory': memory,
+                }
             )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress = QProgressDialog(
+                'Converting "{}" from {} to {} '.format(
+                    self.file_name,
+                    self.mdf.version,
+                    version,
+                ),
+                "",
+                0,
+                100,
+                self,
+            )
+
+            progress.setWindowModality(Qt.ApplicationModal)
+            progress.setCancelButton(None)
+            progress.setAutoClose(True)
+            progress.setWindowTitle('Converting measurement')
+
+            progress.show()
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(int(self.progress[0]/ self.progress[1] * 50))
+                sleep(0.1)
+
+            mdf = thr.output
+            thr = None
+            self.progress = None
+
+            thr = WorkerThread(
+                target=mdf.save,
+                kwargs={
+                    'dst': file_name,
+                    'compression': compression,
+                    'overwrite': True,
+                }
+            )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress.setLabelText(
+                'Saving converted file "{}"'.format(
+                    file_name,
+                )
+            )
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 50) + 50
+                )
+                sleep(0.1)
+
+            progress.cancel()
+            thr = None
+            self.progress = None
 
     def resample(self, event):
         version = self.resample_format.currentText()
@@ -444,16 +564,109 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         if file_name:
-            (
-                self.mdf
-                .convert(version, memory=memory)
-                .resample(raster, memory=memory)
-                .save(
-                    file_name,
-                    compression=compression,
-                    overwrite=True,
+            thr = WorkerThread(
+                target=self.mdf.resample,
+                kwargs={
+                    'raster': raster,
+                    'memory': memory,
+                }
+            )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress = QProgressDialog(
+                'Resampling "{}" to {}s raster '.format(
+                    self.file_name,
+                    raster,
+                ),
+                "",
+                0,
+                100,
+                self,
+            )
+
+            progress.setWindowModality(Qt.ApplicationModal)
+            progress.setCancelButton(None)
+            progress.setAutoClose(True)
+            progress.setWindowTitle('Resampling measurement')
+
+            progress.show()
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 33)
+                )
+                sleep(0.1)
+
+            mdf = thr.output
+            thr = None
+            self.progress = None
+
+            thr = WorkerThread(
+                target=mdf.convert,
+                kwargs={
+                    'to': version,
+                    'memory': memory,
+                }
+            )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress.setLabelText(
+                'Converting from {} to {}'.format(
+                    mdf.version,
+                    version,
                 )
             )
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 33) + 33
+                )
+                sleep(0.1)
+
+            mdf = thr.output
+            thr = None
+            self.progress = None
+
+            thr = WorkerThread(
+                target=mdf.save,
+                kwargs={
+                    'dst': file_name,
+                    'compression': compression,
+                    'overwrite': True,
+                }
+            )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress.setLabelText(
+                'Saving resampled file "{}"'.format(
+                    file_name,
+                )
+            )
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 33) + 66
+                )
+                sleep(0.1)
+
+            progress.cancel()
+            thr = None
+            self.progress = None
 
     def cut(self, event):
         version = self.cut_format.currentText()
@@ -484,16 +697,110 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         if file_name:
-            (
-                self.mdf
-                .convert(version, memory=memory)
-                .cut(start=start, stop=stop)
-                .save(
-                    file_name,
-                    compression=compression,
-                    overwrite=True,
+            thr = WorkerThread(
+                target=self.mdf.cut,
+                kwargs={
+                    'start': start,
+                    'stop': stop,
+                }
+            )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress = QProgressDialog(
+                'Cutting "{}" from {}s to {}s'.format(
+                    self.file_name,
+                    start,
+                    stop,
+                ),
+                "",
+                0,
+                100,
+                self,
+            )
+
+            progress.setWindowModality(Qt.ApplicationModal)
+            progress.setCancelButton(None)
+            progress.setAutoClose(True)
+            progress.setWindowTitle('Cutting measurement')
+
+            progress.show()
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 33)
+                )
+                sleep(0.1)
+
+            mdf = thr.output
+            thr = None
+            self.progress = None
+
+            thr = WorkerThread(
+                target=mdf.convert,
+                kwargs={
+                    'to': version,
+                    'memory': memory,
+                }
+            )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress.setLabelText(
+                'Converting from {} to {}'.format(
+                    mdf.version,
+                    version,
                 )
             )
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 33) + 33
+                )
+                sleep(0.1)
+
+            mdf = thr.output
+            thr = None
+            self.progress = None
+
+            thr = WorkerThread(
+                target=mdf.save,
+                kwargs={
+                    'dst': file_name,
+                    'compression': compression,
+                    'overwrite': True,
+                }
+            )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress.setLabelText(
+                'Saving cut file "{}"'.format(
+                    file_name,
+                )
+            )
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 33) + 66
+                )
+                sleep(0.1)
+
+            progress.cancel()
+            thr = None
+            self.progress = None
 
     def export(self, event):
         export_type = self.export_type.currentText()
@@ -677,7 +984,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         group = -1
         index = 0
-        signals = []
+        channels = []
         while iterator.value():
             item = iterator.value()
             if item.parent() is None:
@@ -687,9 +994,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 continue
 
             if item.checkState(0) == Qt.Checked:
-                print(item, item.text(0), item.parent(), group, index)
-
-                signals.append((None, group, index))
+                channels.append((None, group, index))
 
             index += 1
             iterator += 1
@@ -720,16 +1025,108 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         if file_name:
-            (
-                self.mdf
-                .filter(signals, memory=memory)
-                .convert(version, memory=memory)
-                .save(
-                    file_name,
-                    compression=compression,
-                    overwrite=True,
+            thr = WorkerThread(
+                target=self.mdf.filter,
+                kwargs={
+                    'channels': channels,
+                    'memory': memory,
+                }
+            )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress = QProgressDialog(
+                'Filtering selected channels from "{}"'.format(
+                    self.file_name,
+                ),
+                "",
+                0,
+                100,
+                self,
+            )
+
+            progress.setWindowModality(Qt.ApplicationModal)
+            progress.setCancelButton(None)
+            progress.setAutoClose(True)
+            progress.setWindowTitle('Filtering channels')
+
+            progress.show()
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 33)
+                )
+                sleep(0.1)
+
+            mdf = thr.output
+            thr = None
+            self.progress = None
+
+            thr = WorkerThread(
+                target=mdf.convert,
+                kwargs={
+                    'to': version,
+                    'memory': memory,
+                }
+            )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress.setLabelText(
+                'Converting from {} to {}'.format(
+                    mdf.version,
+                    version,
                 )
             )
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 33) + 33
+                )
+                sleep(0.1)
+
+            mdf = thr.output
+            thr = None
+            self.progress = None
+
+            thr = WorkerThread(
+                target=mdf.save,
+                kwargs={
+                    'dst': file_name,
+                    'compression': compression,
+                    'overwrite': True,
+                }
+            )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress.setLabelText(
+                'Saving resampled file "{}"'.format(
+                    file_name,
+                )
+            )
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 33) + 66
+                )
+                sleep(0.1)
+
+            progress.cancel()
+            thr = None
+            self.progress = None
 
 
 class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
@@ -914,6 +1311,5 @@ def main():
 
 
 if __name__ == '__main__':
-    print(0)
     main()
 

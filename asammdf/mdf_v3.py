@@ -54,6 +54,7 @@ from .utils import (
     get_text_v3,
     validate_memory_argument,
     validate_version_argument,
+    count_channel_groups,
 )
 from .v2_v3_blocks import (
     Channel,
@@ -166,7 +167,7 @@ class MDF3(object):
 
     """
 
-    def __init__(self, name=None, memory='full', version='3.30'):
+    def __init__(self, name=None, memory='full', version='3.30', callback=None):
         memory = validate_memory_argument(memory)
         self.groups = []
         self.header = None
@@ -190,6 +191,8 @@ class MDF3(object):
         self._write_fragment_size = 8 * 2 ** 20
         self._use_display_names = False
         self._single_bit_uint_as_bool = False
+
+        self._callback = callback
 
         if name:
             self._file = open(self.name, 'rb')
@@ -676,6 +679,9 @@ class MDF3(object):
         stream = self._file
         memory = self.memory
 
+        cg_count = count_channel_groups(stream, 3)
+        current_cg_index = 0
+
         # performance optimization
         read = stream.read
         seek = stream.seek
@@ -936,6 +942,10 @@ class MDF3(object):
 
                 cg_addr = grp['channel_group']['next_cg_addr']
                 dg_cntr += 1
+
+                current_cg_index += 1
+                if self._callback:
+                    self._callback(current_cg_index, cg_count)
 
             # store channel groups record sizes dict and data block size in
             # each new group data belong to the initial unsorted group, and
@@ -3713,6 +3723,9 @@ class MDF3(object):
 
         self.configure(read_fragment_size=_read_fragment_size)
 
+        if self._callback:
+            self._callback(100, 100)
+
         return output_file
 
     def _save_with_metadata(self, dst, overwrite, compression):
@@ -3804,6 +3817,8 @@ class MDF3(object):
         with open(destination, 'wb+') as dst_:
             defined_texts = {}
 
+            groups_nr = len(self.groups)
+
             write = dst_.write
             seek = dst_.seek
             # list of all blocks
@@ -3862,6 +3877,9 @@ class MDF3(object):
                 else:
                     gp['data_group']['data_block_addr'] = 0
                 address += gp['size'] - gp_rec_ids[idx] * gp['channel_group']['cycles_nr']
+
+                if self._callback:
+                    self._callback(int(33 * (idx+1) / groups_nr), 100)
 
             for gp in self.groups:
                 dg = gp['data_group']
@@ -4020,6 +4038,9 @@ class MDF3(object):
                     blocks.append(trigger)
                     address += trigger['block_len']
 
+                if self._callback:
+                    self._callback(int(33 * (idx+1) / groups_nr) + 33, 100)
+
             # update referenced channels addresses in the channel dependecies
             for gp in self.groups:
                 for dep in gp['channel_dependencies']:
@@ -4048,8 +4069,19 @@ class MDF3(object):
                 self.header['dg_nr'] = len(self.groups)
                 self.header['comment_addr'] = self.file_history.address
 
-            for block in blocks:
-                write(bytes(block))
+            if self._callback:
+                blocks_nr = len(blocks)
+                threshold = blocks_nr / 33
+                count = 1
+                for i, block in enumerate(blocks):
+                    write(bytes(block))
+                    if i >= threshold:
+                        self._callback(66 + count, 100)
+                        count += 1
+                        threshold += blocks_nr / 33
+            else:
+                for block in blocks:
+                    write(bytes(block))
 
             for gp, rec_id, original_address in zip(
                     self.groups,
@@ -4155,6 +4187,8 @@ class MDF3(object):
         with open(destination, 'wb+') as dst_:
             defined_texts = {}
 
+            groups_nr = len(self.groups)
+
             write = dst_.write
             tell = dst_.tell
             seek = dst_.seek
@@ -4187,7 +4221,7 @@ class MDF3(object):
 
             ce_map = {}
 
-            for gp in self.groups:
+            for idx, gp in enumerate(self.groups):
                 gp['temp_channels'] = ch_addrs = []
                 gp['temp_channel_conversions'] = cc_addrs = []
                 gp['temp_channel_extensions'] = ce_addrs = []
@@ -4378,6 +4412,9 @@ class MDF3(object):
 
                 del gp['temp_channel_conversions']
                 del gp['temp_channel_extensions']
+
+                if self._callback:
+                    self._callback(int(100 * (idx+1) / groups_nr), 100)
 
             orig_addr = [
                 gp['data_group']['data_block_addr']

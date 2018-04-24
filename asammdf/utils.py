@@ -694,6 +694,39 @@ def debug_channel(mdf, group, channel, conversion, dependency):
     print()
 
 
+def count_channel_groups(stream, version=4):
+    count = 0
+    if version >= 4:
+        stream.seek(88, 0)
+        dg_addr = unpack('<Q', stream.read(8))[0]
+        while dg_addr:
+            stream.seek(dg_addr + 32)
+            cg_addr = unpack('<Q', stream.read(8))[0]
+            while cg_addr:
+                count += 1
+                stream.seek(cg_addr + 24)
+                cg_addr = unpack('<Q', stream.read(8))[0]
+
+            stream.seek(dg_addr + 24)
+            dg_addr = unpack('<Q', stream.read(8))[0]
+
+    else:
+        stream.seek(68, 0)
+        dg_addr = unpack('<I', stream.read(4))[0]
+        while dg_addr:
+            stream.seek(dg_addr + 8)
+            cg_addr = unpack('<I', stream.read(4))[0]
+            while cg_addr:
+                count += 1
+                stream.seek(cg_addr + 4)
+                cg_addr = unpack('<I', stream.read(4))[0]
+
+            stream.seek(dg_addr + 4)
+            dg_addr = unpack('<I', stream.read(4))[0]
+
+    return count
+
+
 def validate_memory_argument(memory):
     """ validate the version argument against the supported MDF versions. The
     default version used depends on the hint MDF major revision

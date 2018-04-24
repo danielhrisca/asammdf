@@ -63,6 +63,7 @@ from .utils import (
     extract_cncomment_xml,
     validate_memory_argument,
     validate_version_argument,
+    count_channel_groups,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -267,7 +268,7 @@ class MDF4(object):
 
     """
 
-    def __init__(self, name=None, memory='full', version='4.10'):
+    def __init__(self, name=None, memory='full', version='4.10', callback=None):
         memory = validate_memory_argument(memory)
         self.groups = []
         self.header = None
@@ -303,6 +304,8 @@ class MDF4(object):
         # make sure no appended block has the address 0
         self._tempfile.write(b'\0')
 
+        self._callback = callback
+
         if name:
             self._file = open(self.name, 'rb')
             self._read()
@@ -312,6 +315,8 @@ class MDF4(object):
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
+
+
 
     def _check_finalised(self):
         flags = self.identification['unfinalized_standard_flags']
@@ -348,9 +353,13 @@ class MDF4(object):
             warnings.warn(message.format(self.name))
 
     def _read(self):
+
         stream = self._file
         memory = self.memory
         dg_cntr = 0
+
+        cg_count = count_channel_groups(stream, 4)
+        current_cg_index = 0
 
         self.identification = FileIdentificationBlock(stream=stream)
         version = self.identification['version_str']
@@ -505,6 +514,10 @@ class MDF4(object):
 
                 cg_addr = channel_group['next_cg_addr']
                 dg_cntr += 1
+
+                current_cg_index += 1
+                if self._callback:
+                    self._callback(current_cg_index, cg_count)
 
                 new_groups.append(grp)
 
@@ -879,6 +892,8 @@ class MDF4(object):
         self._ch_map.clear()
         self._cc_map.clear()
         self._master_channel_cache.clear()
+
+        self.progress = cg_count, cg_count
 
     def _read_channels(
             self,
@@ -4986,6 +5001,9 @@ class MDF4(object):
 
         self.configure(read_fragment_size=_read_fragment_size)
 
+        if self._callback:
+            self._callback(100, 100)
+
         return output_file
 
     def _save_with_metadata(self, dst, overwrite, compression):
@@ -5060,6 +5078,8 @@ class MDF4(object):
             cc_map = {}
             si_map = {}
 
+            groups_nr = len(self.groups)
+
             write = dst_.write
             tell = dst_.tell
             seek = dst_.seek
@@ -5075,7 +5095,7 @@ class MDF4(object):
                 zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
 
             # write DataBlocks first
-            for gp in self.groups:
+            for gp_nr, gp in enumerate(self.groups):
                 original_data_addresses.append(
                     gp['data_group']['data_block_addr']
                 )
@@ -5223,6 +5243,9 @@ class MDF4(object):
                         write(bytes(hl_block))
 
                     gp['data_group']['data_block_addr'] = address
+
+                if self._callback:
+                    self._callback(int(50 * (gp_nr+1) / groups_nr), 100)
 
             address = tell()
 
@@ -5385,6 +5408,9 @@ class MDF4(object):
                 address = gp['channel_group'].to_blocks(address, blocks, defined_texts, si_map)
                 gp['data_group']['first_cg_addr'] = gp['channel_group'].address
 
+                if self._callback:
+                    self._callback(int(50 * (i+1) / groups_nr) + 25, 100)
+
             for gp in self.groups:
                 for dep_list in gp['channel_dependencies']:
                     if dep_list:
@@ -5462,8 +5488,19 @@ class MDF4(object):
 
                 self.header['first_event_addr'] = self.events[0].address
 
-            for block in blocks:
-                write(bytes(block))
+            if self._callback:
+                blocks_nr = len(blocks)
+                threshold = blocks_nr / 25
+                count = 1
+                for i, block in enumerate(blocks):
+                    write(bytes(block))
+                    if i >= threshold:
+                        self._callback(75 + count, 100)
+                        count += 1
+                        threshold += blocks_nr / 25
+            else:
+                for block in blocks:
+                    write(bytes(block))
 
             for gp, rec_id in zip(self.groups, gp_rec_ids):
                 gp['data_group']['record_id_len'] = rec_id
@@ -5592,6 +5629,8 @@ class MDF4(object):
             cc_map = {}
             si_map = {}
 
+            groups_nr = len(self.groups)
+
             write = dst_.write
             tell = dst_.tell
             seek = dst_.seek
@@ -5607,7 +5646,7 @@ class MDF4(object):
                 zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
 
             # write DataBlocks first
-            for gp in self.groups:
+            for group_index, gp in enumerate(self.groups):
                 original_data_addresses.append(
                     gp['data_group']['data_block_addr']
                 )
@@ -5719,6 +5758,9 @@ class MDF4(object):
                         write(bytes(hl_block))
 
                     gp['data_group']['data_block_addr'] = address
+
+                if self._callback:
+                    self._callback(int(50 * (group_index+1) / groups_nr), 100)
 
             address = tell()
 
@@ -5894,6 +5936,9 @@ class MDF4(object):
 
                 gp['channel_group'].to_stream(dst_, defined_texts, si_map)
                 gp['data_group']['first_cg_addr'] = gp['channel_group'].address
+
+                if self._callback:
+                    self._callback(int(50 * (i+1) / groups_nr) + 50, 100)
 
             blocks = []
             address = tell()
