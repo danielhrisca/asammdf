@@ -154,4 +154,4 @@ class Ui_PyMDFMainWindow(object):
         self.action_memory_low.setText(_translate("PyMDFMainWindow", "low"))
         self.action_memory_low.setToolTip(_translate("PyMDFMainWindow", "Load metdata block in RAM but leave the samples on disk"))
 
-import resource_rc
+from asammdfgui import resource_rc

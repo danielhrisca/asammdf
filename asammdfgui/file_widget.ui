@@ -20,7 +20,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>4</number>
+      <number>5</number>
      </property>
      <widget class="QWidget" name="channels_tab">
       <attribute name="icon">
@@ -866,6 +866,9 @@
           <widget class="QDoubleSpinBox" name="raster">
            <property name="suffix">
             <string>s</string>
+           </property>
+           <property name="decimals">
+            <number>6</number>
            </property>
           </widget>
          </item>

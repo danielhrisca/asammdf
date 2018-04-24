@@ -374,6 +374,7 @@ class Ui_file_widget(object):
         self.label.setObjectName("label")
         self.gridLayout_4.addWidget(self.label, 0, 0, 1, 1)
         self.raster = QtWidgets.QDoubleSpinBox(self.resample_tab)
+        self.raster.setDecimals(6)
         self.raster.setObjectName("raster")
         self.gridLayout_4.addWidget(self.raster, 0, 1, 1, 1)
         self.verticalLayout_5.addLayout(self.gridLayout_4)
@@ -381,7 +382,7 @@ class Ui_file_widget(object):
         self.verticalLayout.addWidget(self.aspects)
 
         self.retranslateUi(file_widget)
-        self.aspects.setCurrentIndex(4)
+        self.aspects.setCurrentIndex(5)
         QtCore.QMetaObject.connectSlotsByName(file_widget)
 
     def retranslateUi(self, file_widget):
@@ -435,4 +436,4 @@ class Ui_file_widget(object):
         self.raster.setSuffix(_translate("file_widget", "s"))
         self.aspects.setTabText(self.aspects.indexOf(self.resample_tab), _translate("file_widget", "Resample"))
 
-import resource_rc
+from asammdfgui import resource_rc
