@@ -162,7 +162,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             'Opening "{}"'.format(self.file_name),
             "",
             0,
-            self.progress[1],
+            100,
             self,
         )
 
@@ -170,39 +170,55 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         progress.setCancelButton(None)
         progress.setAutoClose(True)
         progress.setWindowTitle('Opening measurement')
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/open.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        progress.setWindowIcon(icon)
 
         progress.show()
 
         while thr.is_alive():
             QApplication.processEvents()
-            progress.setValue(self.progress[0])
+            progress.setValue(
+                int(33 * self.progress[0] / self.progress[1])
+            )
             sleep(0.1)
 
         self.mdf = thr.output
         thr = None
-        self.progress = None
 
-        progress.cancel()
+        progress.setLabelText('Loading graphical elements')
 
         self.memory = memory
+
+        from time import clock
+
+        s = clock()
 
         self.search_field = SearchWidget(
             deepcopy(self.mdf.channels_db),
             self,
         )
 
+        progress.setValue(35)
+
         self.filter_field = SearchWidget(
             deepcopy(self.mdf.channels_db),
             self,
         )
 
+        progress.setValue(37)
+
         self.search_field.selectionChanged.connect(self.new_search_result)
         self.filter_field.selectionChanged.connect(self.new_filter_result)
 
-        self.channels_tree.expandAll()
-
         self.channels_grid.addWidget(self.search_field, 0, 0, 1, 1)
         self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
+
+        groups_nr = len(self.mdf.groups)
 
         for i, group in enumerate(self.mdf.groups):
             channel_group = QTreeWidgetItem()
@@ -240,6 +256,11 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
+
+            progress.setValue(37 + int(53 * (i+1) / groups_nr))
+            QApplication.processEvents()
+
+        progress.setValue(90)
 
         self.resample_format.insertItems(
             0,
@@ -310,10 +331,11 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.cut_split_size.setValue(10)
         self.cut_btn.clicked.connect(self.cut)
 
-        times = [
-            self.mdf.get_master(i)
-            for i, _ in enumerate(self.mdf.groups)
-        ]
+        times = []
+        for i in range(groups_nr):
+            times.append(self.mdf.get_master(i))
+            progress.setValue(90 + int(6 * (i+1) / groups_nr))
+            QApplication.processEvents()
 
         times = reduce(np.union1d, times)
         if len(times):
@@ -332,6 +354,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             self.cut_stop.setRange(0, 0)
 
             self.cut_interval.setText('Empty measurement')
+
+        progress.setValue(99)
 
         self.empty_channels.insertItems(
             0,
@@ -362,6 +386,11 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         # self.channels_tree.itemChanged.connect(self.select)
         self.plot_btn.clicked.connect(self.plot)
         self.clear_filter_btn.clicked.connect(self.clear_filter)
+
+        self.aspects.setCurrentIndex(0)
+
+        progress.setValue(100)
+        progress.cancel()
 
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
@@ -493,6 +522,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             progress.setCancelButton(None)
             progress.setAutoClose(True)
             progress.setWindowTitle('Converting measurement')
+            icon = QIcon()
+            icon.addPixmap(
+                QPixmap(":/convert.png"),
+                QIcon.Normal,
+                QIcon.Off,
+            )
+            progress.setWindowIcon(icon)
 
             progress.show()
 
@@ -592,6 +628,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             progress.setCancelButton(None)
             progress.setAutoClose(True)
             progress.setWindowTitle('Resampling measurement')
+            icon = QIcon()
+            icon.addPixmap(
+                QPixmap(":/resample.png"),
+                QIcon.Normal,
+                QIcon.Off,
+            )
+            progress.setWindowIcon(icon)
 
             progress.show()
 
@@ -726,6 +769,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             progress.setCancelButton(None)
             progress.setAutoClose(True)
             progress.setWindowTitle('Cutting measurement')
+            icon = QIcon()
+            icon.addPixmap(
+                QPixmap(":/cut.png"),
+                QIcon.Normal,
+                QIcon.Off,
+            )
+            progress.setWindowIcon(icon)
 
             progress.show()
 
@@ -850,6 +900,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             progress.setCancelButton(None)
             progress.setAutoClose(True)
             progress.setWindowTitle('Running export')
+            icon = QIcon()
+            icon.addPixmap(
+                QPixmap(":/export.png"),
+                QIcon.Normal,
+                QIcon.Off,
+            )
+            progress.setWindowIcon(icon)
 
             thr.start()
 
@@ -1052,6 +1109,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             progress.setCancelButton(None)
             progress.setAutoClose(True)
             progress.setWindowTitle('Filtering channels')
+            icon = QIcon()
+            icon.addPixmap(
+                QPixmap(":/filter.png"),
+                QIcon.Normal,
+                QIcon.Off,
+            )
+            progress.setWindowIcon(icon)
 
             progress.show()
 
@@ -1186,6 +1250,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         self.menubar.addMenu(menu)
 
         self.memory = 'full'
+        self.toolBox.setCurrentIndex(0)
 
         self.show()
 
