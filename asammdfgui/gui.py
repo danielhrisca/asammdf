@@ -218,7 +218,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.search_field.selectionChanged.connect(self.new_search_result)
         self.filter_field.selectionChanged.connect(self.new_filter_result)
 
-        self.channels_grid.addWidget(self.search_field, 0, 0, 1, 1)
+        self.channels_layout.insertWidget(0, self.search_field)
         self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
 
         groups_nr = len(self.mdf.groups)

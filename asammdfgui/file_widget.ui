@@ -20,7 +20,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>5</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="channels_tab">
       <attribute name="icon">
@@ -30,63 +30,68 @@
       <attribute name="title">
        <string>Channels</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
+      <layout class="QVBoxLayout" name="verticalLayout_8">
        <item>
-        <layout class="QGridLayout" name="channels_grid" rowstretch="0,1,0" columnstretch="0,1" rowminimumheight="0,0,0">
-         <item row="2" column="0">
-          <widget class="QPushButton" name="plot_btn">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
+        <widget class="QSplitter" name="splitter">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <widget class="QWidget" name="verticalLayoutWidget">
+          <layout class="QVBoxLayout" name="channels_layout">
+           <item>
+            <widget class="QTreeWidget" name="channels_tree">
+             <column>
+              <property name="text">
+               <string notr="true">1</string>
+              </property>
+             </column>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="plot_btn">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>100</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Plot</string>
+             </property>
+             <property name="icon">
+              <iconset resource="resource.qrc">
+               <normaloff>:/graph.png</normaloff>:/graph.png</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QScrollArea" name="plot_scroll">
+          <property name="verticalScrollBarPolicy">
+           <enum>Qt::ScrollBarAlwaysOn</enum>
+          </property>
+          <property name="widgetResizable">
+           <bool>true</bool>
+          </property>
+          <widget class="QWidget" name="scrollAreaWidgetContents">
+           <property name="geometry">
+            <rect>
+             <x>0</x>
+             <y>0</y>
+             <width>52</width>
+             <height>525</height>
+            </rect>
            </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>100</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>Plot</string>
-           </property>
-           <property name="icon">
-            <iconset resource="resource.qrc">
-             <normaloff>:/graph.png</normaloff>:/graph.png</iconset>
-           </property>
+           <layout class="QVBoxLayout" name="scroll_layout"/>
           </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QTreeWidget" name="channels_tree">
-           <column>
-            <property name="text">
-             <string notr="true">1</string>
-            </property>
-           </column>
-          </widget>
-         </item>
-         <item row="0" column="1" rowspan="2">
-          <widget class="QScrollArea" name="plot_scroll">
-           <property name="verticalScrollBarPolicy">
-            <enum>Qt::ScrollBarAlwaysOn</enum>
-           </property>
-           <property name="widgetResizable">
-            <bool>true</bool>
-           </property>
-           <widget class="QWidget" name="scrollAreaWidgetContents">
-            <property name="geometry">
-             <rect>
-              <x>0</x>
-              <y>0</y>
-              <width>195</width>
-              <height>493</height>
-             </rect>
-            </property>
-            <layout class="QVBoxLayout" name="scroll_layout"/>
-           </widget>
-          </widget>
-         </item>
-        </layout>
+         </widget>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -573,7 +578,7 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_6">
        <item>
-        <layout class="QGridLayout" name="filter_layout">
+        <layout class="QGridLayout" name="filter_layout" columnstretch="1,0,0,0">
          <property name="leftMargin">
           <number>5</number>
          </property>
