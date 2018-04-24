@@ -10,5 +10,9 @@
     <file alias="open.png">images/open.png</file>
     <file alias="resample.png">images/resample.png</file>
     <file alias="stack.png">images/stack.png</file>
+    <file alias="memory.png">images/memory.png</file>
+    <file alias="up.png">images/up.png</file>
+    <file alias="down.png">images/down.png</file>
+    <file alias="erase.png">images/erase.png</file>
 </qresource>
 </RCC>

@@ -2,8 +2,9 @@ import os
 import sys
 import traceback
 
+from copy import deepcopy
 from datetime import datetime
-from functools import reduce
+from functools import reduce, partial
 from io import StringIO
 from threading import Thread
 from time import sleep
@@ -14,28 +15,21 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
-from PyQt5.QtWidgets import (
-    QMessageBox,
-    QWidget,
-    QMainWindow,
-    QFileDialog,
-    QProgressDialog,
-    QApplication,
-    QTreeWidgetItem,
-    QTreeWidgetItemIterator,
-    QVBoxLayout,
-    QLabel,
-)
+try:
+    from PyQt5.QtGui import *
+    from PyQt5.QtWidgets import *
+    from PyQt5.QtCore import *
 
-from PyQt5.QtCore import Qt
-
-from PyQt5.QtGui import QIcon, QPixmap
+except ImportError:
+    from PyQt4.QtCore import *
+    from PyQt4.QtGui import *
 
 from asammdf import MDF, SUPPORTED_VERSIONS
 from asammdf import __version__ as libversion
 
 import asammdfgui.main_window as main_window
 import asammdfgui.file_widget as file_widget
+import asammdfgui.search_widget as search_widget
 
 
 __version__ = '0.1.0'
@@ -68,23 +62,97 @@ def excepthook(exc_type, exc_value, tracebackobj):
     sections = [now, separator, errmsg, separator, info]
     msg = '\n'.join(sections)
 
+    print(msg)
+
     QMessageBox.warning(
         None,
         notice,
         msg,
     )
 
-    print(msg)
 
 sys.excepthook = excepthook
 
 
+class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
+
+    selectionChanged = pyqtSignal()
+
+    def __init__(self, channels_db, parent=None):
+        super().__init__(parent)
+        self.setupUi(self)
+        self.channels_db = channels_db
+
+        self.matches = 0
+        self.current_index = 1
+        self.entries = []
+
+        completer = QCompleter(list(self.channels_db), self)
+        completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.search.setCompleter(completer)
+
+        self.search.textChanged.connect(self.display_results)
+
+        self.up_btn.clicked.connect(self.up)
+        self.down_btn.clicked.connect(self.down)
+
+    def down(self, event):
+        if self.matches:
+            self.current_index += 1
+            if self.current_index >= self.matches:
+                self.current_index = 0
+            self.label.setText('{} of {}'.format(self.current_index + 1, self.matches))
+            self.selectionChanged.emit()
+
+    def up(self, event):
+        if self.matches:
+            self.current_index -= 1
+            if self.current_index < 0:
+                self.current_index = self.matches - 1
+            self.label.setText('{} of {}'.format(self.current_index + 1, self.matches))
+            self.selectionChanged.emit()
+
+    def display_results(self, text):
+        channel_name = text.strip()
+        if channel_name in self.channels_db:
+            self.entries = self.channels_db[channel_name]
+            self.matches = len(self.entries)
+            self.label.setText('1 of {}'.format(self.matches))
+            self.current_index = 0
+            self.selectionChanged.emit()
+
+        else:
+            self.label.setText('No match')
+            self.matches = 0
+            self.current_index = 0
+            self.entries = []
+
+
 class FileWidget(QWidget, file_widget.Ui_file_widget):
-    def __init__(self, file_name, parent=None):
+    def __init__(self, file_name, memory, parent=None):
         super().__init__(parent)
         self.setupUi(self)
         self.file_name = file_name
-        self.mdf = MDF(file_name, memory='minimum')
+        self.mdf = MDF(file_name, memory=memory)
+        self.memory = memory
+
+        self.search_field = SearchWidget(
+            deepcopy(self.mdf.channels_db),
+            self,
+        )
+
+        self.filter_field = SearchWidget(
+            deepcopy(self.mdf.channels_db),
+            self,
+        )
+
+        self.search_field.selectionChanged.connect(self.new_search_result)
+        self.filter_field.selectionChanged.connect(self.new_filter_result)
+
+        self.channels_tree.expandAll()
+
+        self.channels_grid.addWidget(self.search_field, 0, 0, 1, 1)
+        self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
 
         for i, group in enumerate(self.mdf.groups):
             channel_group = QTreeWidgetItem()
@@ -243,12 +311,81 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         # self.channels_tree.itemChanged.connect(self.select)
         self.plot_btn.clicked.connect(self.plot)
+        self.clear_filter_btn.clicked.connect(self.clear_filter)
+
+    def clear_filter(self):
+        iterator = QTreeWidgetItemIterator(
+            self.filter_tree,
+        )
+
+        while iterator.value():
+            item = iterator.value()
+            item.setCheckState(0, Qt.Unchecked)
+
+            if item.parent() is None:
+                item.setExpanded(False)
+
+            iterator += 1
+
+    def new_search_result(self):
+        group_index, channel_index = self.search_filed.entries[self.search_filed.current_index]
+
+        iterator = QTreeWidgetItemIterator(
+            self.channels_tree,
+        )
+
+        group = -1
+        index = 0
+        while iterator.value():
+            item = iterator.value()
+            if item.parent() is None:
+                iterator += 1
+                group += 1
+                index = 0
+                item.setCheckState(0, Qt.Unchecked)
+                item.setExpanded(False)
+                continue
+
+            if index == channel_index and group == group_index:
+                self.channels_tree.scrollToItem(item)
+                item.setCheckState(0, Qt.Checked)
+            else:
+                item.setCheckState(0, Qt.Unchecked)
+
+            index += 1
+            iterator += 1
+
+    def new_filter_result(self):
+        group_index, channel_index = self.filter_field.entries[self.filter_field.current_index]
+
+        iterator = QTreeWidgetItemIterator(
+            self.filter_tree,
+        )
+
+        group = -1
+        index = 0
+        while iterator.value():
+            item = iterator.value()
+            if item.parent() is None:
+                iterator += 1
+                group += 1
+                index = 0
+                continue
+
+            if index == channel_index and group == group_index:
+                self.filter_tree.scrollToItem(item)
+                break
+
+            index += 1
+            iterator += 1
 
     def close(self):
         self.mdf.close()
 
     def convert(self, event):
         version = self.convert_format.currentText()
+
+        memory = self.memory
 
         if version < '4.00':
             filter = "MDF version 3 files (*.dat *.mdf)"
@@ -273,7 +410,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         if file_name:
-            self.mdf.convert(version).save(
+            self.mdf.convert(version, memory=memory).save(
                 file_name,
                 compression=compression,
                 overwrite=True,
@@ -282,6 +419,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
     def resample(self, event):
         version = self.resample_format.currentText()
         raster = self.raster.value()
+        memory = self.memory
 
         if version < '4.00':
             filter = "MDF version 3 files (*.dat *.mdf)"
@@ -306,16 +444,22 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         if file_name:
-            self.mdf.convert(version).resample(raster).save(
-                file_name,
-                compression=compression,
-                overwrite=True,
+            (
+                self.mdf
+                .convert(version, memory=memory)
+                .resample(raster, memory=memory)
+                .save(
+                    file_name,
+                    compression=compression,
+                    overwrite=True,
+                )
             )
 
     def cut(self, event):
         version = self.cut_format.currentText()
         start = self.cut_start.value()
         stop = self.cut_stop.value()
+        memory = self.memory
 
         if version < '4.00':
             filter = "MDF version 3 files (*.dat *.mdf)"
@@ -340,10 +484,15 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         if file_name:
-            self.mdf.convert(version).cut(start=start, stop=stop).save(
-                file_name,
-                compression=compression,
-                overwrite=True,
+            (
+                self.mdf
+                .convert(version, memory=memory)
+                .cut(start=start, stop=stop)
+                .save(
+                    file_name,
+                    compression=compression,
+                    overwrite=True,
+                )
             )
 
     def export(self, event):
@@ -384,26 +533,16 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                     'raster': raster,
                 },
             )
-            # self.mdf.export(
-            #     fmt=export_type,
-            #     filename=file_name,
-            #     single_time_base=single_time_base,
-            #     use_display_names=use_display_names,
-            #     time_from_zero=time_from_zero,
-            #     empty_channels=empty_channels,
-            #     format=mat_format,
-            #     raster=raster,
-            # )
 
             progress = QProgressDialog(
-                "Copying files...",
-                "Abort Copy",
+                "Exporting to {} ...".format(export_type),
+                "Abort export",
                 0,
                 100)
             progress.setWindowModality(Qt.ApplicationModal)
             progress.setCancelButton(None)
             progress.setAutoClose(True)
-            progress.setWindowTitle('Running check')
+            progress.setWindowTitle('Running export')
 
             thr.start()
 
@@ -466,7 +605,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         while self.scroll_layout.count():
             self.scroll_layout.takeAt(0)
 
-        item = self.channels_grid.itemAtPosition(1, 1)
+        item = self.channels_grid.itemAtPosition(2, 1)
         if item:
             item.widget().setParent(None)
 
@@ -528,12 +667,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.scroll_layout.addWidget(canvas)
 
         nav = NavigationToolbar(canvas, self)
-        self.channels_grid.addWidget(nav, 1, 1)
+        self.channels_grid.addWidget(nav, 2, 1)
 
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(
             self.filter_tree,
         )
+        memory = self.memory
 
         group = -1
         index = 0
@@ -580,10 +720,15 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         if file_name:
-            self.mdf.filter(signals).convert(version).save(
-                file_name,
-                compression=compression,
-                overwrite=True,
+            (
+                self.mdf
+                .filter(signals, memory=memory)
+                .convert(version, memory=memory)
+                .save(
+                    file_name,
+                    compression=compression,
+                    overwrite=True,
+                )
             )
 
 
@@ -620,7 +765,35 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         self.statusbar.addPermanentWidget(
             QLabel('asammdfgui {} with asammdf {}'.format(__version__, libversion)))
 
+        memory_option = QActionGroup(self)
+        full_memory = QAction('full')
+        full_memory.setCheckable(True)
+        memory_option.addAction(full_memory)
+        low_memory = QAction('low')
+        low_memory.setCheckable(True)
+        low_memory.setChecked(False)
+        memory_option.addAction(low_memory)
+        minimum_memory = QAction('minimum')
+        minimum_memory.setCheckable(True)
+        minimum_memory.setChecked(False)
+        memory_option.addAction(minimum_memory)
+
+        full_memory.triggered.connect(partial(self.set_memory_option, 'full'))
+        low_memory.triggered.connect(partial(self.set_memory_option, 'low'))
+        minimum_memory.triggered.connect(partial(self.set_memory_option, 'minimum'))
+
+        full_memory.setChecked(True)
+
+        menu = QMenu('Memory', self)
+        menu.addActions(memory_option.actions())
+        self.menubar.addMenu(menu)
+
+        self.memory = 'full'
+
         self.show()
+
+    def set_memory_option(self, option):
+        self.memory = option
 
     def delete_item(self, item):
         index = self.files_list.row(item)
@@ -639,6 +812,8 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             func = MDF.stack
 
         version = self.cs_format.currentText()
+
+        memory = self.memory
 
         if version < '4.00':
             filter = "MDF version 3 files (*.dat *.mdf)"
@@ -672,6 +847,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             mdf = func(
                 files,
                 outversion=version,
+                memory=memory,
             )
             mdf.configure(write_fragment_size=split_size)
 
@@ -711,7 +887,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         )
         if file_name:
             index = self.files.count()
-            widget = FileWidget(file_name)
+            widget = FileWidget(file_name, self.memory)
             self.files.addTab(widget, os.path.basename(file_name))
             self.files.setTabToolTip(index, file_name)
 
@@ -738,5 +914,6 @@ def main():
 
 
 if __name__ == '__main__':
+    print(0)
     main()
 

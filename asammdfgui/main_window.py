@@ -116,6 +116,15 @@ class Ui_PyMDFMainWindow(object):
         self.statusbar = QtWidgets.QStatusBar(PyMDFMainWindow)
         self.statusbar.setObjectName("statusbar")
         PyMDFMainWindow.setStatusBar(self.statusbar)
+        self.action_memory_minimum = QtWidgets.QAction(PyMDFMainWindow)
+        self.action_memory_minimum.setCheckable(True)
+        self.action_memory_minimum.setObjectName("action_memory_minimum")
+        self.action_memory_full = QtWidgets.QAction(PyMDFMainWindow)
+        self.action_memory_full.setCheckable(True)
+        self.action_memory_full.setObjectName("action_memory_full")
+        self.action_memory_low = QtWidgets.QAction(PyMDFMainWindow)
+        self.action_memory_low.setCheckable(True)
+        self.action_memory_low.setObjectName("action_memory_low")
 
         self.retranslateUi(PyMDFMainWindow)
         self.toolBox.setCurrentIndex(1)
@@ -138,5 +147,11 @@ class Ui_PyMDFMainWindow(object):
         self.stack.setText(_translate("PyMDFMainWindow", "Stack"))
         self.label.setText(_translate("PyMDFMainWindow", "Output format"))
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_2), _translate("PyMDFMainWindow", "Multiple files"))
+        self.action_memory_minimum.setText(_translate("PyMDFMainWindow", "minimum"))
+        self.action_memory_minimum.setToolTip(_translate("PyMDFMainWindow", "Minimal memory usage by loading only the nedded block addresses"))
+        self.action_memory_full.setText(_translate("PyMDFMainWindow", "full"))
+        self.action_memory_full.setToolTip(_translate("PyMDFMainWindow", "Load all blocks in the RAM"))
+        self.action_memory_low.setText(_translate("PyMDFMainWindow", "low"))
+        self.action_memory_low.setToolTip(_translate("PyMDFMainWindow", "Load metdata block in RAM but leave the samples on disk"))
 
-from asammdfgui import resource_rc
+import resource_rc

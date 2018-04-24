@@ -242,6 +242,39 @@
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="action_memory_minimum">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>minimum</string>
+   </property>
+   <property name="toolTip">
+    <string>Minimal memory usage by loading only the nedded block addresses</string>
+   </property>
+  </action>
+  <action name="action_memory_full">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>full</string>
+   </property>
+   <property name="toolTip">
+    <string>Load all blocks in the RAM</string>
+   </property>
+  </action>
+  <action name="action_memory_low">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>low</string>
+   </property>
+   <property name="toolTip">
+    <string>Load metdata block in RAM but leave the samples on disk</string>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="resource.qrc"/>
