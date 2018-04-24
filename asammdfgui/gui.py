@@ -1468,8 +1468,9 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
     def close_file(self, index):
         widget = self.files.widget(index)
-        widget.close()
-        widget.setParent(None)
+        if widget:
+            widget.close()
+            widget.setParent(None)
 
         self.files.removeTab(index)
         if self.files.count():
