@@ -31,6 +31,9 @@ import asammdfgui.main_window as main_window
 import asammdfgui.file_widget as file_widget
 import asammdfgui.search_widget as search_widget
 
+from pyqtgraph import PlotWidget, AxisItem, ViewBox
+import pyqtgraph as pg
+
 
 __version__ = '0.1.0'
 
@@ -384,7 +387,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.export_btn.clicked.connect(self.export)
 
         # self.channels_tree.itemChanged.connect(self.select)
-        self.plot_btn.clicked.connect(self.plot)
+        self.plot_btn.clicked.connect(self.plot_pyqtgraph)
         self.clear_filter_btn.clicked.connect(self.clear_filter)
 
         self.aspects.setCurrentIndex(0)
@@ -1032,6 +1035,116 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         nav = NavigationToolbar(canvas, self)
         self.channels_grid.addWidget(nav, 2, 1)
+
+    def plot_pyqtgraph(self, event):
+        while self.scroll_layout.count():
+            self.scroll_layout.takeAt(0)
+
+        item = self.channels_grid.itemAtPosition(2, 1)
+        if item:
+            item.widget().setParent(None)
+
+        iterator = QTreeWidgetItemIterator(
+            self.channels_tree,
+        )
+
+        group = -1
+        index = 0
+        signals = []
+        while iterator.value():
+            item = iterator.value()
+            if item.parent() is None:
+                iterator += 1
+                group += 1
+                index = 0
+                continue
+
+            if item.checkState(0) == Qt.Checked:
+                signals.append((group, index))
+
+            index += 1
+            iterator += 1
+
+        rows = len(signals)
+
+
+        pw = PlotWidget()
+
+        pw.show()
+        plot_item = pw.plotItem
+        plot_item.hideAxis('left')
+        layout = plot_item.layout
+        scene = plot_item.scene()
+        vb = plot_item.vb
+
+        # ## create a new ViewBox, link the right axis to its coordinate system
+        # p2 = pg.ViewBox()
+        # p1.showAxis('right')
+        # p1.scene().addItem(p2)
+        # p1.getAxis('right').linkToView(p2)
+        # p2.setXLink(p1)
+        # p1.getAxis('right').setLabel('axis2', color='#0000ff')
+        #
+        # ## create third ViewBox.
+        # ## this time we need to create a new axis as well.
+        # p3 = pg.ViewBox()
+        # ax3 = pg.AxisItem('right')
+        # p1.layout.addItem(ax3, 2, 3)
+        # p1.scene().addItem(p3)
+        # ax3.linkToView(p3)
+        # p3.setXLink(p1)
+        # ax3.setZValue(-10000)
+        # ax3.setLabel('axis 3', color='#ff0000')
+
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+
+
+        parent_vb = vb
+
+        view_boxes = []
+
+        # slot: update view when resized
+        def updateViews():
+            for view_box in view_boxes:
+                view_box.setGeometry(vb.sceneBoundingRect())
+                view_box.linkedViewChanged(vb, view_box.XAxis)
+
+        vb.sigResized.connect(updateViews)
+
+        for i, (group, index) in enumerate(signals):
+            sig = self.mdf.get(group=group, index=index)
+
+            axis = pg.AxisItem("left")
+            view_box = pg.ViewBox()
+
+            axis.linkToView(view_box)
+            axis.setLabel('{} [{}]'.format(sig.name, sig.unit), color=colors[i%10])
+
+            layout.addItem(axis, 2, i+2)
+
+            scene.addItem(view_box)
+
+            view_box.addItem(
+                pg.PlotCurveItem(
+                    sig.timestamps,
+                    sig.samples,
+                    pen=colors[i%10],
+                )
+            )
+
+            view_box.setXLink(parent_vb)
+            view_box.enableAutoRange(
+                axis=pg.ViewBox.XYAxes,
+                enable=True,
+            )
+
+            view_boxes.append(view_box)
+            parent_vb = view_box
+
+        updateViews()
+
+        self.scroll_layout.addWidget(pw)
+
 
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(
