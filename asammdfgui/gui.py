@@ -122,6 +122,8 @@ class ChannelInfoDialog(QDialog):
     def __init__(self, channel, *args, **kwargs):
         super(QDialog, self).__init__(*args, **kwargs)
 
+        self.setWindowFlags(Qt.Window)
+
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -130,6 +132,27 @@ class ChannelInfoDialog(QDialog):
         layout.addWidget(ChannelInfoWidget(channel, self))
 
         self.setStyleSheet("font: 8pt \"Consolas\";}")
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/info.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+
+        self.setWindowIcon(icon)
+        self.setGeometry(
+            240,
+            60,
+            1200,
+            600,
+        )
+
+        screen = QApplication.desktop().screenGeometry()
+        self.move(
+            (screen.width() - 1200) // 2,
+            (screen.height() - 600) // 2,
+        )
 
 
 class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
@@ -1525,6 +1548,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             widget = FileWidget(file_name, self.memory)
             self.files.addTab(widget, os.path.basename(file_name))
             self.files.setTabToolTip(index, file_name)
+            self.files.setCurrentIndex(index)
 
     def close_file(self, index):
         widget = self.files.widget(index)

@@ -862,6 +862,7 @@ class MDF3(object):
                                 block = ChannelExtension(
                                     raw_bytes=raw_bytes,
                                     stream=stream,
+                                    address=address,
                                 )
                                 grp['channel_extensions'].append(block)
                                 ce_map[raw_bytes] = block
@@ -2824,12 +2825,29 @@ class MDF3(object):
             stream = self._tempfile
 
         channel = grp['channels'][ch_nr]
+        conversion = grp['channel_conversions'][ch_nr]
+        source = grp['channel_extensions'][ch_nr]
 
         if self.memory == 'minimum':
             channel = Channel(
                 address=channel,
                 stream=stream,
             )
+
+            channel.conversion = ChannelConversion(
+                address=conversion,
+                stream=stream,
+            )
+
+            channel.source = ChannelExtension(
+                address=source,
+                stream=stream,
+            )
+
+        else:
+            channel = deepcopy(channel)
+            channel.source = deepcopy(source)
+            channel.conversion = deepcopy(conversion)
 
         return channel
 

@@ -18,12 +18,16 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v4_constants as v4c
-from .utils import MdfException, get_text_v4, bytes
+from .utils import MdfException, get_text_v4
+
 
 PYVERSION = sys.version_info[0]
 PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 SEEK_START = v4c.SEEK_START
 SEEK_END = v4c.SEEK_END
+
+if PYVERSION < 3:
+    from .utils import bytes
 
 __all__ = [
     'AttachmentBlock',
@@ -668,15 +672,30 @@ comment: {}
             hex(self.address),
             self.comment,
         ).split('\n')
-        lines += [
-            template.format(key, hex(val) if key.endswith('addr') else val)
-            for key, val in self.items()
-        ]
+        for key, val in self.items():
+            if key.endswith('addr') or key.startswith('text_'):
+                lines.append(
+                    template.format(key, hex(val))
+                )
+            elif isinstance(val, float):
+                    lines.append(
+                        template.format(key, round(val, 6))
+                    )
+            else:
+                if (PYVERSION < 3 and isinstance(val, str)) or \
+                        (PYVERSION >= 3 and isinstance(val, bytes)):
+                    lines.append(
+                        template.format(key, val.strip(b'\0'))
+                    )
+                else:
+                    lines.append(
+                        template.format(key, val)
+                    )
         for line in lines:
             if not line:
                 metadata.append(line)
             else:
-                for wrapped_line in wrap(line):
+                for wrapped_line in wrap(line, width=120):
                     metadata.append(wrapped_line)
 
         return '\n'.join(metadata)
@@ -2140,7 +2159,7 @@ class ChannelConversion(dict):
 
         return values
 
-    def metadata(self):
+    def metadata(self, indent=''):
         max_len = max(
             len(key)
             for key in self
@@ -2162,15 +2181,55 @@ formula: {}
             self.comment,
             self.formula,
         ).split('\n')
-        lines += [
-            template.format(key, hex(val) if key.endswith('addr') else val)
-            for key, val in self.items()
-        ]
+        for key, val in self.items():
+            if key.endswith('addr') or key.startswith('text_'):
+                lines.append(
+                    template.format(key, hex(val))
+                )
+            elif isinstance(val, float):
+                    lines.append(
+                        template.format(key, round(val, 6))
+                    )
+            else:
+                if (PYVERSION < 3 and isinstance(val, str)) or \
+                        (PYVERSION >= 3 and isinstance(val, bytes)):
+                    lines.append(
+                        template.format(key, val.strip(b'\0'))
+                    )
+                else:
+                    lines.append(
+                        template.format(key, val)
+                    )
+
+        if self.referenced_blocks:
+            max_len = max(
+                len(key)
+                for key in self.referenced_blocks
+            )
+            template = '{{: <{}}}: {{}}'.format(max_len)
+
+            lines.append('')
+            lines.append('Referenced blocks:')
+            for key, block in self.referenced_blocks.items():
+                if isinstance(block, TextBlock):
+                    lines.append(
+                        template.format(key, block['text'].strip(b'\0'))
+                    )
+                else:
+                    lines.append(template.format(key, ''))
+                    lines.extend(
+                        block.metadata(indent + '    ').split('\n')
+                    )
+
         for line in lines:
             if not line:
                 metadata.append(line)
             else:
-                for wrapped_line in wrap(line):
+                for wrapped_line in wrap(
+                        line,
+                        initial_indent=indent,
+                        subsequent_indent=indent,
+                        width=120):
                     metadata.append(wrapped_line)
 
         return '\n'.join(metadata)
@@ -3311,15 +3370,30 @@ comment: {}
             hex(self.address),
             self.comment,
         ).split('\n')
-        lines += [
-            template.format(key, hex(val) if key.endswith('addr') else val)
-            for key, val in self.items()
-        ]
+        for key, val in self.items():
+            if key.endswith('addr') or key.startswith('text_'):
+                lines.append(
+                    template.format(key, hex(val))
+                )
+            elif isinstance(val, float):
+                    lines.append(
+                        template.format(key, round(val, 6))
+                    )
+            else:
+                if (PYVERSION < 3 and isinstance(val, str)) or \
+                        (PYVERSION >= 3 and isinstance(val, bytes)):
+                    lines.append(
+                        template.format(key, val.strip(b'\0'))
+                    )
+                else:
+                    lines.append(
+                        template.format(key, val)
+                    )
         for line in lines:
             if not line:
                 metadata.append(line)
             else:
-                for wrapped_line in wrap(line):
+                for wrapped_line in wrap(line, width=120):
                     metadata.append(wrapped_line)
 
         return '\n'.join(metadata)
