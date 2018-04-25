@@ -337,6 +337,19 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
 
+            for j, ch in enumerate(group['logging_channels'], 1):
+                name = ch.name
+
+                channel = TreeItem((i, -j), channel_group)
+                channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                channel.setText(0, name)
+                channel.setCheckState(0, Qt.Unchecked)
+
+                channel = TreeItem((i, -j), filter_channel_group)
+                channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                channel.setText(0, name)
+                channel.setCheckState(0, Qt.Unchecked)
+
             progress.setValue(37 + int(53 * (i+1) / groups_nr))
             QApplication.processEvents()
 
@@ -473,6 +486,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         progress.setValue(100)
         progress.cancel()
+
+        print(self.mdf.channels_db)
 
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
@@ -1153,7 +1168,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 continue
 
             if item.checkState(0) == Qt.Checked:
-                signals.append((group, index))
+                signals.append(item.entry)
 
             index += 1
             iterator += 1
@@ -1244,7 +1259,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             parent_vb = view_box
 
         updateViews()
-    
+
         self.scroll_layout.addWidget(pw)
 
         pw.show()

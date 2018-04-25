@@ -9,6 +9,7 @@ import os
 import sys
 import warnings
 from collections import defaultdict
+from copy import deepcopy
 from functools import reduce
 from hashlib import md5
 from math import ceil
@@ -64,6 +65,7 @@ from .utils import (
     validate_memory_argument,
     validate_version_argument,
     count_channel_groups,
+    info_to_datatype_v4,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -411,6 +413,7 @@ class MDF4(object):
                 grp = {}
 
                 grp['channels'] = []
+                grp['logging_channels'] = []
                 grp['data_block'] = None
                 grp['channel_dependencies'] = []
                 grp['signal_data'] = []
@@ -798,6 +801,7 @@ class MDF4(object):
                         t = can_ids.timestamps[idx].copy()
 
                         for signal in sorted(can_msg.signals, key=lambda x: x.name):
+                            # TODO : use grp['logging_channels'] instead of get_can_data
                             sig_vals = self._get_can_data(data, signal)
                             conversion = ChannelConversion(
                                 a=signal.factor,
@@ -1058,6 +1062,20 @@ class MDF4(object):
                             can_msg = self._dbc_cache[attachment_addr].frameById(message_id)
                             can_msg_name = can_msg.name
 
+                            for entry in self.channels_db['CAN_DataFrame.DataBytes']:
+                                if entry[0] == dg_cntr:
+                                    index = entry[1]
+                                    break
+
+                            payload = channels[index]
+                            if self.memory == 'minimum':
+                                payload = Channel(
+                                    stream=stream,
+                                    address=payload,
+                                )
+
+                            logging_channels = grp['logging_channels']
+
                             for signal in can_msg.signals:
                                 signal_name = signal.name
 
@@ -1068,33 +1086,71 @@ class MDF4(object):
                                 # 4 - can_id.can_msg_name.name
 
                                 name_ = signal_name
+                                little_endian = True if signal.is_little_endian else False
+                                signed = signal.is_signed
+                                s_type = info_to_datatype_v4(signed, little_endian)
+                                bit_offset = signal.startbit % 8
+                                byte_offset = signal.startbit // 8
+                                bit_count = signal.signalsize
+                                comment = signal.comment or ''
+
+                                if (signal.factor, signal.offset) != (1, 0):
+                                    conversion = ChannelConversion(
+                                        a=signal.factor,
+                                        b=signal.offset,
+                                        conversion_type=v4c.CONVERSION_TYPE_LIN,
+                                    )
+                                    conversion.unit = signal.unit or ''
+                                else:
+                                    conversion = None
+
+                                kargs = {
+                                    'channel_type': v4c.CHANNEL_TYPE_VALUE,
+                                    'data_type': s_type,
+                                    'sync_type': payload['sync_type'],
+                                    'byte_offset': byte_offset + payload['byte_offset'],
+                                    'bit_offset': bit_offset,
+                                    'bit_count': bit_count,
+                                    'min_raw_value': 0,
+                                    'max_raw_value': 0,
+                                    'lower_limit': 0,
+                                    'upper_limit': 0,
+                                    'flags': 0,
+                                }
+
+                                log_channel = Channel(**kargs)
+                                log_channel.name = name_
+                                log_channel.comment = comment
+                                log_channel.source = deepcopy(channel.source)
+                                log_channel.conversion = conversion
+                                log_channel.unit = signal.unit or ''
+
+                                logging_channels.append(log_channel)
+
                                 if name_ not in self.channels_db:
                                     self.channels_db[name_] = []
                                 self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
-                                neg_ch_cntr -= 1
 
                                 name_ = '{}.{}'.format(message_name, signal_name)
                                 if name_ not in self.channels_db:
                                     self.channels_db[name_] = []
                                 self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
-                                neg_ch_cntr -= 1
 
                                 name_ = 'CAN{}.{}.{}'.format(can_id, message_name, signal_name)
                                 if name_ not in self.channels_db:
                                     self.channels_db[name_] = []
                                 self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
-                                neg_ch_cntr -= 1
 
                                 name_ = '{}.{}'.format(can_msg_name, signal_name)
                                 if name_ not in self.channels_db:
                                     self.channels_db[name_] = []
                                 self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
-                                neg_ch_cntr -= 1
 
                                 name_ = 'CAN{}.{}.{}'.format(can_id, can_msg_name, signal_name)
                                 if name_ not in self.channels_db:
                                     self.channels_db[name_] = []
                                 self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+
                                 neg_ch_cntr -= 1
 
                 else:
@@ -1617,24 +1673,9 @@ class MDF4(object):
                             else:
                                 parents[original_index] = None, None
                                 if channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
-                                    message_id = grp['message_id']
-
-                                    at_index = new_ch.attachments[0]
-                                    can_db = self._dbc_cache[at_index]
-                                    can_msg = can_db.frameById(message_id)
-
-                                    for signal in can_msg.signals:
-                                        offset_ = signal.startbit
-
-                                        # 0 - name
-                                        # 1 - message_name.name
-                                        # 2 - can_id.message_name.name
-                                        # 3 - can_msg_name.name
-                                        # 4 - can_id.can_msg_name.name
-
-                                        for _ in range(5):
-                                            parents[neg_index] = 'CAN_DataFrame.DataBytes', offset_
-                                            neg_index -= 1
+                                    for logging_channel in grp['logging_channels']:
+                                        parents[neg_index] = 'CAN_DataFrame.DataBytes', logging_channel['bit_offset']
+                                        neg_index -= 1
 
                     # virtual channels do not have bytes in the record
                     else:
@@ -1664,101 +1705,6 @@ class MDF4(object):
             dtypes = dtype(types)
 
         return parents, dtypes
-
-    def _get_can_data(self, data, signal):
-        record_size = data.shape[1]
-
-        big_endian = False if signal.is_little_endian else True
-        signed = signal.is_signed
-        bit_offset = signal.startbit % 8
-        byte_offset = signal.startbit // 8
-        bit_count = signal.signalsize
-
-        byte_count = bit_offset + bit_count
-        if byte_count % 8:
-            byte_count = (byte_count >> 3) + 1
-        else:
-            byte_count //= 8
-
-        types = [
-            ('', 'a{}'.format(byte_offset)),
-            ('vals', '({},)u1'.format(byte_count)),
-            ('', 'a{}'.format(record_size - byte_count - byte_offset)),
-        ]
-
-        vals = fromstring(data.tostring(), dtype=dtype(types))
-
-        vals = vals['vals']
-
-        if not big_endian:
-            vals = flip(vals, 1)
-
-        vals = unpackbits(vals)
-        vals = roll(vals, bit_offset)
-        vals = vals.reshape((len(vals) // 8, 8))
-        vals = packbits(vals)
-        vals = vals.reshape((len(vals) // byte_count, byte_count))
-
-        if bit_count < 64:
-            mask = 2 ** bit_count - 1
-            masks = []
-            while mask:
-                masks.append(mask & 0xFF)
-                mask >>= 8
-            for i in range(byte_count - len(masks)):
-                masks.append(0)
-
-            masks = masks[::-1]
-            for i, mask in enumerate(masks):
-                vals[:, i] &= mask
-
-        if not big_endian:
-            vals = flip(vals, 1)
-
-        if bit_count <= 8:
-            size = 1
-        elif bit_count <= 16:
-            size = 2
-        elif bit_count <= 32:
-            size = 4
-        elif bit_count <= 64:
-            size = 8
-        else:
-            size = bit_count // 8
-
-        if size > byte_count:
-            extra_bytes = size - byte_count
-            extra = zeros((len(vals), extra_bytes), dtype=uint8)
-
-            types = [
-                ('vals', vals.dtype, vals.shape[1:]),
-                ('', extra.dtype, extra.shape[1:]),
-            ]
-            vals = fromarrays([vals, extra], dtype=dtype(types))
-
-        vals = vals.tostring()
-
-        fmt = '{}u{}'.format('>' if big_endian else '<', size)
-        if size <= byte_count:
-            if big_endian:
-                types = [
-                    ('', 'a{}'.format(byte_count - size)),
-                    ('vals', fmt),
-                ]
-            else:
-                types = [
-                    ('vals', fmt),
-                    ('', 'a{}'.format(byte_count - size)),
-                ]
-        else:
-            types = [('vals', fmt), ]
-
-        vals = fromstring(vals, dtype=dtype(types))
-
-        if signed:
-            return as_non_byte_sized_signed_int(vals['vals'], bit_count)
-        else:
-            return vals['vals']
 
     def _append_structure_composition(
             self, grp, signal, field_names, offset,
@@ -1996,21 +1942,24 @@ class MDF4(object):
 
         record_size = group['channel_group']['samples_byte_nr']
 
-        if self.memory == 'minimum':
-            if group['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
-                channel = Channel(
-                    address=group['channels'][ch_nr],
-                    stream=self._file,
-                    load_metadata=False,
-                )
+        if ch_nr >= 0:
+            if self.memory == 'minimum':
+                if group['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+                    channel = Channel(
+                        address=group['channels'][ch_nr],
+                        stream=self._file,
+                        load_metadata=False,
+                    )
+                else:
+                    channel = Channel(
+                        address=group['channels'][ch_nr],
+                        stream=self._tempfile,
+                        load_metadata=False,
+                    )
             else:
-                channel = Channel(
-                    address=group['channels'][ch_nr],
-                    stream=self._tempfile,
-                    load_metadata=False,
-                )
+                channel = group['channels'][ch_nr]
         else:
-            channel = group['channels'][ch_nr]
+            channel = group['logging_channels'][-ch_nr-1]
 
         bit_offset = channel['bit_offset']
         byte_offset = channel['byte_offset']
@@ -2164,10 +2113,11 @@ class MDF4(object):
                 raise MdfException(message)
             else:
                 gp_nr, ch_nr = group, index
-                if gp_nr > len(self.groups) - 1:
-                    raise MdfException('Group index out of range')
-                if index > len(self.groups[gp_nr]['channels']) - 1:
-                    raise MdfException('Channel index out of range')
+                if ch_nr >= 0:
+                    if gp_nr > len(self.groups) - 1:
+                        raise MdfException('Group index out of range')
+                    if index > len(self.groups[gp_nr]['channels']) - 1:
+                        raise MdfException('Channel index out of range')
         else:
             if name not in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
@@ -2184,23 +2134,27 @@ class MDF4(object):
                         message = message.format(name, gp_nr)
                         warnings.warn(message)
                 else:
-                    for gp_nr, ch_nr in self.channels_db[name]:
-                        if gp_nr == group:
-                            if index is None:
-                                break
-                            elif index == ch_nr:
-                                break
+                    if index is not None and index < 0:
+                        gp_nr = group
+                        ch_nr = index
                     else:
-                        if index is None:
-                            message = 'Channel "{}" not found in group {}'
-                            message = message.format(name, group)
+                        for gp_nr, ch_nr in self.channels_db[name]:
+                            if gp_nr == group:
+                                if index is None:
+                                    break
+                                elif index == ch_nr:
+                                    break
                         else:
-                            message = (
-                                'Channel "{}" not found in group {} '
-                                'at index {}'
-                            )
-                            message = message.format(name, group, index)
-                        raise MdfException(message)
+                            if index is None:
+                                message = 'Channel "{}" not found in group {}'
+                                message = message.format(name, group)
+                            else:
+                                message = (
+                                    'Channel "{}" not found in group {} '
+                                    'at index {}'
+                                )
+                                message = message.format(name, group, index)
+                            raise MdfException(message)
 
         return gp_nr, ch_nr
 
@@ -3647,13 +3601,16 @@ class MDF4(object):
         else:
             stream = self._tempfile
 
-        channel = grp['channels'][ch_nr]
+        if ch_nr >= 0:
+            channel = grp['channels'][ch_nr]
 
-        if self.memory == 'minimum':
-            channel = Channel(
-                address=channel,
-                stream=stream,
-            )
+            if self.memory == 'minimum':
+                channel = Channel(
+                    address=channel,
+                    stream=stream,
+                )
+        else:
+            channel = grp['logging_channels'][-ch_nr -1]
 
         return channel
 
@@ -3859,71 +3816,20 @@ class MDF4(object):
                 cycles_nr = grp['channel_group']['cycles_nr']
 
             parent, bit_offset = parents[ch_nr]
-            parent_sig = self.get(
-                'CAN_DataFrame.DataBytes',
-                group=gp_nr,
-            )
-            parent_vals = parent_sig.samples
-
-            signal_data = None
-            kargs = {
-                'channel_type': v4c.CHANNEL_TYPE_VALUE,
-                'data_type': v4c.DATA_TYPE_SIGNED_INTEL,
-                'sync_type': v4c.SYNC_TYPE_TIME,
-                'byte_offset': 0,
-                'bit_offset': 0,
-                'bit_count': 0,
-                'min_raw_value': 0,
-                'max_raw_value': 0,
-                'lower_limit': 0,
-                'upper_limit': 0,
-                'flags': 0,
-                'name_addr': 0,
-                'unit_addr': 0,
-            }
-            channel = Channel(**kargs)
-            channel.source = parent_sig.source
 
             channel_invalidation_present = False
             dependency_list = None
 
-            signal_index = - (ch_nr + 1) // 5
+            channel = grp['logging_channels'][-ch_nr-1]
 
-            message_id = grp['message_id']
-            dbc_addr = grp['dbc_addr']
-            can_msg = self._dbc_cache[dbc_addr].frameById(message_id)
-
-            signal = can_msg.signals[signal_index]
-            signal_name = signal.name
-            bit_count = signal.signalsize
-            message_name = grp['message_name']
-            can_id = grp['can_id']
-            can_msg_name = can_msg.name
-
-            ch_pos = - (ch_nr + 1) % 5
-            # 0 - name
-            # 1 - message_name.name
-            # 2 - can_id.message_name.name
-            # 3 - can_msg_name.name
-            # 4 - can_id.can_msg_name.name
-            if ch_pos == 0:
-                name = signal_name
-            elif ch_pos == 1:
-                name = '{}.{}'.format(message_name, signal_name)
-            elif ch_pos == 2:
-                name = 'CAN{}.{}.{}'.format(can_id, message_name, signal_name)
-            elif ch_pos == 3:
-                name = '{}.{}'.format(can_msg_name, signal_name)
-            else:
-                name = 'CAN{}.{}.{}'.format(can_id, can_msg_name, signal_name)
-            channel.name = name
-            channel.comment = signal.comment or ''
 
             # get group data
             if data is None:
                 data = self._load_group_data(grp)
             else:
                 data = (data,)
+
+            bit_count = channel['bit_count']
 
         data_type = channel['data_type']
         channel_type = channel['channel_type']
@@ -4386,79 +4292,65 @@ class MDF4(object):
 
                     bits = channel['bit_count']
 
-                    if ch_nr < 0:
-                        vals = self.get(
-                            parent,
-                            group=gp_nr,
-                            data=fragment,
-                            samples_only=True,
-                        )
-                        vals = self._get_can_data(
-                            vals,
-                            signal,
-                        )
-                    else:
-
-                        if parent is not None:
-                            if 'record' not in grp:
-                                if dtypes.itemsize:
-                                    record = fromstring(data_bytes, dtype=dtypes)
-                                else:
-                                    record = None
-
-                                if memory == 'full':
-                                    grp['record'] = record
+                    if parent is not None:
+                        if 'record' not in grp:
+                            if dtypes.itemsize:
+                                record = fromstring(data_bytes, dtype=dtypes)
                             else:
-                                record = grp['record']
+                                record = None
 
-                            record.setflags(write=False)
-
-                            vals = record[parent]
-
-                            if ch_nr >= 0:
-                                size = vals.dtype.itemsize
-                                for dim in vals.shape[1:]:
-                                    size *= dim
-                                data_type = channel['data_type']
-
-                                vals_dtype = vals.dtype.kind
-
-                                if vals_dtype == 'b':
-                                    pass
-                                elif vals_dtype not in 'ui' and (bit_offset or not bits == size * 8) or \
-                                        (len(vals.shape) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY):
-                                    vals = self._get_not_byte_aligned_data(
-                                        data_bytes,
-                                        grp,
-                                        ch_nr,
-                                    )
-                                else:
-                                    if bit_offset:
-                                        dtype_ = vals.dtype
-                                        if dtype_.kind == 'i':
-                                            vals = vals.astype(dtype('<u{}'.format(size)))
-                                            vals >>= bit_offset
-                                        else:
-                                            vals = vals >> bit_offset
-
-                                    if not bits == size * 8:
-                                        if data_type in v4c.SIGNED_INT:
-                                            vals = as_non_byte_sized_signed_int(
-                                                vals,
-                                                bits,
-                                            )
-                                        else:
-                                            mask = (1 << bits) - 1
-                                            if vals.flags.writeable:
-                                                vals &= mask
-                                            else:
-                                                vals = vals & mask
+                            if memory == 'full':
+                                grp['record'] = record
                         else:
+                            record = grp['record']
+
+                        record.setflags(write=False)
+
+                        vals = record[parent]
+
+                        size = vals.dtype.itemsize
+                        for dim in vals.shape[1:]:
+                            size *= dim
+                        data_type = channel['data_type']
+
+                        vals_dtype = vals.dtype.kind
+
+                        if vals_dtype == 'b':
+                            pass
+                        elif vals_dtype not in 'ui' and (bit_offset or not bits == size * 8) or \
+                                (len(vals.shape) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY):
                             vals = self._get_not_byte_aligned_data(
                                 data_bytes,
                                 grp,
                                 ch_nr,
                             )
+                        else:
+                            if bit_offset:
+                                dtype_ = vals.dtype
+                                if dtype_.kind == 'i':
+                                    vals = vals.astype(dtype('<u{}'.format(size)))
+                                    vals >>= bit_offset
+                                else:
+                                    vals = vals >> bit_offset
+
+                            if not bits == size * 8:
+                                if data_type in v4c.SIGNED_INT:
+                                    vals = as_non_byte_sized_signed_int(
+                                        vals,
+                                        bits,
+                                    )
+                                else:
+                                    mask = (1 << bits) - 1
+                                    if vals.flags.writeable:
+                                        vals &= mask
+                                    else:
+                                        vals = vals & mask
+                    else:
+                        vals = self._get_not_byte_aligned_data(
+                            data_bytes,
+                            grp,
+                            ch_nr,
+                        )
 
                     if bits == 1 and self._single_bit_uint_as_bool:
                         vals = array(vals, dtype=bool)
@@ -4520,16 +4412,9 @@ class MDF4(object):
 
                     timestamps = t
 
-            if ch_nr >= 0:
+
             # get the channel conversion
-                conversion = channel.conversion
-            else:
-                conversion = ChannelConversion(
-                    a=signal.factor,
-                    b=signal.offset,
-                    conversion_type=v4c.CONVERSION_TYPE_LIN,
-                )
-                conversion.unit = signal.unit or ''
+            conversion = channel.conversion
 
             if conversion is None:
                 conversion_type = v4c.CONVERSION_TYPE_NON
@@ -4724,21 +4609,18 @@ class MDF4(object):
 
             comment = channel.comment
 
-            if ch_nr >= 0:
-                source = channel.source
-                cg_source = grp['channel_group'].acq_source
-                if source:
-                    source = SignalSource(
-                        source.name or (cg_source and cg_source.name) or '',
-                        source.path,
-                        source.comment,
-                        source['source_type'],
-                        source['bus_type'],
-                    )
-                else:
-                    source = None
+            source = channel.source
+            cg_source = grp['channel_group'].acq_source
+            if source:
+                source = SignalSource(
+                    source.name or (cg_source and cg_source.name) or '',
+                    source.path,
+                    source.comment,
+                    source['source_type'],
+                    source['bus_type'],
+                )
             else:
-                source = channel.source
+                source = None
 
             if channel.attachments:
                 attachment = self.extract_attachment(index=channel.attachments[0])

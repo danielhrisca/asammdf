@@ -505,6 +505,21 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
     return data_type, size
 
 
+def info_to_datatype_v4(signed, little_endian):
+    if signed:
+        if little_endian:
+            datatype = v4c.DATA_TYPE_SIGNED_INTEL
+        else:
+            datatype = v4c.DATA_TYPE_SIGNED_MOTOROLA
+    else:
+        if little_endian:
+            datatype = v4c.DATA_TYPE_UNSIGNED_INTEL
+        else:
+            datatype = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
+
+    return datatype
+
+
 def fmt_to_datatype_v4(fmt, shape, array=False):
     """convert numpy dtype format string to mdf version 4 channel data
     type and size
