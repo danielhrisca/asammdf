@@ -30,9 +30,13 @@
          <x>0</x>
          <y>0</y>
          <width>782</width>
-         <height>596</height>
+         <height>590</height>
         </rect>
        </property>
+       <attribute name="icon">
+        <iconset resource="resource.qrc">
+         <normaloff>:/file.png</normaloff>:/file.png</iconset>
+       </attribute>
        <attribute name="label">
         <string>Single files</string>
        </attribute>
@@ -86,9 +90,13 @@
          <x>0</x>
          <y>0</y>
          <width>782</width>
-         <height>596</height>
+         <height>590</height>
         </rect>
        </property>
+       <attribute name="icon">
+        <iconset resource="resource.qrc">
+         <normaloff>:/list.png</normaloff>:/list.png</iconset>
+       </attribute>
        <attribute name="label">
         <string>Multiple files</string>
        </attribute>

@@ -15,5 +15,6 @@
     <file alias="down.png">images/down.png</file>
     <file alias="erase.png">images/erase.png</file>
     <file alias="info.png">images/info.png</file>
+    <file alias="list.png">images/list.png</file>
 </qresource>
 </RCC>
