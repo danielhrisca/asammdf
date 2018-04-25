@@ -476,7 +476,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.progress = current_index, max_index
 
     def show_channel_info(self, item, column):
-        if item:
+        if item and item.parent():
             group, index = item.entry
 
             channel = self.mdf.get_channel_metadata(
@@ -633,6 +633,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             thr = None
             self.progress = None
 
+            mdf.configure(write_fragment_size=split_size)
+
             thr = WorkerThread(
                 target=mdf.save,
                 kwargs={
@@ -771,6 +773,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             mdf = thr.output
             thr = None
             self.progress = None
+
+            mdf.configure(write_fragment_size=split_size)
 
             thr = WorkerThread(
                 target=mdf.save,
@@ -912,6 +916,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             mdf = thr.output
             thr = None
             self.progress = None
+
+            mdf.configure(write_fragment_size=split_size)
 
             thr = WorkerThread(
                 target=mdf.save,
@@ -1368,6 +1374,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             thr = None
             self.progress = None
 
+            mdf.configure(write_fragment_size=split_size)
+
             thr = WorkerThread(
                 target=mdf.save,
                 kwargs={
@@ -1404,6 +1412,8 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
     def __init__(self, parent=None):
 
         super().__init__(parent)
+
+        self.progress = None
 
         self.last_folder = ''
         self.setupUi(self)
@@ -1464,6 +1474,9 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
     def set_memory_option(self, option):
         self.memory = option
 
+    def update_progress(self, current_index, max_index):
+        self.progress = current_index, max_index
+
     def delete_item(self, item):
         index = self.files_list.row(item)
         self.files_list.takeItem(index)
@@ -1477,8 +1490,10 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
     def cs_clicked(self, event):
         if self.concatenate.isChecked():
             func = MDF.concatenate
+            operation = 'Concatenating'
         else:
             func = MDF.stack
+            operation = 'Stacking'
 
         version = self.cs_format.currentText()
 
@@ -1513,18 +1528,88 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         if file_name:
 
-            mdf = func(
-                files,
-                outversion=version,
-                memory=memory,
+            thr = WorkerThread(
+                target=func,
+                kwargs={
+                    'files': files,
+                    'outversion': version,
+                    'memory': memory,
+                    'callback': self.update_progress,
+                }
             )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress = QProgressDialog(
+                '{} files and saving to {} format'.format(
+                    operation,
+                    version,
+                ),
+                "",
+                0,
+                100,
+                self,
+            )
+
+            progress.setWindowModality(Qt.ApplicationModal)
+            progress.setCancelButton(None)
+            progress.setAutoClose(True)
+            progress.setWindowTitle('{} measurements'.format(operation))
+            icon = QIcon()
+            icon.addPixmap(
+                QPixmap(":/stack.png"),
+                QIcon.Normal,
+                QIcon.Off,
+            )
+            progress.setWindowIcon(icon)
+
+            progress.show()
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 50))
+                sleep(0.1)
+
+            mdf = thr.output
+            thr = None
+            self.progress = None
+
             mdf.configure(write_fragment_size=split_size)
 
-            mdf.save(
-                file_name,
-                compression=compression,
-                overwrite=True,
+            thr = WorkerThread(
+                target=mdf.save,
+                kwargs={
+                    'dst': file_name,
+                    'compression': compression,
+                    'overwrite': True,
+                }
             )
+
+            thr.start()
+
+            while self.progress is None:
+                sleep(0.1)
+
+            progress.setLabelText(
+                'Saving output file "{}"'.format(
+                    file_name,
+                )
+            )
+
+            while thr.is_alive():
+                QApplication.processEvents()
+                progress.setValue(
+                    int(self.progress[0] / self.progress[1] * 50) + 50
+                )
+                sleep(0.1)
+
+            progress.cancel()
+            thr = None
+            self.progress = None
 
     def open_multiple_files(self, event):
         file_names, _ = QFileDialog.getOpenFileNames(

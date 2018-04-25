@@ -522,6 +522,9 @@ class MDF(object):
 
         groups_nr = len(self.groups)
 
+        if self._callback:
+            self._callback(0, groups_nr)
+
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
             included_channels = self._included_channels(i)
@@ -663,6 +666,9 @@ class MDF(object):
         out.header.start_time = self.header.start_time
 
         groups_nr = len(self.groups)
+
+        if self._callback:
+            self._callback(0, groups_nr)
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
@@ -1541,6 +1547,9 @@ class MDF(object):
 
         groups_nr = len(gps)
 
+        if self._callback:
+            self._callback(0, groups_nr)
+
         # append filtered channels to new MDF
         for new_index, (group_index, indexes) in enumerate(gps.items()):
             group = self.groups[group_index]
@@ -1651,7 +1660,7 @@ class MDF(object):
             )
 
     @staticmethod
-    def concatenate(files, outversion='4.10', memory='full'):
+    def concatenate(files, outversion='4.10', memory='full', callback=None):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -1678,6 +1687,9 @@ class MDF(object):
         if not files:
             raise MdfException('No files given for merge')
 
+        if callback:
+            callback(0, 100)
+
         files = [
             file if isinstance(file, MDF) else MDF(file, memory)
             for file in files
@@ -1694,12 +1706,16 @@ class MDF(object):
             for timestamp in timestamps
         ]
 
-        if not len(set(len(file.groups) for file in files)) == 1:
+        groups_nr = set(len(file.groups) for file in files)
+
+        if not len(groups_nr) == 1:
             message = (
                 "Can't merge files: "
                 "difference in number of data groups"
             )
             raise MdfException(message)
+        else:
+            groups_nr = groups_nr.pop()
 
         version = validate_version_argument(outversion)
         memory = validate_memory_argument(memory)
@@ -1707,6 +1723,7 @@ class MDF(object):
         merged = MDF(
             version=version,
             memory=memory,
+            callback=callback,
         )
 
         merged.header.start_time = oldest
@@ -1882,12 +1899,16 @@ class MDF(object):
 
                     del group['record']
 
+            if callback:
+                callback(i+1, groups_nr)
+
         for file in files:
             merged._transfer_events(file)
+
         return merged
 
     @staticmethod
-    def merge(files, outversion='4.10', memory='full'):
+    def merge(files, outversion='4.10', memory='full', callback=None):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -1911,10 +1932,10 @@ class MDF(object):
         MdfException : if there are inconsistencies between the files
 
         """
-        return MDF.concatenate(files, outversion, memory)
+        return MDF.concatenate(files, outversion, memory, callback)
 
     @staticmethod
-    def stack(files, outversion='4.10', memory='full', sync=True):
+    def stack(files, outversion='4.10', memory='full', sync=True, callback=None):
         """ merge several files and return the merged *MDF* object
 
         Parameters
@@ -1943,7 +1964,13 @@ class MDF(object):
         merged = MDF(
             version=version,
             memory=memory,
+            callback=callback,
         )
+
+        files_nr = len(files)
+
+        if callback:
+            callback(0, files_nr)
 
         if sync:
             timestamps = []
@@ -1987,7 +2014,7 @@ class MDF(object):
             for file in files
         )
 
-        for offset, mdf in zip(offsets, files):
+        for idx, (offset, mdf) in enumerate(zip(offsets, files), 1):
             for i, group in enumerate(mdf.groups):
                 idx = 0
                 channels_nr = len(group['channels'])
@@ -2065,6 +2092,9 @@ class MDF(object):
                         idx += 1
 
                     del group['record']
+
+            if callback:
+                callback(idx, files_nr)
 
         return merged
 
@@ -2169,6 +2199,9 @@ class MDF(object):
         mdf.header.start_time = self.header.start_time
 
         groups_nr = len(self.groups)
+
+        if self._callback:
+            self._callback(0, groups_nr)
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
