@@ -1207,13 +1207,20 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             scene.addItem(view_box)
 
-            view_box.addItem(
-                pg.PlotCurveItem(
-                    sig.timestamps,
-                    sig.samples,
-                    pen=colors[i%10],
+            conditions = [
+                not sig.samples.dtype.names,
+                sig.samples.dtype.kind not in 'SV',
+                len(sig.samples.shape) <= 1,
+            ]
+
+            if all(conditions):
+                view_box.addItem(
+                    pg.PlotCurveItem(
+                        sig.timestamps,
+                        sig.samples,
+                        pen=colors[i%10],
+                    )
                 )
-            )
 
             view_box.setXLink(parent_vb)
             view_box.enableAutoRange(
