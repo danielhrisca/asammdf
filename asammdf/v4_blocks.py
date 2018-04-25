@@ -11,6 +11,7 @@ import warnings
 from datetime import datetime
 from hashlib import md5
 from struct import pack, unpack, unpack_from
+from textwrap import wrap
 from zlib import compress, decompress
 
 import numpy as np
@@ -646,6 +647,39 @@ class Channel(dict):
             self.source,
             dict(self),
         )
+
+    def metadata(self):
+        max_len = max(
+            len(key)
+            for key in self
+        )
+        template = '{{: <{}}}: {{}}'.format(max_len)
+
+        metadata = []
+        lines = """
+name: {}
+display name: {}
+address: {}
+comment: {}
+
+""".format(
+            self.name,
+            self.display_name,
+            hex(self.address),
+            self.comment,
+        ).split('\n')
+        lines += [
+            template.format(key, hex(val) if key.endswith('addr') else val)
+            for key, val in self.items()
+        ]
+        for line in lines:
+            if not line:
+                metadata.append(line)
+            else:
+                for wrapped_line in wrap(line):
+                    metadata.append(wrapped_line)
+
+        return '\n'.join(metadata)
 
     def __lt__(self, other):
         self_byte_offset = self['byte_offset']
@@ -2106,6 +2140,41 @@ class ChannelConversion(dict):
 
         return values
 
+    def metadata(self):
+        max_len = max(
+            len(key)
+            for key in self
+        )
+        template = '{{: <{}}}: {{}}'.format(max_len)
+
+        metadata = []
+        lines = """
+name: {}
+unit: {}
+address: {}
+comment: {}
+formula: {}
+
+""".format(
+            self.name,
+            self.unit,
+            hex(self.address),
+            self.comment,
+            self.formula,
+        ).split('\n')
+        lines += [
+            template.format(key, hex(val) if key.endswith('addr') else val)
+            for key, val in self.items()
+        ]
+        for line in lines:
+            if not line:
+                metadata.append(line)
+            else:
+                for wrapped_line in wrap(line):
+                    metadata.append(wrapped_line)
+
+        return '\n'.join(metadata)
+
     def __bytes__(self):
         fmt = '<4sI{}Q2B3H{}d'.format(
             self['links_nr'] + 2,
@@ -3221,6 +3290,39 @@ class SourceInformation(dict):
             self['bus_type'] = kargs.get('bus_type', v4c.BUS_TYPE_NONE)
             self['flags'] = 0
             self['reserved1'] = b'\x00' * 5
+
+    def metadata(self):
+        max_len = max(
+            len(key)
+            for key in self
+        )
+        template = '{{: <{}}}: {{}}'.format(max_len)
+
+        metadata = []
+        lines = """
+name: {}
+path: {}
+address: {}
+comment: {}
+
+""".format(
+            self.name,
+            self.path,
+            hex(self.address),
+            self.comment,
+        ).split('\n')
+        lines += [
+            template.format(key, hex(val) if key.endswith('addr') else val)
+            for key, val in self.items()
+        ]
+        for line in lines:
+            if not line:
+                metadata.append(line)
+            else:
+                for wrapped_line in wrap(line):
+                    metadata.append(wrapped_line)
+
+        return '\n'.join(metadata)
 
     def to_blocks(self, address, blocks, defined_texts, si_map):
         key = 'name_addr'

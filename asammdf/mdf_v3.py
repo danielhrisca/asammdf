@@ -2805,6 +2805,34 @@ class MDF3(object):
 
         return name
 
+    def get_channel_metadata(
+            self,
+            name=None,
+            group=None,
+            index=None):
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+
+        if grp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        channel = grp['channels'][ch_nr]
+
+        if self.memory == 'minimum':
+            channel = Channel(
+                address=channel,
+                stream=stream,
+            )
+
+        return channel
+
     def get_channel_unit(self, name=None, group=None, index=None):
         """Gets channel unit.
 

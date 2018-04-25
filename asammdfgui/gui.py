@@ -32,6 +32,7 @@ from asammdf import __version__ as libversion
 import asammdfgui.main_window as main_window
 import asammdfgui.file_widget as file_widget
 import asammdfgui.search_widget as search_widget
+import asammdfgui.channel_info_widget as channel_info_widget
 
 from pyqtgraph import PlotWidget, AxisItem, ViewBox
 import pyqtgraph as pg
@@ -86,6 +87,49 @@ class WorkerThread(Thread):
 
     def run(self):
         self.output = self._target(*self._args, **self._kwargs)
+
+
+class TreeItem(QTreeWidgetItem):
+
+    def __init__(self, entry, *args, **kwargs):
+
+        super(TreeItem, self).__init__(*args, **kwargs)
+
+        self.entry = entry
+
+
+class ChannelInfoWidget(QWidget, channel_info_widget.Ui_ChannelInfo):
+    def __init__(self, channel, parent=None):
+        super().__init__(parent)
+        self.setupUi(self)
+
+        self.channel_label.setText(
+            channel.metadata()
+        )
+
+        if channel.conversion:
+            self.conversion_label.setText(
+                channel.conversion.metadata()
+            )
+
+        if channel.source:
+            self.source_label.setText(
+                channel.source.metadata()
+            )
+
+
+class ChannelInfoDialog(QDialog):
+    def __init__(self, channel, *args, **kwargs):
+        super(QDialog, self).__init__(*args, **kwargs)
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        self.setWindowTitle(channel.name)
+
+        layout.addWidget(ChannelInfoWidget(channel, self))
+
+        self.setStyleSheet("font: 8pt \"Consolas\";}")
 
 
 class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
@@ -254,35 +298,17 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             self.filter_tree.addTopLevelItem(filter_channel_group)
 
             for j, ch in enumerate(group['channels']):
-                if self.memory != 'minimum':
-                    max_len = max(
-                        len(key)
-                        for key in ch
-                    )
-                    template = '{{: <{}}}: {{}}'.format(max_len)
-
-                    tooltip = ['CNBLOCK @ adrress {}\n'.format(hex(ch.address)), ]
-                    tooltip += [
-                        template.format(key, hex(val) if key.endswith('addr') else val)
-                        for key, val in ch.items()
-                    ]
-
-                    tooltip = '\n'.join(tooltip)
 
                 name = self.mdf.get_channel_name(group=i, index=j)
-                channel = QTreeWidgetItem(channel_group)
+                channel = TreeItem((i, j), channel_group)
                 channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
-                if self.memory != 'minimum':
-                    channel.setToolTip(0, tooltip)
 
-                channel = QTreeWidgetItem(filter_channel_group)
+                channel = TreeItem((i, j), filter_channel_group)
                 channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
-                if self.memory != 'minimum':
-                    channel.setToolTip(0, tooltip)
 
             progress.setValue(37 + int(53 * (i+1) / groups_nr))
             QApplication.processEvents()
@@ -424,22 +450,15 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
     def show_channel_info(self, item, column):
         if item:
-            lines = item.toolTip(column).split('\n')
+            group, index = item.entry
 
-            tooltip = []
-            for line in lines:
-                for wrap in textwrap.wrap(line):
-                    tooltip.append(wrap)
-
-            tooltip = '\n'.join(tooltip)
-
-            QMessageBox.information(
-                self,
-                item.text(column),
-                tooltip,
-                QMessageBox.NoButton,
-                QMessageBox.NoButton,
+            channel = self.mdf.get_channel_metadata(
+                group=group,
+                index=index,
             )
+
+            msg = ChannelInfoDialog(channel, self)
+            msg.show()
 
     def clear_filter(self):
         iterator = QTreeWidgetItemIterator(
@@ -1526,7 +1545,6 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    app.setStyleSheet("QMessageBox { messagebox-text-interaction-flags: 5; font: 8pt \"Consolas\";}")
     main = MainWindow()
     app.exec_()
 

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'file_widget.ui'
 #
-# Created by: PyQt5 UI code generator 5.9
+# Created by: PyQt5 UI code generator 5.8.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -20,6 +20,7 @@ class Ui_file_widget(object):
         self.channels_tab = QtWidgets.QWidget()
         self.channels_tab.setObjectName("channels_tab")
         self.verticalLayout_8 = QtWidgets.QVBoxLayout(self.channels_tab)
+        self.verticalLayout_8.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_8.setObjectName("verticalLayout_8")
         self.splitter = QtWidgets.QSplitter(self.channels_tab)
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
@@ -61,6 +62,7 @@ class Ui_file_widget(object):
         self.convert_tab = QtWidgets.QWidget()
         self.convert_tab.setObjectName("convert_tab")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.convert_tab)
+        self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.gridLayout_2 = QtWidgets.QGridLayout()
         self.gridLayout_2.setContentsMargins(5, 5, 5, 5)
@@ -114,6 +116,7 @@ class Ui_file_widget(object):
         self.cut_tab = QtWidgets.QWidget()
         self.cut_tab.setObjectName("cut_tab")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.cut_tab)
+        self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.gridLayout_3 = QtWidgets.QGridLayout()
         self.gridLayout_3.setContentsMargins(5, 5, 5, 5)
@@ -184,6 +187,7 @@ class Ui_file_widget(object):
         self.export_tab = QtWidgets.QWidget()
         self.export_tab.setObjectName("export_tab")
         self.verticalLayout_7 = QtWidgets.QVBoxLayout(self.export_tab)
+        self.verticalLayout_7.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_7.setObjectName("verticalLayout_7")
         self.gridLayout_6 = QtWidgets.QGridLayout()
         self.gridLayout_6.setContentsMargins(5, 5, 5, 5)
@@ -254,6 +258,7 @@ class Ui_file_widget(object):
         self.filter_tab = QtWidgets.QWidget()
         self.filter_tab.setObjectName("filter_tab")
         self.verticalLayout_6 = QtWidgets.QVBoxLayout(self.filter_tab)
+        self.verticalLayout_6.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_6.setObjectName("verticalLayout_6")
         self.filter_layout = QtWidgets.QGridLayout()
         self.filter_layout.setContentsMargins(5, 5, 5, 5)
@@ -320,6 +325,7 @@ class Ui_file_widget(object):
         self.resample_tab = QtWidgets.QWidget()
         self.resample_tab.setObjectName("resample_tab")
         self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.resample_tab)
+        self.verticalLayout_5.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.gridLayout_4 = QtWidgets.QGridLayout()
         self.gridLayout_4.setContentsMargins(5, 5, 5, 5)

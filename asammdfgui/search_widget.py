@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'search_widget.ui'
 #
-# Created by: PyQt5 UI code generator 5.9
+# Created by: PyQt5 UI code generator 5.8.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -45,4 +45,4 @@ class Ui_SearchWidget(object):
         SearchWidget.setWindowTitle(_translate("SearchWidget", "Form"))
         self.label.setText(_translate("SearchWidget", "No match"))
 
-from asammdfgui import resource_rc
+import resource_rc
