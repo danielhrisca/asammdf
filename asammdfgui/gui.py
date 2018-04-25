@@ -1,6 +1,7 @@
 import os
 import sys
 import traceback
+import textwrap
 
 from copy import deepcopy
 from datetime import datetime
@@ -8,6 +9,7 @@ from functools import reduce, partial
 from io import StringIO
 from threading import Thread
 from time import sleep
+
 
 import numpy as np
 
@@ -221,6 +223,9 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.channels_layout.insertWidget(0, self.search_field)
         self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
 
+        self.channels_tree.itemDoubleClicked.connect(self.show_channel_info)
+        self.filter_tree.itemDoubleClicked.connect(self.show_channel_info)
+
         groups_nr = len(self.mdf.groups)
 
         for i, group in enumerate(self.mdf.groups):
@@ -248,17 +253,36 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             self.channels_tree.addTopLevelItem(channel_group)
             self.filter_tree.addTopLevelItem(filter_channel_group)
 
-            for j, channel in enumerate(group['channels']):
+            for j, ch in enumerate(group['channels']):
+                if self.memory != 'minimum':
+                    max_len = max(
+                        len(key)
+                        for key in ch
+                    )
+                    template = '{{: <{}}}: {{}}'.format(max_len)
+
+                    tooltip = ['CNBLOCK @ adrress {}\n'.format(hex(ch.address)), ]
+                    tooltip += [
+                        template.format(key, hex(val) if key.endswith('addr') else val)
+                        for key, val in ch.items()
+                    ]
+
+                    tooltip = '\n'.join(tooltip)
+
                 name = self.mdf.get_channel_name(group=i, index=j)
                 channel = QTreeWidgetItem(channel_group)
                 channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
+                if self.memory != 'minimum':
+                    channel.setToolTip(0, tooltip)
 
                 channel = QTreeWidgetItem(filter_channel_group)
                 channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
+                if self.memory != 'minimum':
+                    channel.setToolTip(0, tooltip)
 
             progress.setValue(37 + int(53 * (i+1) / groups_nr))
             QApplication.processEvents()
@@ -397,6 +421,25 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
+
+    def show_channel_info(self, item, column):
+        if item:
+            lines = item.toolTip(column).split('\n')
+
+            tooltip = []
+            for line in lines:
+                for wrap in textwrap.wrap(line):
+                    tooltip.append(wrap)
+
+            tooltip = '\n'.join(tooltip)
+
+            QMessageBox.information(
+                self,
+                item.text(column),
+                tooltip,
+                QMessageBox.NoButton,
+                QMessageBox.NoButton,
+            )
 
     def clear_filter(self):
         iterator = QTreeWidgetItemIterator(
@@ -1483,6 +1526,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    app.setStyleSheet("QMessageBox { messagebox-text-interaction-flags: 5; font: 8pt \"Consolas\";}")
     main = MainWindow()
     app.exec_()
 
