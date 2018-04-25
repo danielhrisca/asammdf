@@ -413,11 +413,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         times = []
         for i in range(groups_nr):
-            times.append(self.mdf.get_master(i))
+            master = self.mdf.get_master(i)
+            if len(master):
+                times.append(master[0])
+                times.append(master[-1])
             progress.setValue(90 + int(6 * (i+1) / groups_nr))
             QApplication.processEvents()
 
-        times = reduce(np.union1d, times)
         if len(times):
             time_range = min(times), max(times)
 
@@ -1161,7 +1163,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         pw = PlotWidget()
 
-        pw.show()
+
         plot_item = pw.plotItem
         plot_item.hideAxis('left')
         # plot_item.showGrid(True, True, 0.1)
@@ -1242,9 +1244,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             parent_vb = view_box
 
         updateViews()
-
+    
         self.scroll_layout.addWidget(pw)
 
+        pw.show()
 
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(
