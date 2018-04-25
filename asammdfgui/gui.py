@@ -168,8 +168,12 @@ class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
         self.current_index = 1
         self.entries = []
 
-        completer = QCompleter(list(self.channels_db), self)
+        completer = QCompleter(
+            sorted(self.channels_db, key=lambda x: x.lower()),
+            self,
+        )
         completer.setCaseSensitivity(Qt.CaseInsensitive)
+        completer.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
         self.search.setCompleter(completer)
 
         self.search.textChanged.connect(self.display_results)
