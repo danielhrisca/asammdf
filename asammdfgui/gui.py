@@ -1069,6 +1069,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         pw.show()
         plot_item = pw.plotItem
         plot_item.hideAxis('left')
+        # plot_item.showGrid(True, True, 0.1)
         layout = plot_item.layout
         scene = plot_item.scene()
         vb = plot_item.vb
@@ -1111,10 +1112,11 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             sig = self.mdf.get(group=group, index=index)
 
             axis = pg.AxisItem("left")
+            # axis.setGrid(200)
             view_box = pg.ViewBox()
 
             axis.linkToView(view_box)
-            axis.setLabel('{} [{}]'.format(sig.name, sig.unit), color=colors[i%10])
+            axis.setLabel(sig.name, sig.unit, color=colors[i%10])
 
             layout.addItem(axis, 2, i+2)
 
