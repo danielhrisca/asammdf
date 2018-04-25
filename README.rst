@@ -165,11 +165,12 @@ optional dependencies needed for exports
 * xlsxwriter : for Excel export
 * scipy : for Matlab v4 and v5 .mat export
 * hdf5storage : for Matlab v7.3 .mat export
-* PyQt5 : for GUI tool
 
 other optional dependencies
 
 * chardet : to detect non-standard unicode encodings
+* PyQt5 : for GUI tool
+* pyqtgraph : for GUI tool
 
 
 Benchmarks
