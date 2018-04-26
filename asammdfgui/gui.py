@@ -258,6 +258,7 @@ class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
         )
         completer.setCaseSensitivity(Qt.CaseInsensitive)
         completer.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
+        completer.setFilterMode(Qt.MatchContains)
         self.search.setCompleter(completer)
 
         self.search.textChanged.connect(self.display_results)
@@ -280,6 +281,13 @@ class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
                 self.current_index = self.matches - 1
             self.label.setText('{} of {}'.format(self.current_index + 1, self.matches))
             self.selectionChanged.emit()
+
+    def set_search_option(self, option):
+        print(option, self.search.completer().filterMode(), int(self.search.completer().filterMode()))
+        if option == 'Match start':
+            self.search.completer().setFilterMode(Qt.MatchStartsWith)
+        elif option == 'Match contains':
+            self.search.completer().setFilterMode(Qt.MatchContains)
 
     def display_results(self, text):
         channel_name = text.strip()
@@ -553,6 +561,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         # self.channels_tree.itemChanged.connect(self.select)
         self.plot_btn.clicked.connect(self.plot_pyqtgraph)
         self.clear_filter_btn.clicked.connect(self.clear_filter)
+        self.clear_channels_btn.clicked.connect(self.clear_channels)
 
         self.aspects.setCurrentIndex(0)
 
@@ -576,6 +585,20 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
     def clear_filter(self):
         iterator = QTreeWidgetItemIterator(
             self.filter_tree,
+        )
+
+        while iterator.value():
+            item = iterator.value()
+            item.setCheckState(0, Qt.Unchecked)
+
+            if item.parent() is None:
+                item.setExpanded(False)
+
+            iterator += 1
+
+    def clear_channels(self):
+        iterator = QTreeWidgetItemIterator(
+            self.channels_tree,
         )
 
         while iterator.value():
@@ -1418,36 +1441,64 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             )
         )
 
+        # memory option menu
         memory_option = QActionGroup(self)
-        full_memory = QAction('full')
-        full_memory.setCheckable(True)
-        memory_option.addAction(full_memory)
-        low_memory = QAction('low')
-        low_memory.setCheckable(True)
-        low_memory.setChecked(False)
-        memory_option.addAction(low_memory)
-        minimum_memory = QAction('minimum')
-        minimum_memory.setCheckable(True)
-        minimum_memory.setChecked(False)
-        memory_option.addAction(minimum_memory)
 
-        full_memory.triggered.connect(partial(self.set_memory_option, 'full'))
-        low_memory.triggered.connect(partial(self.set_memory_option, 'low'))
-        minimum_memory.triggered.connect(partial(self.set_memory_option, 'minimum'))
+        for option in (
+                'full',
+                'low',
+                'minimum'):
 
-        full_memory.setChecked(True)
+            action = QAction(option)
+            action.setCheckable(True)
+            memory_option.addAction(action)
+            action.triggered.connect(
+                partial(self.set_memory_option, option)
+            )
+
+            if option == 'full':
+                action.setChecked(True)
 
         menu = QMenu('Memory', self)
         menu.addActions(memory_option.actions())
         self.menubar.addMenu(menu)
 
+        # search mode menu
+        search_option = QActionGroup(self)
+
+        for option in (
+                'Match start',
+                'Match contains'):
+
+            action = QAction(option)
+            action.setCheckable(True)
+            search_option.addAction(action)
+            action.triggered.connect(
+                partial(self.set_search_option, option)
+            )
+
+            if option == 'Match start':
+                action.setChecked(True)
+
+        menu = QMenu('Search', self)
+        menu.addActions(search_option.actions())
+        self.menubar.addMenu(menu)
+
         self.memory = 'full'
+        self.match = 'Match start'
         self.toolBox.setCurrentIndex(0)
 
         self.show()
 
     def set_memory_option(self, option):
         self.memory = option
+
+    def set_search_option(self, option):
+        self.match = option
+        count = self.files.count()
+        for i in range(count):
+            self.files.widget(i).search_field.set_search_option(option)
+            self.files.widget(i).filter_field.set_search_option(option)
 
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
@@ -1593,8 +1644,9 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             index = self.files.count()
             try:
                 widget = FileWidget(file_name, self.memory)
+                widget.search_field.set_search_option(self.match)
+                widget.filter_field.set_search_option(self.match)
             except:
-                print('aici')
                 raise
             else:
                 self.files.addTab(widget, os.path.basename(file_name))

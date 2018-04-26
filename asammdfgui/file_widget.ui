@@ -48,6 +48,24 @@
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="clear_channels_btn">
+             <property name="text">
+              <string>Reset selection</string>
+             </property>
+             <property name="icon">
+              <iconset resource="resource.qrc">
+               <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="Line" name="line_12">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QPushButton" name="plot_btn">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -598,8 +616,64 @@
            </property>
           </widget>
          </item>
+         <item row="1" column="0" rowspan="9">
+          <widget class="QTreeWidget" name="filter_tree">
+           <column>
+            <property name="text">
+             <string notr="true">1</string>
+            </property>
+           </column>
+          </widget>
+         </item>
          <item row="1" column="2">
           <widget class="QComboBox" name="filter_format"/>
+         </item>
+         <item row="1" column="1">
+          <widget class="QLabel" name="label_12">
+           <property name="text">
+            <string>Outpput format</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1" colspan="2">
+          <widget class="Line" name="line_8">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="3">
+          <spacer name="horizontalSpacer_6">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item row="6" column="1">
+          <widget class="QLabel" name="label_10">
+           <property name="text">
+            <string>Split size [MB]</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="2">
+          <widget class="QDoubleSpinBox" name="filter_split_size"/>
+         </item>
+         <item row="4" column="1">
+          <widget class="QCheckBox" name="filter_split">
+           <property name="text">
+            <string>Split data blocks</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
          </item>
          <item row="8" column="1">
           <widget class="QPushButton" name="filter_btn">
@@ -619,8 +693,22 @@
            </property>
           </widget>
          </item>
-         <item row="2" column="3">
-          <spacer name="horizontalSpacer_6">
+         <item row="2" column="2">
+          <widget class="QComboBox" name="filter_compression"/>
+         </item>
+         <item row="10" column="0">
+          <widget class="QPushButton" name="clear_filter_btn">
+           <property name="text">
+            <string>Clear selection</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <spacer name="horizontalSpacer_9">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
@@ -631,49 +719,6 @@
             </size>
            </property>
           </spacer>
-         </item>
-         <item row="1" column="0" rowspan="9">
-          <widget class="QTreeWidget" name="filter_tree">
-           <column>
-            <property name="text">
-             <string notr="true">1</string>
-            </property>
-           </column>
-          </widget>
-         </item>
-         <item row="6" column="1">
-          <widget class="QLabel" name="label_10">
-           <property name="text">
-            <string>Split size [MB]</string>
-           </property>
-          </widget>
-         </item>
-         <item row="6" column="2">
-          <widget class="QDoubleSpinBox" name="filter_split_size"/>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLabel" name="label_12">
-           <property name="text">
-            <string>Outpput format</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1" colspan="2">
-          <widget class="Line" name="line_8">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="1">
-          <widget class="QCheckBox" name="filter_split">
-           <property name="text">
-            <string>Split data blocks</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
          </item>
          <item row="9" column="1">
           <spacer name="verticalSpacer_4">
@@ -700,33 +745,6 @@
             </size>
            </property>
           </spacer>
-         </item>
-         <item row="2" column="2">
-          <widget class="QComboBox" name="filter_compression"/>
-         </item>
-         <item row="0" column="1">
-          <spacer name="horizontalSpacer_9">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item row="10" column="0">
-          <widget class="QPushButton" name="clear_filter_btn">
-           <property name="text">
-            <string>Clear selection</string>
-           </property>
-           <property name="icon">
-            <iconset resource="resource.qrc">
-             <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
-           </property>
-          </widget>
          </item>
         </layout>
        </item>
