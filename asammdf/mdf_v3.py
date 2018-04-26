@@ -680,6 +680,8 @@ class MDF3(object):
         memory = self.memory
 
         cg_count = count_channel_groups(stream, 3)
+        if self._callback:
+            self._callback(0, cg_count)
         current_cg_index = 0
 
         # performance optimization

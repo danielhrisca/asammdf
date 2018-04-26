@@ -361,6 +361,8 @@ class MDF4(object):
         dg_cntr = 0
 
         cg_count = count_channel_groups(stream, 4)
+        if self._callback:
+            self._callback(0, cg_count)
         current_cg_index = 0
 
         self.identification = FileIdentificationBlock(stream=stream)
