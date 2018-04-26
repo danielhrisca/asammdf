@@ -26,7 +26,7 @@ except ImportError:
     from PyQt4.QtCore import *
     from PyQt4.QtGui import *
 
-from asammdf import MDF, SUPPORTED_VERSIONS
+from asammdf import MDF, MDF2, MDF3, MDF4, SUPPORTED_VERSIONS
 from asammdf import __version__ as libversion
 
 import asammdfgui.main_window as main_window
@@ -39,6 +39,7 @@ import pyqtgraph as pg
 
 
 __version__ = '0.1.0'
+TERMINATED = object()
 
 
 def excepthook(exc_type, exc_value, tracebackobj):
@@ -100,10 +101,23 @@ def run_thread_with_progress(
 
     while thr.is_alive():
         QApplication.processEvents()
-        progress.setValue(
-            int(widget.progress[0] / widget.progress[1] * factor) + offset
-        )
+        termination_request = progress.wasCanceled()
+        if termination_request:
+            MDF._terminate = True
+            MDF2._terminate = True
+            MDF3._terminate = True
+            MDF4._terminate = True
+        else:
+            progress.setValue(
+                int(widget.progress[0] / widget.progress[1] * factor) + offset
+            )
         sleep(0.1)
+
+    if termination_request:
+        MDF._terminate = False
+        MDF2._terminate = False
+        MDF3._terminate = False
+        MDF4._terminate = False
 
     progress.setValue(factor + offset)
 
@@ -114,7 +128,10 @@ def run_thread_with_progress(
 
     widget.progress = None
 
-    return thr.output
+    if termination_request:
+        return TERMINATED
+    else:
+        return thr.output
 
 
 def setup_progress(parent, title, message, icon_name):
@@ -680,6 +697,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 progress=progress,
             )
 
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
+
             mdf.configure(write_fragment_size=split_size)
 
             # then save it
@@ -759,6 +780,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 progress=progress,
             )
 
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
+
             # convert mdf
             progress.setLabelText(
                 'Converting from {} to {}'.format(
@@ -781,6 +806,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 offset=33,
                 progress=progress,
             )
+
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
 
             mdf.configure(write_fragment_size=split_size)
 
@@ -863,6 +892,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 progress=progress,
             )
 
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
+
             # convert mdf
             progress.setLabelText(
                 'Converting from {} to {}'.format(
@@ -885,6 +918,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 offset=33,
                 progress=progress,
             )
+
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
 
             mdf.configure(write_fragment_size=split_size)
 
@@ -1282,6 +1319,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 progress=progress,
             )
 
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
+
             # convert mdf
             progress.setLabelText(
                 'Converting from {} to {}'.format(
@@ -1304,6 +1345,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 offset=33,
                 progress=progress,
             )
+
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
 
             mdf.configure(write_fragment_size=split_size)
 
@@ -1364,7 +1409,13 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         self.files_list.itemDoubleClicked.connect(self.delete_item)
 
         self.statusbar.addPermanentWidget(
-            QLabel('asammdfgui {} with asammdf {}'.format(__version__, libversion)))
+            QLabel(
+                'asammdfgui {} with asammdf {}'.format(
+                    __version__,
+                    libversion,
+                )
+            )
+        )
 
         memory_option = QActionGroup(self)
         full_memory = QAction('full')
@@ -1477,6 +1528,10 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
                 offset=0,
                 progress=progress,
             )
+
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
 
             mdf.configure(write_fragment_size=split_size)
 

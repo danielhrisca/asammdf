@@ -167,6 +167,8 @@ class MDF3(object):
 
     """
 
+    _terminate = False
+
     def __init__(self, name=None, memory='full', version='3.30', callback=None):
         memory = validate_memory_argument(memory)
         self.groups = []
@@ -949,6 +951,10 @@ class MDF3(object):
                 current_cg_index += 1
                 if self._callback:
                     self._callback(current_cg_index, cg_count)
+
+                if self._terminate:
+                    self.close()
+                    return
 
             # store channel groups record sizes dict and data block size in
             # each new group data belong to the initial unsorted group, and
@@ -3928,6 +3934,10 @@ class MDF3(object):
 
                 if self._callback:
                     self._callback(int(33 * (idx+1) / groups_nr), 100)
+                if self._terminate:
+                    dst_.close()
+                    self.close()
+                    return
 
             for gp in self.groups:
                 dg = gp['data_group']
@@ -4088,6 +4098,10 @@ class MDF3(object):
 
                 if self._callback:
                     self._callback(int(33 * (idx+1) / groups_nr) + 33, 100)
+                if self._terminate:
+                    dst_.close()
+                    self.close()
+                    return
 
             # update referenced channels addresses in the channel dependecies
             for gp in self.groups:
@@ -4116,6 +4130,11 @@ class MDF3(object):
                 self.header['first_dg_addr'] = address
                 self.header['dg_nr'] = len(self.groups)
                 self.header['comment_addr'] = self.file_history.address
+
+            if self._terminate:
+                dst_.close()
+                self.close()
+                return
 
             if self._callback:
                 blocks_nr = len(blocks)
@@ -4463,6 +4482,11 @@ class MDF3(object):
 
                 if self._callback:
                     self._callback(int(100 * (idx+1) / groups_nr), 100)
+
+                if self._terminate:
+                    dst_.close()
+                    self.close()
+                    return
 
             orig_addr = [
                 gp['data_group']['data_block_addr']

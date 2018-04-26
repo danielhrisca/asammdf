@@ -270,7 +270,9 @@ class MDF4(object):
 
     """
 
-    def __init__(self, name=None, memory='full', version='4.10', callback=None):
+    _terminate = False
+
+    def __init__(self, name=None, memory='full', version='4.10', callback=None, queue=None):
         memory = validate_memory_argument(memory)
         self.groups = []
         self.header = None
@@ -307,6 +309,7 @@ class MDF4(object):
         self._tempfile.write(b'\0')
 
         self._callback = callback
+        self.queue = queue
 
         if name:
             self._file = open(self.name, 'rb')
@@ -317,8 +320,6 @@ class MDF4(object):
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
-
-
 
     def _check_finalised(self):
         flags = self.identification['unfinalized_standard_flags']
@@ -523,6 +524,10 @@ class MDF4(object):
                 current_cg_index += 1
                 if self._callback:
                     self._callback(current_cg_index, cg_count)
+
+                if self._terminate:
+                    self.close()
+                    return
 
                 new_groups.append(grp)
 
@@ -5158,6 +5163,10 @@ class MDF4(object):
 
                 if self._callback:
                     self._callback(int(50 * (gp_nr+1) / groups_nr), 100)
+                if self._terminate:
+                    dst_.close()
+                    self.close()
+                    return
 
             address = tell()
 
@@ -5322,6 +5331,10 @@ class MDF4(object):
 
                 if self._callback:
                     self._callback(int(50 * (i+1) / groups_nr) + 25, 100)
+                if self._terminate:
+                    dst_.close()
+                    self.close()
+                    return
 
             for gp in self.groups:
                 for dep_list in gp['channel_dependencies']:
@@ -5399,6 +5412,11 @@ class MDF4(object):
                 self.events[-1]['next_ev_addr'] = 0
 
                 self.header['first_event_addr'] = self.events[0].address
+
+            if self._terminate:
+                dst_.close()
+                self.close()
+                return
 
             if self._callback:
                 blocks_nr = len(blocks)
@@ -5673,6 +5691,10 @@ class MDF4(object):
 
                 if self._callback:
                     self._callback(int(50 * (group_index+1) / groups_nr), 100)
+                if self._terminate:
+                    dst_.close()
+                    self.close()
+                    return
 
             address = tell()
 
@@ -5851,6 +5873,10 @@ class MDF4(object):
 
                 if self._callback:
                     self._callback(int(50 * (i+1) / groups_nr) + 50, 100)
+                if self._terminate:
+                    dst_.close()
+                    self.close()
+                    return
 
             blocks = []
             address = tell()

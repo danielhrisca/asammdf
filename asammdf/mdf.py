@@ -71,7 +71,9 @@ class MDF(object):
 
     """
 
-    def __init__(self, name=None, memory='full', version='4.10', callback=None):
+    _terminate = False
+
+    def __init__(self, name=None, memory='full', version='4.10', callback=None, queue=None):
         if name:
             if os.path.isfile(name):
                 memory = validate_memory_argument(memory)
@@ -89,7 +91,7 @@ class MDF(object):
                 if version in MDF3_VERSIONS:
                     self._mdf = MDF3(name, memory, callback=callback)
                 elif version in MDF4_VERSIONS:
-                    self._mdf = MDF4(name, memory, callback=callback)
+                    self._mdf = MDF4(name, memory, callback=callback, queue=queue)
                 elif version in MDF2_VERSIONS:
                     self._mdf = MDF2(name, memory, callback=callback)
                 else:
@@ -608,6 +610,9 @@ class MDF(object):
             if self._callback:
                 self._callback(i+1, groups_nr)
 
+            if self._terminate:
+                return
+
         out._transfer_events(self)
         if self._callback:
             out._callback = out._mdf._callback = self._callback
@@ -838,6 +843,9 @@ class MDF(object):
             if self._callback:
                 self._callback(i+1, groups_nr)
 
+            if self._terminate:
+                return
+
         out._transfer_events(self)
         if self._callback:
             out._callback = out._mdf._callback = self._callback
@@ -954,6 +962,8 @@ class MDF(object):
             count = len(self.groups)
 
             for i, grp in enumerate(self.groups):
+                if self._terminate:
+                    return
                 master_index = self.masters_db.get(i, -1)
                 data = self._load_group_data(grp)
 
@@ -1062,6 +1072,8 @@ class MDF(object):
                         # each HDF5 group will have a string attribute "master"
                         # that will hold the name of the master channel
                         for i, grp in enumerate(self.groups):
+                            if self._terminate:
+                                return
                             group_name = r'/' + 'DataGroup_{}'.format(i + 1)
                             group = hdf.create_group(group_name)
 
@@ -1106,6 +1118,8 @@ class MDF(object):
                     sheet = workbook.add_worksheet('Channels')
 
                     for col, (channel_name, channel_unit) in enumerate(units.items()):
+                        if self._terminate:
+                            return
                         samples = mdict[channel_name]
                         sig_description = '{} [{}]'.format(
                             channel_name,
@@ -1127,6 +1141,8 @@ class MDF(object):
                     count = len(self.groups)
 
                     for i, grp in enumerate(self.groups):
+                        if self._terminate:
+                            return
                         # print('Exporting group {} of {}'.format(i + 1, count))
 
                         data = self._load_group_data(grp)
@@ -1179,6 +1195,8 @@ class MDF(object):
                             offset = 0
 
                         for col, _ in enumerate(grp['channels']):
+                            if self._terminate:
+                                return
                             if col == master_index:
                                 offset -= 1
                                 continue
@@ -1221,6 +1239,9 @@ class MDF(object):
                         for samples in mdict.values()
                     ]
 
+                    if self._terminate:
+                        return
+
                     writer.writerows(zip(*vals))
 
             else:
@@ -1230,6 +1251,8 @@ class MDF(object):
 
                 count = len(self.groups)
                 for i, grp in enumerate(self.groups):
+                    if self._terminate:
+                        return
                     # print('Exporting group {} of {}'.format(i + 1, count))
                     data = self._load_group_data(grp)
 
@@ -1336,6 +1359,8 @@ class MDF(object):
                 used_names = set()
 
                 for i, grp in enumerate(self.groups):
+                    if self._terminate:
+                        return
                     master_index = self.masters_db.get(i, -1)
                     data = self._load_group_data(grp)
 
@@ -1621,6 +1646,9 @@ class MDF(object):
             if self._callback:
                 self._callback(new_index+1, groups_nr)
 
+            if self._terminate:
+                return
+
         mdf._transfer_events(self)
         if self._callback:
             mdf._callback = mdf._mdf._callback = self._callback
@@ -1902,6 +1930,9 @@ class MDF(object):
             if callback:
                 callback(i+1, groups_nr)
 
+            if MDF._terminate:
+                return
+
         for file in files:
             merged._transfer_events(file)
 
@@ -2096,6 +2127,9 @@ class MDF(object):
             if callback:
                 callback(idx, files_nr)
 
+            if MDF._terminate:
+                return
+
         return merged
 
     def iter_channels(self, skip_master=True):
@@ -2256,6 +2290,9 @@ class MDF(object):
 
             if self._callback:
                 self._callback(i+1, groups_nr)
+
+            if self._terminate:
+                return
 
         mdf._transfer_events(self)
         if self._callback:

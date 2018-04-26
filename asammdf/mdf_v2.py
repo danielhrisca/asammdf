@@ -15,6 +15,9 @@ __all__ = ['MDF2', ]
 
 # MDF versions 2 and 3 share the same implementation
 class MDF2(MDF3):
+
+    _terminate = False
+
     """ shared implementation for mdf version 2 and 3 """
 
     def __init__(self, name=None, memory='full', version='2.14', callback=None):
