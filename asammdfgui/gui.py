@@ -337,18 +337,19 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
 
-            for j, ch in enumerate(group['logging_channels'], 1):
-                name = ch.name
+            if self.mdf.version >= '4.00':
+                for j, ch in enumerate(group['logging_channels'], 1):
+                    name = ch.name
 
-                channel = TreeItem((i, -j), channel_group)
-                channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
-                channel.setText(0, name)
-                channel.setCheckState(0, Qt.Unchecked)
+                    channel = TreeItem((i, -j), channel_group)
+                    channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                    channel.setText(0, name)
+                    channel.setCheckState(0, Qt.Unchecked)
 
-                channel = TreeItem((i, -j), filter_channel_group)
-                channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
-                channel.setText(0, name)
-                channel.setCheckState(0, Qt.Unchecked)
+                    channel = TreeItem((i, -j), filter_channel_group)
+                    channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                    channel.setText(0, name)
+                    channel.setCheckState(0, Qt.Unchecked)
 
             progress.setValue(37 + int(53 * (i+1) / groups_nr))
             QApplication.processEvents()
@@ -486,8 +487,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         progress.setValue(100)
         progress.cancel()
-
-        print(self.mdf.channels_db)
 
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
