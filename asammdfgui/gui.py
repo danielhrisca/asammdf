@@ -351,6 +351,9 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             progress=progress,
         )
 
+        if self.mdf is TERMINATED:
+            return
+
         progress.setLabelText('Loading graphical elements')
 
         self.search_field = SearchWidget(
@@ -504,31 +507,9 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.cut_split_size.setValue(10)
         self.cut_btn.clicked.connect(self.cut)
 
-        times = []
-        for i in range(groups_nr):
-            master = self.mdf.get_master(i)
-            if len(master):
-                times.append(master[0])
-                times.append(master[-1])
-            progress.setValue(90 + int(6 * (i+1) / groups_nr))
-            QApplication.processEvents()
-
-        if len(times):
-            time_range = min(times), max(times)
-
-            self.cut_start.setRange(*time_range)
-            self.cut_stop.setRange(*time_range)
-
-            self.cut_interval.setText(
-                'Cut interval ({:.6f}s - {:.6f}s)'.format(
-                    *time_range
-                )
-            )
-        else:
-            self.cut_start.setRange(0, 0)
-            self.cut_stop.setRange(0, 0)
-
-            self.cut_interval.setText('Empty measurement')
+        self.cut_interval.setText(
+            'Unknown measurement interval'
+        )
 
         progress.setValue(99)
 
@@ -566,6 +547,34 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.aspects.setCurrentIndex(0)
 
         progress.setValue(100)
+
+    def compute_cut_hints(self):
+        # TODO : use master channel physical min and max values
+        times = []
+        groups_nr = len(self.mdf.groups)
+        for i in range(groups_nr):
+            master = self.mdf.get_master(i)
+            if len(master):
+                times.append(master[0])
+                times.append(master[-1])
+            QApplication.processEvents()
+
+        if len(times):
+            time_range = min(times), max(times)
+
+            self.cut_start.setRange(*time_range)
+            self.cut_stop.setRange(*time_range)
+
+            self.cut_interval.setText(
+                'Cut interval ({:.6f}s - {:.6f}s)'.format(
+                    *time_range
+                )
+            )
+        else:
+            self.cut_start.setRange(0, 0)
+            self.cut_stop.setRange(0, 0)
+
+            self.cut_interval.setText('Empty measurement')
 
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
@@ -613,6 +622,9 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
     def new_search_result(self):
         group_index, channel_index = self.search_field.entries[self.search_field.current_index]
 
+        grp = self.mdf.groups[group_index]
+        channel_count = len(grp['channels'])
+
         iterator = QTreeWidgetItemIterator(
             self.channels_tree,
         )
@@ -629,9 +641,12 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 item.setExpanded(False)
                 continue
 
-            if index == channel_index and group == group_index:
-                self.channels_tree.scrollToItem(item)
-                item.setCheckState(0, Qt.Checked)
+            if group == group_index:
+
+                if channel_index >= 0 and index == channel_index \
+                        or channel_index < 0 and index == -channel_index -1 + channel_count:
+                    self.channels_tree.scrollToItem(item)
+                    item.setCheckState(0, Qt.Checked)
             else:
                 item.setCheckState(0, Qt.Unchecked)
 
@@ -640,6 +655,9 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
     def new_filter_result(self):
         group_index, channel_index = self.filter_field.entries[self.filter_field.current_index]
+
+        grp = self.mdf.groups[group_index]
+        channel_count = len(grp['channels'])
 
         iterator = QTreeWidgetItemIterator(
             self.filter_tree,
@@ -655,7 +673,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 index = 0
                 continue
 
-            if index == channel_index and group == group_index:
+            if channel_index >= 0 and index == channel_index \
+                        or channel_index < 0 and index == -channel_index -1 + channel_count:
                 self.filter_tree.scrollToItem(item)
                 break
 
@@ -1456,7 +1475,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
                 partial(self.set_memory_option, option)
             )
 
-            if option == 'full':
+            if option == 'minimum':
                 action.setChecked(True)
 
         menu = QMenu('Memory', self)
@@ -1484,7 +1503,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         menu.addActions(search_option.actions())
         self.menubar.addMenu(menu)
 
-        self.memory = 'full'
+        self.memory = 'minimum'
         self.match = 'Match start'
         self.toolBox.setCurrentIndex(0)
 
