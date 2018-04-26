@@ -88,6 +88,7 @@ def run_thread_with_progress(
         factor,
         offset,
         progress):
+    termination_request = False
 
     thr = WorkerThread(
         target=target,
