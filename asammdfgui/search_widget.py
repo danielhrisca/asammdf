@@ -45,4 +45,4 @@ class Ui_SearchWidget(object):
         SearchWidget.setWindowTitle(_translate("SearchWidget", "Form"))
         self.label.setText(_translate("SearchWidget", "No match"))
 
-from asammdfgui import resource_rc
+import resource_rc

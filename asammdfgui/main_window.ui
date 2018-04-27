@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>709</height>
+    <height>723</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,8 +29,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>782</width>
-         <height>590</height>
+         <width>145</width>
+         <height>56</height>
         </rect>
        </property>
        <attribute name="icon">
@@ -90,7 +90,7 @@
          <x>0</x>
          <y>0</y>
          <width>782</width>
-         <height>590</height>
+         <height>604</height>
         </rect>
        </property>
        <attribute name="icon">
@@ -100,7 +100,7 @@
        <attribute name="label">
         <string>Multiple files</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayout">
+       <layout class="QGridLayout" name="files_layout">
         <item row="0" column="0">
          <widget class="QPushButton" name="open_multiple_files_btn">
           <property name="text">
@@ -109,19 +109,6 @@
           <property name="icon">
            <iconset resource="resource.qrc">
             <normaloff>:/open.png</normaloff>:/open.png</iconset>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0" colspan="2">
-         <widget class="QListWidget" name="files_list">
-          <property name="dragEnabled">
-           <bool>true</bool>
-          </property>
-          <property name="dragDropMode">
-           <enum>QAbstractItemView::InternalMove</enum>
-          </property>
-          <property name="alternatingRowColors">
-           <bool>true</bool>
           </property>
          </widget>
         </item>

@@ -1,7 +1,6 @@
 import os
 import sys
 import traceback
-import textwrap
 
 from copy import deepcopy
 from datetime import datetime
@@ -17,14 +16,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
-
-except ImportError:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
 
 from asammdf import MDF, MDF2, MDF3, MDF4, SUPPORTED_VERSIONS
 from asammdf import __version__ as libversion
@@ -182,6 +176,63 @@ class TreeItem(QTreeWidgetItem):
         self.entry = entry
 
 
+class TreeWidget(QTreeWidget):
+
+    def __init__(self, *args, **kwargs):
+
+        super(TreeWidget, self).__init__(*args, **kwargs)
+
+        self.setSelectionMode(
+            QAbstractItemView.ExtendedSelection
+        )
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        if key == Qt.Key_Space:
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+            elif len(selected_items) == 1:
+                item = selected_items[0]
+                checked = item.checkState(0)
+                if checked == Qt.Checked:
+                    item.setCheckState(0, Qt.Unchecked)
+                else:
+                    item.setCheckState(0, Qt.Checked)
+            else:
+                if any(item.checkState(0) == Qt.Unchecked for item in selected_items):
+                    checked = Qt.Checked
+                else:
+                    checked = Qt.Unchecked
+                for item in selected_items:
+                    item.setCheckState(0, checked)
+        else:
+            super(TreeWidget, self).keyPressEvent(event)
+
+
+class ListWidget(QListWidget):
+
+    def __init__(self, *args, **kwargs):
+
+        super(ListWidget, self).__init__(*args, **kwargs)
+
+        self.setSelectionMode(
+            QAbstractItemView.ExtendedSelection
+        )
+
+        self.setAlternatingRowColors(True)
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        if key == Qt.Key_Delete:
+            selected_items = self.selectedItems()
+            for item in selected_items:
+                row = self.row(item)
+                self.takeItem(row)
+        else:
+            super(ListWidget, self).keyPressEvent(event)
+
+
 class ChannelInfoWidget(QWidget, channel_info_widget.Ui_ChannelInfo):
     def __init__(self, channel, parent=None):
         super().__init__(parent)
@@ -283,7 +334,6 @@ class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
             self.selectionChanged.emit()
 
     def set_search_option(self, option):
-        print(option, self.search.completer().filterMode(), int(self.search.completer().filterMode()))
         if option == 'Match start':
             self.search.completer().setFilterMode(Qt.MatchStartsWith)
         elif option == 'Match contains':
@@ -356,11 +406,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         progress.setLabelText('Loading graphical elements')
 
-        self.search_field = SearchWidget(
-            deepcopy(self.mdf.channels_db),
-            self,
-        )
-
         progress.setValue(35)
 
         self.filter_field = SearchWidget(
@@ -370,16 +415,59 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         progress.setValue(37)
 
-        self.search_field.selectionChanged.connect(self.new_search_result)
-        self.filter_field.selectionChanged.connect(self.new_filter_result)
+        splitter = QSplitter(self)
+        splitter.setOrientation(Qt.Vertical)
 
-        self.channels_layout.insertWidget(0, self.search_field)
+        channel_and_search = QWidget(splitter)
+
+        self.channels_tree = TreeWidget(channel_and_search)
+        self.search_field = SearchWidget(
+            deepcopy(self.mdf.channels_db),
+            channel_and_search,
+        )
+        self.filter_tree = TreeWidget()
+
+        self.search_field.selectionChanged.connect(
+            partial(
+                self.new_search_result,
+                tree=self.channels_tree,
+                search=self.search_field,
+            )
+        )
+        self.filter_field.selectionChanged.connect(
+            partial(
+                self.new_search_result,
+                tree=self.filter_tree,
+                search=self.filter_field,
+            )
+        )
+
+        selection_list = QWidget(splitter)
+        self.channel_selection = ListWidget(selection_list)
+        self.channel_selection.itemSelectionChanged.connect(
+            self.update_graph
+        )
+
+        vbox = QVBoxLayout(selection_list)
+        vbox.addWidget(QLabel('Selected channels'))
+        vbox.addWidget(self.channel_selection)
+
+        vbox = QVBoxLayout(channel_and_search)
+        vbox.addWidget(self.search_field)
+        vbox.addWidget(self.channels_tree)
+
         self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
 
         self.channels_tree.itemDoubleClicked.connect(self.show_channel_info)
         self.filter_tree.itemDoubleClicked.connect(self.show_channel_info)
 
+        self.channels_layout.insertWidget(0, splitter)
+        self.filter_layout.addWidget(self.filter_tree, 1, 0, 8, 1)
+
         groups_nr = len(self.mdf.groups)
+
+        self.channels_tree.setHeaderLabel('Channels')
+        self.filter_tree.setHeaderLabel('Channels')
 
         for i, group in enumerate(self.mdf.groups):
             channel_group = QTreeWidgetItem()
@@ -619,14 +707,14 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             iterator += 1
 
-    def new_search_result(self):
-        group_index, channel_index = self.search_field.entries[self.search_field.current_index]
+    def new_search_result(self, tree, search):
+        group_index, channel_index = search.entries[search.current_index]
 
         grp = self.mdf.groups[group_index]
         channel_count = len(grp['channels'])
 
         iterator = QTreeWidgetItemIterator(
-            self.channels_tree,
+            tree,
         )
 
         group = -1
@@ -637,46 +725,17 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 iterator += 1
                 group += 1
                 index = 0
-                item.setCheckState(0, Qt.Unchecked)
-                item.setExpanded(False)
                 continue
 
             if group == group_index:
 
                 if channel_index >= 0 and index == channel_index \
                         or channel_index < 0 and index == -channel_index -1 + channel_count:
-                    self.channels_tree.scrollToItem(item)
-                    item.setCheckState(0, Qt.Checked)
-            else:
-                item.setCheckState(0, Qt.Unchecked)
-
-            index += 1
-            iterator += 1
-
-    def new_filter_result(self):
-        group_index, channel_index = self.filter_field.entries[self.filter_field.current_index]
-
-        grp = self.mdf.groups[group_index]
-        channel_count = len(grp['channels'])
-
-        iterator = QTreeWidgetItemIterator(
-            self.filter_tree,
-        )
-
-        group = -1
-        index = 0
-        while iterator.value():
-            item = iterator.value()
-            if item.parent() is None:
-                iterator += 1
-                group += 1
-                index = 0
-                continue
-
-            if channel_index >= 0 and index == channel_index \
-                        or channel_index < 0 and index == -channel_index -1 + channel_count:
-                self.filter_tree.scrollToItem(item)
-                break
+                    tree.scrollToItem(
+                        item,
+                        QAbstractItemView.PositionAtTop,
+                    )
+                    item.setSelected(True)
 
             index += 1
             iterator += 1
@@ -1105,9 +1164,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         # # refresh canvas
         # self.canvas.draw()
 
-        while self.scroll_layout.count():
-            self.scroll_layout.takeAt(0)
-
         item = self.channels_grid.itemAtPosition(2, 1)
         if item:
             item.widget().setParent(None)
@@ -1172,9 +1228,74 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         nav = NavigationToolbar(canvas, self)
         self.channels_grid.addWidget(nav, 2, 1)
 
+    def update_selection_list(self):
+        iterator = QTreeWidgetItemIterator(
+            self.channels_tree,
+        )
+
+        group = -1
+        index = 0
+        signals = []
+        while iterator.value():
+            item = iterator.value()
+            if item.parent() is None:
+                iterator += 1
+                group += 1
+                index = 0
+                continue
+
+            if item.checkState(0) == Qt.Checked:
+                signals.append(item.text(0))
+
+            index += 1
+            iterator += 1
+
+        count = self.channel_selection.count()
+        for i in range(count):
+            self.channel_selection.takeItem(0)
+
+        self.channel_selection.addItems(signals)
+
+    def update_graph(self):
+        signals_nr = self.channel_selection.count()
+        selected_items = [
+            self.channel_selection.row(item)
+            for item in self.channel_selection.selectedItems()
+        ]
+
+        pw = self.splitter.widget(1)
+
+        scene = pw.plotItem.scene()
+        layout = pw.plotItem.layout
+        parent_vb = pw.plotItem.vb
+
+        plot_cntr = 1
+
+        for i in range(signals_nr):
+            item = layout.itemAt(2, i+2)
+            if i in selected_items:
+                item.show()
+            else:
+                item.hide()
+
+            if len(selected_items) == 1:
+                parent_vb.setYLink(item.linkedView())
+            else:
+                parent_vb.setYLink(None)
+
+        for item in scene.items():
+            if isinstance(item, pg.PlotDataItem):
+                if signals_nr - plot_cntr in selected_items:
+                    item.show()
+
+                else:
+                    item.hide()
+                plot_cntr += 1
+
+        pw.plotItem.showGrid(x=True, y=True)
+
     def plot_pyqtgraph(self, event):
-        while self.scroll_layout.count():
-            self.scroll_layout.takeAt(0)
+        self.update_selection_list()
 
         iterator = QTreeWidgetItemIterator(
             self.channels_tree,
@@ -1199,16 +1320,16 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         rows = len(signals)
 
-
         pw = PlotWidget()
-
+        pw.showGrid(x = True, y = True, alpha = 0.3)
 
         plot_item = pw.plotItem
-        plot_item.hideAxis('left')
+        # plot_item.hideAxis('left')
         # plot_item.showGrid(True, True, 0.1)
         layout = plot_item.layout
         scene = plot_item.scene()
         vb = plot_item.vb
+
 
         # ## create a new ViewBox, link the right axis to its coordinate system
         # p2 = pg.ViewBox()
@@ -1231,7 +1352,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
-
         parent_vb = vb
 
         view_boxes = []
@@ -1241,6 +1361,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             for view_box in view_boxes:
                 view_box.setGeometry(vb.sceneBoundingRect())
                 view_box.linkedViewChanged(vb, view_box.XAxis)
+            pw.showGrid(x=True, y=True, alpha=0.3)
 
         vb.sigResized.connect(updateViews)
 
@@ -1248,7 +1369,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             sig = self.mdf.get(group=group, index=index)
 
             axis = pg.AxisItem("left")
-            # axis.setGrid(200)
+
             view_box = pg.ViewBox()
 
             axis.linkToView(view_box)
@@ -1265,12 +1386,19 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             ]
 
             if all(conditions):
+                color = colors[i%10]
+                curve = pg.PlotDataItem(
+                    sig.timestamps,
+                    sig.samples,
+                    pen=color,
+                    symbolBrush=color,
+                    symbolPen='w',
+                    symbol='o',
+                    symbolSize=2,
+                )
+
                 view_box.addItem(
-                    pg.PlotCurveItem(
-                        sig.timestamps,
-                        sig.samples,
-                        pen=colors[i%10],
-                    )
+                    curve
                 )
 
             view_box.setXLink(parent_vb)
@@ -1284,9 +1412,22 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         updateViews()
 
-        self.scroll_layout.addWidget(pw)
-
         pw.show()
+
+        if self.splitter.count() == 1:
+            self.splitter.addWidget(pw)
+        else:
+            self.splitter.replaceWidget(1, pw)
+
+        width = sum(self.splitter.sizes())
+
+        self.splitter.setSizes(
+            (0.2 * width, 0.8*width)
+        )
+
+        for i in range(layout.columnCount()):
+            item = layout.itemAt(2, i)
+            print(item)
 
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(
@@ -1449,6 +1590,9 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         )
         self.cs_split_size.setValue(10)
 
+        self.files_list = ListWidget(self)
+        self.files_list.setDragDropMode(QAbstractItemView.InternalMove)
+        self.files_layout.addWidget(self.files_list, 1, 0, 1, 2)
         self.files_list.itemDoubleClicked.connect(self.delete_item)
 
         self.statusbar.addPermanentWidget(
