@@ -176,6 +176,20 @@ class TreeItem(QTreeWidgetItem):
         self.entry = entry
 
 
+class Plot(pg.PlotWidget):
+
+    def __init__(self, *args, **kwargs):
+
+        super(Plot, self).__init__(*args, **kwargs)
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        if key == Qt.Key_F:
+            print('fit now')
+        else:
+            super(Plot, self).keyPressEvent(event)
+
+
 class TreeWidget(QTreeWidget):
 
     def __init__(self, *args, **kwargs):
@@ -1280,8 +1294,11 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             if len(selected_items) == 1:
                 parent_vb.setYLink(item.linkedView())
+
             else:
                 parent_vb.setYLink(None)
+
+
 
         for item in scene.items():
             if isinstance(item, pg.PlotDataItem):
@@ -1320,7 +1337,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         rows = len(signals)
 
-        pw = PlotWidget()
+        pw = Plot()
         pw.showGrid(x = True, y = True, alpha = 0.3)
 
         plot_item = pw.plotItem
@@ -1831,6 +1848,13 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         for i in range(count):
             self.files.tabCloseRequested.emit(0)
         event.accept()
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        if key == Qt.Key_F:
+            print('fit main now')
+        else:
+            super(MainWindow, self).keyPressEvent(event)
 
 
 def main():

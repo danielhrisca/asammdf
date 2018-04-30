@@ -12,6 +12,7 @@ from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
 from hashlib import md5
+from itertools import chain
 from math import ceil
 from struct import unpack, unpack_from
 from tempfile import TemporaryFile
@@ -2337,6 +2338,7 @@ class MDF4(object):
         gp['channels'] = gp_channels = []
         gp['channel_dependencies'] = gp_dep = []
         gp['signal_types'] = gp_sig_types = []
+        gp['logging_channels'] = []
 
         self.groups.append(gp)
 
@@ -5294,7 +5296,10 @@ class MDF4(object):
                             addr_ = dep.address
                         channel['component_addr'] = addr_
 
-                group_channels = gp['channels']
+                for channel in gp['logging_channels']:
+                    address = channel.to_blocks(address, blocks, defined_texts, cc_map, si_map)
+
+                group_channels = list(chain(gp['channels'], gp['logging_channels']))
                 if group_channels:
                     for j, channel in enumerate(group_channels[:-1]):
                         channel['next_ch_addr'] = group_channels[j + 1].address
@@ -5748,15 +5753,17 @@ class MDF4(object):
                 else:
                     stream = self._tempfile
 
+                chans = gp['channels'] + gp['logging_channels']
+
                 # channel dependecies
                 structs = [
-                    0 for _ in gp['channels']
+                    0 for _ in chans
                 ]
 
                 temp_deps = []
-                incs = [0 for _ in gp['channels']]
+                incs = [0 for _ in chans]
                 level = 0
-                for j, dep_list in enumerate(gp['channel_dependencies']):
+                for j, dep_list in enumerate(gp['channel_dependencies'] + [None for _ in gp['logging_channels']]):
                     incs_ = [e for e in incs if e]
                     incs[level] -= 1
                     if incs[level] < 0:
@@ -5793,17 +5800,18 @@ class MDF4(object):
                 # channels
                 address = blocks_start_addr = tell()
 
-                size = len(gp['channels'])
+                size = len(chans)
                 previous_level = structs[-1] if structs else 0
                 for j in range(size-1, -1, -1):
-                    channel = gp['channels'][j]
+                    channel = chans[j]
                     level = structs[j]
 
-                    channel = Channel(
-                        address=channel,
-                        stream=stream,
-                        parse_xml_comment=False,
-                    )
+                    if not isinstance(channel, Channel):
+                        channel = Channel(
+                            address=channel,
+                            stream=stream,
+                            parse_xml_comment=False,
+                        )
 
                     channel['next_ch_addr'] = next_ch_addr[level]
                     if level:
@@ -5816,10 +5824,13 @@ class MDF4(object):
 
                     previous_level = level
 
-                    signal_data = self._load_signal_data(
-                        group=gp,
-                        index=j,
-                    )
+                    try:
+                        signal_data = self._load_signal_data(
+                            group=gp,
+                            index=j,
+                        )
+                    except IndexError:
+                        signal_data = b''
                     if signal_data:
                         if compression and self.version > '4.00':
                             signal_data = DataZippedBlock(
@@ -5855,8 +5866,6 @@ class MDF4(object):
                     address = channel.to_stream(dst_, defined_texts, cc_map, si_map)
                     ch_addrs.append(channel.address)
                     next_ch_addr[level] = channel.address
-
-                    del channel
 
                 ch_addrs.reverse()
 
