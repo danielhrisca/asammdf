@@ -959,7 +959,6 @@ class MDF(object):
             comments['t'] = ''
 
             used_names = {'t'}
-            count = len(self.groups)
 
             for i, grp in enumerate(self.groups):
                 if self._terminate:
@@ -1666,6 +1665,26 @@ class MDF(object):
 
         This is usefull in case of large files with a small number of channels.
 
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+        raster : float
+            time raster in seconds
+        samples_only : bool
+            if *True* return only the channel samples as numpy array; if
+                *False* return a *Signal* object
+        raw : bool
+            return channel samples without appling the conversion rule; default
+            `False`
+
         """
         gp_nr, ch_nr = self._validate_channel_selection(
             name,
@@ -2048,7 +2067,6 @@ class MDF(object):
         for idx, (offset, mdf) in enumerate(zip(offsets, files), 1):
             for i, group in enumerate(mdf.groups):
                 idx = 0
-                channels_nr = len(group['channels'])
                 included_channels = mdf._included_channels(i)
 
                 parents, dtypes = mdf._prepare_record(group)

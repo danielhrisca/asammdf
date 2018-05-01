@@ -4,17 +4,10 @@ import traceback
 
 from copy import deepcopy
 from datetime import datetime
-from functools import reduce, partial
+from functools import partial
 from io import StringIO
 from threading import Thread
 from time import sleep
-
-
-import numpy as np
-
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
-from matplotlib.figure import Figure
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -28,7 +21,6 @@ import asammdfgui.file_widget as file_widget
 import asammdfgui.search_widget as search_widget
 import asammdfgui.channel_info_widget as channel_info_widget
 
-from pyqtgraph import PlotWidget, AxisItem, ViewBox
 import pyqtgraph as pg
 
 
@@ -1753,7 +1745,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
     def closeEvent(self, event):
         count = self.files.count()
-        for i in range(count):
+        for _ in range(count):
             self.files.tabCloseRequested.emit(0)
         event.accept()
 
