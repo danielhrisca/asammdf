@@ -435,6 +435,7 @@ class MDF4(object):
                     cg_size[record_id] = 0
                 elif channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
                     bus_type = channel_group.acq_source['bus_type']
+                    print('bus')
                     if bus_type == v4c.BUS_TYPE_CAN:
                         message_name = channel_group.acq_name
 
@@ -452,7 +453,7 @@ class MDF4(object):
                             # for now ignore bus logging flag
                             channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                             channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
-                        elif message_name.startswith('CAN_DataFrame'):
+                        else:
                             comment = channel_group.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
                             comment_xml = ET.fromstring(comment)
                             can_msg_type = comment_xml.find('.//TX').text
@@ -481,9 +482,6 @@ class MDF4(object):
                                 warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
                                 channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                                 channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
-                        else:
-                            channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
-                            channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
                     else:
                         # only CAN bus logging is supported
                         channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
@@ -907,6 +905,10 @@ class MDF4(object):
 
         self.progress = cg_count, cg_count
 
+
+        for gp in self.groups:
+            print(len(gp['logging_channels']))
+
     def _read_channels(
             self,
             ch_addr,
@@ -1016,7 +1018,9 @@ class MDF4(object):
                         True,
                     )
                     grp['channel_dependencies'][index] = ret_composition
-                    if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
+
+                    if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT and \
+                            grp['channel_group']['flags'] & v4c.FLAG_CG_PLAIN_BUS_EVENT:
                         attachment_addr = self._attachments_map[channel['attachment_0_addr']]
                         if attachment_addr not in self._dbc_cache:
                             attachment, at_name = self.extract_attachment(index=attachment_addr)
@@ -1160,6 +1164,8 @@ class MDF4(object):
                                 self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
 
                                 neg_ch_cntr -= 1
+
+                            grp['channel_group']['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
 
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are
