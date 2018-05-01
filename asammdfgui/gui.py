@@ -1131,117 +1131,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             progress.cancel()
 
-    def plot(self, event):
-
-        # QtWidgets.QMainWindow.__init__(self)
-        # self.widget = QtWidgets.QWidget()
-        # self.setCentralWidget(self.widget)
-        # self.widget.setLayout(QtWidgets.QVBoxLayout())
-        # self.widget.layout().setContentsMargins(0, 0, 0, 0)
-        # self.widget.layout().setSpacing(0)
-        #
-        # self.fig = fig
-        # self.canvas = FigureCanvas(self.fig)
-        # self.canvas.draw()
-        # self.scroll = QtWidgets.QScrollArea(self.widget)
-        # self.scroll.setWidget(self.canvas)
-        #
-        # self.nav = NavigationToolbar(self.canvas, self.widget)
-        # self.widget.layout().addWidget(self.nav)
-        # self.widget.layout().addWidget(self.scroll)
-        #
-        # # self.channels_tree.itemChanged.connect(self.select)
-        # self.plot_btn.clicked.connect(self.plot)
-        #
-        #
-        #
-        # self.figure = Figure()
-        #
-        # # this is the Canvas Widget that displays the `figure`
-        # # it takes the `figure` instance as a parameter to __init__
-        # self.canvas = FigureCanvas(self.figure)
-        #
-        # # this is the Navigation widget
-        # # it takes the Canvas widget and a parent
-        # self.toolbar = NavigationToolbar(self.canvas, self)
-        #
-        # self.ax = self.figure.add_subplot(111)
-        #
-        # # set the layout
-        # layout = QVBoxLayout()
-        # layout.addWidget(self.toolbar)
-        # layout.addWidget(self.canvas)
-        # self.channels_layout.addLayout(layout)
-        # self.channels_layout.setStretch(0, 0)
-        # self.channels_layout.setStretch(1, 1)
-        #
-        # # refresh canvas
-        # self.canvas.draw()
-
-        item = self.channels_grid.itemAtPosition(2, 1)
-        if item:
-            item.widget().setParent(None)
-
-        iterator = QTreeWidgetItemIterator(
-            self.channels_tree,
-        )
-
-        group = -1
-        index = 0
-        signals = []
-        while iterator.value():
-            item = iterator.value()
-            if item.parent() is None:
-                iterator += 1
-                group += 1
-                index = 0
-                continue
-
-            if item.checkState(0) == Qt.Checked:
-                signals.append((group, index))
-
-            index += 1
-            iterator += 1
-
-        rows = len(signals)
-
-        # fig, axes = plt.subplots(ncols=1, nrows=rows, figsize=(5, 3 * rows))
-        # for ax, (group, index) in zip(axes.flatten(), signals):
-        #     sig = self.mdf.get(group=group, index=index)
-        #     ax.plot(sig.timestamps, sig.samples, '.-')
-        #     ax.set_title(sig.name)
-        #     ax.set_ylabel(sig.unit)
-        #
-        # canvas = FigureCanvas(fig)
-        # canvas.draw()
-        #
-        # self.plot_scroll.setWidget(canvas)
-        #
-        # nav = NavigationToolbar(canvas, self)
-        # self.channels_grid.addWidget(nav, 1, 1)
-
-        figure = Figure(figsize=(6, 30))
-
-
-        # this is the Canvas Widget that displays the `figure`
-        # it takes the `figure` instance as a parameter to __init__
-
-        for i, (group, index) in enumerate(signals):
-            sig = self.mdf.get(group=group, index=index)
-            ax = figure.add_subplot(rows, 1, i+1)
-            ax.plot(sig.timestamps, sig.samples, '.-')
-            ax.set_title(sig.name)
-            ax.set_ylabel(sig.unit)
-
-        # refresh canvas
-        canvas = FigureCanvas(figure)
-        canvas.draw()
-
-        self.scroll_layout.addWidget(canvas)
-
-        nav = NavigationToolbar(canvas, self)
-        self.channels_grid.addWidget(nav, 2, 1)
-
     def update_selection_list(self):
         iterator = QTreeWidgetItemIterator(
             self.channels_tree,
@@ -1271,6 +1160,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.channel_selection.addItems(signals)
 
     def update_graph(self):
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
+                  '#17becf']
+
+
         signals_nr = self.channel_selection.count()
         selected_items = [
             self.channel_selection.row(item)
@@ -1283,31 +1176,71 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         layout = pw.plotItem.layout
         parent_vb = pw.plotItem.vb
 
-        plot_cntr = 1
-
-        for i in range(signals_nr):
-            item = layout.itemAt(2, i+2)
-            if i in selected_items:
-                item.show()
-            else:
+        if len(selected_items) == 1:
+            color = colors[selected_items[0] % 10]
+            pw.plotItem.showAxis('left')
+            self.curve.setData([], [])
+            for i in range(signals_nr):
+                item = layout.itemAt(2, i + 2)
                 item.hide()
+                item.linkedView().setYLink(None)
 
-            if len(selected_items) == 1:
-                parent_vb.setYLink(item.linkedView())
+            sig_axis = layout.itemAt(2, selected_items[0]+ 2)
+            axis = layout.itemAt(2, 0)
 
-            else:
-                parent_vb.setYLink(None)
+            axis.setRange(*sig_axis.range)
+            axis.linkedView().setYRange(*sig_axis.range)
 
+            sig_axis.linkedView().setYLink(axis.linkedView())
 
+            sig = self.signals[selected_items[0]]
+            self.curve.setData(
+                sig.timestamps,
+                sig.samples,
+                pen=color,
+                symbolBrush=color,
+                symbolPen='w',
+                symbol='o',
+                symbolSize=2,
+            )
 
-        for item in scene.items():
-            if isinstance(item, pg.PlotDataItem):
-                if signals_nr - plot_cntr in selected_items:
+            axis.setLabel(sig.name, sig.unit, color=color)
+
+            plot_cntr = 0
+            for i, item in enumerate(scene.items()):
+                if isinstance(item, pg.PlotDataItem):
+                    if item is self.curve:
+                        item.show()
+                    else:
+                        item.hide()
+                        if signals_nr - plot_cntr == selected_items[0]:
+                            item = layout.itemAt(2, i + 2)
+        else:
+
+            pw.plotItem.hideAxis('left')
+
+            plot_cntr = 0
+
+            for i in range(signals_nr):
+                item = layout.itemAt(2, i+2)
+                item.linkedView().setYLink(None)
+                if i in selected_items:
                     item.show()
-
                 else:
                     item.hide()
-                plot_cntr += 1
+
+            for item in scene.items():
+
+                if isinstance(item, pg.PlotDataItem):
+                    if plot_cntr == 0:
+                        item.hide()
+
+                    elif signals_nr - plot_cntr  in selected_items:
+                        item.show()
+
+                    else:
+                        item.hide()
+                    plot_cntr += 1
 
         pw.plotItem.showGrid(x=True, y=True)
 
@@ -1341,35 +1274,24 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         pw.showGrid(x = True, y = True, alpha = 0.3)
 
         plot_item = pw.plotItem
-        # plot_item.hideAxis('left')
+        plot_item.hideAxis('left')
         # plot_item.showGrid(True, True, 0.1)
         layout = plot_item.layout
         scene = plot_item.scene()
         vb = plot_item.vb
 
-
-        # ## create a new ViewBox, link the right axis to its coordinate system
-        # p2 = pg.ViewBox()
-        # p1.showAxis('right')
-        # p1.scene().addItem(p2)
-        # p1.getAxis('right').linkToView(p2)
-        # p2.setXLink(p1)
-        # p1.getAxis('right').setLabel('axis2', color='#0000ff')
-        #
-        # ## create third ViewBox.
-        # ## this time we need to create a new axis as well.
-        # p3 = pg.ViewBox()
-        # ax3 = pg.AxisItem('right')
-        # p1.layout.addItem(ax3, 2, 3)
-        # p1.scene().addItem(p3)
-        # ax3.linkToView(p3)
-        # p3.setXLink(p1)
-        # ax3.setZValue(-10000)
-        # ax3.setLabel('axis 3', color='#ff0000')
-
         colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
 
         parent_vb = vb
+
+        self.curve = pg.PlotDataItem(
+            [],
+            [],
+        )
+
+        parent_vb.addItem(
+            self.curve
+        )
 
         view_boxes = []
 
@@ -1382,10 +1304,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         vb.sigResized.connect(updateViews)
 
+        self.signals = []
+
         for i, (group, index) in enumerate(signals):
             sig = self.mdf.get(group=group, index=index)
+            self.signals.append(sig)
 
-            axis = pg.AxisItem("left")
+            axis = pg.AxisItem("right")
 
             view_box = pg.ViewBox()
 
@@ -1444,7 +1369,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         for i in range(layout.columnCount()):
             item = layout.itemAt(2, i)
-            print(item)
 
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(
