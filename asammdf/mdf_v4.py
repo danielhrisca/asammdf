@@ -435,7 +435,6 @@ class MDF4(object):
                     cg_size[record_id] = 0
                 elif channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
                     bus_type = channel_group.acq_source['bus_type']
-                    print('bus')
                     if bus_type == v4c.BUS_TYPE_CAN:
                         message_name = channel_group.acq_name
 
@@ -904,10 +903,6 @@ class MDF4(object):
         self._master_channel_cache.clear()
 
         self.progress = cg_count, cg_count
-
-
-        for gp in self.groups:
-            print(len(gp['logging_channels']))
 
     def _read_channels(
             self,

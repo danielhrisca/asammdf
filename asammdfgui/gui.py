@@ -1131,34 +1131,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             progress.cancel()
 
-    def update_selection_list(self):
-        iterator = QTreeWidgetItemIterator(
-            self.channels_tree,
-        )
-
-        group = -1
-        index = 0
-        signals = []
-        while iterator.value():
-            item = iterator.value()
-            if item.parent() is None:
-                iterator += 1
-                group += 1
-                index = 0
-                continue
-
-            if item.checkState(0) == Qt.Checked:
-                signals.append(item.text(0))
-
-            index += 1
-            iterator += 1
-
-        count = self.channel_selection.count()
-        for i in range(count):
-            self.channel_selection.takeItem(0)
-
-        self.channel_selection.addItems(signals)
-
     def update_graph(self):
         colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
                   '#17becf']
@@ -1245,7 +1217,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         pw.plotItem.showGrid(x=True, y=True)
 
     def plot_pyqtgraph(self, event):
-        self.update_selection_list()
 
         iterator = QTreeWidgetItemIterator(
             self.channels_tree,
@@ -1263,10 +1234,24 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 continue
 
             if item.checkState(0) == Qt.Checked:
-                signals.append(item.entry)
+                group, index = item.entry
+                sig = self.mdf.get(group=group, index=index)
+                conditions = [
+                    not sig.samples.dtype.names,
+                    sig.samples.dtype.kind not in 'SV',
+                    len(sig.samples.shape) <= 1,
+                ]
+                if all(conditions):
+                    signals.append(sig)
 
             index += 1
             iterator += 1
+
+        count = self.channel_selection.count()
+        for i in range(count):
+            self.channel_selection.takeItem(0)
+
+        self.channel_selection.addItems(sig.name for sig in signals)
 
         rows = len(signals)
 
@@ -1306,8 +1291,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         self.signals = []
 
-        for i, (group, index) in enumerate(signals):
-            sig = self.mdf.get(group=group, index=index)
+        for i, sig in enumerate(signals):
             self.signals.append(sig)
 
             axis = pg.AxisItem("right")
