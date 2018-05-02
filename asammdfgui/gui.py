@@ -4,7 +4,7 @@ import traceback
 
 from copy import deepcopy
 from datetime import datetime
-from functools import partial
+from functools import reduce, partial
 from io import StringIO
 from threading import Thread
 from time import sleep
@@ -210,6 +210,7 @@ class Plot(pg.PlotWidget):
     cursor_removed = pyqtSignal()
     range_removed = pyqtSignal()
     range_modified = pyqtSignal()
+    cursor_move_finished = pyqtSignal()
 
     def __init__(self, signals, *args, **kwargs):
 
@@ -218,6 +219,13 @@ class Plot(pg.PlotWidget):
         self.region = None
         self.cursor = None
         self.signals = signals
+        self.all_timebase = self.timebase = reduce(
+            np.union1d,
+            (
+                sig.timestamps
+                for sig in self.signals
+            ),
+        )
 
         self.showGrid(x=True, y=True)
 
@@ -312,6 +320,7 @@ class Plot(pg.PlotWidget):
                 )
                 self.plotItem.addItem(self.cursor, ignoreBounds=True)
                 self.cursor.sigPositionChanged.connect(self.cursor_moved.emit)
+                self.cursor.sigPositionChangeFinished.connect(self.cursor_move_finished.emit)
                 self.cursor.setPos((start + stop) / 2)
             else:
                 self.cursor_removed.emit()
@@ -849,8 +858,28 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         progress.setValue(100)
 
+    def cursor_move_finished(self):
+        x = self.plot.timebase
+        dim = len(x)
+
+        if dim:
+            position = self.plot.cursor.value()
+
+            right = np.searchsorted(x, position, side='right')
+            if right == 0:
+                next_pos = x[0]
+            elif right == dim:
+                nex_pos = x[-1]
+            else:
+                if position - x[right-1] < x[right] - position:
+                    next_pos = x[right-1]
+                else:
+                    next_pos = x[right]
+            self.plot.cursor.setPos(next_pos)
+
     def cursor_moved(self):
         position = self.plot.cursor.value()
+
         for i, signal in enumerate(self.plot.signals):
             samples = signal.cut(position, position).samples
             label = self.channel_selection.item(i)
@@ -1475,6 +1504,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             for curve in self.plot.curves:
                 curve.hide()
             self.plot.curve.show()
+            self.plot.timebase = self.plot.curve.xData
 
         else:
 
@@ -1489,6 +1519,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 else:
                     self.plot.axes[i].hide()
                     self.plot.curves[i].hide()
+
+            self.plot.timebase = self.plot.all_timebase
 
     def plot_pyqtgraph(self, event):
 
@@ -1533,6 +1565,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.plot.range_removed.connect(self.range_removed)
         self.plot.cursor_removed.connect(self.cursor_removed)
         self.plot.cursor_moved.connect(self.cursor_moved)
+        self.plot.cursor_move_finished.connect(self.cursor_move_finished)
         self.plot.show()
 
         for i, sig in enumerate(self.plot.signals):
