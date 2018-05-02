@@ -173,11 +173,21 @@ class Plot(pg.PlotWidget):
     def __init__(self, *args, **kwargs):
 
         super(Plot, self).__init__(*args, **kwargs)
+        self.region = None
+
 
     def keyPressEvent(self, event):
         key = event.key()
         if key == Qt.Key_F:
-            print('fit now')
+            if self.region is None:
+
+                self.region = pg.LinearRegionItem(self.plotItem.getViewBox().viewRange()[0])
+                self.region.setZValue(-10)
+                self.plotItem.addItem(self.region)
+
+                self.region.sigRegionChanged.connect(self.parent().parent().parent().parent().parent().updateStats)
+            else:
+                self.region = None
         else:
             super(Plot, self).keyPressEvent(event)
 
@@ -641,6 +651,17 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.aspects.setCurrentIndex(0)
 
         progress.setValue(100)
+
+    def updateStats(self):
+        start, stop = region = self.plot.region.getRegion()
+        for i, signal in enumerate(self.signals):
+            label = self.channel_selection.item(i)
+            label.setText('{}\nMin={:.6f} Max={:.6f}'.format(
+                label.text().splitlines()[0],
+                min(signal.cut(start, stop).samples),
+                max(signal.cut(start, stop).samples)
+            ))
+
 
     def compute_cut_hints(self):
         # TODO : use master channel physical min and max values
@@ -1247,7 +1268,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         rows = len(signals)
 
-        pw = Plot()
+        self.plot = pw = Plot(self)
         pw.showGrid(x = True, y = True, alpha = 0.3)
 
         plot_item = pw.plotItem
