@@ -9,6 +9,8 @@ from io import StringIO
 from threading import Thread
 from time import sleep
 
+import numpy as np
+
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -26,6 +28,18 @@ import pyqtgraph as pg
 
 __version__ = '0.1.0'
 TERMINATED = object()
+COLORS = [
+    '#1f77b4',
+    '#ff7f0e',
+    '#2ca02c',
+    '#d62728',
+    '#9467bd',
+    '#8c564b',
+    '#e377c2',
+    '#7f7f7f',
+    '#bcbd22',
+    '#17becf',
+]
 
 
 def excepthook(exc_type, exc_value, tracebackobj):
@@ -170,22 +184,93 @@ class TreeItem(QTreeWidgetItem):
 
 class Plot(pg.PlotWidget):
 
-    def __init__(self, *args, **kwargs):
+    region_modified = pyqtSignal()
+
+    def __init__(self, signals, *args, **kwargs):
 
         super(Plot, self).__init__(*args, **kwargs)
-        self.region = None
 
+        self.region = None
+        self.signals = signals
+
+        self.showGrid(x=True, y=True)
+
+        self.plot_item = self.plotItem
+        self.plot_item.hideAxis('left')
+        self.layout = self.plot_item.layout
+        self.scene_ = self.plot_item.scene()
+        self.viewbox = self.plot_item.vb
+        self.viewbox.sigResized.connect(self.update_views)
+
+        self.curve = pg.PlotDataItem(
+            [],
+            [],
+        )
+
+        self.viewbox.addItem(
+            self.curve
+        )
+
+        self.view_boxes = []
+        self.curves = []
+        self.axes = []
+
+        for i, sig in enumerate(self.signals):
+            color = COLORS[i % 10]
+            sig.color = color
+
+            axis = pg.AxisItem("right")
+
+            view_box = pg.ViewBox()
+
+            axis.linkToView(view_box)
+            axis.setLabel(sig.name, sig.unit, color=color)
+
+            self.layout.addItem(axis, 2, i + 2)
+
+            self.scene_.addItem(view_box)
+
+            curve = pg.PlotDataItem(
+                sig.timestamps,
+                sig.samples,
+                pen=color,
+                symbolBrush=color,
+                symbolPen='w',
+                symbol='o',
+                symbolSize=2,
+            )
+
+            view_box.addItem(
+                curve
+            )
+
+            view_box.setXLink(self.viewbox)
+            view_box.enableAutoRange(
+                axis=pg.ViewBox.XYAxes,
+                enable=True,
+            )
+
+            self.view_boxes.append(view_box)
+            self.curves.append(curve)
+            self.axes.append(axis)
+
+        self.update_views()
+
+    def update_views(self):
+        for view_box in self.view_boxes:
+            view_box.setGeometry(self.viewbox.sceneBoundingRect())
+            view_box.linkedViewChanged(self.viewbox, view_box.XAxis)
 
     def keyPressEvent(self, event):
         key = event.key()
         if key == Qt.Key_F:
             if self.region is None:
 
-                self.region = pg.LinearRegionItem(self.plotItem.getViewBox().viewRange()[0])
+                self.region = pg.LinearRegionItem(self.viewbox.viewRange()[0])
                 self.region.setZValue(-10)
                 self.plotItem.addItem(self.region)
 
-                self.region.sigRegionChanged.connect(self.parent().parent().parent().parent().parent().updateStats)
+                self.region.sigRegionChanged.connect(self.region_modified.emit)
             else:
                 self.region = None
         else:
@@ -652,15 +737,26 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         progress.setValue(100)
 
-    def updateStats(self):
-        start, stop = region = self.plot.region.getRegion()
-        for i, signal in enumerate(self.signals):
+    def range_modified(self):
+        start, stop = self.plot.region.getRegion()
+        for i, signal in enumerate(self.plot.signals):
+            samples = signal.cut(start, stop).samples
             label = self.channel_selection.item(i)
-            label.setText('{}\nMin={:.6f} Max={:.6f}'.format(
-                label.text().splitlines()[0],
-                min(signal.cut(start, stop).samples),
-                max(signal.cut(start, stop).samples)
-            ))
+            if len(samples):
+                label.setText(
+                    '{}\n\t↓={:.6f}\t↑={:.6f}\tΔ={:.6f}'.format(
+                        signal.name,
+                        np.amin(samples),
+                        np.amax(samples),
+                        samples[-1] - samples[0],
+                    )
+                )
+            else:
+                label.setText(
+                    '{}\n\t↓=n.a. ↑=n.a. Δ=n.a.'.format(
+                        signal.name
+                    )
+                )
 
 
     def compute_cut_hints(self):
@@ -1145,9 +1241,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             progress.cancel()
 
     def update_graph(self):
-        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22',
-                  '#17becf']
-
 
         signals_nr = self.channel_selection.count()
         selected_items = [
@@ -1155,31 +1248,30 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             for item in self.channel_selection.selectedItems()
         ]
 
-        pw = self.splitter.widget(1)
-
-        scene = pw.plotItem.scene()
-        layout = pw.plotItem.layout
-        parent_vb = pw.plotItem.vb
-
         if len(selected_items) == 1:
-            color = colors[selected_items[0] % 10]
-            pw.plotItem.showAxis('left')
-            self.curve.setData([], [])
-            for i in range(signals_nr):
-                item = layout.itemAt(2, i + 2)
-                item.hide()
-                item.linkedView().setYLink(None)
+            row = selected_items[0]
+            sig = self.plot.signals[row]
+            color = sig.color
 
-            sig_axis = layout.itemAt(2, selected_items[0]+ 2)
-            axis = layout.itemAt(2, 0)
+            self.plot.plotItem.showAxis('left')
+            for axis, viewbox, curve in zip(
+                    self.plot.axes,
+                    self.plot.view_boxes,
+                    self.plot.curves):
+                axis.hide()
+                viewbox.setYLink(None)
+                curve.hide()
+
+            sig_axis = self.plot.axes[row]
+            viewbox = self.plot.view_boxes[row]
+            axis = self.plot.layout.itemAt(2, 0)
 
             axis.setRange(*sig_axis.range)
             axis.linkedView().setYRange(*sig_axis.range)
 
-            sig_axis.linkedView().setYLink(axis.linkedView())
+            viewbox.setYLink(axis.linkedView())
 
-            sig = self.signals[selected_items[0]]
-            self.curve.setData(
+            self.plot.curve.setData(
                 sig.timestamps,
                 sig.samples,
                 pen=color,
@@ -1191,43 +1283,22 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             axis.setLabel(sig.name, sig.unit, color=color)
 
-            plot_cntr = 0
-            for i, item in enumerate(scene.items()):
-                if isinstance(item, pg.PlotDataItem):
-                    if item is self.curve:
-                        item.show()
-                    else:
-                        item.hide()
-                        if signals_nr - plot_cntr == selected_items[0]:
-                            item = layout.itemAt(2, i + 2)
+            for curve in self.plot.curves:
+                curve.hide()
+            self.plot.curves[row].show()
+
         else:
 
-            pw.plotItem.hideAxis('left')
-
-            plot_cntr = 0
+            self.plot.plotItem.hideAxis('left')
 
             for i in range(signals_nr):
-                item = layout.itemAt(2, i+2)
-                item.linkedView().setYLink(None)
                 if i in selected_items:
-                    item.show()
+                    self.plot.axes[i].show()
+                    self.plot.view_boxes[i].setYLink(None)
+                    self.plot.curves[i].show()
                 else:
-                    item.hide()
-
-            for item in scene.items():
-
-                if isinstance(item, pg.PlotDataItem):
-                    if plot_cntr == 0:
-                        item.hide()
-
-                    elif signals_nr - plot_cntr  in selected_items:
-                        item.show()
-
-                    else:
-                        item.hide()
-                    plot_cntr += 1
-
-        pw.plotItem.showGrid(x=True, y=True)
+                    self.plot.axes[i].hide()
+                    self.plot.curves[i].hide()
 
     def plot_pyqtgraph(self, event):
 
@@ -1248,17 +1319,20 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             if item.checkState(0) == Qt.Checked:
                 group, index = item.entry
-                sig = self.mdf.get(group=group, index=index)
-                conditions = [
-                    not sig.samples.dtype.names,
-                    sig.samples.dtype.kind not in 'SV',
-                    len(sig.samples.shape) <= 1,
-                ]
-                if all(conditions):
-                    signals.append(sig)
+                signals.append((None, group, index))
 
             index += 1
             iterator += 1
+
+        signals = self.mdf.select(signals)
+
+        signals = [
+            sig
+            for sig in signals
+            if not sig.samples.dtype.names
+            and sig.samples.dtype.kind not in 'SV'
+            and len(sig.samples.shape) <= 1
+        ]
 
         count = self.channel_selection.count()
         for i in range(count):
@@ -1266,106 +1340,20 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         self.channel_selection.addItems(sig.name for sig in signals)
 
-        rows = len(signals)
-
-        self.plot = pw = Plot(self)
-        pw.showGrid(x = True, y = True, alpha = 0.3)
-
-        plot_item = pw.plotItem
-        plot_item.hideAxis('left')
-        # plot_item.showGrid(True, True, 0.1)
-        layout = plot_item.layout
-        scene = plot_item.scene()
-        vb = plot_item.vb
-
-        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
-
-        parent_vb = vb
-
-        self.curve = pg.PlotDataItem(
-            [],
-            [],
-        )
-
-        parent_vb.addItem(
-            self.curve
-        )
-
-        view_boxes = []
-
-        # slot: update view when resized
-        def updateViews():
-            for view_box in view_boxes:
-                view_box.setGeometry(vb.sceneBoundingRect())
-                view_box.linkedViewChanged(vb, view_box.XAxis)
-            pw.showGrid(x=True, y=True, alpha=0.3)
-
-        vb.sigResized.connect(updateViews)
-
-        self.signals = []
-
-        for i, sig in enumerate(signals):
-            self.signals.append(sig)
-
-            axis = pg.AxisItem("right")
-
-            view_box = pg.ViewBox()
-
-            axis.linkToView(view_box)
-            axis.setLabel(sig.name, sig.unit, color=colors[i%10])
-
-            layout.addItem(axis, 2, i+2)
-
-            scene.addItem(view_box)
-
-            conditions = [
-                not sig.samples.dtype.names,
-                sig.samples.dtype.kind not in 'SV',
-                len(sig.samples.shape) <= 1,
-            ]
-
-            if all(conditions):
-                color = colors[i%10]
-                curve = pg.PlotDataItem(
-                    sig.timestamps,
-                    sig.samples,
-                    pen=color,
-                    symbolBrush=color,
-                    symbolPen='w',
-                    symbol='o',
-                    symbolSize=2,
-                )
-
-                view_box.addItem(
-                    curve
-                )
-
-            view_box.setXLink(parent_vb)
-            view_box.enableAutoRange(
-                axis=pg.ViewBox.XYAxes,
-                enable=True,
-            )
-
-            view_boxes.append(view_box)
-            parent_vb = view_box
-
-        updateViews()
-
-        pw.show()
+        self.plot = Plot(signals, self)
+        self.plot.region_modified.connect(self.range_modified)
+        self.plot.show()
 
         if self.splitter.count() == 1:
-            self.splitter.addWidget(pw)
+            self.splitter.addWidget(self.plot)
         else:
-            self.splitter.replaceWidget(1, pw)
+            self.splitter.replaceWidget(1, self.plot)
 
         width = sum(self.splitter.sizes())
 
         self.splitter.setSizes(
             (0.2 * width, 0.8*width)
         )
-
-        for i in range(layout.columnCount()):
-            item = layout.itemAt(2, i)
 
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(
