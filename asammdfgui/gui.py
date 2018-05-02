@@ -1964,30 +1964,33 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         action.setShortcut(Qt.Key_S)
         plot_actions.addAction(action)
 
+        display_format_actions = QActionGroup(self)
 
-        action = QAction('{: <20}\tCTRL+H'.format('Hex'))
+        action = QAction('{: <20}\tCtrl+H'.format('Hex'))
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_H, modifier=Qt.ControlModifier)
         )
         action.setShortcut(QKeySequence('Ctrl+H'))
-        plot_actions.addAction(action)
+        display_format_actions.addAction(action)
 
-        action = QAction('{: <20}\tCTRL+B'.format('Bin'))
+        action = QAction('{: <20}\tCtrl+B'.format('Bin'))
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_B, modifier=Qt.ControlModifier)
         )
         action.setShortcut(QKeySequence('Ctrl+B'))
-        plot_actions.addAction(action)
+        display_format_actions.addAction(action)
 
-        action = QAction('{: <20}\tCTRL+P'.format('Physical'))
+        action = QAction('{: <20}\tCtrl+P'.format('Physical'))
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_P, modifier=Qt.ControlModifier)
         )
         action.setShortcut(QKeySequence('Ctrl+P'))
-        plot_actions.addAction(action)
+        display_format_actions.addAction(action)
 
         menu = QMenu('Plot', self.menubar)
         menu.addActions(plot_actions.actions())
+        menu.addSeparator()
+        menu.addActions(display_format_actions.actions())
         self.menubar.addMenu(menu)
 
         # self.menubar.addAction(menu.menuAction())
