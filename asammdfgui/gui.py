@@ -183,8 +183,8 @@ class TreeItem(QTreeWidgetItem):
 
 
 class Plot(pg.PlotWidget):
-
-    region_modified = pyqtSignal()
+    range_removed = pyqtSignal()
+    range_modified = pyqtSignal()
 
     def __init__(self, signals, *args, **kwargs):
 
@@ -237,7 +237,7 @@ class Plot(pg.PlotWidget):
                 symbolBrush=color,
                 symbolPen='w',
                 symbol='o',
-                symbolSize=2,
+                symbolSize=4,
             )
 
             view_box.addItem(
@@ -270,8 +270,11 @@ class Plot(pg.PlotWidget):
                 self.region.setZValue(-10)
                 self.plotItem.addItem(self.region)
 
-                self.region.sigRegionChanged.connect(self.region_modified.emit)
+                self.region.sigRegionChanged.connect(self.range_modified.emit)
             else:
+                self.range_removed.emit()
+                self.region.setParent(None)
+                self.region.hide()
                 self.region = None
         else:
             super(Plot, self).keyPressEvent(event)
@@ -744,20 +747,26 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             label = self.channel_selection.item(i)
             if len(samples):
                 label.setText(
-                    '{}\n\t↓={:.6f}\t↑={:.6f}\tΔ={:.6f}'.format(
+                    '{}\n\t↓={:.6f}\t↑={:.6f}\tΔ={:.6f}\tΔt={:.6f}s'.format(
                         signal.name,
                         np.amin(samples),
                         np.amax(samples),
                         samples[-1] - samples[0],
+                        stop-start,
                     )
                 )
             else:
                 label.setText(
-                    '{}\n\t↓=n.a. ↑=n.a. Δ=n.a.'.format(
-                        signal.name
+                    '{}\n\t↓=n.a. ↑=n.a. Δ=n.a. Δt={:.6f}s'.format(
+                        signal.name,
+                        stop-start,
                     )
                 )
 
+    def range_removed(self):
+        for i, signal in enumerate(self.plot.signals):
+            label = self.channel_selection.item(i)
+            label.setText(signal.name)
 
     def compute_cut_hints(self):
         # TODO : use master channel physical min and max values
@@ -1278,18 +1287,19 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 symbolBrush=color,
                 symbolPen='w',
                 symbol='o',
-                symbolSize=2,
+                symbolSize=4,
             )
 
             axis.setLabel(sig.name, sig.unit, color=color)
 
             for curve in self.plot.curves:
                 curve.hide()
-            self.plot.curves[row].show()
+            self.plot.curve.show()
 
         else:
 
             self.plot.plotItem.hideAxis('left')
+            self.plot.curve.hide()
 
             for i in range(signals_nr):
                 if i in selected_items:
@@ -1341,7 +1351,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.channel_selection.addItems(sig.name for sig in signals)
 
         self.plot = Plot(signals, self)
-        self.plot.region_modified.connect(self.range_modified)
+        self.plot.range_modified.connect(self.range_modified)
+        self.plot.range_removed.connect(self.range_removed)
         self.plot.show()
 
         if self.splitter.count() == 1:
