@@ -30,6 +30,29 @@ __version__ = '0.1.0'
 TERMINATED = object()
 COLORS = [
     '#1f77b4',
+    '#aec7e8',
+    '#ff7f0e',
+    '#ffbb78',
+    '#2ca02c',
+    '#98df8a',
+    '#d62728',
+    '#ff9896',
+    '#9467bd',
+    '#c5b0d5',
+    '#8c564b',
+    '#c49c94',
+    '#e377c2',
+    '#f7b6d2',
+    '#7f7f7f',
+    '#c7c7c7',
+    '#bcbd22',
+    '#dbdb8d',
+    '#17becf',
+    '#9edae5',
+]
+
+COLORS = [
+    '#1f77b4',
     '#ff7f0e',
     '#2ca02c',
     '#d62728',
@@ -183,6 +206,8 @@ class TreeItem(QTreeWidgetItem):
 
 
 class Plot(pg.PlotWidget):
+    cursor_moved = pyqtSignal()
+    cursor_removed = pyqtSignal()
     range_removed = pyqtSignal()
     range_modified = pyqtSignal()
 
@@ -191,6 +216,7 @@ class Plot(pg.PlotWidget):
         super(Plot, self).__init__(*args, **kwargs)
 
         self.region = None
+        self.cursor = None
         self.signals = signals
 
         self.showGrid(x=True, y=True)
@@ -201,6 +227,11 @@ class Plot(pg.PlotWidget):
         self.scene_ = self.plot_item.scene()
         self.viewbox = self.plot_item.vb
         self.viewbox.sigResized.connect(self.update_views)
+        self.viewbox.setXLink(self.viewbox)
+        self.viewbox.enableAutoRange(
+            axis=pg.ViewBox.XYAxes,
+            enable=True,
+        )
 
         self.curve = pg.PlotDataItem(
             [],
@@ -218,6 +249,13 @@ class Plot(pg.PlotWidget):
         for i, sig in enumerate(self.signals):
             color = COLORS[i % 10]
             sig.color = color
+
+            if len(sig.samples):
+                sig.min = np.amin(sig.samples)
+                sig.max = np.amax(sig.samples)
+                sig.empty = False
+            else:
+                sig.empty = True
 
             axis = pg.AxisItem("right")
 
@@ -263,19 +301,82 @@ class Plot(pg.PlotWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
-        if key == Qt.Key_F:
+
+        if key == Qt.Key_C:
+            if self.cursor is None:
+                start, stop = self.viewbox.viewRange()[0]
+                self.cursor = pg.InfiniteLine(
+                    pos=0,
+                    angle=90,
+                    movable=True,
+                )
+                self.plotItem.addItem(self.cursor, ignoreBounds=True)
+                self.cursor.sigPositionChanged.connect(self.cursor_moved.emit)
+                self.cursor.setPos((start + stop) / 2)
+            else:
+                self.cursor_removed.emit()
+                self.plotItem.removeItem(self.cursor)
+                self.cursor.setParent(None)
+                self.cursor = None
+
+        elif key == Qt.Key_F:
+            for viewbox in self.view_boxes:
+                viewbox.autoRange(padding=0)
+            self.viewbox.autoRange(padding=0)
+
+        elif key == Qt.Key_R:
             if self.region is None:
 
-                self.region = pg.LinearRegionItem(self.viewbox.viewRange()[0])
+                self.region = pg.LinearRegionItem((0, 0))
                 self.region.setZValue(-10)
                 self.plotItem.addItem(self.region)
-
                 self.region.sigRegionChanged.connect(self.range_modified.emit)
+                start, stop = self.viewbox.viewRange()[0]
+                start, stop = start + 0.1*(stop-start), stop - 0.1*(stop-start)
+                self.region.setRegion((start, stop))
+
             else:
                 self.range_removed.emit()
                 self.region.setParent(None)
                 self.region.hide()
                 self.region = None
+
+        elif key == Qt.Key_G:
+            if self.plotItem.ctrl.xGridCheck.isChecked():
+                self.showGrid(x=False, y=False)
+            else:
+                self.showGrid(x=True, y=True)
+
+        elif key == Qt.Key_S:
+            count = len(
+                [
+                    sig
+                    for (sig, curve) in zip(self.signals, self.curves)
+                    if not sig.empty and curve.isVisible()
+                ]
+            )
+
+            if count:
+                position = 0
+                for i, signal in enumerate(self.signals):
+                    if not signal.empty and self.curves[i].isVisible():
+                        viewbox = self.view_boxes[i]
+                        min_ = signal.min
+                        max_ = signal.max
+                        if min_ == max_:
+                            min_, max_ = min_ - 1, max_ + 1
+                        dim = max_ - min_
+                        max_ = min_ + dim * count
+                        min_, max_ = min_ - dim * position, max_ - dim * position
+
+                        viewbox.setYRange(min_, max_)
+
+                        position += 1
+            else:
+                xrange, _ = self.viewbox.viewRange()
+                self.viewbox.autoRange(padding=0)
+                self.viewbox.setXRange(*xrange, padding=0)
+
         else:
             super(Plot, self).keyPressEvent(event)
 
@@ -462,6 +563,7 @@ class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
 class FileWidget(QWidget, file_widget.Ui_file_widget):
     def __init__(self, file_name, memory, parent=None):
         super().__init__(parent)
+        self.plot = None
         self.setupUi(self)
         self.file_name = file_name
         self.progress = None
@@ -548,6 +650,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         selection_list = QWidget(splitter)
         self.channel_selection = ListWidget(selection_list)
+        self.channel_selection.setAlternatingRowColors(False)
         self.channel_selection.itemSelectionChanged.connect(
             self.update_graph
         )
@@ -571,7 +674,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         groups_nr = len(self.mdf.groups)
 
         self.channels_tree.setHeaderLabel('Channels')
+        self.channels_tree.setToolTip(
+            'Double click channel to see extended information'
+        )
         self.filter_tree.setHeaderLabel('Channels')
+        self.filter_tree.setToolTip(
+            'Double click channel to see extended information'
+        )
 
         for i, group in enumerate(self.mdf.groups):
             channel_group = QTreeWidgetItem()
@@ -740,33 +849,104 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         progress.setValue(100)
 
+    def cursor_moved(self):
+        position = self.plot.cursor.value()
+        for i, signal in enumerate(self.plot.signals):
+            samples = signal.cut(position, position).samples
+            label = self.channel_selection.item(i)
+            text = label.text().splitlines()
+            if samples.dtype.kind in 'ui':
+                template = '\t{}\tt={:.6f}s'
+            else:
+                template = '\t{:.6f}\tt={:.6f}s'
+            if len(samples):
+                current_info = template.format(
+                    samples[0],
+                    position,
+                )
+                if len(text) == 1:
+                    text.insert(1, current_info)
+                elif len(text) == 2:
+                    if text[1].startswith('\t↓'):
+                        text.insert(1, current_info)
+                    else:
+                        text[1] = current_info
+                else:
+                    text[1] = current_info
+                label.setText('\n'.join(text))
+            else:
+                current_info = '\tn.a.\tt={:.6f}s'.format(
+                    position,
+                )
+                if len(text) == 1:
+                    text.insert(1, current_info)
+                elif len(text) == 2:
+                    if text[1].startswith('\t↓'):
+                        text.insert(1, current_info)
+                    else:
+                        text[1] = current_info
+                else:
+                    text[1] = current_info
+                label.setText('\n'.join(text))
+
+    def cursor_removed(self):
+        for i, signal in enumerate(self.plot.signals):
+            label = self.channel_selection.item(i)
+            text = label.text().splitlines()
+            text.pop(1)
+            label.setText('\n'.join(text))
+
     def range_modified(self):
         start, stop = self.plot.region.getRegion()
         for i, signal in enumerate(self.plot.signals):
             samples = signal.cut(start, stop).samples
             label = self.channel_selection.item(i)
-            if len(samples):
-                label.setText(
-                    '{}\n\t↓={:.6f}\t↑={:.6f}\tΔ={:.6f}\tΔt={:.6f}s'.format(
-                        signal.name,
-                        np.amin(samples),
-                        np.amax(samples),
-                        samples[-1] - samples[0],
-                        stop-start,
-                    )
-                )
+            text = label.text().splitlines()
+            if samples.dtype.kind in 'ui':
+                template = '\t↓={}\t↑={}\tΔ={}\tΔt={:.6f}s'
             else:
-                label.setText(
-                    '{}\n\t↓=n.a. ↑=n.a. Δ=n.a. Δt={:.6f}s'.format(
-                        signal.name,
-                        stop-start,
-                    )
+                template = '\t↓={:.6f}\t↑={:.6f}\tΔ={:.6f}\tΔt={:.6f}s'
+            if len(samples):
+                if samples.dtype.kind in 'ui':
+                    delta = np.int64(np.float64(samples[-1]) - np.float64(samples[0]))
+                else:
+                    delta = samples[-1] - samples[0]
+                current_info = template.format(
+                    np.amin(samples),
+                    np.amax(samples),
+                    delta,
+                    stop-start,
                 )
+                if len(text) == 1:
+                    text.append(current_info)
+                elif len(text) == 2:
+                    if text[1].startswith('\t↓'):
+                        text[1] = current_info
+                    else:
+                        text.append(current_info)
+                else:
+                    text[2] = current_info
+                label.setText('\n'.join(text))
+            else:
+                current_info = '\t↓=n.a. ↑=n.a. Δ=n.a. Δt={:.6f}s'.format(
+                    stop - start
+                )
+                if len(text) == 1:
+                    text.append(current_info)
+                elif len(text) == 2:
+                    if text[1].startswith('\t↓'):
+                        text[1] = current_info
+                    else:
+                        text.append(current_info)
+                else:
+                    text[2] = current_info
+                label.setText('\n'.join(text))
 
     def range_removed(self):
         for i, signal in enumerate(self.plot.signals):
             label = self.channel_selection.item(i)
-            label.setText(signal.name)
+            text = label.text().splitlines()[:-1]
+            label.setText('\n'.join(text))
 
     def compute_cut_hints(self):
         # TODO : use master channel physical min and max values
@@ -1348,12 +1528,22 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         for i in range(count):
             self.channel_selection.takeItem(0)
 
-        self.channel_selection.addItems(sig.name for sig in signals)
-
         self.plot = Plot(signals, self)
         self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
+        self.plot.cursor_removed.connect(self.cursor_removed)
+        self.plot.cursor_moved.connect(self.cursor_moved)
         self.plot.show()
+
+        for i, sig in enumerate(self.plot.signals):
+            if sig.empty:
+                name = '{} [has no samples]'.format(sig.name)
+            else:
+                name = '{} ({})'.format(sig.name, sig.unit)
+            self.channel_selection.addItem(name)
+            self.channel_selection.item(i).setForeground(
+                QColor(sig.color)
+            )
 
         if self.splitter.count() == 1:
             self.splitter.addWidget(self.plot)
@@ -1534,12 +1724,14 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         self.statusbar.addPermanentWidget(
             QLabel(
-                'asammdfgui {} with asammdf {}'.format(
-                    __version__,
+                'asammdf {}'.format(
                     libversion,
                 )
             )
         )
+
+        menu = QMenu('Settings', self.menubar)
+        self.menubar.addMenu(menu)
 
         # memory option menu
         memory_option = QActionGroup(self)
@@ -1559,9 +1751,9 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             if option == 'minimum':
                 action.setChecked(True)
 
-        menu = QMenu('Memory', self)
-        menu.addActions(memory_option.actions())
-        self.menubar.addMenu(menu)
+        submenu = QMenu('Memory', self.menubar)
+        submenu.addActions(memory_option.actions())
+        menu.addMenu(submenu)
 
         # search mode menu
         search_option = QActionGroup(self)
@@ -1580,15 +1772,95 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             if option == 'Match start':
                 action.setChecked(True)
 
-        menu = QMenu('Search', self)
-        menu.addActions(search_option.actions())
+        submenu = QMenu('Search', self.menubar)
+        submenu.addActions(search_option.actions())
+        menu.addMenu(submenu)
+
+        # plot option menu
+        plot_actions = QActionGroup(self)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/cursor.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\tC'.format('Cursor'))
+        action.triggered.connect(
+            partial(self.plot_action, Qt.Key_C)
+        )
+        action.setShortcut(Qt.Key_C)
+        plot_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/fit.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\tF'.format('Fit trace'))
+        action.triggered.connect(
+            partial(self.plot_action, Qt.Key_F)
+        )
+        action.setShortcut(Qt.Key_F)
+        plot_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/grid.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\tG'.format('Grid'))
+        action.triggered.connect(
+            partial(self.plot_action, Qt.Key_G)
+        )
+        action.setShortcut(Qt.Key_G)
+        plot_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/range.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\tR'.format('Range'))
+        action.triggered.connect(
+            partial(self.plot_action, Qt.Key_R)
+        )
+        action.setShortcut(Qt.Key_R)
+        plot_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/list2.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\tS'.format('Stack'))
+        action.triggered.connect(
+            partial(self.plot_action, Qt.Key_S)
+        )
+        action.setShortcut(Qt.Key_S)
+        plot_actions.addAction(action)
+
+        menu = QMenu('Plot', self.menubar)
+        menu.addActions(plot_actions.actions())
         self.menubar.addMenu(menu)
+
+        # self.menubar.addAction(menu.menuAction())
 
         self.memory = 'minimum'
         self.match = 'Match start'
         self.toolBox.setCurrentIndex(0)
 
         self.show()
+
+    def plot_action(self, key):
+        event = QKeyEvent(QEvent.KeyPress, key, Qt.NoModifier)
+        widget = self.files.currentWidget()
+        if widget and widget.plot:
+            widget.plot.keyPressEvent(event)
 
     def set_memory_option(self, option):
         self.memory = option
@@ -1768,13 +2040,6 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         for _ in range(count):
             self.files.tabCloseRequested.emit(0)
         event.accept()
-
-    def keyPressEvent(self, event):
-        key = event.key()
-        if key == Qt.Key_F:
-            print('fit main now')
-        else:
-            super(MainWindow, self).keyPressEvent(event)
 
 
 def main():

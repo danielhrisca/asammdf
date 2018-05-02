@@ -16,5 +16,10 @@
     <file alias="erase.png">images/erase.png</file>
     <file alias="info.png">images/info.png</file>
     <file alias="list.png">images/list.png</file>
+    <file alias="fit.png">images/fit.png</file>
+    <file alias="grid.png">images/grid.png</file>
+    <file alias="cursor.png">images/cursor.png</file>
+    <file alias="list2.png">images/list2.png</file>
+    <file alias="range.png">images/range.png</file>
 </qresource>
 </RCC>
