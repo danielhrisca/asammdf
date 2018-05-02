@@ -205,6 +205,41 @@ class TreeItem(QTreeWidgetItem):
         self.entry = entry
 
 
+class FormatedAxis(pg.AxisItem):
+
+    def __init__(self, *args, **kwargs):
+
+        super(FormatedAxis, self).__init__(*args, **kwargs)
+
+        self.format = 'phys'
+
+    def tickStrings(self, values, scale, spacing):
+        strns = []
+
+        if self.format == 'phys':
+            strns = super(FormatedAxis, self).tickStrings(values, scale, spacing)
+
+        elif self.format == 'hex':
+            for val in values:
+                val = float(val)
+                if val.is_integer():
+                    val = hex(int(val))
+                else:
+                    val = ''
+                strns.append(val)
+
+        elif self.format == 'bin':
+            for val in values:
+                val = float(val)
+                if val.is_integer():
+                    val = bin(int(val))
+                else:
+                    val = ''
+                strns.append(val)
+
+        return strns
+
+
 class Plot(pg.PlotWidget):
     cursor_moved = pyqtSignal()
     cursor_removed = pyqtSignal()
@@ -216,9 +251,12 @@ class Plot(pg.PlotWidget):
 
         super(Plot, self).__init__(*args, **kwargs)
 
+        self.singleton = None
         self.region = None
         self.cursor = None
         self.signals = signals
+        for sig in self.signals:
+            sig.format = 'phys'
         self.all_timebase = self.timebase = reduce(
             np.union1d,
             (
@@ -245,6 +283,14 @@ class Plot(pg.PlotWidget):
             [],
             [],
         )
+        axis = self.layout.itemAt(2, 0)
+        axis.setParent(None)
+        self.axis = FormatedAxis('left')
+        self.layout.removeItem(axis)
+        self.layout.addItem(self.axis, 2, 0)
+        self.axis.linkToView(axis.linkedView())
+        self.plot_item.axes['left']['item'] = self.axis
+        self.plot_item.hideAxis('left')
 
         self.viewbox.addItem(
             self.curve
@@ -265,7 +311,10 @@ class Plot(pg.PlotWidget):
             else:
                 sig.empty = True
 
-            axis = pg.AxisItem("right")
+            axis = FormatedAxis("right")
+
+            if sig.samples.dtype.kind in 'ui':
+                axis.format = 'hex'
 
             view_box = pg.ViewBox()
 
@@ -309,6 +358,7 @@ class Plot(pg.PlotWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
+        modifier = event.modifiers()
 
         if key == Qt.Key_C:
             if self.cursor is None:
@@ -386,6 +436,32 @@ class Plot(pg.PlotWidget):
                 self.viewbox.autoRange(padding=0)
                 self.viewbox.setXRange(*xrange, padding=0)
 
+        elif key == Qt.Key_H and modifier == Qt.ControlModifier:
+            for axis, signal in zip(self.axes, self.signals):
+                if axis.isVisible() and signal.samples.dtype.kind in 'ui':
+                    axis.format = 'hex'
+                    signal.format = 'hex'
+            if self.axis.isVisible() and self.signals[self.singleton].samples.dtype.kind in 'ui':
+                self.axis.format = 'hex'
+                self.signals[self.singleton].format = 'hex'
+
+        elif key == Qt.Key_B and modifier == Qt.ControlModifier:
+            for axis, signal in zip(self.axes, self.signals):
+                if axis.isVisible() and signal.samples.dtype.kind in 'ui':
+                    axis.format = 'bin'
+                    signal.format = 'bin'
+            if self.axis.isVisible() and self.signals[self.singleton].samples.dtype.kind in 'ui':
+                self.axis.format = 'bin'
+                self.signals[self.singleton].format = 'bin'
+
+        elif key == Qt.Key_P and modifier == Qt.ControlModifier:
+            for axis, signal in zip(self.axes, self.signals):
+                if axis.isVisible():
+                    axis.format = 'phys'
+                    signal.format = 'phys'
+            if self.axis.isVisible():
+                self.axis.format = 'phys'
+                self.signals[self.singleton].format = 'phys'
         else:
             super(Plot, self).keyPressEvent(event)
 
@@ -885,7 +961,12 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             label = self.channel_selection.item(i)
             text = label.text().splitlines()
             if samples.dtype.kind in 'ui':
-                template = '\t{}\tt={:.6f}s'
+                if signal.format == 'phys':
+                    template = '\t{}\tt={:.6f}s'
+                elif signal.format == 'hex':
+                    template = '\t0x{:X}\tt={:.6f}s'
+                else:
+                    template = '\t0b{:b}\tt={:.6f}s'
             else:
                 template = '\t{:.6f}\tt={:.6f}s'
             if len(samples):
@@ -932,7 +1013,12 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             label = self.channel_selection.item(i)
             text = label.text().splitlines()
             if samples.dtype.kind in 'ui':
-                template = '\t↓={}\t↑={}\tΔ={}\tΔt={:.6f}s'
+                if signal.format == 'phys':
+                    template = '\t↓={}\t↑={}\tΔ={}\tΔt={:.6f}s'
+                elif signal.format == 'hex':
+                    template = '\t↓=0x{:X}\t↑=0x{:X}\tΔ=0x{:X}\tΔt={:.6f}s'
+                else:
+                    template = '\t↓=0b{:b}\t↑=0b{:b}\tΔ=0b{:b}\tΔt={:.6f}s'
             else:
                 template = '\t↓={:.6f}\t↑={:.6f}\tΔ={:.6f}\tΔt={:.6f}s'
             if len(samples):
@@ -1468,6 +1554,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         if len(selected_items) == 1:
             row = selected_items[0]
+            self.plot.singleton = row
             sig = self.plot.signals[row]
             color = sig.color
 
@@ -1507,7 +1594,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             self.plot.timebase = self.plot.curve.xData
 
         else:
-
+            self.plot.singleton = None
             self.plot.plotItem.hideAxis('left')
             self.plot.curve.hide()
 
@@ -1820,7 +1907,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         )
         action = QAction(icon, '{: <20}\tC'.format('Cursor'))
         action.triggered.connect(
-            partial(self.plot_action, Qt.Key_C)
+            partial(self.plot_action, key=Qt.Key_C)
         )
         action.setShortcut(Qt.Key_C)
         plot_actions.addAction(action)
@@ -1833,7 +1920,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         )
         action = QAction(icon, '{: <20}\tF'.format('Fit trace'))
         action.triggered.connect(
-            partial(self.plot_action, Qt.Key_F)
+            partial(self.plot_action, key=Qt.Key_F)
         )
         action.setShortcut(Qt.Key_F)
         plot_actions.addAction(action)
@@ -1846,7 +1933,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         )
         action = QAction(icon, '{: <20}\tG'.format('Grid'))
         action.triggered.connect(
-            partial(self.plot_action, Qt.Key_G)
+            partial(self.plot_action, key=Qt.Key_G)
         )
         action.setShortcut(Qt.Key_G)
         plot_actions.addAction(action)
@@ -1859,7 +1946,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         )
         action = QAction(icon, '{: <20}\tR'.format('Range'))
         action.triggered.connect(
-            partial(self.plot_action, Qt.Key_R)
+            partial(self.plot_action, key=Qt.Key_R)
         )
         action.setShortcut(Qt.Key_R)
         plot_actions.addAction(action)
@@ -1872,9 +1959,31 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         )
         action = QAction(icon, '{: <20}\tS'.format('Stack'))
         action.triggered.connect(
-            partial(self.plot_action, Qt.Key_S)
+            partial(self.plot_action, key=Qt.Key_S)
         )
         action.setShortcut(Qt.Key_S)
+        plot_actions.addAction(action)
+
+
+        action = QAction('{: <20}\tCTRL+H'.format('Hex'))
+        action.triggered.connect(
+            partial(self.plot_action, key=Qt.Key_H, modifier=Qt.ControlModifier)
+        )
+        action.setShortcut(QKeySequence('Ctrl+H'))
+        plot_actions.addAction(action)
+
+        action = QAction('{: <20}\tCTRL+B'.format('Bin'))
+        action.triggered.connect(
+            partial(self.plot_action, key=Qt.Key_B, modifier=Qt.ControlModifier)
+        )
+        action.setShortcut(QKeySequence('Ctrl+B'))
+        plot_actions.addAction(action)
+
+        action = QAction('{: <20}\tCTRL+P'.format('Physical'))
+        action.triggered.connect(
+            partial(self.plot_action, key=Qt.Key_P, modifier=Qt.ControlModifier)
+        )
+        action.setShortcut(QKeySequence('Ctrl+P'))
         plot_actions.addAction(action)
 
         menu = QMenu('Plot', self.menubar)
@@ -1889,8 +1998,8 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         self.show()
 
-    def plot_action(self, key):
-        event = QKeyEvent(QEvent.KeyPress, key, Qt.NoModifier)
+    def plot_action(self, key, modifier=Qt.NoModifier):
+        event = QKeyEvent(QEvent.KeyPress, key, modifier)
         widget = self.files.currentWidget()
         if widget and widget.plot:
             widget.plot.keyPressEvent(event)
