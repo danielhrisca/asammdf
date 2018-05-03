@@ -710,6 +710,23 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         progress.setWindowIcon(icon)
         progress.show()
 
+        if file_name.lower().endswith('dl3'):
+            progress.setLabelText('Converting from dl3 to mdf')
+            try:
+                import win32com.client
+
+                datalyser = win32com.client.Dispatch('Datalyser3.Datalyser3_COM')
+                datalyser.DCOM_set_datalyser_visibility(False)
+                datalyser.DCOM_convert_file_mdf_dl3(
+                    file_name,
+                    file_name + '.mdf',
+                    0
+                )
+                datalyser.DCOM_TerminateDAS()
+                file_name += '.mdf'
+            except:
+                return
+
         target = MDF
         kwargs = {
             'name': file_name,
@@ -1400,7 +1417,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             iterator += 1
 
     def close(self):
+        mdf_name = self.mdf.name
         self.mdf.close()
+        if self.file_name.lower().endswith('dl3'):
+            os.remove(mdf_name)
 
     def convert(self, event):
         version = self.convert_format.currentText()
@@ -1897,10 +1917,11 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 QColor(sig.color)
             )
 
-        if self.splitter.count() == 1:
-            self.splitter.addWidget(self.plot)
-        else:
-            self.splitter.replaceWidget(1, self.plot)
+        if self.splitter.count() > 1:
+            old_plot = self.splitter.widget(1)
+            old_plot.setParent(None)
+            old_plot.hide()
+        self.splitter.addWidget(self.plot)
 
         width = sum(self.splitter.sizes())
 
@@ -2386,7 +2407,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             self,
             "Select measurement file",
             '',
-            "MDF files (*.dat *.mdf *.mf4)",
+            "MDF/DL3 files (*.dat *.mdf *.mf4 *.dl3)",
         )
         if file_name:
             index = self.files.count()
