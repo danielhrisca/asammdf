@@ -273,7 +273,6 @@ class Plot(pg.PlotWidget):
         self.scene_ = self.plot_item.scene()
         self.viewbox = self.plot_item.vb
         self.viewbox.sigResized.connect(self.update_views)
-        self.viewbox.setXLink(self.viewbox)
         self.viewbox.enableAutoRange(
             axis=pg.ViewBox.XYAxes,
             enable=True,
@@ -283,6 +282,7 @@ class Plot(pg.PlotWidget):
             [],
             [],
         )
+
         axis = self.layout.itemAt(2, 0)
         axis.setParent(None)
         self.axis = FormatedAxis('left')
@@ -294,6 +294,19 @@ class Plot(pg.PlotWidget):
 
         self.viewbox.addItem(
             self.curve
+        )
+
+        self.cursor_hint = pg.PlotDataItem(
+            [],
+            [],
+            pen='#000000',
+            symbolBrush='#000000',
+            symbolPen='w',
+            symbol='s',
+            symbolSize=8,
+        )
+        self.viewbox.addItem(
+            self.cursor_hint
         )
 
         self.view_boxes = []
@@ -313,10 +326,11 @@ class Plot(pg.PlotWidget):
 
             axis = FormatedAxis("right")
 
-            if sig.samples.dtype.kind in 'ui':
-                axis.format = 'hex'
-
             view_box = pg.ViewBox()
+            view_box.enableAutoRange(
+                axis=pg.ViewBox.XYAxes,
+                enable=True,
+            )
 
             axis.linkToView(view_box)
             axis.setLabel(sig.name, sig.unit, color=color)
@@ -330,7 +344,7 @@ class Plot(pg.PlotWidget):
                 sig.samples,
                 pen=color,
                 symbolBrush=color,
-                symbolPen='w',
+                symbolPen=color,
                 symbol='o',
                 symbolSize=4,
             )
@@ -344,6 +358,7 @@ class Plot(pg.PlotWidget):
                 axis=pg.ViewBox.XYAxes,
                 enable=True,
             )
+            view_box.sigResized.connect(self.update_views)
 
             self.view_boxes.append(view_box)
             self.curves.append(curve)
@@ -355,6 +370,7 @@ class Plot(pg.PlotWidget):
         for view_box in self.view_boxes:
             view_box.setGeometry(self.viewbox.sceneBoundingRect())
             view_box.linkedViewChanged(self.viewbox, view_box.XAxis)
+        self.viewbox.linkedViewChanged(self.viewbox, view_box.XAxis)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -428,7 +444,7 @@ class Plot(pg.PlotWidget):
                         max_ = min_ + dim * count
                         min_, max_ = min_ - dim * position, max_ - dim * position
 
-                        viewbox.setYRange(min_, max_)
+                        viewbox.setYRange(min_, max_, padding=0)
 
                         position += 1
             else:
@@ -441,27 +457,39 @@ class Plot(pg.PlotWidget):
                 if axis.isVisible() and signal.samples.dtype.kind in 'ui':
                     axis.format = 'hex'
                     signal.format = 'hex'
+                    axis.hide()
+                    axis.show()
             if self.axis.isVisible() and self.signals[self.singleton].samples.dtype.kind in 'ui':
                 self.axis.format = 'hex'
                 self.signals[self.singleton].format = 'hex'
+                self.axis.hide()
+                self.axis.show()
 
         elif key == Qt.Key_B and modifier == Qt.ControlModifier:
             for axis, signal in zip(self.axes, self.signals):
                 if axis.isVisible() and signal.samples.dtype.kind in 'ui':
                     axis.format = 'bin'
                     signal.format = 'bin'
+                    axis.hide()
+                    axis.show()
             if self.axis.isVisible() and self.signals[self.singleton].samples.dtype.kind in 'ui':
                 self.axis.format = 'bin'
                 self.signals[self.singleton].format = 'bin'
+                self.axis.hide()
+                self.axis.show()
 
         elif key == Qt.Key_P and modifier == Qt.ControlModifier:
             for axis, signal in zip(self.axes, self.signals):
                 if axis.isVisible():
                     axis.format = 'phys'
                     signal.format = 'phys'
+                    axis.hide()
+                    axis.show()
             if self.axis.isVisible():
                 self.axis.format = 'phys'
                 self.signals[self.singleton].format = 'phys'
+                self.axis.hide()
+                self.axis.show()
         else:
             super(Plot, self).keyPressEvent(event)
 
@@ -945,7 +973,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             if right == 0:
                 next_pos = x[0]
             elif right == dim:
-                nex_pos = x[-1]
+                next_pos = x[-1]
             else:
                 if position - x[right-1] < x[right] - position:
                     next_pos = x[right-1]
@@ -953,8 +981,71 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                     next_pos = x[right]
             self.plot.cursor.setPos(next_pos)
 
+        self.plot.cursor_hint.setData(
+            [],
+            [],
+        )
+
     def cursor_moved(self):
         position = self.plot.cursor.value()
+
+        x = self.plot.timebase
+        dim = len(x)
+
+        if dim:
+            position = self.plot.cursor.value()
+
+            right = np.searchsorted(x, position, side='right')
+            if right == 0:
+                next_pos = x[0]
+            elif right == dim:
+                next_pos = x[-1]
+            else:
+                if position - x[right - 1] < x[right] - position:
+                    next_pos = x[right - 1]
+                else:
+                    next_pos = x[right]
+
+            y = []
+
+            _, (hint_min, hint_max) = self.plot.viewbox.viewRange()
+
+            for viewbox, sig, curve in zip(
+                    self.plot.view_boxes,
+                    self.plot.signals,
+                    self.plot.curves):
+                if curve.isVisible():
+                    index = np.argwhere(
+                        sig.timestamps == next_pos
+                    ).flatten()
+                    if len(index):
+                        _, (y_min, y_max) = viewbox.viewRange()
+
+                        sample = sig.samples[index[0]]
+                        sample = (sample - y_min) / (y_max - y_min) * (hint_max - hint_min) + hint_min
+
+                        y.append(sample)
+
+            if self.plot.curve.isVisible():
+                timestamps = self.plot.curve.xData
+                samples = self.plot.curve.yData
+                index = np.argwhere(
+                    timestamps == next_pos
+                ).flatten()
+                if len(index):
+                    _, (y_min, y_max) = self.plot.viewbox.viewRange()
+
+                    sample = samples[index[0]]
+                    sample = (sample - y_min) / (y_max - y_min) * (hint_max - hint_min) + hint_min
+
+                    y.append(sample)
+
+            self.plot.viewbox.setYRange(hint_min, hint_max, padding=0)
+            self.plot.cursor_hint.setData(
+                [next_pos, ] * len(y),
+                y,
+            )
+            self.plot.cursor_hint.show()
 
         for i, signal in enumerate(self.plot.signals):
             samples = signal.cut(position, position).samples
@@ -1581,7 +1672,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 sig.samples,
                 pen=color,
                 symbolBrush=color,
-                symbolPen='w',
+                symbolPen=color,
                 symbol='o',
                 symbolSize=4,
             )
