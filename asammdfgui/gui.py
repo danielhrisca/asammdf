@@ -367,10 +367,10 @@ class Plot(pg.PlotWidget):
         self.update_views()
 
     def update_views(self):
+        self.viewbox.linkedViewChanged(self.viewbox, self.viewbox.XAxis)
         for view_box in self.view_boxes:
             view_box.setGeometry(self.viewbox.sceneBoundingRect())
             view_box.linkedViewChanged(self.viewbox, view_box.XAxis)
-        self.viewbox.linkedViewChanged(self.viewbox, view_box.XAxis)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -388,6 +388,7 @@ class Plot(pg.PlotWidget):
                 self.cursor.sigPositionChanged.connect(self.cursor_moved.emit)
                 self.cursor.sigPositionChangeFinished.connect(self.cursor_move_finished.emit)
                 self.cursor.setPos((start + stop) / 2)
+                self.cursor_move_finished.emit()
             else:
                 self.cursor_removed.emit()
                 self.plotItem.removeItem(self.cursor)
@@ -464,6 +465,7 @@ class Plot(pg.PlotWidget):
                 self.signals[self.singleton].format = 'hex'
                 self.axis.hide()
                 self.axis.show()
+            self.cursor_moved.emit()
 
         elif key == Qt.Key_B and modifier == Qt.ControlModifier:
             for axis, signal in zip(self.axes, self.signals):
@@ -477,6 +479,7 @@ class Plot(pg.PlotWidget):
                 self.signals[self.singleton].format = 'bin'
                 self.axis.hide()
                 self.axis.show()
+            self.cursor_moved.emit()
 
         elif key == Qt.Key_P and modifier == Qt.ControlModifier:
             for axis, signal in zip(self.axes, self.signals):
@@ -490,6 +493,7 @@ class Plot(pg.PlotWidget):
                 self.signals[self.singleton].format = 'phys'
                 self.axis.hide()
                 self.axis.show()
+            self.cursor_moved.emit()
         else:
             super(Plot, self).keyPressEvent(event)
 
