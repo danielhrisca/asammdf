@@ -715,15 +715,26 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             try:
                 import win32com.client
 
+                index = 0
+                while True:
+                    mdf_name = '{}.{}.mdf'.format(
+                        file_name,
+                        index,
+                    )
+                    if os.path.exists(mdf_name):
+                        index += 1
+                    else:
+                        break
+
                 datalyser = win32com.client.Dispatch('Datalyser3.Datalyser3_COM')
                 datalyser.DCOM_set_datalyser_visibility(False)
                 datalyser.DCOM_convert_file_mdf_dl3(
                     file_name,
-                    file_name + '.mdf',
+                    mdf_name,
                     0
                 )
                 datalyser.DCOM_TerminateDAS()
-                file_name += '.mdf'
+                file_name = mdf_name
             except:
                 return
 
@@ -2434,8 +2445,8 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
     def closeEvent(self, event):
         count = self.files.count()
-        for _ in range(count):
-            self.files.tabCloseRequested.emit(0)
+        for i in range(count):
+            self.files.widget(i).close()
         event.accept()
 
 
