@@ -257,13 +257,15 @@ class Plot(pg.PlotWidget):
         self.signals = signals
         for sig in self.signals:
             sig.format = 'phys'
-        self.all_timebase = self.timebase = reduce(
-            np.union1d,
-            (
-                sig.timestamps
-                for sig in self.signals
-            ),
-        )
+
+        if self.signals:
+            self.all_timebase = self.timebase = reduce(
+                np.union1d,
+                (
+                    sig.timestamps
+                    for sig in self.signals
+                ),
+            )
 
         self.showGrid(x=True, y=True)
 
@@ -965,6 +967,141 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.aspects.setCurrentIndex(0)
 
         progress.setValue(100)
+
+        self.load_channel_list_btn.clicked.connect(self.load_channel_list)
+        self.save_channel_list_btn.clicked.connect(self.save_channel_list)
+        self.load_filter_list_btn.clicked.connect(self.load_filter_list)
+        self.save_filter_list_btn.clicked.connect(self.save_filter_list)
+
+    def save_channel_list(self):
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Select output channel list file",
+            '',
+            "TXT files (*.txt)",
+        )
+        if file_name:
+            with open(file_name, 'w') as output:
+                iterator = QTreeWidgetItemIterator(
+                    self.channels_tree,
+                )
+
+                signals = []
+                while iterator.value():
+                    item = iterator.value()
+                    if item.parent() is None:
+                        iterator += 1
+                        continue
+
+                    if item.checkState(0) == Qt.Checked:
+                        signals.append(item.text(0))
+
+                    iterator += 1
+
+                output.write('\n'.join(signals))
+
+    def load_channel_list(self):
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select channel list file",
+            '',
+            "TXT files (*.txt)",
+        )
+        if file_name:
+            with open(file_name, 'r') as infile:
+                channels = [
+                    line.strip()
+                    for line in infile.readlines()
+                ]
+                channels = [
+                    name
+                    for name in channels
+                    if name
+                ]
+
+            iterator = QTreeWidgetItemIterator(
+                self.channels_tree,
+            )
+
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    iterator += 1
+                    continue
+
+                channel_name = item.text(0)
+                if channel_name in channels:
+                    item.setCheckState(0, Qt.Checked)
+                    channels.pop(channels.index(channel_name))
+                else:
+                    item.setCheckState(0, Qt.Unchecked)
+
+                iterator += 1
+
+    def save_filter_list(self):
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Select output filter list file",
+            '',
+            "TXT files (*.txt)",
+        )
+        if file_name:
+            with open(file_name, 'w') as output:
+                iterator = QTreeWidgetItemIterator(
+                    self.filter_tree,
+                )
+
+                signals = []
+                while iterator.value():
+                    item = iterator.value()
+                    if item.parent() is None:
+                        iterator += 1
+                        continue
+
+                    if item.checkState(0) == Qt.Checked:
+                        signals.append(item.text(0))
+
+                    iterator += 1
+
+                output.write('\n'.join(signals))
+
+    def load_filter_list(self):
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select filter list file",
+            '',
+            "TXT files (*.txt)",
+        )
+        if file_name:
+            with open(file_name, 'r') as infile:
+                channels = [
+                    line.strip()
+                    for line in infile.readlines()
+                ]
+                channels = [
+                    name
+                    for name in channels
+                    if name
+                ]
+
+            iterator = QTreeWidgetItemIterator(
+                self.filter_tree,
+            )
+
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    iterator += 1
+                    continue
+
+                channel_name = item.text(0)
+                if channel_name in channels:
+                    item.setCheckState(0, Qt.Checked)
+                    channels.pop(channels.index(channel_name))
+                else:
+                    item.setCheckState(0, Qt.Unchecked)
+
+                iterator += 1
 
     def cursor_move_finished(self):
         x = self.plot.timebase
@@ -1909,7 +2046,6 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         self.progress = None
 
-        self.last_folder = ''
         self.setupUi(self)
 
         self.open_file_btn.clicked.connect(self.open_file)
@@ -2228,7 +2364,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         file_names, _ = QFileDialog.getOpenFileNames(
             self,
             "Select measurement file",
-            self.last_folder,
+            '',
             "MDF files (*.dat *.mdf *.mf4)",
         )
         if file_names:
@@ -2249,7 +2385,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         file_name, _ = QFileDialog.getOpenFileName(
             self,
             "Select measurement file",
-            self.last_folder,
+            '',
             "MDF files (*.dat *.mdf *.mf4)",
         )
         if file_name:

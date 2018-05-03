@@ -22,6 +22,7 @@ Welcome to asammdf's documentation!
    tips
    examples
    benchmarks
+   gui
 
 
 Indices and tables

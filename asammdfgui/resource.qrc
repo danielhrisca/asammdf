@@ -21,5 +21,6 @@
     <file alias="cursor.png">images/cursor.png</file>
     <file alias="list2.png">images/list2.png</file>
     <file alias="range.png">images/range.png</file>
+    <file alias="save.png">images/save.png</file>
 </qresource>
 </RCC>
