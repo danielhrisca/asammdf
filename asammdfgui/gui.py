@@ -401,6 +401,8 @@ class Plot(pg.PlotWidget):
             for viewbox in self.view_boxes:
                 viewbox.autoRange(padding=0)
             self.viewbox.autoRange(padding=0)
+            if self.cursor:
+                self.cursor_moved.emit()
 
         elif key == Qt.Key_R:
             if self.region is None:
@@ -456,6 +458,8 @@ class Plot(pg.PlotWidget):
                 xrange, _ = self.viewbox.viewRange()
                 self.viewbox.autoRange(padding=0)
                 self.viewbox.setXRange(*xrange, padding=0)
+            if self.cursor:
+                self.cursor_moved.emit()
 
         elif key == Qt.Key_H and modifier == Qt.ControlModifier:
             for axis, signal in zip(self.axes, self.signals):
@@ -498,6 +502,26 @@ class Plot(pg.PlotWidget):
                 self.axis.hide()
                 self.axis.show()
             self.cursor_moved.emit()
+
+        elif key in (Qt.Key_Left, Qt.Key_Right):
+            if self.cursor:
+                pos = self.cursor.value()
+                dim = len(self.timebase)
+                if dim:
+                    pos = np.searchsorted(self.timebase, pos)
+                    if key == Qt.Key_Right:
+                        pos += 1
+                    else:
+                        pos -= 1
+                    pos = np.clip(pos, 0, dim-1)
+                    self.cursor.setValue(self.timebase[pos])
+                else:
+                    if key == Qt.Key_Right:
+                        pos += 1
+                    else:
+                        pos -= 1
+
+                    self.cursor.setValue(pos)
         else:
             super(Plot, self).keyPressEvent(event)
 
@@ -538,6 +562,8 @@ class TreeWidget(QTreeWidget):
 
 class ListWidget(QListWidget):
 
+    itemsDeleted = pyqtSignal(list)
+
     def __init__(self, *args, **kwargs):
 
         super(ListWidget, self).__init__(*args, **kwargs)
@@ -552,9 +578,13 @@ class ListWidget(QListWidget):
         key = event.key()
         if key == Qt.Key_Delete:
             selected_items = self.selectedItems()
+            deleted = []
             for item in selected_items:
                 row = self.row(item)
+                deleted.append(row)
                 self.takeItem(row)
+            if deleted:
+                self.itemsDeleted.emit(deleted)
         else:
             super(ListWidget, self).keyPressEvent(event)
 
@@ -1002,6 +1032,16 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.save_channel_list_btn.clicked.connect(self.save_channel_list)
         self.load_filter_list_btn.clicked.connect(self.load_filter_list)
         self.save_filter_list_btn.clicked.connect(self.save_filter_list)
+
+        self.channel_selection.itemsDeleted.connect(self.channel_selection_modified)
+
+    def channel_selection_modified(self, deleted):
+        signals = [
+            sig
+            for i, sig in enumerate(self.plot.signals)
+            if i not in deleted
+        ]
+        self.plot_pyqtgraph(signals)
 
     def save_channel_list(self):
         file_name, _ = QFileDialog.getSaveFileName(
@@ -1873,40 +1913,46 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                     self.plot.curves[i].hide()
 
             self.plot.timebase = self.plot.all_timebase
+        if self.plot.cursor:
+            self.cursor_moved()
 
     def plot_pyqtgraph(self, event):
+        try:
+            iter(event)
+            signals = event
+        except:
 
-        iterator = QTreeWidgetItemIterator(
-            self.channels_tree,
-        )
+            iterator = QTreeWidgetItemIterator(
+                self.channels_tree,
+            )
 
-        group = -1
-        index = 0
-        signals = []
-        while iterator.value():
-            item = iterator.value()
-            if item.parent() is None:
+            group = -1
+            index = 0
+            signals = []
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    iterator += 1
+                    group += 1
+                    index = 0
+                    continue
+
+                if item.checkState(0) == Qt.Checked:
+                    group, index = item.entry
+                    signals.append((None, group, index))
+
+                index += 1
                 iterator += 1
-                group += 1
-                index = 0
-                continue
 
-            if item.checkState(0) == Qt.Checked:
-                group, index = item.entry
-                signals.append((None, group, index))
+            signals = self.mdf.select(signals)
 
-            index += 1
-            iterator += 1
-
-        signals = self.mdf.select(signals)
-
-        signals = [
-            sig
-            for sig in signals
-            if not sig.samples.dtype.names
-            and sig.samples.dtype.kind not in 'SV'
-            and len(sig.samples.shape) <= 1
-        ]
+            signals = [
+                sig
+                for sig in signals
+                if not sig.samples.dtype.names
+                and sig.samples.dtype.kind not in 'SV'
+                and len(sig.samples.shape) <= 1
+            ]
 
         count = self.channel_selection.count()
         for i in range(count):
