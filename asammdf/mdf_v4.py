@@ -1672,7 +1672,7 @@ class MDF4(object):
                                     dtype_pair = '', 'a{}'.format(gap)
                                     types.append(dtype_pair)
 
-                                size = bit_count >> 3
+                                size = max(bit_count >> 3, 1)
                                 shape = tuple(
                                     ca_block['dim_size_{}'.format(i)]
                                     for i in range(ca_block['dims'])
