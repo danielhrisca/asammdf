@@ -1499,7 +1499,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             # then save it
             progress.setLabelText(
-                'Saving resampled file "{}"'.format(
+                'Saving converted file "{}"'.format(
                     file_name,
                 )
             )

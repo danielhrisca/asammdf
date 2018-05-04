@@ -351,7 +351,10 @@ class MDF3(object):
         """
 
         memory = self.memory
-        stream = self._file
+        if group['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
         grp = group
         record_size = grp['channel_group']['samples_byte_nr'] << 3
         next_byte_aligned_position = 0
