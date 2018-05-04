@@ -433,13 +433,6 @@ class Plot(pg.PlotWidget):
             else:
                 self.showGrid(x=True, y=True)
 
-        elif key == Qt.Key_H:
-            for viewbox in self.view_boxes:
-                viewbox.autoRange(padding=0)
-            self.viewbox.autoRange(padding=0)
-            if self.cursor:
-                self.cursor_moved.emit()
-
         elif key in (Qt.Key_I, Qt.Key_O):
             x_range, _ = self.viewbox.viewRange()
             delta = x_range[1] - x_range[0]
@@ -518,7 +511,8 @@ class Plot(pg.PlotWidget):
                 self.signals[self.singleton].format = 'hex'
                 self.axis.hide()
                 self.axis.show()
-            self.cursor_moved.emit()
+            if self.cursor:
+                self.cursor_moved.emit()
 
         elif key == Qt.Key_B and modifier == Qt.ControlModifier:
             for axis, signal in zip(self.axes, self.signals):
@@ -532,7 +526,8 @@ class Plot(pg.PlotWidget):
                 self.signals[self.singleton].format = 'bin'
                 self.axis.hide()
                 self.axis.show()
-            self.cursor_moved.emit()
+            if self.cursor:
+                self.cursor_moved.emit()
 
         elif key == Qt.Key_P and modifier == Qt.ControlModifier:
             for axis, signal in zip(self.axes, self.signals):
@@ -546,7 +541,8 @@ class Plot(pg.PlotWidget):
                 self.signals[self.singleton].format = 'phys'
                 self.axis.hide()
                 self.axis.show()
-            self.cursor_moved.emit()
+            if self.cursor:
+                self.cursor_moved.emit()
 
         elif key in (Qt.Key_Left, Qt.Key_Right):
             if self.cursor:
@@ -567,6 +563,14 @@ class Plot(pg.PlotWidget):
                         pos -= 1
 
                     self.cursor.setValue(pos)
+
+        elif key == Qt.Key_H:
+            for viewbox in self.view_boxes:
+                viewbox.autoRange(padding=0)
+            self.viewbox.autoRange(padding=0)
+            if self.cursor:
+                self.cursor_moved.emit()
+
         else:
             super(Plot, self).keyPressEvent(event)
 
@@ -1081,12 +1085,20 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.channel_selection.itemsDeleted.connect(self.channel_selection_modified)
 
     def channel_selection_modified(self, deleted):
-        signals = [
-            sig
-            for i, sig in enumerate(self.plot.signals)
-            if i not in deleted
-        ]
-        self.plot_pyqtgraph(signals)
+        for i in sorted(deleted, reverse=True):
+            item = self.plot.curves.pop(i)
+            item.hide()
+            item.setParent(None)
+
+            item = self.plot.axes.pop(i)
+            item.hide()
+            item.setParent(None)
+
+            item = self.plot.view_boxes.pop(i)
+            item.hide()
+            item.setParent(None)
+
+            self.plot.signals.pop(i)
 
     def save_channel_list(self):
         file_name, _ = QFileDialog.getSaveFileName(
@@ -1919,7 +1931,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             sig_axis = self.plot.axes[row]
             viewbox = self.plot.view_boxes[row]
-            axis = self.plot.layout.itemAt(2, 0)
+            axis = self.plot.axis
 
             axis.setRange(*sig_axis.range)
             axis.linkedView().setYRange(*sig_axis.range)
