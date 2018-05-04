@@ -205,6 +205,16 @@ class TreeItem(QTreeWidgetItem):
         self.entry = entry
 
 
+class Cursor(pg.InfiniteLine):
+
+    def __init__(self, *args, **kwargs):
+
+        super(Cursor, self).__init__(*args, label='{value:.6f}s', labelOpts={'position': 0.04}, **kwargs)
+
+        self.addMarker('^', 0)
+        self.addMarker('v', 1)
+        self.label.show()
+
 class FormatedAxis(pg.AxisItem):
 
     def __init__(self, *args, **kwargs):
@@ -266,6 +276,8 @@ class Plot(pg.PlotWidget):
                     for sig in self.signals
                 ),
             )
+        else:
+            self.all_timebase = self.timebase = None
 
         self.showGrid(x=True, y=True)
 
@@ -389,7 +401,7 @@ class Plot(pg.PlotWidget):
         if key == Qt.Key_C:
             if self.cursor is None:
                 start, stop = self.viewbox.viewRange()[0]
-                self.cursor = pg.InfiniteLine(
+                self.cursor = Cursor(
                     pos=0,
                     angle=90,
                     movable=True,
@@ -399,6 +411,7 @@ class Plot(pg.PlotWidget):
                 self.cursor.sigPositionChangeFinished.connect(self.cursor_move_finished.emit)
                 self.cursor.setPos((start + stop) / 2)
                 self.cursor_move_finished.emit()
+
             else:
                 self.cursor_removed.emit()
                 self.plotItem.removeItem(self.cursor)
@@ -1207,9 +1220,9 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
     def cursor_move_finished(self):
         x = self.plot.timebase
-        dim = len(x)
 
-        if dim:
+        if x is not None and len(x):
+            dim = len(x)
             position = self.plot.cursor.value()
 
             right = np.searchsorted(x, position, side='right')
@@ -1233,9 +1246,9 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         position = self.plot.cursor.value()
 
         x = self.plot.timebase
-        dim = len(x)
 
-        if dim:
+        if x is not None and len(x):
+            dim = len(x)
             position = self.plot.cursor.value()
 
             right = np.searchsorted(x, position, side='right')
