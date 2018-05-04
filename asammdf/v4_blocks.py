@@ -4,10 +4,10 @@ classes that implement the blocks for MDF version 4
 """
 from __future__ import division, print_function
 
+import logging
 import xml.etree.ElementTree as ET
 import sys
 import time
-import warnings
 from datetime import datetime
 from hashlib import md5
 from struct import pack, unpack, unpack_from
@@ -28,6 +28,8 @@ SEEK_END = v4c.SEEK_END
 
 if PYVERSION < 3:
     from .utils import bytes
+
+logger = logging.getLogger('asammdf')
 
 __all__ = [
     'AttachmentBlock',
@@ -88,7 +90,9 @@ class AttachmentBlock(dict):
 
             if self['id'] != b'##AT':
                 message = 'Expected "##AT" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
             self.file_name = get_text_v4(self['file_name_addr'], stream)
             self.mime = get_text_v4(self['mime_addr'], stream)
@@ -154,7 +158,9 @@ class AttachmentBlock(dict):
                 else:
                     message = ('ATBLOCK md5sum="{}"'
                                ' and embedded data md5sum="{}"')
-                    warnings.warn(message.format(self['md5_sum'], md5_sum))
+                    message = message.format(self['md5_sum'], md5_sum)
+                    logger.warning(message)
+
         else:
             warnings.warn('external attachments not supported')
 
@@ -354,7 +360,9 @@ class Channel(dict):
 
             if self['id'] != b'##CN':
                 message = 'Expected "##CN" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
             if kargs.get('load_metadata', True):
 
@@ -784,7 +792,9 @@ class ChannelArrayBlock(dict):
 
             if self['id'] != b'##CA':
                 message = 'Expected "##CA" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
             self['id'] = b'##CA'
@@ -1012,7 +1022,9 @@ class ChannelGroup(dict):
 
             if self['id'] != b'##CG':
                 message = 'Expected "##CG" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
             self.acq_name = get_text_v4(self['acq_name_addr'], stream)
             self.comment = get_text_v4(self['comment_addr'], stream)
@@ -1153,8 +1165,6 @@ class ChannelGroup(dict):
                 *[self[key] for key in v4c.KEYS_CHANNEL_GROUP]
             )
         return result
-
-
 
 
 class ChannelConversion(dict):
@@ -1446,7 +1456,9 @@ class ChannelConversion(dict):
 
             if self['id'] != b'##CC':
                 message = 'Expected "##CC" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
             if 'stream' in kargs:
                 self.name = get_text_v4(self['name_addr'], stream)
@@ -1744,7 +1756,8 @@ class ChannelConversion(dict):
             else:
                 message = 'Conversion {} dynamic creation not implementated'
                 message = message.format(kargs['conversion_type'])
-                raise NotImplementedError(message)
+                logger.exception(message)
+                raise MdfException(message)
 
     def to_blocks(self, address, blocks, defined_texts, cc_map):
         key = 'name_addr'
@@ -2433,7 +2446,9 @@ class DataBlock(dict):
 
             if self['id'] != b'##DT':
                 message = 'Expected "##DT" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
 
@@ -2494,7 +2509,9 @@ class DataZippedBlock(dict):
 
             if self['id'] != b'##DZ':
                 message = 'Expected "##DZ" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
             self.prevent_data_setitem = False
@@ -2603,7 +2620,9 @@ class DataGroup(dict):
 
             if self['id'] != b'##DG':
                 message = 'Expected "##DG" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
             self.comment = get_text_v4(self['comment_addr'], stream)
 
@@ -2728,7 +2747,9 @@ class DataList(dict):
 
             if self['id'] != b'##DL':
                 message = 'Expected "##DL" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
 
@@ -2841,7 +2862,9 @@ class EventBlock(dict):
 
             if self['id'] != b'##EV':
                 message = 'Expected "##EV" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
             self.name = get_text_v4(self['name_addr'], stream)
             self.comment = get_text_v4(self['comment_addr'], stream)
@@ -2887,11 +2910,13 @@ class EventBlock(dict):
             elif addr in cg_map:
                 self.scopes.append(cg_map[addr])
             else:
-                error = (
+                message = (
                     '{} is not a valid CNBLOCK or CGBLOCK '
                     'address for the event scope'
                 )
-                raise MdfException(error.format(hex(addr)))
+                message = message.format(hex(addr))
+                logger.exception(message)
+                raise MdfException(message)
 
     def __bytes__(self):
 
@@ -3034,7 +3059,9 @@ class FileHistory(dict):
 
             if self['id'] != b'##FH':
                 message = 'Expected "##FH" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
             self.comment = get_text_v4(
                 address=self['comment_addr'],
@@ -3151,7 +3178,9 @@ class HeaderBlock(dict):
 
             if self['id'] != b'##HD':
                 message = 'Expected "##HD" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
             self.comment = get_text_v4(
                 address=self['comment_addr'],
@@ -3246,7 +3275,9 @@ class HeaderList(dict):
 
             if self['id'] != b'##HL':
                 message = 'Expected "##HL" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
 
@@ -3319,7 +3350,9 @@ class SourceInformation(dict):
 
             if self['id'] != b'##SI':
                 message = 'Expected "##SI" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
             self.name = get_text_v4(
                 address=self['name_addr'],
@@ -3558,7 +3591,9 @@ class SignalDataBlock(dict):
 
             if self['id'] != b'##SD':
                 message = 'Expected "##SD" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
 
@@ -3605,7 +3640,9 @@ class TextBlock(dict):
 
             if self['id'] not in (b'##TX', b'##MD'):
                 message = 'Expected "##TX" or "##MD" block @{} but found "{}"'
-                raise MdfException(message.format(hex(address), self['id']))
+                message = message.format(hex(address), self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         else:
 

@@ -2,7 +2,7 @@
 """ classes that implement the blocks for MDF versions 2 and 3 """
 
 from __future__ import division, print_function
-
+import logging
 import sys
 import time
 from datetime import datetime
@@ -23,6 +23,8 @@ SEEK_END = v23c.SEEK_END
 
 if PYVERSION < 3:
     from .utils import bytes
+
+logger = logging.getLogger('asammdf')
 
 
 __all__ = [
@@ -206,7 +208,9 @@ class Channel(dict):
 
             if self['id'] != b'CN':
                 message = 'Expected "CN" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
 
@@ -644,7 +648,9 @@ class ChannelConversion(dict):
 
             if self['id'] != b'CC':
                 message = 'Expected "CC" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         else:
 
@@ -781,7 +787,8 @@ class ChannelConversion(dict):
             else:
                 message = 'Conversion type "{}" not implemented'
                 message = message.format(kargs['conversion_type'])
-                raise Exception(message)
+                logger.exception(message)
+                raise MdfException(message)
 
     def metadata(self, indent=''):
         max_len = max(
@@ -1201,7 +1208,9 @@ class ChannelDependency(dict):
 
             if self['id'] != b'CD':
                 message = 'Expected "CD" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
             sd_nr = kargs['sd_nr']
@@ -1356,7 +1365,9 @@ class ChannelExtension(dict):
 
             if self['id'] != b'CE':
                 message = 'Expected "CE" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         else:
 
@@ -1685,7 +1696,9 @@ class DataGroup(dict):
 
             if self['id'] != b'DG':
                 message = 'Expected "DG" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
             self.address = 0
@@ -1879,7 +1892,9 @@ class HeaderBlock(dict):
 
             if self['id'] != b'HD':
                 message = 'Expected "HD" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
             if self['program_addr']:
                 self.program = ProgramBlock(
@@ -2036,7 +2051,9 @@ class ProgramBlock(dict):
 
             if self['id'] != b'PR':
                 message = 'Expected "PR" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
             self['id'] = b'PR'
@@ -2103,7 +2120,9 @@ class SampleReduction(dict):
 
             if self['id'] != b'SR':
                 message = 'Expected "SR" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
             pass
@@ -2171,7 +2190,9 @@ class TextBlock(dict):
 
             if self['id'] != b'TX':
                 message = 'Expected "TX" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
             self.address = 0
@@ -2270,7 +2291,9 @@ class TriggerBlock(dict):
 
             if self['id'] != b'TR':
                 message = 'Expected "TR" block but found "{}"'
-                raise MdfException(message.format(self['id']))
+                message = message.format(self['id'])
+                logger.exception(message)
+                raise MdfException(message)
 
         except KeyError:
             self.address = 0

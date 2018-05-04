@@ -4,10 +4,10 @@ ASAM MDF version 4 file format module
 
 from __future__ import division, print_function
 
+import logging
 import xml.etree.ElementTree as ET
 import os
 import sys
-import warnings
 from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
@@ -100,6 +100,8 @@ if PYVERSION == 2:
     # pylint: disable=W0622
     from .utils import bytes
     # pylint: enable=W0622
+
+logger = logging.getLogger('asammdf')
 
 __all__ = ['MDF4', ]
 
@@ -327,34 +329,41 @@ class MDF4(object):
         if flags & 1:
             message = ('Unfinalised file {}:'
                        'Update of cycle counters for CG/CA blocks required')
-            warnings.warn(message.format(self.name))
+            message = message.format(self.name)
+            logger.warning(message)
         elif flags & 1 << 1:
             message = ('Unfinalised file {}:'
                        'Update of cycle counters for SR blocks required')
-            warnings.warn(message.format(self.name))
+            message = message.format(self.name)
+            logger.warning(message)
         elif flags & 1 << 2:
             message = ('Unfinalised file {}:'
                        'Update of length for last DT block required')
-            warnings.warn(message.format(self.name))
+            message = message.format(self.name)
+            logger.warning(message)
         elif flags & 1 << 3:
             message = ('Unfinalised file {}:'
                        'Update of length for last RD block required')
-            warnings.warn(message.format(self.name))
+            message = message.format(self.name)
+            logger.warning(message)
         elif flags & 1 << 4:
             message = ('Unfinalised file {}:'
                        'Update of last DL block in each chained list'
                        'of DL blocks required')
-            warnings.warn(message.format(self.name))
+            message = message.format(self.name)
+            logger.warning(message)
         elif flags & 1 << 5:
             message = ('Unfinalised file {}:'
                        'Update of cg_data_bytes and cg_inval_bytes '
                        'in VLSD CG block required')
-            warnings.warn(message.format(self.name))
+            message = message.format(self.name)
+            logger.warning(message)
         elif flags & 1 << 6:
             message = ('Unfinalised file {}:'
                        'Update of offset values for VLSD channel required '
                        'in case a VLSD CG block is used')
-            warnings.warn(message.format(self.name))
+            message = message.format(self.name)
+            logger.warning(message)
 
     def _read(self):
 
@@ -478,7 +487,8 @@ class MDF4(object):
                                 grp['message_id'] = message_id
 
                             else:
-                                warnings.warn('Invalid bus logging channel group metadata: {}'.format(comment))
+                                message = 'Invalid bus logging channel group metadata: {}'.format(comment)
+                                logger.warning(message)
                                 channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                                 channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
                     else:
@@ -767,7 +777,8 @@ class MDF4(object):
                 attachment, at_name = self.get('CAN_DataFrame', group=i).attachment
 
                 if not at_name.lower().endswith(('dbc', 'arxml')) or not attachment:
-                    warnings.warn('Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name))
+                    message = 'Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name)
+                    logger.warning(message)
                     grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                 else:
                     raw_can.append(i)
@@ -1020,7 +1031,8 @@ class MDF4(object):
                         if attachment_addr not in self._dbc_cache:
                             attachment, at_name = self.extract_attachment(index=attachment_addr)
                             if not at_name.lower().endswith(('dbc', 'arxml')) or not attachment:
-                                warnings.warn('Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name))
+                                message = 'Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name)
+                                logger.warning(message)
                                 grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                             else:
                                 import_type = 'dbc' if at_name.lower().endswith('dbc') else 'arxml'
@@ -1045,13 +1057,14 @@ class MDF4(object):
                                             encoding=encoding,
                                         )['db']
                                     except ImportError:
-                                        warnings.warn((
+                                        message = (
                                             'Unicode exception occured while processing the database '
                                             'attachment "{}" and "chardet" package is '
                                             'not installed. Mdf version 4 expects "utf-8" '
                                             'strings and this package may detect if a different'
                                             ' encoding was used'
-                                        ).format(at_name))
+                                        ).format(at_name)
+                                        logger.warning(message)
                                         grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
 
                         if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
@@ -1170,7 +1183,7 @@ class MDF4(object):
                         stream=stream,
                     )
                     if ca_block['storage'] != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
-                        warnings.warn('Only CN template arrays are supported')
+                        logger.warning('Only CN template arrays are supported')
                     ca_list = [ca_block, ]
                     while ca_block['composition_addr']:
                         ca_block = ChannelArrayBlock(
@@ -1332,7 +1345,7 @@ class MDF4(object):
                             message = ('Expected SD, DZ or DL block at {} '
                                        'but found id="{}"')
                             message = message.format(hex(address), blk_id)
-                            warnings.warn(message)
+                            logger.warning(message)
                             return b''
                     address = data_list['next_dl_addr']
                 data = b''.join(data)
@@ -1351,7 +1364,7 @@ class MDF4(object):
                 message = ('Expected CG, SD, DL, DZ or CN block at {} '
                            'but found id="{}"')
                 message = message.format(hex(address), blk_id)
-                warnings.warn(message)
+                logger.warning(message)
                 data = b''
 
         elif group is not None and index is not None:
@@ -2141,7 +2154,7 @@ class MDF4(object):
                             ' to select another data group'
                         )
                         message = message.format(name, gp_nr)
-                        warnings.warn(message)
+                        logger.warning(message)
                 else:
                     if index is not None and index < 0:
                         gp_nr = group
@@ -3410,7 +3423,7 @@ class MDF4(object):
                             file_path,
                             md5_sum,
                         )
-                        warnings.warn(message)
+                        logger.warning(message)
                 else:
                     if attachment.mime.startswith('text'):
                         mode = 'r'
@@ -3422,7 +3435,7 @@ class MDF4(object):
         except Exception as err:
             os.chdir(current_path)
             message = 'Exception during attachment extraction: ' + repr(err)
-            warnings.warn(message)
+            logger.warning(message)
             return b'', file_path
 
     def get_channel_unit(self, name=None, group=None, index=None):
@@ -4970,7 +4983,7 @@ class MDF4(object):
                     'and "overwrite" is False. Saving MDF file as "{}"'
                 )
                 message = message.format(dst, name)
-                warnings.warn(message)
+                logger.warning(message)
                 dst = name
 
         if not self.file_history:
@@ -5537,7 +5550,7 @@ class MDF4(object):
                     'and "overwrite" is False. Saving MDF file as "{}"'
                 )
                 message = message.format(dst, name)
-                warnings.warn(message)
+                logger.warning(message)
                 dst = name
 
         if not self.file_history:

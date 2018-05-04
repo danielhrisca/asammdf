@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """ asammdf *Signal* class module for time correct signal processing """
 
+import logging
 from textwrap import fill
 
 import numpy as np
-import warnings
 
 from .utils import MdfException, extract_cncomment_xml
 from . import v2_v3_blocks as v3b
@@ -12,6 +12,8 @@ from . import v4_constants as v4c
 from . import v4_blocks as v4b
 
 from .version import __version__
+
+logger = logging.getLogger('asammdf')
 
 
 class Signal(object):
@@ -80,6 +82,7 @@ class Signal(object):
                     samples.shape[0],
                     timestamps.shape[0],
                 )
+                logger.exception(message)
                 raise MdfException(message)
             self.samples = samples
             self.timestamps = timestamps
@@ -200,7 +203,7 @@ class Signal(object):
             from mpl_toolkits.mplot3d import axes3d
             from matplotlib.widgets import Slider
         except ImportError:
-            warnings.warn("Signal plotting requires matplotlib")
+            logging.warning("Signal plotting requires matplotlib")
             return
 
         if len(self.samples.shape) <= 1 and self.samples.dtype.names is None:
