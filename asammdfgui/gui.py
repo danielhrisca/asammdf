@@ -443,7 +443,9 @@ class Plot(pg.PlotWidget):
                         max_ = signal.max
                         if min_ == max_:
                             min_, max_ = min_ - 1, max_ + 1
-                        dim = max_ - min_
+
+                        dim = (max_ - min_) * 1.1
+
                         max_ = min_ + dim * count
                         min_, max_ = min_ - dim * position, max_ - dim * position
 
