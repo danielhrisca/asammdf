@@ -368,6 +368,14 @@ class Plot(pg.PlotWidget):
 
         self.update_views()
 
+        self.keyPressEvent(
+            QKeyEvent(
+                QEvent.KeyPress,
+                Qt.Key_H,
+                Qt.NoModifier,
+            )
+        )
+
     def update_views(self):
         self.viewbox.linkedViewChanged(self.viewbox, self.viewbox.XAxis)
         for view_box in self.view_boxes:
@@ -398,11 +406,41 @@ class Plot(pg.PlotWidget):
                 self.cursor = None
 
         elif key == Qt.Key_F:
+            x_range, _ = self.viewbox.viewRange()
+            for viewbox in self.view_boxes:
+                viewbox.autoRange(padding=0)
+            self.viewbox.autoRange(padding=0)
+            self.viewbox.setXRange(*x_range, padding=0)
+            if self.cursor:
+                self.cursor_moved.emit()
+
+        elif key == Qt.Key_G:
+            if self.plotItem.ctrl.xGridCheck.isChecked():
+                self.showGrid(x=False, y=False)
+            else:
+                self.showGrid(x=True, y=True)
+
+        elif key == Qt.Key_H:
             for viewbox in self.view_boxes:
                 viewbox.autoRange(padding=0)
             self.viewbox.autoRange(padding=0)
             if self.cursor:
                 self.cursor_moved.emit()
+
+        elif key in (Qt.Key_I, Qt.Key_O):
+            x_range, _ = self.viewbox.viewRange()
+            delta = x_range[1] - x_range[0]
+            step = delta * 0.05
+            if key == Qt.Key_I:
+                step = -step
+            if self.cursor:
+                pos = self.cursor.value()
+                x_range = pos - delta / 2, pos + delta / 2
+            self.viewbox.setXRange(
+                x_range[0] - step,
+                x_range[1] + step,
+                padding=0,
+            )
 
         elif key == Qt.Key_R:
             if self.region is None:
@@ -420,12 +458,6 @@ class Plot(pg.PlotWidget):
                 self.region.setParent(None)
                 self.region.hide()
                 self.region = None
-
-        elif key == Qt.Key_G:
-            if self.plotItem.ctrl.xGridCheck.isChecked():
-                self.showGrid(x=False, y=False)
-            else:
-                self.showGrid(x=True, y=True)
 
         elif key == Qt.Key_S:
             count = len(
@@ -2212,19 +2244,6 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         icon = QIcon()
         icon.addPixmap(
-            QPixmap(":/cursor.png"),
-            QIcon.Normal,
-            QIcon.Off,
-        )
-        action = QAction(icon, '{: <20}\tC'.format('Cursor'))
-        action.triggered.connect(
-            partial(self.plot_action, key=Qt.Key_C)
-        )
-        action.setShortcut(Qt.Key_C)
-        plot_actions.addAction(action)
-
-        icon = QIcon()
-        icon.addPixmap(
             QPixmap(":/fit.png"),
             QIcon.Normal,
             QIcon.Off,
@@ -2251,15 +2270,15 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         icon = QIcon()
         icon.addPixmap(
-            QPixmap(":/range.png"),
+            QPixmap(":/home.png"),
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\tR'.format('Range'))
+        action = QAction(icon, '{: <20}\tH'.format('Home'))
         action.triggered.connect(
-            partial(self.plot_action, key=Qt.Key_R)
+            partial(self.plot_action, key=Qt.Key_H)
         )
-        action.setShortcut(Qt.Key_R)
+        action.setShortcut(Qt.Key_H)
         plot_actions.addAction(action)
 
         icon = QIcon()
@@ -2274,6 +2293,34 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         )
         action.setShortcut(Qt.Key_S)
         plot_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/zoom-in.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\tI'.format('Zoom in'))
+        action.triggered.connect(
+            partial(self.plot_action, key=Qt.Key_I)
+        )
+        action.setShortcut(Qt.Key_I)
+        plot_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/zoom-out.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\tO'.format('Zoom out'))
+        action.triggered.connect(
+            partial(self.plot_action, key=Qt.Key_O)
+        )
+        action.setShortcut(Qt.Key_O)
+        plot_actions.addAction(action)
+
+        # values display
 
         display_format_actions = QActionGroup(self)
 
@@ -2298,8 +2345,65 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         action.setShortcut(QKeySequence('Ctrl+P'))
         display_format_actions.addAction(action)
 
+        # cursors
+        cursors_actions = QActionGroup(self)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/cursor.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\tC'.format('Cursor'))
+        action.triggered.connect(
+            partial(self.plot_action, key=Qt.Key_C)
+        )
+        action.setShortcut(Qt.Key_C)
+        cursors_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/left.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\t←'.format('Move cursor left'))
+        action.triggered.connect(
+            partial(self.plot_action, key=Qt.Key_Left)
+        )
+        action.setShortcut(Qt.Key_Left)
+        cursors_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/right.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\t→'.format('Move cursor right'))
+        action.triggered.connect(
+            partial(self.plot_action, key=Qt.Key_Right)
+        )
+        action.setShortcut(Qt.Key_Right)
+        cursors_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/range.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\tR'.format('Range'))
+        action.triggered.connect(
+            partial(self.plot_action, key=Qt.Key_R)
+        )
+        action.setShortcut(Qt.Key_R)
+        cursors_actions.addAction(action)
+
         menu = QMenu('Plot', self.menubar)
         menu.addActions(plot_actions.actions())
+        menu.addSeparator()
+        menu.addActions(cursors_actions.actions())
         menu.addSeparator()
         menu.addActions(display_format_actions.actions())
         self.menubar.addMenu(menu)

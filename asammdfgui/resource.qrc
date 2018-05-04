@@ -22,5 +22,10 @@
     <file alias="list2.png">images/list2.png</file>
     <file alias="range.png">images/range.png</file>
     <file alias="save.png">images/save.png</file>
+    <file alias="left.png">images/left.png</file>
+    <file alias="right.png">images/right.png</file>
+    <file alias="home.png">images/home.png</file>
+    <file alias="zoom-in.png">images/zoom-in.png</file>
+    <file alias="zoom-out.png">images/zoom-out.png</file>
 </qresource>
 </RCC>
