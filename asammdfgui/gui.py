@@ -1056,17 +1056,66 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             )
         )
 
+        vbox = QVBoxLayout(channel_and_search)
+        vbox.addWidget(self.search_field)
+        vbox.addWidget(self.channels_tree, 1)
+        channel_and_search.setLayout(vbox)
+
+        self.clear_channels_btn = QPushButton('Reset selection', channel_and_search)
+        icon = QIcon()
+        icon.addPixmap(QPixmap(":/erase.png"), QIcon.Normal, QIcon.Off)
+        self.clear_channels_btn.setIcon(icon)
+        self.clear_channels_btn.setObjectName("clear_channels_btn")
+        vbox.addWidget(self.clear_channels_btn)
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.load_channel_list_btn = QPushButton('Load channel list', channel_and_search)
+        icon1 = QIcon()
+        icon1.addPixmap(QPixmap(":/open.png"), QIcon.Normal, QIcon.Off)
+        self.load_channel_list_btn.setIcon(icon1)
+        self.load_channel_list_btn.setObjectName("load_channel_list_btn")
+        self.horizontalLayout.addWidget(self.load_channel_list_btn)
+        self.save_channel_list_btn = QPushButton('Save channel list', channel_and_search)
+        icon2 = QIcon()
+        icon2.addPixmap(QPixmap(":/save.png"), QIcon.Normal, QIcon.Off)
+        self.save_channel_list_btn.setIcon(icon2)
+        self.save_channel_list_btn.setObjectName("save_channel_list_btn")
+        self.horizontalLayout.addWidget(self.save_channel_list_btn)
+        vbox.addLayout(self.horizontalLayout)
+        self.line_12 = QFrame(self.verticalLayoutWidget)
+        self.line_12.setFrameShape(QFrame.HLine)
+        self.line_12.setFrameShadow(QFrame.Sunken)
+        self.line_12.setObjectName("line_12")
+        vbox.addWidget(self.line_12)
+        self.plot_btn = QPushButton('Plot', channel_and_search)
+        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.plot_btn.sizePolicy().hasHeightForWidth())
+        self.plot_btn.setSizePolicy(sizePolicy)
+        self.plot_btn.setMaximumSize(QSize(16777215, 100))
+        icon3 = QIcon()
+        icon3.addPixmap(QPixmap(":/graph.png"), QIcon.Normal, QIcon.Off)
+        self.plot_btn.setIcon(icon3)
+        self.plot_btn.setObjectName("plot_btn")
+        vbox.addWidget(self.plot_btn)
+
         selection_list = QWidget(splitter)
         self.channel_selection = ListWidget(selection_list)
         self.channel_selection.setAlternatingRowColors(False)
 
         vbox = QVBoxLayout(selection_list)
-        vbox.addWidget(QLabel('Selected channels'))
-        vbox.addWidget(self.channel_selection)
 
-        vbox = QVBoxLayout(channel_and_search)
-        vbox.addWidget(self.search_field)
-        vbox.addWidget(self.channels_tree)
+        hbox = QHBoxLayout(selection_list)
+        hbox.addWidget(QLabel('Selected channels'))
+        self.cursor_info = QLabel('')
+        self.cursor_info.setTextFormat(Qt.RichText)
+        self.cursor_info.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        hbox.addWidget(self.cursor_info)
+
+        vbox.addLayout(hbox)
+
+        vbox.addWidget(self.channel_selection)
 
         self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
 
@@ -1502,6 +1551,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             self.plot.cursor_hint.show()
 
         if not self.plot.region:
+            self.cursor_info.setText('t = {:.6f}s'.format(position))
             for i, signal in enumerate(self.plot.signals):
                 samples = signal.cut(position, position).samples
                 item = self.channel_selection.item(i)
@@ -1521,6 +1571,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             item = self.channel_selection.itemWidget(item)
 
             if not self.plot.region:
+                self.cursor_info.setText('')
                 item.setPrefix('')
                 item.setValue('')
 
@@ -1528,6 +1579,20 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         start, stop = self.plot.region.getRegion()
         self.cut_start.setValue(start)
         self.cut_stop.setValue(stop)
+
+        self.cursor_info.setText(
+            (
+                '< html > < head / > < body >'
+                '< p >t1 = {:.6f}s< / p > '
+                '< p >t2 = {:.6f}s< / p > '
+                '< p >Δt = {:.6f}s< / p > '
+                '< / body > < / html >'
+            ).format(
+                start,
+                stop,
+                stop-start,
+            )
+        )
 
         for i, signal in enumerate(self.plot.signals):
             samples = signal.cut(start, stop).samples
@@ -1555,6 +1620,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             item.setPrefix('')
             item.setValue('')
+            self.cursor_info.setText('')
         if self.plot.cursor1:
             self.plot.cursor_moved.emit()
 
