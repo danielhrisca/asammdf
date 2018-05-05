@@ -906,7 +906,7 @@ class MDF4(object):
                 event.range_start = ev_map[addr]
 
         if self.memory == 'full':
-            self.close()
+            self._file.close()
 
         self._si_map.clear()
         self._ch_map.clear()
