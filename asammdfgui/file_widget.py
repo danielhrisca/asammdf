@@ -420,4 +420,5 @@ class Ui_file_widget(object):
         self.label.setText(_translate("file_widget", "Raster"))
         self.raster.setSuffix(_translate("file_widget", "s"))
         self.aspects.setTabText(self.aspects.indexOf(self.resample_tab), _translate("file_widget", "Resample"))
-from asammdfgui import resource_rc
+
+import resource_rc

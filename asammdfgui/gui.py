@@ -2334,8 +2334,6 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         self.setupUi(self)
 
-        self.open_file_btn.clicked.connect(self.open_file)
-        self.open_multiple_files_btn.clicked.connect(self.open_multiple_files)
         self.files.tabCloseRequested.connect(self.close_file)
 
         self.concatenate.toggled.connect(self.function_select)
@@ -2356,7 +2354,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         self.files_list = ListWidget(self)
         self.files_list.setDragDropMode(QAbstractItemView.InternalMove)
-        self.files_layout.addWidget(self.files_list, 1, 0, 1, 2)
+        self.files_layout.addWidget(self.files_list, 0, 0, 1, 2)
         self.files_list.itemDoubleClicked.connect(self.delete_item)
 
         self.statusbar.addPermanentWidget(
@@ -2366,6 +2364,21 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
                 )
             )
         )
+
+        menu = self.menubar.addMenu('File')
+        open_group = QActionGroup(self)
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/open.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, 'Open')
+        action.triggered.connect(
+            self.open
+        )
+        open_group.addAction(action)
+        menu.addActions(open_group.actions())
 
         menu = QMenu('Settings', self.menubar)
         self.menubar.addMenu(menu)
@@ -2738,6 +2751,12 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
             for row in range(count):
                 self.files_list.item(row).setIcon(icon)
+
+    def open(self, event):
+        if self.toolBox.currentIndex() == 0:
+            self.open_file(event)
+        else:
+            self.open_multiple_files(event)
 
     def open_file(self, event):
         file_name, _ = QFileDialog.getOpenFileName(
