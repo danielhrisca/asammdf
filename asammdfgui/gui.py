@@ -256,6 +256,7 @@ class Plot(pg.PlotWidget):
     cursor_removed = pyqtSignal()
     range_removed = pyqtSignal()
     range_modified = pyqtSignal()
+    range_modified_finished = pyqtSignal()
     cursor_move_finished = pyqtSignal()
 
     def __init__(self, signals, *args, **kwargs):
@@ -539,6 +540,7 @@ class Plot(pg.PlotWidget):
                 self.region.setZValue(-10)
                 self.plotItem.addItem(self.region)
                 self.region.sigRegionChanged.connect(self.range_modified.emit)
+                self.region.sigRegionChangeFinished.connect(self.range_modified_finished.emit)
                 start, stop = self.viewbox.viewRange()[0]
                 start, stop = start + 0.1*(stop-start), stop - 0.1*(stop-start)
                 self.region.setRegion((start, stop))
@@ -1613,6 +1615,50 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             else:
                 item.setValue('n.a.')
 
+    def range_modified_finished(self):
+        start, stop = self.plot.region.getRegion()
+
+        if self.plot.timebase is not None and len(self.plot.timebase):
+            timebase = self.plot.timebase
+            dim = len(timebase)
+
+            right = np.searchsorted(
+                timebase,
+                start,
+                side='right',
+            )
+            if right == 0:
+                next_pos = timebase[0]
+            elif right == dim:
+                next_pos = timebase[-1]
+            else:
+                if start - timebase[right - 1] < timebase[right] - start:
+                    next_pos = timebase[right - 1]
+                else:
+                    next_pos = timebase[right]
+            start = next_pos
+
+            right = np.searchsorted(
+                timebase,
+                stop,
+                side='right',
+            )
+            if right == 0:
+                next_pos = timebase[0]
+            elif right == dim:
+                next_pos = timebase[-1]
+            else:
+                if stop - timebase[right - 1] < timebase[right] - stop:
+                    next_pos = timebase[right - 1]
+                else:
+                    next_pos = timebase[right]
+            stop = next_pos
+
+            self.plot.region.setRegion(
+                (start, stop)
+            )
+
+
     def range_removed(self):
         for i, signal in enumerate(self.plot.signals):
             item = self.channel_selection.item(i)
@@ -2153,6 +2199,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.plot = Plot(signals, self)
         self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
+        self.plot.range_modified_finished.connect(self.range_modified_finished)
         self.plot.cursor_removed.connect(self.cursor_removed)
         self.plot.cursor_moved.connect(self.cursor_moved)
         self.plot.cursor_move_finished.connect(self.cursor_move_finished)
