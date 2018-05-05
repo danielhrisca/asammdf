@@ -22,6 +22,7 @@ import asammdfgui.main_window as main_window
 import asammdfgui.file_widget as file_widget
 import asammdfgui.search_widget as search_widget
 import asammdfgui.channel_info_widget as channel_info_widget
+import asammdfgui.channel_display_widget as channel_display_widget
 
 import pyqtgraph as pg
 
@@ -263,10 +264,15 @@ class Plot(pg.PlotWidget):
 
         self.singleton = None
         self.region = None
-        self.cursor = None
+        self.cursor1 = None
+        self.cursor2 = None
         self.signals = signals
         for sig in self.signals:
-            sig.format = 'phys'
+            if sig.samples.dtype.kind == 'f':
+                sig.format = '{:.6f}'
+            else:
+                sig.format = 'phys'
+            sig.enable = True
 
         if self.signals:
             self.all_timebase = self.timebase = reduce(
@@ -388,6 +394,84 @@ class Plot(pg.PlotWidget):
             )
         )
 
+    def setColor(self, index, color):
+        self.signals[index].color = color
+        self.curves[index].setPen(color)
+        self.curves[index].setSymbolPen(color)
+        self.curves[index].setSymbolBrush(color)
+        self.axes[index].setPen(color)
+
+    def setSignalEnable(self, index, state):
+        if state in (Qt.Checked, True, 1):
+            self.signals[index].enable = True
+        else:
+            self.signals[index].enable = False
+
+        selected_items = [
+            index
+            for index, sig in enumerate(self.signals)
+            if sig.enable
+        ]
+
+        if len(selected_items) == 1:
+            row = selected_items[0]
+            self.singleton = row
+            sig = self.signals[row]
+            color = sig.color
+
+            self.plotItem.showAxis('left')
+            for axis, viewbox, curve in zip(
+                    self.axes,
+                    self.view_boxes,
+                    self.curves):
+                axis.hide()
+                viewbox.setYLink(None)
+                curve.hide()
+
+            sig_axis = self.axes[row]
+            viewbox = self.view_boxes[row]
+            axis = self.axis
+
+            axis.setRange(*sig_axis.range)
+            axis.linkedView().setYRange(*sig_axis.range)
+
+            viewbox.setYLink(axis.linkedView())
+
+            self.curve.setData(
+                sig.timestamps,
+                sig.samples,
+                pen=color,
+                symbolBrush=color,
+                symbolPen=color,
+                symbol='o',
+                symbolSize=4,
+            )
+
+            axis.setLabel(sig.name, sig.unit, color=color)
+
+            for curve in self.curves:
+                curve.hide()
+            self.curve.show()
+            self.timebase = self.curve.xData
+
+        else:
+            self.singleton = None
+            self.plotItem.hideAxis('left')
+            self.curve.hide()
+
+            for i, sig in enumerate(self.signals):
+                if sig.enable:
+                    self.axes[i].show()
+                    self.view_boxes[i].setYLink(None)
+                    self.curves[i].show()
+                else:
+                    self.axes[i].hide()
+                    self.curves[i].hide()
+
+            self.timebase = self.all_timebase
+        if self.cursor1:
+            self.cursor_move_finished.emit()
+
     def update_views(self):
         self.viewbox.linkedViewChanged(self.viewbox, self.viewbox.XAxis)
         for view_box in self.view_boxes:
@@ -399,24 +483,24 @@ class Plot(pg.PlotWidget):
         modifier = event.modifiers()
 
         if key == Qt.Key_C:
-            if self.cursor is None:
+            if self.cursor1 is None:
                 start, stop = self.viewbox.viewRange()[0]
-                self.cursor = Cursor(
+                self.cursor1 = Cursor(
                     pos=0,
                     angle=90,
                     movable=True,
                 )
-                self.plotItem.addItem(self.cursor, ignoreBounds=True)
-                self.cursor.sigPositionChanged.connect(self.cursor_moved.emit)
-                self.cursor.sigPositionChangeFinished.connect(self.cursor_move_finished.emit)
-                self.cursor.setPos((start + stop) / 2)
+                self.plotItem.addItem(self.cursor1, ignoreBounds=True)
+                self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
+                self.cursor1.sigPositionChangeFinished.connect(self.cursor_move_finished.emit)
+                self.cursor1.setPos((start + stop) / 2)
                 self.cursor_move_finished.emit()
 
             else:
                 self.cursor_removed.emit()
-                self.plotItem.removeItem(self.cursor)
-                self.cursor.setParent(None)
-                self.cursor = None
+                self.plotItem.removeItem(self.cursor1)
+                self.cursor1.setParent(None)
+                self.cursor1 = None
 
         elif key == Qt.Key_F:
             x_range, _ = self.viewbox.viewRange()
@@ -424,7 +508,7 @@ class Plot(pg.PlotWidget):
                 viewbox.autoRange(padding=0)
             self.viewbox.autoRange(padding=0)
             self.viewbox.setXRange(*x_range, padding=0)
-            if self.cursor:
+            if self.cursor1:
                 self.cursor_moved.emit()
 
         elif key == Qt.Key_G:
@@ -439,8 +523,8 @@ class Plot(pg.PlotWidget):
             step = delta * 0.05
             if key == Qt.Key_I:
                 step = -step
-            if self.cursor:
-                pos = self.cursor.value()
+            if self.cursor1:
+                pos = self.cursor1.value()
                 x_range = pos - delta / 2, pos + delta / 2
             self.viewbox.setXRange(
                 x_range[0] - step,
@@ -460,10 +544,10 @@ class Plot(pg.PlotWidget):
                 self.region.setRegion((start, stop))
 
             else:
-                self.range_removed.emit()
                 self.region.setParent(None)
                 self.region.hide()
                 self.region = None
+                self.range_removed.emit()
 
         elif key == Qt.Key_S:
             count = len(
@@ -496,7 +580,7 @@ class Plot(pg.PlotWidget):
                 xrange, _ = self.viewbox.viewRange()
                 self.viewbox.autoRange(padding=0)
                 self.viewbox.setXRange(*xrange, padding=0)
-            if self.cursor:
+            if self.cursor1:
                 self.cursor_moved.emit()
 
         elif key == Qt.Key_H and modifier == Qt.ControlModifier:
@@ -511,7 +595,7 @@ class Plot(pg.PlotWidget):
                 self.signals[self.singleton].format = 'hex'
                 self.axis.hide()
                 self.axis.show()
-            if self.cursor:
+            if self.cursor1:
                 self.cursor_moved.emit()
 
         elif key == Qt.Key_B and modifier == Qt.ControlModifier:
@@ -526,27 +610,27 @@ class Plot(pg.PlotWidget):
                 self.signals[self.singleton].format = 'bin'
                 self.axis.hide()
                 self.axis.show()
-            if self.cursor:
+            if self.cursor1:
                 self.cursor_moved.emit()
 
         elif key == Qt.Key_P and modifier == Qt.ControlModifier:
             for axis, signal in zip(self.axes, self.signals):
-                if axis.isVisible():
+                if axis.isVisible() and signal.samples.dtype.kind in 'ui':
                     axis.format = 'phys'
                     signal.format = 'phys'
                     axis.hide()
                     axis.show()
-            if self.axis.isVisible():
+            if self.axis.isVisible() and self.signals[self.singleton].samples.dtype.kind in 'ui':
                 self.axis.format = 'phys'
                 self.signals[self.singleton].format = 'phys'
                 self.axis.hide()
                 self.axis.show()
-            if self.cursor:
+            if self.cursor1:
                 self.cursor_moved.emit()
 
         elif key in (Qt.Key_Left, Qt.Key_Right):
-            if self.cursor:
-                pos = self.cursor.value()
+            if self.cursor1:
+                pos = self.cursor1.value()
                 dim = len(self.timebase)
                 if dim:
                     pos = np.searchsorted(self.timebase, pos)
@@ -555,20 +639,20 @@ class Plot(pg.PlotWidget):
                     else:
                         pos -= 1
                     pos = np.clip(pos, 0, dim-1)
-                    self.cursor.setValue(self.timebase[pos])
+                    self.cursor1.setValue(self.timebase[pos])
                 else:
                     if key == Qt.Key_Right:
                         pos += 1
                     else:
                         pos -= 1
 
-                    self.cursor.setValue(pos)
+                    self.cursor1.setValue(pos)
 
         elif key == Qt.Key_H:
             for viewbox in self.view_boxes:
                 viewbox.autoRange(padding=0)
             self.viewbox.autoRange(padding=0)
-            if self.cursor:
+            if self.cursor1:
                 self.cursor_moved.emit()
 
         else:
@@ -634,6 +718,25 @@ class ListWidget(QListWidget):
                 self.takeItem(row)
             if deleted:
                 self.itemsDeleted.emit(deleted)
+        elif key == Qt.Key_Space:
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+            try:
+                states = [
+                    self.itemWidget(item).display.checkState()
+                    for item in selected_items
+                ]
+
+                if any(state == Qt.Unchecked for state in states):
+                    state = Qt.Checked
+                else:
+                    state = Qt.Unchecked
+                for item in selected_items:
+                    wid = self.itemWidget(item)
+                    wid.display.setCheckState(state)
+            except:
+                pass
         else:
             super(ListWidget, self).keyPressEvent(event)
 
@@ -692,6 +795,83 @@ class ChannelInfoDialog(QDialog):
         self.move(
             (screen.width() - 1200) // 2,
             (screen.height() - 600) // 2,
+        )
+
+
+class ChannelDisplay(QWidget, channel_display_widget.Ui_ChannelDiplay):
+
+    color_changed = pyqtSignal(int, str)
+    enable_changed = pyqtSignal(int, int)
+
+    def __init__(self, index, *args, **kargs):
+        super(ChannelDisplay, self).__init__(*args, **kargs)
+        self.setupUi(self)
+
+        self.color = '#ff0000'
+        self._value_prefix = ''
+        self._value = ''
+        self._name = ''
+        self.fmt = '{}'
+        self.index = index
+
+        self.color_btn.clicked.connect(self.select_color)
+        self.display.stateChanged.connect(self.display_changed)
+
+    def display_changed(self, state):
+        state = self.display.checkState()
+        self.enable_changed.emit(self.index, state)
+
+    def select_color(self):
+        color = QColorDialog.getColor(QColor(self.color)).name()
+        self.setColor(color)
+
+        self.color_changed.emit(self.index, color)
+
+    def setFmt(self, fmt):
+        if fmt == 'hex':
+            self.fmt = '0x{:X}'
+        elif fmt == 'bin':
+            self.fmt = '0b{:b}'
+        elif fmt == 'phys':
+            self.fmt = '{}'
+        else:
+            self.fmt = fmt
+
+    def setColor(self, color):
+        self.color = color
+        self.setName(self._name)
+        self.setValue(self._value)
+        self.color_btn.setStyleSheet("background-color: {};".format(color))
+
+    def setName(self, text=''):
+        self._name = text
+        self.name.setText(
+            "<html><head/><body><p><span style=\" color:{};\">{}</span></p></body></html>".format(
+                self.color,
+                self._name,
+            )
+        )
+
+    def setPrefix(self, text=''):
+        self._value_prefix = text
+
+    def setValue(self, value):
+        self._value = value
+        template = "<html><head/><body><p><span style=\" color:{{}};\">{{}}{}</span></p></body></html>"
+        if value not in ('', 'n.a.'):
+            template = template.format(
+                self.fmt
+            )
+        else:
+            template = template.format(
+                '{}'
+            )
+        self.value.setText(
+            template.format(
+                self.color,
+                self._value_prefix,
+                value,
+            )
         )
 
 
@@ -879,9 +1059,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         selection_list = QWidget(splitter)
         self.channel_selection = ListWidget(selection_list)
         self.channel_selection.setAlternatingRowColors(False)
-        self.channel_selection.itemSelectionChanged.connect(
-            self.update_graph
-        )
 
         vbox = QVBoxLayout(selection_list)
         vbox.addWidget(QLabel('Selected channels'))
@@ -1085,8 +1262,9 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.channel_selection.itemsDeleted.connect(self.channel_selection_modified)
 
     def channel_selection_modified(self, deleted):
+
         for i in sorted(deleted, reverse=True):
-            item = self.plot.curves.pop(i)
+            item = self.curves.pop(i)
             item.hide()
             item.setParent(None)
 
@@ -1099,6 +1277,14 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             item.setParent(None)
 
             self.plot.signals.pop(i)
+
+        rows = self.channel_selection.count()
+
+        for i in range(rows):
+            item = self.channel_selection.item(i)
+            wid = self.channel_selection.itemWidget(item)
+            wid.index = i
+
 
     def save_channel_list(self):
         file_name, _ = QFileDialog.getSaveFileName(
@@ -1235,7 +1421,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         if x is not None and len(x):
             dim = len(x)
-            position = self.plot.cursor.value()
+            position = self.plot.cursor1.value()
 
             right = np.searchsorted(x, position, side='right')
             if right == 0:
@@ -1247,7 +1433,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                     next_pos = x[right-1]
                 else:
                     next_pos = x[right]
-            self.plot.cursor.setPos(next_pos)
+            self.plot.cursor1.setPos(next_pos)
 
         self.plot.cursor_hint.setData(
             [],
@@ -1255,13 +1441,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
     def cursor_moved(self):
-        position = self.plot.cursor.value()
+        position = self.plot.cursor1.value()
 
         x = self.plot.timebase
 
         if x is not None and len(x):
             dim = len(x)
-            position = self.plot.cursor.value()
+            position = self.plot.cursor1.value()
 
             right = np.searchsorted(x, position, side='right')
             if right == 0:
@@ -1315,112 +1501,62 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             )
             self.plot.cursor_hint.show()
 
-        for i, signal in enumerate(self.plot.signals):
-            samples = signal.cut(position, position).samples
-            label = self.channel_selection.item(i)
-            text = label.text().splitlines()
-            if samples.dtype.kind in 'ui':
-                if signal.format == 'phys':
-                    template = '\t{}\tt={:.6f}s'
-                elif signal.format == 'hex':
-                    template = '\t0x{:X}\tt={:.6f}s'
+        if not self.plot.region:
+            for i, signal in enumerate(self.plot.signals):
+                samples = signal.cut(position, position).samples
+                item = self.channel_selection.item(i)
+                item = self.channel_selection.itemWidget(item)
+
+                item.setPrefix('= ')
+                item.setFmt(signal.format)
+
+                if len(samples):
+                    item.setValue(samples[0])
                 else:
-                    template = '\t0b{:b}\tt={:.6f}s'
-            else:
-                template = '\t{:.6f}\tt={:.6f}s'
-            if len(samples):
-                current_info = template.format(
-                    samples[0],
-                    position,
-                )
-                if len(text) == 1:
-                    text.insert(1, current_info)
-                elif len(text) == 2:
-                    if text[1].startswith('\t↓'):
-                        text.insert(1, current_info)
-                    else:
-                        text[1] = current_info
-                else:
-                    text[1] = current_info
-                label.setText('\n'.join(text))
-            else:
-                current_info = '\tn.a.\tt={:.6f}s'.format(
-                    position,
-                )
-                if len(text) == 1:
-                    text.insert(1, current_info)
-                elif len(text) == 2:
-                    if text[1].startswith('\t↓'):
-                        text.insert(1, current_info)
-                    else:
-                        text[1] = current_info
-                else:
-                    text[1] = current_info
-                label.setText('\n'.join(text))
+                    item.setValue('n.a.')
 
     def cursor_removed(self):
         for i, signal in enumerate(self.plot.signals):
-            label = self.channel_selection.item(i)
-            text = label.text().splitlines()
-            text.pop(1)
-            label.setText('\n'.join(text))
+            item = self.channel_selection.item(i)
+            item = self.channel_selection.itemWidget(item)
+
+            if not self.plot.region:
+                item.setPrefix('')
+                item.setValue('')
 
     def range_modified(self):
         start, stop = self.plot.region.getRegion()
+        self.cut_start.setValue(start)
+        self.cut_stop.setValue(stop)
+
         for i, signal in enumerate(self.plot.signals):
             samples = signal.cut(start, stop).samples
-            label = self.channel_selection.item(i)
-            text = label.text().splitlines()
-            if samples.dtype.kind in 'ui':
-                if signal.format == 'phys':
-                    template = '\t↓={}\t↑={}\tΔ={}\tΔt={:.6f}s'
-                elif signal.format == 'hex':
-                    template = '\t↓=0x{:X}\t↑=0x{:X}\tΔ=0x{:X}\tΔt={:.6f}s'
-                else:
-                    template = '\t↓=0b{:b}\t↑=0b{:b}\tΔ=0b{:b}\tΔt={:.6f}s'
-            else:
-                template = '\t↓={:.6f}\t↑={:.6f}\tΔ={:.6f}\tΔt={:.6f}s'
+            item = self.channel_selection.item(i)
+            item = self.channel_selection.itemWidget(item)
+
+            item.setPrefix('Δ = ')
+            item.setFmt(signal.format)
+
             if len(samples):
                 if samples.dtype.kind in 'ui':
                     delta = np.int64(np.float64(samples[-1]) - np.float64(samples[0]))
                 else:
                     delta = samples[-1] - samples[0]
-                current_info = template.format(
-                    np.amin(samples),
-                    np.amax(samples),
-                    delta,
-                    stop-start,
-                )
-                if len(text) == 1:
-                    text.append(current_info)
-                elif len(text) == 2:
-                    if text[1].startswith('\t↓'):
-                        text[1] = current_info
-                    else:
-                        text.append(current_info)
-                else:
-                    text[2] = current_info
-                label.setText('\n'.join(text))
+
+                item.setValue(delta)
+
             else:
-                current_info = '\t↓=n.a. ↑=n.a. Δ=n.a. Δt={:.6f}s'.format(
-                    stop - start
-                )
-                if len(text) == 1:
-                    text.append(current_info)
-                elif len(text) == 2:
-                    if text[1].startswith('\t↓'):
-                        text[1] = current_info
-                    else:
-                        text.append(current_info)
-                else:
-                    text[2] = current_info
-                label.setText('\n'.join(text))
+                item.setValue('n.a.')
 
     def range_removed(self):
         for i, signal in enumerate(self.plot.signals):
-            label = self.channel_selection.item(i)
-            text = label.text().splitlines()[:-1]
-            label.setText('\n'.join(text))
+            item = self.channel_selection.item(i)
+            item = self.channel_selection.itemWidget(item)
+
+            item.setPrefix('')
+            item.setValue('')
+        if self.plot.cursor1:
+            self.plot.cursor_moved.emit()
 
     def compute_cut_hints(self):
         # TODO : use master channel physical min and max values
@@ -1906,73 +2042,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             progress.cancel()
 
-    def update_graph(self):
-
-        signals_nr = self.channel_selection.count()
-        selected_items = [
-            self.channel_selection.row(item)
-            for item in self.channel_selection.selectedItems()
-        ]
-
-        if len(selected_items) == 1:
-            row = selected_items[0]
-            self.plot.singleton = row
-            sig = self.plot.signals[row]
-            color = sig.color
-
-            self.plot.plotItem.showAxis('left')
-            for axis, viewbox, curve in zip(
-                    self.plot.axes,
-                    self.plot.view_boxes,
-                    self.plot.curves):
-                axis.hide()
-                viewbox.setYLink(None)
-                curve.hide()
-
-            sig_axis = self.plot.axes[row]
-            viewbox = self.plot.view_boxes[row]
-            axis = self.plot.axis
-
-            axis.setRange(*sig_axis.range)
-            axis.linkedView().setYRange(*sig_axis.range)
-
-            viewbox.setYLink(axis.linkedView())
-
-            self.plot.curve.setData(
-                sig.timestamps,
-                sig.samples,
-                pen=color,
-                symbolBrush=color,
-                symbolPen=color,
-                symbol='o',
-                symbolSize=4,
-            )
-
-            axis.setLabel(sig.name, sig.unit, color=color)
-
-            for curve in self.plot.curves:
-                curve.hide()
-            self.plot.curve.show()
-            self.plot.timebase = self.plot.curve.xData
-
-        else:
-            self.plot.singleton = None
-            self.plot.plotItem.hideAxis('left')
-            self.plot.curve.hide()
-
-            for i in range(signals_nr):
-                if i in selected_items:
-                    self.plot.axes[i].show()
-                    self.plot.view_boxes[i].setYLink(None)
-                    self.plot.curves[i].show()
-                else:
-                    self.plot.axes[i].hide()
-                    self.plot.curves[i].hide()
-
-            self.plot.timebase = self.plot.all_timebase
-        if self.plot.cursor:
-            self.cursor_moved()
-
     def plot_pyqtgraph(self, event):
         try:
             iter(event)
@@ -2028,10 +2097,24 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 name = '{} [has no samples]'.format(sig.name)
             else:
                 name = '{} ({})'.format(sig.name, sig.unit)
-            self.channel_selection.addItem(name)
-            self.channel_selection.item(i).setForeground(
-                QColor(sig.color)
-            )
+            # self.channel_selection.addItem(name)
+            # self.channel_selection.item(i).setForeground(
+            #     QColor(sig.color)
+            # )
+            item = QListWidgetItem(self.channel_selection)
+            it = ChannelDisplay(self)
+            it.setAttribute(Qt.WA_StyledBackground)
+            it.index = i
+
+            it.setName(name)
+            it.setValue('')
+            it.setColor(sig.color)
+            item.setSizeHint(it.sizeHint())
+            self.channel_selection.addItem(item)
+            self.channel_selection.setItemWidget(item, it)
+
+            it.color_changed.connect(self.plot.setColor)
+            it.enable_changed.connect(self.plot.setSignalEnable)
 
         if self.splitter.count() > 1:
             old_plot = self.splitter.widget(1)
