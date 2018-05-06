@@ -1,6 +1,7 @@
 import os
 import sys
 import traceback
+import re
 
 from copy import deepcopy
 from datetime import datetime
@@ -20,6 +21,7 @@ from asammdf import __version__ as libversion
 
 import asammdfgui.main_window as main_window
 import asammdfgui.file_widget as file_widget
+import asammdfgui.search_dialog as search_dialog
 import asammdfgui.search_widget as search_widget
 import asammdfgui.channel_info_widget as channel_info_widget
 import asammdfgui.channel_display_widget as channel_display_widget
@@ -783,6 +785,54 @@ class ChannelInfoWidget(QWidget, channel_info_widget.Ui_ChannelInfo):
             )
 
 
+class AdvancedSearch(QDialog, search_dialog.Ui_SearchDialog):
+    def __init__(self, channels_db, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
+
+        self.result = []
+        self.channels_db = sorted(set(channels_db))
+
+        self.apply_btn.clicked.connect(self._apply)
+        self.apply_all_btn.clicked.connect(self._apply_all)
+        self.cancel_btn.clicked.connect(self._cancel)
+
+        self.search_box.textChanged.connect(self.search_text_changed)
+
+    def search_text_changed(self, text):
+        if len(text) >= 2:
+            pattern = text.replace('*', '.*')
+            pattern = re.compile('(?i){}'.format(pattern))
+            matches = [
+                name
+                for name in self.channels_db
+                if pattern.search(name)
+            ]
+            self.matches.clear()
+            self.matches.addItems(matches)
+
+    def _apply(self, event):
+        self.result = [
+            item.text()
+            for item in self.matches.selectedItems()
+        ]
+        print('in', self.result)
+        self.close()
+
+    def _apply_all(self, event):
+        count = self.matches.count()
+        self.result = [
+            self.matches.item(i).text()
+            for i in range(count)
+        ]
+        print('in', self.result)
+        self.close()
+
+    def _cancel(self, event):
+        self.result = []
+        self.close()
+
+
 class ChannelInfoDialog(QDialog):
     def __init__(self, channel, *args, **kwargs):
         super(QDialog, self).__init__(*args, **kwargs)
@@ -1079,7 +1129,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         vbox = QVBoxLayout(channel_and_search)
+        self.advanced_search_btn = QPushButton('Advanced search & select')
+        self.advanced_search_btn.clicked.connect(self.search)
         vbox.addWidget(self.search_field)
+        vbox.addWidget(self.advanced_search_btn)
         vbox.addWidget(self.channels_tree, 1)
         channel_and_search.setLayout(vbox)
 
@@ -1332,6 +1385,29 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.itemSelectionChanged.connect(self.channel_selection_modified)
+
+    def search(self):
+        dlg = AdvancedSearch(self.mdf.channels_db, self)
+        dlg.setModal(True)
+        dlg.exec_()
+        result = dlg.result
+        if result:
+            iterator = QTreeWidgetItemIterator(
+                self.channels_tree,
+            )
+
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    iterator += 1
+                    continue
+
+                channel_name = item.text(0)
+                if channel_name in result:
+                    item.setCheckState(0, Qt.Checked)
+                    result.pop(result.index(channel_name))
+
+                iterator += 1
 
     def channel_selection_reduced(self, deleted):
 
