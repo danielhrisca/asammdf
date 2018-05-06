@@ -790,7 +790,7 @@ class AdvancedSearch(QDialog, search_dialog.Ui_SearchDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        self.result = []
+        self.result = set()
         self.channels_db = sorted(set(channels_db))
 
         self.apply_btn.clicked.connect(self._apply)
@@ -801,7 +801,11 @@ class AdvancedSearch(QDialog, search_dialog.Ui_SearchDialog):
 
     def search_text_changed(self, text):
         if len(text) >= 2:
-            pattern = text.replace('*', '.*')
+            pattern = (
+                text
+                .replace('.', '\.')
+                .replace('*', '.*')
+            )
             pattern = re.compile('(?i){}'.format(pattern))
             matches = [
                 name
@@ -812,24 +816,24 @@ class AdvancedSearch(QDialog, search_dialog.Ui_SearchDialog):
             self.matches.addItems(matches)
 
     def _apply(self, event):
-        self.result = [
+        self.result = set(
             item.text()
             for item in self.matches.selectedItems()
-        ]
+        )
         print('in', self.result)
         self.close()
 
     def _apply_all(self, event):
         count = self.matches.count()
-        self.result = [
+        self.result = set(
             self.matches.item(i).text()
             for i in range(count)
-        ]
+        )
         print('in', self.result)
         self.close()
 
     def _cancel(self, event):
-        self.result = []
+        self.result = set()
         self.close()
 
 
@@ -1129,7 +1133,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         vbox = QVBoxLayout(channel_and_search)
-        self.advanced_search_btn = QPushButton('Advanced search & select')
+        self.advanced_search_btn = QPushButton('Advanced search && select')
         self.advanced_search_btn.clicked.connect(self.search)
         vbox.addWidget(self.search_field)
         vbox.addWidget(self.advanced_search_btn)
@@ -1405,7 +1409,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 channel_name = item.text(0)
                 if channel_name in result:
                     item.setCheckState(0, Qt.Checked)
-                    result.pop(result.index(channel_name))
 
                 iterator += 1
 
