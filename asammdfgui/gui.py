@@ -259,9 +259,15 @@ class Plot(pg.PlotWidget):
     range_modified_finished = pyqtSignal()
     cursor_move_finished = pyqtSignal()
 
+
+
     def __init__(self, signals, *args, **kwargs):
 
         super(Plot, self).__init__(*args, **kwargs)
+
+        self.disableAutoRange()
+
+        self.curvetype = pg.PlotCurveItem
 
         self.singleton = None
         self.region = None
@@ -294,12 +300,12 @@ class Plot(pg.PlotWidget):
         self.scene_ = self.plot_item.scene()
         self.viewbox = self.plot_item.vb
         self.viewbox.sigResized.connect(self.update_views)
-        self.viewbox.enableAutoRange(
-            axis=pg.ViewBox.XYAxes,
-            enable=True,
-        )
+        # self.viewbox.enableAutoRange(
+        #     axis=pg.ViewBox.XYAxes,
+        #     enable=True,
+        # )
 
-        self.curve = pg.PlotDataItem(
+        self.curve = self.curvetype(
             [],
             [],
         )
@@ -348,10 +354,10 @@ class Plot(pg.PlotWidget):
             axis = FormatedAxis("right")
 
             view_box = pg.ViewBox()
-            view_box.enableAutoRange(
-                axis=pg.ViewBox.XYAxes,
-                enable=True,
-            )
+            # view_box.enableAutoRange(
+            #     axis=pg.ViewBox.XYAxes,
+            #     enable=True,
+            # )
 
             axis.linkToView(view_box)
             axis.setLabel(sig.name, sig.unit, color=color)
@@ -360,7 +366,8 @@ class Plot(pg.PlotWidget):
 
             self.scene_.addItem(view_box)
 
-            curve = pg.PlotDataItem(
+            # curve = pg.PlotDataItem(
+            curve = self.curvetype(
                 sig.timestamps,
                 sig.samples,
                 pen=color,
@@ -368,7 +375,9 @@ class Plot(pg.PlotWidget):
                 symbolPen=color,
                 symbol='o',
                 symbolSize=4,
+                # connect='pairs'
             )
+            # curve.setDownsampling(ds=100, auto=True, method='peak')
 
             view_box.addItem(
                 curve
@@ -379,11 +388,12 @@ class Plot(pg.PlotWidget):
                 axis=pg.ViewBox.XYAxes,
                 enable=True,
             )
-            view_box.sigResized.connect(self.update_views)
+            # view_box.sigResized.connect(self.update_views)
 
             self.view_boxes.append(view_box)
             self.curves.append(curve)
             self.axes.append(axis)
+            axis.hide()
 
         self.update_views()
 
@@ -398,8 +408,10 @@ class Plot(pg.PlotWidget):
     def setColor(self, index, color):
         self.signals[index].color = color
         self.curves[index].setPen(color)
-        self.curves[index].setSymbolPen(color)
-        self.curves[index].setSymbolBrush(color)
+        if self.curvetype == pg.PlotDataItem:
+            self.curves[index].setSymbolPen(color)
+            self.curves[index].setSymbolBrush(color)
+
         self.axes[index].setPen(color)
 
     def setSignalEnable(self, index, state):
@@ -416,58 +428,65 @@ class Plot(pg.PlotWidget):
 
         if len(selected_items) == 1:
             row = selected_items[0]
-            self.singleton = row
-            sig = self.signals[row]
-            color = sig.color
+            if self.singleton != row:
+                self.singleton = row
+                sig = self.signals[row]
+                color = sig.color
 
-            self.plotItem.showAxis('left')
-            for axis, viewbox, curve in zip(
-                    self.axes,
-                    self.view_boxes,
-                    self.curves):
-                axis.hide()
-                viewbox.setYLink(None)
-                curve.hide()
+                self.plotItem.showAxis('left')
+                for axis, viewbox, curve in zip(
+                        self.axes,
+                        self.view_boxes,
+                        self.curves):
+                    if curve.isVisible():
+                        axis.hide()
+                        viewbox.setYLink(None)
+                        viewbox.setXLink(None)
+                        curve.hide()
 
-            sig_axis = self.axes[row]
-            viewbox = self.view_boxes[row]
-            axis = self.axis
+                sig_axis = self.axes[row]
+                viewbox = self.view_boxes[row]
+                viewbox.setXLink(self.viewbox)
+                axis = self.axis
 
-            axis.setRange(*sig_axis.range)
-            axis.linkedView().setYRange(*sig_axis.range)
+                axis.setRange(*sig_axis.range)
+                axis.linkedView().setYRange(*sig_axis.range)
 
-            viewbox.setYLink(axis.linkedView())
+                viewbox.setYLink(axis.linkedView())
 
-            self.curve.setData(
-                sig.timestamps,
-                sig.samples,
-                pen=color,
-                symbolBrush=color,
-                symbolPen=color,
-                symbol='o',
-                symbolSize=4,
-            )
+                self.curve.updateData(
+                    sig.timestamps,
+                    sig.samples,
+                    pen=color,
+                    symbolBrush=color,
+                    symbolPen=color,
+                    symbol='o',
+                    symbolSize=4,
+                )
 
-            axis.setLabel(sig.name, sig.unit, color=color)
+                axis.setLabel(sig.name, sig.unit, color=color)
 
-            for curve in self.curves:
-                curve.hide()
             self.curve.show()
+            self.plotItem.showAxis('left')
             self.timebase = self.curve.xData
 
         else:
-            self.singleton = None
             self.plotItem.hideAxis('left')
             self.curve.hide()
 
-            for i, sig in enumerate(self.signals):
-                if sig.enable:
-                    self.axes[i].show()
-                    self.view_boxes[i].setYLink(None)
-                    self.curves[i].show()
-                else:
-                    self.axes[i].hide()
-                    self.curves[i].hide()
+            if len(selected_items):
+                self.singleton = None
+
+                for i, sig in enumerate(self.signals):
+                    if sig.enable and not self.curves[i].isVisible():
+                        # self.axes[i].show()
+                        self.view_boxes[i].setYLink(None)
+                        self.view_boxes[i].setXLink(self.viewbox)
+                        self.curves[i].show()
+                    elif not sig.enable and self.curves[i].isVisible():
+                        self.view_boxes[i].setXLink(None)
+                        self.axes[i].hide()
+                        self.curves[i].hide()
 
             self.timebase = self.all_timebase
         if self.cursor1:
@@ -476,8 +495,9 @@ class Plot(pg.PlotWidget):
     def update_views(self):
         self.viewbox.linkedViewChanged(self.viewbox, self.viewbox.XAxis)
         for view_box in self.view_boxes:
-            view_box.setGeometry(self.viewbox.sceneBoundingRect())
-            view_box.linkedViewChanged(self.viewbox, view_box.XAxis)
+            if view_box.isVisible():
+                view_box.setGeometry(self.viewbox.sceneBoundingRect())
+                view_box.linkedViewChanged(self.viewbox, view_box.XAxis)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -1310,12 +1330,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.load_filter_list_btn.clicked.connect(self.load_filter_list)
         self.save_filter_list_btn.clicked.connect(self.save_filter_list)
 
-        self.channel_selection.itemsDeleted.connect(self.channel_selection_modified)
+        self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
+        self.channel_selection.itemSelectionChanged.connect(self.channel_selection_modified)
 
-    def channel_selection_modified(self, deleted):
+    def channel_selection_reduced(self, deleted):
 
         for i in sorted(deleted, reverse=True):
-            item = self.curves.pop(i)
+            item = self.plot.curves.pop(i)
             item.hide()
             item.setParent(None)
 
@@ -1336,6 +1357,25 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             wid = self.channel_selection.itemWidget(item)
             wid.index = i
 
+    def channel_selection_modified(self):
+        selected_items = self.channel_selection.selectedItems()
+        count = len(
+            [
+                sig
+                for sig in self.plot.signals
+                if sig.enable
+            ]
+        )
+        rows = self.channel_selection.count()
+
+        for i in range(rows):
+            item = self.channel_selection.item(i)
+            if count > 1 and item in selected_items:
+                if self.plot.signals[i].enable and not self.plot.axes[i].isVisible():
+                    self.plot.axes[i].show()
+            else:
+                if self.plot.axes[i].isVisible():
+                    self.plot.axes[i].hide()
 
     def save_channel_list(self):
         file_name, _ = QFileDialog.getSaveFileName(
@@ -1487,8 +1527,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             self.plot.cursor1.setPos(next_pos)
 
         self.plot.cursor_hint.setData(
-            [],
-            [],
+            x=[],
+            y=[],
         )
 
     def cursor_moved(self):
@@ -1547,8 +1587,8 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             self.plot.viewbox.setYRange(hint_min, hint_max, padding=0)
             self.plot.cursor_hint.setData(
-                [next_pos, ] * len(y),
-                y,
+                x=[next_pos, ] * len(y),
+                y=y,
             )
             self.plot.cursor_hint.show()
 
@@ -2843,6 +2883,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
 
 def main():
+
     app = QApplication(sys.argv)
     main = MainWindow()
     app.exec_()
