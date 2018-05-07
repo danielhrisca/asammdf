@@ -27,5 +27,7 @@
     <file alias="home.png">images/home.png</file>
     <file alias="zoom-in.png">images/zoom-in.png</file>
     <file alias="zoom-out.png">images/zoom-out.png</file>
+    <file alias="search.png">images/search.png</file>
+    <file alias="checkmark.png">images/checkmark.png</file>
 </qresource>
 </RCC>

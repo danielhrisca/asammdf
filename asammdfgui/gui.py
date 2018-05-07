@@ -220,48 +220,6 @@ class Cursor(pg.InfiniteLine):
         self.label.show()
 
 
-class DataTreeWidget(QTreeWidget):
-    """
-    Widget for displaying hierarchical python data structures
-    (eg, nested dicts, lists, and arrays)
-    """
-
-    def __init__(self, parent=None, data=None):
-        QTreeWidget.__init__(self, parent)
-        self.setVerticalScrollMode(self.ScrollPerPixel)
-        self.setData(data)
-        self.setColumnCount(2)
-        self.setHeaderLabels(['', 'value'])
-
-    def setData(self, data, hideRoot=False):
-        """data should be a dictionary."""
-        self.clear()
-        self.buildTree(data, self.invisibleRootItem(), hideRoot=hideRoot)
-        # node = self.mkNode('', data)
-        # while node.childCount() > 0:
-        # c = node.child(0)
-        # node.removeChild(c)
-        # self.invisibleRootItem().addChild(c)
-        self.expandToDepth(2)
-        self.resizeColumnToContents(0)
-
-    def buildTree(self, data, parent, name='', hideRoot=False):
-        if hideRoot:
-            node = parent
-        else:
-            node = QTreeWidgetItem([name,  ""])
-            parent.addChild(node)
-
-        if isinstance(data, dict):
-            for k in data.keys():
-                self.buildTree(data[k], node, str(k))
-        elif isinstance(data, list) or isinstance(data, tuple):
-            for i in range(len(data)):
-                self.buildTree(data[i], node, str(i))
-        else:
-            node.setText(2, str(data))
-
-
 class FormatedAxis(pg.AxisItem):
 
     def __init__(self, *args, **kwargs):
@@ -967,6 +925,8 @@ class AdvancedSearch(QDialog, search_dialog.Ui_SearchDialog):
         self.search_box.textChanged.connect(self.search_text_changed)
         self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
 
+        self.setWindowTitle('Search & select channels')
+
     def search_text_changed(self, text):
         if len(text) >= 2:
             if self.match_kind.currentText() == 'Wildcard':
@@ -1404,51 +1364,73 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         )
 
         vbox = QVBoxLayout(channel_and_search)
-        self.advanced_search_btn = QPushButton('Advanced search && select')
+        self.advanced_search_btn = QPushButton('', channel_and_search)
+        icon = QIcon()
+        icon.addPixmap(QPixmap(":/search.png"), QIcon.Normal, QIcon.Off)
+        self.advanced_search_btn.setIcon(icon)
+        self.advanced_search_btn.setToolTip('Advanced search and select channels')
         self.advanced_search_btn.clicked.connect(self.search)
         vbox.addWidget(self.search_field)
-        vbox.addWidget(self.advanced_search_btn)
+
         vbox.addWidget(self.channels_tree, 1)
         channel_and_search.setLayout(vbox)
 
-        self.clear_channels_btn = QPushButton('Reset selection', channel_and_search)
+        hbox = QHBoxLayout(channel_and_search)
+
+        self.clear_channels_btn = QPushButton('', channel_and_search)
+        self.clear_channels_btn.setToolTip('Reset selection')
         icon = QIcon()
         icon.addPixmap(QPixmap(":/erase.png"), QIcon.Normal, QIcon.Off)
         self.clear_channels_btn.setIcon(icon)
         self.clear_channels_btn.setObjectName("clear_channels_btn")
-        vbox.addWidget(self.clear_channels_btn)
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.load_channel_list_btn = QPushButton('Load channel list', channel_and_search)
+
+        self.load_channel_list_btn = QPushButton('', channel_and_search)
+        self.load_channel_list_btn.setToolTip('Load channel selection list')
         icon1 = QIcon()
         icon1.addPixmap(QPixmap(":/open.png"), QIcon.Normal, QIcon.Off)
         self.load_channel_list_btn.setIcon(icon1)
         self.load_channel_list_btn.setObjectName("load_channel_list_btn")
-        self.horizontalLayout.addWidget(self.load_channel_list_btn)
-        self.save_channel_list_btn = QPushButton('Save channel list', channel_and_search)
+
+        self.save_channel_list_btn = QPushButton('', channel_and_search)
+        self.save_channel_list_btn.setToolTip('Save channel selection list')
         icon2 = QIcon()
         icon2.addPixmap(QPixmap(":/save.png"), QIcon.Normal, QIcon.Off)
         self.save_channel_list_btn.setIcon(icon2)
         self.save_channel_list_btn.setObjectName("save_channel_list_btn")
-        self.horizontalLayout.addWidget(self.save_channel_list_btn)
-        vbox.addLayout(self.horizontalLayout)
-        self.line_12 = QFrame(self.verticalLayoutWidget)
-        self.line_12.setFrameShape(QFrame.HLine)
-        self.line_12.setFrameShadow(QFrame.Sunken)
-        self.line_12.setObjectName("line_12")
-        vbox.addWidget(self.line_12)
-        self.plot_btn = QPushButton('Plot', channel_and_search)
-        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.plot_btn.sizePolicy().hasHeightForWidth())
-        self.plot_btn.setSizePolicy(sizePolicy)
-        self.plot_btn.setMaximumSize(QSize(16777215, 100))
+
+        self.select_all_btn = QPushButton('', channel_and_search)
+        self.select_all_btn.setToolTip('Select all channels')
+        icon1 = QIcon()
+        icon1.addPixmap(QPixmap(":/checkmark.png"), QIcon.Normal, QIcon.Off)
+        self.select_all_btn.setIcon(icon1)
+
+        hbox.addWidget(self.load_channel_list_btn)
+        hbox.addWidget(self.save_channel_list_btn)
+        line = QFrame()
+        line.setFrameShape(QFrame.VLine)
+        line.setFrameShadow(QFrame.Sunken)
+        hbox.addWidget(line)
+        hbox.addWidget(self.select_all_btn)
+        hbox.addWidget(self.clear_channels_btn)
+        line = QFrame()
+        line.setFrameShape(QFrame.VLine)
+        line.setFrameShadow(QFrame.Sunken)
+        hbox.addWidget(line)
+        hbox.addWidget(self.advanced_search_btn)
+        line = QFrame()
+        line.setFrameShape(QFrame.VLine)
+        line.setFrameShadow(QFrame.Sunken)
+        hbox.addWidget(line)
+        self.plot_btn = QPushButton('', channel_and_search)
+        self.plot_btn.setToolTip('Plot selected channels')
         icon3 = QIcon()
         icon3.addPixmap(QPixmap(":/graph.png"), QIcon.Normal, QIcon.Off)
         self.plot_btn.setIcon(icon3)
         self.plot_btn.setObjectName("plot_btn")
-        vbox.addWidget(self.plot_btn)
+        hbox.addWidget(self.plot_btn)
+        hbox.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        vbox.addLayout(hbox)
+
 
         selection_list = QWidget(splitter)
         self.channel_selection = ListWidget(selection_list)
@@ -3070,7 +3052,13 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         info = QActionGroup(self)
 
-        action = QAction('{: <20}\tM'.format('Info'))
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/info.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+        action = QAction(icon, '{: <20}\tM'.format('Statistics'))
         action.triggered.connect(
             partial(self.file_action, key=Qt.Key_M)
         )
