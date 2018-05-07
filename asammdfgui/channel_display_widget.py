@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'channel_display_widget.ui'
 #
-# Created by: PyQt5 UI code generator 5.9
+# Created by: PyQt5 UI code generator 5.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -12,7 +12,7 @@ class Ui_ChannelDiplay(object):
     def setupUi(self, ChannelDiplay):
         ChannelDiplay.setObjectName("ChannelDiplay")
         ChannelDiplay.resize(260, 30)
-        ChannelDiplay.setMinimumSize(QtCore.QSize(254, 30))
+        ChannelDiplay.setMinimumSize(QtCore.QSize(40, 30))
         self.horizontalLayout = QtWidgets.QHBoxLayout(ChannelDiplay)
         self.horizontalLayout.setContentsMargins(5, 2, 5, 2)
         self.horizontalLayout.setSpacing(5)
@@ -38,7 +38,12 @@ class Ui_ChannelDiplay(object):
         self.color_btn.setObjectName("color_btn")
         self.horizontalLayout.addWidget(self.color_btn)
         self.name = QtWidgets.QLabel(ChannelDiplay)
-        self.name.setMinimumSize(QtCore.QSize(110, 20))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.name.sizePolicy().hasHeightForWidth())
+        self.name.setSizePolicy(sizePolicy)
+        self.name.setMinimumSize(QtCore.QSize(0, 26))
         self.name.setTextFormat(QtCore.Qt.RichText)
         self.name.setObjectName("name")
         self.horizontalLayout.addWidget(self.name)
