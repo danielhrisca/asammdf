@@ -46,6 +46,11 @@ class Ui_SearchDialog(object):
         self.retranslateUi(SearchDialog)
         self.match_kind.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(SearchDialog)
+        SearchDialog.setTabOrder(self.match_kind, self.search_box)
+        SearchDialog.setTabOrder(self.search_box, self.matches)
+        SearchDialog.setTabOrder(self.matches, self.apply_btn)
+        SearchDialog.setTabOrder(self.apply_btn, self.apply_all_btn)
+        SearchDialog.setTabOrder(self.apply_all_btn, self.cancel_btn)
 
     def retranslateUi(self, SearchDialog):
         _translate = QtCore.QCoreApplication.translate

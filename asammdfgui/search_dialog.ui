@@ -90,6 +90,14 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>match_kind</tabstop>
+  <tabstop>search_box</tabstop>
+  <tabstop>matches</tabstop>
+  <tabstop>apply_btn</tabstop>
+  <tabstop>apply_all_btn</tabstop>
+  <tabstop>cancel_btn</tabstop>
+ </tabstops>
  <resources>
   <include location="resource.qrc"/>
  </resources>

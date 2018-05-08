@@ -26,6 +26,7 @@ import asammdfgui.search_widget as search_widget
 import asammdfgui.channel_info_widget as channel_info_widget
 import asammdfgui.channel_display_widget as channel_display_widget
 import asammdfgui.channel_stats as channel_stats
+import asammdfgui.range_editor_dialog as range_editor_dialog
 
 import pyqtgraph as pg
 
@@ -408,7 +409,7 @@ class Plot(pg.PlotWidget):
                 axis=pg.ViewBox.XYAxes,
                 enable=True,
             )
-            # view_box.sigResized.connect(self.update_views)
+            view_box.sigResized.connect(self.update_views)
 
             self.view_boxes.append(view_box)
             self.curves.append(curve)
@@ -1022,6 +1023,81 @@ class AdvancedSearch(QDialog, search_dialog.Ui_SearchDialog):
         self.close()
 
 
+class RangeEditor(QDialog, range_editor_dialog.Ui_RangeDialog):
+    def __init__(self, unit='', ranges=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
+
+        self.unit = unit
+        self.result = {}
+        self.pressed_button = None
+
+        if ranges:
+            for i, (range, color) in enumerate(ranges.items()):
+                self.cell_pressed(i, 0, range, color)
+
+        self.table.cellPressed.connect(self.cell_pressed)
+        self.apply_btn.clicked.connect(self.apply)
+        self.cancel_btn.clicked.connect(self.cancel)
+        self.reset_btn.clicked.connect(self.reset)
+
+        self.setWindowTitle('Edit channel range colors')
+
+    def cell_pressed(self, row, column, range=(0, 0), color='#000000'):
+
+        for col in (0, 1):
+            box = QDoubleSpinBox()
+            box.setSuffix(self.unit)
+            box.setRange(-10**10, 10**10)
+            box.setDecimals(6)
+            box.setValue(range[col])
+
+            self.table.setCellWidget(row, col, box)
+
+        button = QPushButton('')
+        button.setStyleSheet("background-color: {};".format(color))
+        self.table.setCellWidget(row, 2, button)
+        button.clicked.connect(partial(self.select_color, button=button))
+
+        button = QPushButton('Delete')
+        self.table.setCellWidget(row, 3, button)
+        button.clicked.connect(partial(self.delete_row, row=row))
+
+    def delete_row(self, event, row):
+        for column in range(4):
+            self.table.setCellWidget(row, column, None)
+
+    def select_color(self, event, button):
+        color = button.palette().button().color()
+        color = QColorDialog.getColor(color).name()
+        button.setStyleSheet("background-color: {};".format(color))
+
+    def apply(self, event):
+        for row in range(100):
+            try:
+                start = self.table.cellWidget(row, 0).value()
+                stop = self.table.cellWidget(row, 1).value()
+                button = self.table.cellWidget(row, 2)
+                color = button.palette().button().color().name()
+            except:
+                continue
+            else:
+                self.result[(start, stop)] = color
+        self.pressed_button = 'apply'
+        self.close()
+
+    def reset(self, event):
+        for row in range(100):
+            for column in range(4):
+                self.table.setCellWidget(row, column, None)
+        self.result = {}
+
+    def cancel(self, event):
+        self.result = {}
+        self.pressed_button = 'cancel'
+        self.close()
+
+
 class ChannelInfoDialog(QDialog):
     def __init__(self, channel, *args, **kwargs):
         super(QDialog, self).__init__(*args, **kwargs)
@@ -1154,7 +1230,7 @@ class ChannelDisplay(QWidget, channel_display_widget.Ui_ChannelDiplay):
     color_changed = pyqtSignal(int, str)
     enable_changed = pyqtSignal(int, int)
 
-    def __init__(self, index, *args, **kargs):
+    def __init__(self, index, unit='', *args, **kargs):
         super(ChannelDisplay, self).__init__(*args, **kargs)
         self.setupUi(self)
 
@@ -1164,9 +1240,17 @@ class ChannelDisplay(QWidget, channel_display_widget.Ui_ChannelDiplay):
         self._name = ''
         self.fmt = '{}'
         self.index = index
+        self.ranges = {}
+        self.unit = unit
 
         self.color_btn.clicked.connect(self.select_color)
         self.display.stateChanged.connect(self.display_changed)
+
+    def mouseDoubleClickEvent(self, event):
+        dlg = RangeEditor(self.unit, self.ranges)
+        dlg.exec_()
+        if dlg.pressed_button == 'apply':
+            self.ranges = dlg.result
 
     def display_changed(self, state):
         state = self.display.checkState()
@@ -1208,6 +1292,15 @@ class ChannelDisplay(QWidget, channel_display_widget.Ui_ChannelDiplay):
 
     def setValue(self, value):
         self._value = value
+        if self.ranges and value not in ('', 'n.a.'):
+            for (start, stop), color in self.ranges.items():
+                if start <= value < stop:
+                    self.setStyleSheet("background-color: {};".format(color))
+                    break
+            else:
+                self.setStyleSheet("background-color: transparent;")
+        else:
+            self.setStyleSheet("background-color: transparent;")
         template = "<html><head/><body><p><span style=\" color:{{}};\">{{}}{}</span></p></body></html>"
         if value not in ('', 'n.a.'):
             template = template.format(
@@ -2720,14 +2813,10 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 name = '{} [has no samples]'.format(sig.name)
             else:
                 name = '{} ({})'.format(sig.name, sig.unit)
-            # self.channel_selection.addItem(name)
-            # self.channel_selection.item(i).setForeground(
-            #     QColor(sig.color)
-            # )
+            is_float = sig.samples.dtype.kind == 'f'
             item = QListWidgetItem(self.channel_selection)
-            it = ChannelDisplay(self)
+            it = ChannelDisplay(i, sig.unit, self)
             it.setAttribute(Qt.WA_StyledBackground)
-            it.index = i
 
             it.setName(name)
             it.setValue('')
