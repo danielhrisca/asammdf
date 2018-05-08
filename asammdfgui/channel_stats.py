@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'channel_stats.ui'
 #
-# Created by: PyQt5 UI code generator 5.10.1
+# Created by: PyQt5 UI code generator 5.9
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -278,7 +278,7 @@ class Ui_ChannelStats(object):
         self.cursor_group.setTitle(_translate("ChannelStats", "Cursor"))
         self.label_12.setText(_translate("ChannelStats", "Timestamp      "))
         self.label_11.setText(_translate("ChannelStats", "Value"))
-        self.label_2.setText(_translate("ChannelStats", "s"))
+        self.label_2.setText(_translate("ChannelStats", " s"))
         self.range_group.setTitle(_translate("ChannelStats", "Selected range"))
         self.label_15.setText(_translate("ChannelStats", "Last timestamp"))
         self.label_17.setText(_translate("ChannelStats", "Max"))
@@ -286,9 +286,9 @@ class Ui_ChannelStats(object):
         self.label_21.setText(_translate("ChannelStats", "Δt"))
         self.label_14.setText(_translate("ChannelStats", "Min"))
         self.label_13.setText(_translate("ChannelStats", "First timestamp"))
-        self.label_20.setText(_translate("ChannelStats", "s"))
-        self.label_22.setText(_translate("ChannelStats", "s"))
-        self.label_23.setText(_translate("ChannelStats", "s"))
+        self.label_20.setText(_translate("ChannelStats", " s"))
+        self.label_22.setText(_translate("ChannelStats", " s"))
+        self.label_23.setText(_translate("ChannelStats", " s"))
         self.visible_group.setTitle(_translate("ChannelStats", "Visible range"))
         self.label_19.setText(_translate("ChannelStats", "Δ"))
         self.label_16.setText(_translate("ChannelStats", "Δt"))
@@ -296,15 +296,15 @@ class Ui_ChannelStats(object):
         self.label_7.setText(_translate("ChannelStats", "First timestamp"))
         self.label_8.setText(_translate("ChannelStats", "Last timestamp"))
         self.label_9.setText(_translate("ChannelStats", "Min"))
-        self.label_24.setText(_translate("ChannelStats", "s"))
-        self.label_25.setText(_translate("ChannelStats", "s"))
-        self.label_26.setText(_translate("ChannelStats", "s"))
+        self.label_24.setText(_translate("ChannelStats", " s"))
+        self.label_25.setText(_translate("ChannelStats", " s"))
+        self.label_26.setText(_translate("ChannelStats", " s"))
         self.overall_group.setTitle(_translate("ChannelStats", "Overall"))
         self.label_6.setText(_translate("ChannelStats", "Max"))
         self.label_3.setText(_translate("ChannelStats", "First timestamp"))
         self.label_5.setText(_translate("ChannelStats", "Min"))
         self.label_4.setText(_translate("ChannelStats", "Last timestamp"))
-        self.label_27.setText(_translate("ChannelStats", "s"))
-        self.label_28.setText(_translate("ChannelStats", "s"))
+        self.label_27.setText(_translate("ChannelStats", " s"))
+        self.label_28.setText(_translate("ChannelStats", " s"))
         self.name.setText(_translate("ChannelStats", "<html><head/><body><p><span style=\" font-size:14pt; font-weight:600; color:#550000;\">Channel name</span></p></body></html>"))
 

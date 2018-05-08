@@ -1046,20 +1046,20 @@ class RangeEditor(QDialog, range_editor_dialog.Ui_RangeDialog):
     def cell_pressed(self, row, column, range=(0, 0), color='#000000'):
 
         for col in (0, 1):
-            box = QDoubleSpinBox()
-            box.setSuffix(self.unit)
+            box = QDoubleSpinBox(self.table)
+            box.setSuffix(' {}'.format(self.unit))
             box.setRange(-10**10, 10**10)
             box.setDecimals(6)
             box.setValue(range[col])
 
             self.table.setCellWidget(row, col, box)
 
-        button = QPushButton('')
+        button = QPushButton('', self.table)
         button.setStyleSheet("background-color: {};".format(color))
         self.table.setCellWidget(row, 2, button)
         button.clicked.connect(partial(self.select_color, button=button))
 
-        button = QPushButton('Delete')
+        button = QPushButton('Delete', self.table)
         self.table.setCellWidget(row, 3, button)
         button.clicked.connect(partial(self.delete_row, row=row))
 
@@ -1073,6 +1073,7 @@ class RangeEditor(QDialog, range_editor_dialog.Ui_RangeDialog):
         button.setStyleSheet("background-color: {};".format(color))
 
     def apply(self, event):
+        print(event)
         for row in range(100):
             try:
                 start = self.table.cellWidget(row, 0).value()
@@ -1178,7 +1179,7 @@ class ChannelStats(QWidget, channel_stats.Ui_ChannelStats):
                 if name == 'unit':
                     for i in range(1, 10):
                         label = self.findChild(QLabel, 'unit{}'.format(i))
-                        label.setText(str(value))
+                        label.setText(' {}'.format(value))
                 elif name == 'name':
                     self._name = value
                     self.name.setText(
