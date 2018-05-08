@@ -262,12 +262,13 @@ class Plot(pg.PlotWidget):
     range_modified = pyqtSignal()
     range_modified_finished = pyqtSignal()
     cursor_move_finished = pyqtSignal()
+    xrange_changed = pyqtSignal()
 
-    def __init__(self, signals, plot_type, *args, **kwargs):
+    def __init__(self, signals, plot_type, step_mode, *args, **kwargs):
 
         super(Plot, self).__init__(*args, **kwargs)
-
         self.curvetype = plot_type
+        self.step_mode = step_mode
         self.info = None
 
         self.singleton = None
@@ -277,8 +278,13 @@ class Plot(pg.PlotWidget):
         self.signals = signals
         for sig in self.signals:
             if sig.samples.dtype.kind == 'f':
+                sig.stepmode = False
                 sig.format = '{:.6f}'
             else:
+                if self.step_mode:
+                    sig.stepmode = True
+                else:
+                    sig.stepmode = False
                 sig.format = 'phys'
             sig.enable = True
 
@@ -301,6 +307,7 @@ class Plot(pg.PlotWidget):
         self.scene_ = self.plot_item.scene()
         self.viewbox = self.plot_item.vb
         self.viewbox.sigResized.connect(self.update_views)
+        self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
         self.viewbox.enableAutoRange(
             axis=pg.ViewBox.XYAxes,
             enable=True,
@@ -367,15 +374,27 @@ class Plot(pg.PlotWidget):
 
             self.scene_.addItem(view_box)
 
-            # curve = pg.PlotDataItem(
+            if sig.stepmode:
+                if len(sig.timestamps):
+                    to_append = sig.timestamps[-1]
+                else:
+                    to_append = 0
+                t = np.append(
+                    sig.timestamps,
+                    to_append,
+                )
+            else:
+                t = sig.timestamps
+
             curve = self.curvetype(
-                sig.timestamps,
+                t,
                 sig.samples,
                 pen=color,
                 symbolBrush=color,
                 symbolPen=color,
                 symbol='o',
                 symbolSize=4,
+                stepMode=sig.stepmode,
                 # connect='pairs'
             )
             # curve.setDownsampling(ds=100, auto=True, method='peak')
@@ -395,6 +414,9 @@ class Plot(pg.PlotWidget):
             self.curves.append(curve)
             self.axes.append(axis)
             axis.hide()
+
+        if len(signals) == 1:
+            self.setSignalEnable(0, 1)
 
         self.update_views()
 
@@ -455,20 +477,47 @@ class Plot(pg.PlotWidget):
 
                 viewbox.setYLink(axis.linkedView())
 
-                self.curve.updateData(
-                    sig.timestamps,
-                    sig.samples,
-                    pen=color,
-                    symbolBrush=color,
-                    symbolPen=color,
-                    symbol='o',
-                    symbolSize=4,
-                )
+                if sig.stepmode:
+                    if len(sig.timestamps):
+                        to_append = sig.timestamps[-1]
+                    else:
+                        to_append = 0
+                    t = np.append(
+                            sig.timestamps,
+                            to_append,
+                        )
+                else:
+                    t = sig.timestamps
+
+                if isinstance(self.curve, pg.PlotCurveItem):
+                    self.curve.updateData(
+                        t,
+                        sig.samples,
+                        pen=color,
+                        symbolBrush=color,
+                        symbolPen=color,
+                        symbol='o',
+                        symbolSize=4,
+                        stepMode=sig.stepmode,
+                    )
+                else:
+                    self.curve.setData(
+                        t,
+                        sig.samples,
+                        pen=color,
+                        symbolBrush=color,
+                        symbolPen=color,
+                        symbol='o',
+                        symbolSize=4,
+                        stepMode=sig.stepmode,
+                    )
 
                 axis.setLabel(sig.name, sig.unit, color=color)
 
             self.curve.show()
             self.plotItem.showAxis('left')
+            self.showGrid(x=False, y=False)
+            self.showGrid(x=True, y=True)
             self.timebase = self.curve.xData
 
         else:
@@ -958,7 +1007,6 @@ class AdvancedSearch(QDialog, search_dialog.Ui_SearchDialog):
             item.text()
             for item in self.matches.selectedItems()
         )
-        print('in', self.result)
         self.close()
 
     def _apply_all(self, event):
@@ -967,7 +1015,6 @@ class AdvancedSearch(QDialog, search_dialog.Ui_SearchDialog):
             self.matches.item(i).text()
             for i in range(count)
         )
-        print('in', self.result)
         self.close()
 
     def _cancel(self, event):
@@ -1245,7 +1292,7 @@ class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
 
 
 class FileWidget(QWidget, file_widget.Ui_file_widget):
-    def __init__(self, file_name, memory, plot_type, parent=None):
+    def __init__(self, file_name, memory, plot_type, step_mode, parent=None):
         super().__init__(parent)
         self.plot = None
         self.setupUi(self)
@@ -1256,6 +1303,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         self.plot_type = plot_type
         self.info = None
         self.info_index = None
+        self.step_mode = step_mode
 
         progress = QProgressDialog(
             'Opening "{}"'.format(self.file_name),
@@ -1675,7 +1723,6 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 self.info.fmt = fmt
                 stats = self.plot.get_stats(self.info_index)
                 self.info.set_stats(stats)
-                print('file', fmt)
 
         else:
             super(FileWidget, self).keyPressEvent(event)
@@ -1747,6 +1794,7 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             else:
                 if self.plot.axes[i].isVisible():
                     self.plot.axes[i].hide()
+
 
         if len(selected_items) == 1:
             self.info_index = self.channel_selection.row(selected_items[0])
@@ -2050,6 +2098,15 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
             else:
                 item.setValue('n.a.')
+
+        if self.info:
+            if self.info_index is None:
+                self.info.clear()
+            else:
+                stats = self.plot.get_stats(self.info_index)
+                self.info.set_stats(stats)
+
+    def xrange_changed(self):
 
         if self.info:
             if self.info_index is None:
@@ -2644,13 +2701,18 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
         for i in range(count):
             self.channel_selection.takeItem(0)
 
-        self.plot = Plot(signals, self.plot_type, self)
+        if self.info:
+            self.info.setParent(None)
+            self.info = None
+
+        self.plot = Plot(signals, self.plot_type, self.step_mode, self)
         self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
         self.plot.range_modified_finished.connect(self.range_modified_finished)
         self.plot.cursor_removed.connect(self.cursor_removed)
         self.plot.cursor_moved.connect(self.cursor_moved)
         self.plot.cursor_move_finished.connect(self.cursor_move_finished)
+        self.plot.xrange_changed.connect(self.xrange_changed)
         self.plot.show()
 
         for i, sig in enumerate(self.plot.signals):
@@ -2921,6 +2983,27 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         submenu.addActions(memory_option.actions())
         menu.addMenu(submenu)
 
+        # integer stepmode menu
+        memory_option = QActionGroup(self)
+
+        for option in (
+                'Step mode',
+                'Direct connect mode'):
+
+            action = QAction(option)
+            action.setCheckable(True)
+            memory_option.addAction(action)
+            action.triggered.connect(
+                partial(self.set_integer_line_style, option)
+            )
+
+            if option == 'Step mode':
+                action.setChecked(True)
+
+        submenu = QMenu('Integer line style', self.menubar)
+        submenu.addActions(memory_option.actions())
+        menu.addMenu(submenu)
+
         # search mode menu
         search_option = QActionGroup(self)
 
@@ -3135,9 +3218,22 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         self.memory = 'minimum'
         self.match = 'Match start'
         self.plot_lines = 'Simple'
+        self.integer_line_style = 'Step mode'
         self.toolBox.setCurrentIndex(0)
 
         self.show()
+
+    def set_integer_line_style(self, option):
+        self.integer_line_style = option
+
+        count = self.files.count()
+
+        if option == 'Step mode':
+            step_mode = True
+        else:
+            step_mode = False
+        for i in range(count):
+            self.files.widget(i).step_mode = step_mode
 
     def file_action(self, key, modifier=Qt.NoModifier):
         event = QKeyEvent(QEvent.KeyPress, key, modifier)
@@ -3327,7 +3423,8 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             else:
                 cls = pg.PlotDataItem
             try:
-                widget = FileWidget(file_name, self.memory, cls, self)
+                step_mode = True if self.integer_line_style == 'Step mode' else False
+                widget = FileWidget(file_name, self.memory, cls, step_mode, self)
                 widget.search_field.set_search_option(self.match)
                 widget.filter_field.set_search_option(self.match)
             except:

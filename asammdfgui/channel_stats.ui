@@ -27,7 +27,28 @@
        <property name="title">
         <string>Cursor</string>
        </property>
+       <property name="flat">
+        <bool>false</bool>
+       </property>
+       <property name="checkable">
+        <bool>false</bool>
+       </property>
        <layout class="QGridLayout" name="gridLayout_4" columnstretch="0,1,0">
+        <property name="leftMargin">
+         <number>4</number>
+        </property>
+        <property name="topMargin">
+         <number>4</number>
+        </property>
+        <property name="rightMargin">
+         <number>4</number>
+        </property>
+        <property name="bottomMargin">
+         <number>4</number>
+        </property>
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item row="0" column="1">
          <widget class="QLabel" name="cursor_t">
           <property name="text">
@@ -85,6 +106,21 @@
         <string>Selected range</string>
        </property>
        <layout class="QGridLayout" name="gridLayout_5" columnstretch="0,1,0">
+        <property name="leftMargin">
+         <number>4</number>
+        </property>
+        <property name="topMargin">
+         <number>4</number>
+        </property>
+        <property name="rightMargin">
+         <number>4</number>
+        </property>
+        <property name="bottomMargin">
+         <number>4</number>
+        </property>
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item row="5" column="1">
          <widget class="QLabel" name="selected_delta">
           <property name="text">
@@ -238,6 +274,21 @@
         <string>Visible range</string>
        </property>
        <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,1,0">
+        <property name="leftMargin">
+         <number>4</number>
+        </property>
+        <property name="topMargin">
+         <number>4</number>
+        </property>
+        <property name="rightMargin">
+         <number>4</number>
+        </property>
+        <property name="bottomMargin">
+         <number>4</number>
+        </property>
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item row="5" column="0">
          <widget class="QLabel" name="label_19">
           <property name="text">
@@ -391,6 +442,21 @@
         <string>Overall</string>
        </property>
        <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1,0">
+        <property name="leftMargin">
+         <number>4</number>
+        </property>
+        <property name="topMargin">
+         <number>4</number>
+        </property>
+        <property name="rightMargin">
+         <number>4</number>
+        </property>
+        <property name="bottomMargin">
+         <number>4</number>
+        </property>
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item row="3" column="0">
          <widget class="QLabel" name="label_6">
           <property name="text">
