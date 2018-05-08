@@ -3302,7 +3302,15 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         menu.addActions(info.actions())
         self.menubar.addMenu(menu)
 
-        # self.menubar.addAction(menu.menuAction())
+        menu = self.menubar.addMenu('Help')
+        open_group = QActionGroup(self)
+        action = QAction('Online documentation')
+        action.triggered.connect(
+            self.help
+        )
+        open_group.addAction(action)
+        menu.addActions(open_group.actions())
+
 
         self.memory = 'minimum'
         self.match = 'Match start'
@@ -3311,6 +3319,10 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
         self.toolBox.setCurrentIndex(0)
 
         self.show()
+
+    def help(self, event):
+        os.system(
+            r'start "" http://asammdf.readthedocs.io/en/master/gui.html')
 
     def set_integer_line_style(self, option):
         self.integer_line_style = option
