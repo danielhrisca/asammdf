@@ -593,7 +593,12 @@ class Plot(pg.PlotWidget):
                 if len(cut):
                     stats['selected_min'] = np.amin(cut.samples)
                     stats['selected_max'] = np.amax(cut.samples)
-                    stats['selected_delta'] = cut.samples[-1] - cut.samples[0]
+                    if cut.samples.dtyp.kind in 'ui':
+                        stats['selected_delta'] = int(
+                            float(cut.samples[-1]) - (cut.samples[0])
+                        )
+                    else:
+                        stats['selected_delta'] = cut.samples[-1] - cut.samples[0]
 
                 else:
                     stats['selected_min'] = 'n.a.'
