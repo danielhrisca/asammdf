@@ -2,6 +2,7 @@ import os
 import sys
 import traceback
 import re
+import logging
 
 from copy import deepcopy
 from datetime import datetime
@@ -29,6 +30,14 @@ import asammdfgui.channel_stats as channel_stats
 import asammdfgui.range_editor_dialog as range_editor_dialog
 
 import pyqtgraph as pg
+
+if not hasattr(pg.InfiniteLine, 'addMarker'):
+    logger = logging.getLogger('asammdf')
+    message = (
+        'Old pyqtgraph package: Please install the latest pyqtgraph from the github develop branch\n'
+        'pip install -I --no-deps https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip'
+    )
+    logger.warning(message)
 
 
 __version__ = '0.1.0'
@@ -216,8 +225,11 @@ class Cursor(pg.InfiniteLine):
 
         super(Cursor, self).__init__(*args, label='{value:.6f}s', labelOpts={'position': 0.04}, **kwargs)
 
-        self.addMarker('^', 0)
-        self.addMarker('v', 1)
+        try:
+            self.addMarker('^', 0)
+            self.addMarker('v', 1)
+        except:
+            pass
         self.label.show()
 
 
