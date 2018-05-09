@@ -11,9 +11,10 @@
 
 *asammdf* was tested succesfully on both Linux and Windows
 
-_
-
 </p>
+
+<img align=left src="https://raw.githubusercontent.com/danielhrisca/asammdf/development/gui.png"/> 
+
 
 # Status
 

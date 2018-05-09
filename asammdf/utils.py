@@ -3,8 +3,8 @@
 asammdf utility functions and classes
 '''
 
+import logging
 import string
-import warnings
 import xml.etree.ElementTree as ET
 
 from collections import namedtuple
@@ -19,6 +19,8 @@ from numpy import (
 
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
+
+logger = logging.getLogger('asammdf')
 
 __all__ = [
     'CHANNEL_COUNT',
@@ -215,7 +217,7 @@ def get_text_v3(address, stream):
                 .strip(' \r\t\n\0')
             )
         except ImportError:
-            warnings.warn(
+            logger.warning(
                 'Unicode exception occured and "chardet" package is '
                 'not installed. Mdf version 3 expects "latin-1" '
                 'strings and this package may detect if a different'
@@ -266,7 +268,7 @@ def get_text_v4(address, stream):
                 .strip(' \r\t\n\0')
             )
         except ImportError:
-            warnings.warn(
+            logger.warning(
                 'Unicode exception occured and "chardet" package is '
                 'not installed. Mdf version 4 expects "utf-8" '
                 'strings and this package may detect if a different'
@@ -500,7 +502,9 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
             size = 1
         else:
             message = 'Unknown type: dtype={}, shape={}'
-            raise MdfException(message.format(fmt, shape))
+            message = message.format(fmt, shape)
+            logger.exception(message)
+            raise MdfException(message)
 
     return data_type, size
 
@@ -569,7 +573,9 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
             size = 1
         else:
             message = 'Unknown type: dtype={}, shape={}'
-            raise MdfException(message.format(fmt, shape))
+            message = message.format(fmt, shape)
+            logger.exception(message)
+            raise MdfException(message)
 
     return data_type, size
 
@@ -799,13 +805,12 @@ def validate_version_argument(version, hint=4):
             ' The available versions are {};'
             ' automatically using version "{}"'
         )
-        warn(
-            message.format(
-                version,
-                SUPPORTED_VERSIONS,
-                valid_version,
-            )
+        message = message.format(
+            version,
+            SUPPORTED_VERSIONS,
+            valid_version,
         )
+        logger.warning(message)
     else:
         valid_version = version
     return valid_version

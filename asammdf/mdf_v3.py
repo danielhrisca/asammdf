@@ -3,10 +3,10 @@
 
 from __future__ import division, print_function
 
+import logging
 import os
 import sys
 import time
-import warnings
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from copy import deepcopy
@@ -77,6 +77,8 @@ if PYVERSION == 2:
     # pylint: disable=W0622
     from .utils import bytes
     # pylint: enable=W0622
+
+logger = logging.getLogger('asammdf')
 
 __all__ = ['MDF3', ]
 
@@ -349,7 +351,10 @@ class MDF3(object):
         """
 
         memory = self.memory
-        stream = self._file
+        if group['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
         grp = group
         record_size = grp['channel_group']['samples_byte_nr'] << 3
         next_byte_aligned_position = 0
@@ -656,7 +661,7 @@ class MDF3(object):
                             ' to select another data group'
                         )
                         message = message.format(name, gp_nr)
-                        warnings.warn(message)
+                        logger.warning(message)
                 else:
                     for gp_nr, ch_nr in self.channels_db[name]:
                         if gp_nr == group:
@@ -3845,7 +3850,7 @@ class MDF3(object):
                     'and "overwrite" is False. Saving MDF file as "{}"'
                 )
                 message = message.format(dst, name)
-                warnings.warn(message)
+                logger.warning(message)
                 dst = name
 
         # all MDF blocks are appended to the blocks list in the order in which
@@ -4243,7 +4248,7 @@ class MDF3(object):
                     'and "overwrite" is False. Saving MDF file as "{}"'
                 )
                 message = message.format(dst, name)
-                warnings.warn(message)
+                logger.warning(message)
                 dst = name
 
         if dst == self.name:

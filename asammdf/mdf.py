@@ -2,12 +2,12 @@
 """ common MDF file format module """
 
 import csv
+import logging
 import os
 import sys
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from copy import deepcopy
-from warnings import warn
 from functools import reduce
 from struct import unpack
 
@@ -42,6 +42,8 @@ from .v4_blocks import ChannelArrayBlock, EventBlock
 from . import v4_constants as v4c
 
 PYVERSION = sys.version_info[0]
+
+logger = logging.getLogger('asammdf')
 
 
 __all__ = ['MDF', 'SUPPORTED_VERSIONS']
@@ -918,7 +920,7 @@ class MDF(object):
         if filename is None and self.name is None:
             message = ('Must specify filename for export'
                        'if MDF was created without a file name')
-            warn(message)
+            logger.warning(message)
             return
 
         single_time_base = kargs.get('single_time_base', False)
@@ -959,7 +961,6 @@ class MDF(object):
             comments['t'] = ''
 
             used_names = {'t'}
-            count = len(self.groups)
 
             for i, grp in enumerate(self.groups):
                 if self._terminate:
@@ -1021,7 +1022,7 @@ class MDF(object):
             try:
                 from h5py import File as HDF5
             except ImportError:
-                warn('h5py not found; export to HDF5 is unavailable')
+                logger.warning('h5py not found; export to HDF5 is unavailable')
                 return
             else:
 
@@ -1105,7 +1106,7 @@ class MDF(object):
             try:
                 import xlsxwriter
             except ImportError:
-                warn('xlsxwriter not found; export to Excel unavailable')
+                logger.warning('xlsxwriter not found; export to Excel unavailable')
                 return
             else:
 
@@ -1339,13 +1340,13 @@ class MDF(object):
                 try:
                     from hdf5storage import savemat
                 except ImportError:
-                    warn('hdf5storage not found; export to mat v7.3 is unavailable')
+                    logger.warning('hdf5storage not found; export to mat v7.3 is unavailable')
                     return
             else:
                 try:
                     from scipy.io import savemat
                 except ImportError:
-                    warn('scipy not found; export to mat is unavailable')
+                    logger.warning('scipy not found; export to mat is unavailable')
                     return
 
             if not name.endswith('.mat'):
@@ -1436,7 +1437,8 @@ class MDF(object):
                 'Unsopported export type "{}". '
                 'Please select "csv", "excel", "hdf5", "mat" or "pandas"'
             )
-            warn(message.format(fmt))
+            message.format(fmt)
+            logger.warning(message)
 
     def filter(self, channels, memory='full'):
         """ return new *MDF* object that contains only the channels listed in
@@ -1665,6 +1667,26 @@ class MDF(object):
         """ iterator over a channel
 
         This is usefull in case of large files with a small number of channels.
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+        raster : float
+            time raster in seconds
+        samples_only : bool
+            if *True* return only the channel samples as numpy array; if
+                *False* return a *Signal* object
+        raw : bool
+            return channel samples without appling the conversion rule; default
+            `False`
 
         """
         gp_nr, ch_nr = self._validate_channel_selection(
@@ -2048,7 +2070,6 @@ class MDF(object):
         for idx, (offset, mdf) in enumerate(zip(offsets, files), 1):
             for i, group in enumerate(mdf.groups):
                 idx = 0
-                channels_nr = len(group['channels'])
                 included_channels = mdf._included_channels(i)
 
                 parents, dtypes = mdf._prepare_record(group)

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """ asammdf *Signal* class module for time correct signal processing """
 
+import logging
 from textwrap import fill
 
 import numpy as np
-import warnings
 
 from .utils import MdfException, extract_cncomment_xml
 from . import v2_v3_blocks as v3b
@@ -12,6 +12,8 @@ from . import v4_constants as v4c
 from . import v4_blocks as v4b
 
 from .version import __version__
+
+logger = logging.getLogger('asammdf')
 
 
 class Signal(object):
@@ -80,6 +82,7 @@ class Signal(object):
                     samples.shape[0],
                     timestamps.shape[0],
                 )
+                logger.exception(message)
                 raise MdfException(message)
             self.samples = samples
             self.timestamps = timestamps
@@ -200,7 +203,7 @@ class Signal(object):
             from mpl_toolkits.mplot3d import axes3d
             from matplotlib.widgets import Slider
         except ImportError:
-            warnings.warn("Signal plotting requires matplotlib")
+            logging.warning("Signal plotting requires matplotlib")
             return
 
         if len(self.samples.shape) <= 1 and self.samples.dtype.names is None:
@@ -416,14 +419,38 @@ class Signal(object):
         0.98, 10.48
 
         """
+        if len(self) == 0:
+            result = Signal(
+                np.array([]),
+                np.array([]),
+                self.unit,
+                self.name,
+                self.conversion,
+                self.comment,
+                self.raw,
+                self.master_metadata,
+                self.display_name,
+                self.attachment,
+            )
 
-        if start is None and stop is None:
+        elif start is None and stop is None:
             # return the channel uncut
-            result = self
+            result = Signal(
+                self.samples.copy(),
+                self.timestamps.copy(),
+                self.unit,
+                self.name,
+                self.conversion,
+                self.comment,
+                self.raw,
+                self.master_metadata,
+                self.display_name,
+                self.attachment,
+            )
 
         else:
             if start is None:
-                # cut from beggining to stop
+                # cut from begining to stop
                 stop = np.searchsorted(self.timestamps, stop, side='right')
                 if stop:
                     result = Signal(
@@ -470,48 +497,10 @@ class Signal(object):
 
             else:
                 # cut between start and stop
-                start_ = np.searchsorted(self.timestamps, start, side='left')
-                start_ = max(0, start_)
-                stop_ = np.searchsorted(self.timestamps, stop, side='right')
-                if start not in self.timestamps and start_ == stop_:
-                    start_ -= 1
-                if stop_ == start_:
-                    if (len(self.timestamps)
-                            and stop >= self.timestamps[0]
-                            and start <= self.timestamps[-1]):
-                        # start and stop are found between 2 signal samples
-                        # so return the previous sample
-                        result = Signal(
-                            self.samples[start_ - 1: start_],
-                            self.timestamps[start_ - 1: start_],
-                            self.unit,
-                            self.name,
-                            self.conversion,
-                            self.comment,
-                            self.raw,
-                            self.master_metadata,
-                            self.display_name,
-                            self.attachment,
-                        )
-                    else:
-                        # signal is empty or start and stop are outside the
-                        # signal time base
-                        result = Signal(
-                            np.array([]),
-                            np.array([]),
-                            self.unit,
-                            self.name,
-                            self.conversion,
-                            self.comment,
-                            self.raw,
-                            self.master_metadata,
-                            self.display_name,
-                            self.attachment,
-                        )
-                else:
+                if start > self.timestamps[-1]:
                     result = Signal(
-                        self.samples[start_: stop_],
-                        self.timestamps[start_: stop_],
+                        np.array([]),
+                        np.array([]),
                         self.unit,
                         self.name,
                         self.conversion,
@@ -521,6 +510,59 @@ class Signal(object):
                         self.display_name,
                         self.attachment,
                     )
+                else:
+                    start_ = np.searchsorted(self.timestamps, start, side='left')
+                    start_ = max(0, start_)
+                    stop_ = np.searchsorted(self.timestamps, stop, side='right')
+
+                    if start not in self.timestamps and start_ == stop_:
+                        start_ -= 1
+                    if stop_ == start_:
+                        if (len(self.timestamps)
+                                and stop >= self.timestamps[0]
+                                and start <= self.timestamps[-1]):
+                            # start and stop are found between 2 signal samples
+                            # so return the previous sample
+                            result = Signal(
+                                self.samples[start_ - 1: start_],
+                                self.timestamps[start_ - 1: start_],
+                                self.unit,
+                                self.name,
+                                self.conversion,
+                                self.comment,
+                                self.raw,
+                                self.master_metadata,
+                                self.display_name,
+                                self.attachment,
+                            )
+                        else:
+                            # signal is empty or start and stop are outside the
+                            # signal time base
+                            result = Signal(
+                                np.array([]),
+                                np.array([]),
+                                self.unit,
+                                self.name,
+                                self.conversion,
+                                self.comment,
+                                self.raw,
+                                self.master_metadata,
+                                self.display_name,
+                                self.attachment,
+                            )
+                    else:
+                        result = Signal(
+                            self.samples[start_: stop_],
+                            self.timestamps[start_: stop_],
+                            self.unit,
+                            self.name,
+                            self.conversion,
+                            self.comment,
+                            self.raw,
+                            self.master_metadata,
+                            self.display_name,
+                            self.attachment,
+                        )
         return result
 
     def extend(self, other):
