@@ -3323,7 +3323,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
     def help(self, event):
         os.system(
-            r'start "" http://asammdf.readthedocs.io/en/master/gui.html')
+            r'start "" http://asammdf.readthedocs.io/en/development/gui.html')
 
     def set_integer_line_style(self, option):
         self.integer_line_style = option
