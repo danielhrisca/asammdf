@@ -1710,7 +1710,7 @@ class MDF(object):
             )
 
     @staticmethod
-    def concatenate(files, outversion='4.10', memory='full', callback=None):
+    def concatenate(files, outversion='4.10', memory='full', sync=True, callback=None):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -1723,6 +1723,8 @@ class MDF(object):
             merged file version
         memory : str
             memory option; default *full*
+        sync : bool
+            sync the files based on the start of measurement, default *True*
 
         Returns
         -------
@@ -1745,16 +1747,25 @@ class MDF(object):
             for file in files
         ]
 
-        timestamps = [
-            file.header.start_time
-            for file in files
-        ]
+        if sync:
 
-        oldest = min(timestamps)
-        offsets = [
-            (timestamp - oldest).total_seconds()
-            for timestamp in timestamps
-        ]
+            timestamps = [
+                file.header.start_time
+                for file in files
+            ]
+
+            oldest = min(timestamps)
+            offsets = [
+                (timestamp - oldest).total_seconds()
+                for timestamp in timestamps
+            ]
+
+        else:
+            oldest = files[0].header.start_time
+            offsets = [
+                oldest - oldest
+                for _ in files
+            ]
 
         groups_nr = set(len(file.groups) for file in files)
 
@@ -1961,7 +1972,7 @@ class MDF(object):
         return merged
 
     @staticmethod
-    def merge(files, outversion='4.10', memory='full', callback=None):
+    def merge(files, outversion='4.10', memory='full', sync=True, callback=None):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -1974,6 +1985,8 @@ class MDF(object):
             merged file version
         memory : str
             memory option; default *full*
+        sync : bool
+            sync the files based on the start of measurement, default *True*
 
         Returns
         -------
@@ -1985,7 +1998,7 @@ class MDF(object):
         MdfException : if there are inconsistencies between the files
 
         """
-        return MDF.concatenate(files, outversion, memory, callback)
+        return MDF.concatenate(files, outversion, memory, sync, callback)
 
     @staticmethod
     def stack(files, outversion='4.10', memory='full', sync=True, callback=None):
