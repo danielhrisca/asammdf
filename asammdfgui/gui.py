@@ -3631,7 +3631,10 @@ class MainWindow(QMainWindow):
                 '',
                 "MDF files (*.dat *.mdf *.mf4)",
             )
-            file_name = str(file_name)
+            file_names = [
+                str(file_name)
+                for file_name in file_names
+            ]
 
         if file_names:
             self.files_list.addItems(file_names)
