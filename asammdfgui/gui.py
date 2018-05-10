@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import sys
 import traceback
@@ -13,9 +14,81 @@ from time import sleep
 
 import numpy as np
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+try:
+    from PyQt5.QtGui import *
+    from PyQt5.QtWidgets import *
+    from PyQt5.QtCore import *
+    from PyQt5 import uic
+
+except ImportError:
+    from PyQt4.QtCore import *
+    from PyQt4.QtGui import *
+    from PyQt4 import uic
+
+class AdvancedSearch(QDialog):
+    def __init__(self, channels_db, *args, **kwargs):
+
+        super(AdvancedSearch, self).__init__(*args, **kwargs)
+        uic.loadUi('search_dialog.ui', self)
+
+        self.result = set()
+        self.channels_db = sorted(set(channels_db))
+
+        self.apply_btn.clicked.connect(self._apply)
+        self.apply_all_btn.clicked.connect(self._apply_all)
+        self.cancel_btn.clicked.connect(self._cancel)
+
+        self.search_box.textChanged.connect(self.search_text_changed)
+        self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
+
+        self.setWindowTitle('Search & select channels')
+
+    def search_text_changed(self, text):
+        if len(text) >= 2:
+            if self.match_kind.currentText() == 'Wildcard':
+                pattern = text.replace('*', '_WILDCARD_')
+                pattern = re.escape(pattern)
+                pattern = pattern.replace('_WILDCARD_', '.*')
+            else:
+                pattern = text
+
+            try:
+                pattern = re.compile('(?i){}'.format(pattern))
+                matches = [
+                    name
+                    for name in self.channels_db
+                    if pattern.match(name)
+                ]
+                self.matches.clear()
+                self.matches.addItems(matches)
+                if matches:
+                    self.status.setText('')
+                else:
+                    self.status.setText('No match found')
+            except Exception as err:
+                self.status.setText(str(err))
+                self.matches.clear()
+
+    def _apply(self, event):
+        self.result = set(
+            item.text()
+            for item in self.matches.selectedItems()
+        )
+        self.close()
+
+    def _apply_all(self, event):
+        count = self.matches.count()
+        self.result = set(
+            self.matches.item(i).text()
+            for i in range(count)
+        )
+        self.close()
+
+    def _cancel(self, event):
+        self.result = set()
+        self.close()
+
+print(AdvancedSearch)
 
 from asammdf import MDF, MDF2, MDF3, MDF4, SUPPORTED_VERSIONS
 from asammdf import __version__ as libversion
@@ -1090,7 +1163,6 @@ class RangeEditor(QDialog, range_editor_dialog.Ui_RangeDialog):
         button.setStyleSheet("background-color: {};".format(color))
 
     def apply(self, event):
-        print(event)
         for row in range(100):
             try:
                 start = self.table.cellWidget(row, 0).value()
@@ -1455,14 +1527,15 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
                 datalyser = win32com.client.Dispatch('Datalyser3.Datalyser3_COM')
                 datalyser.DCOM_set_datalyser_visibility(False)
-                datalyser.DCOM_convert_file_mdf_dl3(
+                ret = datalyser.DCOM_convert_file_mdf_dl3(
                     file_name,
                     mdf_name,
                     0
                 )
                 datalyser.DCOM_TerminateDAS()
                 file_name = mdf_name
-            except:
+            except Exception as err:
+                print(err)
                 return
 
         target = MDF
