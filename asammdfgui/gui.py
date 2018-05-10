@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+PYVERSION = sys.version_info[0]
+bin_ = bin
 import traceback
 import re
 import logging
@@ -19,11 +21,16 @@ try:
     from PyQt5.QtWidgets import *
     from PyQt5.QtCore import *
     from PyQt5 import uic
+    from asammdfgui import resource_qt5 as resource_rc
+    QT = 5
 
 except ImportError:
     from PyQt4.QtCore import *
     from PyQt4.QtGui import *
     from PyQt4 import uic
+    from asammdfgui import resource_qt4 as resource_rc
+    QT = 4
+
 
 class AdvancedSearch(QDialog):
     def __init__(self, channels_db, *args, **kwargs):
@@ -88,19 +95,9 @@ class AdvancedSearch(QDialog):
         self.result = set()
         self.close()
 
-print(AdvancedSearch)
 
 from asammdf import MDF, MDF2, MDF3, MDF4, SUPPORTED_VERSIONS
 from asammdf import __version__ as libversion
-
-import asammdfgui.main_window as main_window
-import asammdfgui.file_widget as file_widget
-import asammdfgui.search_dialog as search_dialog
-import asammdfgui.search_widget as search_widget
-import asammdfgui.channel_info_widget as channel_info_widget
-import asammdfgui.channel_display_widget as channel_display_widget
-import asammdfgui.channel_stats as channel_stats
-import asammdfgui.range_editor_dialog as range_editor_dialog
 
 import pyqtgraph as pg
 
@@ -224,6 +221,7 @@ def run_thread_with_progress(
             )
         sleep(0.1)
 
+
     if termination_request:
         MDF._terminate = False
         MDF2._terminate = False
@@ -271,16 +269,22 @@ def setup_progress(parent, title, message, icon_name):
 
 
 class WorkerThread(Thread):
-    def __init__(self, output=None, *args, **kargs):
+    def __init__(self, *args, **kargs):
         super(WorkerThread, self).__init__(*args, **kargs)
         self.output = None
         self.error = ''
 
     def run(self):
-        try:
-            self.output = self._target(*self._args, **self._kwargs)
-        except Exception as err:
-            self.error = err
+        if PYVERSION < 3:
+            try:
+                self.output = self._Thread__target(*self._Thread__args, **self._Thread__kwargs)
+            except Exception as err:
+                self.error = err
+        else:
+            try:
+                self.output = self._target(*self._args, **self._kwargs)
+            except Exception as err:
+                self.error = err
 
 
 class TreeItem(QTreeWidgetItem):
@@ -333,7 +337,8 @@ class FormatedAxis(pg.AxisItem):
             for val in values:
                 val = float(val)
                 if val.is_integer():
-                    val = bin(int(val))
+                    print(type(int(val)), bin)
+                    val = bin_(int(val))
                 else:
                     val = ''
                 strns.append(val)
@@ -1030,10 +1035,10 @@ class ListWidget(QListWidget):
             super(ListWidget, self).keyPressEvent(event)
 
 
-class ChannelInfoWidget(QWidget, channel_info_widget.Ui_ChannelInfo):
-    def __init__(self, channel, parent=None):
-        super().__init__(parent)
-        self.setupUi(self)
+class ChannelInfoWidget(QWidget):
+    def __init__(self, channel, *args, **kwargs):
+        super(ChannelInfoWidget, self).__init__(*args, **kwargs)
+        uic.loadUi('channel_info_widget.ui', self)
 
         self.channel_label.setText(
             channel.metadata()
@@ -1050,73 +1055,10 @@ class ChannelInfoWidget(QWidget, channel_info_widget.Ui_ChannelInfo):
             )
 
 
-class AdvancedSearch(QDialog, search_dialog.Ui_SearchDialog):
-    def __init__(self, channels_db, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.setupUi(self)
-
-        self.result = set()
-        self.channels_db = sorted(set(channels_db))
-
-        self.apply_btn.clicked.connect(self._apply)
-        self.apply_all_btn.clicked.connect(self._apply_all)
-        self.cancel_btn.clicked.connect(self._cancel)
-
-        self.search_box.textChanged.connect(self.search_text_changed)
-        self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
-
-        self.setWindowTitle('Search & select channels')
-
-    def search_text_changed(self, text):
-        if len(text) >= 2:
-            if self.match_kind.currentText() == 'Wildcard':
-                pattern = text.replace('*', '_WILDCARD_')
-                pattern = re.escape(pattern)
-                pattern = pattern.replace('_WILDCARD_', '.*')
-            else:
-                pattern = text
-
-            try:
-                pattern = re.compile('(?i){}'.format(pattern))
-                matches = [
-                    name
-                    for name in self.channels_db
-                    if pattern.match(name)
-                ]
-                self.matches.clear()
-                self.matches.addItems(matches)
-                if matches:
-                    self.status.setText('')
-                else:
-                    self.status.setText('No match found')
-            except Exception as err:
-                self.status.setText(str(err))
-                self.matches.clear()
-
-    def _apply(self, event):
-        self.result = set(
-            item.text()
-            for item in self.matches.selectedItems()
-        )
-        self.close()
-
-    def _apply_all(self, event):
-        count = self.matches.count()
-        self.result = set(
-            self.matches.item(i).text()
-            for i in range(count)
-        )
-        self.close()
-
-    def _cancel(self, event):
-        self.result = set()
-        self.close()
-
-
-class RangeEditor(QDialog, range_editor_dialog.Ui_RangeDialog):
+class RangeEditor(QDialog):
     def __init__(self, unit='', ranges=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.setupUi(self)
+        super(RangeEditor, self).__init__(*args, **kwargs)
+        uic.loadUi('range_editor_dialog.ui', self)
 
         self.unit = unit
         self.result = {}
@@ -1225,10 +1167,10 @@ class ChannelInfoDialog(QDialog):
         )
 
 
-class ChannelStats(QWidget, channel_stats.Ui_ChannelStats):
-    def __init__(self, *args, **kargs):
-        super(ChannelStats, self).__init__(*args, **kargs)
-        self.setupUi(self)
+class ChannelStats(QWidget):
+    def __init__(self, *args, **kwargs):
+        super(ChannelStats, self).__init__(*args, **kwargs)
+        uic.loadUi('channel_stats.ui', self)
 
         self.color = '#000000'
         self.fmt = 'phys'
@@ -1315,14 +1257,14 @@ class ChannelStats(QWidget, channel_stats.Ui_ChannelStats):
                 label.setText('')
 
 
-class ChannelDisplay(QWidget, channel_display_widget.Ui_ChannelDiplay):
+class ChannelDisplay(QWidget):
 
     color_changed = pyqtSignal(int, str)
     enable_changed = pyqtSignal(int, int)
 
-    def __init__(self, index, unit='', *args, **kargs):
-        super(ChannelDisplay, self).__init__(*args, **kargs)
-        self.setupUi(self)
+    def __init__(self, index, unit='', *args, **kwargs):
+        super(ChannelDisplay, self).__init__(*args, **kwargs)
+        uic.loadUi('channel_display_widget.ui', self)
 
         self.color = '#ff0000'
         self._value_prefix = ''
@@ -1409,13 +1351,13 @@ class ChannelDisplay(QWidget, channel_display_widget.Ui_ChannelDiplay):
         )
 
 
-class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
+class SearchWidget(QWidget):
 
     selectionChanged = pyqtSignal()
 
-    def __init__(self, channels_db, parent=None):
-        super().__init__(parent)
-        self.setupUi(self)
+    def __init__(self, channels_db, *args, **kwargs):
+        super(SearchWidget, self).__init__(*args, **kwargs)
+        uic.loadUi('search_widget.ui', self)
         self.channels_db = channels_db
 
         self.matches = 0
@@ -1428,7 +1370,8 @@ class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
         )
         completer.setCaseSensitivity(Qt.CaseInsensitive)
         completer.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
-        completer.setFilterMode(Qt.MatchContains)
+        if QT == 5:
+            completer.setFilterMode(Qt.MatchContains)
         self.search.setCompleter(completer)
 
         self.search.textChanged.connect(self.display_results)
@@ -1453,10 +1396,11 @@ class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
             self.selectionChanged.emit()
 
     def set_search_option(self, option):
-        if option == 'Match start':
-            self.search.completer().setFilterMode(Qt.MatchStartsWith)
-        elif option == 'Match contains':
-            self.search.completer().setFilterMode(Qt.MatchContains)
+        if QT == 5:
+            if option == 'Match start':
+                self.search.completer().setFilterMode(Qt.MatchStartsWith)
+            elif option == 'Match contains':
+                self.search.completer().setFilterMode(Qt.MatchContains)
 
     def display_results(self, text):
         channel_name = text.strip()
@@ -1474,11 +1418,13 @@ class SearchWidget(QWidget, search_widget.Ui_SearchWidget):
             self.entries = []
 
 
-class FileWidget(QWidget, file_widget.Ui_file_widget):
-    def __init__(self, file_name, memory, plot_type, step_mode, parent=None):
-        super().__init__(parent)
+class FileWidget(QWidget):
+    def __init__(self, file_name, memory, plot_type, step_mode, *args, **kwargs):
+        super(FileWidget, self).__init__(*args, **kwargs)
+        uic.loadUi('file_widget.ui', self)
+
         self.plot = None
-        self.setupUi(self)
+
         self.file_name = file_name
         self.progress = None
         self.mdf = None
@@ -1993,12 +1939,21 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 self.info.set_stats(stats)
 
     def save_channel_list(self):
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Select output channel list file",
-            '',
-            "TXT files (*.txt)",
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Select output channel list file",
+                '',
+                "TXT files (*.txt)",
+            )
+        else:
+            file_name = QFileDialog.getSaveFileName(
+                self,
+                "Select output channel list file",
+                '',
+                "TXT files (*.txt)",
+            )
+            file_name = str(file_name)
         if file_name:
             with open(file_name, 'w') as output:
                 iterator = QTreeWidgetItemIterator(
@@ -2020,12 +1975,22 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 output.write('\n'.join(signals))
 
     def load_channel_list(self):
-        file_name, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select channel list file",
-            '',
-            "TXT files (*.txt)",
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getOpenFileName(
+                self,
+                "Select channel list file",
+                '',
+                "TXT files (*.txt)",
+            )
+        else:
+            file_name = QFileDialog.getOpenFileName(
+                self,
+                "Select channel list file",
+                '',
+                "TXT files (*.txt)",
+            )
+            file_name = str(file_name)
+
         if file_name:
             with open(file_name, 'r') as infile:
                 channels = [
@@ -2058,12 +2023,22 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 iterator += 1
 
     def save_filter_list(self):
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Select output filter list file",
-            '',
-            "TXT files (*.txt)",
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Select output filter list file",
+                '',
+                "TXT files (*.txt)",
+            )
+        else:
+            file_name = QFileDialog.getSaveFileName(
+                self,
+                "Select output filter list file",
+                '',
+                "TXT files (*.txt)",
+            )
+            file_name = str(file_name)
+
         if file_name:
             with open(file_name, 'w') as output:
                 iterator = QTreeWidgetItemIterator(
@@ -2085,12 +2060,22 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
                 output.write('\n'.join(signals))
 
     def load_filter_list(self):
-        file_name, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select filter list file",
-            '',
-            "TXT files (*.txt)",
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getOpenFileName(
+                self,
+                "Select filter list file",
+                '',
+                "TXT files (*.txt)",
+            )
+        else:
+            file_name = QFileDialog.getOpenFileName(
+                self,
+                "Select filter list file",
+                '',
+                "TXT files (*.txt)",
+            )
+            file_name = str(file_name)
+
         if file_name:
             with open(file_name, 'r') as infile:
                 channels = [
@@ -2489,12 +2474,21 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         compression = self.convert_compression.currentIndex()
 
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            '',
-            filter,
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                '',
+                filter,
+            )
+        else:
+            file_name = QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                '',
+                filter,
+            )
+            file_name = str(file_name)
 
         if file_name:
 
@@ -2574,12 +2568,21 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         compression = self.resample_compression.currentIndex()
 
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            '',
-            filter,
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                '',
+                filter,
+            )
+        else:
+            file_name = QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                '',
+                filter,
+            )
+            file_name = str(file_name)
 
         if file_name:
             progress = setup_progress(
@@ -2685,12 +2688,21 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         compression = self.cut_compression.currentIndex()
 
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            '',
-            filter,
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                '',
+                filter,
+            )
+        else:
+            file_name = QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                '',
+                filter,
+            )
+            file_name = str(file_name)
 
         if file_name:
             progress = setup_progress(
@@ -2793,12 +2805,21 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             'mat': "Matlab MAT files (*.mat)",
         }
 
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Select export file",
-            '',
-            filters[export_type],
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Select export file",
+                '',
+                filters[export_type],
+            )
+        else:
+            file_name = QFileDialog.getSaveFileName(
+                self,
+                "Select export file",
+                '',
+                filters[export_type],
+            )
+            file_name = str(file_name)
 
         if file_name:
             thr = Thread(
@@ -2972,12 +2993,21 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
 
         compression = self.filter_compression.currentIndex()
 
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            '',
-            filter,
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                '',
+                filter,
+            )
+        else:
+            file_name = QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                '',
+                filter,
+            )
+            file_name = str(file_name)
 
         if file_name:
             progress = setup_progress(
@@ -3062,14 +3092,13 @@ class FileWidget(QWidget, file_widget.Ui_file_widget):
             )
 
 
-class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
-    def __init__(self, parent=None):
+class MainWindow(QMainWindow):
+    def __init__(self, *args, **kwargs):
 
-        super().__init__(parent)
+        super(MainWindow, self).__init__(*args, **kwargs)
+        uic.loadUi('main_window.ui', self)
 
         self.progress = None
-
-        self.setupUi(self)
 
         self.files.tabCloseRequested.connect(self.close_file)
 
@@ -3110,7 +3139,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, 'Open')
+        action = QAction(icon, 'Open', menu)
         action.triggered.connect(
             self.open
         )
@@ -3128,7 +3157,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
                 'low',
                 'minimum'):
 
-            action = QAction(option)
+            action = QAction(option, menu)
             action.setCheckable(True)
             memory_option.addAction(action)
             action.triggered.connect(
@@ -3149,7 +3178,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
                 'Simple',
                 'With dots'):
 
-            action = QAction(option)
+            action = QAction(option, menu)
             action.setCheckable(True)
             memory_option.addAction(action)
             action.triggered.connect(
@@ -3170,7 +3199,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
                 'Step mode',
                 'Direct connect mode'):
 
-            action = QAction(option)
+            action = QAction(option, menu)
             action.setCheckable(True)
             memory_option.addAction(action)
             action.triggered.connect(
@@ -3191,7 +3220,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
                 'Match start',
                 'Match contains'):
 
-            action = QAction(option)
+            action = QAction(option, menu)
             action.setCheckable(True)
             search_option.addAction(action)
             action.triggered.connect(
@@ -3214,7 +3243,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\tF'.format('Fit trace'))
+        action = QAction(icon, '{: <20}\tF'.format('Fit trace'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_F)
         )
@@ -3227,7 +3256,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\tG'.format('Grid'))
+        action = QAction(icon, '{: <20}\tG'.format('Grid'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_G)
         )
@@ -3240,7 +3269,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\tH'.format('Home'))
+        action = QAction(icon, '{: <20}\tH'.format('Home'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_H)
         )
@@ -3253,7 +3282,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\tS'.format('Stack'))
+        action = QAction(icon, '{: <20}\tS'.format('Stack'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_S)
         )
@@ -3266,7 +3295,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\tI'.format('Zoom in'))
+        action = QAction(icon, '{: <20}\tI'.format('Zoom in'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_I)
         )
@@ -3279,7 +3308,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\tO'.format('Zoom out'))
+        action = QAction(icon, '{: <20}\tO'.format('Zoom out'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_O)
         )
@@ -3290,21 +3319,21 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         display_format_actions = QActionGroup(self)
 
-        action = QAction('{: <20}\tCtrl+H'.format('Hex'))
+        action = QAction('{: <20}\tCtrl+H'.format('Hex'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_H, modifier=Qt.ControlModifier)
         )
         action.setShortcut(QKeySequence('Ctrl+H'))
         display_format_actions.addAction(action)
 
-        action = QAction('{: <20}\tCtrl+B'.format('Bin'))
+        action = QAction('{: <20}\tCtrl+B'.format('Bin'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_B, modifier=Qt.ControlModifier)
         )
         action.setShortcut(QKeySequence('Ctrl+B'))
         display_format_actions.addAction(action)
 
-        action = QAction('{: <20}\tCtrl+P'.format('Physical'))
+        action = QAction('{: <20}\tCtrl+P'.format('Physical'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_P, modifier=Qt.ControlModifier)
         )
@@ -3321,7 +3350,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\tM'.format('Statistics'))
+        action = QAction(icon, '{: <20}\tM'.format('Statistics'), menu)
         action.triggered.connect(
             partial(self.file_action, key=Qt.Key_M)
         )
@@ -3337,7 +3366,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\tC'.format('Cursor'))
+        action = QAction(icon, '{: <20}\tC'.format('Cursor'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_C)
         )
@@ -3350,7 +3379,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\t←'.format('Move cursor left'))
+        action = QAction(icon, '{: <20}\t←'.format('Move cursor left'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_Left)
         )
@@ -3363,7 +3392,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\t→'.format('Move cursor right'))
+        action = QAction(icon, '{: <20}\t→'.format('Move cursor right'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_Right)
         )
@@ -3376,7 +3405,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             QIcon.Normal,
             QIcon.Off,
         )
-        action = QAction(icon, '{: <20}\tR'.format('Range'))
+        action = QAction(icon, '{: <20}\tR'.format('Range'), menu)
         action.triggered.connect(
             partial(self.plot_action, key=Qt.Key_R)
         )
@@ -3395,7 +3424,7 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
 
         menu = self.menubar.addMenu('Help')
         open_group = QActionGroup(self)
-        action = QAction('Online documentation')
+        action = QAction('Online documentation', menu)
         action.triggered.connect(
             self.help
         )
@@ -3507,12 +3536,21 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             for row in range(count)
         ]
 
-        file_name, _ = QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            '',
-            filter,
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                '',
+                filter,
+            )
+        else:
+            file_name = QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                '',
+                filter,
+            )
+            file_name = str(file_name)
 
         if file_name:
 
@@ -3575,12 +3613,22 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             progress.cancel()
 
     def open_multiple_files(self, event):
-        file_names, _ = QFileDialog.getOpenFileNames(
-            self,
-            "Select measurement file",
-            '',
-            "MDF files (*.dat *.mdf *.mf4)",
-        )
+        if QT > 4:
+            file_names, _ = QFileDialog.getOpenFileNames(
+                self,
+                "Select measurement file",
+                '',
+                "MDF files (*.dat *.mdf *.mf4)",
+            )
+        else:
+            file_names = QFileDialog.getOpenFileNames(
+                self,
+                "Select measurement file",
+                '',
+                "MDF files (*.dat *.mdf *.mf4)",
+            )
+            file_name = str(file_name)
+
         if file_names:
             self.files_list.addItems(file_names)
             count = self.files_list.count()
@@ -3602,13 +3650,24 @@ class MainWindow(QMainWindow, main_window.Ui_PyMDFMainWindow):
             self.open_multiple_files(event)
 
     def open_file(self, event):
-        file_name, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select measurement file",
-            '',
-            "MDF/DL3 files (*.dat *.mdf *.mf4 *.dl3)",
-        )
+        if QT > 4:
+            file_name, _ = QFileDialog.getOpenFileName(
+                self,
+                "Select measurement file",
+                '',
+                "MDF/DL3 files (*.dat *.mdf *.mf4 *.dl3)",
+            )
+        else:
+            file_name = QFileDialog.getOpenFileName(
+                self,
+                "Select measurement file",
+                '',
+                "MDF/DL3 files (*.dat *.mdf *.mf4 *.dl3)",
+            )
+            file_name = str(file_name)
+
         if file_name:
+            file_name = str(file_name)
             index = self.files.count()
             if self.plot_lines == 'Simple':
                 cls = pg.PlotCurveItem

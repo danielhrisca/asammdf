@@ -48,6 +48,8 @@ logger = logging.getLogger('asammdf')
 
 __all__ = ['MDF', 'SUPPORTED_VERSIONS']
 
+print('import')
+
 
 class MDF(object):
     """Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
@@ -76,6 +78,7 @@ class MDF(object):
     _terminate = False
 
     def __init__(self, name=None, memory='full', version='4.10', callback=None, queue=None):
+        print(callback)
         if name:
             if os.path.isfile(name):
                 memory = validate_memory_argument(memory)

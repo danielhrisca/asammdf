@@ -312,6 +312,7 @@ class MDF4(object):
         self._tempfile.write(b'\0')
 
         self._callback = callback
+
         self.queue = queue
 
         if name:
