@@ -2189,8 +2189,8 @@ class TextBlock(dict):
             self['text'] = stream.read(size)
 
             if self['id'] != b'TX':
-                message = 'Expected "TX" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "TX" block @ 0x{:X} but found "{}"'
+                message = message.format(address, self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 

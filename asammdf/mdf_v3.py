@@ -709,10 +709,11 @@ class MDF3(object):
             .strip(' \n\t\0')
         )
 
-        self.file_history = TextBlock(
-            address=self.header['comment_addr'],
-            stream=stream,
-        )
+        if self.header['comment_addr']:
+            self.file_history = TextBlock(
+                address=self.header['comment_addr'],
+                stream=stream,
+            )
 
         # this will hold mapping from channel address to Channel object
         # needed for linking dependency blocks to referenced channels after
@@ -4174,7 +4175,7 @@ class MDF3(object):
             self.groups = []
             self.header = None
             self.identification = None
-            self.file_history = []
+            self.file_history = None
             self.channels_db = {}
             self.masters_db = {}
 
@@ -4560,7 +4561,7 @@ class MDF3(object):
             self.groups = []
             self.header = None
             self.identification = None
-            self.file_history = []
+            self.file_history = None
             self.channels_db = {}
             self.masters_db = {}
 

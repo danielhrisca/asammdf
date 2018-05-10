@@ -389,10 +389,11 @@ class Channel(dict):
                 si_map = kargs.get('si_map', {})
                 cc_map = kargs.get('cc_map', {})
 
-                if self['conversion_addr']:
-                    stream.seek(self['conversion_addr'] + 8)
+                address = self['conversion_addr']
+                if address:
+                    stream.seek(address + 8)
                     size = unpack('<Q', stream.read(8))[0]
-                    stream.seek(self['conversion_addr'])
+                    stream.seek(address)
                     raw_bytes = stream.read(size)
                     if raw_bytes in cc_map:
                         conv = cc_map[raw_bytes]
@@ -400,12 +401,14 @@ class Channel(dict):
                         conv = ChannelConversion(
                             raw_bytes=raw_bytes,
                             stream=stream,
+                            address=address,
                         )
                         cc_map[raw_bytes] = conv
                     self.conversion = conv
 
-                if self['source_addr']:
-                    stream.seek(self['source_addr'])
+                address = self['source_addr']
+                if address:
+                    stream.seek(address)
                     raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
                     if raw_bytes in si_map:
                         source = si_map[raw_bytes]
@@ -413,6 +416,7 @@ class Channel(dict):
                         source = SourceInformation(
                             raw_bytes=raw_bytes,
                             stream=stream,
+                            address=address,
                         )
                         si_map[raw_bytes] = source
                     self.source = source
@@ -1186,11 +1190,11 @@ class ChannelConversion(dict):
                     kargs['raw_bytes'],
                 )
 
-                self.address = 0
-
                 block = kargs['raw_bytes'][v4c.COMMON_SIZE:]
 
                 stream = kargs['stream']
+
+                self.address = kargs.get('address', 0)
 
             except KeyError:
 
@@ -3328,6 +3332,7 @@ class SourceInformation(dict):
                     v4c.FMT_SOURCE_INFORMATION,
                     kargs['raw_bytes'],
                 )
+                self.address = kargs.get('address', 0)
             except KeyError:
                 self.address = address = kargs['address']
                 stream = kargs['stream']
