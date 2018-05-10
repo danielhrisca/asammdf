@@ -1,5 +1,7 @@
 import sys
 from cx_Freeze import setup, Executable
+import shutil
+import os
 
 # Dependencies are automatically detected, but it might need fine tuning.
 build_exe_options = {
@@ -84,6 +86,28 @@ base = None
 if sys.platform == "win32":
     base = "Win32GUI"
 
+resource_path = os.path.join(
+    os.getcwd(),
+    'build',
+    'exe.{}-{}.{}'.format(
+        sys.platform,
+        sys.version_info[0],
+        sys.version_info[1],
+    ),
+    'lib',
+    'asammdfgui',
+)
+
+build_path = os.path.join(
+    os.getcwd(),
+    'build',
+    'exe.{}-{}.{}'.format(
+        sys.platform,
+        sys.version_info[0],
+        sys.version_info[1],
+    ),
+)
+
 setup(
     name="asammdfgui",
     version ="3.4.1",
@@ -97,4 +121,19 @@ setup(
         )
     ],
 )
+
+cwd = os.getcwd()
+
+os.chdir(resource_path)
+for item in os.listdir():
+    print(item)
+    if os.path.isdir(item):
+        func = shutil.copytree
+    else:
+        func = shutil.copy
+
+    func(
+        item,
+        os.path.join(build_path, item),
+    )
 
