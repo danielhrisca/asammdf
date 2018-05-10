@@ -3440,6 +3440,7 @@ class MainWindow(QMainWindow):
 
         self.show()
 
+
     def help(self, event):
         os.system(
             r'start "" http://asammdf.readthedocs.io/en/development/gui.html')
@@ -3514,6 +3515,8 @@ class MainWindow(QMainWindow):
 
         version = self.cs_format.currentText()
 
+        sync = self.sync.checkState() == Qt.Checked
+
         memory = self.memory
 
         if version < '4.00':
@@ -3570,6 +3573,7 @@ class MainWindow(QMainWindow):
                 'outversion': version,
                 'memory': memory,
                 'callback': self.update_progress,
+                'sync': sync,
             }
 
             mdf = run_thread_with_progress(
