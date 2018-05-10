@@ -34,7 +34,7 @@ After you pip install asammdf there will be a new script called *asammdf.exe* in
 
 The following dependencies are required by the GUI
 
-* PyQt5
+* PyQt4 or PyQt5
 * pyqtgraph
 
 
