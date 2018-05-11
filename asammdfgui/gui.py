@@ -1010,7 +1010,7 @@ class Plot(pg.PlotWidget):
 
         elif key in (Qt.Key_Left, Qt.Key_Right):
             if self.cursor1:
-                pos = self.cursor1.value()
+                prev_pos = pos = self.cursor1.value()
                 dim = len(self.timebase)
                 if dim:
                     pos = np.searchsorted(self.timebase, pos)
@@ -1019,14 +1019,35 @@ class Plot(pg.PlotWidget):
                     else:
                         pos -= 1
                     pos = np.clip(pos, 0, dim-1)
-                    self.cursor1.setValue(self.timebase[pos])
+                    pos = self.timebase[pos]
                 else:
                     if key == Qt.Key_Right:
                         pos += 1
                     else:
                         pos -= 1
 
-                    self.cursor1.setValue(pos)
+                (left_side, right_side), _ = self.viewbox.viewRange()
+
+                if pos >= right_side:
+                    delta = abs(pos - prev_pos)
+                    self.viewbox.setXRange(
+                        left_side + delta,
+                        right_side + delta,
+                        padding=0,
+                    )
+                elif pos <= left_side:
+                    delta = abs(pos - prev_pos)
+                    self.viewbox.setXRange(
+                        left_side - delta,
+                        right_side - delta,
+                        padding=0,
+                    )
+                else:
+                    delta = 0
+
+                print(left_side, right_side, delta)
+
+                self.cursor1.setValue(pos)
 
         elif key == Qt.Key_H:
             for viewbox in self.view_boxes:
