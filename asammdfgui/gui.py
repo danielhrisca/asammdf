@@ -355,10 +355,14 @@ class Plot(pg.PlotWidget):
     cursor_move_finished = pyqtSignal()
     xrange_changed = pyqtSignal()
 
-    def __init__(self, signals, plot_type, step_mode, *args, **kwargs):
+    def __init__(self, signals, with_dots, step_mode, *args, **kwargs):
 
         super(Plot, self).__init__(*args, **kwargs)
-        self.curvetype = plot_type
+        self.with_dots = with_dots
+        if self.with_dots:
+            self.curvetype = pg.PlotDataItem
+        else:
+            self.curvetype = pg.PlotCurveItem
         self.step_mode = step_mode
         self.info = None
 
@@ -518,6 +522,88 @@ class Plot(pg.PlotWidget):
                 Qt.NoModifier,
             )
         )
+
+    def update_lines(self, with_dots=None, step_mode=None):
+        step_mode_changed = False
+        with_dots_changed = False
+        if step_mode is not None and step_mode != self.step_mode:
+            self.step_mode = step_mode
+            step_mode_changed = True
+
+        if with_dots is not None and with_dots != self.with_dots:
+            self.with_dots = with_dots
+            self.curvetype = pg.PlotDataItem if with_dots else pg.PlotCurveItem
+            with_dots_changed = True
+
+        if with_dots_changed or step_mode_changed:
+            for i, sig in enumerate(self.signals):
+                sig.stepmode = self.step_mode
+                color = sig.color
+                if sig.stepmode:
+                    if len(sig.timestamps):
+                        to_append = sig.timestamps[-1]
+                    else:
+                        to_append = 0
+                    t = np.append(
+                        sig.timestamps,
+                        to_append,
+                    )
+                else:
+                    t = sig.timestamps
+
+                curve = self.curvetype(
+                    t,
+                    sig.samples,
+                    pen=color,
+                    symbolBrush=color,
+                    symbolPen=color,
+                    symbol='o',
+                    symbolSize=4,
+                    stepMode=sig.stepmode,
+                    # connect='pairs'
+                )
+                self.view_boxes[i].removeItem(self.curves[i])
+
+                self.curves[i] = curve
+
+                self.view_boxes[i].addItem(curve)
+
+                if sig.enable and self.singleton is None:
+                    curve.show()
+                else:
+                    curve.hide()
+
+            if self.singleton is not None:
+                sig = self.signals[self.singleton]
+                color = sig.color
+                if sig.stepmode:
+                    if len(sig.timestamps):
+                        to_append = sig.timestamps[-1]
+                    else:
+                        to_append = 0
+                    t = np.append(
+                        sig.timestamps,
+                        to_append,
+                    )
+                else:
+                    t = sig.timestamps
+
+                curve = self.curvetype(
+                    t,
+                    sig.samples,
+                    pen=color,
+                    symbolBrush=color,
+                    symbolPen=color,
+                    symbol='o',
+                    symbolSize=4,
+                    stepMode=sig.stepmode,
+                    # connect='pairs'
+                )
+                self.viewbox.removeItem(self.curve)
+
+                self.curve = curve
+
+                self.viewbox.addItem(curve)
 
     def setColor(self, index, color):
         self.signals[index].color = color
@@ -1419,7 +1505,7 @@ class SearchWidget(QWidget):
 
 
 class FileWidget(QWidget):
-    def __init__(self, file_name, memory, plot_type, step_mode, *args, **kwargs):
+    def __init__(self, file_name, memory, step_mode, with_dots, *args, **kwargs):
         super(FileWidget, self).__init__(*args, **kwargs)
         uic.loadUi('file_widget.ui', self)
 
@@ -1429,10 +1515,10 @@ class FileWidget(QWidget):
         self.progress = None
         self.mdf = None
         self.memory = memory
-        self.plot_type = plot_type
         self.info = None
         self.info_index = None
         self.step_mode = step_mode
+        self.with_dots = with_dots
 
         progress = QProgressDialog(
             'Opening "{}"'.format(self.file_name),
@@ -1472,7 +1558,10 @@ class FileWidget(QWidget):
                         break
 
                 datalyser = win32com.client.Dispatch('Datalyser3.Datalyser3_COM')
-                datalyser.DCOM_set_datalyser_visibility(False)
+                try:
+                    datalyser.DCOM_set_datalyser_visibility(False)
+                except:
+                    pass
                 ret = datalyser.DCOM_convert_file_mdf_dl3(
                     file_name,
                     mdf_name,
@@ -1820,6 +1909,20 @@ class FileWidget(QWidget):
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.itemSelectionChanged.connect(self.channel_selection_modified)
+
+    def set_line_style(self, with_dots=None, step_mode=None):
+        if (with_dots, step_mode) != (None, None):
+            if step_mode is not None:
+                self.step_mode = step_mode
+
+            if with_dots is not None:
+                self.with_dots = with_dots
+
+            if self.plot:
+                self.plot.update_lines(
+                    step_mode=step_mode,
+                    with_dots=with_dots,
+                )
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -2910,7 +3013,7 @@ class FileWidget(QWidget):
             self.info.setParent(None)
             self.info = None
 
-        self.plot = Plot(signals, self.plot_type, self.step_mode, self)
+        self.plot = Plot(signals, self.with_dots, self.step_mode, self)
         self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
         self.plot.range_modified_finished.connect(self.range_modified_finished)
@@ -3182,7 +3285,7 @@ class MainWindow(QMainWindow):
             action.setCheckable(True)
             memory_option.addAction(action)
             action.triggered.connect(
-                partial(self.set_plot_lines, option)
+                partial(self.set_with_dots, option)
             )
 
             if option == 'Simple':
@@ -3203,7 +3306,7 @@ class MainWindow(QMainWindow):
             action.setCheckable(True)
             memory_option.addAction(action)
             action.triggered.connect(
-                partial(self.set_integer_line_style, option)
+                partial(self.set_step_mode, option)
             )
 
             if option == 'Step mode':
@@ -3434,8 +3537,8 @@ class MainWindow(QMainWindow):
 
         self.memory = 'minimum'
         self.match = 'Match start'
-        self.plot_lines = 'Simple'
-        self.integer_line_style = 'Step mode'
+        self.with_dots = False
+        self.step_mode = True
         self.toolBox.setCurrentIndex(0)
 
         self.show()
@@ -3444,18 +3547,6 @@ class MainWindow(QMainWindow):
     def help(self, event):
         os.system(
             r'start "" http://asammdf.readthedocs.io/en/development/gui.html')
-
-    def set_integer_line_style(self, option):
-        self.integer_line_style = option
-
-        count = self.files.count()
-
-        if option == 'Step mode':
-            step_mode = True
-        else:
-            step_mode = False
-        for i in range(count):
-            self.files.widget(i).step_mode = step_mode
 
     def file_action(self, key, modifier=Qt.NoModifier):
         event = QKeyEvent(QEvent.KeyPress, key, modifier)
@@ -3473,17 +3564,21 @@ class MainWindow(QMainWindow):
     def set_memory_option(self, option):
         self.memory = option
 
-    def set_plot_lines(self, option):
-        self.plot_lines = option
+    def set_with_dots(self, option):
+        self.with_dots = True if option == 'With dots' else False
 
         count = self.files.count()
 
-        if option == 'Simple':
-            cls = pg.PlotCurveItem
-        else:
-            cls = pg.PlotDataItem
         for i in range(count):
-            self.files.widget(i).plot_type = cls
+            self.files.widget(i).set_line_style(with_dots=self.with_dots)
+
+    def set_step_mode(self, option):
+        self.step_mode = True if option == 'Step mode' else False
+
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).set_line_style(step_mode=self.step_mode)
 
     def set_search_option(self, option):
         self.match = option
@@ -3676,13 +3771,15 @@ class MainWindow(QMainWindow):
         if file_name:
             file_name = str(file_name)
             index = self.files.count()
-            if self.plot_lines == 'Simple':
-                cls = pg.PlotCurveItem
-            else:
-                cls = pg.PlotDataItem
+
             try:
-                step_mode = True if self.integer_line_style == 'Step mode' else False
-                widget = FileWidget(file_name, self.memory, cls, step_mode, self)
+                widget = FileWidget(
+                    file_name,
+                    self.memory,
+                    self.step_mode,
+                    self.with_dots,
+                    self,
+                )
                 widget.search_field.set_search_option(self.match)
                 widget.filter_field.set_search_option(self.match)
             except:

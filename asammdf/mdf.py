@@ -48,8 +48,6 @@ logger = logging.getLogger('asammdf')
 
 __all__ = ['MDF', 'SUPPORTED_VERSIONS']
 
-print('import')
-
 
 class MDF(object):
     """Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
@@ -78,7 +76,6 @@ class MDF(object):
     _terminate = False
 
     def __init__(self, name=None, memory='full', version='4.10', callback=None, queue=None):
-        print(callback)
         if name:
             if os.path.isfile(name):
                 memory = validate_memory_argument(memory)
@@ -1116,7 +1113,8 @@ class MDF(object):
                 if single_time_base:
                     if not name.endswith('.xlsx'):
                         name += '.xlsx'
-                    # print('Writing excel export to file "{}"'.format(name))
+                    message = 'Writing excel export to file "{}"'.format(name)
+                    logger.info(message)
 
                     workbook = xlsxwriter.Workbook(name)
                     sheet = workbook.add_worksheet('Channels')
@@ -1147,7 +1145,8 @@ class MDF(object):
                     for i, grp in enumerate(self.groups):
                         if self._terminate:
                             return
-                        # print('Exporting group {} of {}'.format(i + 1, count))
+                        message = 'Exporting group {} of {}'.format(i + 1, count)
+                        logger.info(message)
 
                         data = self._load_group_data(grp)
 
@@ -1228,7 +1227,8 @@ class MDF(object):
             if single_time_base:
                 if not name.endswith('.csv'):
                     name += '.csv'
-                # print('Writing csv export to file "{}"'.format(name))
+                message = 'Writing csv export to file "{}"'.format(name)
+                logger.info(message)
                 with open(name, 'w', newline='') as csvfile:
                     writer = csv.writer(csvfile)
 
@@ -1257,7 +1257,8 @@ class MDF(object):
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
                         return
-                    # print('Exporting group {} of {}'.format(i + 1, count))
+                    message = 'Exporting group {} of {}'.format(i + 1, count)
+                    logger.info(message)
                     data = self._load_group_data(grp)
 
                     if PYVERSION == 2:

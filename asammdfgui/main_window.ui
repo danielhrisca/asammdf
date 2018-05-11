@@ -29,8 +29,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>145</width>
-         <height>28</height>
+         <width>782</width>
+         <height>604</height>
         </rect>
        </property>
        <attribute name="icon">
@@ -175,6 +175,19 @@
              <bool>true</bool>
             </property>
            </widget>
+          </item>
+          <item row="4" column="2">
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </item>

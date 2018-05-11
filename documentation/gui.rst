@@ -78,7 +78,6 @@ The following settings are available
 .. note::
 
     * Changing the *Memory* option does not affect already opened files; it will only apply later when openeing a new file.
-    * Changin the *Plot lines* and *Integer line style* does not affect the current plot; they will only apply for new plots.
       
 Plot
 ----
