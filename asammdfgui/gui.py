@@ -31,12 +31,18 @@ except ImportError:
     from asammdfgui import resource_qt4 as resource_rc
     QT = 4
 
+HERE = os.path.dirname(
+    os.path.realpath(__file__)
+)
+# import asammdfgui
+# HERE = asammdfgui.__path__[0]
+# print(*list(os.listdir(asammdfgui.__path__[0])), sep='\n')
 
 class AdvancedSearch(QDialog):
     def __init__(self, channels_db, *args, **kwargs):
 
         super(AdvancedSearch, self).__init__(*args, **kwargs)
-        uic.loadUi('search_dialog.ui', self)
+        uic.loadUi(os.path.join(HERE,  'search_dialog.ui'), self)
 
         self.result = set()
         self.channels_db = sorted(set(channels_db))
@@ -1145,7 +1151,7 @@ class ListWidget(QListWidget):
 class ChannelInfoWidget(QWidget):
     def __init__(self, channel, *args, **kwargs):
         super(ChannelInfoWidget, self).__init__(*args, **kwargs)
-        uic.loadUi('channel_info_widget.ui', self)
+        uic.loadUi(os.path.join(HERE,  'channel_info_widget.ui'), self)
 
         self.channel_label.setText(
             channel.metadata()
@@ -1165,7 +1171,7 @@ class ChannelInfoWidget(QWidget):
 class RangeEditor(QDialog):
     def __init__(self, unit='', ranges=None, *args, **kwargs):
         super(RangeEditor, self).__init__(*args, **kwargs)
-        uic.loadUi('range_editor_dialog.ui', self)
+        uic.loadUi(os.path.join(HERE,  'range_editor_dialog.ui'), self)
 
         self.unit = unit
         self.result = {}
@@ -1277,7 +1283,7 @@ class ChannelInfoDialog(QDialog):
 class ChannelStats(QWidget):
     def __init__(self, *args, **kwargs):
         super(ChannelStats, self).__init__(*args, **kwargs)
-        uic.loadUi('channel_stats.ui', self)
+        uic.loadUi(os.path.join(HERE,  'channel_stats.ui'), self)
 
         self.color = '#000000'
         self.fmt = 'phys'
@@ -1371,7 +1377,7 @@ class ChannelDisplay(QWidget):
 
     def __init__(self, index, unit='', *args, **kwargs):
         super(ChannelDisplay, self).__init__(*args, **kwargs)
-        uic.loadUi('channel_display_widget.ui', self)
+        uic.loadUi(os.path.join(HERE,  'channel_display_widget.ui'), self)
 
         self.color = '#ff0000'
         self._value_prefix = ''
@@ -1464,7 +1470,7 @@ class SearchWidget(QWidget):
 
     def __init__(self, channels_db, *args, **kwargs):
         super(SearchWidget, self).__init__(*args, **kwargs)
-        uic.loadUi('search_widget.ui', self)
+        uic.loadUi(os.path.join(HERE,  'search_widget.ui'), self)
         self.channels_db = channels_db
 
         self.matches = 0
@@ -1528,7 +1534,7 @@ class SearchWidget(QWidget):
 class FileWidget(QWidget):
     def __init__(self, file_name, memory, step_mode, with_dots, *args, **kwargs):
         super(FileWidget, self).__init__(*args, **kwargs)
-        uic.loadUi('file_widget.ui', self)
+        uic.loadUi(os.path.join(HERE,  'file_widget.ui'), self)
 
         self.plot = None
 
@@ -3220,7 +3226,7 @@ class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
 
         super(MainWindow, self).__init__(*args, **kwargs)
-        uic.loadUi('main_window.ui', self)
+        uic.loadUi(os.path.join(HERE,  'main_window.ui'), self)
 
         self.progress = None
 
