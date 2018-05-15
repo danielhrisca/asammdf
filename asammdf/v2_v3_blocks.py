@@ -127,14 +127,14 @@ class Channel(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(Channel, self).__init__()
 
         self.name = self.display_name = self.comment = ''
 
         try:
-            stream = kargs['stream']
-            self.address = address = kargs['address']
+            stream = kwargs['stream']
+            self.address = address = kwargs['address']
             stream.seek(address + 2)
             size = unpack('<H', stream.read(2))[0]
             stream.seek(address)
@@ -216,30 +216,30 @@ class Channel(dict):
 
             self.address = 0
             self['id'] = b'CN'
-            self['block_len'] = kargs.get(
+            self['block_len'] = kwargs.get(
                 'block_len',
                 v23c.CN_DISPLAYNAME_BLOCK_SIZE,
             )
-            self['next_ch_addr'] = kargs.get('next_ch_addr', 0)
-            self['conversion_addr'] = kargs.get('conversion_addr', 0)
-            self['source_depend_addr'] = kargs.get('source_depend_addr', 0)
-            self['ch_depend_addr'] = kargs.get('ch_depend_addr', 0)
-            self['comment_addr'] = kargs.get('comment_addr', 0)
-            self['channel_type'] = kargs.get('channel_type', 0)
-            self['short_name'] = kargs.get('short_name', (b'\0' * 32))
-            self['description'] = kargs.get('description', (b'\0' * 32))
-            self['start_offset'] = kargs.get('start_offset', 0)
-            self['bit_count'] = kargs.get('bit_count', 8)
-            self['data_type'] = kargs.get('data_type', 0)
-            self['range_flag'] = kargs.get('range_flag', 1)
-            self['min_raw_value'] = kargs.get('min_raw_value', 0)
-            self['max_raw_value'] = kargs.get('max_raw_value', 0)
-            self['sampling_rate'] = kargs.get('sampling_rate', 0)
+            self['next_ch_addr'] = kwargs.get('next_ch_addr', 0)
+            self['conversion_addr'] = kwargs.get('conversion_addr', 0)
+            self['source_depend_addr'] = kwargs.get('source_depend_addr', 0)
+            self['ch_depend_addr'] = kwargs.get('ch_depend_addr', 0)
+            self['comment_addr'] = kwargs.get('comment_addr', 0)
+            self['channel_type'] = kwargs.get('channel_type', 0)
+            self['short_name'] = kwargs.get('short_name', (b'\0' * 32))
+            self['description'] = kwargs.get('description', (b'\0' * 32))
+            self['start_offset'] = kwargs.get('start_offset', 0)
+            self['bit_count'] = kwargs.get('bit_count', 8)
+            self['data_type'] = kwargs.get('data_type', 0)
+            self['range_flag'] = kwargs.get('range_flag', 1)
+            self['min_raw_value'] = kwargs.get('min_raw_value', 0)
+            self['max_raw_value'] = kwargs.get('max_raw_value', 0)
+            self['sampling_rate'] = kwargs.get('sampling_rate', 0)
             if self['block_len'] >= v23c.CN_LONGNAME_BLOCK_SIZE:
-                self['long_name_addr'] = kargs.get('long_name_addr', 0)
+                self['long_name_addr'] = kwargs.get('long_name_addr', 0)
             if self['block_len'] >= v23c.CN_DISPLAYNAME_BLOCK_SIZE:
-                self['display_name_addr'] = kargs.get('display_name_addr', 0)
-                self['aditional_byte_offset'] = kargs.get(
+                self['display_name_addr'] = kwargs.get('display_name_addr', 0)
+                self['aditional_byte_offset'] = kwargs.get(
                     'aditional_byte_offset',
                     0,
                 )
@@ -430,15 +430,15 @@ class ChannelConversion(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(ChannelConversion, self).__init__()
 
         self.referenced_blocks = {}
 
-        if 'raw_bytes' in kargs or 'stream' in kargs:
+        if 'raw_bytes' in kwargs or 'stream' in kwargs:
             try:
                 self.address = 0
-                block = kargs['raw_bytes']
+                block = kwargs['raw_bytes']
                 (self['id'],
                  self['block_len']) = unpack_from(
                     '<2sH',
@@ -447,11 +447,11 @@ class ChannelConversion(dict):
                 size = self['block_len']
                 block_size = len(block)
                 block = block[4:]
-                stream=kargs['stream']
+                stream=kwargs['stream']
 
             except KeyError:
-                stream = kargs['stream']
-                self.address = address = kargs['address']
+                stream = kwargs['stream']
+                self.address = address = kwargs['address']
                 stream.seek(address)
                 block = stream.read(4)
                 (self['id'],
@@ -461,7 +461,7 @@ class ChannelConversion(dict):
                 block_size = size
                 block = stream.read(size - 4)
 
-            address = kargs.get('address', 0)
+            address = kwargs.get('address', 0)
             self.address = address
 
             (self['range_flag'],
@@ -657,115 +657,115 @@ class ChannelConversion(dict):
             self.address = 0
             self['id'] = 'CC'.encode('latin-1')
 
-            if kargs['conversion_type'] == v23c.CONVERSION_TYPE_NONE:
+            if kwargs['conversion_type'] == v23c.CONVERSION_TYPE_NONE:
                 self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE
-                self['range_flag'] = kargs.get('range_flag', 1)
-                self['min_phy_value'] = kargs.get('min_phy_value', 0)
-                self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
+                self['range_flag'] = kwargs.get('range_flag', 1)
+                self['min_phy_value'] = kwargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kwargs.get('max_phy_value', 0)
+                self['unit'] = kwargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_NONE
                 self['ref_param_nr'] = 0
 
-            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_LINEAR:
+            elif kwargs['conversion_type'] == v23c.CONVERSION_TYPE_LINEAR:
                 self['block_len'] = v23c.CC_LIN_BLOCK_SIZE
-                self['range_flag'] = kargs.get('range_flag', 1)
-                self['min_phy_value'] = kargs.get('min_phy_value', 0)
-                self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
+                self['range_flag'] = kwargs.get('range_flag', 1)
+                self['min_phy_value'] = kwargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kwargs.get('max_phy_value', 0)
+                self['unit'] = kwargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_LINEAR
                 self['ref_param_nr'] = 2
-                self['b'] = kargs.get('b', 0)
-                self['a'] = kargs.get('a', 1)
+                self['b'] = kwargs.get('b', 0)
+                self['a'] = kwargs.get('a', 1)
                 if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:
-                    self['CANapeHiddenExtra'] = kargs['CANapeHiddenExtra']
+                    self['CANapeHiddenExtra'] = kwargs['CANapeHiddenExtra']
 
-            elif kargs['conversion_type'] in (
+            elif kwargs['conversion_type'] in (
                     v23c.CONVERSION_TYPE_POLY,
                     v23c.CONVERSION_TYPE_RAT):
                 self['block_len'] = v23c.CC_POLY_BLOCK_SIZE
-                self['range_flag'] = kargs.get('range_flag', 1)
-                self['min_phy_value'] = kargs.get('min_phy_value', 0)
-                self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = kargs['conversion_type']
+                self['range_flag'] = kwargs.get('range_flag', 1)
+                self['min_phy_value'] = kwargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kwargs.get('max_phy_value', 0)
+                self['unit'] = kwargs.get('unit', ('\0' * 20).encode('latin-1'))
+                self['conversion_type'] = kwargs['conversion_type']
                 self['ref_param_nr'] = 6
-                self['P1'] = kargs.get('P1', 0)
-                self['P2'] = kargs.get('P2', 0)
-                self['P3'] = kargs.get('P3', 0)
-                self['P4'] = kargs.get('P4', 0)
-                self['P5'] = kargs.get('P5', 0)
-                self['P6'] = kargs.get('P6', 0)
+                self['P1'] = kwargs.get('P1', 0)
+                self['P2'] = kwargs.get('P2', 0)
+                self['P3'] = kwargs.get('P3', 0)
+                self['P4'] = kwargs.get('P4', 0)
+                self['P5'] = kwargs.get('P5', 0)
+                self['P6'] = kwargs.get('P6', 0)
 
-            elif kargs['conversion_type'] in (
+            elif kwargs['conversion_type'] in (
                     v23c.CONVERSION_TYPE_EXPO,
                     v23c.CONVERSION_TYPE_LOGH):
                 self['block_len'] = v23c.CC_EXPO_BLOCK_SIZE
-                self['range_flag'] = kargs.get('range_flag', 1)
-                self['min_phy_value'] = kargs.get('min_phy_value', 0)
-                self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
+                self['range_flag'] = kwargs.get('range_flag', 1)
+                self['min_phy_value'] = kwargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kwargs.get('max_phy_value', 0)
+                self['unit'] = kwargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_EXPO
                 self['ref_param_nr'] = 7
-                self['P1'] = kargs.get('P1', 0)
-                self['P2'] = kargs.get('P2', 0)
-                self['P3'] = kargs.get('P3', 0)
-                self['P4'] = kargs.get('P4', 0)
-                self['P5'] = kargs.get('P5', 0)
-                self['P6'] = kargs.get('P6', 0)
-                self['P7'] = kargs.get('P7', 0)
+                self['P1'] = kwargs.get('P1', 0)
+                self['P2'] = kwargs.get('P2', 0)
+                self['P3'] = kwargs.get('P3', 0)
+                self['P4'] = kwargs.get('P4', 0)
+                self['P5'] = kwargs.get('P5', 0)
+                self['P6'] = kwargs.get('P6', 0)
+                self['P7'] = kwargs.get('P7', 0)
 
-            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_FORMULA:
-                formula = kargs['formula']
+            elif kwargs['conversion_type'] == v23c.CONVERSION_TYPE_FORMULA:
+                formula = kwargs['formula']
                 formula_len = len(formula)
                 try:
                     formula += b'\0'
                 except:
                     formula = formula.encode('latin-1') + b'\0'
                 self['block_len'] = 46 + formula_len + 1
-                self['range_flag'] = kargs.get('range_flag', 1)
-                self['min_phy_value'] = kargs.get('min_phy_value', 0)
-                self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
+                self['range_flag'] = kwargs.get('range_flag', 1)
+                self['min_phy_value'] = kwargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kwargs.get('max_phy_value', 0)
+                self['unit'] = kwargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_FORMULA
                 self['ref_param_nr'] = formula_len
                 self['formula'] = formula
 
-            elif kargs['conversion_type'] in (
+            elif kwargs['conversion_type'] in (
                     v23c.CONVERSION_TYPE_TABI,
                     v23c.CONVERSION_TYPE_TAB):
-                nr = kargs['ref_param_nr']
+                nr = kwargs['ref_param_nr']
                 self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + nr * 2 * 8
-                self['range_flag'] = kargs.get('range_flag', 1)
-                self['min_phy_value'] = kargs.get('min_phy_value', 0)
-                self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
-                self['conversion_type'] = kargs['conversion_type']
+                self['range_flag'] = kwargs.get('range_flag', 1)
+                self['min_phy_value'] = kwargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kwargs.get('max_phy_value', 0)
+                self['unit'] = kwargs.get('unit', ('\0' * 20).encode('latin-1'))
+                self['conversion_type'] = kwargs['conversion_type']
                 self['ref_param_nr'] = nr
                 for i in range(nr):
-                    self['raw_{}'.format(i)] = kargs['raw_{}'.format(i)]
-                    self['phys_{}'.format(i)] = kargs['phys_{}'.format(i)]
+                    self['raw_{}'.format(i)] = kwargs['raw_{}'.format(i)]
+                    self['phys_{}'.format(i)] = kwargs['phys_{}'.format(i)]
 
-            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_TABX:
-                nr = kargs['ref_param_nr']
+            elif kwargs['conversion_type'] == v23c.CONVERSION_TYPE_TABX:
+                nr = kwargs['ref_param_nr']
                 self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + 40 * nr
-                self['range_flag'] = kargs.get('range_flag', 0)
-                self['min_phy_value'] = kargs.get('min_phy_value', 0)
-                self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
+                self['range_flag'] = kwargs.get('range_flag', 0)
+                self['min_phy_value'] = kwargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kwargs.get('max_phy_value', 0)
+                self['unit'] = kwargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_TABX
                 self['ref_param_nr'] = nr
 
                 for i in range(nr):
-                    self['param_val_{}'.format(i)] = kargs['param_val_{}'.format(i)]
-                    self['text_{}'.format(i)] = kargs['text_{}'.format(i)]
+                    self['param_val_{}'.format(i)] = kwargs['param_val_{}'.format(i)]
+                    self['text_{}'.format(i)] = kwargs['text_{}'.format(i)]
 
-            elif kargs['conversion_type'] == v23c.CONVERSION_TYPE_RTABX:
-                nr = kargs['ref_param_nr']
+            elif kwargs['conversion_type'] == v23c.CONVERSION_TYPE_RTABX:
+                nr = kwargs['ref_param_nr']
                 self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + 20 * nr
-                self['range_flag'] = kargs.get('range_flag', 0)
-                self['min_phy_value'] = kargs.get('min_phy_value', 0)
-                self['max_phy_value'] = kargs.get('max_phy_value', 0)
-                self['unit'] = kargs.get('unit', ('\0' * 20).encode('latin-1'))
+                self['range_flag'] = kwargs.get('range_flag', 0)
+                self['min_phy_value'] = kwargs.get('min_phy_value', 0)
+                self['max_phy_value'] = kwargs.get('max_phy_value', 0)
+                self['unit'] = kwargs.get('unit', ('\0' * 20).encode('latin-1'))
                 self['conversion_type'] = v23c.CONVERSION_TYPE_RTABX
                 self['ref_param_nr'] = nr
 
@@ -773,20 +773,20 @@ class ChannelConversion(dict):
                 self['default_upper'] = 0
                 self['default_addr'] = 0
                 key = 'default_addr'
-                if key in kargs:
-                    self.referenced_blocks[key] = TextBlock(text=kargs[key])
+                if key in kwargs:
+                    self.referenced_blocks[key] = TextBlock(text=kwargs[key])
                 else:
                     self.referenced_blocks[key] = None
 
                 for i in range(nr - 1):
-                    self['lower_{}'.format(i)] = kargs['lower_{}'.format(i)]
-                    self['upper_{}'.format(i)] = kargs['upper_{}'.format(i)]
+                    self['lower_{}'.format(i)] = kwargs['lower_{}'.format(i)]
+                    self['upper_{}'.format(i)] = kwargs['upper_{}'.format(i)]
                     key = 'text_{}'.format(i)
                     self[key] = 0
-                    self.referenced_blocks[key] = TextBlock(text=kargs[key])
+                    self.referenced_blocks[key] = TextBlock(text=kwargs[key])
             else:
                 message = 'Conversion type "{}" not implemented'
-                message = message.format(kargs['conversion_type'])
+                message = message.format(kwargs['conversion_type'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1171,14 +1171,14 @@ class ChannelDependency(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(ChannelDependency, self).__init__()
 
         self.referenced_channels = []
 
         try:
-            stream = kargs['stream']
-            self.address = address = kargs['address']
+            stream = kwargs['stream']
+            self.address = address = kwargs['address']
             stream.seek(address)
 
             (self['id'],
@@ -1213,7 +1213,7 @@ class ChannelDependency(dict):
                 raise MdfException(message)
 
         except KeyError:
-            sd_nr = kargs['sd_nr']
+            sd_nr = kwargs['sd_nr']
             self['id'] = b'CD'
             self['block_len'] = 8 + 3 * 4 * sd_nr
             self['dependency_type'] = 1
@@ -1225,7 +1225,7 @@ class ChannelDependency(dict):
             i = 0
             while True:
                 try:
-                    self['dim_{}'.format(i)] = kargs['dim_{}'.format(i)]
+                    self['dim_{}'.format(i)] = kwargs['dim_{}'.format(i)]
                     i += 1
                 except KeyError:
                     break
@@ -1301,20 +1301,20 @@ class ChannelExtension(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(ChannelExtension, self).__init__()
 
         self.name = self.path = self.comment = ''
 
-        if 'stream' in kargs:
-            stream = kargs['stream']
+        if 'stream' in kwargs:
+            stream = kwargs['stream']
             try:
 
                 (self['id'],
                  self['block_len'],
                  self['type']) = unpack_from(
                     v23c.FMT_SOURCE_COMMON,
-                    kargs['raw_bytes'],
+                    kwargs['raw_bytes'],
                 )
                 if self['type'] == v23c.SOURCE_ECU:
                     (self['module_nr'],
@@ -1323,7 +1323,7 @@ class ChannelExtension(dict):
                      self['ECU_identification'],
                      self['reserved0']) = unpack_from(
                         v23c.FMT_SOURCE_EXTRA_ECU,
-                        kargs['raw_bytes'],
+                        kwargs['raw_bytes'],
                         6,
                     )
                 elif self['type'] == v23c.SOURCE_VECTOR:
@@ -1333,14 +1333,14 @@ class ChannelExtension(dict):
                      self['sender_name'],
                      self['reserved0']) = unpack_from(
                         v23c.FMT_SOURCE_EXTRA_VECTOR,
-                        kargs['raw_bytes'],
+                        kwargs['raw_bytes'],
                         6,
                     )
 
-                self.address = kargs.get('address', 0)
+                self.address = kwargs.get('address', 0)
             except KeyError:
 
-                self.address = address = kargs['address']
+                self.address = address = kwargs['address']
                 stream.seek(address)
                 (self['id'],
                  self['block_len'],
@@ -1373,23 +1373,23 @@ class ChannelExtension(dict):
 
             self.address = 0
             self['id'] = b'CE'
-            self['block_len'] = kargs.get('block_len', v23c.CE_BLOCK_SIZE)
-            self['type'] = kargs.get('type', 2)
+            self['block_len'] = kwargs.get('block_len', v23c.CE_BLOCK_SIZE)
+            self['type'] = kwargs.get('type', 2)
             if self['type'] == v23c.SOURCE_ECU:
-                self['module_nr'] = kargs.get('module_nr', 0)
-                self['module_address'] = kargs.get('module_address', 0)
-                self['description'] = kargs.get('description', b'\0')
-                self['ECU_identification'] = kargs.get(
+                self['module_nr'] = kwargs.get('module_nr', 0)
+                self['module_address'] = kwargs.get('module_address', 0)
+                self['description'] = kwargs.get('description', b'\0')
+                self['ECU_identification'] = kwargs.get(
                     'ECU_identification',
                     b'\0',
                 )
-                self['reserved0'] = kargs.get('reserved0', b'\0')
+                self['reserved0'] = kwargs.get('reserved0', b'\0')
             elif self['type'] == v23c.SOURCE_VECTOR:
-                self['CAN_id'] = kargs.get('CAN_id', 0)
-                self['CAN_ch_index'] = kargs.get('CAN_ch_index', 0)
-                self['message_name'] = kargs.get('message_name', b'\0')
-                self['sender_name'] = kargs.get('sender_name', b'\0')
-                self['reserved0'] = kargs.get('reserved0', b'\0')
+                self['CAN_id'] = kwargs.get('CAN_id', 0)
+                self['CAN_ch_index'] = kwargs.get('CAN_ch_index', 0)
+                self['message_name'] = kwargs.get('message_name', b'\0')
+                self['sender_name'] = kwargs.get('sender_name', b'\0')
+                self['reserved0'] = kwargs.get('reserved0', b'\0')
 
         if self['type'] == v23c.SOURCE_ECU:
             self.path = self['ECU_identification'].decode('latin-1').strip(' \t\n\r\0')
@@ -1527,14 +1527,14 @@ class ChannelGroup(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(ChannelGroup, self).__init__()
         self.comment = ''
 
         try:
 
-            stream = kargs['stream']
-            self.address = address = kargs['address']
+            stream = kwargs['stream']
+            self.address = address = kwargs['address']
             stream.seek(address)
             block = stream.read(v23c.CG_PRE_330_BLOCK_SIZE)
 
@@ -1562,17 +1562,17 @@ class ChannelGroup(dict):
         except KeyError:
             self.address = 0
             self['id'] = b'CG'
-            self['block_len'] = kargs.get(
+            self['block_len'] = kwargs.get(
                 'block_len',
                 v23c.CG_PRE_330_BLOCK_SIZE,
             )
-            self['next_cg_addr'] = kargs.get('next_cg_addr', 0)
-            self['first_ch_addr'] = kargs.get('first_ch_addr', 0)
-            self['comment_addr'] = kargs.get('comment_addr', 0)
-            self['record_id'] = kargs.get('record_id', 1)
-            self['ch_nr'] = kargs.get('ch_nr', 0)
-            self['samples_byte_nr'] = kargs.get('samples_byte_nr', 0)
-            self['cycles_nr'] = kargs.get('cycles_nr', 0)
+            self['next_cg_addr'] = kwargs.get('next_cg_addr', 0)
+            self['first_ch_addr'] = kwargs.get('first_ch_addr', 0)
+            self['comment_addr'] = kwargs.get('comment_addr', 0)
+            self['record_id'] = kwargs.get('record_id', 1)
+            self['ch_nr'] = kwargs.get('ch_nr', 0)
+            self['samples_byte_nr'] = kwargs.get('samples_byte_nr', 0)
+            self['cycles_nr'] = kwargs.get('cycles_nr', 0)
             if self['block_len'] == v23c.CG_POST_330_BLOCK_SIZE:
                 self['sample_reduction_addr'] = 0
 
@@ -1617,20 +1617,20 @@ class DataBlock(dict):
 
     """
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(DataBlock, self).__init__()
 
         try:
-            stream = kargs['stream']
-            size = kargs['size']
-            self.address = address = kargs['address']
+            stream = kwargs['stream']
+            size = kwargs['size']
+            self.address = address = kwargs['address']
             stream.seek(address)
 
             self['data'] = stream.read(size)
 
         except KeyError:
             self.address = 0
-            self['data'] = kargs.get('data', b'')
+            self['data'] = kwargs.get('data', b'')
 
     def __bytes__(self):
         return self['data']
@@ -1673,12 +1673,12 @@ class DataGroup(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(DataGroup, self).__init__()
 
         try:
-            stream = kargs['stream']
-            self.address = address = kargs['address']
+            stream = kwargs['stream']
+            self.address = address = kwargs['address']
             stream.seek(address)
             block = stream.read(v23c.DG_PRE_320_BLOCK_SIZE)
 
@@ -1703,16 +1703,16 @@ class DataGroup(dict):
         except KeyError:
             self.address = 0
             self['id'] = b'DG'
-            self['block_len'] = kargs.get(
+            self['block_len'] = kwargs.get(
                 'block_len',
                 v23c.DG_PRE_320_BLOCK_SIZE,
             )
-            self['next_dg_addr'] = kargs.get('next_dg_addr', 0)
-            self['first_cg_addr'] = kargs.get('first_cg_addr', 0)
-            self['trigger_addr'] = kargs.get('comment_addr', 0)
-            self['data_block_addr'] = kargs.get('data_block_addr', 0)
-            self['cg_nr'] = kargs.get('cg_nr', 1)
-            self['record_id_nr'] = kargs.get('record_id_nr', 0)
+            self['next_dg_addr'] = kwargs.get('next_dg_addr', 0)
+            self['first_cg_addr'] = kwargs.get('first_cg_addr', 0)
+            self['trigger_addr'] = kwargs.get('comment_addr', 0)
+            self['data_block_addr'] = kwargs.get('data_block_addr', 0)
+            self['cg_nr'] = kwargs.get('cg_nr', 1)
+            self['record_id_nr'] = kwargs.get('record_id_nr', 0)
             if self['block_len'] == v23c.DG_POST_320_BLOCK_SIZE:
                 self['reserved0'] = b'\0\0\0\0'
 
@@ -1767,13 +1767,13 @@ class FileIdentificationBlock(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(FileIdentificationBlock, self).__init__()
 
         self.address = 0
         try:
 
-            stream = kargs['stream']
+            stream = kwargs['stream']
             stream.seek(0)
 
             (self['file_identification'],
@@ -1791,7 +1791,7 @@ class FileIdentificationBlock(dict):
                 stream.read(v23c.ID_BLOCK_SIZE),
             )
         except KeyError:
-            version = kargs['version']
+            version = kwargs['version']
             self['file_identification'] = 'MDF     '.encode('latin-1')
             self['version_str'] = version.encode('latin-1') + b'\0' * 4
             self['program_identification'] = 'Python  '.encode('latin-1')
@@ -1855,14 +1855,14 @@ class HeaderBlock(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(HeaderBlock, self).__init__()
 
         self.address = 64
         self.program = None
         try:
 
-            stream = kargs['stream']
+            stream = kwargs['stream']
             stream.seek(64)
 
             (self['id'],
@@ -1903,7 +1903,7 @@ class HeaderBlock(dict):
                 )
 
         except KeyError:
-            version = kargs.get('version', '3.20')
+            version = kwargs.get('version', '3.20')
             self['id'] = b'HD'
             self['block_len'] = 208 if version >= '3.20' else 164
             self['first_dg_addr'] = 0
@@ -2037,12 +2037,12 @@ class ProgramBlock(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(ProgramBlock, self).__init__()
 
         try:
-            stream = kargs['stream']
-            self.address = address = kargs['address']
+            stream = kwargs['stream']
+            self.address = address = kwargs['address']
             stream.seek(address)
 
             (self['id'],
@@ -2057,8 +2057,8 @@ class ProgramBlock(dict):
 
         except KeyError:
             self['id'] = b'PR'
-            self['block_len'] = len(kargs['data']) + 6
-            self['data'] = kargs['data']
+            self['block_len'] = len(kwargs['data']) + 6
+            self['data'] = kwargs['data']
 
     def __bytes__(self):
         fmt = v23c.FMT_PROGRAM_BLOCK.format(self['block_len'])
@@ -2100,12 +2100,12 @@ class SampleReduction(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(SampleReduction, self).__init__()
 
         try:
-            stream = kargs['stream']
-            self.address = address = kargs['address']
+            stream = kwargs['stream']
+            self.address = address = kwargs['address']
             stream.seek(address)
 
             (self['id'],
@@ -2176,12 +2176,12 @@ class TextBlock(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(TextBlock, self).__init__()
         try:
 
-            stream = kargs['stream']
-            self.address = address = kargs['address']
+            stream = kwargs['stream']
+            self.address = address = kwargs['address']
             stream.seek(address)
             (self['id'],
              self['block_len']) = unpack('<2sH', stream.read(4))
@@ -2196,7 +2196,7 @@ class TextBlock(dict):
 
         except KeyError:
             self.address = 0
-            text = kargs['text']
+            text = kwargs['text']
 
             if PYVERSION == 3:
                 try:
@@ -2260,12 +2260,12 @@ class TriggerBlock(dict):
 
     '''
 
-    def __init__(self, **kargs):
+    def __init__(self, **kwargs):
         super(TriggerBlock, self).__init__()
 
         try:
-            self.address = address = kargs['address']
-            stream = kargs['stream']
+            self.address = address = kwargs['address']
+            stream = kwargs['stream']
 
             stream.seek(address + 2)
             size = unpack('<H', stream.read(2))[0]
@@ -2298,7 +2298,7 @@ class TriggerBlock(dict):
         except KeyError:
             self.address = 0
             nr = 0
-            while 'trigger_{}_time'.format(nr) in kargs:
+            while 'trigger_{}_time'.format(nr) in kwargs:
                 nr += 1
 
             self['id'] = b'TR'
@@ -2308,11 +2308,11 @@ class TriggerBlock(dict):
 
             for i in range(nr):
                 key = 'trigger_{}_time'.format(i)
-                self[key] = kargs[key]
+                self[key] = kwargs[key]
                 key = 'trigger_{}_pretime'.format(i)
-                self[key] = kargs[key]
+                self[key] = kwargs[key]
                 key = 'trigger_{}_posttime'.format(i)
-                self[key] = kargs[key]
+                self[key] = kwargs[key]
 
     def __bytes__(self):
         triggers_nr = self['trigger_events_nr']
