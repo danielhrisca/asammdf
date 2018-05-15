@@ -56,7 +56,20 @@ class AttachmentBlock(dict):
     """ ATBLOCK class
 
     When adding new attachments only embedded attachemnts are allowed, with
-    keyword argument *data* of type bytes"""
+    keyword argument *data* of type bytes
+
+    Attributes
+    ----------
+    address : int
+        attachment address
+    file_name : str
+        attachment file name
+    mime : str
+        mime type
+    comment : str
+        attachment comment
+
+    """
 
     def __init__(self, **kargs):
         super(AttachmentBlock, self).__init__()
@@ -162,7 +175,7 @@ class AttachmentBlock(dict):
                     logger.warning(message)
 
         else:
-            warnings.warn('external attachments not supported')
+            logger.warning('external attachments not supported')
 
     def to_blocks(self, address, blocks, defined_texts):
         key = 'file_name_addr'
@@ -282,7 +295,35 @@ class AttachmentBlock(dict):
 
 
 class Channel(dict):
-    """ CNBLOCK class"""
+    """ CNBLOCK class
+
+    If the `load_metadata` keyword argument is not provided or is False,
+    then the conversion, source and display name infromation is not processed.
+    Furter more if the `parse_xml_comment` is not provided or is False, then
+    the display name infroamtion from the channel comennt is not processed (this
+    is done to avoid expensive XML operations)
+
+    Attributes
+    ----------
+    address : int
+        channel address
+    attachments : list
+        list of referenced attachment blocks indexes; the index referes to the
+        attachment block index
+    comment : str
+        channel comment
+    conversion : ChannelConversion
+        channel conversion; *None* if the channel has no conversion
+    display_name : str
+        channel display name; this is extracted from the XML channel commment
+    name : str
+        channel name
+    source : SourceInformation
+        channel source information; *None* if the channel has no source information
+    unit : str
+        channel unit
+
+    """
 
     def __init__(self, **kargs):
         super(Channel, self).__init__()
@@ -732,7 +773,16 @@ comment: {}
 
 
 class ChannelArrayBlock(dict):
-    """CABLOCK class"""
+    """CABLOCK class
+
+    Attributes
+    ----------
+    address : int
+        array block address
+    referenced_channels : list
+        list of (group index, channel index) pairs referenced by this array block
+
+    """
 
     def __init__(self, **kargs):
         super(ChannelArrayBlock, self).__init__()
@@ -990,7 +1040,20 @@ class ChannelArrayBlock(dict):
 
 
 class ChannelGroup(dict):
-    """CGBLOCK class"""
+    """CGBLOCK class
+
+    Attributes
+    ----------
+    acq_name : str
+        acquisition name
+    acq_source : SourceInformation
+        acquisition source information
+    address : int
+        channel group address
+    comment : str
+        channel group comment
+
+    """
 
     def __init__(self, **kargs):
         super(ChannelGroup, self).__init__()
@@ -1172,7 +1235,26 @@ class ChannelGroup(dict):
 
 
 class ChannelConversion(dict):
-    """CCBLOCK class"""
+    """CCBLOCK class
+
+    Attributes
+    ----------
+    address : int
+        channel conversion address
+    comment : str
+        channel conversion comment
+    formula : str
+        algebraic conversion formula; default ''
+    referenced_blocks : list
+        list of refenced blocks; can be TextBlock objects for value to text, and
+        text to text conversions; for partial conversions the referenced blocks
+        can be ChannelConversion obejct as well
+    name : str
+        channel conversion name
+    unit : str
+        channel conversion unit
+
+    """
 
     def __init__(self, **kargs):
         super(ChannelConversion, self).__init__()
@@ -2422,6 +2504,11 @@ formula: {}
 class DataBlock(dict):
     """DTBLOCK class
 
+    Attributes
+    ----------
+    address : int
+        data block address
+
     Parameters
     ----------
     address : int
@@ -2477,6 +2564,11 @@ class DataBlock(dict):
 class DataZippedBlock(dict):
     """DZBLOCK class
 
+    Attributes
+    ----------
+    address : int
+        data zipped block address
+
     Parameters
     ----------
     address : int
@@ -2489,7 +2581,7 @@ class DataZippedBlock(dict):
     def __init__(self, **kargs):
         super(DataZippedBlock, self).__init__()
 
-        self.prevent_data_setitem = True
+        self._prevent_data_setitem = True
         try:
             self.address = address = kargs['address']
             stream = kargs['stream']
@@ -2518,7 +2610,7 @@ class DataZippedBlock(dict):
                 raise MdfException(message)
 
         except KeyError:
-            self.prevent_data_setitem = False
+            self._prevent_data_setitem = False
             self.address = 0
 
             data = kargs['data']
@@ -2539,11 +2631,11 @@ class DataZippedBlock(dict):
             # handled by __setitem__
             self['data'] = data
 
-        self.prevent_data_setitem = False
+        self._prevent_data_setitem = False
         self.return_unzipped = True
 
     def __setitem__(self, item, value):
-        if item == 'data' and not self.prevent_data_setitem:
+        if item == 'data' and not self._prevent_data_setitem:
             data = value
             self['original_size'] = len(data)
 
@@ -2596,7 +2688,16 @@ class DataZippedBlock(dict):
 
 
 class DataGroup(dict):
-    """DGBLOCK class"""
+    """DGBLOCK class
+
+    Attributes
+    ----------
+    address : int
+        dat group address
+    comment : str
+        data group comment
+
+    """
 
     def __init__(self, **kargs):
         super(DataGroup, self).__init__()
@@ -2704,7 +2805,14 @@ class DataGroup(dict):
 
 
 class DataList(dict):
-    """DLBLOCK class"""
+    """DLBLOCK class
+
+    Attributes
+    ----------
+    address : int
+        data list address
+
+    """
 
     def __init__(self, **kargs):
         super(DataList, self).__init__()
@@ -2807,7 +2915,27 @@ class DataList(dict):
 
 
 class EventBlock(dict):
-    """ EVBLOCK class"""
+    """ EVBLOCK class
+
+    Attributes
+    ----------
+    address : int
+        event block address
+    comment : str
+        event comment
+    name : str
+        event name
+    parent : int
+        index of event block that is the parent for the current event
+    range_start : int
+        index of event block that is the start of the range for which the current
+        event is the end
+    scopes : list
+        list of (group index, channel index) or channel group index that define
+        the scope of the current event
+
+
+    """
 
     def __init__(self, **kargs):
         super(EventBlock, self).__init__()
@@ -2979,7 +3107,14 @@ class EventBlock(dict):
 
 
 class FileIdentificationBlock(dict):
-    """IDBLOCK class"""
+    """IDBLOCK class
+
+    Attributes
+    ----------
+    address : int
+        should always be 0
+
+    """
 
     def __init__(self, **kargs):
 
@@ -3034,7 +3169,16 @@ class FileIdentificationBlock(dict):
 
 
 class FileHistory(dict):
-    """FHBLOCK class"""
+    """FHBLOCK class
+
+    Attributes
+    ----------
+    address : int
+        file history address
+    comment : str
+        history comment
+
+    """
 
     def __init__(self, **kargs):
         super(FileHistory, self).__init__()
@@ -3145,7 +3289,18 @@ class FileHistory(dict):
 
 
 class HeaderBlock(dict):
-    """HDBLOCK class"""
+    """HDBLOCK class
+
+     Attributes
+    ----------
+    address : int
+        header address
+    comment : str
+        file comment
+    start_time : datetime.datetime
+        measurement start timestamp
+
+    """
 
     def __init__(self, **kargs):
         super(HeaderBlock, self).__init__()
@@ -3255,7 +3410,14 @@ class HeaderBlock(dict):
 
 
 class HeaderList(dict):
-    """HLBLOCK class"""
+    """HLBLOCK class
+
+     Attributes
+    ----------
+    address : int
+        header list address
+
+    """
 
     def __init__(self, **kargs):
         super(HeaderList, self).__init__()
@@ -3307,7 +3469,20 @@ class HeaderList(dict):
 
 
 class SourceInformation(dict):
-    """SIBLOCK class"""
+    """SIBLOCK class
+
+    Attributes
+    ----------
+    address : int
+        source information address
+    comment : str
+        source comment
+    name : str
+        source name
+    path : str
+        source path
+
+    """
 
     def __init__(self, **kargs):
         super(SourceInformation, self).__init__()
@@ -3575,7 +3750,14 @@ comment: {}
 
 
 class SignalDataBlock(dict):
-    """SDBLOCK class"""
+    """SDBLOCK class
+
+    Attributes
+    ----------
+    address : int
+        signal data block address
+
+    """
 
     def __init__(self, **kargs):
         super(SignalDataBlock, self).__init__()
@@ -3621,7 +3803,14 @@ class SignalDataBlock(dict):
 
 
 class TextBlock(dict):
-    """common TXBLOCK and MDBLOCK class"""
+    """common TXBLOCK and MDBLOCK class
+
+    Attributes
+    ----------
+    address : int
+        text block address
+
+    """
 
     def __init__(self, **kargs):
         super(TextBlock, self).__init__()
