@@ -55,8 +55,28 @@ __all__ = [
 class AttachmentBlock(dict):
     """ ATBLOCK class
 
-    When adding new attachments only embedded attachemnts are allowed, with
+    When adding new attachments only embedded attachments are allowed, with
     keyword argument *data* of type bytes
+
+    ATBLOCK has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##AT'
+    * ``reserved0`` - int : reserved bytes
+    * ``links_nr`` - int : number of links
+    * ``next_at_addr`` - int : next ATBLOCK address
+    * ``file_name_addr`` - int : address of TXBLOCK that contains the attachment
+      file name
+    * ``mime_addr`` - int : address of TXBLOCK that contains the attachment
+      mime type description
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
+      attachment comment
+    * ``flags`` - int : ATBLOCK flags
+    * ``creator_index`` - int : index of file history block
+    * ``reserved1`` - int : reserved bytes
+    * ``md5_sum`` - bytes : attachment file md5 sum
+    * ``original_size`` - int : original uncompress file size in bytes
+    * ``embedded_size`` - int : embedded compressed file size in bytes
+    * ``embedded_data`` - bytes : embedded atatchment bytes
 
     Attributes
     ----------
@@ -68,6 +88,20 @@ class AttachmentBlock(dict):
         mime type
     comment : str
         attachment comment
+
+    Parameters
+    ----------
+    when reading from file
+
+    address : int
+        block address
+
+        * ``address`` - int : block address
+        * ``stream`` - file handle : file handle
+
+    * when creating from scratch
+
+        * see the key-value pairs
 
     """
 
@@ -322,6 +356,8 @@ class Channel(dict):
         channel source information; *None* if the channel has no source information
     unit : str
         channel unit
+
+
 
     """
 
@@ -3804,6 +3840,12 @@ class SignalDataBlock(dict):
 
 class TextBlock(dict):
     """common TXBLOCK and MDBLOCK class
+
+    Fields
+    ------
+    id : bytes
+        block ID
+
 
     Attributes
     ----------
