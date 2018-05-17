@@ -464,7 +464,7 @@ class MDF(object):
                 can_msg = self._dbc_cache[dbc_addr].frameById(message_id)
 
                 for i, _ in enumerate(can_msg.signals, 1):
-                    included_channels.add(-5*i)
+                    included_channels.add(-i)
 
             for dependencies in group['channel_dependencies']:
                 if dependencies is None:

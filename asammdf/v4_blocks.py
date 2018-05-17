@@ -2622,6 +2622,14 @@ formula: {}
 class DataBlock(dict):
     """DTBLOCK class
 
+    *DataBlock* has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##DT'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``data`` - bytes : raw samples
+
     Attributes
     ----------
     address : int
@@ -2681,6 +2689,21 @@ class DataBlock(dict):
 
 class DataZippedBlock(dict):
     """DZBLOCK class
+
+    *DataZippedBlock* has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##DZ'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``original_type`` - bytes : b'DT' or b'SD'
+    * ``zip_type`` - int : zip algorithm used
+    * ``reserved1`` - int : reserved bytes
+    * ``param`` - int : for transpose deflate the record size used for transposition
+    * ``original_size`` - int : size of the original uncompressed raw bytes
+    * ``zip_size`` - int : size of compressed bytes
+    * ``data`` - bytes : compressed bytes
+
 
     Attributes
     ----------
@@ -2807,6 +2830,24 @@ class DataZippedBlock(dict):
 
 class DataGroup(dict):
     """DGBLOCK class
+
+    *DataGroup* has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##DG'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``next_dg_addr`` - int : address of next data group block
+    * ``first_cg_addr`` - int : address of first channel group for this data
+      group
+    * ``data_block_addr`` - int : address of DTBLOCK, DZBLOCK, DLBLOCK or
+      HLBLOCK that contains the raw samples for this data group
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK tha contains the
+      data group comment
+    * ``record_id_len`` - int : size of record ID used in case of unsorted
+      data groups; can be 1, 2, 4 or 8
+    * ``reserved1`` - int : reserved bytes
+
 
     Attributes
     ----------
@@ -3588,6 +3629,21 @@ class HeaderList(dict):
 
 class SourceInformation(dict):
     """SIBLOCK class
+
+    *SourceInformation* has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##SI'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``name_addr`` - int : address fof TXBLOCK that contains the source name
+    * ``path_addr`` - int : address fof TXBLOCK that contains the source path
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK tha contains the
+      source comment
+    * ``source_type`` - int : integer code for source type
+    * ``bus_type`` - int : integer code for source bus type
+    * ``flags`` - int : source flags
+    * ``reserved1`` - int : reserved bytes
 
     Attributes
     ----------
