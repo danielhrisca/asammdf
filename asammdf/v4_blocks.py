@@ -1133,6 +1133,33 @@ class ChannelArrayBlock(dict):
 class ChannelGroup(dict):
     """CGBLOCK class
 
+    *ChannelGroup* has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##CG'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``next_cg_addr`` - int : next channel group address
+    * ``first_ch_addr`` - int : address of first channel of this channel group
+    * ``acq_name_addr`` - int : address of TextBLock that contains the channel
+      group acquisition name
+    * ``acq_source_addr`` - int : addres of SourceInformation that contains the
+      channel group source
+    * ``first_sample_reduction_addr`` - int : address of first SRBLOCK; this is
+      considered 0 since sample reduction is not yet supported
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
+      channel group comment
+    * ``record_id`` - int : record ID for thei channel group
+    * ``cycles_nr`` - int : number of cycles for this channel group
+    * ``flags`` - int : channel group flags
+    * ``path_separator`` - int : ordinal for character used as path separator
+    * ``reserved1`` - int : reserved bytes
+    * ``samples_byte_nr`` - int : number of bytes used for channels samples in
+      the record for this channel group; this does not contain the invalidation
+      bytes
+    * ``invalidation_bytes_nr`` - int : number of bytes used for invalidation
+      bits by this channl group
+
     Attributes
     ----------
     acq_name : str
