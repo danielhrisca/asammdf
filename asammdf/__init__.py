@@ -3,8 +3,15 @@
 
 import logging
 
+
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+
 logger = logging.getLogger('asammdf')
 logger.setLevel(logging.INFO)
+logger.addFilter(NullHandler())
 
 from .mdf_v2 import MDF2
 from .mdf_v3 import MDF3
@@ -23,5 +30,8 @@ __all__ = [
     'Signal',
     'SUPPORTED_VERSIONS',
 ]
+
+
+
 
 
