@@ -3571,6 +3571,18 @@ class HeaderBlock(dict):
 class HeaderList(dict):
     """HLBLOCK class
 
+    *HeaderList* has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##HL'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``first_dl_addr`` - int : address of first data list block for this header
+      list
+    * ``flags`` - int : source flags
+    * ``zip_type`` - int : integer code for zip type
+    * ``reserved1`` - bytes : reserved bytes
+
      Attributes
     ----------
     address : int
@@ -3636,14 +3648,14 @@ class SourceInformation(dict):
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
-    * ``name_addr`` - int : address fof TXBLOCK that contains the source name
-    * ``path_addr`` - int : address fof TXBLOCK that contains the source path
+    * ``name_addr`` - int : address of TXBLOCK that contains the source name
+    * ``path_addr`` - int : address of TXBLOCK that contains the source path
     * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK tha contains the
       source comment
     * ``source_type`` - int : integer code for source type
     * ``bus_type`` - int : integer code for source bus type
     * ``flags`` - int : source flags
-    * ``reserved1`` - int : reserved bytes
+    * ``reserved1`` - bytes : reserved bytes
 
     Attributes
     ----------
@@ -3925,6 +3937,14 @@ comment: {}
 
 class SignalDataBlock(dict):
     """SDBLOCK class
+
+    *SignalDataBlock* has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##SD'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``data`` - bytes : raw samples
 
     Attributes
     ----------
