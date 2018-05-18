@@ -225,8 +225,30 @@ def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
 
 
 class MDF4(object):
-    """If the *name* exist it will be memorised otherwise an empty file will be
-    created that can be later saved to disk
+    """The *header* attibute is an *HeaderBlock*.
+
+    The *groups* attribute is a dictionary list with the following keys:
+
+    * ``data_group`` - DataGroup object
+    * ``channel_group`` - ChannelGroup object
+    * ``channels`` - list of Channel objects (when *memory* is *full* or *low*) or addresses
+      (when *memory* is *minimum*) with the same order as found in the mdf file
+    * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel arrays;
+      list of Channel objects (when *memory* is *full* or *low*) or addresses
+      (when *memory* is *minimum*) in case of structure channel composition
+    * ``data_block`` - DataBlock object when *memory* is *full* else address of
+      data block
+    * ``data_group`` - *DataGroup* block
+    * ``data_location``- integer code for data location (original file, temporary file or
+      memory)
+    * ``data_block_addr`` - list of raw samples starting addresses, for *low* and *minimum*
+      memory options
+    * ``data_block_type`` - list of codes for data block type
+    * ``data_block_size`` - list of raw samples block size
+    * ``sorted`` - sorted indicator flag
+    * ``record_size`` - size of record in bytes (including invalidation bytes)
+    * ``param`` - row size used for tranposizition, in case of tranposed zipped blockss
+
 
     Parameters
     ----------
@@ -251,12 +273,14 @@ class MDF4(object):
     channels_db : dict
         used for fast channel access by name; for each name key the value is a
         list of (group index, channel index) tuples
+    events : list
+        list event blocks
     file_comment : TextBlock
         file comment TextBlock
     file_history : list
         list of (FileHistory, TextBlock) pairs
     groups : list
-        list of data groups
+        list of data group dicts
     header : HeaderBlock
         mdf file header
     identification : FileIdentificationBlock
@@ -275,7 +299,7 @@ class MDF4(object):
 
     _terminate = False
 
-    def __init__(self, name=None, memory='full', version='4.10', callback=None, queue=None):
+    def __init__(self, name=None, memory='full', version='4.10', callback=None):
         memory = validate_memory_argument(memory)
         self.groups = []
         self.header = None
@@ -312,8 +336,6 @@ class MDF4(object):
         self._tempfile.write(b'\0')
 
         self._callback = callback
-
-        self.queue = queue
 
         if name:
             self._file = open(self.name, 'rb')

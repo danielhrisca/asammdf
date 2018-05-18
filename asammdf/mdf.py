@@ -66,16 +66,18 @@ class MDF(object):
           metadata is loaded into RAM
         * if *minimum* only minimal data is loaded into RAM
 
-
     version : string
         mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
         '3.30', '4.00', '4.10', '4.11'); default '4.10'
+    callback : function
+        function to call to update the progress; the function must accept two
+        arguments (the current progress and maximum progress value)
 
     """
 
     _terminate = False
 
-    def __init__(self, name=None, memory='full', version='4.10', callback=None, queue=None):
+    def __init__(self, name=None, memory='full', version='4.10', callback=None):
         if name:
             if os.path.isfile(name):
                 memory = validate_memory_argument(memory)
@@ -93,7 +95,7 @@ class MDF(object):
                 if version in MDF3_VERSIONS:
                     self._mdf = MDF3(name, memory, callback=callback)
                 elif version in MDF4_VERSIONS:
-                    self._mdf = MDF4(name, memory, callback=callback, queue=queue)
+                    self._mdf = MDF4(name, memory, callback=callback)
                 elif version in MDF2_VERSIONS:
                     self._mdf = MDF2(name, memory, callback=callback)
                 else:
