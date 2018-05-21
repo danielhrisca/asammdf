@@ -433,7 +433,7 @@ class Channel(dict):
                     stream.write(bytes(tx_block))
             else:
                 self[key] = 0
-            self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+        self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
 
         key = 'display_name_addr'
         text = self.display_name
@@ -970,8 +970,10 @@ class ChannelConversion(dict):
                 formula = kwargs['formula']
                 formula_len = len(formula)
                 try:
+                    self.formula = formula.decode('latin-1')
                     formula += b'\0'
                 except:
+                    self.formula = formula
                     formula = formula.encode('latin-1') + b'\0'
                 self['block_len'] = 46 + formula_len + 1
                 self['range_flag'] = kwargs.get('range_flag', 1)
@@ -1047,8 +1049,8 @@ class ChannelConversion(dict):
         self['unit'] = '{:\0<20}'.format(self.unit[:19]).encode('latin-1')
         
         if 'formula' in self:
-            formula = self.formula.encode('latin-1')
-            if not formula[-1] == '\0':
+            formula = self.formula
+            if not formula.endswith('\0'):
                 formula += '\0'
             self['formula'] = formula.encode('latin-1')
             self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + len(self['formula'])
@@ -1087,8 +1089,8 @@ class ChannelConversion(dict):
         self['unit'] = '{:\0<20}'.format(self.unit[:19]).encode('latin-1')
         
         if 'formula' in self:
-            formula = self.formula.encode('latin-1')
-            if not formula[-1] == '\0':
+            formula = self.formula
+            if not formula.endswith('\0'):
                 formula += '\0'
             self['formula'] = formula.encode('latin-1')
             self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + len(self['formula'])

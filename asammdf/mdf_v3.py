@@ -2365,7 +2365,7 @@ class MDF3(object):
 
         """
         gp_nr, ch_nr = self._validate_channel_selection(
-            None,
+            name,
             group,
             index,
         )
@@ -2382,7 +2382,7 @@ class MDF3(object):
                 stream=stream,
             )
         else:
-            channel = grp['channels'][ch_nr].name
+            channel = grp['channels'][ch_nr]
             
         if channel.conversion:
             unit = channel.conversion.unit
@@ -2427,7 +2427,7 @@ class MDF3(object):
 
         """
         gp_nr, ch_nr = self._validate_channel_selection(
-            None,
+            name,
             group,
             index,
         )
@@ -2444,7 +2444,7 @@ class MDF3(object):
                 stream=stream,
             )
         else:
-            channel = grp['channels'][ch_nr].name
+            channel = grp['channels'][ch_nr]
             
         return channel.comment
 
@@ -2788,7 +2788,11 @@ class MDF3(object):
                     v23c.CONVERSION_TYPE_POLY,
                     v23c.CONVERSION_TYPE_FORMULA):
                 if not raw:
-                    vals = conversion.convert(vals)
+                    try:
+                        vals = conversion.convert(vals)
+                    except:
+                        print(channel, conversion)
+                        raise
 
             elif conversion_type in (
                     v23c.CONVERSION_TYPE_TABX,
