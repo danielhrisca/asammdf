@@ -131,6 +131,7 @@ class Channel(dict):
         super(Channel, self).__init__()
 
         self.name = self.display_name = self.comment = ''
+        self.conversion = self.source = None
 
         try:
             stream = kwargs['stream']
@@ -139,6 +140,8 @@ class Channel(dict):
             size = unpack('<H', stream.read(2))[0]
             stream.seek(address)
             block = stream.read(size)
+            
+            load_metadata = kwargs.get('load_metadata', True)
 
             if size == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
                 (self['id'],
@@ -164,6 +167,43 @@ class Channel(dict):
                     v23c.FMT_CHANNEL_DISPLAYNAME,
                     block,
                 )
+                
+                addr = self['long_name_addr']
+                if addr:
+                    self.name = get_text_v3(
+                        address=addr,
+                        stream=stream,
+                    )
+                else:
+                    self.name = self['short_name'].decode('latin-1').strip(' \t\n\r\0')
+                    
+                addr = self['display_name_addr']
+                if addr:
+                    self.display_name = get_text_v3(
+                        address=addr,
+                        stream=stream,
+                    ) 
+                if load_metadata:      
+                    addr = self['conversion_addr']
+                    if addr:
+                        self.conversion = ChannelConversion(
+                            address=addr,
+                            stream=stream,
+                        )
+                        
+                    addr = self['source_depend_addr']
+                    if addr:
+                        self.source = ChannelExtension(
+                            address=addr,
+                            stream=stream,
+                        )
+                        
+                    addr = self['comment_addr']
+                    if addr:
+                        self.comment = get_text_v3(
+                            address=addr,
+                            stream=stream,
+                        )
 
             elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                 (self['id'],
@@ -187,6 +227,38 @@ class Channel(dict):
                     v23c.FMT_CHANNEL_LONGNAME,
                     block,
                 )
+                
+                addr = self['long_name_addr']
+                if addr:
+                    self.name = get_text_v3(
+                        address=addr,
+                        stream=stream,
+                    )
+                else:
+                    self.name = self['short_name'].decode('latin-1').strip(' \t\n\r\0')
+                
+                if load_metadata:    
+                        
+                    addr = self['conversion_addr']
+                    if addr:
+                        self.conversion = ChannelConversion(
+                            address=addr,
+                            stream=stream,
+                        )
+                        
+                    addr = self['source_depend_addr']
+                    if addr:
+                        self.source = ChannelExtension(
+                            address=addr,
+                            stream=stream,
+                        )
+                        
+                    addr = self['comment_addr']
+                    if addr:
+                        self.comment = get_text_v3(
+                            address=addr,
+                            stream=stream,
+                        )
             else:
                 (self['id'],
                  self['block_len'],
@@ -205,6 +277,31 @@ class Channel(dict):
                  self['min_raw_value'],
                  self['max_raw_value'],
                  self['sampling_rate']) = unpack(v23c.FMT_CHANNEL_SHORT, block)
+                
+                self.name = self['short_name'].decode('latin-1').strip(' \t\n\r\0')
+                
+                if load_metadata:    
+                        
+                    addr = self['conversion_addr']
+                    if addr:
+                        self.conversion = ChannelConversion(
+                            address=addr,
+                            stream=stream,
+                        )
+                        
+                    addr = self['source_depend_addr']
+                    if addr:
+                        self.source = ChannelExtension(
+                            address=addr,
+                            stream=stream,
+                        )
+                        
+                    addr = self['comment_addr']
+                    if addr:
+                        self.comment = get_text_v3(
+                            address=addr,
+                            stream=stream,
+                        )
 
             if self['id'] != b'CN':
                 message = 'Expected "CN" block but found "{}"'
@@ -243,6 +340,156 @@ class Channel(dict):
                     'aditional_byte_offset',
                     0,
                 )
+                
+    def to_blocks(self, address, blocks, defined_texts, cc_map, si_map):
+        key = 'long_name_addr'
+        text = self.name
+        if key in self:
+            if len(text) > 127:      
+                if text in defined_texts:
+                    self[key] = defined_texts[text]
+                else:
+                    tx_block = TextBlock(text=text)
+                    self[key] = address
+                    defined_texts[text] = address
+                    tx_block.address = address
+                    address += tx_block['block_len']
+                    blocks.append(tx_block)
+            else:
+                self[key] = 0
+            self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+
+        key = 'display_name_addr'
+        text = self.display_name
+        if key in self:
+            if text:
+                if text in defined_texts:
+                    self[key] = defined_texts[text]
+                else:
+                    tx_block = TextBlock(text=text)
+                    self[key] = address
+                    defined_texts[text] = address
+                    tx_block.address = address
+                    address += tx_block['block_len']
+                    blocks.append(tx_block)
+            else:
+                self[key] = 0
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if len(text) < 128:
+                self['description'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+                self[key] = 0
+            else:
+                if text in defined_texts:
+                    self[key] = defined_texts[text]
+                else:
+                    tx_block = TextBlock(text=text)
+                    self[key] = address
+                    defined_texts[text] = address
+                    tx_block.address = address
+                    address += tx_block['block_len']
+                    blocks.append(tx_block)
+                self['description'] = b'\0'
+        else:
+            self[key] = 0
+
+        conversion = self.conversion
+        if conversion:
+            address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
+            self['conversion_addr'] = conversion.address
+        else:
+            self['conversion_addr'] = 0
+
+        source = self.source
+        if source:
+            address = source.to_blocks(address, blocks, defined_texts, si_map)
+            self['source_depend_addr'] = source.address
+        else:
+            self['source_depend_addr'] = 0
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts, cc_map, si_map):
+        address = stream.tell()
+
+        key = 'long_name_addr'
+        text = self.name
+        if key in self:
+            if len(text) > 127:
+                if text in defined_texts:
+                    self[key] = defined_texts[text]
+                else:
+                    tx_block = TextBlock(text=text)
+                    self[key] = address
+                    defined_texts[text] = address
+                    tx_block.address = address
+                    address += tx_block['block_len']
+                    stream.write(bytes(tx_block))
+            else:
+                self[key] = 0
+            self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+
+        key = 'display_name_addr'
+        text = self.display_name
+        if key in self:
+            if text:
+                if text in defined_texts:
+                    self[key] = defined_texts[text]
+                else:
+                    tx_block = TextBlock(text=text)
+                    self[key] = address
+                    defined_texts[text] = address
+                    tx_block.address = address
+                    address += tx_block['block_len']
+                    stream.write(bytes(tx_block))
+            else:
+                self[key] = 0
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if len(text) < 128:
+                self['description'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+                self[key] = 0
+            else:
+                if text in defined_texts:
+                    self[key] = defined_texts[text]
+                else:
+                    tx_block = TextBlock(text=text)
+                    self[key] = address
+                    defined_texts[text] = address
+                    tx_block.address = address
+                    address += tx_block['block_len']
+                    stream.write(bytes(tx_block))
+                self['description'] = b'\0'
+        else:
+            self[key] = 0
+
+        conversion = self.conversion
+        if conversion:
+            address = conversion.to_stream(stream, defined_texts, cc_map)
+            self['conversion_addr'] = conversion.address
+        else:
+            self['conversion_addr'] = 0
+
+        source = self.source
+        if source:
+            address = source.to_stream(stream, defined_texts, si_map)
+            self['source_depend_addr'] = source.address
+        else:
+            self['source_depend_addr'] = 0
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
 
     def metadata(self):
         max_len = max(
@@ -335,13 +582,13 @@ comment: {}
             result = 0
         return result
 
-    def __str__(self):
+    def __repr__(self):
         return 'Channel (name: {}, display name: {}, comment: {}, address: {}, fields: {})'.format(
             self.name,
             self.display_name,
             self.comment,
             hex(self.address),
-            super(Channel, self).__str__(),
+            dict(self),
         )
 
 
@@ -360,7 +607,7 @@ class ChannelConversion(dict):
 
     * common keys
 
-        * id - Block type identifier, always "CC"
+        * id - Block type identifier, always b"CC"
         * block_len - Block size of this block in bytes (entire CCBLOCK)
         * range_flag - Physical value range valid flag:
         * min_phy_value - Minimum physical signal value that occurred for this
@@ -432,6 +679,8 @@ class ChannelConversion(dict):
 
     def __init__(self, **kwargs):
         super(ChannelConversion, self).__init__()
+        
+        self.unit = self.formula = ''
 
         self.referenced_blocks = {}
 
@@ -473,6 +722,8 @@ class ChannelConversion(dict):
                 v23c.FMT_CONVERSION_COMMON_SHORT,
                 block,
             )
+            
+            self.unit = self['unit'].decode('latin-1').strip(' \t\r\n\0')
 
             conv_type = self['conversion_type']
 
@@ -491,6 +742,7 @@ class ChannelConversion(dict):
 
             elif conv_type == v23c.CONVERSION_TYPE_FORMULA:
                 self['formula'] = block[v23c.CC_COMMON_SHORT_SIZE:]
+                self.formula = self['formula'].decode('latin-1').strip(' \t\r\n\0')
 
             elif conv_type in (
                     v23c.CONVERSION_TYPE_TABI,
@@ -789,6 +1041,85 @@ class ChannelConversion(dict):
                 message = message.format(kwargs['conversion_type'])
                 logger.exception(message)
                 raise MdfException(message)
+                
+    def to_blocks(self, address, blocks, defined_texts, cc_map):
+
+        self['unit'] = '{:\0<20}'.format(self.unit[:19]).encode('latin-1')
+        
+        if 'formula' in self:
+            formula = self.formula.encode('latin-1')
+            if not formula[-1] == '\0':
+                formula += '\0'
+            self['formula'] = formula.encode('latin-1')
+            self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + len(self['formula'])
+
+        for key, block in self.referenced_blocks.items():
+            if block:
+                if block['id'] == b'TX':
+                    text = block['text']
+                    if text in defined_texts:
+                        self[key] = defined_texts[text]
+                    else:
+                        defined_texts[text] = address
+                        blocks.append(block)
+                        self[key] = address
+                        address += block['block_len']
+                else:
+                    address = block.to_blocks(address, blocks, defined_texts, cc_map)
+                    self[key] = block.address
+            else:
+                self[key] = 0
+
+        bts = bytes(self)
+        if bts in cc_map:
+            self.address = cc_map[bts]
+        else:
+            blocks.append(bts)
+            self.address = address
+            cc_map[bts] = address
+            address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts, cc_map):
+        address = stream.tell()
+        
+        self['unit'] = '{:\0<20}'.format(self.unit[:19]).encode('latin-1')
+        
+        if 'formula' in self:
+            formula = self.formula.encode('latin-1')
+            if not formula[-1] == '\0':
+                formula += '\0'
+            self['formula'] = formula.encode('latin-1')
+            self['block_len'] = v23c.CC_COMMON_BLOCK_SIZE + len(self['formula'])
+
+        for key, block in self.referenced_blocks.items():
+            if block:
+                if block['id'] == b'TX':
+                    text = block['text']
+                    if text in defined_texts:
+                        self[key] = defined_texts[text]
+                    else:
+                        defined_texts[text] = address
+                        self[key] = address
+                        address += block['block_len']
+                        stream.write(bytes(block))
+                else:
+                    address = block.to_stream(stream, defined_texts, cc_map)
+                    self[key] = block.address
+            else:
+                self[key] = 0
+
+        bts = bytes(self)
+        if bts in cc_map:
+            self.address = cc_map[bts]
+        else:
+            cc_map[bts] = address
+            stream.write(bytes(self))
+            self.address = address
+            address += self['block_len']
+
+        return address
 
     def metadata(self, indent=''):
         max_len = max(
@@ -1405,6 +1736,47 @@ class ChannelExtension(dict):
                 hex(self['CAN_id']),
                 self['CAN_ch_index'],
             )
+            
+    def to_blocks(self, address, blocks, defined_texts, cc_map):
+        
+        if self['type'] == v23c.SOURCE_ECU:
+            self['ECU_identification'] = '{:\0<32}'.format(self.path[:31]).encode('latin-1')
+            self['description'] = '{:\0<80}'.format(self.name[:79]).encode('latin-1')
+        else:
+            self['sender_name'] = '{:\0<36}'.format(self.path[:35]).encode('latin-1')
+            self['message_name'] = '{:\0<36}'.format(self.name[:35]).encode('latin-1')
+
+        bts = bytes(self)
+        if bts in cc_map:
+            self.address = cc_map[bts]
+        else:
+            blocks.append(bts)
+            self.address = address
+            cc_map[bts] = address
+            address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts, cc_map):
+        address = stream.tell()
+        
+        if self['type'] == v23c.SOURCE_ECU:
+            self['ECU_identification'] = '{:\0<32}'.format(self.path[:31]).encode('latin-1')
+            self['description'] = '{:\0<80}'.format(self.name[:79]).encode('latin-1')
+        else:
+            self['sender_name'] = '{:\0<36}'.format(self.path[:35]).encode('latin-1')
+            self['message_name'] = '{:\0<36}'.format(self.name[:35]).encode('latin-1')
+
+        bts = bytes(self)
+        if bts in cc_map:
+            self.address = cc_map[bts]
+        else:
+            cc_map[bts] = address
+            stream.write(bytes(self))
+            self.address = address
+            address += self['block_len']
+
+        return address
 
     def metadata(self):
         max_len = max(
@@ -1575,6 +1947,52 @@ class ChannelGroup(dict):
             self['cycles_nr'] = kwargs.get('cycles_nr', 0)
             if self['block_len'] == v23c.CG_POST_330_BLOCK_SIZE:
                 self['sample_reduction_addr'] = 0
+                
+    def to_blocks(self, address, blocks, defined_texts, si_map):
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+        else:
+            self[key] = 0
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts, si_map):
+        address = stream.tell()
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
 
     def __bytes__(self):
         fmt = v23c.FMT_CHANNEL_GROUP
@@ -1852,6 +2270,10 @@ class HeaderBlock(dict):
     ----------
     address : int
         block address inside mdf file; should be 64 always
+    comment : int
+        file comment
+    program : ProgramBlock
+        program block 
 
     '''
 
@@ -1860,6 +2282,7 @@ class HeaderBlock(dict):
 
         self.address = 64
         self.program = None
+        self.comment = ''
         try:
 
             stream = kwargs['stream']
@@ -1899,6 +2322,11 @@ class HeaderBlock(dict):
             if self['program_addr']:
                 self.program = ProgramBlock(
                     address=self['program_addr'],
+                    stream=stream,
+                )
+            if self['comment_addr']:
+                self.comment = get_text_v3(
+                    address=self['comment_addr'],
                     stream=stream,
                 )
 
@@ -1952,6 +2380,71 @@ class HeaderBlock(dict):
                     .format('Local PC Reference Time')
                     .encode('latin-1')
                 )
+                
+    def to_blocks(self, address, blocks, defined_texts, si_map):
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                blocks.append(tx_block)
+        else:
+            self[key] = 0
+
+        key = 'program_addr'
+        if self.program:
+            self[key] = address
+            address += self.program['block_len']
+            blocks.append(self.program)
+            
+        else:
+            self[key] = 0
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream, defined_texts, si_map):
+        address = stream.tell()
+
+        key = 'comment_addr'
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block['block_len']
+                stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
+
+        key = 'program_addr'
+        if self.program:
+            self[key] = address
+            address += self.program['block_len']
+            stream.write(bytes(self.program))
+            
+        else:
+            self[key] = 0
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
 
     @property
     def start_time(self):
@@ -2257,11 +2750,15 @@ class TriggerBlock(dict):
     ----------
     address : int
         block address inside mdf file
+    description : str
+        trigger description text
 
     '''
 
     def __init__(self, **kwargs):
         super(TriggerBlock, self).__init__()
+        
+        self.description = ''
 
         try:
             self.address = address = kwargs['address']
@@ -2288,6 +2785,12 @@ class TriggerBlock(dict):
                     values[3 * i + 1],
                     values[3 * i + 2],
                 )
+                
+            if self['text_addr']:
+                self.description = get_text_v3(
+                    address=self['text_addr'],
+                    stream=stream,
+                )
 
             if self['id'] != b'TR':
                 message = 'Expected "TR" block but found "{}"'
@@ -2313,6 +2816,42 @@ class TriggerBlock(dict):
                 self[key] = kwargs[key]
                 key = 'trigger_{}_posttime'.format(i)
                 self[key] = kwargs[key]
+                
+    def to_blocks(self, address, blocks):
+        key = 'text_addr'
+        text = self.description
+        if text:
+            tx_block = TextBlock(text=text)
+            self[key] = address
+            address += tx_block['block_len']
+            blocks.append(tx_block)
+        else:
+            self[key] = 0
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream):
+        address = stream.tell()
+
+        key = 'text_addr'
+        text = self.description
+        if text:
+            tx_block = TextBlock(text=text)
+            self[key] = address
+            address += tx_block['block_len']
+            stream.write(bytes(tx_block))
+        else:
+            self[key] = 0
+
+        stream.write(bytes(self))
+        self.address = address
+        address += self['block_len']
+
+        return address
 
     def __bytes__(self):
         triggers_nr = self['trigger_events_nr']
