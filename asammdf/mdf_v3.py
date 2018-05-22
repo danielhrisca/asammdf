@@ -799,7 +799,7 @@ class MDF3(object):
 
                 while ch_addr:
                     # read channel block and create channel object
-                    load_metadata = memory == 'minimum'
+                    load_metadata = memory != 'minimum'
                     new_ch = Channel(
                         address=ch_addr,
                         stream=stream,
@@ -818,7 +818,7 @@ class MDF3(object):
 
                     # update channel map
                     ch_map[ch_addr] = (ch_cntr, dg_cntr)
-                    
+
                     for name in (new_ch.name, new_ch.display_name):
                         if not name:
                             continue
@@ -1100,7 +1100,7 @@ class MDF3(object):
         if not signals:
             error = '"append" requires a non-empty list of Signal objects'
             raise MdfException(error)
-            
+
         version = self.version
 
         # check if the signals have a common timebase
@@ -1195,7 +1195,7 @@ class MDF3(object):
             'min_phy_value': timestamps[0] if cycles_nr else 0,
             'max_phy_value': timestamps[-1] if cycles_nr else 0,
         }
-        conversion = ChannelConversion(**kargs) 
+        conversion = ChannelConversion(**kargs)
         conversion.unit = 's'
         source = ce_block
 
@@ -1219,7 +1219,7 @@ class MDF3(object):
         channel.name = name = time_name
         channel.conversion = conversion
         channel.source = source
-        
+
         if memory != 'minimum':
             gp_channels.append(channel)
         else:
@@ -1342,7 +1342,7 @@ class MDF3(object):
                 else:
                     channel.to_stream(file, defined_texts, cc_map, si_map)
                     gp_channels.append(channel.address)
-                    
+
                 offset += s_size
 
                 if name not in self.channels_db:
@@ -1701,7 +1701,7 @@ class MDF3(object):
                 channel = Channel(**kargs)
                 channel.comment = signal.comment
                 channel.display_name = signal.display_name
-                
+
                 if memory != 'minimum':
                     gp_channels.append(channel)
                 else:
@@ -2003,7 +2003,7 @@ class MDF3(object):
         else:
             kargs['block_len'] = v23c.CG_PRE_330_BLOCK_SIZE
         gp['channel_group'] = ChannelGroup(**kargs)
-        gp['channel_group'].comment = acquisition_info     
+        gp['channel_group'].comment = acquisition_info
         gp['size'] = cycles_nr * (offset >> 3)
 
         # data group
@@ -2279,7 +2279,7 @@ class MDF3(object):
                 load_metadata=False,
             )
         else:
-            channel = grp['channels'][ch_nr].name
+            channel = grp['channels'][ch_nr]
 
         return channel.name
 
@@ -2302,29 +2302,13 @@ class MDF3(object):
             stream = self._tempfile
 
         channel = grp['channels'][ch_nr]
-        conversion = grp['channel_conversions'][ch_nr]
-        source = grp['channel_extensions'][ch_nr]
-
         if self.memory == 'minimum':
             channel = Channel(
                 address=channel,
                 stream=stream,
             )
 
-            channel.conversion = ChannelConversion(
-                address=conversion,
-                stream=stream,
-            )
-
-            channel.source = ChannelExtension(
-                address=source,
-                stream=stream,
-            )
-
-        else:
-            channel = deepcopy(channel)
-            channel.source = deepcopy(source)
-            channel.conversion = deepcopy(conversion)
+        channel = deepcopy(channel)
 
         return channel
 
@@ -2383,7 +2367,7 @@ class MDF3(object):
             )
         else:
             channel = grp['channels'][ch_nr]
-            
+
         if channel.conversion:
             unit = channel.conversion.unit
         else:
@@ -2445,7 +2429,7 @@ class MDF3(object):
             )
         else:
             channel = grp['channels'][ch_nr]
-            
+
         return channel.comment
 
     def get(self,
@@ -2594,7 +2578,7 @@ class MDF3(object):
                 address=grp['channels'][ch_nr],
                 stream=stream,
             )
-        
+
         conversion = channel.conversion
         name = channel.name
         display_name = channel.display_name
@@ -2808,7 +2792,7 @@ class MDF3(object):
                 unit = ''
 
             comment = channel.comment
-            
+
             description = (
                 channel['description']
                 .decode('latin-1')
@@ -3210,7 +3194,7 @@ class MDF3(object):
                 'for MDF created from scratch'
             )
             raise MdfException(message)
-            
+
         defined_texts, cc_map, si_map = {}, {}, {}
 
         dst = dst if dst else self.name
@@ -3341,7 +3325,7 @@ class MDF3(object):
                         dep.address = address
                         blocks.append(dep)
                         address += dep['block_len']
-                
+
                 for channel, dep in zip(gp['channels'], gp['channel_dependencies']):
                     if dep:
                         channel['ch_depend_addr'] = dep.address = address
@@ -3496,7 +3480,7 @@ class MDF3(object):
                 'for MDF created from scratch'
             )
             raise MdfException(message)
-            
+
         defined_texts, cc_map, si_map = {}, {}, {}
 
         dst = dst if dst else self.name
@@ -3575,13 +3559,13 @@ class MDF3(object):
                     )
                     channel['next_ch_addr'] = next_ch_addr
                     channel['ch_depend_addr'] = cd_addrs[i]
-                    
+
                     address = channel.to_stream(dst_, defined_texts, cc_map, si_map)
                     ch_addrs.append(channel.address)
                     next_ch_addr = channel.address
 
                 address = tell()
-                
+
                 ch_addrs.reverse()
                 # ChannelGroup
                 cg = gp['channel_group']
