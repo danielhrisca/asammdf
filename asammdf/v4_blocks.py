@@ -2247,15 +2247,16 @@ class ChannelConversion(dict):
             P4 = self['P4']
             P5 = self['P5']
             P6 = self['P6']
-            if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
-                X = values
-                if (P1, P4, P5, P6) == (0, 0, 0, 1):
-                    if (P2, P6) != (1, 0):
-                        values = values * P2
-                        if P6:
-                            values += P6
-                else:
-                    values = evaluate(v4c.CONV_RAT_TEXT)
+
+            X = values
+            if (P1, P4, P5, P6) == (0, 0, 0, 1):
+                if (P2, P3) != (1, 0):
+                    values = values * P2
+                    if P3:
+                        values += P3
+            else:
+                values = evaluate(v4c.CONV_RAT_TEXT)
+
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
                 X = values
                 values = evaluate(self.formula)
