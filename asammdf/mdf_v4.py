@@ -1431,9 +1431,9 @@ class MDF4(object):
 
             block_type = group['data_block_type']
             param = group['param']
-            cg_size = group['record_size']
 
             if not group['sorted']:
+                cg_size = group['record_size']
                 record_id = channel_group['record_id']
                 if data_group['record_id_len'] <= 2:
                     record_id_nr = data_group['record_id_len']
@@ -1528,7 +1528,7 @@ class MDF4(object):
                                     data = extra_bytes + data
 
                                 dim = len(data)
-                                new_extra_bytes = dim % cg_size
+                                new_extra_bytes = dim % samples_size
                                 if new_extra_bytes:
                                     extra_bytes = data[-new_extra_bytes:]
                                     data = data[:-new_extra_bytes]
@@ -1554,7 +1554,7 @@ class MDF4(object):
                                     data = extra_bytes + data
 
                                 dim = len(data)
-                                new_extra_bytes = dim % param
+                                new_extra_bytes = dim % samples_size
                                 if new_extra_bytes:
                                     extra_bytes = data[-new_extra_bytes:]
                                     data = data[:-new_extra_bytes]
