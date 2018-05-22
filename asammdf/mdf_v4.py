@@ -52,6 +52,7 @@ from .utils import (
     CHANNEL_COUNT,
     CONVERT_LOW,
     CONVERT_MINIMUM,
+    ChannelsDB,
     MdfException,
     SignalSource,
     as_non_byte_sized_signed_int,
@@ -307,7 +308,7 @@ class MDF4(object):
         self.file_history = []
         self.name = name
         self.memory = memory
-        self.channels_db = {}
+        self.channels_db = ChannelsDB()
         self.masters_db = {}
         self.attachments = []
         self._attachments_cache = {}
@@ -1002,28 +1003,12 @@ class MDF4(object):
                     (ch_cntr, dg_cntr)
                 )
 
-            if display_name:
-                if display_name not in self.channels_db:
-                    self.channels_db[display_name] = []
-                self.channels_db[display_name].append((dg_cntr, ch_cntr))
+            self.channels_db.add(display_name, dg_cntr, ch_cntr)
+            self.channels_db.add(name, dg_cntr, ch_cntr)
 
             # signal data
             address = channel['data_block_addr']
             grp['signal_data'].append(address)
-
-            if name not in self.channels_db:
-                self.channels_db[name] = []
-            self.channels_db[name].append((dg_cntr, ch_cntr))
-
-            # check if the source is included in the channel name
-            name = name.split('\\')
-            if len(name) > 1:
-                name = name[0]
-                if name in self.channels_db:
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
-                else:
-                    self.channels_db[name] = []
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
 
             if channel['channel_type'] in MASTER_CHANNELS:
                 self.masters_db[dg_cntr] = ch_cntr
@@ -1170,29 +1155,19 @@ class MDF4(object):
 
                                 logging_channels.append(log_channel)
 
-                                if name_ not in self.channels_db:
-                                    self.channels_db[name_] = []
-                                self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+                                self.channels_db.add(name_, dg_cntr, neg_ch_cntr)
 
                                 name_ = '{}.{}'.format(message_name, signal_name)
-                                if name_ not in self.channels_db:
-                                    self.channels_db[name_] = []
-                                self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+                                self.channels_db.add(name_, dg_cntr, neg_ch_cntr)
 
                                 name_ = 'CAN{}.{}.{}'.format(can_id, message_name, signal_name)
-                                if name_ not in self.channels_db:
-                                    self.channels_db[name_] = []
-                                self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+                                self.channels_db.add(name_, dg_cntr, neg_ch_cntr)
 
                                 name_ = '{}.{}'.format(can_msg_name, signal_name)
-                                if name_ not in self.channels_db:
-                                    self.channels_db[name_] = []
-                                self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+                                self.channels_db.add(name_, dg_cntr, neg_ch_cntr)
 
                                 name_ = 'CAN{}.{}.{}'.format(can_id, can_msg_name, signal_name)
-                                if name_ not in self.channels_db:
-                                    self.channels_db[name_] = []
-                                self.channels_db[name_].append((dg_cntr, neg_ch_cntr))
+                                self.channels_db.add(name_, dg_cntr, neg_ch_cntr)
 
                                 neg_ch_cntr -= 1
 
@@ -2484,9 +2459,7 @@ class MDF4(object):
 
         gp_sdata.append(None)
         gp_sdata_size.append(0)
-        if name not in self.channels_db:
-            self.channels_db[name] = []
-        self.channels_db[name].append((dg_cntr, ch_cntr))
+        self.channels_db.add(name, dg_cntr, ch_cntr)
         self.masters_db[dg_cntr] = 0
         # data group record parents
         parents[ch_cntr] = name, 0
@@ -2502,16 +2475,6 @@ class MDF4(object):
         ch_cntr += 1
 
         gp_sig_types.append(0)
-
-        # check if the source is included in the channel name
-        name = name.split('\\')
-        if len(name) > 1:
-            name = name[0]
-            if name in self.channels_db:
-                self.channels_db[name].append((dg_cntr, ch_cntr))
-            else:
-                self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
 
         for signal in signals:
             sig = signal
@@ -2597,9 +2560,7 @@ class MDF4(object):
 
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
-                if name not in self.channels_db:
-                    self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
+                self.channels_db.add(name, dg_cntr, ch_cntr)
 
                 # update the parents as well
                 field_name = get_unique_name(field_names, name)
@@ -2615,16 +2576,6 @@ class MDF4(object):
                         (field_name, signal.samples.dtype)
                     )
                 field_names.add(field_name)
-
-                # check if the source is included in the channel name
-                name = name.split('\\')
-                if len(name) > 1:
-                    name = name[0]
-                    if name in self.channels_db:
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-                    else:
-                        self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
 
                 ch_cntr += 1
 
@@ -2710,9 +2661,7 @@ class MDF4(object):
 
                 offset += byte_size
 
-                if name not in self.channels_db:
-                    self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
+                self.channels_db.add(name, dg_cntr, ch_cntr)
 
                 # update the parents as well
                 field_name = get_unique_name(field_names, name)
@@ -2721,16 +2670,6 @@ class MDF4(object):
                 fields.append(offsets)
                 types.append((field_name, uint64))
                 field_names.add(field_name)
-
-                # check if the source is included in the channel name
-                name = name.split('\\')
-                if len(name) > 1:
-                    name = name[0]
-                    if name in self.channels_db:
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-                    else:
-                        self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
 
                 ch_cntr += 1
 
@@ -2812,11 +2751,7 @@ class MDF4(object):
 
                 offset += byte_size
 
-                if name in self.channels_db:
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
-                else:
-                    self.channels_db[name] = []
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
+                self.channels_db.add(name, dg_cntr, ch_cntr)
 
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
@@ -2827,16 +2762,6 @@ class MDF4(object):
                 else:
                     gp_sdata.append(0)
                     gp_sdata_size.append(0)
-
-                # check if the source is included in the channel name
-                name = name.split('\\')
-                if len(name) > 1:
-                    name = name[0]
-                    if name in self.channels_db:
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-                    else:
-                        self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
 
                 ch_cntr += 1
 
@@ -2962,22 +2887,10 @@ class MDF4(object):
 
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
-                if name not in self.channels_db:
-                    self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
+                self.channels_db.add(name, dg_cntr, ch_cntr)
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
-
-                # check if the source is included in the channel name
-                name = name.split('\\')
-                if len(name) > 1:
-                    name = name[0]
-                    if name in self.channels_db:
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-                    else:
-                        self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
 
                 ch_cntr += 1
 
@@ -3040,22 +2953,10 @@ class MDF4(object):
 
                     gp_sdata.append(None)
                     gp_sdata_size.append(0)
-                    if name not in self.channels_db:
-                        self.channels_db[name] = []
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
+                    self.channels_db.add(name, dg_cntr, ch_cntr)
 
                     # update the parents as well
                     parents[ch_cntr] = field_name, 0
-
-                    # check if the source is included in the channel name
-                    name = name.split('\\')
-                    if len(name) > 1:
-                        name = name[0]
-                        if name in self.channels_db:
-                            self.channels_db[name].append((dg_cntr, ch_cntr))
-                        else:
-                            self.channels_db[name] = []
-                            self.channels_db[name].append((dg_cntr, ch_cntr))
 
                     ch_cntr += 1
 

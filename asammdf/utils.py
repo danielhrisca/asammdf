@@ -28,6 +28,7 @@ __all__ = [
     'CONVERT_MINIMUM',
     'MERGE_LOW',
     'MERGE_MINIMUM',
+    'ChannelsDB',
     'MdfException',
     'SignalSource',
     'get_fmt_v3',
@@ -814,3 +815,27 @@ def validate_version_argument(version, hint=4):
     else:
         valid_version = version
     return valid_version
+
+
+class ChannelsDB(dict):
+
+    def __init__(self):
+
+        super(ChannelsDB, self).__init__()
+
+    def add(self, channel_name, group_index, channel_index):
+        if channel_name:
+            if channel_name not in self:
+                self[channel_name] = []
+            self[channel_name].append(
+                (group_index, channel_index)
+            )
+
+            channel_name = channel_name.split('\\')
+            if len(channel_name) > 1:
+                channel_name = channel_name[0]
+                if channel_name not in self:
+                    self[channel_name] = []
+                self[channel_name].append(
+                    (group_index, channel_index)
+                )

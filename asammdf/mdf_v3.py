@@ -43,6 +43,7 @@ from .utils import (
     CHANNEL_COUNT,
     CONVERT_LOW,
     CONVERT_MINIMUM,
+    ChannelsDB,
     MdfException,
     SignalSource,
     as_non_byte_sized_signed_int,
@@ -210,7 +211,7 @@ class MDF3(object):
         self.file_history = None
         self.name = name
         self.memory = memory
-        self.channels_db = {}
+        self.channels_db = ChannelsDB()
         self.masters_db = {}
         self.version = version
 
@@ -820,11 +821,7 @@ class MDF3(object):
                     ch_map[ch_addr] = (ch_cntr, dg_cntr)
 
                     for name in (new_ch.name, new_ch.display_name):
-                        if not name:
-                            continue
-                        if name not in self.channels_db:
-                            self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
+                        self.channels_db.add(name, dg_cntr, ch_cntr)
 
                     if new_ch['channel_type'] == v23c.CHANNEL_TYPE_MASTER:
                         self.masters_db[dg_cntr] = ch_cntr
@@ -1226,9 +1223,7 @@ class MDF3(object):
             channel.to_stream(file, defined_texts, cc_map, si_map)
             gp_channels.append(channel.address)
 
-        if name not in self.channels_db:
-            self.channels_db[name] = []
-        self.channels_db[name].append((dg_cntr, ch_cntr))
+        self.channels_db.add(name, dg_cntr, ch_cntr)
         self.masters_db[dg_cntr] = 0
         # data group record parents
         parents[ch_cntr] = name, 0
@@ -1345,9 +1340,8 @@ class MDF3(object):
 
                 offset += s_size
 
-                if name not in self.channels_db:
-                    self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
+                self.channels_db.add(name, dg_cntr, ch_cntr)
+                self.channels_db.add(display_name, dg_cntr, ch_cntr)
 
                 # update the parents as well
                 field_name = get_unique_name(field_names, name)
@@ -1362,11 +1356,6 @@ class MDF3(object):
                 else:
                     types.append((field_name, signal.samples.dtype, signal.samples.shape[1:]))
                 field_names.add(field_name)
-
-                if display_name:
-                    if display_name not in self.channels_db:
-                        self.channels_db[display_name] = []
-                    self.channels_db[display_name].append((dg_cntr, ch_cntr))
 
                 ch_cntr += 1
 
@@ -1389,9 +1378,6 @@ class MDF3(object):
                 new_ch_cntr = 0
                 new_offset = 0
                 new_field_names = set()
-
-                # time channel texts
-                new_gp_texts['conversion_tab'].append(None)
 
                 # conversion for time channel
                 kargs = {
@@ -1431,9 +1417,7 @@ class MDF3(object):
                     channel.to_stream(file, defined_texts, cc_map, si_map)
                     gp_channels.append(channel.address)
 
-                if name not in self.channels_db:
-                    self.channels_db[name] = []
-                self.channels_db[name].append((new_dg_cntr, new_ch_cntr))
+                self.channels_db.add(name, new_dg_cntr, new_ch_cntr)
 
                 self.masters_db[new_dg_cntr] = 0
                 # data group record parents
@@ -1542,9 +1526,7 @@ class MDF3(object):
                         new_gp_channels.append(channel.address)
                     new_offset += s_size
 
-                    if name not in self.channels_db:
-                        self.channels_db[name] = []
-                    self.channels_db[name].append((new_dg_cntr, new_ch_cntr))
+                    self.channels_db.add(name, new_dg_cntr, new_ch_cntr)
 
                     # update the parents as well
                     field_name = get_unique_name(new_field_names, name)
@@ -1708,9 +1690,7 @@ class MDF3(object):
                     channel.to_stream(file, defined_texts, cc_map, si_map)
                     gp_channels.append(channel.address)
 
-                if name not in self.channels_db:
-                    self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
+                self.channels_db.add(name, dg_cntr, ch_cntr)
 
                 ch_cntr += 1
 
@@ -1790,9 +1770,7 @@ class MDF3(object):
                         size *= dim
                     offset += size
 
-                    if name not in self.channels_db:
-                        self.channels_db[name] = []
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
+                    self.channels_db.add(name, dg_cntr, ch_cntr)
 
                     # update the parents as well
                     field_name = get_unique_name(field_names, name)
@@ -1893,9 +1871,7 @@ class MDF3(object):
                         channel.to_stream(file, defined_texts, cc_map, si_map)
                         gp_channels.append(channel.address)
 
-                    if name not in self.channels_db:
-                        self.channels_db[name] = []
-                    self.channels_db[name].append((dg_cntr, ch_cntr))
+                    self.channels_db.add(name, dg_cntr, ch_cntr)
 
                     ch_cntr += 1
 
@@ -1976,9 +1952,7 @@ class MDF3(object):
                             size *= dim
                         offset += size
 
-                        if name not in self.channels_db:
-                            self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
+                        self.channels_db.add(name, dg_cntr, ch_cntr)
 
                         # update the parents as well
                         field_name = get_unique_name(field_names, name)
