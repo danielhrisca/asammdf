@@ -1354,20 +1354,20 @@ class ChannelGroup(dict):
 
 class ChannelConversion(dict):
     """CCBLOCK class
-    
+
     *ChannelConversion* has the following commont key-value pairs
 
     * ``id`` - bytes : block ID; always b'##CG'
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
-    * ``name_addr`` - int : address of TXBLOCK that contains the 
+    * ``name_addr`` - int : address of TXBLOCK that contains the
       conversion name
-    * ``unit_addr`` - int : address of TXBLOCK that contains the 
+    * ``unit_addr`` - int : address of TXBLOCK that contains the
       conversion unit
-    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the 
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
       conversion comment
-    * ``inv_conv_addr`` int : address of invers conversion 
+    * ``inv_conv_addr`` int : address of invers conversion
     * ``conversion_type`` int : integer code for conversion type
     * ``precision`` - int : integer code for precision
     * ``flags`` - int : conversion block flags
@@ -1376,65 +1376,65 @@ class ChannelConversion(dict):
     * ``val_param_nr`` - int : number of value parameters
     * ``min_phy_value`` - float : minimum physical channel value
     * ``max_phy_value`` - float : maximum physical channel value
-    
+
     *ChannelConversion* has the following specific key-value pairs
-    
+
     * linear conversion
-        
+
         * ``a`` - float : factor
         * ``b`` - float : offset
-        
-    * rational conversion 
-    
+
+    * rational conversion
+
         * ``P1`` to ``P6`` - float : paramerets
-        
+
     * algebraic conversion
-    
+
         * ``formula_add`` - address of TXBLOCK that contains the
           the algebraic conversion formula
-          
+
     * tabluar conversion with or without interpolation
-    
+
         * ``raw_<N>`` - float : N-th raw value
         * ``phys_<N>`` - float : N-th physical value
-        
+
     * tabular range conversion
-    
+
         * ``lower_<N>`` - float : N-th lower value
         * ``upper_<N>`` - float : N-th upper value
         * ``phys_<N>`` - float : N-th physical value
-        
+
     * tabular value to text conversion
-    
+
         * ``val_<N>`` - float : N-th raw value
         * ``text_<N>`` - int : address of N-th TXBLOCK that
           contains the physical value
-        * ``default`` - int : address of TXBLOCK that contains 
+        * ``default`` - int : address of TXBLOCK that contains
           the default physical value
-          
+
     * tabular range to text conversion
-    
+
         * ``lower_<N>`` - float : N-th lower value
         * ``upper_<N>`` - float : N-th upper value
         * ``text_<N>`` - int : address of N-th TXBLOCK that
           contains the physical value
-        * ``default`` - int : address of TXBLOCK that contains 
+        * ``default`` - int : address of TXBLOCK that contains
           the default physical value
-          
+
     * text to value conversion
-    
+
         * ``val_<N>`` - float : N-th physical value
         * ``text_<N>`` - int : address of N-th TXBLOCK that
           contains the raw value
         * ``val_default`` - float : default physical value
-        
+
     * text tranfosrmation (translation) conversion
-    
+
         * ``input_<N>_addr`` - int : address of N-th TXBLOCK that
           contains the raw value
         * ``output_<N>_addr`` - int : address of N-th TXBLOCK that
           contains the physical value
-        * ``default_addr`` - int : address of TXBLOCK that contains 
+        * ``default_addr`` - int : address of TXBLOCK that contains
           the default physical value
 
     Attributes
@@ -2249,7 +2249,13 @@ class ChannelConversion(dict):
             P6 = self['P6']
             if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
                 X = values
-                values = evaluate(v4c.CONV_RAT_TEXT)
+                if (P1, P4, P5, P6) == (0, 0, 0, 1):
+                    if (P2, P6) != (1, 0):
+                        values = values * P2
+                        if P6:
+                            values += P6
+                else:
+                    values = evaluate(v4c.CONV_RAT_TEXT)
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
                 X = values
                 values = evaluate(self.formula)

@@ -1431,9 +1431,9 @@ class MDF4(object):
 
             block_type = group['data_block_type']
             param = group['param']
+            cg_size = group['record_size']
 
             if not group['sorted']:
-                cg_size = group['record_size']
                 record_id = channel_group['record_id']
                 if data_group['record_id_len'] <= 2:
                     record_id_nr = data_group['record_id_len']
@@ -1513,6 +1513,7 @@ class MDF4(object):
                     if data:
                         yield b''.join(data), offset
                 else:
+                    extra_bytes = b''
                     for (address, size, block_size) in blocks:
 
                         stream.seek(address)
@@ -1520,6 +1521,24 @@ class MDF4(object):
 
                         if block_type == v4c.DZ_BLOCK_DEFLATE:
                             data = decompress(data)
+
+                            if group['sorted']:
+
+                                if extra_bytes:
+                                    data = extra_bytes + data
+
+                                dim = len(data)
+                                new_extra_bytes = dim % cg_size
+                                if new_extra_bytes:
+                                    extra_bytes = data[-new_extra_bytes:]
+                                    data = data[:-new_extra_bytes]
+                                    offset_increase = dim - new_extra_bytes
+                                else:
+                                    extra_bytes = b''
+                                    offset_increase = dim
+
+                                yield data, offset
+                                offset += offset_increase
 
                         elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
                             data = decompress(data)
@@ -1529,6 +1548,23 @@ class MDF4(object):
                             nd = fromstring(data[:lines * cols], dtype=uint8)
                             nd = nd.reshape((cols, lines))
                             data = nd.T.tostring() + data[lines * cols:]
+
+                            if group['sorted']:
+                                if extra_bytes:
+                                    data = extra_bytes + data
+
+                                dim = len(data)
+                                new_extra_bytes = dim % param
+                                if new_extra_bytes:
+                                    extra_bytes = data[-new_extra_bytes:]
+                                    data = data[:-new_extra_bytes]
+                                    offset_increase = dim - new_extra_bytes
+                                else:
+                                    extra_bytes = b''
+                                    offset_increase = dim
+
+                                yield data, offset
+                                offset += offset_increase
 
                         if not group['sorted']:
                             rec_data = []
@@ -1570,9 +1606,7 @@ class MDF4(object):
                             size = len(rec_data)
                             yield rec_data, offset
                             offset += size
-                        else:
-                            yield data, offset
-                            offset += block_size
+
             else:
                 yield b'', offset
 
