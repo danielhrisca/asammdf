@@ -3419,12 +3419,12 @@ class MDF3(object):
         # pylint: disable=unused-argument
 
         if not self.header.comment:
-            self.header.comment = TextBlock(text='''<FHcomment>
+            self.header.comment = '''<FHcomment>
 <TX>created</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor> </tool_vendor>
 <tool_version>{}</tool_version>
-</FHcomment>'''.format(__version__))
+</FHcomment>'''.format(__version__)
         else:
             text = '{}\n{}: updated by asammdf {}'
             old_history = self.header.comment
