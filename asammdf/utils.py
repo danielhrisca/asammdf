@@ -130,6 +130,20 @@ def bytes(obj):
 
 
 def extract_cncomment_xml(comment):
+    """extract *TX* tag or otherwise the *common_properties* from a xml comment
+
+    Paremeters
+    ----------
+    comment : str
+        xml string comment
+
+    Returns
+    -------
+    comment : str
+        extracted string
+
+    """
+
     comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
     try:
         comment = ET.fromstring(comment)
@@ -511,6 +525,22 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
 
 
 def info_to_datatype_v4(signed, little_endian):
+    """map CAN signal to MDF integer types
+
+    Parameters
+    ----------
+    signed : bool
+        signal is flagged as signed in the CAN database
+    little_endian : bool
+        signal is flagged as little endian (Intel) in the CAN database
+
+    Returns
+    -------
+    datatype : int
+        integer code for MDF channel data type
+
+    """
+
     if signed:
         if little_endian:
             datatype = v4c.DATA_TYPE_SIGNED_INTEL
@@ -717,6 +747,23 @@ def debug_channel(mdf, group, channel, conversion, dependency):
 
 
 def count_channel_groups(stream, version=4):
+    """ count all channel groups as fast as possible. This is used to provide
+    reliable progress information when loading a file using the GUI
+
+    Parameters
+    ----------
+    stream : file handle
+        opened file handle
+    version : int
+        MDF version
+
+    Returns
+    -------
+    count : int
+        channel group count
+
+    """
+
     count = 0
     if version >= 4:
         stream.seek(88, 0)
@@ -824,6 +871,18 @@ class ChannelsDB(dict):
         super(ChannelsDB, self).__init__()
 
     def add(self, channel_name, group_index, channel_index):
+        """ add name to channels database and check if it contains a source path
+
+        Parameters
+        ----------
+        channel_name : str
+            name that needs to be added to the database
+        group_index : int
+            data group index
+        channel_index : int
+            channel index
+
+        """
         if channel_name:
             if channel_name not in self:
                 self[channel_name] = []

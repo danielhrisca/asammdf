@@ -45,7 +45,7 @@ class AdvancedSearch(QDialog):
         uic.loadUi(os.path.join(HERE,  'search_dialog.ui'), self)
 
         self.result = set()
-        self.channels_db = sorted(set(channels_db))
+        self.channels_db = channels_db
 
         self.apply_btn.clicked.connect(self._apply)
         self.apply_all_btn.clicked.connect(self._apply_all)
@@ -83,18 +83,18 @@ class AdvancedSearch(QDialog):
                 self.matches.clear()
 
     def _apply(self, event):
-        self.result = set(
-            item.text()
-            for item in self.matches.selectedItems()
-        )
+        self.result = set()
+        for item in self.matches.selectedItems():
+            for entry in self.channels_db[item.text()]:
+                self.result.add(entry)
         self.close()
 
     def _apply_all(self, event):
         count = self.matches.count()
-        self.result = set(
-            self.matches.item(i).text()
-            for i in range(count)
-        )
+        self.result = set()
+        for i in range(count):
+            for entry in self.channels_db[self.matches.item(i).text()]:
+                self.result.add(entry)
         self.close()
 
     def _cancel(self, event):
@@ -1997,17 +1997,22 @@ class FileWidget(QWidget):
                 self.channels_tree,
             )
 
+            dg_cntr = -1
+            ch_cntr = 0
+
             while iterator.value():
                 item = iterator.value()
                 if item.parent() is None:
                     iterator += 1
+                    dg_cntr += 1
+                    ch_cntr = 0
                     continue
 
-                channel_name = item.text(0)
-                if channel_name in result:
+                if (dg_cntr, ch_cntr) in result:
                     item.setCheckState(0, Qt.Checked)
 
                 iterator += 1
+                ch_cntr += 1
 
     def channel_selection_reduced(self, deleted):
 

@@ -1182,7 +1182,6 @@ class MDF(object):
                         group_name = 'DataGroup_{}'.format(i + 1)
                         wb_name = '{}_{}.xlsx'.format(name, group_name)
                         workbook = xlsxwriter.Workbook(wb_name)
-                        bold = workbook.add_format({'bold': True})
 
                         sheet = workbook.add_worksheet(group_name)
 
