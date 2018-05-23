@@ -21,7 +21,7 @@
 ! | Travis CI  | Coverage  |  Codacy  | ReadTheDocs 
 --|--|--|--|--
 master | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=master)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=master)](http://asammdf.readthedocs.io/en/master/?badge=stable) |  
-development| [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=development)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=development)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=development)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) | [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=development)](http://asammdf.readthedocs.io/en/master/?badge=stable) |   
+development| [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=development)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=development)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=development)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) | [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=development)](http://asammdf.readthedocs.io/en/development/?badge=stable) |   
 
 PyPI| conda-forge
 --|--
@@ -112,13 +112,13 @@ The main goals for this library are:
 ```  
  
 Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/master/examples.html
+http://asammdf.readthedocs.io/en/develoment/examples.html
 
 # Documentation
-http://asammdf.readthedocs.io/en/master
+http://asammdf.readthedocs.io/en/develoment
 
 # Contributing
-Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md)
+Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/develoment/CONTRIBUTING.md)
 
 ## Contributors
 Thanks to all who contributed with commits to *asammdf*:
@@ -167,5 +167,5 @@ other optional dependencies
 
 # Benchmarks
 
-http://asammdf.readthedocs.io/en/master/benchmarks.html
+http://asammdf.readthedocs.io/en/develoment/benchmarks.html
 
