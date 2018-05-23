@@ -226,9 +226,9 @@ def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
 
 
 class MDF4(object):
-    """The *header* attibute is an *HeaderBlock*.
+    """The *header* attibute is a *HeaderBlock*.
 
-    The *groups* attribute is a dictionary list with the following keys:
+    The *groups* attribute is a list of dicts, each one with the following keys:
 
     * ``data_group`` - DataGroup object
     * ``channel_group`` - ChannelGroup object
@@ -239,7 +239,6 @@ class MDF4(object):
       (when *memory* is *minimum*) in case of structure channel composition
     * ``data_block`` - DataBlock object when *memory* is *full* else address of
       data block
-    * ``data_group`` - *DataGroup* block
     * ``data_location``- integer code for data location (original file, temporary file or
       memory)
     * ``data_block_addr`` - list of raw samples starting addresses, for *low* and *minimum*
@@ -247,7 +246,7 @@ class MDF4(object):
     * ``data_block_type`` - list of codes for data block type
     * ``data_block_size`` - list of raw samples block size
     * ``sorted`` - sorted indicator flag
-    * ``record_size`` - size of record in bytes (including invalidation bytes)
+    * ``record_size`` - dict that maps record ID's to record sizes in bytes (including invalidation bytes)
     * ``param`` - row size used for tranposizition, in case of tranposed zipped blockss
 
 

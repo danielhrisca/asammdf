@@ -126,39 +126,29 @@ def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
 
 
 class MDF3(object):
-    """If the *name* exist it will be loaded otherwise an empty file will be
-    created that can be later saved to disk
+    """The *header* attibute is a *HeaderBlock*.
 
-    The *header* attibute is an OrderedDict that holds the file metadata.
+    The *groups* attribute is a list of dicts, each one with the following keys:
 
-    The *groups* attribute is a dictionary list with the following keys:
-
-    * data_group : DataGroup object
-    * channel_group : ChannelGroup object
-    * channels : list of Channel objects with the same order as found in the mdf file
-    * channel_conversions : list of ChannelConversion objects in 1-to-1 relation with the channel list
-    * channel_sources : list of SourceInformation objects in 1-to-1 relation with the channels list
-    * chanel_dependencies : list of ChannelDependency objects in a 1-to-1 relation with the channel list
-    * data_block : DataBlock object
-    * texts : dictionay containing TextBlock objects used throughout the mdf
-
-        * channels : list of dictionaries that contain TextBlock objects ralated to each channel
-
-            * long_name_addr : channel long name
-            * comment_addr : channel comment
-            * display_name_addr : channel display name
-
-        * channel group : list of dictionaries that contain TextBlock objects ralated to each channel group
-
-            * comment_addr : channel group comment
-
-        * conversion_tab : list of dictionaries that contain TextBlock objects ralated to VATB and VTABR channel conversions
-
-            * text_{n} : n-th text of the VTABR conversion
-
-    * sorted : bool flag to indicate if the source file was sorted; it is used when `memory` is `low` or `minimum`
-    * size : data block size; used for lazy laoding of measured data
-    * record_size : dict of record ID -> record size pairs
+    * ``data_group`` - DataGroup object
+    * ``channel_group`` - ChannelGroup object
+    * ``channels`` - list of Channel objects (when *memory* is *full* or *low*) or addresses
+      (when *memory* is *minimum*) with the same order as found in the mdf file
+    * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel arrays;
+      list of Channel objects (when *memory* is *full* or *low*) or addresses
+      (when *memory* is *minimum*) in case of structure channel composition
+    * ``data_block`` - DataBlock object when *memory* is *full* else address of
+      data block
+    * ``data_location``- integer code for data location (original file, temporary file or
+      memory)
+    * ``data_block_addr`` - list of raw samples starting addresses, for *low* and *minimum*
+      memory options
+    * ``data_block_type`` - list of codes for data block type
+    * ``data_block_size`` - list of raw samples block size
+    * ``sorted`` - sorted indicator flag
+    * ``record_size`` - dict that maps record ID's to record sizes in bytes
+    * ``size`` - total size of data block for the current group
+    * ``trigger`` - *Trigger* object for current group
 
     Parameters
     ----------
@@ -169,22 +159,23 @@ class MDF3(object):
 
         * if *full* the data group binary data block will be memorised in RAM
         * if *low* the channel data is read from disk on request, and the
-          metadata is memorised into RAM
-        * if *minimum* only minimal data is memorised into RAM
+          metadata is memorized into RAM
+        * if *minimum* only minimal data is memorized into RAM
 
     version : string
         mdf file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
         '3.30'); default '3.30'
 
+
     Attributes
     ----------
+    attachments : list
+        list of file attachments
     channels_db : dict
         used for fast channel access by name; for each name key the value is a
         list of (group index, channel index) tuples
-    file_history : TextBlock
-        file history text block; can be None
     groups : list
-        list of data groups
+        list of data group dicts
     header : HeaderBlock
         mdf file header
     identification : FileIdentificationBlock
@@ -208,7 +199,6 @@ class MDF3(object):
         self.groups = []
         self.header = None
         self.identification = None
-        self.file_history = None
         self.name = name
         self.memory = memory
         self.channels_db = ChannelsDB()
@@ -3398,7 +3388,6 @@ class MDF3(object):
             self.groups = []
             self.header = None
             self.identification = None
-            self.file_history = None
             self.channels_db = {}
             self.masters_db = {}
 
@@ -3429,8 +3418,8 @@ class MDF3(object):
         """
         # pylint: disable=unused-argument
 
-        if self.file_history is None:
-            self.file_history = TextBlock(text='''<FHcomment>
+        if not self.header.comment:
+            self.header.comment = TextBlock(text='''<FHcomment>
 <TX>created</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor> </tool_vendor>
@@ -3438,7 +3427,7 @@ class MDF3(object):
 </FHcomment>'''.format(__version__))
         else:
             text = '{}\n{}: updated by asammdf {}'
-            old_history = self.file_history['text'].decode('latin-1')
+            old_history = self.header.comment
             timestamp = time.asctime().encode('latin-1')
 
             text = text.format(
@@ -3446,7 +3435,7 @@ class MDF3(object):
                 timestamp,
                 __version__,
             )
-            self.file_history = TextBlock(text=text)
+            self.header.comment = text
 
         if self.name is None and dst == '':
             message = (
@@ -3642,7 +3631,6 @@ class MDF3(object):
             self.groups = []
             self.header = None
             self.identification = None
-            self.file_history = None
             self.channels_db = {}
             self.masters_db = {}
 
