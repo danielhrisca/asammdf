@@ -3455,7 +3455,7 @@ class FileIdentificationBlock(dict):
             self['program_identification'] = 'Python  '.encode('utf-8')
             self['reserved0'] = b'\0' * 4
             self['mdf_version'] = int(version.replace('.', ''))
-            self['reserved2'] = b'\0' * 30
+            self['reserved1'] = b'\0' * 30
             self['unfinalized_standard_flags'] = 0
             self['unfinalized_custom_flags'] = 0
 
