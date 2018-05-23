@@ -169,7 +169,7 @@ KEYS_CHANNEL_DISPLAYNAME = (
     'block_len',
     'next_ch_addr',
     'conversion_addr',
-    'source_depend_addr',
+    'source_addr',
     'ch_depend_addr',
     'comment_addr',
     'channel_type',
@@ -194,7 +194,7 @@ KEYS_CHANNEL_SHORT = (
     'block_len',
     'next_ch_addr',
     'conversion_addr',
-    'source_depend_addr',
+    'source_addr',
     'ch_depend_addr',
     'comment_addr',
     'channel_type',
@@ -232,7 +232,7 @@ KEYS_DATA_GROUP_POST_320 = (
     'trigger_addr',
     'data_block_addr',
     'cg_nr',
-    'record_id_nr',
+    'record_id_len',
     'reserved0',
 )
 
@@ -245,7 +245,7 @@ KEYS_DATA_GROUP_PRE_320 = (
     'trigger_addr',
     'data_block_addr',
     'cg_nr',
-    'record_id_nr',
+    'record_id_len',
 )
 
 FMT_SOURCE_COMMON = '<2s2H'
