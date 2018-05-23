@@ -3545,8 +3545,6 @@ class HeaderBlock(dict):
         header address
     comment : str
         file comment
-    start_time : datetime.datetime
-        measurement start timestamp
 
     """
 
@@ -3621,11 +3619,11 @@ class HeaderBlock(dict):
 
     @property
     def start_time(self):
-        """ get the measurement start timestamp
+        """ getter and setter the measurement start timestamp
 
         Returns
         -------
-        timestamp : datetime
+        timestamp : datetime.datetime
             start timestamp
 
         """

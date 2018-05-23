@@ -1491,7 +1491,7 @@ class ChannelDependency(dict):
     * ``dg_<N>`` - address of channel block (CNBLOCK) of N-th
       signal dependency
     * ``dim_<K>`` - int : Optional size of dimension *K* for N-dimensional
-        dependency
+      dependency
 
     Parameters
     ----------
@@ -2262,8 +2262,6 @@ class HeaderBlock(dict):
         file comment
     program : ProgramBlock
         program block
-    start_time : datetime.datetime
-        attribute to rad and set the measurement timestamp
 
     '''
 
@@ -2438,11 +2436,11 @@ class HeaderBlock(dict):
 
     @property
     def start_time(self):
-        """ get the measurement start timestamp
+        """ getter and setter the measurement start timestamp
 
         Returns
         -------
-        timestamp : datetime
+        timestamp : datetime.datetime
             start timestamp
 
         """
