@@ -45,75 +45,67 @@ __all__ = [
 
 
 class Channel(dict):
-    ''' CNBLOCK class derived from *dict*
+    ''' CNBLOCK class
 
-    The Channel object can be created in two modes:
+    If the `load_metadata` keyword argument is not provided or is False,
+    then the conversion, source and display name information is not processed.
 
-    * using the *stream* and *address* keyword parameters - when reading
-        from file
-    * using any of the following presented keys - when creating a new Channel
+    *Channel* has the following key-value pairs
 
-    The keys have the following meaning:
-
-    * id - Block type identifier, always "CN"
-    * block_len - Block size of this block in bytes (entire CNBLOCK)
-    * next_ch_addr - Pointer to next channel block (CNBLOCK) of this channel
-        group (NIL allowed)
-    * conversion_addr - Pointer to the conversion formula (CCBLOCK) of this
-        signal (NIL allowed)
-    * source_depend_addr - Pointer to the source-depending extensions (CEBLOCK)
-        of this signal (NIL allowed)
-    * ch_depend_addr - Pointer to the dependency block (CDBLOCK) of this signal
-        (NIL allowed)
-    * comment_addr - Pointer to the channel comment (TXBLOCK) of this signal
-        (NIL allowed)
-    * channel_type - Channel type
-
-        * 0 = data channel
-        * 1 = time channel for all signals of this group (in each channel
-            group, exactly one channel must be defined as time channel).
-            The time stamps recording in a time channel are always relative
-            to the start time of the measurement defined in HDBLOCK.
-
-    * short_name - Short signal name, i.e. the first 31 characters of the
-        ASAM-MCD name of the signal (end of text should be indicated by 0)
-    * description - Signal description (end of text should be indicated by 0)
-    * start_offset - Start offset in bits to determine the first bit of the
-        signal in the data record. The start offset N is divided into two
-        parts: a "Byte offset" (= N div 8) and a "Bit offset" (= N mod 8).
-        The channel block can define an "additional Byte offset" (see below)
-        which must be added to the Byte offset.
-    * bit_count - Number of bits used to encode the value of this signal in a
-        data record
-    * data_type - Signal data type
-    * range_flag - Value range valid flag
-    * min_raw_value - Minimum signal value that occurred for this signal
-        (raw value)
-    * max_raw_value - Maximum signal value that occurred for this signal
-        (raw value)
-    * sampling_rate - Sampling rate for a virtual time channel. Unit [s]
-    * long_name_addr - Pointer to TXBLOCK that contains the ASAM-MCD long
-        signal name
-    * display_name_addr - Pointer to TXBLOCK that contains the signal's display
-        name (NIL allowed)
-    * aditional_byte_offset - Additional Byte offset of the signal in the data
-        record (default value: 0).
+    * ``id`` - bytes : block ID; always b'CN'
+    * ``block_len`` - int : block bytes size
+    * ``next_ch_addr`` - int : next CNBLOCK address
+    * ``conversion_addr`` - int : address of channel conversion block
+    * ``source_addr`` - int : address of channel source block
+    * ``ch_depend_addr`` - int : address of dependency block (CDBLOCK) of this
+      channel
+    * ``comment_addr`` - int : address of TXBLOCK that contains the
+      channel comment
+    * ``channel_type`` - int : integer code for channel type
+    * ``short_name`` - bytes : short signal name
+    * ``description`` - bytes : signal description
+    * ``start_offset`` - int : start offset in bits to determine the first bit
+      of the signal in the data record
+    * ``bit_count`` - int : channel bit count
+    * ``data_type`` - int : integer code for channel data type
+    * ``range_flag`` - int : value range valid flag
+    * ``min_raw_value`` - float : min raw value of all samples
+    * ``max_raw_value`` - float : max raw value of all samples
+    * ``sampling_rate`` - float : sampling rate in *'s'* for a virtual time
+      channel
+    * ``long_name_addr`` - int : address of TXBLOCK that contains the channel's
+      name
+    * ``display_name_addr`` - int : address of TXBLOCK that contains the
+      channel's display name
+    * ``aditional_byte_offset`` - int : additional Byte offset of the channel
+      in the data recor
 
     Parameters
     ----------
-    stream : file handle
-        mdf file handle
     address : int
-        block address inside mdf file
+        block address; to be used for objects created from file
+    stream : handle
+        file handle; to be used for objects created from file
+    load_metadata : bool
+        option to load conversion, source and display_name; default *True*
+    for dynamically created objects :
+        see the key-value pairs
 
     Attributes
     ----------
-    name : str
-        full channel name
     address : int
         block address inside mdf file
-    dependencies : list
-        lsit of channel dependencies
+    comment : str
+        channel comment
+    conversion : ChannelConversion
+        channel conversion; *None* if the channel has no conversion
+    display_name : str
+        channel display name
+    name : str
+        full channel name
+    source : SourceInformation
+        channel source information; *None* if the channel has no source
+        information
 
     Examples
     --------
@@ -148,7 +140,7 @@ class Channel(dict):
                  self['block_len'],
                  self['next_ch_addr'],
                  self['conversion_addr'],
-                 self['source_depend_addr'],
+                 self['source_addr'],
                  self['ch_depend_addr'],
                  self['comment_addr'],
                  self['channel_type'],
@@ -175,7 +167,11 @@ class Channel(dict):
                         stream=stream,
                     )
                 else:
-                    self.name = self['short_name'].decode('latin-1').strip(' \t\n\r\0')
+                    self.name = (
+                        self['short_name']
+                        .decode('latin-1')
+                        .strip(' \t\n\r\0')
+                    )
 
                 addr = self['display_name_addr']
                 if addr:
@@ -192,7 +188,7 @@ class Channel(dict):
                             stream=stream,
                         )
 
-                    addr = self['source_depend_addr']
+                    addr = self['source_addr']
                     if addr:
                         self.source = ChannelExtension(
                             address=addr,
@@ -211,7 +207,7 @@ class Channel(dict):
                  self['block_len'],
                  self['next_ch_addr'],
                  self['conversion_addr'],
-                 self['source_depend_addr'],
+                 self['source_addr'],
                  self['ch_depend_addr'],
                  self['comment_addr'],
                  self['channel_type'],
@@ -236,7 +232,11 @@ class Channel(dict):
                         stream=stream,
                     )
                 else:
-                    self.name = self['short_name'].decode('latin-1').strip(' \t\n\r\0')
+                    self.name = (
+                        self['short_name']
+                        .decode('latin-1')
+                        .strip(' \t\n\r\0')
+                    )
 
                 if load_metadata:
 
@@ -247,7 +247,7 @@ class Channel(dict):
                             stream=stream,
                         )
 
-                    addr = self['source_depend_addr']
+                    addr = self['source_addr']
                     if addr:
                         self.source = ChannelExtension(
                             address=addr,
@@ -265,7 +265,7 @@ class Channel(dict):
                  self['block_len'],
                  self['next_ch_addr'],
                  self['conversion_addr'],
-                 self['source_depend_addr'],
+                 self['source_addr'],
                  self['ch_depend_addr'],
                  self['comment_addr'],
                  self['channel_type'],
@@ -279,7 +279,11 @@ class Channel(dict):
                  self['max_raw_value'],
                  self['sampling_rate']) = unpack(v23c.FMT_CHANNEL_SHORT, block)
 
-                self.name = self['short_name'].decode('latin-1').strip(' \t\n\r\0')
+                self.name = (
+                    self['short_name']
+                    .decode('latin-1')
+                    .strip(' \t\n\r\0')
+                )
 
                 if load_metadata:
 
@@ -290,7 +294,7 @@ class Channel(dict):
                             stream=stream,
                         )
 
-                    addr = self['source_depend_addr']
+                    addr = self['source_addr']
                     if addr:
                         self.source = ChannelExtension(
                             address=addr,
@@ -320,7 +324,7 @@ class Channel(dict):
             )
             self['next_ch_addr'] = kwargs.get('next_ch_addr', 0)
             self['conversion_addr'] = kwargs.get('conversion_addr', 0)
-            self['source_depend_addr'] = kwargs.get('source_depend_addr', 0)
+            self['source_addr'] = kwargs.get('source_addr', 0)
             self['ch_depend_addr'] = kwargs.get('ch_depend_addr', 0)
             self['comment_addr'] = kwargs.get('comment_addr', 0)
             self['channel_type'] = kwargs.get('channel_type', 0)
@@ -406,9 +410,9 @@ class Channel(dict):
         source = self.source
         if source:
             address = source.to_blocks(address, blocks, defined_texts, si_map)
-            self['source_depend_addr'] = source.address
+            self['source_addr'] = source.address
         else:
-            self['source_depend_addr'] = 0
+            self['source_addr'] = 0
 
         blocks.append(self)
         self.address = address
@@ -456,7 +460,11 @@ class Channel(dict):
         text = self.comment
         if text:
             if len(text) < 128:
-                self['description'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+                self['description'] = (
+                    '{:\0<128}'
+                    .format(text[:127])
+                    .encode('latin-1')
+                )
                 self[key] = 0
             else:
                 if text in defined_texts:
@@ -482,9 +490,9 @@ class Channel(dict):
         source = self.source
         if source:
             address = source.to_stream(stream, defined_texts, si_map)
-            self['source_depend_addr'] = source.address
+            self['source_addr'] = source.address
         else:
-            self['source_depend_addr'] = 0
+            self['source_addr'] = 0
 
         stream.write(bytes(self))
         self.address = address
@@ -594,79 +602,82 @@ comment: {}
 
 
 class ChannelConversion(dict):
-    ''' CCBLOCK class derived from *dict*
+    ''' CCBLOCK class
 
     The ChannelConversion object can be created in two modes:
 
-    * using the *stream* and *address* keyword parameters - when reading
-        from file
-    * using any of the following presented keys - when creating a new
-        ChannelConversion
+    *ChannelConversion* has the following common key-value pairs
 
-    The first keys are common for all conversion types, and are followed by
-    conversion specific keys. The keys have the following meaning:
+    * ``id`` - bytes : block ID; always b'CC'
+    * ``block_len`` - int : block bytes size
+    * ``range_flag`` - int : value range valid flag
+    * ``min_phy_value`` - float : min raw value of all samples
+    * ``max_phy_value`` - float : max raw value of all samples
+    * ``unit`` - bytes : physical unit
+    * ``conversion_type`` - int : integer code for conversion type
+    * ``ref_param_nr`` - int : number of referenced parameters
 
-    * common keys
+    *ChannelConversion* has the following specific key-value pairs
 
-        * id - Block type identifier, always b"CC"
-        * block_len - Block size of this block in bytes (entire CCBLOCK)
-        * range_flag - Physical value range valid flag:
-        * min_phy_value - Minimum physical signal value that occurred for this
-            signal
-        * max_phy_value - Maximum physical signal value that occurred for this
-            signal
-        * unit - Physical unit (string should be terminated with 0)
-        * conversion_type - Conversion type (formula identifier)
-        * ref_param_nr - Size information about additional conversion data
+    * linear conversion
 
-    * specific keys
+        * ``a`` - float : factor
+        * ``b`` - float : offset
+        * ``CANapeHiddenExtra`` - bytes : sometimes CANape appends extra
+          information; not compliant with MDF specs
 
-        * linear conversion
+    * algebraic conversion
 
-            * b - offset
-            * a - factor
-            * CANapeHiddenExtra - sometimes CANape appends extra information;
-                not compliant with MDF specs
+        * ``formula`` - bytes : ecuation as string
 
-        * ASAM formula conversion
+    * polynomial or rational conversion
 
-            * formula - ecuation as string
+        * ``P1`` to ``P6`` - float : parameters
 
-        * polynomial or rational conversion
+    * exponential or logarithmic conversion
 
-            * P1 .. P6 - factors
+        * ``P1`` to ``P7`` - float : parameters
 
-        * exponential or logarithmic conversion
+    * tabular with or without interpolation (grouped by index)
 
-            * P1 .. P7 - factors
+        * ``raw_<N>`` - int : N-th raw value (X axis)
+        * ``phys_<N>`` - float : N-th physical value (Y axis)
 
-        * tabular with or without interpolation (grouped by *n*)
+    * text table conversion
 
-            * raw_{n} - n-th raw integer value (X axis)
-            * phys_{n} - n-th physical value (Y axis)
+        * ``param_val_<N>`` - int : N-th raw value (X axis)
+        * ``text_<N>`` - N-th text physical value (Y axis)
 
-        * text table conversion
+    * text range table conversion
 
-            * param_val_{n} - n-th integers value (X axis)
-            * text_{n} - n-th text value (Y axis)
-
-        * text range table conversion
-
-            * lower_{n} - n-th lower raw value
-            * upper_{n} - n-th upper raw value
-            * text_{n} - n-th text value
+        * ``default_lower`` - float : default lower raw value
+        * ``default_upper`` - float : default upper raw value
+        * ``default_addr`` - int : address of default text physical value
+        * ``lower_<N>`` - float : N-th lower raw value
+        * ``upper_<N>`` - float : N-th upper raw value
+        * ``text_<N>`` - int : address of N-th text physical value
 
     Parameters
     ----------
-    stream : file handle
-        mdf file handle
     address : int
         block address inside mdf file
+    raw_bytes : bytes
+        complete block read from disk
+    stream : file handle
+        mdf file handle
+    for dynamically created objects :
+        see the key-value pairs
 
     Attributes
     ----------
     address : int
         block address inside mdf file
+    formula : str
+        formula string in case of algebraic conversion
+    referenced_blocks : list
+        list of CCBLOCK/TXBLOCK referenced by the conversion
+    unit : str
+        physical unit
 
     Examples
     --------
@@ -697,7 +708,7 @@ class ChannelConversion(dict):
                 size = self['block_len']
                 block_size = len(block)
                 block = block[4:]
-                stream=kwargs['stream']
+                stream = kwargs['stream']
 
             except KeyError:
                 stream = kwargs['stream']
@@ -2077,7 +2088,7 @@ class DataGroup(dict):
     * data_block_addr - Pointer to the data block (see separate chapter
         on data storage)
     * cg_nr - Number of channel groups (redundant information)
-    * record_id_nr - Number of record IDs in the data block
+    * record_id_len - Number of record IDs in the data block
     * reserved0 - since version 3.2; Reserved
 
     Parameters
@@ -2110,7 +2121,7 @@ class DataGroup(dict):
              self['trigger_addr'],
              self['data_block_addr'],
              self['cg_nr'],
-             self['record_id_nr']) = unpack(v23c.FMT_DATA_GROUP_PRE_320, block)
+             self['record_id_len']) = unpack(v23c.FMT_DATA_GROUP_PRE_320, block)
 
             if self['block_len'] == v23c.DG_POST_320_BLOCK_SIZE:
                 self['reserved0'] = stream.read(4)
@@ -2133,7 +2144,7 @@ class DataGroup(dict):
             self['trigger_addr'] = kwargs.get('comment_addr', 0)
             self['data_block_addr'] = kwargs.get('data_block_addr', 0)
             self['cg_nr'] = kwargs.get('cg_nr', 1)
-            self['record_id_nr'] = kwargs.get('record_id_nr', 0)
+            self['record_id_len'] = kwargs.get('record_id_len', 0)
             if self['block_len'] == v23c.DG_POST_320_BLOCK_SIZE:
                 self['reserved0'] = b'\0\0\0\0'
 
@@ -2761,7 +2772,7 @@ class TriggerBlock(dict):
     def __init__(self, **kwargs):
         super(TriggerBlock, self).__init__()
 
-        self.description = ''
+        self.comment = ''
 
         try:
             self.address = address = kwargs['address']
@@ -2790,7 +2801,7 @@ class TriggerBlock(dict):
                 )
 
             if self['text_addr']:
-                self.description = get_text_v3(
+                self.comment = get_text_v3(
                     address=self['text_addr'],
                     stream=stream,
                 )
@@ -2822,7 +2833,7 @@ class TriggerBlock(dict):
 
     def to_blocks(self, address, blocks):
         key = 'text_addr'
-        text = self.description
+        text = self.comment
         if text:
             tx_block = TextBlock(text=text)
             self[key] = address
@@ -2841,7 +2852,7 @@ class TriggerBlock(dict):
         address = stream.tell()
 
         key = 'text_addr'
-        text = self.description
+        text = self.comment
         if text:
             tx_block = TextBlock(text=text)
             self[key] = address

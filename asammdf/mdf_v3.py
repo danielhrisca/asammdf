@@ -330,8 +330,8 @@ class MDF3(object):
                 if PYVERSION == 2:
                     record_id = chr(record_id)
                 cg_size = group['record_size']
-                if group['data_group']['record_id_nr'] <= 2:
-                    record_id_nr = group['data_group']['record_id_nr']
+                if group['data_group']['record_id_len'] <= 2:
+                    record_id_nr = group['data_group']['record_id_len']
                 else:
                     record_id_nr = 0
                 cg_data = []
@@ -745,7 +745,7 @@ class MDF3(object):
                 address=dg_addr,
                 stream=stream,
             )
-            record_id_nr = data_group['record_id_nr']
+            record_id_nr = data_group['record_id_len']
             cg_nr = data_group['cg_nr']
             cg_addr = data_group['first_cg_addr']
             data_addr = data_group['data_block_addr']
@@ -783,7 +783,7 @@ class MDF3(object):
                     kargs['block_len'] = v23c.DG_POST_320_BLOCK_SIZE
                 else:
                     kargs['block_len'] = v23c.DG_PRE_320_BLOCK_SIZE
-                kargs['record_id_nr'] = record_id_nr
+                kargs['record_id_len'] = record_id_nr
 
                 grp['data_group'] = DataGroup(**kargs)
 
@@ -1012,15 +1012,15 @@ class MDF3(object):
             trigger['trigger_{}_pretime'.format(count)] = pre_time
             trigger['trigger_{}_posttime'.format(count)] = post_time
             if comment:
-                if trigger.description is None:
+                if trigger.comment is None:
                     comment = '{}. {}'.format(
                         count + 1,
                         comment,
                     )
                     comment = comment_template.format(comment)
-                    trigger.description = comment
+                    trigger.comment = comment
                 else:
-                    current_comment = trigger.description
+                    current_comment = trigger.comment
                     try:
                         current_comment = ET.fromstring(current_comment)
                         current_comment = current_comment.find('.//TX').text
@@ -1033,7 +1033,7 @@ class MDF3(object):
                         comment,
                     )
                     comment = comment_template.format(comment)
-                    trigger.description = comment
+                    trigger.comment = comment
         else:
             trigger = TriggerBlock(
                 trigger_event_nr=1,
@@ -1046,7 +1046,7 @@ class MDF3(object):
                     comment,
                 )
                 comment = comment_template.format(comment)
-                trigger.description = comment
+                trigger.comment = comment
 
             group['trigger'] = trigger
 
@@ -3016,7 +3016,7 @@ class MDF3(object):
 
                 for j in range(trigger['trigger_events_nr']):
                     trigger_info = {
-                        'comment': trigger.description,
+                        'comment': trigger.comment,
                         'index': j,
                         'group': i,
                         'time': trigger['trigger_{}_time'.format(j)],
@@ -3252,8 +3252,8 @@ class MDF3(object):
 
             for idx, gp in enumerate(self.groups):
                 dg = gp['data_group']
-                gp_rec_ids.append(dg['record_id_nr'])
-                dg['record_id_nr'] = 0
+                gp_rec_ids.append(dg['record_id_len'])
+                dg['record_id_len'] = 0
 
                 # DataBlock
                 for (data_bytes, _) in self._load_group_data(gp):
@@ -3383,7 +3383,7 @@ class MDF3(object):
                     self.groups,
                     gp_rec_ids,
                     original_data_block_addrs):
-                gp['data_group']['record_id_nr'] = rec_id
+                gp['data_group']['record_id_len'] = rec_id
                 gp['data_group']['data_block_addr'] = original_address
 
             seek(0)
@@ -3584,8 +3584,8 @@ class MDF3(object):
             gp_rec_ids = []
             for i, gp in enumerate(self.groups):
                 dg = gp['data_group']
-                gp_rec_ids.append(dg['record_id_nr'])
-                dg['record_id_nr'] = 0
+                gp_rec_ids.append(dg['record_id_len'])
+                dg['record_id_len'] = 0
                 dg['data_block_addr'] = data_address[i]
                 dg.address = address
                 address += dg['block_len']
@@ -3606,7 +3606,7 @@ class MDF3(object):
                 gp['data_block_addr'] = orig_addr[i]
 
             for gp, rec_id in zip(self.groups, gp_rec_ids):
-                gp['data_group']['record_id_nr'] = rec_id
+                gp['data_group']['record_id_len'] = rec_id
 
             if self.groups:
                 address = self.groups[0]['data_group'].address

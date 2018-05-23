@@ -1355,7 +1355,7 @@ class ChannelGroup(dict):
 class ChannelConversion(dict):
     """CCBLOCK class
 
-    *ChannelConversion* has the following commont key-value pairs
+    *ChannelConversion* has the following common key-value pairs
 
     * ``id`` - bytes : block ID; always b'##CG'
     * ``reserved0`` - int : reserved bytes
@@ -1386,7 +1386,7 @@ class ChannelConversion(dict):
 
     * rational conversion
 
-        * ``P1`` to ``P6`` - float : paramerets
+        * ``P1`` to ``P6`` - float : parameters
 
     * algebraic conversion
 
