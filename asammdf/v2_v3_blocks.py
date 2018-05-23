@@ -1476,31 +1476,22 @@ address: {}
 
 
 class ChannelDependency(dict):
-    ''' CDBLOCK class derived from *dict*
+    ''' CDBLOCK class
 
-    Currently the ChannelDependency object can only be created using the
-    *stream* and *address* keyword parameters when reading from file
+    *ChannelDependency* has the following key-value pairs
 
-    The keys have the following meaning:
-
-    * id - Block type identifier, always "CD"
-    * block_len - Block size of this block in bytes (entire CDBLOCK)
-    * dependency_type - Dependency type
-    * sd_nr - Total number of signals dependencies (m)
-    * for each dependency there is a group of three keys:
-
-        * dg_{n} - Pointer to the data group block (DGBLOCK) of
-            signal dependency *n*
-        * cg_{n} - Pointer to the channel group block (DGBLOCK) of
-            signal dependency *n*
-        * ch_{n} - Pointer to the channel block (DGBLOCK) of
-            signal dependency *n*
-
-    * there can also be optional keys which decribe dimensions for
-        the N-dimensional dependencies:
-
-        * dim_{n} - Optional: size of dimension *n* for N-dimensional
-            dependency
+    * ``id`` - bytes : block ID; always b'CD'
+    * ``block_len`` - int : block bytes size
+    * ``dependency_type`` - int : integer code for dependency type
+    * ``sd_nr`` - int : total number of signals dependencies
+    * ``dg_<N>`` - address of data group block (DGBLOCK) of N-th
+      signal dependency
+    * ``dg_<N>`` - address of channel group block (CGBLOCK) of N-th
+      signal dependency
+    * ``dg_<N>`` - address of channel block (CNBLOCK) of N-th
+      signal dependency
+    * ``dim_<K>`` - int : Optional size of dimension *K* for N-dimensional
+        dependency
 
     Parameters
     ----------
@@ -1508,11 +1499,15 @@ class ChannelDependency(dict):
         mdf file handle
     address : int
         block address inside mdf file
+    for dynamically created objects :
+        see the key-value pairs
 
     Attributes
     ----------
     address : int
         block address inside mdf file
+    referenced_channels : list
+        list of (group index, channel index) pairs
 
     '''
 
@@ -1596,41 +1591,31 @@ class ChannelDependency(dict):
 
 
 class ChannelExtension(dict):
-    ''' CEBLOCK class derived from *dict*
+    ''' CEBLOCK class
 
-    The ChannelExtension object can be created in two modes:
+    *Channel* has the following common key-value pairs
 
-    * using the *stream* and *address* keyword parameters - when reading
-        from file
-    * using any of the following presented keys - when creating
-        a new ChannelExtension
+    * ``id`` - bytes : block ID; always b'CE'
+    * ``block_len`` - int : block bytes size
+    * ``type`` - int : extension type identifier
 
-    The first keys are common for all conversion types, and are followed
-    by conversion specific keys. The keys have the following meaning:
+    *Channel* has the following specific key-value pairs
 
-    * common keys
+    * for DIM block
 
-        * id - Block type identifier, always "CE"
-        * block_len - Block size of this block in bytes (entire CEBLOCK)
-        * type - Extension type identifier
+        * ``module_nr`` - int: module number
+        * ``module_address`` - int : module address
+        * ``description`` - bytes : module description
+        * ``ECU_identification`` - bytes : identification of ECU
+        * ``reserved0`` - bytes : reserved bytes
 
-    * specific keys
+    * for Vector CAN block
 
-        * for DIM block
-
-            * module_nr - Number of module
-            * module_address - Address
-            * description - Description
-            * ECU_identification - Identification of ECU
-            * reserved0' - reserved
-
-        * for Vector CAN block
-
-            * CAN_id - Identifier of CAN message
-            * CAN_ch_index - Index of CAN channel
-            * message_name - Name of message (string should be terminated by 0)
-            * sender_name - Name of sender (string should be terminated by 0)
-            * reserved0 - reserved
+        * ``CAN_id`` - int : CAN message ID
+        * ``CAN_ch_index`` - int : index of CAN channel
+        * ``message_name`` - bytes : message name
+        * ``sender_name`` - btyes : sender name
+        * ``reserved0`` - bytes : reserved bytes
 
     Parameters
     ----------
@@ -1638,11 +1623,19 @@ class ChannelExtension(dict):
         mdf file handle
     address : int
         block address inside mdf file
+    for dynamically created objects :
+        see the key-value pairs
 
     Attributes
     ----------
     address : int
         block address inside mdf file
+    comment : str
+        extension comment
+    name : str
+        extension name
+    path : str
+        extension path
 
     '''
 
@@ -1697,7 +1690,10 @@ class ChannelExtension(dict):
                      self['module_address'],
                      self['description'],
                      self['ECU_identification'],
-                     self['reserved0']) = unpack(v23c.FMT_SOURCE_EXTRA_ECU, block)
+                     self['reserved0']) = unpack(
+                        v23c.FMT_SOURCE_EXTRA_ECU,
+                        block,
+                    )
                 elif self['type'] == v23c.SOURCE_VECTOR:
                     (self['CAN_id'],
                      self['CAN_ch_index'],
@@ -1860,34 +1856,25 @@ address: {}
 
 
 class ChannelGroup(dict):
-    ''' CGBLOCK class derived from *dict*
+    ''' CGBLOCK class
 
-    The ChannelGroup object can be created in two modes:
+    *ChannelGroup* has the following key-value pairs
 
-    * using the *stream* and *address* keyword parameters - when reading
-        from file
-    * using any of the following presented keys - when creating
-        a new ChannelGroup
-
-    The keys have the following meaning:
-
-    * id - Block type identifier, always "CG"
-    * block_len - Block size of this block in bytes (entire CGBLOCK)
-    * next_cg_addr - Pointer to next channel group block (CGBLOCK) (NIL
-        allowed)
-    * first_ch_addr - Pointer to first channel block (CNBLOCK) (NIL allowed)
-    * comment_addr - Pointer to channel group comment text (TXBLOCK)
-        (NIL allowed)
-    * record_id - Record ID, i.e. value of the identifier for a record if
-        the DGBLOCK defines a number of record IDs > 0
-    * ch_nr - Number of channels (redundant information)
-    * samples_byte_nr - Size of data record in Bytes (without record ID),
-        i.e. size of plain data for a each recorded sample of this channel
-        group
-    * cycles_nr - Number of records of this type in the data block
-        i.e. number of samples for this channel group
-    * sample_reduction_addr - only since version 3.3. Pointer to
-        first sample reduction block (SRBLOCK) (NIL allowed) Default value: NIL
+    * ``id`` - bytes : block ID; always b'CG'
+    * ``block_len`` - int : block bytes size
+    * ``next_cg_addr`` - int : next CGBLOCK address
+    * ``first_ch_addr`` - int : address of first channel block (CNBLOCK)
+    * ``comment_addr`` - int : address of TXBLOCK that contains the channel
+      group comment
+    * ``record_id`` - int : record ID used as identifier for a record if
+      the DGBLOCK defines a number of record IDs > 0 (unsorted group)
+    * ``ch_nr`` - int : number of channels
+    * ``samples_byte_nr`` - int : size of data record in bytes without
+      record ID
+    * ``cycles_nr`` - int : number of cycles (records) of this type in the data
+      block
+    * ``sample_reduction_addr`` - int : addresss to first sample reduction
+      block
 
     Parameters
     ----------
@@ -1895,11 +1882,15 @@ class ChannelGroup(dict):
         mdf file handle
     address : int
         block address inside mdf file
+    for dynamically created objects :
+        see the key-value pairs
 
     Attributes
     ----------
     address : int
         block address inside mdf file
+    comment : str
+        channel group comment
 
     Examples
     --------
@@ -2022,18 +2013,11 @@ class ChannelGroup(dict):
 
 
 class DataBlock(dict):
-    """Data Block class derived from *dict*
+    """Data Block class (pseudo block not defined by the MDF 3 standard)
 
-    The DataBlock object can be created in two modes:
+    *DataBlock* has the following key-value pairs
 
-    * using the *stream*, *address* and *size* keyword parameters - when
-        reading from file
-    * using any of the following presented keys - when creating
-        a new ChannelGroup
-
-    The keys have the following meaning:
-
-    * data - bytes block
+    * ``data`` - bytes : raw samples bytes
 
     Attributes
     ----------
@@ -2046,6 +2030,8 @@ class DataBlock(dict):
         block address inside the measurement file
     stream : file.io.handle
         binary file stream
+    data : bytes
+        when created dynamically
 
     """
 
@@ -2069,27 +2055,19 @@ class DataBlock(dict):
 
 
 class DataGroup(dict):
-    ''' DGBLOCK class derived from *dict*
+    ''' DGBLOCK class
 
-    The DataGroup object can be created in two modes:
+    *Channel* has the following key-value pairs
 
-    * using the *stream* and *address* keyword parameters - when reading
-        from file
-    * using any of the following presented keys - when creating a new DataGroup
-
-    The keys have the following meaning:
-
-    * id - Block type identifier, always "DG"
-    * block_len - Block size of this block in bytes (entire DGBLOCK)
-    * next_dg_addr - Pointer to next data group block (DGBLOCK) (NIL allowed)
-    * first_cg_addr - Pointer to first channel group block (CGBLOCK)
-        (NIL allowed)
-    * trigger_addr - Pointer to trigger block (TRBLOCK) (NIL allowed)
-    * data_block_addr - Pointer to the data block (see separate chapter
-        on data storage)
-    * cg_nr - Number of channel groups (redundant information)
-    * record_id_len - Number of record IDs in the data block
-    * reserved0 - since version 3.2; Reserved
+    * ``id`` - bytes : block ID; always b'DG'
+    * ``block_len`` - int : block bytes size
+    * ``next_dg_addr`` - int : next DGBLOCK address
+    * ``first_cg_addr`` - int : address of first channel group block (CGBLOCK)
+    * ``trigger_addr`` - int : address of trigger block (TRBLOCK)
+    * ``data_block_addr`` - addrfss of data block
+    * ``cg_nr`` - int : number of channel groups
+    * ``record_id_len`` - int : number of record IDs in the data block
+    * ``reserved0`` - bytes : reserved bytes
 
     Parameters
     ----------
@@ -2097,6 +2075,8 @@ class DataGroup(dict):
         mdf file handle
     address : int
         block address inside mdf file
+    for dynamically created objects :
+        see the key-value pairs
 
     Attributes
     ----------
@@ -2163,34 +2143,28 @@ class DataGroup(dict):
 
 
 class FileIdentificationBlock(dict):
-    ''' IDBLOCK class derived from *dict*
+    ''' IDBLOCK class
 
-    The TriggerBlock object can be created in two modes:
+    *FileIdentificationBlock* has the following key-value pairs
 
-    * using the *stream* and *address* keyword parameters - when reading
-        from file
-    * using the classmethod *from_text*
-
-    The keys have the following meaning:
-
-    * file_identification -  file identifier
-    * version_str - format identifier
-    * program_identification - program identifier
-    * byte_order - default byte order
-    * float_format - default floating-point format
-    * mdf_version - version number of MDF format
-    * code_page - code page number
-    * reserved0 - reserved
-    * reserved1 - reserved
-    * unfinalized_standard_flags - Standard Flags for unfinalized MDF
-    * unfinalized_custom_flags - Custom Flags for unfinalized MDF
+    * ``file_identification`` -  bytes : file identifier
+    * ``version_str`` - bytes : format identifier
+    * ``program_identification`` - bytes : creator program identifier
+    * ``byte_order`` - int : integer code for byte order (endiannes)
+    * ``float_format`` - int : integer code for floating-point format
+    * ``mdf_version`` - int : version number of MDF format
+    * ``code_page`` - int : unicode code page number
+    * ``reserved0`` - bytes : reserved bytes
+    * ``reserved1`` - bytes : reserved byt
+    * ``unfinalized_standard_flags`` - int : standard flags for unfinalized MDF
+    * ``unfinalized_custom_flags`` - int : custom flags for unfinalized MDF
 
     Parameters
     ----------
     stream : file handle
         mdf file handle
     version : int
-        mdf version in case of new file
+        mdf version in case of new file (dynamically created)
 
     Attributes
     ----------
@@ -2245,40 +2219,40 @@ class FileIdentificationBlock(dict):
 
 
 class HeaderBlock(dict):
-    ''' HDBLOCK class derived from *dict*
+    ''' HDBLOCK class
 
-    The TriggerBlock object can be created in two modes:
+    *HeaderBlock* has the following key-value pairs
 
-    * using the *stream* - when reading from file
-    * using the classmethod *from_text*
-
-    The keys have the following meaning:
-
-    * id - Block type identifier, always "HD"
-    * block_len - Block size of this block in bytes (entire HDBLOCK)
-    * first_dg_addr - Pointer to the first data group block (DGBLOCK)
-    * comment_addr - Pointer to the measurement file comment text (TXBLOCK)
-        (NIL allowed)
-    * program_addr - Pointer to program block (PRBLOCK) (NIL allowed)
-    * dg_nr - Number of data groups (redundant information)
-    * date - Date at which the recording was started in "DD:MM:YYYY" format
-    * time - Time at which the recording was started in "HH:MM:SS" format
-    * author - author name
-    * organization - organization
-    * project - project name
-    * subject - subject
+    * ``id`` - bytes : block ID; always b'HD'
+    * ``block_len`` - int : block bytes size
+    * ``first_dg_addr`` - int : address of first data group block (DGBLOCK)
+    * ``comment_addr`` - int : address of TXBLOCK taht contains the
+      measurement file comment
+    * ``program_addr`` - int : address of program block (PRBLOCK)
+    * ``dg_nr`` - int : number of data groups
+    * ``date`` - bytes : date at which the recording was started in
+      "DD:MM:YYYY" format
+    * ``time`` - btyes : time at which the recording was started in
+      "HH:MM:SS" format
+    * ``author`` - btyes : author name
+    * ``organization`` - bytes : organization name
+    * ``project`` - bytes : project name
+    * ``subject`` - bytes : subject
 
     Since version 3.2 the following extra keys were added:
 
-    * abs_time - Time stamp at which recording was started in nanoseconds.
-    * tz_offset - UTC time offset in hours (= GMT time zone)
-    * time_quality - Time quality class
-    * timer_identification - Timer identification (time source),
+    * ``abs_time`` - int : time stamp at which recording was started in
+      nanoseconds.
+    * ``tz_offset`` - int : UTC time offset in hours (= GMT time zone)
+    * ``time_quality`` - int : time quality class
+    * ``timer_identification`` - bytes : timer identification (time source)
 
     Parameters
     ----------
     stream : file handle
         mdf file handle
+    version : int
+        mdf version in case of new file (dynamically created)
 
     Attributes
     ----------
@@ -2288,6 +2262,8 @@ class HeaderBlock(dict):
         file comment
     program : ProgramBlock
         program block
+    start_time : datetime.datetime
+        attribute to rad and set the measurement timestamp
 
     '''
 
@@ -2515,20 +2491,13 @@ class HeaderBlock(dict):
 
 
 class ProgramBlock(dict):
-    ''' PRBLOCK class derived from *dict*
+    ''' PRBLOCK class
 
-    The ProgramBlock object can be created in two modes:
+    *ProgramBlock* has the following key-value pairs
 
-    * using the *stream* and *address* keyword parameters - when reading
-        from file
-    * using any of the following presented keys - when creating
-        a new ProgramBlock
-
-    The keys have the following meaning:
-
-    * id - Block type identifier, always "PR"
-    * block_len - Block size of this block in bytes (entire PRBLOCK)
-    * data - Program-specific data
+    * ``id`` - bytes : block ID; always b'PR'
+    * ``block_len`` - int : block bytes size
+    * ``data`` - btyes : creator program free format data
 
     Parameters
     ----------
@@ -2577,21 +2546,18 @@ class ProgramBlock(dict):
 
 
 class SampleReduction(dict):
-    ''' SRBLOCK class derived from *dict*
+    ''' SRBLOCK class
 
-    Currently the SampleReduction object can only be created by using
-    the *stream* and *address* keyword parameters - when reading from file
+    *SampleReduction* has the following key-value pairs
 
-    The keys have the following meaning:
-
-    * id - Block type identifier, always "SR"
-    * block_len - Block size of this block in bytes (entire SRBLOCK)
-    * next_sr_addr - Pointer to next sample reduction block (SRBLOCK)
-        (NIL allowed)
-    * data_block_addr - Pointer to the data block for this sample reduction
-    * cycles_nr - Number of reduced samples in the data block.
-    * time_interval - Length of time interval [s] used to calculate
-        the reduced samples.
+    * ``id`` - bytes : block ID; always b'SR'
+    * ``block_len`` - int : block bytes size
+    * ``next_sr_addr`` - int : next SRBLOCK address
+    * ``data_block_addr`` - int : address of data block for this sample
+      reduction
+    * ``cycles_nr`` - int : number of reduced samples in the data block
+    * ``time_interval`` - float : length of time interval [s] used to calculate
+        the reduced samples
 
     Parameters
     ----------
@@ -2643,19 +2609,13 @@ class SampleReduction(dict):
 
 
 class TextBlock(dict):
-    ''' TXBLOCK class derived from *dict*
+    ''' TXBLOCK class
 
-    The ProgramBlock object can be created in two modes:
+    *TextBlock* has the following key-value pairs
 
-    * using the *stream* and *address* keyword parameters - when reading
-        from file
-    * using the classmethod *from_text*
-
-    The keys have the following meaning:
-
-    * id - Block type identifier, always "TX"
-    * block_len - Block size of this block in bytes (entire TXBLOCK)
-    * text - Text (new line indicated by CR and LF; end of text indicated by 0)
+    * ``id`` - bytes : block ID; always b'TX'
+    * ``block_len`` - int : block bytes size
+    * ``text`` - bytes : text content
 
     Parameters
     ----------
@@ -2663,19 +2623,17 @@ class TextBlock(dict):
         mdf file handle
     address : int
         block address inside mdf file
-    text : bytes
-        bytes for creating a new TextBlock
+    text : bytes | str
+        bytes or str for creating a new TextBlock
 
     Attributes
     ----------
     address : int
         block address inside mdf file
-    text_str : str
-        text data as unicode string
 
     Examples
     --------
-    >>> tx1 = TextBlock.from_text('VehicleSpeed')
+    >>> tx1 = TextBlock(text='VehicleSpeed')
     >>> tx1.text_str
     'VehicleSpeed'
     >>> tx1['text']
@@ -2735,23 +2693,20 @@ class TextBlock(dict):
 
 
 class TriggerBlock(dict):
-    ''' TRBLOCK class derived from *dict*
+    ''' TRBLOCK class
 
-    The TriggerBlock object can be created in two modes:
+    *Channel* has the following key-value pairs
 
-    * using the *stream* and *address* keyword parameters - when reading
-        from file
-    * using the classmethod *from_text*
-
-    The keys have the following meaning:
-
-    * id - Block type identifier, always "TR"
-    * block_len - Block size of this block in bytes (entire TRBLOCK)
-    * text_addr - Pointer to trigger comment text (TXBLOCK) (NIL allowed)
-    * trigger_events_nr - Number of trigger events n (0 allowed)
-    * trigger_{n}_time - Trigger time [s] of trigger event *n*
-    * trigger_{n}_pretime - Pre trigger time [s] of trigger event *n*
-    * trigger_{n}_posttime - Post trigger time [s] of trigger event *n*
+    * ``id`` - bytes : block ID; always b'TR'
+    * ``block_len`` - int : block bytes size
+    * ``text_addr`` - int : address of TXBLOCK that contains the trigger
+      comment text
+    * ``trigger_events_nr`` - int : number of trigger events
+    * ``trigger_<N>_time`` - float : trigger time [s] of trigger's N-th event
+    * ``trigger_<N>_pretime`` - float : pre trigger time [s] of trigger's N-th
+      event
+    * ``trigger_<N>_posttime`` - float : post trigger time [s] of trigger's
+      N-th event
 
     Parameters
     ----------
@@ -2764,8 +2719,8 @@ class TriggerBlock(dict):
     ----------
     address : int
         block address inside mdf file
-    description : str
-        trigger description text
+    comment : str
+        trigger comment
 
     '''
 
