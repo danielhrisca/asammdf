@@ -1291,7 +1291,7 @@ class MDF(object):
                             master = None
                             raster_ = None
 
-                        if time_from_zero:
+                        if time_from_zero and len(master):
                             master.samples -= master.samples[0]
 
                         ch_nr = len(grp['channels'])

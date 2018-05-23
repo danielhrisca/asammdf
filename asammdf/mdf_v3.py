@@ -128,21 +128,23 @@ def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
 class MDF3(object):
     """The *header* attibute is a *HeaderBlock*.
 
-    The *groups* attribute is a list of dicts, each one with the following keys:
+    The *groups* attribute is a list of dicts, each one with the following keys
 
     * ``data_group`` - DataGroup object
     * ``channel_group`` - ChannelGroup object
-    * ``channels`` - list of Channel objects (when *memory* is *full* or *low*) or addresses
-      (when *memory* is *minimum*) with the same order as found in the mdf file
-    * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel arrays;
-      list of Channel objects (when *memory* is *full* or *low*) or addresses
-      (when *memory* is *minimum*) in case of structure channel composition
+    * ``channels`` - list of Channel objects (when *memory* is *full* or *low*)
+      or addresses (when *memory* is *minimum*) with the same order as found in
+      the mdf file
+    * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
+      arrays; list of Channel objects (when *memory* is *full* or *low*) or
+      addresses (when *memory* is *minimum*) in case of structure channel
+      composition
     * ``data_block`` - DataBlock object when *memory* is *full* else address of
       data block
-    * ``data_location``- integer code for data location (original file, temporary file or
-      memory)
-    * ``data_block_addr`` - list of raw samples starting addresses, for *low* and *minimum*
-      memory options
+    * ``data_location``- integer code for data location (original file,
+      temporary file or memory)
+    * ``data_block_addr`` - list of raw samples starting addresses, for *low*
+      and *minimum* memory options
     * ``data_block_type`` - list of codes for data block type
     * ``data_block_size`` - list of raw samples block size
     * ``sorted`` - sorted indicator flag
