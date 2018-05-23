@@ -2155,7 +2155,7 @@ class FileIdentificationBlock(dict):
     * ``mdf_version`` - int : version number of MDF format
     * ``code_page`` - int : unicode code page number
     * ``reserved0`` - bytes : reserved bytes
-    * ``reserved1`` - bytes : reserved byt
+    * ``reserved1`` - bytes : reserved bytes
     * ``unfinalized_standard_flags`` - int : standard flags for unfinalized MDF
     * ``unfinalized_custom_flags`` - int : custom flags for unfinalized MDF
 

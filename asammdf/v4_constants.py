@@ -347,11 +347,11 @@ FMT_CONVERSION_RAT_INIT = '<4Q2B3H8d'
 FMT_CONVERSION_RAT_INIT = '<4Q2B3H8d'
 
 FMT_HEADER_BLOCK = '<4sI9Q2H4B2Q'
-FMT_IDENTIFICATION_BLOCK = '<8s8s8s5H26s2H'
+FMT_IDENTIFICATION_BLOCK = '<8s8s8s4sH30s2H'
 
 KEYS_HEADER_BLOCK = (
     'id',
-    'reserved3',
+    'reserved0',
     'block_len',
     'links_nr',
     'first_dg_addr',
@@ -366,7 +366,7 @@ KEYS_HEADER_BLOCK = (
     'time_flags',
     'time_quality',
     'flags',
-    'reserved4',
+    'reserved1',
     'start_angle',
     'start_distance',
 )
@@ -376,11 +376,8 @@ KEYS_IDENTIFICATION_BLOCK = (
     'version_str',
     'program_identification',
     'reserved0',
-    'reserved1',
     'mdf_version',
-    'reserved2',
-    'check_block',
-    'fill',
+    'reserved1',
     'unfinalized_standard_flags',
     'unfinalized_custom_flags',
 )

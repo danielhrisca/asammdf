@@ -3055,6 +3055,26 @@ class DataGroup(dict):
 class DataList(dict):
     """DLBLOCK class
 
+    *DataList* has the following common key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##DL'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``next_dl_addr`` - int : address of next DLBLOCK
+    * ``data_block_addr<N>`` - int : address of N-th data block
+    * ``flags`` - int : data list flags
+    * ``reserved1`` - int : reserved bytes
+    * ``data_block_nr`` - int : number of data blocks referenced by thsi list
+    * for equall lenght blocks
+
+        * ``data_block_len`` - int : equall uncompressed size in bytes for all
+          referenced data blocks; last block can be smaller
+
+    * for variable lenght blocks
+
+        * ``offset_<N>`` - int : byte offset of N-th data block
+
     Attributes
     ----------
     address : int
@@ -3165,6 +3185,35 @@ class DataList(dict):
 class EventBlock(dict):
     """ EVBLOCK class
 
+    *EventBlock* has the following common key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##EV'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``next_ev_addr`` - int : address of next EVBLOCK
+    * ``parent_ev_addr`` - int : address of parent EVLBOCK
+    * ``range_start_ev_addr`` - int : address of EVBLOCK that is the start of
+      the range for which this event is the end
+    * ``name_addr`` - int : address of TXBLOCK that contains the event name
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
+      event comment
+    * ``scope_<N>_addr`` - int : address of N-th block that represents a scope
+      for this event (can be CGBLOCK, CHBLOCK, DGBLOCK)
+    * ``attachemnt_<N>_addr`` - int : address of N-th attachment referenced by
+      this event
+    * ``event_type`` - int : integer code for event type
+    * ``sync_type`` - int : integer code for event sync type
+    * ``range_type`` - int : integer code for event range type
+    * ``cause`` - int : integer code for event cause
+    * ``flags`` - int : event flags
+    * ``reserved1`` - int : reserved bytes
+    * ``scope_nr`` - int : number of scopes referenced by this event
+    * ``attachment_nr`` - int : number of attachments referenced by this event
+    * ``creator_index`` - int : index of FHBLOCK
+    * ``sync_base`` - int : timestamp base value
+    * ``sync_factor`` - float : timestamp factor
+
     Attributes
     ----------
     address : int
@@ -3176,8 +3225,8 @@ class EventBlock(dict):
     parent : int
         index of event block that is the parent for the current event
     range_start : int
-        index of event block that is the start of the range for which the current
-        event is the end
+        index of event block that is the start of the range for which the
+        current event is the end
     scopes : list
         list of (group index, channel index) or channel group index that define
         the scope of the current event
@@ -3357,6 +3406,17 @@ class EventBlock(dict):
 class FileIdentificationBlock(dict):
     """IDBLOCK class
 
+    *FileIdentificationBlock* has the following key-value pairs
+
+    * ``file_identification`` -  bytes : file identifier
+    * ``version_str`` - bytes : format identifier
+    * ``program_identification`` - bytes : creator program identifier
+    * ``reserved0`` - bytes : reserved bytes
+    * ``mdf_version`` - int : version number of MDF format
+    * ``reserved1`` - bytes : reserved bytes
+    * ``unfinalized_standard_flags`` - int : standard flags for unfinalized MDF
+    * ``unfinalized_custom_flags`` - int : custom flags for unfinalized MDF
+
     Attributes
     ----------
     address : int
@@ -3379,11 +3439,8 @@ class FileIdentificationBlock(dict):
              self['version_str'],
              self['program_identification'],
              self['reserved0'],
-             self['reserved1'],
              self['mdf_version'],
-             self['reserved2'],
-             self['check_block'],
-             self['fill'],
+             self['reserved1'],
              self['unfinalized_standard_flags'],
              self['unfinalized_custom_flags']) = unpack(
                 v4c.FMT_IDENTIFICATION_BLOCK,
@@ -3396,12 +3453,9 @@ class FileIdentificationBlock(dict):
             self['file_identification'] = 'MDF     '.encode('utf-8')
             self['version_str'] = '{}    '.format(version).encode('utf-8')
             self['program_identification'] = 'Python  '.encode('utf-8')
-            self['reserved0'] = 0
-            self['reserved1'] = 0
+            self['reserved0'] = b'\0' * 4
             self['mdf_version'] = int(version.replace('.', ''))
-            self['reserved2'] = 0
-            self['check_block'] = 0
-            self['fill'] = b'\x00' * 26
+            self['reserved2'] = b'\0' * 30
             self['unfinalized_standard_flags'] = 0
             self['unfinalized_custom_flags'] = 0
 
@@ -3418,6 +3472,21 @@ class FileIdentificationBlock(dict):
 
 class FileHistory(dict):
     """FHBLOCK class
+
+    *FileHistory* has the following common key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##FH'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``next_fh_addr`` - int : address of next FHBLOCK
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
+      file history comment
+    * ``abs_time`` - int : time stamp at which the file modification happened
+    * ``tz_offset`` - int : UTC time offset in hours (= GMT time zone)
+    * ``daylight_save_time`` - int : daylight saving time
+    * ``time_flags`` - int : time flags
+    * ``reserved1`` - bytes : reserved bytes
 
     Attributes
     ----------
@@ -3539,7 +3608,31 @@ class FileHistory(dict):
 class HeaderBlock(dict):
     """HDBLOCK class
 
-     Attributes
+    *HeaderBlock* has the following common key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##HD'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``first_dg_addr`` - int : address of first DGBLOCK
+    * ``file_history_addr`` - int : address of first FHBLOCK
+    * ``channel_tree_addr`` - int : address of first CHBLOCK
+    * ``first_attachment_addr`` - int : address of first ATBLOCK
+    * ``first_event_addr`` - int : address of first EVBLOCK
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
+      file comment
+    * ``abs_time`` - int : time stamp at which recording was started in
+      nanoseconds.
+    * ``tz_offset`` - int : UTC time offset in hours (= GMT time zone)
+    * ``daylight_save_time`` - int : daylight saving time
+    * ``time_flags`` - int : time flags
+    * ``time_quality`` - int : time quality flags
+    * ``flags`` - int : file flags
+    * ``reserved1`` - int : reserved bytes
+    * ``start_angle`` - int : angle value at measurement start
+    * ``start_distance`` - int : distance value at measurement start
+
+    Attributes
     ----------
     address : int
         header address
@@ -3559,7 +3652,7 @@ class HeaderBlock(dict):
             stream.seek(address)
 
             (self['id'],
-             self['reserved3'],
+             self['reserved0'],
              self['block_len'],
              self['links_nr'],
              self['first_dg_addr'],
@@ -3574,7 +3667,7 @@ class HeaderBlock(dict):
              self['time_flags'],
              self['time_quality'],
              self['flags'],
-             self['reserved4'],
+             self['reserved1'],
              self['start_angle'],
              self['start_distance']) = unpack(
                 v4c.FMT_HEADER_BLOCK,
@@ -3595,7 +3688,7 @@ class HeaderBlock(dict):
         except KeyError:
 
             self['id'] = b'##HD'
-            self['reserved3'] = kwargs.get('reserved3', 0)
+            self['reserved0'] = kwargs.get('reserved3', 0)
             self['block_len'] = kwargs.get('block_len', v4c.HEADER_BLOCK_SIZE)
             self['links_nr'] = kwargs.get('links_nr', 6)
             self['first_dg_addr'] = kwargs.get('first_dg_addr', 0)
@@ -3613,7 +3706,7 @@ class HeaderBlock(dict):
             self['time_flags'] = kwargs.get('time_flags', 2)
             self['time_quality'] = kwargs.get('time_quality', 0)
             self['flags'] = kwargs.get('flags', 0)
-            self['reserved4'] = kwargs.get('reserved4', 0)
+            self['reserved1'] = kwargs.get('reserved4', 0)
             self['start_angle'] = kwargs.get('start_angle', 0)
             self['start_distance'] = kwargs.get('start_distance', 0)
 
