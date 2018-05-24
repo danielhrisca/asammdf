@@ -30,10 +30,12 @@ except ImportError:
     from PyQt4 import uic
     from asammdfgui import resource_qt4 as resource_rc
     QT = 4
-
-HERE = os.path.dirname(
-    os.path.realpath(__file__)
-)
+try:
+    HERE = os.path.dirname(
+        os.path.realpath(__file__)
+    )
+except:
+    HERE = os.path.abspath(os.path.dirname(sys.argv[0]))
 # import asammdfgui
 # HERE = asammdfgui.__path__[0]
 # print(*list(os.listdir(asammdfgui.__path__[0])), sep='\n')
