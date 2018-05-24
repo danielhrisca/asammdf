@@ -1282,6 +1282,98 @@ class ChannelInfoDialog(QDialog):
         )
 
 
+class TabularValuesDialog(QDialog):
+    def __init__(self, signals, ranges, *args, **kwargs):
+        super(QDialog, self).__init__(*args, **kwargs)
+
+        self.setWindowFlags(Qt.Window)
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+
+        self.setWindowTitle('Tabular values')
+
+        self.table = QTableWidget(self)
+
+        header = []
+        for sig in signals:
+            header.append('t [s]')
+            header.append('{} ({})'.format(sig.name, sig.unit))
+
+        self.table.setColumnCount(2*len(signals))
+        self.table.setRowCount(
+            max(len(sig) for sig in signals)
+        )
+        self.table.setHorizontalHeaderLabels(header)
+
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.table.horizontalHeader().setMinimumSectionSize(QHeaderView.Stretch)
+        self.table.horizontalHeader().setToolTip('cacasc')
+
+        for i, sig in enumerate(signals):
+            range_ = ranges[i]
+            size = len(sig)
+            for j in range(size):
+                # self.table.setCellWidget(
+                #     j,
+                #     2*i,
+                #     QLabel(str(sig.timestamps[j]), self.table),
+                # )
+                #
+                # value = sig.samples[j]
+                #
+                # label = QLabel(str(sig.samples[j]), self.table)
+                #
+                # for (start, stop), color in range_.items():
+                #     if start <= value < stop:
+                #         label.setStyleSheet(
+                #             "background-color: {};".format(color))
+                #         break
+                # else:
+                #     label.setStyleSheet("background-color: transparent;")
+                #
+                # self.table.setCellWidget(
+                #     j,
+                #     2 * i + 1,
+                #     label,
+                # )
+
+                self.table.setItem(
+                    j,
+                    2*i,
+                    QTableWidgetItem(str(sig.timestamps[j])),
+                )
+
+                self.table.setItem(
+                    j,
+                    2 * i + 1,
+                    QTableWidgetItem(str(sig.samples[j])),
+                )
+
+        layout.addWidget(self.table)
+
+        icon = QIcon()
+        icon.addPixmap(
+            QPixmap(":/info.png"),
+            QIcon.Normal,
+            QIcon.Off,
+        )
+
+        self.setWindowIcon(icon)
+        self.setGeometry(
+            240,
+            60,
+            1200,
+            600,
+        )
+
+        screen = QApplication.desktop().screenGeometry()
+        self.move(
+            (screen.width() - 1200) // 2,
+            (screen.height() - 600) // 2,
+        )
+
+
 class ChannelStats(QWidget):
     def __init__(self, *args, **kwargs):
         super(ChannelStats, self).__init__(*args, **kwargs)
@@ -1986,6 +2078,31 @@ class FileWidget(QWidget):
                 stats = self.plot.get_stats(self.info_index)
                 self.info.set_stats(stats)
 
+        elif modifier == Qt.ControlModifier and key == Qt.Key_T:
+            selected_items = self.channel_selection.selectedItems()
+            rows = self.channel_selection.count()
+
+            indexes = [
+                i
+                for i in range(rows)
+                if self.channel_selection.item(i) in selected_items
+            ]
+
+            ranges = [
+                self.channel_selection.itemWidget(item).ranges
+                for item in selected_items
+            ]
+
+            signals = [
+                self.plot.signals[i]
+                for i in indexes
+            ]
+
+
+            dlg = TabularValuesDialog(signals, ranges, self)
+            dlg.setModal(True)
+            dlg.exec_()
+
         else:
             super(FileWidget, self).keyPressEvent(event)
 
@@ -2061,7 +2178,6 @@ class FileWidget(QWidget):
             else:
                 if self.plot.axes[i].isVisible():
                     self.plot.axes[i].hide()
-
 
         if len(selected_items) == 1:
             self.info_index = self.channel_selection.row(selected_items[0])
