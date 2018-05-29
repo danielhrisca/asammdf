@@ -440,6 +440,8 @@ class Signal(object):
                 self.master_metadata,
                 self.display_name,
                 self.attachment,
+                self.source,
+                self.bit_count,
                 self.stream_sync,
             )
 
@@ -456,6 +458,8 @@ class Signal(object):
                 self.master_metadata,
                 self.display_name,
                 self.attachment,
+                self.source,
+                self.bit_count,
                 self.stream_sync,
             )
 
@@ -475,6 +479,8 @@ class Signal(object):
                         self.master_metadata,
                         self.display_name,
                         self.attachment,
+                        self.source,
+                        self.bit_count,
                         self.stream_sync,
                     )
                 else:
@@ -489,6 +495,8 @@ class Signal(object):
                         self.master_metadata,
                         self.display_name,
                         self.attachment,
+                        self.source,
+                        self.bit_count,
                         self.stream_sync,
                     )
 
@@ -506,6 +514,8 @@ class Signal(object):
                     self.master_metadata,
                     self.display_name,
                     self.attachment,
+                    self.source,
+                    self.bit_count,
                     self.stream_sync,
                 )
 
@@ -523,6 +533,8 @@ class Signal(object):
                         self.master_metadata,
                         self.display_name,
                         self.attachment,
+                        self.source,
+                        self.bit_count,
                         self.stream_sync,
                     )
                 else:
@@ -549,6 +561,8 @@ class Signal(object):
                                 self.master_metadata,
                                 self.display_name,
                                 self.attachment,
+                                self.source,
+                                self.bit_count,
                                 self.stream_sync,
                             )
                         else:
@@ -565,6 +579,8 @@ class Signal(object):
                                 self.master_metadata,
                                 self.display_name,
                                 self.attachment,
+                                self.source,
+                                self.bit_count,
                                 self.stream_sync,
                             )
                     else:
@@ -579,6 +595,8 @@ class Signal(object):
                             self.master_metadata,
                             self.display_name,
                             self.attachment,
+                            self.source,
+                            self.bit_count,
                             self.stream_sync,
                         )
         return result
@@ -620,6 +638,8 @@ class Signal(object):
                 self.master_metadata,
                 self.display_name,
                 self.attachment,
+                self.source,
+                self.bit_count,
                 self.stream_sync,
             )
         else:
