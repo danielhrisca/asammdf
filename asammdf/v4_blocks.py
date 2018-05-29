@@ -258,6 +258,11 @@ class AttachmentBlock(dict):
         self.address = address
         address += self['block_len']
 
+        align = address % 8
+        if align % 8:
+            blocks.append(b'\0' * (8 - align))
+            address += 8 - align
+
         return address
 
     def to_stream(self, stream, defined_texts):
@@ -312,6 +317,11 @@ class AttachmentBlock(dict):
         stream.write(bytes(self))
         self.address = address
         address += self['block_len']
+
+        align = address % 8
+        if align % 8:
+            stream.write(b'\0' * (8 - align))
+            address += 8 - align
 
         return address
 

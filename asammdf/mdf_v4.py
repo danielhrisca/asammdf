@@ -626,7 +626,6 @@ class MDF4(object):
 
                     i = 0
                     while i < size:
-                        # print(fmt, dg_cntr, len(data), size)
                         rec_id = unpack(fmt, data[i: i+record_id_nr])[0]
                         # skip record id
                         i += record_id_nr
@@ -1357,8 +1356,10 @@ class MDF4(object):
                     group=group,
                     index=index,
                 )
+            elif blk_id == b'##AT':
+                data = b''
             else:
-                message = ('Expected CG, SD, DL, DZ or CN block at {} '
+                message = ('Expected AT, CG, SD, DL, DZ or CN block at {} '
                            'but found id="{}"')
                 message = message.format(hex(address), blk_id)
                 logger.warning(message)
@@ -2509,8 +2510,24 @@ class MDF4(object):
                 if signal.samples.dtype.kind == 'u' and signal.bit_count <= 4:
                     s_size = signal.bit_count
 
+                if signal.stream_sync:
+                    channel_type = v4c.CHANNEL_TYPE_SYNC
+                    at_data, at_name = signal.attachment
+                    attachment_addr = self.attach(
+                        at_data,
+                        at_name,
+                        mime='video/avi',
+                    )
+                    data_block_addr = attachment_addr
+                    sync_type = v4c.SYNC_TYPE_TIME
+                else:
+                    channel_type = v4c.CHANNEL_TYPE_VALUE
+                    data_block_addr = 0
+                    sync_type = v4c.SYNC_TYPE_NONE
+
                 kargs = {
-                    'channel_type': v4c.CHANNEL_TYPE_VALUE,
+                    'channel_type': channel_type,
+                    'sync_type': sync_type,
                     'bit_count': s_size,
                     'byte_offset': offset,
                     'bit_offset': 0,
@@ -2519,6 +2536,7 @@ class MDF4(object):
                     'max_raw_value': max_val if min_val <= max_val else 0,
                     'lower_limit': min_val if min_val <= max_val else 0,
                     'upper_limit': max_val if min_val <= max_val else 0,
+                    'data_block_addr': data_block_addr,
                 }
 
                 if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
@@ -3299,16 +3317,18 @@ class MDF4(object):
 
             at_block = AttachmentBlock(data=data, compression=compression)
             at_block['creator_index'] = creator_index
-            index = v4c.MAX_UINT64
+            index = v4c.MAX_UINT64 - 1
             while index in self.attachments:
                 index -= 1
-            self.attachments[index] = at_block
+            self.attachments.append(at_block)
 
             at_block.file_name = file_name if file_name else 'bin.bin'
             at_block.mime = mime
             at_block.comment = comment
 
             self._attachments_cache[data] = index
+            self._attachments_map[index] = len(self.attachments) - 1
+
             return index
 
     def close(self):
@@ -3802,7 +3822,6 @@ class MDF4(object):
 
             channel = grp['logging_channels'][-ch_nr-1]
 
-
             # get group data
             if data is None:
                 data = self._load_group_data(grp)
@@ -3811,8 +3830,12 @@ class MDF4(object):
 
             bit_count = channel['bit_count']
 
+            # get the channel signal data if available
+            signal_data = b''
+
         data_type = channel['data_type']
         channel_type = channel['channel_type']
+        stream_sync = channel_type == v4c.CHANNEL_TYPE_SYNC
 
         # check if this is a channel array
         if dependency_list:
@@ -4392,7 +4415,6 @@ class MDF4(object):
 
                     timestamps = t
 
-
             # get the channel conversion
             conversion = channel.conversion
 
@@ -4604,6 +4626,11 @@ class MDF4(object):
 
             if channel.attachments:
                 attachment = self.extract_attachment(index=channel.attachments[0])
+            elif channel_type == v4c.CHANNEL_TYPE_SYNC:
+                index = self._attachments_map[channel['data_block_addr']]
+                attachment = self.extract_attachment(
+                    index=index,
+                )
             else:
                 attachment = ()
 
@@ -4622,6 +4649,7 @@ class MDF4(object):
                 source=source,
                 display_name=channel.display_name,
                 bit_count=bit_count,
+                stream_sync=stream_sync,
             )
 
         return res
@@ -5196,6 +5224,10 @@ class MDF4(object):
             for i, gp in enumerate(self.groups):
 
                 for channel in gp['channels']:
+                    if channel['channel_type'] == v4c.CHANNEL_TYPE_SYNC:
+                        idx = self._attachments_map[channel['data_block_addr']]
+                        channel['data_block_addr'] = self.attachments[idx].address
+
                     for j, idx in enumerate(channel.attachments):
                         key = 'attachment_{}_addr'.format(j)
                         channel[key] = self.attachments[idx].address
@@ -5220,7 +5252,7 @@ class MDF4(object):
                             address += signal_data['block_len']
                             blocks.append(signal_data)
                             align = signal_data['block_len'] % 8
-                            if align % 8:
+                            if align:
                                 blocks.append(b'\0' * (8 - align))
                                 address += 8 - align
                         else:
@@ -5229,7 +5261,7 @@ class MDF4(object):
                             address += signal_data['block_len']
                             blocks.append(signal_data)
                             align = signal_data['block_len'] % 8
-                            if align % 8:
+                            if align:
                                 blocks.append(b'\0' * (8 - align))
                                 address += 8 - align
                             gp_sd.append(signal_data)
@@ -5255,6 +5287,8 @@ class MDF4(object):
 
                     if signal_data:
                         channel['data_block_addr'] = signal_data.address
+                    elif channel['channel_type'] == v4c.CHANNEL_TYPE_SYNC:
+                        pass
                     else:
                         channel['data_block_addr'] = 0
 
@@ -5825,6 +5859,9 @@ class MDF4(object):
                             if align % 8:
                                 write(b'\0' * (8 - align))
                                 address += 8 - align
+                    elif channel['channel_type'] == v4c.CHANNEL_TYPE_SYNC:
+                        idx = self._attachments_map[channel['data_block_addr']]
+                        channel['data_block_addr'] = self.attachments[idx].address
                     else:
                         channel['data_block_addr'] = 0
 

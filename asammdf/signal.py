@@ -48,6 +48,12 @@ class Signal(object):
         display name used by mdf version 3
     attachment : bytes, name
         channel attachment and name from MDF version 4
+    source : NamedTuple
+        source information named tuple
+    bit_count : int
+        bit count; useful for integer channels
+    stream_sync : bool
+        the channel is a synchronisation for the attachment stream (mdf v4 only)
 
     """
 
@@ -63,7 +69,8 @@ class Signal(object):
                  display_name='',
                  attachment=(),
                  source=None,
-                 bit_count=None):
+                 bit_count=None,
+                 stream_sync=False):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
@@ -99,6 +106,8 @@ class Signal(object):
                 self.bit_count = samples.dtype.itemsize * 8
             else:
                 self.bit_count = bit_count
+
+            self.stream_sync = stream_sync
 
             if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                 if conversion is None:
@@ -431,6 +440,7 @@ class Signal(object):
                 self.master_metadata,
                 self.display_name,
                 self.attachment,
+                self.stream_sync,
             )
 
         elif start is None and stop is None:
@@ -446,6 +456,7 @@ class Signal(object):
                 self.master_metadata,
                 self.display_name,
                 self.attachment,
+                self.stream_sync,
             )
 
         else:
@@ -464,6 +475,7 @@ class Signal(object):
                         self.master_metadata,
                         self.display_name,
                         self.attachment,
+                        self.stream_sync,
                     )
                 else:
                     result = Signal(
@@ -477,6 +489,7 @@ class Signal(object):
                         self.master_metadata,
                         self.display_name,
                         self.attachment,
+                        self.stream_sync,
                     )
 
             elif stop is None:
@@ -493,6 +506,7 @@ class Signal(object):
                     self.master_metadata,
                     self.display_name,
                     self.attachment,
+                    self.stream_sync,
                 )
 
             else:
@@ -509,6 +523,7 @@ class Signal(object):
                         self.master_metadata,
                         self.display_name,
                         self.attachment,
+                        self.stream_sync,
                     )
                 else:
                     start_ = np.searchsorted(self.timestamps, start, side='left')
@@ -534,6 +549,7 @@ class Signal(object):
                                 self.master_metadata,
                                 self.display_name,
                                 self.attachment,
+                                self.stream_sync,
                             )
                         else:
                             # signal is empty or start and stop are outside the
@@ -549,6 +565,7 @@ class Signal(object):
                                 self.master_metadata,
                                 self.display_name,
                                 self.attachment,
+                                self.stream_sync,
                             )
                     else:
                         result = Signal(
@@ -562,6 +579,7 @@ class Signal(object):
                             self.master_metadata,
                             self.display_name,
                             self.attachment,
+                            self.stream_sync,
                         )
         return result
 
@@ -602,6 +620,7 @@ class Signal(object):
                 self.master_metadata,
                 self.display_name,
                 self.attachment,
+                self.stream_sync,
             )
         else:
             result = self
@@ -634,6 +653,7 @@ class Signal(object):
                 master_metadata=self.master_metadata,
                 display_name=self.display_name,
                 attachment=self.attachment,
+                stream_sync=self.stream_sync,
             )
         else:
             if self.samples.dtype.kind == 'f':
@@ -659,6 +679,7 @@ class Signal(object):
                 master_metadata=self.master_metadata,
                 display_name=self.display_name,
                 attachment=self.attachment,
+                stream_sync=self.stream_sync,
             )
 
     def __apply_func(self, other, func_name):
@@ -690,6 +711,7 @@ class Signal(object):
             self.master_metadata,
             self.display_name,
             attachment=self.attachment,
+            stream_sync=self.stream_sync,
         )
 
     def __pos__(self):
@@ -705,7 +727,8 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
-            self.attachment,
+            attachment=self.attachment,
+            stream_sync=self.stream_sync,
         )
 
     def __round__(self, n):
@@ -718,7 +741,8 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
-            self.attachment,
+            attachment=self.attachment,
+            stream_sync=self.stream_sync,
         )
 
     def __sub__(self, other):
@@ -784,7 +808,8 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
-            self.attachment,
+            attachment=self.attachment,
+            stream_sync=self.stream_sync,
         )
 
     def __lshift__(self, other):
@@ -836,7 +861,8 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
-            self.attachment,
+            attachment=self.attachment,
+            stream_sync=self.stream_sync,
         )
 
     def __getitem__(self, val):
@@ -868,7 +894,8 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
-            self.attachment,
+            attachment=self.attachment,
+            stream_sync=self.stream_sync,
         )
 
     def physical(self):
@@ -897,6 +924,7 @@ class Signal(object):
             master_metadata=self.master_metadata,
             display_name=self.display_name,
             attachment=self.attachment,
+            stream_sync=self.stream_sync,
         )
 
 
