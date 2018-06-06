@@ -12,6 +12,7 @@ from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
 from hashlib import md5
+from io import BytesIO
 from itertools import chain
 from math import ceil
 from struct import unpack, unpack_from
@@ -253,7 +254,8 @@ class MDF4(object):
     Parameters
     ----------
     name : string
-        mdf file name
+        mdf file name (if provided it must be a real file name) or
+        BytesIO object
     memory : str
         memory optimization option; default `full`
 
@@ -338,7 +340,13 @@ class MDF4(object):
         self._callback = callback
 
         if name:
-            self._file = open(self.name, 'rb')
+            if isinstance(name, BytesIO):
+                self._file = name
+                self.name = 'From_BytesIO.mf4'
+                self._from_bytesio = True
+            else:
+                self._file = open(self.name, 'rb')
+                self._from_bytesio = False
             self._read()
 
         else:
@@ -3337,7 +3345,7 @@ class MDF4(object):
         object is not used anymore to clean-up the temporary file"""
         if self._tempfile is not None:
             self._tempfile.close()
-        if self._file is not None:
+        if self._file is not None and not self._from_bytesio:
             self._file.close()
 
     def extract_attachment(self, address=None, index=None):

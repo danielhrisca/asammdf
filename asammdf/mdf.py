@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from copy import deepcopy
 from functools import reduce
+from io import BytesIO
 from struct import unpack
 
 import numpy as np
@@ -56,8 +57,9 @@ class MDF(object):
 
     Parameters
     ----------
-    name : string
-        mdf file name, if provided it must be a real file name
+    name : string | BytesIO
+        mdf file name (if provided it must be a real file name) or
+        BytesIO object
     memory : str
         memory option; default `full`:
 
@@ -79,31 +81,36 @@ class MDF(object):
 
     def __init__(self, name=None, memory='full', version='4.10', callback=None):
         if name:
-            if os.path.isfile(name):
-                memory = validate_memory_argument(memory)
-                with open(name, 'rb') as file_stream:
-                    magic_header = file_stream.read(3)
-                    if magic_header != b'MDF':
-                        raise MdfException('"{}" is not a valid ASAM MDF file'.format(name))
-                    file_stream.seek(8)
-                    version = file_stream.read(4).decode('ascii').strip(' \0')
-                    if not version:
-                        file_stream.read(16)
-                        version = unpack('<H', file_stream.read(2))[0]
-                        version = str(version)
-                        version = '{}.{}'.format(version[0], version[1:])
-                if version in MDF3_VERSIONS:
-                    self._mdf = MDF3(name, memory, callback=callback)
-                elif version in MDF4_VERSIONS:
-                    self._mdf = MDF4(name, memory, callback=callback)
-                elif version in MDF2_VERSIONS:
-                    self._mdf = MDF2(name, memory, callback=callback)
-                else:
-                    message = ('"{}" is not a supported MDF file; '
-                               '"{}" file version was found')
-                    raise MdfException(message.format(name, version))
+            memory = validate_memory_argument(memory)
+            if isinstance(name, BytesIO):
+                file_stream = name
             else:
-                raise MdfException('File "{}" does not exist'.format(name))
+                if os.path.isfile(name):
+                    file_stream = open(name, 'rb')
+                else:
+                    raise MdfException('File "{}" does not exist'.format(name))
+            file_stream.seek(0)
+            magic_header = file_stream.read(3)
+            if magic_header != b'MDF':
+                raise MdfException('"{}" is not a valid ASAM MDF file'.format(name))
+            file_stream.seek(8)
+            version = file_stream.read(4).decode('ascii').strip(' \0')
+            if not version:
+                file_stream.read(16)
+                version = unpack('<H', file_stream.read(2))[0]
+                version = str(version)
+                version = '{}.{}'.format(version[0], version[1:])
+            if version in MDF3_VERSIONS:
+                self._mdf = MDF3(name, memory, callback=callback)
+            elif version in MDF4_VERSIONS:
+                self._mdf = MDF4(name, memory, callback=callback)
+            elif version in MDF2_VERSIONS:
+                self._mdf = MDF2(name, memory, callback=callback)
+            else:
+                message = ('"{}" is not a supported MDF file; '
+                           '"{}" file version was found')
+                raise MdfException(message.format(name, version))
+
         else:
             version = validate_version_argument(version)
             memory = validate_memory_argument(memory)

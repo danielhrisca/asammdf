@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
+from io import BytesIO
 from itertools import product
 from math import ceil
 from struct import unpack
@@ -155,7 +156,8 @@ class MDF3(object):
     Parameters
     ----------
     name : string
-        mdf file name
+        mdf file name (if provided it must be a real file name) or
+        BytesIO object
     memory : str
         memory optimization option; default `full`
 
@@ -223,7 +225,13 @@ class MDF3(object):
         self._callback = callback
 
         if name:
-            self._file = open(self.name, 'rb')
+            if isinstance(name, BytesIO):
+                self._file = name
+                self.name = 'From_BytesIO.mdf'
+                self._from_bytesio = True
+            else:
+                self._file = open(self.name, 'rb')
+                self._from_bytesio = False
             self._read()
         else:
             version = validate_version_argument(version, hint=3)
@@ -2020,7 +2028,7 @@ class MDF3(object):
         """
         if self._tempfile is not None:
             self._tempfile.close()
-        if self._file is not None:
+        if self._file is not None and not self._from_bytesio:
             self._file.close()
 
     def extend(self, index, signals):
