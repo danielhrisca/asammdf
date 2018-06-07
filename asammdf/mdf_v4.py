@@ -350,6 +350,7 @@ class MDF4(object):
             self._read()
 
         else:
+            self._from_bytesio = False
             version = validate_version_argument(version)
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)

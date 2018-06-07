@@ -234,6 +234,7 @@ class MDF3(object):
                 self._from_bytesio = False
             self._read()
         else:
+            self._from_bytesio = False
             version = validate_version_argument(version, hint=3)
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
