@@ -74,19 +74,22 @@ The main goals for this library are:
 
 * for version 3
 
-    * functionality related to sample reduction block
+    * functionality related to sample reduction block: the samples reduction blocks are simply ignored
     
 * for version 4
 
-    * functionality related to sample reduction block
-    * handling of channel hierarchy
-    * full handling of bus logging measurements
-    * handling of unfinished measurements (mdf 4)
+    * functionality related to sample reduction block: the samples reduction blocks are simply ignored
+    * handling of channel hierarchy: channel hierarchy is ignored
+    * full handling of bus logging measurements: currently only CAN bus logging is implemented with the
+      ability to *get* signals defined in the attached CAN database (.arxml or .dbc)
+    * handling of unfinished measurements (mdf 4): warnings are logged based on the unfinished status flags
+      but no further steps are taken to sanitize the measurement
     * full support for remaining mdf 4 channel arrays types
-    * xml schema for MDBLOCK
-    * full handling of event blocks
-    * channels with default X axis
-    * chanenls with reference to attachment
+    * xml schema for MDBLOCK: most metadata stored in the comment blocks will not be available
+    * full handling of event blocks: events are transfered to the new files (in case of calling methods 
+      that return new *MDF* objects) but no new events can be created
+    * channels with default X axis: the defaukt X axis is ignored and the channel group's master channel
+      is used
 
 # Usage
 

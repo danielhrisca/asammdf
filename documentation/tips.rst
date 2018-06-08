@@ -126,8 +126,8 @@ and feeding it to the *MDF* class
 
 .. code::python
 
-        with open(file_name, 'rb') as fin:
-            mdf = MDF(BytesIO(fin.read()))
+    with open(file_name, 'rb') as fin:
+        mdf = MDF(BytesIO(fin.read()))
             
 Using a test file with teh size of 3.2GB that contained ~580000 channels the loading time and RAM usage were
 
