@@ -116,3 +116,29 @@ Optimized methods
 =================
 The *MDF* methods (*cut*, *filter*, *select*) are optimized and should be used instead of calling *get* for several channels.
 For "low" and "minimum" options the time savings can be dramatic.
+
+
+Faster file loading
+===================
+In case of files with high block count (large number of channels, or large number of data blocks) you cand speed up the 
+loading in case of *full* memory option, at the expense of higher RAM usage by reading the file into a *BytesIO* obejct
+and feeding it to the *MDF* class
+
+.. code::python
+
+        with open(file_name, 'rb') as fin:
+            mdf = MDF(BytesIO(fin.read()))
+            
+Using a test file with teh size of 3.2GB that contained ~580000 channels the loading time and RAM usage were
+
+* Python 3.6.3 (v3.6.3:2c5fed8, Oct  3 2017, 18:11:49) [MSC v.1900 64 bit (AMD64)]
+* Windows-10-10.0.15063-SP0
+* Intel64 Family 6 Model 94 Stepping 3, GenuineIntel
+* 16GB installed RAM
+
+================================================== ========= ========
+Open file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 3.5.1.dev mdfv4                                62219     4335
+asammdf w BytesIO 3.5.1.dev mdfv4                      31232     7409
+================================================== ========= ========
