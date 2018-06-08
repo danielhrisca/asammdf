@@ -526,7 +526,7 @@ class MDF4(object):
                                     channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                                     channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
                             else:
-                                message = 'Unable to get CAN message infomration since channel group @{} has no metadata'.format(
+                                message = 'Unable to get CAN message information since channel group @{} has no metadata'.format(
                                     hex(channel_group.address)
                                 )
                                 logger.warning(message)
