@@ -495,31 +495,40 @@ class MDF4(object):
                             channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
                         else:
                             comment = channel_group.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
-                            comment_xml = ET.fromstring(comment)
-                            can_msg_type = comment_xml.find('.//TX').text
-                            if can_msg_type is not None:
-                                can_msg_type = can_msg_type.strip(' \t\r\n')
-                            else:
-                                can_msg_type = 'CAN_DataFrame'
-                            if can_msg_type == 'CAN_DataFrame':
-                                common_properties = comment_xml.find(".//common_properties")
-                                can_id = 1
-                                message_id = -1
-                                for e in common_properties:
-                                    name = e.get('name')
-                                    if name == 'MessageID':
-                                        if e.get('ci') is not None:
-                                            can_id = int(e.get('ci'))
-                                        message_id = int(e.text)
+                            if comment:
 
-                                if message_id > 0x80000000:
-                                    message_id -= 0x80000000
-                                grp['can_id'] = can_id
-                                grp['message_name'] = message_name
-                                grp['message_id'] = message_id
+                                comment_xml = ET.fromstring(comment)
+                                can_msg_type = comment_xml.find('.//TX').text
+                                if can_msg_type is not None:
+                                    can_msg_type = can_msg_type.strip(' \t\r\n')
+                                else:
+                                    can_msg_type = 'CAN_DataFrame'
+                                if can_msg_type == 'CAN_DataFrame':
+                                    common_properties = comment_xml.find(".//common_properties")
+                                    can_id = 1
+                                    message_id = -1
+                                    for e in common_properties:
+                                        name = e.get('name')
+                                        if name == 'MessageID':
+                                            if e.get('ci') is not None:
+                                                can_id = int(e.get('ci'))
+                                            message_id = int(e.text)
 
+                                    if message_id > 0x80000000:
+                                        message_id -= 0x80000000
+                                    grp['can_id'] = can_id
+                                    grp['message_name'] = message_name
+                                    grp['message_id'] = message_id
+
+                                else:
+                                    message = 'Invalid bus logging channel group metadata: {}'.format(comment)
+                                    logger.warning(message)
+                                    channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                                    channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
                             else:
-                                message = 'Invalid bus logging channel group metadata: {}'.format(comment)
+                                message = 'Unable to get CAN message infomration since channel group @{} has no metadata'.format(
+                                    hex(channel_group.address)
+                                )
                                 logger.warning(message)
                                 channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
                                 channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
