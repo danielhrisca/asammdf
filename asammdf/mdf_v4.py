@@ -4844,6 +4844,127 @@ class MDF4(object):
             timestamps = t
         return timestamps
 
+    def get_can_signal(
+            self,
+            data,
+            little_endian,
+            signed,
+            bit_offset,
+            bit_count):
+        """ get CAN message signal from the CAN_DataFrame.DataBytes
+
+        Parameters
+        ----------
+        data : ndarray
+            CAN message payload bytes
+        little_endian : bool
+            the signal is little endian (Intel)
+        signed : bool
+            the signal is signed
+        bit_offset : int
+            signal bit offset inside the payload bytes
+        bit_count : int
+            signal bit count
+
+        Returns
+        -------
+        values : ndarray
+            signal samples as numpy ndarray
+
+        """
+
+        record_size = data.shape[1]
+
+        big_endian = False if little_endian else True
+        byte_offset, bit_offset = divmod(bit_offset, 8)
+
+        byte_count = bit_offset + bit_count
+        if byte_count % 8:
+            byte_count = (byte_count >> 3) + 1
+        else:
+            byte_count //= 8
+
+        types = [
+            ('', 'a{}'.format(byte_offset)),
+            ('vals', '({},)u1'.format(byte_count)),
+            ('', 'a{}'.format(record_size - byte_count - byte_offset)),
+        ]
+
+        vals = fromstring(data.tostring(), dtype=dtype(types))
+
+        vals = vals['vals']
+
+        if not big_endian:
+            vals = flip(vals, 1)
+
+        vals = unpackbits(vals)
+        vals = roll(vals, bit_offset)
+        vals = vals.reshape((len(vals) // 8, 8))
+        vals = packbits(vals)
+        vals = vals.reshape((len(vals) // byte_count, byte_count))
+
+        if bit_count < 64:
+            mask = 2 ** bit_count - 1
+            masks = []
+            while mask:
+                masks.append(mask & 0xFF)
+                mask >>= 8
+            for i in range(byte_count - len(masks)):
+                masks.append(0)
+
+            masks = masks[::-1]
+            for i, mask in enumerate(masks):
+                vals[:, i] &= mask
+
+        if not big_endian:
+            vals = flip(vals, 1)
+
+        if bit_count <= 8:
+            size = 1
+        elif bit_count <= 16:
+            size = 2
+        elif bit_count <= 32:
+            size = 4
+        elif bit_count <= 64:
+            size = 8
+        else:
+            size = bit_count // 8
+
+        if size > byte_count:
+            extra_bytes = size - byte_count
+            extra = zeros((len(vals), extra_bytes), dtype=uint8)
+
+            types = [
+                ('vals', vals.dtype, vals.shape[1:]),
+                ('', extra.dtype, extra.shape[1:]),
+            ]
+            vals = fromarrays([vals, extra], dtype=dtype(types))
+
+        vals = vals.tostring()
+
+        fmt = '{}u{}'.format('>' if big_endian else '<', size)
+        if size <= byte_count:
+            if big_endian:
+                types = [
+                    ('', 'a{}'.format(byte_count - size)),
+                    ('vals', fmt),
+                ]
+            else:
+                types = [
+                    ('vals', fmt),
+                    ('', 'a{}'.format(byte_count - size)),
+                ]
+        else:
+            types = [('vals', fmt), ]
+
+        vals = fromstring(vals, dtype=dtype(types))
+
+        if signed:
+            return as_non_byte_sized_signed_int(vals['vals'], bit_count)
+        else:
+
+            return vals['vals']
+
     def info(self):
         """get MDF information as a dict
 
