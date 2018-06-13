@@ -995,7 +995,7 @@ class MDF4(object):
         self.can_logging_db = {}
 
         for i, group in enumerate(self.groups):
-            if not group['CAN_logging']:
+            if not group.get('CAN_logging', False):
                 continue
             if not group['CAN_id'] in self.can_logging_db:
                 self.can_logging_db[group['CAN_id']] = {}
