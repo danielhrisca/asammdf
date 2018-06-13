@@ -6,6 +6,7 @@ from __future__ import division, print_function
 
 import logging
 import xml.etree.ElementTree as ET
+import re
 import os
 import sys
 from collections import defaultdict
@@ -310,6 +311,7 @@ class MDF4(object):
         self.name = name
         self.memory = memory
         self.channels_db = ChannelsDB()
+        self.can_logging_db = {}
         self.masters_db = {}
         self.attachments = []
         self._attachments_cache = {}
@@ -477,56 +479,68 @@ class MDF4(object):
                 elif channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
                     bus_type = channel_group.acq_source['bus_type']
                     if bus_type == v4c.BUS_TYPE_CAN:
+                        grp['CAN_logging'] = True
                         message_name = channel_group.acq_name
+
+                        comment = channel_group.acq_source.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
+                        comment_xml = ET.fromstring(comment)
+                        common_properties = comment_xml.find(".//common_properties")
+                        for e in common_properties:
+                            name = e.get('name')
+                            if name == 'ChannelNo':
+                                grp['CAN_id'] = 'CAN{}'.format(e.text)
+                                break
 
                         if message_name == 'CAN_DataFrame':
                             # this is a raw CAN bus logging channel group
                             # it will be later processed to extract all
                             # signals to new groups (one group per CAN message)
                             grp['raw_can'] = True
-                            channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
-                            channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
 
                         elif message_name in (
                                 'CAN_ErrorFrame',
                                 'CAN_RemoteFrame'):
                             # for now ignore bus logging flag
-                            channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
-                            channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
+                            pass
                         else:
                             comment = channel_group.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
-                            comment_xml = ET.fromstring(comment)
-                            can_msg_type = comment_xml.find('.//TX').text
-                            if can_msg_type is not None:
-                                can_msg_type = can_msg_type.strip(' \t\r\n')
-                            else:
-                                can_msg_type = 'CAN_DataFrame'
-                            if can_msg_type == 'CAN_DataFrame':
-                                common_properties = comment_xml.find(".//common_properties")
-                                can_id = 1
-                                message_id = -1
-                                for e in common_properties:
-                                    name = e.get('name')
-                                    if name == 'MessageID':
-                                        if e.get('ci') is not None:
-                                            can_id = int(e.get('ci'))
-                                        message_id = int(e.text)
+                            if comment:
 
-                                if message_id > 0x80000000:
-                                    message_id -= 0x80000000
-                                grp['can_id'] = can_id
-                                grp['message_name'] = message_name
-                                grp['message_id'] = message_id
+                                comment_xml = ET.fromstring(comment)
+                                can_msg_type = comment_xml.find('.//TX').text
+                                if can_msg_type is not None:
+                                    can_msg_type = can_msg_type.strip(' \t\r\n')
+                                else:
+                                    can_msg_type = 'CAN_DataFrame'
+                                if can_msg_type == 'CAN_DataFrame':
+                                    common_properties = comment_xml.find(".//common_properties")
+                                    message_id = -1
+                                    for e in common_properties:
+                                        name = e.get('name')
+                                        if name == 'MessageID':
+                                            message_id = int(e.text)
+                                            break
 
+                                    if message_id > 0:
+                                        if message_id > 0x80000000:
+                                            message_id -= 0x80000000
+                                            grp['extended_id'] = True
+                                        else:
+                                            grp['extended_id'] = False
+                                        grp['message_name'] = message_name
+                                        grp['message_id'] = message_id
+
+                                else:
+                                    message = 'Invalid bus logging channel group metadata: {}'.format(comment)
+                                    logger.warning(message)
                             else:
-                                message = 'Invalid bus logging channel group metadata: {}'.format(comment)
+                                message = 'Unable to get CAN message information since channel group @{} has no metadata'.format(
+                                    hex(channel_group.address)
+                                )
                                 logger.warning(message)
-                                channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
-                                channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
                     else:
                         # only CAN bus logging is supported
-                        channel_group['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
-                        channel_group['flags'] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
+                        pass
                 else:
 
                     samples_size = channel_group['samples_byte_nr']
@@ -801,18 +815,26 @@ class MDF4(object):
         raw_can = []
         processed_can = []
         for i, group in enumerate(self.groups):
+            if group['CAN_logging']:
+                if group['CAN_id'] not in self.can_logging_db:
+                    self.can_logging_db[group['CAN_id']] = {}
+                message_id = group.get('message_id', None)
+                if message_id is not None:
+                    self.can_logging_db[group['CAN_id']][message_id] = i
+
             if group.get('raw_can', False):
                 can_ids = self.get('CAN_DataFrame.ID', group=i)
                 all_can_ids = sorted(set(can_ids.samples))
                 payload = self.get('CAN_DataFrame.DataBytes', group=i, samples_only=True)
-                attachment, at_name = self.get('CAN_DataFrame', group=i).attachment
 
-                if not at_name.lower().endswith(('dbc', 'arxml')) or not attachment:
-                    message = 'Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name)
-                    logger.warning(message)
-                    grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
-                else:
+                _sig = self.get('CAN_DataFrame', group=i)
+
+                attachment = _sig.attachment
+                if attachment and attachment[1].lower().endswith(('dbc', 'arxml')):
+                    attachment, at_name = attachment
+
                     raw_can.append(i)
+
                     import_type = 'dbc' if at_name.lower().endswith('dbc') else 'arxml'
                     db = loads(
                         attachment.decode('utf-8'),
@@ -825,6 +847,7 @@ class MDF4(object):
                     cg_source = group['channel_group'].acq_source
 
                     for message_id in all_can_ids:
+                        self.can_logging_db[group['CAN_id']][message_id] = i
                         sigs = []
                         can_msg = db.frameById(message_id)
 
@@ -848,8 +871,16 @@ class MDF4(object):
                         t = can_ids.timestamps[idx].copy()
 
                         for signal in sorted(can_msg.signals, key=lambda x: x.name):
-                            # TODO : use grp['logging_channels'] instead of get_can_data
-                            sig_vals = self._get_can_data(data, signal)
+
+                            sig_vals = self.get_can_signal(
+                                'CAN{}.{}.{}'.format(
+                                    group['CAN_id'],
+                                    can_msg.name,
+                                    signal.name,
+                                ),
+                                db=db,
+                            ).samples
+
                             conversion = ChannelConversion(
                                 a=signal.factor,
                                 b=signal.offset,
@@ -867,8 +898,45 @@ class MDF4(object):
                                     raw=True,
                                 )
                             )
+
                         processed_can.append(
-                            [sigs, message_id, message_name, cg_source]
+                            [sigs, message_id, message_name, cg_source, group['CAN_id']]
+                        )
+                else:
+                    at_name = attachment[1] if attachment else ''
+                    message = 'Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(
+                        at_name)
+                    logger.warning(message)
+                    grp['CAN_database'] = False
+                    raw_can.append(i)
+                    sigs = []
+                    cg_source = group['channel_group'].acq_source
+
+                    for message_id in all_can_ids:
+
+                        source = SignalSource(
+                            '',
+                            '',
+                            '',
+                            v4c.SOURCE_BUS,
+                            v4c.BUS_TYPE_CAN,
+                        )
+
+                        idx = argwhere(can_ids.samples == message_id).flatten()
+                        data = payload[idx]
+                        t = can_ids.timestamps[idx]
+
+                        sigs.append(
+                            Signal(
+                                data,
+                                t,
+                                name='CAN_DataFrame.DataBytes',
+                                source=source,
+                                raw=True,
+                            )
+                        )
+                        processed_can.append(
+                            [sigs, message_id, '', cg_source, group['CAN_id']]
                         )
 
         # delete the groups that contain raw CAN bus logging and also
@@ -898,18 +966,38 @@ class MDF4(object):
             for name in excluded_channels:
                 del self.channels_db[name]
 
-            for sigs, message_id, message_name, cg_source in processed_can:
+            for sigs, message_id, message_name, cg_source, can_id in processed_can:
                 self.append(
                     sigs,
                     'Extracted from raw CAN bus logging',
                     common_timebase=True,
                 )
                 group = self.groups[-1]
+                group['CAN_database'] = message_name != ''
+                group['CAN_logging'] = True
+                group['CAN_id'] = can_id
+                if message_id > 0:
+                    if message_id > 0x80000000:
+                        message_id -= 0x80000000
+                        group['extended_id'] = True
+                    else:
+                        group['extended_id'] = False
+                    group['message_name'] = message_name
+                    group['message_id'] = message_id
                 group['channel_group'].acq_source = cg_source
                 group['data_group'].comment = 'From message {}="{}"'.format(
                     hex(message_id),
                     message_name,
                 )
+
+        self.can_logging_db = {}
+
+        for i, group in enumerate(self.groups):
+            if not group['CAN_logging']:
+                continue
+            if not group['CAN_id'] in self.can_logging_db:
+                self.can_logging_db[group['CAN_id']] = {}
+            self.can_logging_db[group['CAN_id']][group['message_id']] = i
 
         # read events
         addr = self.header['first_event_addr']
@@ -1040,49 +1128,56 @@ class MDF4(object):
                     )
                     grp['channel_dependencies'][index] = ret_composition
 
-                    if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT and \
-                            grp['channel_group']['flags'] & v4c.FLAG_CG_PLAIN_BUS_EVENT:
-                        attachment_addr = self._attachments_map[channel['attachment_0_addr']]
-                        if attachment_addr not in self._dbc_cache:
-                            attachment, at_name = self.extract_attachment(index=attachment_addr)
-                            if not at_name.lower().endswith(('dbc', 'arxml')) or not attachment:
-                                message = 'Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name)
-                                logger.warning(message)
-                                grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
-                            else:
-                                import_type = 'dbc' if at_name.lower().endswith('dbc') else 'arxml'
-                                try:
-                                    attachment_string = attachment.decode('utf-8')
-                                    self._dbc_cache[attachment_addr] = \
-                                        loads(
-                                            attachment_string,
-                                            importType=import_type,
-                                            key='db',
-                                        )['db']
-                                except UnicodeDecodeError:
+                    if grp.get('CAN_id', None) is not None and grp.get('message_id', None) is not None:
+                        addr = channel['attachment_0_addr']
+                        if addr:
+                            attachment_addr = self._attachments_map[addr]
+                            if attachment_addr not in self._dbc_cache:
+                                attachment, at_name = self.extract_attachment(index=attachment_addr)
+                                if not at_name.lower().endswith(('dbc', 'arxml')) or not attachment:
+                                    message = 'Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(at_name)
+                                    logger.warning(message)
+                                    grp['CAN_database'] = False
+                                else:
+                                    import_type = 'dbc' if at_name.lower().endswith('dbc') else 'arxml'
                                     try:
-                                        from chardet import detect
-                                        encoding = detect(attachment)['encoding']
-                                        attachment_string = attachment.decode(encoding)
+                                        attachment_string = attachment.decode('utf-8')
                                         self._dbc_cache[attachment_addr] = \
-                                        loads(
-                                            attachment_string,
-                                            importType=import_type,
-                                            key='db',
-                                            encoding=encoding,
-                                        )['db']
-                                    except ImportError:
-                                        message = (
-                                            'Unicode exception occured while processing the database '
-                                            'attachment "{}" and "chardet" package is '
-                                            'not installed. Mdf version 4 expects "utf-8" '
-                                            'strings and this package may detect if a different'
-                                            ' encoding was used'
-                                        ).format(at_name)
-                                        logger.warning(message)
-                                        grp['channel_group']['flags'] &= ~v4c.FLAG_CG_BUS_EVENT
+                                            loads(
+                                                attachment_string,
+                                                importType=import_type,
+                                                key='db',
+                                            )['db']
+                                        grp['CAN_database'] = True
+                                    except UnicodeDecodeError:
+                                        try:
+                                            from chardet import detect
+                                            encoding = detect(attachment)['encoding']
+                                            attachment_string = attachment.decode(encoding)
+                                            self._dbc_cache[attachment_addr] = \
+                                            loads(
+                                                attachment_string,
+                                                importType=import_type,
+                                                key='db',
+                                                encoding=encoding,
+                                            )['db']
+                                            grp['CAN_database'] = True
+                                        except ImportError:
+                                            message = (
+                                                'Unicode exception occured while processing the database '
+                                                'attachment "{}" and "chardet" package is '
+                                                'not installed. Mdf version 4 expects "utf-8" '
+                                                'strings and this package may detect if a different'
+                                                ' encoding was used'
+                                            ).format(at_name)
+                                            logger.warning(message)
+                                            grp['CAN_database'] = False
+                            else:
+                                grp['CAN_database'] = True
+                        else:
+                            grp['CAN_database'] = False
 
-                        if grp['channel_group']['flags'] & v4c.FLAG_CG_BUS_EVENT:
+                        if grp['CAN_database']:
 
                             # here we make available multiple ways to refer to
                             # CAN signals by using fake negative indexes for
@@ -1092,7 +1187,7 @@ class MDF4(object):
 
                             message_id = grp['message_id']
                             message_name = grp['message_name']
-                            can_id = grp['can_id']
+                            can_id = grp['CAN_id']
 
                             can_msg = self._dbc_cache[attachment_addr].frameById(message_id)
                             can_msg_name = can_msg.name
@@ -3768,6 +3863,7 @@ class MDF4(object):
                         address=grp['channels'][ch_nr],
                         stream=stream,
                         load_metadata=False,
+                        at_map=self._attachments_map
                     )
                 else:
                     channel = Channel(
@@ -3775,6 +3871,7 @@ class MDF4(object):
                         stream=stream,
                         cc_map=self._cc_map,
                         si_map=self._si_map,
+                        at_map=self._attachments_map
                     )
             else:
                 channel = grp['channels'][ch_nr]
@@ -3862,14 +3959,14 @@ class MDF4(object):
 
                     for ch_nr, _ in dependency_list:
                         address = grp['channels'][ch_nr]
-                        channel = Channel(
+                        channel_ = Channel(
                             address=address,
                             stream=stream,
                             load_metadata=False,
                         )
 
                         name_ = get_text_v4(
-                            address=channel['name_addr'],
+                            address=channel_['name_addr'],
                             stream=stream,
                         )
                         names.append(name_)
@@ -4834,6 +4931,288 @@ class MDF4(object):
         else:
             timestamps = t
         return timestamps
+
+    def get_can_signal(
+            self,
+            name,
+            database=None,
+            db=None):
+        """ get CAN message signal from the CAN_DataFrame.DataBytes
+
+        Parameters
+        ----------
+        data : ndarray
+            CAN message payload bytes
+        little_endian : bool
+            the signal is little endian (Intel)
+        signed : bool
+            the signal is signed
+        bit_offset : int
+            signal bit offset inside the payload bytes
+        bit_count : int
+            signal bit count
+
+        Returns
+        -------
+        values : ndarray
+            signal samples as numpy ndarray
+
+        """
+
+        if database is None and db is None:
+            return self.get(name)
+
+        if db is None:
+
+            if not database.lower().endswith(('dbc', 'arxml')):
+                message = 'Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(
+                    database
+                )
+                logger.exception(message)
+                raise MdfException(message)
+            else:
+                import_type = 'dbc' if database.lower().endswith('dbc') else 'arxml'
+                with open(database, 'rb') as db:
+                    db_string = db.read()
+                md5_sum = md5().update(db_string).digest()
+
+                if md5_sum in self._external_dbc_cache:
+                    db = self._external_dbc_cache[md5_sum]
+                else:
+                    try:
+                        db_string = db_string.decode('utf-8')
+                        db = self._external_dbc_cache[md5_sum] = \
+                            loads(
+                                db_string,
+                                importType=import_type,
+                                key='db',
+                            )['db']
+                    except UnicodeDecodeError:
+                        try:
+                            from chardet import detect
+                            encoding = detect(db_string)['encoding']
+                            db_string = db_string.decode(encoding)
+                            db = self._dbc_cache[md5_sum] = \
+                                loads(
+                                    db_string,
+                                    importType=import_type,
+                                    key='db',
+                                    encoding=encoding,
+                                )['db']
+                        except ImportError:
+                            message = (
+                                'Unicode exception occured while processing the database '
+                                'attachment "{}" and "chardet" package is '
+                                'not installed. Mdf version 4 expects "utf-8" '
+                                'strings and this package may detect if a different'
+                                ' encoding was used'
+                            ).format(database)
+                            logger.warning(message)
+
+        name_ = name.split('.')
+
+        if len(name_) == 3:
+            can_id_str, message_id_str, signal = name_
+
+            can_id = v4c.CAN_ID_PATTERN.search(can_id_str)
+            if can_id is None:
+                raise MdfException(
+                    'CAN id "{}" of signal name "{}" is not recognised by this library'.format(
+                        can_id_str,
+                        name,
+                    )
+                )
+            else:
+                can_id = 'CAN{}'.format(can_id.group('id'))
+
+            message_id = v4c.CAN_DATA_FRAME_PATTERN.search(message_id_str)
+            if message_id is None:
+                message_id = message_id_str
+            else:
+                message_id = int(message_id)
+
+        elif len(name_) == 2:
+            message_id_str, signal = name_
+
+            can_id = None
+
+            message_id = v4c.CAN_DATA_FRAME_PATTERN.search(message_id_str)
+            if message_id is None:
+                message_id = message_id_str
+            else:
+                message_id = int(message_id)
+
+        else:
+            can_id = message_id = None
+            signal = name
+
+        if isinstance(message_id, str):
+            message = db.frameByName(message_id)
+        else:
+            message = db.frameById(message_id)
+
+        for sig in message.signals:
+            if sig.name == signal:
+                signal = sig
+                break
+        else:
+            raise MdfException(
+                'Signal "{}" not found in message "{}" of "{}"'.format(
+                    signal,
+                    message.name,
+                    database,
+                )
+            )
+
+        if can_id is None:
+            for _can_id, messages in self.can_logging_db.items():
+                if message.id in messages:
+                    index = messages[message.id]
+                    break
+            else:
+                raise MdfException(
+                    'Message "{}" (ID={}) not found in the measurement'.format(
+                        message.name,
+                        hex(message.id),
+                    )
+                )
+        else:
+            if can_id in self.can_logging_db:
+                if message.id in self.can_logging_db[can_id]:
+                    index = self.can_logging_db[can_id][message.id]
+                else:
+                    raise MdfException(
+                        'Message "{}" (ID={}) not found in the measurement'.format(
+                            message.name,
+                            hex(message.id),
+                        )
+                    )
+            else:
+                raise MdfException(
+                    'No logging from "{}" was found in the measurement'.format(
+                        can_id
+                    )
+                )
+
+        can_ids = self.get('CAN_DataFrame.ID', group=index)
+        payload = self.get(
+            'CAN_DataFrame.DataBytes',
+            group=index,
+            samples_only=True,
+        )
+
+        idx = argwhere(can_ids.samples == message.id).flatten()
+        data = payload[idx]
+        t = can_ids.timestamps[idx].copy()
+
+        record_size = data.shape[1]
+
+        big_endian = False if signal.is_little_endian else True
+        signed = signal.is_signed
+        bit_offset = signal.startbit % 8
+        byte_offset = signal.startbit // 8
+
+        bit_count = signal.signalsize
+
+        byte_count = bit_offset + bit_count
+        if byte_count % 8:
+            byte_count = (byte_count >> 3) + 1
+        else:
+            byte_count //= 8
+
+        types = [
+            ('', 'a{}'.format(byte_offset)),
+            ('vals', '({},)u1'.format(byte_count)),
+            ('', 'a{}'.format(record_size - byte_count - byte_offset)),
+        ]
+
+        vals = fromstring(data.tostring(), dtype=dtype(types))
+
+        vals = vals['vals']
+
+        if not big_endian:
+            vals = flip(vals, 1)
+
+        vals = unpackbits(vals)
+        vals = roll(vals, bit_offset)
+        vals = vals.reshape((len(vals) // 8, 8))
+        vals = packbits(vals)
+        vals = vals.reshape((len(vals) // byte_count, byte_count))
+
+        if bit_count < 64:
+            mask = 2 ** bit_count - 1
+            masks = []
+            while mask:
+                masks.append(mask & 0xFF)
+                mask >>= 8
+            for i in range(byte_count - len(masks)):
+                masks.append(0)
+
+            masks = masks[::-1]
+            for i, mask in enumerate(masks):
+                vals[:, i] &= mask
+
+        if not big_endian:
+            vals = flip(vals, 1)
+
+        if bit_count <= 8:
+            size = 1
+        elif bit_count <= 16:
+            size = 2
+        elif bit_count <= 32:
+            size = 4
+        elif bit_count <= 64:
+            size = 8
+        else:
+            size = bit_count // 8
+
+        if size > byte_count:
+            extra_bytes = size - byte_count
+            extra = zeros((len(vals), extra_bytes), dtype=uint8)
+
+            types = [
+                ('vals', vals.dtype, vals.shape[1:]),
+                ('', extra.dtype, extra.shape[1:]),
+            ]
+            vals = fromarrays([vals, extra], dtype=dtype(types))
+
+        vals = vals.tostring()
+
+        fmt = '{}u{}'.format('>' if big_endian else '<', size)
+        if size <= byte_count:
+            if big_endian:
+                types = [
+                    ('', 'a{}'.format(byte_count - size)),
+                    ('vals', fmt),
+                ]
+            else:
+                types = [
+                    ('vals', fmt),
+                    ('', 'a{}'.format(byte_count - size)),
+                ]
+        else:
+            types = [('vals', fmt), ]
+
+        vals = fromstring(vals, dtype=dtype(types))
+
+        if signed:
+            vals = as_non_byte_sized_signed_int(vals['vals'], bit_count)
+        else:
+
+            vals = vals['vals']
+
+        comment = signal.comment or ''
+
+        if (signal.factor, signal.offset) != (1, 0):
+            vals = vals * signal.factor + signal.offset
+
+        return Signal(
+            samples=vals,
+            timestamps=t,
+            name=name,
+            unit=signal.unit or '',
+            comment=comment,
+        )
 
     def info(self):
         """get MDF information as a dict

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ MDF v4 constants """
+import re
 
 MAX_UINT64 = (1 << 64) - 1
 
@@ -432,3 +433,6 @@ FMT_EVENT_PARAMS = '<5B3sI2HQd'
 FMT_EVENT = '<4sI2Q{}Q5B3sI2HQd'
 
 ASAM_XML_NAMESPACE = '{http://www.asam.net/mdf/v4}'
+
+CAN_ID_PATTERN = re.compile(r'((?i)can)(?P<id>\d+)')
+CAN_DATA_FRAME_PATTERN = re.compile(r'((?i)CAN_DataFrame)_(?P<id>\d+)')

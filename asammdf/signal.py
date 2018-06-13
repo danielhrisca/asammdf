@@ -190,7 +190,8 @@ class Signal(object):
 \tcomment="{}"
 \tmastermeta="{}"
 \traw={}
-\tdisplay_name={}>
+\tdisplay_name={}
+\tattachment={}>
 """
         return string.format(
             self.name,
@@ -203,6 +204,7 @@ class Signal(object):
             self.master_metadata,
             self.raw,
             self.display_name,
+            self.attachment,
         )
 
     def plot(self):
