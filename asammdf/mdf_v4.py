@@ -815,12 +815,14 @@ class MDF4(object):
         raw_can = []
         processed_can = []
         for i, group in enumerate(self.groups):
-            if group['CAN_logging']:
+            if group.get('CAN_logging', False):
                 if group['CAN_id'] not in self.can_logging_db:
                     self.can_logging_db[group['CAN_id']] = {}
                 message_id = group.get('message_id', None)
                 if message_id is not None:
                     self.can_logging_db[group['CAN_id']][message_id] = i
+            else:
+                continue
 
             if group.get('raw_can', False):
                 can_ids = self.get('CAN_DataFrame.ID', group=i)
