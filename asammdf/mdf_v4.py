@@ -4939,25 +4939,49 @@ class MDF4(object):
             name,
             database=None,
             db=None):
-        """ get CAN message signal from the CAN_DataFrame.DataBytes
+        """ get CAN message signal. You can specify an external CAN database (
+        *database* argument) or canmatrix databse object that has already been
+        loaded from a file.
+
+        The signal name can be specified in the following ways
+
+        * ``CAN<ID>.<MESSAGE_NAME>.<SIGNAL_NAME>`` - the `ID` value starts from 1
+          and must match the ID found in the measurement (the source CAN bus ID)
+          Example: CAN1.Wheels.FL_WheelSpeed
+
+        * ``CAN<ID>.CAN_DataFrame_<MESSAGE_ID>.<SIGNAL_NAME>`` - the `ID` value
+          starts from 1 and the `MESSAGE_ID` is the decimal message ID as found
+          in the database. Example: CAN1.CAN_DataFrame_218.FL_WheelSpeed
+
+        * ``<MESSAGE_NAME>.SIGNAL_NAME`` - in this case the first occurence of
+          the message name and signal are returned (the same message could be
+          found on muplit CAN buses; for example on CAN1 and CAN3)
+          Example: Wheels.FL_WheelSpeed
+
+        * ``CAN_DataFrame_<MESSAGE_ID>.<SIGNAL_NAME>`` - in this case the first
+          occurence of the message name and signal are returned (the same
+          message could be found on muplit CAN buses; for example on CAN1 and
+          CAN3). Example: CAN_DataFrame_218.FL_WheelSpeed
+
+        * ``<SIGNAL_NAME>`` - in this case the first occurence of the signal
+          name is returned ( the same signal anme coudl be found in multiple
+          messages and on multiple CAN buses). Example: FL_WheelSpeed
+
 
         Parameters
         ----------
-        data : ndarray
-            CAN message payload bytes
-        little_endian : bool
-            the signal is little endian (Intel)
-        signed : bool
-            the signal is signed
-        bit_offset : int
-            signal bit offset inside the payload bytes
-        bit_count : int
-            signal bit count
+        name : str
+            signal name
+        database : str
+            path of external CAN database file (.dbc or .arxml); default *None*
+        db : canmatrix.database
+            canmatrix CAN database object; default *None*
+
 
         Returns
         -------
-        values : ndarray
-            signal samples as numpy ndarray
+        sig : Signal
+            Signal object with the physical values
 
         """
 
