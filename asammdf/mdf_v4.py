@@ -4298,7 +4298,7 @@ class MDF4(object):
                     if not samples_only or raster:
                         timestamps = timestamps[valid_indexes]
 
-                if raster and len(timestamps):
+                if raster and len(timestamps) > 1:
                     t = arange(
                         timestamps[0],
                         timestamps[-1],
@@ -4372,7 +4372,7 @@ class MDF4(object):
                     if not samples_only or raster:
                         timestamps = timestamps[valid_indexes]
 
-                if raster:
+                if raster and len(timestamps) > 1:
                     t = arange(
                         timestamps[0],
                         timestamps[-1],
@@ -4508,7 +4508,7 @@ class MDF4(object):
                     if not samples_only or raster:
                         timestamps = timestamps[valid_indexes]
 
-                if raster:
+                if raster and len(timestamps) > 1:
                     t = arange(
                         timestamps[0],
                         timestamps[-1],
