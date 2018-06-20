@@ -2328,17 +2328,22 @@ class ChannelConversion(dict):
                 [self['val_{}'.format(i)] for i in range(nr)]
             )
 
-            phys = np.array(
-                [self.referenced_blocks['text_{}'.format(i)]['text']
-                 if self.referenced_blocks['text_{}'.format(i)]
-                 else b''
-                 for i in range(nr)]
-            )
-            default = self.referenced_blocks \
-                .get('default_addr', {})
-            if default:
+            phys = []
+            for i in range(nr):
+                try:
+                    value = self.referenced_blocks['text_{}'.format(i)]['text']
+                except KeyError:
+                    value = self.referenced_blocks['text_{}'.format(i)]
+                except TypeError:
+                    value = b''
+                phys.append(value)
+
+            default = self.referenced_blocks.get('default_addr', {})
+            try:
                 default = default['text']
-            else:
+            except KeyError:
+                pass
+            except TypeError:
                 default = b''
 
             phys = np.insert(phys, 0, default)
@@ -2346,7 +2351,29 @@ class ChannelConversion(dict):
             indexes = np.searchsorted(raw_vals, values)
             np.place(indexes, indexes >= len(raw_vals), 0)
 
-            values = phys[indexes]
+            all_values = phys + [default, ]
+
+            if all(isinstance(val, bytes) for val in all_values):
+                values = phys[indexes]
+            else:
+                new_values = []
+                for i, idx in enumerate(indexes):
+                    item = phys[idx]
+
+                    if isinstance(item, bytes):
+                        new_values.append(item)
+                    else:
+                        new_values.append(item.convert(values[i:i+1])[0])
+
+                if all(isinstance(v, bytes) for v in new_values):
+                    values = np.array(new_values)
+                else:
+                    values = np.array(
+                        [
+                            np.nan if isinstance(v, bytes) else v
+                            for v in new_values
+                        ]
+                    )
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
             nr = self['val_param_nr'] // 2
@@ -2882,6 +2909,8 @@ class DataZippedBlock(dict):
             if self['zip_type'] == v4c.FLAG_DZ_DEFLATE:
                 data = compress(data)
             else:
+                if isinstance(data, bytearray):
+                    data = bytes(data)
                 cols = self['param']
                 lines = self['original_size'] // cols
 

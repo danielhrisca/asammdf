@@ -2107,8 +2107,8 @@ class DataGroup(dict):
                 self['reserved0'] = stream.read(4)
 
             if self['id'] != b'DG':
-                message = 'Expected "DG" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "DG" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 

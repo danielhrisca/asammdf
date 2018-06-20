@@ -2449,7 +2449,7 @@ class MDF4(object):
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
         t_ = signals[0].timestamps
-        if not common_timebase:
+        if True or not common_timebase:
             for s in signals[1:]:
                 if not array_equal(s.timestamps, t_):
                     different = True
@@ -3097,14 +3097,22 @@ class MDF4(object):
         # data block
         if PYVERSION == 2:
             types = fix_dtype_fields(types)
-
+        types_ = types
         types = dtype(types)
 
         gp['sorted'] = True
         gp['types'] = types
         gp['parents'] = parents
 
-        samples = fromarrays(fields, dtype=types)
+        try:
+            samples = fromarrays(fields, dtype=types)
+        except:
+            for i, (f_, t) in enumerate(zip(fields, types_)):
+                with open(r'E:\TMP\zzz_{}_{}.txt'.format(i, len(f_)), 'w') as f:
+                    f.write(str(f_))
+                    f.write('\n'*3)
+                    f.write(str(t))
+            raise
 
         signals = None
         del signals
