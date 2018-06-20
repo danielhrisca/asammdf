@@ -468,6 +468,7 @@ class Signal(object):
                 self.source,
                 self.bit_count,
                 self.stream_sync,
+                invalidation_bits=self.invalidation_bits.copy() if self.invalidation_bits else None,
             )
 
         else:
@@ -489,6 +490,7 @@ class Signal(object):
                         self.source,
                         self.bit_count,
                         self.stream_sync,
+                        invalidation_bits=self.invalidation_bits[:stop] if self.invalidation_bits else None,
                     )
                 else:
                     result = Signal(
@@ -524,6 +526,7 @@ class Signal(object):
                     self.source,
                     self.bit_count,
                     self.stream_sync,
+                    invalidation_bits=self.invalidation_bits[start:] if self.invalidation_bits else None,
                 )
 
             else:
@@ -571,6 +574,7 @@ class Signal(object):
                                 self.source,
                                 self.bit_count,
                                 self.stream_sync,
+                                invalidation_bits=self.invalidation_bits[start_ - 1: start_] if self.invalidation_bits else None,
                             )
                         else:
                             # signal is empty or start and stop are outside the
@@ -605,6 +609,7 @@ class Signal(object):
                             self.source,
                             self.bit_count,
                             self.stream_sync,
+                            invalidation_bits=self.invalidation_bits[start_: stop_] if self.invalidation_bits else None,
                         )
         return result
 
@@ -634,6 +639,15 @@ class Signal(object):
             else:
                 timestamps = other.timestamps
 
+            if self.invalidation_bits is None and other.invalidation_bits is None:
+                invalidation_bits = None
+            elif self.invalidation_bits is None and other.invalidation_bits is not None:
+                invalidation_bits = other.invalidation_bits
+            elif self.invalidation_bits is not None and other.invalidation_bits is None:
+                invalidation_bits = self.invalidation_bits
+            else:
+                invalidation_bits = np.append(self.invalidation_bits, other.invalidation_bits)
+
             result = Signal(
                 np.append(self.samples, other.samples),
                 np.append(self.timestamps, timestamps),
@@ -648,6 +662,7 @@ class Signal(object):
                 self.source,
                 self.bit_count,
                 self.stream_sync,
+                invalidation_bits=invalidation_bits,
             )
         else:
             result = self
@@ -681,6 +696,7 @@ class Signal(object):
                 display_name=self.display_name,
                 attachment=self.attachment,
                 stream_sync=self.stream_sync,
+                invalidation_bits=self.invalidation_bits.copy() if self.invalidation_bits else None,
             )
         else:
             if self.samples.dtype.kind == 'f':
@@ -695,6 +711,18 @@ class Signal(object):
                 idx = np.clip(idx, 0, idx[-1])
                 s = self.samples[idx]
 
+            if self.invalidation_bits is not None:
+                idx = np.searchsorted(
+                    self.timestamps,
+                    new_timestamps,
+                    side='right',
+                )
+                idx -= 1
+                idx = np.clip(idx, 0, idx[-1])
+                invalidation_bits = self.invalidation_bits[idx]
+            else:
+                invalidation_bits = None
+
             return Signal(
                 s,
                 new_timestamps,
@@ -707,6 +735,7 @@ class Signal(object):
                 display_name=self.display_name,
                 attachment=self.attachment,
                 stream_sync=self.stream_sync,
+                invalidation_bits=invalidation_bits,
             )
 
     def __apply_func(self, other, func_name):
@@ -739,6 +768,7 @@ class Signal(object):
             self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def __pos__(self):
@@ -756,6 +786,7 @@ class Signal(object):
             self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def __round__(self, n):
@@ -770,6 +801,7 @@ class Signal(object):
             self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def __sub__(self, other):
@@ -837,6 +869,7 @@ class Signal(object):
             self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def __lshift__(self, other):
@@ -890,6 +923,7 @@ class Signal(object):
             self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def __getitem__(self, val):
@@ -923,6 +957,7 @@ class Signal(object):
             self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def physical(self):
@@ -952,6 +987,7 @@ class Signal(object):
             display_name=self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
 

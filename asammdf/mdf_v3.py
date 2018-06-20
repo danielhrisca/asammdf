@@ -2093,10 +2093,10 @@ class MDF3(object):
         fields = []
         types = []
 
-        cycles_nr = len(signals[0])
+        cycles_nr = len(signals[0][0])
         string_counter = 0
 
-        for signal in signals:
+        for signal, _ in signals:
             sig = signal
             names = sig.dtype.names
 

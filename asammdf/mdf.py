@@ -603,7 +603,7 @@ class MDF(object):
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
                 else:
-                    sigs = [self.get_master(i, data=fragment), ]
+                    sigs = [(self.get_master(i, data=fragment), None), ]
 
                     for j in included_channels:
                         sig = self.get(
@@ -796,7 +796,7 @@ class MDF(object):
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
                 else:
-                    sigs = [master[start_index: stop_index].copy(), ]
+                    sigs = [(master[start_index: stop_index].copy(), None), ]
 
                     for j in included_channels:
                         sig = self.get(
@@ -807,7 +807,10 @@ class MDF(object):
                             samples_only=True,
                             ignore_invalidation_bits=True,
                         )
-                        sig = sig[0][start_index: stop_index], sig[1][start_index: stop_index]
+                        if sig[1] is not None:
+                            sig = sig[0][start_index: stop_index], sig[1][start_index: stop_index]
+                        else:
+                            sig = sig[0][start_index: stop_index], None
                         if not sig[0].flags.writeable:
                             sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
@@ -1649,7 +1652,7 @@ class MDF(object):
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
                 else:
-                    sigs = [self.get_master(group_index, data=fragment), ]
+                    sigs = [(self.get_master(group_index, data=fragment), None), ]
 
                     for j in indexes:
                         sig = self.get(
@@ -1966,7 +1969,7 @@ class MDF(object):
                                     master += last_timestamp + delta - master[0]
                                 last_timestamp = master[-1]
 
-                            signals = [master, ]
+                            signals = [(master, None), ]
 
                             for j in included_channels:
                                 signals.append(
@@ -2167,7 +2170,7 @@ class MDF(object):
                             master = master + offset
                         if len(master):
 
-                            signals = [master, ]
+                            signals = [(master, None), ]
 
                             for j in included_channels:
                                 signals.append(
@@ -2336,7 +2339,7 @@ class MDF(object):
                     )
 
                 else:
-                    sigs = [self.get_master(i, data=fragment, raster=raster), ]
+                    sigs = [(self.get_master(i, data=fragment, raster=raster), None), ]
 
                     for j in included_channels:
                         sig = self.get(

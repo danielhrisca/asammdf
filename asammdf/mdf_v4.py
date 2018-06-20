@@ -1870,7 +1870,8 @@ class MDF4(object):
 
     def _append_structure_composition(
             self, grp, signal, field_names, offset,
-            dg_cntr, ch_cntr, parents, defined_texts, cc_map, si_map):
+            dg_cntr, ch_cntr, parents, defined_texts, cc_map, si_map,
+            invalidation_bytes_nr, inval_bits):
 
         fields = []
         types = []
@@ -1987,6 +1988,12 @@ class MDF4(object):
         dep_list = []
         gp_dep.append(dep_list)
 
+        if invalidation_bytes_nr:
+            if signal.invalidation_bits is not None:
+                inval_bits.insert(0, signal.invalidation_bits)
+            else:
+                inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
         # then we add the fields
 
         for name in names:
@@ -2079,15 +2086,22 @@ class MDF4(object):
                 ch_cntr += 1
                 gp_dep.append(None)
 
+                if invalidation_bytes_nr:
+                    if signal.invalidation_bits is not None:
+                        inval_bits.insert(0, signal.invalidation_bits)
+                    else:
+                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 struct = Signal(
                     samples,
                     samples,
                     name=name,
+                    invalidation_bits=signal.invalidation_bits,
                 )
                 offset, dg_cntr, ch_cntr, sub_structure, new_fields, new_types = self._append_structure_composition(
                     grp, struct, field_names, offset, dg_cntr, ch_cntr,
-                    parents, defined_texts, cc_map, si_map,
+                    parents, defined_texts, cc_map, si_map, invalidation_bytes_nr, inval_bits
                 )
                 dep_list.append(sub_structure)
                 fields.extend(new_fields)
@@ -2494,6 +2508,27 @@ class MDF4(object):
         gp['signal_types'] = gp_sig_types = []
         gp['logging_channels'] = []
 
+        # channel group
+        kargs = {
+            'cycles_nr': 0,
+            'samples_byte_nr': 0,
+        }
+        gp['channel_group'] = ChannelGroup(**kargs)
+
+        if any(sig.invalidation_bits is not None for sig in signals):
+            invalidation_bytes_nr = len(signals)
+            if invalidation_bytes_nr % 8:
+                invalidation_bytes_nr = invalidation_bytes_nr // 8 + 1
+            else:
+                invalidation_bytes_nr = invalidation_bytes_nr // 8
+            gp['channel_group']['invalidation_bytes_nr'] = invalidation_bytes_nr
+
+            inval_bits = []
+
+        else:
+            invalidation_bytes_nr = 0
+            inval_bits = []
+
         self.groups.append(gp)
 
         cycles_nr = len(t)
@@ -2651,6 +2686,14 @@ class MDF4(object):
                     kargs['flags'] = 0
                 else:
                     kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
+
+                if invalidation_bytes_nr:
+                    if signal.invalidation_bits is not None:
+                        inval_bits.insert(0, signal.invalidation_bits)
+                        kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    else:
+                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
                 ch = Channel(**kargs)
                 ch.name = name
                 ch.unit = signal.unit
@@ -2754,6 +2797,14 @@ class MDF4(object):
                     'flags': 0,
                     'data_block_addr': data_addr,
                 }
+
+                if invalidation_bytes_nr:
+                    if signal.invalidation_bits is not None:
+                        inval_bits.insert(0, signal.invalidation_bits)
+                        kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    else:
+                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
                 ch = Channel(**kargs)
                 ch.name = name
                 ch.unit = signal.unit
@@ -2849,6 +2900,13 @@ class MDF4(object):
                     'upper_limit': 0,
                     'flags': 0,
                 }
+                if invalidation_bytes_nr:
+                    if signal.invalidation_bits is not None:
+                        inval_bits.insert(0, signal.invalidation_bits)
+                        kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    else:
+                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
                 ch = Channel(**kargs)
                 ch.name = name
                 ch.unit = signal.unit
@@ -2894,7 +2952,7 @@ class MDF4(object):
                 offset, dg_cntr, ch_cntr, struct_self, new_fields, new_types = self._append_structure_composition(
                     gp, signal, field_names,
                     offset, dg_cntr, ch_cntr,
-                    parents, defined_texts, cc_map, si_map)
+                    parents, defined_texts, cc_map, si_map, invalidation_bytes_nr, inval_bits)
                 fields.extend(new_fields)
                 types.extend(new_types)
 
@@ -2980,6 +3038,14 @@ class MDF4(object):
                     'upper_limit': 0,
                     'flags': 0,
                 }
+
+                if invalidation_bytes_nr:
+                    if signal.invalidation_bits is not None:
+                        inval_bits.insert(0, signal.invalidation_bits)
+                        kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    else:
+                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
                 ch = Channel(**kargs)
                 ch.name = name
                 ch.unit = signal.unit
@@ -3059,6 +3125,13 @@ class MDF4(object):
                         'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
                     }
 
+                    if invalidation_bytes_nr:
+                        if signal.invalidation_bits is not None:
+                            inval_bits.insert(0, signal.invalidation_bits)
+                            kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        else:
+                            inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
                     ch = Channel(**kargs)
                     ch.name = name
                     ch.unit = signal.unit
@@ -3085,13 +3158,28 @@ class MDF4(object):
 
                     ch_cntr += 1
 
-        # channel group
-        kargs = {
-            'cycles_nr': cycles_nr,
-            'samples_byte_nr': offset,
-        }
-        gp['channel_group'] = ChannelGroup(**kargs)
-        gp['size'] = cycles_nr * offset
+        if invalidation_bytes_nr:
+            invalidation_bytes_nr = len(inval_bits)
+            if invalidation_bytes_nr % 8:
+                invalidation_bytes_nr = invalidation_bytes_nr // 8 + 1
+            else:
+                invalidation_bytes_nr = invalidation_bytes_nr // 8
+
+            gp['channel_group']['invalidation_bytes_nr'] = invalidation_bytes_nr
+
+            inval_bits = [
+                packbits(list(vals))
+                for vals in zip(*inval_bits)
+            ]
+
+            inval_bits = array(inval_bits)
+
+            fields.append(inval_bits)
+            types.append(('invalidation_bytes', inval_bits.dtype, inval_bits.shape[1:]))
+
+        gp['channel_group']['cycles_nr'] = cycles_nr
+        gp['channel_group']['samples_byte_nr'] = offset
+        gp['size'] = cycles_nr * (offset + invalidation_bytes_nr)
 
         # data group
         gp['data_group'] = DataGroup()
@@ -3106,15 +3194,7 @@ class MDF4(object):
         gp['types'] = types
         gp['parents'] = parents
 
-        try:
-            samples = fromarrays(fields, dtype=types)
-        except:
-            for i, (f_, t) in enumerate(zip(fields, types_)):
-                with open(r'E:\TMP\zzz_{}_{}.txt'.format(i, len(f_)), 'w') as f:
-                    f.write(str(f_))
-                    f.write('\n'*3)
-                    f.write(str(t))
-            raise
+        samples = fromarrays(fields, dtype=types)
 
         signals = None
         del signals
@@ -3223,8 +3303,11 @@ class MDF4(object):
 
         fields = []
         types = []
+        inval_bits = []
 
-        for i, (signal, sig_type) in enumerate(
+        invalidation_bytes_nr = gp['channel_group']['invalidation_bytes_nr']
+
+        for i, ((signal, invalidation_bits), sig_type) in enumerate(
                 zip(signals, gp['signal_types'])):
 
             # first add the signals in the simple signal list
@@ -3267,6 +3350,12 @@ class MDF4(object):
                         channel['max_raw_value'] = max_val
                         channel['upper_limit'] = max_val
 
+                if invalidation_bytes_nr:
+                    if invalidation_bits is not None:
+                        inval_bits.insert(0, invalidation_bits)
+                    else:
+                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
             elif sig_type == v4c.SIGNAL_TYPE_STRING:
                 if self.memory == 'full':
                     data = gp['signal_data'][i]
@@ -3300,6 +3389,12 @@ class MDF4(object):
                 fields.append(offsets)
                 types.append(('', uint64))
 
+                if invalidation_bytes_nr:
+                    if invalidation_bits is not None:
+                        inval_bits.insert(0, invalidation_bits)
+                    else:
+                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 names = signal.dtype.names
 
@@ -3319,13 +3414,32 @@ class MDF4(object):
                     fields.append(frombuffer(vals, dtype='V7'))
                     types.append(('', 'V7'))
 
+                if invalidation_bytes_nr:
+                    if invalidation_bits is not None:
+                        inval_bits.insert(0, invalidation_bits)
+                    else:
+                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 names = signal.dtype.names
+
+                if invalidation_bytes_nr:
+                    if invalidation_bits is not None:
+                        inval_bits.insert(0, invalidation_bits)
+                    else:
+                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
                 for name in names:
                     samples = signal[name]
 
                     fields.append(samples)
                     types.append(('', samples.dtype))
+
+                    if invalidation_bytes_nr:
+                        if invalidation_bits is not None:
+                            inval_bits.insert(0, invalidation_bits)
+                        else:
+                            inval_bits.insert(0, zeros(len(signal), dtype=bool))
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names
@@ -3339,6 +3453,12 @@ class MDF4(object):
                     ('', samples.dtype, shape)
                 )
 
+                if invalidation_bytes_nr:
+                    if invalidation_bits is not None:
+                        inval_bits.insert(0, invalidation_bits)
+                    else:
+                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
                 for name in names[1:]:
 
                     samples = signal[name]
@@ -3347,6 +3467,33 @@ class MDF4(object):
                     types.append(
                         ('', samples.dtype, shape)
                     )
+
+                    if invalidation_bytes_nr:
+                        if invalidation_bits is not None:
+                            inval_bits.insert(0, invalidation_bits)
+                        else:
+                            inval_bits.insert(0, zeros(len(signal), dtype=bool))
+
+        if invalidation_bytes_nr:
+            invalidation_bytes_nr = len(inval_bits)
+            if invalidation_bytes_nr % 8:
+                invalidation_bytes_nr = invalidation_bytes_nr // 8 + 1
+            else:
+                invalidation_bytes_nr = invalidation_bytes_nr // 8
+
+            gp['channel_group']['invalidation_bytes_nr'] = invalidation_bytes_nr
+
+            inval_bits = [
+                packbits(list(vals))
+                for vals in zip(*inval_bits)
+            ]
+
+            # inval_bits = array(inval_bits, dtype='({},)u1'.format(invalidation_bytes_nr))
+
+            inval_bits = array(inval_bits)
+
+            fields.append(inval_bits)
+            types.append(('invalidation_bytes', inval_bits.dtype, inval_bits.shape[1:]))
 
         # data block
         if PYVERSION == 2:
@@ -3365,6 +3512,8 @@ class MDF4(object):
 
             record_size = gp['channel_group']['samples_byte_nr']
             record_size += gp['data_group']['record_id_len']
+            record_size += gp['channel_group']['invalidation_bytes_nr']
+
             gp['channel_group']['cycles_nr'] = size // record_size
 
             if 'record' in gp:
