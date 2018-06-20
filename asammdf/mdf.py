@@ -1643,11 +1643,13 @@ class MDF(object):
                         sigs.append(sig)
 
                     source_info = 'Signals filtered from <{}>'.format(origin)
-                    mdf.append(
-                        sigs,
-                        source_info,
-                        common_timebase=True,
-                    )
+
+                    if sigs:
+                        mdf.append(
+                            sigs,
+                            source_info,
+                            common_timebase=True,
+                        )
 
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
@@ -1666,7 +1668,9 @@ class MDF(object):
                         if not sig[0].flags.writeable:
                             sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
-                    mdf.extend(new_index, sigs)
+
+                    if sigs:
+                        mdf.extend(new_index, sigs)
 
                 del group['record']
 
@@ -1954,7 +1958,8 @@ class MDF(object):
                             last_timestamp = signals[0].timestamps[-1]
                             delta = last_timestamp / len(signals[0])
 
-                        merged.append(signals, common_timebase=True)
+                        if signals:
+                            merged.append(signals, common_timebase=True)
                         idx += 1
                     else:
                         master = mdf.get_master(i, fragment)
@@ -1983,7 +1988,8 @@ class MDF(object):
                                     )
                                 )
 
-                            merged.extend(i, signals)
+                            if signals:
+                                merged.extend(i, signals)
                         idx += 1
 
                     del group['record']
@@ -2162,7 +2168,8 @@ class MDF(object):
                                 sig.samples = sig.samples.copy()
                             signals.append(sig)
 
-                        merged.append(signals, common_timebase=True)
+                        if signals:
+                            merged.append(signals, common_timebase=True)
                         idx += 1
                     else:
                         master = mdf.get_master(i, fragment)
@@ -2184,7 +2191,8 @@ class MDF(object):
                                     )
                                 )
 
-                            merged.extend(i, signals)
+                            if signals:
+                                merged.extend(i, signals)
                         idx += 1
 
                     del group['record']
@@ -2304,6 +2312,7 @@ class MDF(object):
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
+
             included_channels = self._included_channels(i)
 
             data = self._load_group_data(group)
@@ -2332,11 +2341,12 @@ class MDF(object):
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
 
-                    mdf.append(
-                        sigs,
-                        'Resampled to {}s'.format(raster),
-                        common_timebase=True,
-                    )
+                    if sigs:
+                        mdf.append(
+                            sigs,
+                            'Resampled to {}s'.format(raster),
+                            common_timebase=True,
+                        )
 
                 else:
                     sigs = [(self.get_master(i, data=fragment, raster=raster), None), ]
@@ -2354,7 +2364,9 @@ class MDF(object):
                         if not sig[0].flags.writeable:
                             sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
-                    mdf.extend(i, sigs)
+
+                    if sigs:
+                        mdf.extend(i, sigs)
 
             if self._callback:
                 self._callback(i+1, groups_nr)
