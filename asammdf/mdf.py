@@ -566,13 +566,15 @@ class MDF(object):
                             index=j,
                             data=fragment,
                             raw=True,
+                            ignore_invalidation_bits=True,
                         )
                         if version < '4.00' and sig.samples.dtype.kind == 'S':
                             strsig = self.get(
                                 group=i,
                                 index=j,
                                 samples_only=True,
-                            )
+                                ignore_invalidation_bits=True,
+                            )[0]
                             sig.samples = sig.samples.astype(strsig.dtype)
                             del strsig
                         if not sig.samples.flags.writeable:
@@ -610,9 +612,10 @@ class MDF(object):
                             data=fragment,
                             raw=True,
                             samples_only=True,
+                            ignore_invalidation_bits=True,
                         )
-                        if not sig.flags.writeable:
-                            sig = sig.copy()
+                        if not sig[0].flags.writeable:
+                            sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
                     out.extend(i, sigs)
 
@@ -767,6 +770,7 @@ class MDF(object):
                             index=j,
                             data=fragment,
                             raw=True,
+                            ignore_invalidation_bits=True,
                         ).cut(fragment_start, fragment_stop)
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
@@ -800,10 +804,12 @@ class MDF(object):
                             index=j,
                             data=fragment,
                             raw=True,
-                            samples_only=True
-                        )[start_index: stop_index]
-                        if not sig.flags.writeable:
-                            sig = sig.copy()
+                            samples_only=True,
+                            ignore_invalidation_bits=True,
+                        )
+                        sig = sig[0][start_index: stop_index], sig[1][start_index: stop_index]
+                        if not sig[0].flags.writeable:
+                            sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
 
                     if sigs:
@@ -830,6 +836,7 @@ class MDF(object):
                         index=j,
                         data=fragment,
                         raw=True,
+                        ignore_invalidation_bits=True,
                     )
                     sig.samples = sig.samples[:0]
                     sig.timestamps = sig.timestamps[:0]
@@ -1617,13 +1624,15 @@ class MDF(object):
                             index=j,
                             data=fragment,
                             raw=True,
+                            ignore_invalidation_bits=True,
                         )
                         if self.version < '4.00' and sig.samples.dtype.kind == 'S':
                             strsig = self.get(
                                 group=group_index,
                                 index=j,
                                 samples_only=True,
-                            )
+                                ignore_invalidation_bits=True,
+                            )[0]
                             sig.samples = sig.samples.astype(strsig.dtype)
                             del strsig
                         if not sig.samples.flags.writeable:
@@ -1649,9 +1658,10 @@ class MDF(object):
                             data=fragment,
                             samples_only=True,
                             raw=True,
+                            ignore_invalidation_bits=True,
                         )
-                        if not sig.flags.writeable:
-                            sig = sig.copy()
+                        if not sig[0].flags.writeable:
+                            sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
                     mdf.extend(new_index, sigs)
 
@@ -1909,6 +1919,7 @@ class MDF(object):
                                 index=j,
                                 data=fragment,
                                 raw=True,
+                                ignore_invalidation_bits=True,
                             )
 
                             if offset:
@@ -1921,7 +1932,8 @@ class MDF(object):
                                         group=i,
                                         index=j,
                                         samples_only=True,
-                                    )
+                                        ignore_invalidation_bits=True,
+                                    )[0]
                                     string_dtypes.append(strsig.dtype)
                                     del strsig
 
@@ -1964,6 +1976,7 @@ class MDF(object):
                                         data=fragment,
                                         raw=True,
                                         samples_only=True,
+                                        ignore_invalidation_bits=True,
                                     )
                                 )
 
@@ -2118,6 +2131,7 @@ class MDF(object):
                                 index=j,
                                 data=fragment,
                                 raw=True,
+                                ignore_invalidation_bits=True,
                             )
 
                             if sync:
@@ -2130,7 +2144,8 @@ class MDF(object):
                                     group=i,
                                     index=j,
                                     samples_only=True,
-                                )
+                                    ignore_invalidation_bits=True,
+                                )[0]
                                 string_dtypes.append(strsig.dtype)
                                 del strsig
 
@@ -2162,6 +2177,7 @@ class MDF(object):
                                         data=fragment,
                                         raw=True,
                                         samples_only=True,
+                                        ignore_invalidation_bits=True,
                                     )
                                 )
 
@@ -2298,13 +2314,15 @@ class MDF(object):
                             data=fragment,
                             raw=True,
                             raster=raster,
+                            ignore_invalidation_bits=True,
                         )
                         if self.version < '4.00' and sig.samples.dtype.kind == 'S':
                             strsig = self.get(
                                 group=i,
                                 index=j,
                                 samples_only=True,
-                            )
+                                ignore_invalidation_bits=True,
+                            )[0]
                             sig.samples = sig.samples.astype(strsig.dtype)
                             del strsig
                         if not sig.samples.flags.writeable:
@@ -2328,9 +2346,10 @@ class MDF(object):
                             raw=True,
                             samples_only=True,
                             raster=raster,
+                            ignore_invalidation_bits=True,
                         )
-                        if not sig.flags.writeable:
-                            sig = sig.copy()
+                        if not sig[0].flags.writeable:
+                            sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
                     mdf.extend(i, sigs)
 

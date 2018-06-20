@@ -25,6 +25,7 @@ from numpy import (
     argwhere,
     array,
     array_equal,
+    bool,
     concatenate,
     dtype,
     flip,
@@ -827,7 +828,7 @@ class MDF4(object):
             if group.get('raw_can', False):
                 can_ids = self.get('CAN_DataFrame.ID', group=i)
                 all_can_ids = sorted(set(can_ids.samples))
-                payload = self.get('CAN_DataFrame.DataBytes', group=i, samples_only=True)
+                payload = self.get('CAN_DataFrame.DataBytes', group=i, samples_only=True)[0]
 
                 _sig = self.get('CAN_DataFrame', group=i)
 
@@ -1248,6 +1249,7 @@ class MDF4(object):
                                     'lower_limit': 0,
                                     'upper_limit': 0,
                                     'flags': 0,
+                                    'pos_invalidation_bit': payload['pos_invalidation_bit'],
                                 }
 
                                 log_channel = Channel(**kargs)
@@ -2318,7 +2320,7 @@ class MDF4(object):
 
         return gp_nr, ch_nr
 
-    def get_valid_indexes(self, group_index, channel, fragment):
+    def get_invalidation_bits(self, group_index, channel, fragment):
         """ get invalidation indexes for the channel
 
         Parameters
@@ -2332,7 +2334,7 @@ class MDF4(object):
 
         Returns
         -------
-        valid_indexes : iterable
+        invalidation_bits : iterable
             iterable of valid channel indexes; if all are valid `None` is
             returned
 
@@ -2359,12 +2361,12 @@ class MDF4(object):
         pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
         mask = 1 << pos_offset
 
-        valid_indexes = array(
-            [bytes_[pos_byte] & mask for bytes_ in invalidation]
-        )
-        valid_indexes = argwhere(valid_indexes == 0).flatten()
+        invalidation_bits = array(
+            [bytes_[pos_byte] & mask for bytes_ in invalidation],
+            dtype=bool,
+        ).flatten()
 
-        return valid_indexes
+        return invalidation_bits
 
     def configure(
             self,
@@ -3735,7 +3737,8 @@ class MDF4(object):
             raster=None,
             samples_only=False,
             data=None,
-            raw=False):
+            raw=False,
+            ignore_invalidation_bits=False):
         """Gets channel samples.
         Channel can be specified in two ways:
 
@@ -3772,12 +3775,18 @@ class MDF4(object):
         raw : bool
             return channel samples without appling the conversion rule; default
             `False`
+        ignore_invalidation_bits : bool
+            option to ignore invalidation bits
 
         Returns
         -------
-        res : (numpy.array | Signal)
-            returns *Signal* if *samples_only* = *False* (default option),
-            otherwise returns numpy.array
+        res : (numpy.array, numpy.array) | Signal
+            returns *Signal* if *samples_only*=*False* (default option),
+            otherwise returns a (numpy.array, numpy.array) tuple of samples and
+            invalidation bits. If invalidation bits are not used or if
+            *ignore_invalidation_bits* if False, then the second item will be
+            None.
+
             The *Signal* samples are:
 
                 * numpy recarray for channels that have composition/channel
@@ -3991,7 +4000,7 @@ class MDF4(object):
                     for _ in dependency_list
                 ]
                 timestamps = []
-                valid_indexes = []
+                invalidation_bits = []
 
                 count = 0
                 for fragment in data:
@@ -4002,13 +4011,14 @@ class MDF4(object):
                             samples_only=True,
                             raw=raw,
                             data=fragment,
-                        )
+                            ignore_invalidation_bits=ignore_invalidation_bits,
+                        )[0]
                         channel_values[i].append(vals)
                     if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
                     if channel_invalidation_present:
-                        valid_indexes.append(
-                            self.get_valid_indexes(gp_nr, channel, fragment)
+                        invalidation_bits.append(
+                            self.get_invalidation_bits(gp_nr, channel, fragment)
                         )
 
                     count += 1
@@ -4035,12 +4045,13 @@ class MDF4(object):
 
                 if channel_invalidation_present:
                     if count > 1:
-                        valid_indexes = concatenate(valid_indexes)
+                        invalidation_bits = concatenate(invalidation_bits)
                     else:
-                        valid_indexes = valid_indexes[0]
-                    vals = vals[valid_indexes]
-                    if not samples_only or raster:
-                        timestamps = timestamps[valid_indexes]
+                        invalidation_bits = invalidation_bits[0]
+                    if not ignore_invalidation_bits:
+                        vals = vals[argwhere(~invalidation_bits)].flatten()
+                        if not samples_only or raster:
+                            timestamps = timestamps[argwhere(~invalidation_bits)].flatten()
 
                 if raster and len(timestamps):
                     t = arange(
@@ -4064,7 +4075,7 @@ class MDF4(object):
 
                 channel_values = []
                 timestamps = []
-                valid_indexes = []
+                invalidation_bits = []
                 count = 0
                 for fragment in data:
 
@@ -4175,7 +4186,8 @@ class MDF4(object):
                                             index=ref_ch_nr,
                                             samples_only=True,
                                             data=fragment,
-                                        )
+                                            ignore_invalidation_bits=ignore_invalidation_bits,
+                                        )[0]
                                     else:
                                         channel_group = grp['channel_group']
                                         record_size = channel_group['samples_byte_nr']
@@ -4186,7 +4198,8 @@ class MDF4(object):
                                             group=ref_dg_nr,
                                             index=ref_ch_nr,
                                             samples_only=True,
-                                        )
+                                            ignore_invalidation_bits=ignore_invalidation_bits,
+                                        )[0]
                                         axis_values = ref[start: end].copy()
                                     axis_values = axis_values[axisname]
 
@@ -4250,7 +4263,8 @@ class MDF4(object):
                                         index=ref_ch_nr,
                                         samples_only=True,
                                         data=fragment,
-                                    )
+                                        ignore_invalidation_bits=ignore_invalidation_bits,
+                                    )[0]
                                 else:
                                     channel_group = grp['channel_group']
                                     record_size = channel_group['samples_byte_nr']
@@ -4261,7 +4275,8 @@ class MDF4(object):
                                         group=ref_dg_nr,
                                         index=ref_ch_nr,
                                         samples_only=True,
-                                    )
+                                        ignore_invalidation_bits=ignore_invalidation_bits,
+                                    )[0]
                                     axis_values = ref[start: end].copy()
                                 axis_values = axis_values[axisname]
 
@@ -4277,8 +4292,8 @@ class MDF4(object):
                     if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
                     if channel_invalidation_present:
-                        valid_indexes.append(
-                            self.get_valid_indexes(gp_nr, channel, fragment)
+                        invalidation_bits.append(
+                            self.get_invalidation_bits(gp_nr, channel, fragment)
                         )
 
                     channel_values.append(vals)
@@ -4299,12 +4314,13 @@ class MDF4(object):
 
                 if channel_invalidation_present:
                     if count > 1:
-                        valid_indexes = concatenate(valid_indexes)
+                        invalidation_bits = concatenate(invalidation_bits)
                     else:
-                        valid_indexes = valid_indexes[0]
-                    vals = vals[valid_indexes]
-                    if not samples_only or raster:
-                        timestamps = timestamps[valid_indexes]
+                        invalidation_bits = invalidation_bits[0]
+                    if not ignore_invalidation_bits:
+                        vals = vals[argwhere(~invalidation_bits)].flatten()
+                        if not samples_only or raster:
+                            timestamps = timestamps[argwhere(~invalidation_bits)].flatten()
 
                 if raster and len(timestamps) > 1:
                     t = arange(
@@ -4334,7 +4350,7 @@ class MDF4(object):
 
                 channel_values = []
                 timestamps = []
-                valid_indexes = []
+                invalidation_bits = []
 
                 channel_group = grp['channel_group']
                 record_size = channel_group['samples_byte_nr']
@@ -4351,8 +4367,8 @@ class MDF4(object):
                     if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
                     if channel_invalidation_present:
-                        valid_indexes.append(
-                            self.get_valid_indexes(gp_nr, channel, fragment)
+                        invalidation_bits.append(
+                            self.get_invalidation_bits(gp_nr, channel, fragment)
                         )
 
                     channel_values.append(vals)
@@ -4373,12 +4389,13 @@ class MDF4(object):
 
                 if channel_invalidation_present:
                     if count > 1:
-                        valid_indexes = concatenate(valid_indexes)
+                        invalidation_bits = concatenate(invalidation_bits)
                     else:
-                        valid_indexes = valid_indexes[0]
-                    vals = vals[valid_indexes]
-                    if not samples_only or raster:
-                        timestamps = timestamps[valid_indexes]
+                        invalidation_bits = invalidation_bits[0]
+                    if not ignore_invalidation_bits:
+                        vals = vals[argwhere(~invalidation_bits)].flatten()
+                        if not samples_only or raster:
+                            timestamps = timestamps[argwhere(~invalidation_bits)].flatten()
 
                 if raster and len(timestamps) > 1:
                     t = arange(
@@ -4398,7 +4415,7 @@ class MDF4(object):
             else:
                 channel_values = []
                 timestamps = []
-                valid_indexes = []
+                invalidation_bits = []
 
                 count = 0
                 for fragment in data:
@@ -4489,8 +4506,8 @@ class MDF4(object):
                     if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
                     if channel_invalidation_present:
-                        valid_indexes.append(
-                            self.get_valid_indexes(gp_nr, channel, fragment)
+                        invalidation_bits.append(
+                            self.get_invalidation_bits(gp_nr, channel, fragment)
                         )
                     channel_values.append(vals.copy())
                     count += 1
@@ -4509,12 +4526,13 @@ class MDF4(object):
 
                 if channel_invalidation_present:
                     if count > 1:
-                        valid_indexes = concatenate(valid_indexes)
+                        invalidation_bits = concatenate(invalidation_bits)
                     else:
-                        valid_indexes = valid_indexes[0]
-                    vals = vals[valid_indexes]
-                    if not samples_only or raster:
-                        timestamps = timestamps[valid_indexes]
+                        invalidation_bits = invalidation_bits[0]
+                    if not ignore_invalidation_bits:
+                        vals = vals[argwhere(~invalidation_bits)].flatten()
+                        if not samples_only or raster:
+                            timestamps = timestamps[argwhere(~invalidation_bits)].flatten()
 
                 if raster and len(timestamps) > 1:
                     t = arange(
@@ -4710,7 +4728,9 @@ class MDF4(object):
                 raw = True
 
         if samples_only:
-            res = vals
+            if not channel_invalidation_present or not ignore_invalidation_bits:
+                invalidation_bits = None
+            res = vals, invalidation_bits
         else:
             # search for unit in conversion texts
 
@@ -4752,6 +4772,9 @@ class MDF4(object):
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
+            if not channel_invalidation_present or not ignore_invalidation_bits:
+                invalidation_bits = None
+
             res = Signal(
                 samples=vals,
                 timestamps=timestamps,
@@ -4766,6 +4789,7 @@ class MDF4(object):
                 display_name=channel.display_name,
                 bit_count=bit_count,
                 stream_sync=stream_sync,
+                invalidation_bits=invalidation_bits,
             )
 
         return res
@@ -5133,7 +5157,7 @@ class MDF4(object):
             'CAN_DataFrame.DataBytes',
             group=index,
             samples_only=True,
-        )
+        )[0]
 
         idx = argwhere(can_ids.samples == message.id).flatten()
         data = payload[idx]

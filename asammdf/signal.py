@@ -54,6 +54,9 @@ class Signal(object):
         bit count; useful for integer channels
     stream_sync : bool
         the channel is a synchronisation for the attachment stream (mdf v4 only)
+    invalidation_bits : numpy.array | None
+        channel invalidation bits, default *None*
+
 
     """
 
@@ -70,7 +73,8 @@ class Signal(object):
                  attachment=(),
                  source=None,
                  bit_count=None,
-                 stream_sync=False):
+                 stream_sync=False,
+                 invalidation_bits=None):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
@@ -108,6 +112,7 @@ class Signal(object):
                 self.bit_count = bit_count
 
             self.stream_sync = stream_sync
+            self.invalidation_bits = invalidation_bits
 
             if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                 if conversion is None:

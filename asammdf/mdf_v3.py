@@ -2414,7 +2414,8 @@ class MDF3(object):
             raster=None,
             samples_only=False,
             data=None,
-            raw=False):
+            raw=False,
+            ignore_invalidation_bits=False):
         """Gets channel samples.
         Channel can be specified in two ways:
 
@@ -2452,14 +2453,18 @@ class MDF3(object):
         raw : bool
             return channel samples without appling the conversion rule; default
             `False`
+        ignore_invalidation_bits : bool
+            only defined to have the same API with the MDF v4
 
 
         Returns
         -------
-        res : (numpy.array | Signal)
+        res : (numpy.array, None) | Signal
             returns *Signal* if *samples_only*=*False* (default option),
-            otherwise returns numpy.array.
-            The *Signal* samples are:
+            otherwise returns a (numpy.array, None) tuple (for compatibility
+            with MDF v4 class.
+
+            The *Signal* samples are
 
                 * numpy recarray for channels that have CDBLOCK or BYTEARRAY
                   type channels
@@ -2588,7 +2593,7 @@ class MDF3(object):
             record_shape = tuple(shape)
 
             arrays = [
-                self.get(group=dg_nr, index=ch_nr, samples_only=True, raw=raw, data=original_data)
+                self.get(group=dg_nr, index=ch_nr, samples_only=True, raw=raw, data=original_data)[0]
                 for ch_nr, dg_nr in dep.referenced_channels
             ]
             if cycles_nr:
@@ -2759,7 +2764,7 @@ class MDF3(object):
                 raw = True
 
         if samples_only:
-            res = vals
+            res = vals, None
         else:
             if conversion:
                 unit = conversion.unit
