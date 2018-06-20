@@ -309,8 +309,8 @@ class Channel(dict):
                         )
 
             if self['id'] != b'CN':
-                message = 'Expected "CN" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "CN" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -911,8 +911,8 @@ class ChannelConversion(dict):
                             )
 
             if self['id'] != b'CC':
-                message = 'Expected "CC" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "CC" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1547,8 +1547,8 @@ class ChannelDependency(dict):
                     self['dim_{}'.format(i)] = dim
 
             if self['id'] != b'CD':
-                message = 'Expected "CD" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "CD" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1705,8 +1705,8 @@ class ChannelExtension(dict):
                     )
 
             if self['id'] != b'CE':
-                message = 'Expected "CE" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "CE" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1929,7 +1929,8 @@ class ChannelGroup(dict):
                 # sample reduction blocks are not yet used
                 self['sample_reduction_addr'] = 0
             if self['id'] != b'CG':
-                message = 'Expected "CG" block but found "{}"'
+                message = 'Expected "CG" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 raise MdfException(message.format(self['id']))
             if self['comment_addr']:
                 self.comment = get_text_v3(
@@ -2302,8 +2303,8 @@ class HeaderBlock(dict):
                 )
 
             if self['id'] != b'HD':
-                message = 'Expected "HD" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "HD" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2524,8 +2525,8 @@ class ProgramBlock(dict):
             self['data'] = stream.read(self['block_len'] - 4)
 
             if self['id'] != b'PR':
-                message = 'Expected "PR" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "PR" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2590,8 +2591,8 @@ class SampleReduction(dict):
             )
 
             if self['id'] != b'SR':
-                message = 'Expected "SR" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "SR" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2652,8 +2653,8 @@ class TextBlock(dict):
             self['text'] = stream.read(size)
 
             if self['id'] != b'TX':
-                message = 'Expected "TX" block @ 0x{:X} but found "{}"'
-                message = message.format(address, self['id'])
+                message = 'Expected "TX" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2760,8 +2761,8 @@ class TriggerBlock(dict):
                 )
 
             if self['id'] != b'TR':
-                message = 'Expected "TR" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "TR" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 

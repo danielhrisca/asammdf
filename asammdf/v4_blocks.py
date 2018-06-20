@@ -132,8 +132,8 @@ class AttachmentBlock(dict):
             self['embedded_data'] = stream.read(self['embedded_size'])
 
             if self['id'] != b'##AT':
-                message = 'Expected "##AT" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##AT" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -501,8 +501,8 @@ class Channel(dict):
             )
 
             if self['id'] != b'##CN':
-                message = 'Expected "##CN" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##CN" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -946,8 +946,8 @@ class ChannelArrayBlock(dict):
                         self['axis_{}_value_{}'.format(i, j)] = value
 
             if self['id'] != b'##CA':
-                message = 'Expected "##CA" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##CA" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1216,8 +1216,8 @@ class ChannelGroup(dict):
             )
 
             if self['id'] != b'##CG':
-                message = 'Expected "##CG" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##CG" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1751,8 +1751,8 @@ class ChannelConversion(dict):
                 )
 
             if self['id'] != b'##CC':
-                message = 'Expected "##CC" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##CC" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2788,8 +2788,8 @@ class DataBlock(dict):
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
             if self['id'] != b'##DT':
-                message = 'Expected "##DT" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##DT" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2871,8 +2871,8 @@ class DataZippedBlock(dict):
             self['data'] = stream.read(self['zip_size'])
 
             if self['id'] != b'##DZ':
-                message = 'Expected "##DZ" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##DZ" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -3011,8 +3011,8 @@ class DataGroup(dict):
             )
 
             if self['id'] != b'##DG':
-                message = 'Expected "##DG" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##DG" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -3165,8 +3165,8 @@ class DataList(dict):
                     self['offset_{}'.format(i)] = offset
 
             if self['id'] != b'##DL':
-                message = 'Expected "##DL" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##DL" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -3329,8 +3329,8 @@ class EventBlock(dict):
              self['sync_factor']) = params
 
             if self['id'] != b'##EV':
-                message = 'Expected "##EV" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##EV" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -3562,8 +3562,8 @@ class FileHistory(dict):
             )
 
             if self['id'] != b'##FH':
-                message = 'Expected "##FH" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##FH" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -3714,8 +3714,8 @@ class HeaderBlock(dict):
             )
 
             if self['id'] != b'##HD':
-                message = 'Expected "##HD" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##HD" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -3830,8 +3830,8 @@ class HeaderList(dict):
             )
 
             if self['id'] != b'##HL':
-                message = 'Expected "##HL" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##HL" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -3934,8 +3934,8 @@ class SourceInformation(dict):
                 )
 
             if self['id'] != b'##SI':
-                message = 'Expected "##SI" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##SI" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -4190,8 +4190,8 @@ class SignalDataBlock(dict):
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
             if self['id'] != b'##SD':
-                message = 'Expected "##SD" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "##SD" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
