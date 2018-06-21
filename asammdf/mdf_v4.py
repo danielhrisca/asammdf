@@ -1000,7 +1000,8 @@ class MDF4(object):
                 continue
             if not group['CAN_id'] in self.can_logging_db:
                 self.can_logging_db[group['CAN_id']] = {}
-            self.can_logging_db[group['CAN_id']][group['message_id']] = i
+            if 'message_id' in group:
+                self.can_logging_db[group['CAN_id']][group['message_id']] = i
 
         # read events
         addr = self.header['first_event_addr']
