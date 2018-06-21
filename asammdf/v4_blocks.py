@@ -494,11 +494,7 @@ class Channel(dict):
              self['lower_limit'],
              self['upper_limit'],
              self['lower_ext_limit'],
-             self['upper_ext_limit']) = unpack_from(
-                v4c.FMT_CHANNEL_PARAMS,
-                block,
-                links_nr * 8,
-            )
+             self['upper_ext_limit']) = params
 
             if self['id'] != b'##CN':
                 message = 'Expected "##CN" block @{} but found "{}"'
