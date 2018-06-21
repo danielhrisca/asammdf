@@ -5945,7 +5945,7 @@ class MDF4(object):
                     if dep_list:
                         if all(isinstance(dep, ChannelArrayBlock) for dep in dep_list):
                             for dep in dep_list:
-                                if dep['ca_type'] == v4c.CA_TYPE_SCALE_AXIS:
+                                if dep['ca_type'] != v4c.CA_TYPE_LOOKUP:
                                     dep.referenced_channels = []
                                     continue
                                 for i, (ch_nr, gp_nr) in enumerate(dep.referenced_channels):
@@ -6625,6 +6625,9 @@ class MDF4(object):
                                 isinstance(dep, ChannelArrayBlock)
                                 for dep in dep_list):
                             for dep in dep_list:
+                                if dep['ca_type'] != v4c.CA_TYPE_LOOKUP:
+                                    dep.referenced_channels = []
+                                    continue
                                 for i, (ch_nr, gp_nr) in enumerate(dep.referenced_channels):
                                     grp = self.groups[gp_nr]
                                     stream.seek(0, v4c.SEEK_END)
