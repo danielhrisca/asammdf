@@ -8,7 +8,7 @@ import string
 import xml.etree.ElementTree as ET
 
 from collections import namedtuple
-from struct import unpack
+from struct import unpack, Struct
 from warnings import warn
 
 from numpy import (
@@ -20,6 +20,7 @@ from numpy import (
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
+UINT64 = Struct('<Q').unpack
 logger = logging.getLogger('asammdf')
 
 __all__ = [
@@ -264,9 +265,8 @@ def get_text_v4(address, stream):
         return ''
 
     stream.seek(address + 8)
-    size = unpack('<Q', stream.read(8))[0] - 24
-    stream.read(8)
-    text_bytes = stream.read(size)
+    size = UINT64(stream.read(8))[0] - 16
+    text_bytes = stream.read(size)[8:]
     try:
         text = (
             text_bytes
@@ -884,17 +884,18 @@ class ChannelsDB(dict):
 
         """
         if channel_name:
+            entry = (group_index, channel_index)
             if channel_name not in self:
                 self[channel_name] = []
             self[channel_name].append(
-                (group_index, channel_index)
+                entry
             )
 
-            channel_name = channel_name.split('\\')
-            if len(channel_name) > 1:
-                channel_name = channel_name[0]
+            if '\\' in channel_name:
+                channel_name = channel_name.split('\\')[0]
+
                 if channel_name not in self:
                     self[channel_name] = []
                 self[channel_name].append(
-                    (group_index, channel_index)
+                    entry
                 )
