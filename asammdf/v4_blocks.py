@@ -2342,14 +2342,15 @@ class ChannelConversion(dict):
             except TypeError:
                 default = b''
 
-            phys = np.insert(phys, 0, default)
+            phys.insert(0, default)
             raw_vals = np.insert(raw_vals, 0, raw_vals[0] - 1)
             indexes = np.searchsorted(raw_vals, values)
             np.place(indexes, indexes >= len(raw_vals), 0)
 
-            all_values = phys + [default, ]
+            all_values = list(phys) + [default, ]
 
             if all(isinstance(val, bytes) for val in all_values):
+                phys = np.array(phys)
                 values = phys[indexes]
             else:
                 new_values = []
