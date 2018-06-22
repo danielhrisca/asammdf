@@ -745,7 +745,7 @@ def debug_channel(mdf, group, channel, dependency):
     print()
 
     print('MASTER CACHE', '='*67)
-    print([(key, len(val) for key, val in mdf._master_channel_cache.items())])
+    print([(key, len(val)) for key, val in mdf._master_channel_cache.items()])
 
 
 def count_channel_groups(stream, version=4):
