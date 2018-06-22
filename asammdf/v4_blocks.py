@@ -792,7 +792,10 @@ class Channel(dict):
         return result
 
     def __repr__(self):
-        return '<Channel (name: {}, unit: {}, comment: {}, address: {}, conversion: {}, source: {}, fields: {})>'.format(
+        return '''<Channel (name: {}, unit: {}, comment: {}, address: {}, 
+    conversion: {}, 
+    source: {}, 
+    fields: {})>'''.format(
             self.name,
             self.unit,
             self.comment,
@@ -1035,6 +1038,9 @@ class ChannelArrayBlock(dict):
                     for i in range(dims_nr):
                         self['dim_size_{}'.format(i)] = kwargs['dim_size_{}'.format(i)]
 
+            if self['ca_type'] == v4c.CA_TYPE_SCALE_AXIS and 'scale_axis_0_dg_addr' in self:
+                raise Exception('WRONG ChannelArray __init__')
+
     def __bytes__(self):
         flags = self['flags']
         ca_type = self['ca_type']
@@ -1071,6 +1077,14 @@ class ChannelArrayBlock(dict):
                 'invalidation_bit_base',
                 'dim_size_0',
             )
+
+            try:
+                del self['scale_axis_0_dg_addr']
+                del self['scale_axis_0_cg_addr']
+                del self['scale_axis_0_ch_addr']
+            except KeyError:
+                pass
+
             fmt = '<4sI3Q2BHIiIQ'
         elif ca_type == v4c.CA_TYPE_LOOKUP:
             if flags & v4c.FLAG_CA_FIXED_AXIS:
