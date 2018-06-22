@@ -4923,22 +4923,26 @@ class MDF4(object):
             if not channel_invalidation_present or not ignore_invalidation_bits:
                 invalidation_bits = None
 
-            res = Signal(
-                samples=vals,
-                timestamps=timestamps,
-                unit=unit,
-                name=name,
-                comment=comment,
-                conversion=conversion,
-                raw=raw,
-                master_metadata=master_metadata,
-                attachment=attachment,
-                source=source,
-                display_name=channel.display_name,
-                bit_count=bit_count,
-                stream_sync=stream_sync,
-                invalidation_bits=invalidation_bits,
-            )
+            try:
+                res = Signal(
+                    samples=vals,
+                    timestamps=timestamps,
+                    unit=unit,
+                    name=name,
+                    comment=comment,
+                    conversion=conversion,
+                    raw=raw,
+                    master_metadata=master_metadata,
+                    attachment=attachment,
+                    source=source,
+                    display_name=channel.display_name,
+                    bit_count=bit_count,
+                    stream_sync=stream_sync,
+                    invalidation_bits=invalidation_bits,
+                )
+            except:
+                debug_channel(self, grp, channel, dependency_list)
+                raise
 
         return res
 

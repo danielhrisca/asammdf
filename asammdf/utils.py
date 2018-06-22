@@ -692,7 +692,7 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
     )
 
 
-def debug_channel(mdf, group, channel, conversion, dependency):
+def debug_channel(mdf, group, channel, dependency):
     """ use this to print debug infromation in case of errors
 
     Parameters
@@ -703,10 +703,8 @@ def debug_channel(mdf, group, channel, conversion, dependency):
         group
     channel : Channel
         channel object
-    conversion : Channelonversion
-        channel conversion object
     dependency : ChannelDependency
-        channel dependecy object
+        channel dependency object
 
     """
     print('MDF', '='*76)
@@ -736,13 +734,10 @@ def debug_channel(mdf, group, channel, conversion, dependency):
 
     print('CHANNEL', '='*72)
     print('channel:', channel)
-    print('name:', channel.name)
-    print('conversion:', conversion)
-    print('conversion ref blocks:', conversion.referenced_blocks if conversion else None)
     print()
 
     print('CHANNEL ARRAY', '='*66)
-    print('array:', bool(dependency))
+    print('array:', dependency)
     print()
 
 
