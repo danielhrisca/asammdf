@@ -2342,6 +2342,11 @@ class ChannelConversion(dict):
             except TypeError:
                 default = b''
 
+            if PYVERSION < 3:
+                cls = str
+            else:
+                cls = bytes
+
             phys.insert(0, default)
             raw_vals = np.insert(raw_vals, 0, raw_vals[0] - 1)
             indexes = np.searchsorted(raw_vals, values)
@@ -2349,7 +2354,7 @@ class ChannelConversion(dict):
 
             all_values = list(phys) + [default, ]
 
-            if all(isinstance(val, bytes) for val in all_values):
+            if all(isinstance(val, cls) for val in all_values):
                 phys = np.array(phys)
                 values = phys[indexes]
             else:
@@ -2357,17 +2362,17 @@ class ChannelConversion(dict):
                 for i, idx in enumerate(indexes):
                     item = phys[idx]
 
-                    if isinstance(item, bytes):
+                    if isinstance(item, cls):
                         new_values.append(item)
                     else:
                         new_values.append(item.convert(values[i:i+1])[0])
 
-                if all(isinstance(v, bytes) for v in new_values):
+                if all(isinstance(v, cls) for v in new_values):
                     values = np.array(new_values)
                 else:
                     values = np.array(
                         [
-                            np.nan if isinstance(v, bytes) else v
+                            np.nan if isinstance(v, cls) else v
                             for v in new_values
                         ]
                     )
@@ -2412,7 +2417,12 @@ class ChannelConversion(dict):
             idx_ne = np.argwhere(idx1 != idx2).flatten()
             idx_eq = np.argwhere(idx1 == idx2).flatten()
 
-            if all(isinstance(val, bytes) for val in all_values):
+            if PYVERSION < 3:
+                cls = str
+            else:
+                cls = bytes
+
+            if all(isinstance(val, cls) for val in all_values):
                 phys = np.array(phys)
                 all_values = np.array(all_values)
 
@@ -2433,17 +2443,17 @@ class ChannelConversion(dict):
                     else:
                         item = phys[idx1[i]]
 
-                    if isinstance(item, bytes):
+                    if isinstance(item, cls):
                         new_values.append(item)
                     else:
                         new_values.append(item.convert(values[i:i+1])[0])
 
-                if all(isinstance(v, bytes) for v in new_values):
+                if all(isinstance(v, cls) for v in new_values):
                     values = np.array(new_values)
                 else:
                     values = np.array(
                         [
-                            np.nan if isinstance(v, bytes) else v
+                            np.nan if isinstance(v, cls) else v
                             for v in new_values
                         ]
                     )
