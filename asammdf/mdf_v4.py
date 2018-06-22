@@ -4981,7 +4981,7 @@ class MDF4(object):
         else:
             try:
                 timestamps = self._master_channel_cache[index]
-                if raster and timestamps:
+                if raster and len(timestamps):
                     timestamps = arange(
                         timestamps[0],
                         timestamps[-1],
@@ -6065,7 +6065,7 @@ class MDF4(object):
             for orig_addr, gp in zip(original_data_addresses, self.groups):
                 gp['data_group']['data_block_addr'] = orig_addr
 
-            at_map = {value:key for key, value in at_map.items()}
+            at_map = {value: key for key, value in at_map.items()}
 
             for event in self.events:
                 for i in range(event['attachment_nr']):

@@ -719,7 +719,14 @@ def debug_channel(mdf, group, channel, dependency):
     print('GROUP', '='*74)
     print('sorted:', group['sorted'])
     print('data location:', group['data_location'])
+    print('data block type:', group['data_block_type'])
+    print('param:', group['param'])
+    print('data size:', group['data_size'])
+    print('data block size:', group['data_block_size'])
+    print('data block addr:', group['data_block_addr'])
+    print('data block:', group['data_block'])
     print('record_size:', group['record_size'])
+    print('dependencies', group['channel_dependencies'])
     print('parets:', parents)
     print('dtypes:', dtypes)
     print()
@@ -736,6 +743,9 @@ def debug_channel(mdf, group, channel, dependency):
     print('CHANNEL ARRAY', '='*66)
     print(dependency)
     print()
+
+    print('MASTER CACHE', '='*67)
+    print([(key, len(val) for key, val in mdf._master_channel_cache.items())])
 
 
 def count_channel_groups(stream, version=4):
