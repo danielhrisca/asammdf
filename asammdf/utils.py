@@ -726,18 +726,15 @@ def debug_channel(mdf, group, channel, dependency):
 
     cg = group['channel_group']
     print('CHANNEL GROUP', '='*66)
-    print('record id:', cg['record_id'])
-    print('record size:', cg['samples_byte_nr'])
-    print('invalidation bytes:', cg.get('invalidation_bytes_nr', 0))
-    print('cycles:', cg['cycles_nr'])
+    print(cg)
     print()
 
     print('CHANNEL', '='*72)
-    print('channel:', channel)
+    print(channel)
     print()
 
     print('CHANNEL ARRAY', '='*66)
-    print('array:', dependency)
+    print(dependency)
     print()
 
 
