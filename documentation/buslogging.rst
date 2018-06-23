@@ -5,7 +5,8 @@ Bus logging
 Initial read only mode for mdf version 4.10 files containg CAN bus logging
 is now implemented.
 
-To handle this **cantools** package was added to the dependecies.
+To handle this, **canmatrix** package was added to the dependecies; you will need to install the latest code
+from the **canmatrix** development branch.
 
 Let's take for example the following situation: the .dbc contains the definition
 for the CAN message called "VehicleStatus" with ID=123. This message contains the
