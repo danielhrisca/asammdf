@@ -4958,7 +4958,6 @@ class MDF4(object):
                     stream_sync=stream_sync,
                     invalidation_bits=invalidation_bits,
                 )
-                raise Exception()
             except:
                 debug_channel(self, grp, channel, dependency_list)
                 raise
