@@ -510,7 +510,7 @@ class Channel(dict):
                     stream=stream,
                 ).replace(' xmlns="http://www.asam.net/mdf/v4"', '')
 
-                if kwargs.get('parse_xml_comment', True) and comment.startswith('<CNcomment'):
+                if kwargs.get('use_display_names', True) and comment.startswith('<CNcomment'):
                     try:
                         display_name = ET.fromstring(comment).find('.//names/display')
                         if display_name is not None:
@@ -1030,9 +1030,6 @@ class ChannelArrayBlock(dict):
                     )
                     for i in range(dims_nr):
                         self['dim_size_{}'.format(i)] = kwargs['dim_size_{}'.format(i)]
-
-            if self['ca_type'] == v4c.CA_TYPE_SCALE_AXIS and 'scale_axis_0_dg_addr' in self:
-                raise Exception('WRONG ChannelArray __init__')
 
     def __bytes__(self):
         flags = self['flags']

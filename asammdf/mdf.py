@@ -72,14 +72,19 @@ class MDF(object):
         mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
         '3.30', '4.00', '4.10', '4.11'); default '4.10'
     callback : function
-        function to call to update the progress; the function must accept two
-        arguments (the current progress and maximum progress value)
+        keyword only argument: function to call to update the progress; the
+        function must accept two arguments (the current progress and maximum
+        progress value)
+    use_display_names : bool
+        keyword only argument: for MDF4 files parse the XML channel comment to
+        search for the display name; XML parsing is quite expensive so setting
+        this to *False* can decrease the loading times very much
 
     """
 
     _terminate = False
 
-    def __init__(self, name=None, memory='full', version='4.10', callback=None):
+    def __init__(self, name=None, memory='full', version='4.10', **kwargs):
         if name:
             memory = validate_memory_argument(memory)
             if isinstance(name, BytesIO):
@@ -101,11 +106,11 @@ class MDF(object):
                 version = str(version)
                 version = '{}.{}'.format(version[0], version[1:])
             if version in MDF3_VERSIONS:
-                self._mdf = MDF3(name, memory, callback=callback)
+                self._mdf = MDF3(name, memory, **kwargs)
             elif version in MDF4_VERSIONS:
-                self._mdf = MDF4(name, memory, callback=callback)
+                self._mdf = MDF4(name, memory, **kwargs)
             elif version in MDF2_VERSIONS:
-                self._mdf = MDF2(name, memory, callback=callback)
+                self._mdf = MDF2(name, memory, **kwargs)
             else:
                 message = ('"{}" is not a supported MDF file; '
                            '"{}" file version was found')
@@ -118,19 +123,19 @@ class MDF(object):
                 self._mdf = MDF3(
                     version=version,
                     memory=memory,
-                    callback = callback,
+                    **kwargs
                 )
             elif version in MDF3_VERSIONS:
                 self._mdf = MDF3(
                     version=version,
                     memory=memory,
-                    callback=callback,
+                    **kwargs
                 )
             elif version in MDF4_VERSIONS:
                 self._mdf = MDF4(
                     version=version,
                     memory=memory,
-                    callback=callback,
+                    **kwargs
                 )
             else:
                 message = ('"{}" is not a supported MDF file version; '
@@ -1739,7 +1744,7 @@ class MDF(object):
             )
 
     @staticmethod
-    def concatenate(files, outversion='4.10', memory='full', sync=True, callback=None):
+    def concatenate(files, outversion='4.10', memory='full', sync=True, **kwargs):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -1768,6 +1773,7 @@ class MDF(object):
         if not files:
             raise MdfException('No files given for merge')
 
+        callback = kwargs.get('callback', None)
         if callback:
             callback(0, 100)
 
@@ -2006,7 +2012,7 @@ class MDF(object):
         return merged
 
     @staticmethod
-    def merge(files, outversion='4.10', memory='full', sync=True, callback=None):
+    def merge(files, outversion='4.10', memory='full', sync=True, **kwargs):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -2032,10 +2038,10 @@ class MDF(object):
         MdfException : if there are inconsistencies between the files
 
         """
-        return MDF.concatenate(files, outversion, memory, sync, callback)
+        return MDF.concatenate(files, outversion, memory, sync, **kwargs)
 
     @staticmethod
-    def stack(files, outversion='4.10', memory='full', sync=True, callback=None):
+    def stack(files, outversion='4.10', memory='full', sync=True, **kwargs):
         """ merge several files and return the merged *MDF* object
 
         Parameters
@@ -2060,6 +2066,8 @@ class MDF(object):
 
         version = validate_version_argument(outversion)
         memory = validate_memory_argument(memory)
+
+        callback = kwargs.get('callback', None)
 
         merged = MDF(
             version=version,

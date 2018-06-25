@@ -198,7 +198,7 @@ class MDF3(object):
 
     _terminate = False
 
-    def __init__(self, name=None, memory='full', version='3.30', callback=None):
+    def __init__(self, name=None, memory='full', version='3.30', **kwargs):
         memory = validate_memory_argument(memory)
         self.groups = []
         self.header = None
@@ -219,10 +219,9 @@ class MDF3(object):
 
         self._read_fragment_size = 0
         self._write_fragment_size = 8 * 2 ** 20
-        self._use_display_names = False
         self._single_bit_uint_as_bool = False
 
-        self._callback = callback
+        self._callback = kwargs.get('callback', None)
 
         if name:
             if isinstance(name, BytesIO):
@@ -948,9 +947,6 @@ class MDF3(object):
             size hint of splitted data blocks, default 8MB; if the initial size
             is smaller, then no data list is used. The actual split size
             depends on the data groups' records size
-        use_display_names : bool
-            use display name if available for the Signal's name returned by the
-            get method
 
         """
 
@@ -959,9 +955,6 @@ class MDF3(object):
 
         if write_fragment_size:
             self._write_fragment_size = int(write_fragment_size)
-
-        if use_display_names is not None:
-            self._use_display_names = bool(use_display_names)
 
         if single_bit_uint_as_bool is not None:
             self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)

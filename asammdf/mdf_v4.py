@@ -268,6 +268,15 @@ class MDF4(object):
 
     version : string
         mdf file version ('4.00', '4.10', '4.11'); default '4.10'
+    callback : function
+        keyword only argument: function to call to update the progress; the
+        function must accept two arguments (the current progress and maximum
+        progress value)
+    use_display_names : bool
+        keyword only argument: for MDF4 files parse the XML channel comment to
+        search for the display name; XML parsing is quite expensive so setting
+        this to *False* can decrease the loading times very much
+
 
 
     Attributes
@@ -303,8 +312,10 @@ class MDF4(object):
 
     _terminate = False
 
-    def __init__(self, name=None, memory='full', version='4.10', callback=None):
+    def __init__(self, name=None, memory='full', version='4.10', **kwargs):
         memory = validate_memory_argument(memory)
+
+
         self.groups = []
         self.header = None
         self.identification = None
@@ -334,13 +345,13 @@ class MDF4(object):
 
         self._read_fragment_size = 0
         self._write_fragment_size = 8 * 2**20
-        self._use_display_names = False
+        self._use_display_names = kwargs.get('use_display_names', True)
         self._single_bit_uint_as_bool = False
 
         # make sure no appended block has the address 0
         self._tempfile.write(b'\0')
 
-        self._callback = callback
+        self._callback = kwargs.get('callback', None)
 
         if name:
             if isinstance(name, BytesIO):
@@ -1067,17 +1078,21 @@ class MDF4(object):
                     address=channel['name_addr'],
                     stream=stream,
                 )
-                comment = get_text_v4(
-                    address=channel['comment_addr'],
-                    stream=stream,
-                ).replace(' xmlns="http://www.asam.net/mdf/v4"', '')
 
-                if comment.startswith('<CNcomment'):
-                    try:
-                        display_name = ET.fromstring(comment).find('.//names/display')
-                        if display_name is not None:
-                            display_name = display_name.text
-                    except UnicodeEncodeError:
+                if self._use_display_names:
+                    comment = get_text_v4(
+                        address=channel['comment_addr'],
+                        stream=stream,
+                    ).replace(' xmlns="http://www.asam.net/mdf/v4"', '')
+
+                    if comment.startswith('<CNcomment'):
+                        try:
+                            display_name = ET.fromstring(comment).find('.//names/display')
+                            if display_name is not None:
+                                display_name = display_name.text
+                        except UnicodeEncodeError:
+                            display_name = ''
+                    else:
                         display_name = ''
                 else:
                     display_name = ''
@@ -1089,6 +1104,7 @@ class MDF4(object):
                     cc_map=self._cc_map,
                     si_map=self._si_map,
                     at_map=self._attachments_map,
+                    use_display_names=self._use_display_names,
                 )
                 value = channel
                 display_name = channel.display_name
@@ -2402,8 +2418,6 @@ class MDF4(object):
             size hint of splitted data blocks, default 8MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size
-        use_display_names : bool
-            use display name if available for the Signal's name returned by the get method
 
         """
 
@@ -4038,7 +4052,8 @@ class MDF4(object):
                         stream=stream,
                         cc_map=self._cc_map,
                         si_map=self._si_map,
-                        at_map=self._attachments_map
+                        at_map=self._attachments_map,
+                        use_display_names=self._use_display_names,
                     )
             else:
                 channel = grp['channels'][ch_nr]
@@ -4317,6 +4332,7 @@ class MDF4(object):
                                             stream=stream,
                                             cc_map=self._cc_map,
                                             si_map=self._si_map,
+                                            use_display_names=self._use_display_names,
                                         )
                                         axisname = ref_channel.name
                                     else:
@@ -4394,6 +4410,7 @@ class MDF4(object):
                                         stream=stream,
                                         cc_map=self._cc_map,
                                         si_map=self._si_map,
+                                        use_display_names=self._use_display_names,
                                     )
                                     axisname = ref_channel.name
                                 else:
@@ -4940,6 +4957,7 @@ class MDF4(object):
                     stream_sync=stream_sync,
                     invalidation_bits=invalidation_bits,
                 )
+                raise Exception()
             except:
                 debug_channel(self, grp, channel, dependency_list)
                 raise
@@ -5027,6 +5045,7 @@ class MDF4(object):
                     stream=stream,
                     cc_map=self._cc_map,
                     si_map=self._si_map,
+                    use_display_names=False,
                 )
             time_conv = time_ch.conversion
             time_name = time_ch.name
@@ -5453,6 +5472,7 @@ class MDF4(object):
                     channel = Channel(
                         address=channel,
                         stream=stream,
+                        use_display_names=self._use_display_names,
                     )
                 name = channel.name
 
@@ -6416,7 +6436,7 @@ class MDF4(object):
                         channel = Channel(
                             address=channel,
                             stream=stream,
-                            parse_xml_comment=False,
+                            use_display_names=False,
                         )
 
                     channel['next_ch_addr'] = next_ch_addr[level]
