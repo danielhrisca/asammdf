@@ -3535,18 +3535,20 @@ class MDF4(object):
         else:
             stream.seek(0, 2)
             addr = stream.tell()
-            gp['data_block'].append(addr)
             size = len(samples)
-            stream.write(samples)
+            if size:
+                gp['data_block'].append(addr)
+                stream.write(samples)
 
-            record_size = gp['channel_group']['samples_byte_nr']
-            record_size += gp['data_group']['record_id_len']
-            added_cycles = size // record_size
-            gp['channel_group']['cycles_nr'] += added_cycles
+                record_size = gp['channel_group']['samples_byte_nr']
+                record_size += gp['data_group']['record_id_len']
+                record_size += gp['channel_group']['invalidation_bytes_nr']
+                added_cycles = size // record_size
+                gp['channel_group']['cycles_nr'] += added_cycles
 
-            gp['data_block_addr'].append(addr)
-            gp['data_size'].append(size)
-            gp['data_block_size'].append(size)
+                gp['data_block_addr'].append(addr)
+                gp['data_size'].append(size)
+                gp['data_block_size'].append(size)
 
         del samples
 
@@ -5643,11 +5645,14 @@ class MDF4(object):
 
                 data = self._load_group_data(gp)
 
-                total_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                total_size = (
+                    (gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr'])
+                    * gp['channel_group']['cycles_nr']
+                )
 
                 if self._write_fragment_size:
 
-                    samples_size = gp['channel_group']['samples_byte_nr']
+                    samples_size = gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr']
                     split_size = self._write_fragment_size // samples_size
                     split_size *= samples_size
                     if split_size == 0:
@@ -5667,7 +5672,7 @@ class MDF4(object):
                         if compression == 1:
                             param = 0
                         else:
-                            param = gp['channel_group']['samples_byte_nr']
+                            param = gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr']
                         kargs = {
                             'data': data,
                             'zip_type': zip_type,
@@ -5720,7 +5725,7 @@ class MDF4(object):
                                 if compression == 1:
                                     param = 0
                                 else:
-                                    param = gp['channel_group']['samples_byte_nr']
+                                    param = gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr']
                                 kargs = {
                                     'data': data_,
                                     'zip_type': zip_type,
@@ -5749,7 +5754,7 @@ class MDF4(object):
                                     param = 0
                                 else:
                                     zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
-                                    param = gp['channel_group']['samples_byte_nr']
+                                    param = gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr']
                                 kargs = {
                                     'data': data_,
                                     'zip_type': zip_type,
@@ -6220,7 +6225,10 @@ class MDF4(object):
                 data = self._load_group_data(gp)
 
                 if self._write_fragment_size:
-                    total_size = gp['channel_group']['samples_byte_nr'] * gp['channel_group']['cycles_nr']
+                    total_size = (
+                        (gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr'])
+                        * gp['channel_group']['cycles_nr']
+                    )
                     samples_size = gp['channel_group']['samples_byte_nr']
                     split_size = self._write_fragment_size // samples_size
                     split_size *= samples_size
@@ -6238,7 +6246,7 @@ class MDF4(object):
                         if compression == 1:
                             param = 0
                         else:
-                            param = gp['channel_group']['samples_byte_nr']
+                            param = gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr']
                         kargs = {
                             'data': data,
                             'zip_type': zip_type,
@@ -6288,7 +6296,7 @@ class MDF4(object):
                                 param = 0
                             else:
                                 zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
-                                param = gp['channel_group']['samples_byte_nr']
+                                param = gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr']
 
                             kargs = {
                                 'data': data_,
