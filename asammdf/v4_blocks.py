@@ -1071,13 +1071,6 @@ class ChannelArrayBlock(dict):
                 'dim_size_0',
             )
 
-            try:
-                del self['scale_axis_0_dg_addr']
-                del self['scale_axis_0_cg_addr']
-                del self['scale_axis_0_ch_addr']
-            except KeyError:
-                pass
-
             fmt = '<4sI3Q2BHIiIQ'
         elif ca_type == v4c.CA_TYPE_LOOKUP:
             if flags & v4c.FLAG_CA_FIXED_AXIS:
