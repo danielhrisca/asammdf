@@ -20,6 +20,7 @@ from numpy import (
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
+UINT16 = Struct('<H').unpack
 UINT64 = Struct('<Q').unpack
 logger = logging.getLogger('asammdf')
 
@@ -215,7 +216,7 @@ def get_text_v3(address, stream):
         return ''
 
     stream.seek(address + 2)
-    size = unpack('<H', stream.read(2))[0] - 4
+    size = UINT16(stream.read(2))[0] - 4
     text_bytes = stream.read(size)
     try:
         text = (
