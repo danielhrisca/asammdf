@@ -5125,7 +5125,7 @@ class MDF4(object):
             db=None):
         """ get CAN message signal. You can specify an external CAN database (
         *database* argument) or canmatrix databse object that has already been
-        loaded from a file.
+        loaded from a file (*db* argument).
 
         The signal name can be specified in the following ways
 

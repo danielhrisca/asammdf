@@ -17,7 +17,6 @@ from . import v2_v3_constants as v23c
 from .utils import MdfException, get_text_v3
 
 PYVERSION = sys.version_info[0]
-PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 SEEK_START = v23c.SEEK_START
 SEEK_END = v23c.SEEK_END
 
@@ -561,10 +560,7 @@ comment: {}
             fmt = v23c.FMT_CHANNEL_SHORT
             keys = v23c.KEYS_CHANNEL_SHORT
 
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
     def __lt__(self, other):
@@ -1420,51 +1416,46 @@ address: {}
             nr = self['ref_param_nr']
             fmt = v23c.FMT_CONVERSION_COMMON + 'd32s' * nr
 
-        # compute the keys only for Python < 3.6
-        if PYVERSION_MAJOR < 36:
-            if conv == v23c.CONVERSION_TYPE_NONE:
-                keys = v23c.KEYS_CONVESION_NONE
-            elif conv == v23c.CONVERSION_TYPE_FORMULA:
-                keys = v23c.KEYS_CONVESION_FORMULA
-            elif conv == v23c.CONVERSION_TYPE_LINEAR:
-                keys = v23c.KEYS_CONVESION_LINEAR
-                if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:
-                    keys += ('CANapeHiddenExtra',)
-            elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
-                keys = v23c.KEYS_CONVESION_POLY_RAT
-            elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
-                keys = v23c.KEYS_CONVESION_EXPO_LOGH
-            elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
-                nr = self['ref_param_nr']
-                keys = list(v23c.KEYS_CONVESION_NONE)
-                for i in range(nr):
-                    keys.append('raw_{}'.format(i))
-                    keys.append('phys_{}'.format(i))
-            elif conv == v23c.CONVERSION_TYPE_RTABX:
-                nr = self['ref_param_nr']
-                keys = list(v23c.KEYS_CONVESION_NONE)
-                keys += [
-                    'default_lower',
-                    'default_upper',
-                    'default_addr',
-                ]
-                for i in range(nr - 1):
-                    keys.append('lower_{}'.format(i))
-                    keys.append('upper_{}'.format(i))
-                    keys.append('text_{}'.format(i))
-            elif conv == v23c.CONVERSION_TYPE_TABX:
-                nr = self['ref_param_nr']
-                keys = list(v23c.KEYS_CONVESION_NONE)
-                for i in range(nr):
-                    keys.append('param_val_{}'.format(i))
-                    keys.append('text_{}'.format(i))
+        if conv == v23c.CONVERSION_TYPE_NONE:
+            keys = v23c.KEYS_CONVESION_NONE
+        elif conv == v23c.CONVERSION_TYPE_FORMULA:
+            keys = v23c.KEYS_CONVESION_FORMULA
+        elif conv == v23c.CONVERSION_TYPE_LINEAR:
+            keys = v23c.KEYS_CONVESION_LINEAR
+            if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:
+                keys += ('CANapeHiddenExtra',)
+        elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
+            keys = v23c.KEYS_CONVESION_POLY_RAT
+        elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
+            keys = v23c.KEYS_CONVESION_EXPO_LOGH
+        elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
+            nr = self['ref_param_nr']
+            keys = list(v23c.KEYS_CONVESION_NONE)
+            for i in range(nr):
+                keys.append('raw_{}'.format(i))
+                keys.append('phys_{}'.format(i))
+        elif conv == v23c.CONVERSION_TYPE_RTABX:
+            nr = self['ref_param_nr']
+            keys = list(v23c.KEYS_CONVESION_NONE)
+            keys += [
+                'default_lower',
+                'default_upper',
+                'default_addr',
+            ]
+            for i in range(nr - 1):
+                keys.append('lower_{}'.format(i))
+                keys.append('upper_{}'.format(i))
+                keys.append('text_{}'.format(i))
+        elif conv == v23c.CONVERSION_TYPE_TABX:
+            nr = self['ref_param_nr']
+            keys = list(v23c.KEYS_CONVESION_NONE)
+            for i in range(nr):
+                keys.append('param_val_{}'.format(i))
+                keys.append('text_{}'.format(i))
 
         if self['block_len'] > v23c.MAX_UINT16:
             self['block_len'] = v23c.MAX_UINT16
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
     def __str__(self):
@@ -1583,10 +1574,7 @@ class ChannelDependency(dict):
         if option_dims_nr:
             fmt += '{}H'.format(option_dims_nr)
             keys += tuple('dim_{}'.format(i) for i in range(option_dims_nr))
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
 
@@ -1839,10 +1827,7 @@ address: {}
             fmt = v23c.FMT_SOURCE_VECTOR
             keys = v23c.KEYS_SOURCE_VECTOR
 
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
     def __str__(self):
@@ -2006,10 +1991,7 @@ class ChannelGroup(dict):
         if self['block_len'] == v23c.CG_POST_330_BLOCK_SIZE:
             fmt += 'I'
             keys += ('sample_reduction_addr',)
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
 
@@ -2136,10 +2118,7 @@ class DataGroup(dict):
         else:
             fmt = v23c.FMT_DATA_GROUP_PRE_320
             keys = v23c.KEYS_DATA_GROUP_PRE_320
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
 
@@ -2212,10 +2191,7 @@ class FileIdentificationBlock(dict):
             self['unfinalized_custom_flags'] = 0
 
     def __bytes__(self):
-        if PYVERSION_MAJOR >= 36:
-            result = pack(v23c.ID_FMT, *self.values())
-        else:
-            result = pack(v23c.ID_FMT, *[self[key] for key in v23c.ID_KEYS])
+        result = pack(v23c.ID_FMT, *[self[key] for key in v23c.ID_KEYS])
         return result
 
 
@@ -2482,10 +2458,7 @@ class HeaderBlock(dict):
         if self['block_len'] > v23c.HEADER_COMMON_SIZE:
             fmt += v23c.HEADER_POST_320_EXTRA_FMT
             keys += v23c.HEADER_POST_320_EXTRA_KEYS
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
 
@@ -2537,10 +2510,7 @@ class ProgramBlock(dict):
 
     def __bytes__(self):
         fmt = v23c.FMT_PROGRAM_BLOCK.format(self['block_len'])
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in v23c.KEYS_PROGRAM_BLOCK])
+        result = pack(fmt, *[self[key] for key in v23c.KEYS_PROGRAM_BLOCK])
         return result
 
 
@@ -2678,16 +2648,10 @@ class TextBlock(dict):
             self['text'] = text + b'\0'
 
     def __bytes__(self):
-        if PYVERSION_MAJOR >= 36:
-            result = pack(
-                '<2sH{}s'.format(self['block_len'] - 4),
-                *self.values()
-            )
-        else:
-            result = pack(
-                '<2sH{}s'.format(self['block_len'] - 4),
-                *[self[key] for key in v23c.KEYS_TEXT_BLOCK]
-            )
+        result = pack(
+            '<2sH{}s'.format(self['block_len'] - 4),
+            *[self[key] for key in v23c.KEYS_TEXT_BLOCK]
+        )
         return result
 
 
@@ -2836,8 +2800,5 @@ class TriggerBlock(dict):
                 'trigger_{}_pretime'.format(i),
                 'trigger_{}_posttime'.format(i),
             )
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
