@@ -199,8 +199,7 @@ Python 3 x64
 ------------
 Benchmark environment
 
-* 3.6.4 |Anaconda, Inc.| (default, Jan 16 2018, 18:10:19) 
-[GCC 7.2.0]
+* 3.6.4 |Anaconda, Inc.| (default, Jan 16 2018, 18:10:19) [GCC 7.2.0]
 * Linux-4.13.0-37-generic-x86_64-with-debian-stretch-sid
 * x86_64
 * 8GB installed RAM
