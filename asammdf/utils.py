@@ -21,6 +21,7 @@ from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
 UINT16 = Struct('<H').unpack
+UINT32 = Struct('<I').unpack
 UINT64 = Struct('<Q').unpack
 logger = logging.getLogger('asammdf')
 
@@ -770,31 +771,31 @@ def count_channel_groups(stream, version=4):
     count = 0
     if version >= 4:
         stream.seek(88, 0)
-        dg_addr = unpack('<Q', stream.read(8))[0]
+        dg_addr = UINT64(stream.read(8))[0]
         while dg_addr:
             stream.seek(dg_addr + 32)
-            cg_addr = unpack('<Q', stream.read(8))[0]
+            cg_addr = UINT64(stream.read(8))[0]
             while cg_addr:
                 count += 1
                 stream.seek(cg_addr + 24)
-                cg_addr = unpack('<Q', stream.read(8))[0]
+                cg_addr = UINT64(stream.read(8))[0]
 
             stream.seek(dg_addr + 24)
-            dg_addr = unpack('<Q', stream.read(8))[0]
+            dg_addr = UINT64(stream.read(8))[0]
 
     else:
         stream.seek(68, 0)
-        dg_addr = unpack('<I', stream.read(4))[0]
+        dg_addr = UINT32(stream.read(4))[0]
         while dg_addr:
             stream.seek(dg_addr + 8)
-            cg_addr = unpack('<I', stream.read(4))[0]
+            cg_addr = UINT32(stream.read(4))[0]
             while cg_addr:
                 count += 1
                 stream.seek(cg_addr + 4)
-                cg_addr = unpack('<I', stream.read(4))[0]
+                cg_addr = UINT32(stream.read(4))[0]
 
             stream.seek(dg_addr + 4)
-            dg_addr = unpack('<I', stream.read(4))[0]
+            dg_addr = UINT32(stream.read(4))[0]
 
     return count
 
