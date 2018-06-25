@@ -153,7 +153,7 @@ as an alias for the channel name). XML pasring is an expensive operation that ca
 have a big impact on the loading performance of measurements with hihg channel  
 count. 
 
-You can use the keywqord only argument *use_display_names* when creating MDF
+You can use the keyword only argument *use_display_names* when creating MDF
 objects to skip the XML parsing. This means that the display names will not be
 available when calling the *get* method.
 

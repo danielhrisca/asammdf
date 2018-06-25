@@ -78,7 +78,8 @@ class MDF(object):
     use_display_names : bool
         keyword only argument: for MDF4 files parse the XML channel comment to
         search for the display name; XML parsing is quite expensive so setting
-        this to *False* can decrease the loading times very much
+        this to *False* can decrease the loading times very much; default
+        *True*
 
     """
 
