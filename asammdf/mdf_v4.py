@@ -2434,6 +2434,7 @@ class MDF4(object):
         if single_bit_uint_as_bool is not None:
             self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
 
+
     def append(self, signals, source_info='Python', common_timebase=False):
         """
         Appends a new data group.
@@ -4686,17 +4687,22 @@ class MDF4(object):
                     vals = channel_values[0]
                 else:
                     vals = []
+
                 if not samples_only or raster:
                     if count > 1:
                         timestamps = concatenate(timestamps)
-                    else:
+                    elif count == 1:
                         timestamps = timestamps[0]
+                    else:
+                        timestamps = []
 
                 if channel_invalidation_present:
                     if count > 1:
                         invalidation_bits = concatenate(invalidation_bits)
-                    else:
+                    elif count == 1:
                         invalidation_bits = invalidation_bits[0]
+                    else:
+                        invalidation_bits = []
                     if not ignore_invalidation_bits:
                         vals = vals[argwhere(~invalidation_bits)].flatten()
                         if not samples_only or raster:
@@ -4989,7 +4995,7 @@ class MDF4(object):
             data_bytes, offset = fragment
             try:
                 timestamps = self._master_channel_cache[(index, offset)]
-                if raster and timestamps:
+                if raster and len(timestamps):
                     timestamps = arange(
                         timestamps[0],
                         timestamps[-1],
