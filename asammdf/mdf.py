@@ -591,7 +591,7 @@ class MDF(object):
                     if sigs:
                         out.append(
                             sigs,
-                            source_info.format(self.version, to),
+                            source_info.format(self.version, version),
                             common_timebase=True,
                         )
                         new_group = out.groups[-1]

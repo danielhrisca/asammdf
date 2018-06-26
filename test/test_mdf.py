@@ -535,7 +535,7 @@ class TestMDF(unittest.TestCase):
 
                     outfile = MDF.concatenate(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
-                        MDF(input_file, memory='minimum').version,
+                        version=MDF(input_file, memory='minimum').version,
                         memory=memory,
                     ).save('tmp_cut', overwrite=True)
 
@@ -777,7 +777,7 @@ class TestMDF(unittest.TestCase):
 
                     outfile = MDF.concatenate(
                         [outfile1, outfile2, outfile3],
-                        MDF(input_file, memory='minimum').version,
+                        vedrsion=MDF(input_file, memory='minimum').version,
                         memory=memory,
                     ).save('tmp', overwrite=True)
 
