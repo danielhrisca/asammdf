@@ -2798,21 +2798,6 @@ class MDF3(object):
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
-            if display_name and not comment.startswith('<CNcomment'):
-                CNcomment = ET.Element('CNcomment')
-
-                tx = ET.Element('TX')
-                tx.text = comment
-                CNcomment.append(tx)
-
-                display = ET.Element('display')
-                display.text = display_name
-                names = ET.Element('names')
-                names.append(display)
-                CNcomment.append(names)
-
-                comment = ET.tostring(CNcomment).decode('utf-8')
-
             res = Signal(
                 samples=vals,
                 timestamps=timestamps,

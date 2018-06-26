@@ -632,7 +632,44 @@ class Channel(dict):
             self[key] = 0
 
         key = 'comment_addr'
-        text = self.comment
+        comment = self.comment
+        display_name = self.display_name
+
+        if display_name and not text:
+            text = v4c.CN_COMMENT_TEMPLATE.format(
+                comment,
+                display_name,
+            )
+        elif display_name and comment:
+            if not comment.startswith('<CNcomment'):
+                text = v4c.CN_COMMENT_TEMPLATE.format(
+                    comment,
+                    display_name,
+                )
+            else:
+                if display_name not in comment:
+                    try:
+                        CNcomment = ET.fromstring(comment)
+                        display_name_element = CNcomment.find('.//names/display')
+                        if display_name is not None:
+                            display_name_element.text = display_name
+                        else:
+
+                            display = ET.Element('display')
+                            display.text = display_name
+                            names = ET.Element('names')
+                            names.append(display)
+                            CNcomment.append(names)
+
+                        text = ET.tostring(CNcomment).decode('utf-8')
+
+                    except UnicodeEncodeError:
+                        text = comment
+                else:
+                    text = comment
+        else:
+            text = comment
+
         if text:
             if text in defined_texts:
                 self[key] = defined_texts[text]
@@ -701,7 +738,45 @@ class Channel(dict):
             self[key] = 0
 
         key = 'comment_addr'
-        text = self.comment
+        comment = self.comment
+        display_name = self.display_name
+
+        if display_name and not text:
+            text = v4c.CN_COMMENT_TEMPLATE.format(
+                comment,
+                display_name,
+            )
+        elif display_name and comment:
+            if not comment.startswith('<CNcomment'):
+                text = v4c.CN_COMMENT_TEMPLATE.format(
+                    comment,
+                    display_name,
+                )
+            else:
+                if display_name not in comment:
+                    try:
+                        CNcomment = ET.fromstring(comment)
+                        display_name_element = CNcomment.find(
+                            './/names/display')
+                        if display_name is not None:
+                            display_name_element.text = display_name
+                        else:
+
+                            display = ET.Element('display')
+                            display.text = display_name
+                            names = ET.Element('names')
+                            names.append(display)
+                            CNcomment.append(names)
+
+                        text = ET.tostring(CNcomment).decode('utf-8')
+
+                    except UnicodeEncodeError:
+                        text = comment
+                else:
+                    text = comment
+        else:
+            text = comment
+
         if text:
             if text in defined_texts:
                 self[key] = defined_texts[text]
