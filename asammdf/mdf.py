@@ -515,12 +515,12 @@ class MDF(object):
         for signal in self.iter_channels():
             yield signal
 
-    def convert(self, to, memory='full'):
+    def convert(self, version, memory='full'):
         """convert *MDF* to other version
 
         Parameters
         ----------
-        to : str
+        version : str
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default '4.10'
         memory : str
@@ -532,7 +532,7 @@ class MDF(object):
             new *MDF* object
 
         """
-        version = validate_version_argument(to)
+        version = validate_version_argument(version)
         memory = validate_memory_argument(memory)
 
         out = MDF(version=version, memory=memory)
@@ -638,7 +638,7 @@ class MDF(object):
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def cut(self, start=None, stop=None, whence=0):
+    def cut(self, start=None, stop=None, whence=0, version=None, memory=None):
         """cut *MDF* file. *start* and *stop* limits are absolute values
         or values relative to the first timestamp depending on the *whence*
         argument.
@@ -656,6 +656,13 @@ class MDF(object):
 
             * 0 : absolute
             * 1 : relative to first timestamp
+        version : str
+            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
+            case the original file version is used
+        memory : str
+            memory option; default *None* and in this case the original file
+            memory option is used
 
         Returns
         -------
@@ -663,9 +670,19 @@ class MDF(object):
             new MDF object
 
         """
+        if memory is None:
+            memory = self.memory
+        else:
+            memory = validate_memory_argument(memory)
+
+        if version is None:
+            version = self.version
+        else:
+            version = validate_version_argument(version)
+
         out = MDF(
-            version=self.version,
-            memory=self.memory,
+            version=version,
+            memory=memory,
         )
 
         out.header.start_time = self.header.start_time
@@ -1468,7 +1485,7 @@ class MDF(object):
             message.format(fmt)
             logger.warning(message)
 
-    def filter(self, channels, memory='full'):
+    def filter(self, channels, memory=None, version=None):
         """ return new *MDF* object that contains only the channels listed in
         *channels* argument
 
@@ -1482,8 +1499,13 @@ class MDF(object):
                 * (channel name, group index) list or tuple
                 * (None, group index, channel index) list or tuple
 
+        version : str
+            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
+            case the original file version is used
         memory : str
-            memory option for filtered *MDF*; default *full*
+            memory option; default *None* and in this case the original file
+            memory option is used
 
         Returns
         -------
@@ -1532,7 +1554,15 @@ class MDF(object):
 
         """
 
-        memory = validate_memory_argument(memory)
+        if memory is None:
+            memory = self.memory
+        else:
+            memory = validate_memory_argument(memory)
+
+        if version is None:
+            version = self.version
+        else:
+            version = validate_version_argument(version)
 
         # group channels by group index
         gps = {}
@@ -1585,11 +1615,8 @@ class MDF(object):
 
             gps[group_index] = included_channels
 
-        if memory not in ('full', 'low', 'minimum'):
-            memory = self.memory
-
         mdf = MDF(
-            version=self.version,
+            version=version,
             memory=memory,
         )
 
@@ -1745,7 +1772,7 @@ class MDF(object):
             )
 
     @staticmethod
-    def concatenate(files, outversion='4.10', memory='full', sync=True, **kwargs):
+    def concatenate(files, version='4.10', memory='full', sync=True, **kwargs):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -1754,7 +1781,7 @@ class MDF(object):
         ----------
         files : list | tuple
             list of *MDF* file names or *MDF* instances
-        outversion : str
+        version : str
             merged file version
         memory : str
             memory option; default *full*
@@ -1814,7 +1841,7 @@ class MDF(object):
         else:
             groups_nr = groups_nr.pop()
 
-        version = validate_version_argument(outversion)
+        version = validate_version_argument(version)
         memory = validate_memory_argument(memory)
 
         merged = MDF(
@@ -2013,7 +2040,7 @@ class MDF(object):
         return merged
 
     @staticmethod
-    def merge(files, outversion='4.10', memory='full', sync=True, **kwargs):
+    def merge(files, version='4.10', memory='full', sync=True, **kwargs):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -2022,7 +2049,7 @@ class MDF(object):
         ----------
         files : list | tuple
             list of *MDF* file names or *MDF* instances
-        outversion : str
+        version : str
             merged file version
         memory : str
             memory option; default *full*
@@ -2039,17 +2066,17 @@ class MDF(object):
         MdfException : if there are inconsistencies between the files
 
         """
-        return MDF.concatenate(files, outversion, memory, sync, **kwargs)
+        return MDF.concatenate(files, version, memory, sync, **kwargs)
 
     @staticmethod
-    def stack(files, outversion='4.10', memory='full', sync=True, **kwargs):
+    def stack(files, version='4.10', memory='full', sync=True, **kwargs):
         """ merge several files and return the merged *MDF* object
 
         Parameters
         ----------
         files : list | tuple
             list of *MDF* file names or *MDF* instances
-        outversion : str
+        version : str
             merged file version
         memory : str
             memory option; default *full*
@@ -2065,7 +2092,7 @@ class MDF(object):
         if not files:
             raise MdfException('No files given for merge')
 
-        version = validate_version_argument(outversion)
+        version = validate_version_argument(version)
         memory = validate_memory_argument(memory)
 
         callback = kwargs.get('callback', None)
@@ -2288,15 +2315,20 @@ class MDF(object):
 
             yield DataFrame.from_dict(pandas_dict)
 
-    def resample(self, raster, memory='full'):
+    def resample(self, raster, memory=None, version=None):
         """ resample all channels using the given raster
 
         Parameters
         ----------
         raster : float
             time raster is seconds
+        version : str
+            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
+            case the original file version is used
         memory : str
-            memory option; default *None*
+            memory option; default *None* and in this case the original file
+            memory option is used
 
         Returns
         -------
@@ -2305,10 +2337,18 @@ class MDF(object):
 
         """
 
-        memory = validate_memory_argument(memory)
+        if memory is None:
+            memory = self.memory
+        else:
+            memory = validate_memory_argument(memory)
+
+        if version is None:
+            version = self.version
+        else:
+            version = validate_version_argument(version)
 
         mdf = MDF(
-            version=self.version,
+            version=version,
             memory=memory,
         )
 
