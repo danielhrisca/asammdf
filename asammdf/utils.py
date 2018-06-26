@@ -695,7 +695,7 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
 
 
 def debug_channel(mdf, group, channel, dependency):
-    """ use this to print debug infromation in case of errors
+    """ use this to print debug information in case of errors
 
     Parameters
     ----------
@@ -806,7 +806,7 @@ def validate_memory_argument(memory):
 
     Parameters
     ----------
-    version : memory
+    memory : memory
         requested memory argument
 
     Returns
