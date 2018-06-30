@@ -453,14 +453,17 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
     return fmt
 
 
-def fix_dtype_fields(fields):
+def fix_dtype_fields(fields, encoding='utf-8'):
     """ convert field names to str in case of Python 2"""
     new_types = []
     for pair_ in fields:
-        new_pair = [str(pair_[0])]
-        for item in pair_[1:]:
-            new_pair.append(item)
-        new_types.append(tuple(new_pair))
+        if not isinstance(pair_[0], unicode):
+            new_types.append(pair_)
+        else:
+            new_pair = [pair_[0].encode(encoding)]
+            for item in pair_[1:]:
+                new_pair.append(item)
+            new_types.append(tuple(new_pair))
 
     return new_types
 

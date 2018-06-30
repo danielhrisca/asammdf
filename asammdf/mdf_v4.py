@@ -1880,7 +1880,7 @@ class MDF4(object):
             dtype_pair = 'invalidation_bytes', '<u1', invalidation_bytes_nr
             types.append(dtype_pair)
             if PYVERSION == 2:
-                types = fix_dtype_fields(types)
+                types = fix_dtype_fields(types, 'utf-8')
 
             dtypes = dtype(types)
 
@@ -3203,7 +3203,7 @@ class MDF4(object):
 
         # data block
         if PYVERSION == 2:
-            types = fix_dtype_fields(types)
+            types = fix_dtype_fields(types, 'utf-8')
         types_ = types
         types = dtype(types)
 
@@ -3512,7 +3512,7 @@ class MDF4(object):
 
         # data block
         if PYVERSION == 2:
-            types = fix_dtype_fields(types)
+            types = fix_dtype_fields(types, 'utf-8')
         types = dtype(types)
 
         samples = fromarrays(fields, dtype=types).tostring()
@@ -4199,7 +4199,7 @@ class MDF4(object):
                     for name_, arr in zip(names, arrays)
                 ]
                 if PYVERSION == 2:
-                    types = fix_dtype_fields(types)
+                    types = fix_dtype_fields(types, 'utf-8')
                 types = dtype(types)
 
                 vals = fromarrays(arrays, dtype=types)
@@ -4454,7 +4454,7 @@ class MDF4(object):
                                 types.append(dtype_pair)
 
                     if PYVERSION == 2:
-                        types = fix_dtype_fields(types)
+                        types = fix_dtype_fields(types, 'utf-8')
 
                     vals = fromarrays(arrays, dtype(types))
 

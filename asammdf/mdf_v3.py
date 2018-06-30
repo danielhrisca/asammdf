@@ -502,7 +502,7 @@ class MDF3(object):
             types.append(dtype_pair)
 
         if PYVERSION == 2:
-            types = fix_dtype_fields(types)
+            types = fix_dtype_fields(types, 'latin-1')
 
         return parents, dtype(types)
 
@@ -1983,7 +1983,7 @@ class MDF3(object):
 
         # data block
         if PYVERSION == 2:
-            types = fix_dtype_fields(types)
+            types = fix_dtype_fields(types, 'latin-1')
         types = dtype(types)
 
         gp['types'] = types
@@ -2192,7 +2192,7 @@ class MDF3(object):
 
         # data block
         if PYVERSION == 2:
-            types = fix_dtype_fields(types)
+            types = fix_dtype_fields(types, 'latin-1')
         types = dtype(types)
 
         samples = fromarrays(fields, dtype=types)
@@ -2598,7 +2598,7 @@ class MDF3(object):
             types = [(channel.name, vals.dtype, record_shape), ]
 
             if PYVERSION == 2:
-                types = fix_dtype_fields(types)
+                types = fix_dtype_fields(types, 'latin-1')
 
             types = dtype(types)
             vals = fromarrays(arrays, dtype=types)
