@@ -199,10 +199,10 @@ Python 3 x64
 ------------
 Benchmark environment
 
-* 3.6.4 |Anaconda, Inc.| (default, Jan 16 2018, 18:10:19) [GCC 7.2.0]
-* Linux-4.13.0-37-generic-x86_64-with-debian-stretch-sid
-* x86_64
-* 8GB installed RAM
+* 3.6.2 (v3.6.2:5fd33b5, Jul  8 2017, 04:57:36) [MSC v.1900 64 bit (AMD64)]
+* Windows-10-10.0.17134-SP0
+* Intel64 Family 6 Model 69 Stepping 1, GenuineIntel
+* 16GB installed RAM
 
 Notations used in the results
 
@@ -228,84 +228,84 @@ Files used for benchmark:
 ================================================== ========= ========
 Open file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 4.0.0.dev full mdfv3                            2013      331
-asammdf 4.0.0.dev low mdfv3                             1913      178
-asammdf 4.0.0.dev minimum mdfv3                          617       64
-mdfreader 2.7.7 mdfv3                                   2892      241
-mdfreader 2.7.7 compress mdfv3                          2947      234
-mdfreader 2.7.7 noDataLoading mdfv3                     1652      175
-asammdf 4.0.0.dev full mdfv4                            3504      304
-asammdf 4.0.0.dev low mdfv4                             3292      140
-asammdf 4.0.0.dev minimum mdfv4                         2663       64
-mdfreader 2.7.7 mdfv4                                   8215      440
-mdfreader 2.7.7 compress mdfv4                          8535      309
-mdfreader 2.7.7 noDataLoading mdfv4                     5413      182
+asammdf 4.0.0.dev full mdfv3                            1466      337
+asammdf 4.0.0.dev low mdfv3                             1372      184
+asammdf 4.0.0.dev minimum mdfv3                          420       70
+mdfreader 2.7.8 mdfv3                                   2794      430
+mdfreader 2.7.8 compress mdfv3                          4323      129
+mdfreader 2.7.8 noDataLoading mdfv3                     1187      176
+asammdf 4.0.0.dev full mdfv4                            1786      312
+asammdf 4.0.0.dev low mdfv4                             1637      147
+asammdf 4.0.0.dev minimum mdfv4                         1099       71
+mdfreader 2.7.8 mdfv4                                   6706      441
+mdfreader 2.7.8 compress mdfv4                          8542      141
+mdfreader 2.7.8 noDataLoading mdfv4                     4539      182
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Save file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 4.0.0.dev full mdfv3                            1083      338
-asammdf 4.0.0.dev low mdfv3                             1308      185
-asammdf 4.0.0.dev minimum mdfv3                         3936       68
-mdfreader 2.7.7 mdfv3                                     0*       0*
-mdfreader 2.7.7 noDataLoading mdfv3                       0*       0*
-mdfreader 2.7.7 compress mdfv3                            0*       0*
-asammdf 4.0.0.dev full mdfv4                            1279      309
-asammdf 4.0.0.dev low mdfv4                             1679      149
-asammdf 4.0.0.dev minimum mdfv4                         3776       74
-mdfreader 2.7.7 mdfv4                                   6710      465
-mdfreader 2.7.7 noDataLoading mdfv4                     9615      483
-mdfreader 2.7.7 compress mdfv4                          7191      463
+asammdf 4.0.0.dev full mdfv3                             894      343
+asammdf 4.0.0.dev low mdfv3                              866      190
+asammdf 4.0.0.dev minimum mdfv3                         3135       78
+mdfreader 2.7.8 mdfv3                                   7733      459
+mdfreader 2.7.8 noDataLoading mdfv3                     9353      520
+mdfreader 2.7.8 compress mdfv3                          7827      428
+asammdf 4.0.0.dev full mdfv4                             982      316
+asammdf 4.0.0.dev low mdfv4                              974      157
+asammdf 4.0.0.dev minimum mdfv4                         3600       80
+mdfreader 2.7.8 mdfv4                                   4669      459
+mdfreader 2.7.8 noDataLoading mdfv4                     6612      478
+mdfreader 2.7.8 compress mdfv4                          4525      418
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Get all channels (36424 calls)                     Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 4.0.0.dev full mdfv3                            2182      342
-asammdf 4.0.0.dev low mdfv3                             9133      195
-asammdf 4.0.0.dev minimum mdfv3                        13574       81
-mdfreader 2.7.7 mdfv3                                      4      241
-mdfreader 2.7.7 nodata mdfv3                            2319      204
-mdfreader 2.7.7 compress mdfv3                            42      234
-asammdf 4.0.0.dev full mdfv4                            2072      311
-asammdf 4.0.0.dev low mdfv4                            11022      151
-asammdf 4.0.0.dev minimum mdfv4                        18972       82
-mdfreader 2.7.7 mdfv4                                    114      440
-mdfreader 2.7.7 nodata mdfv4                           23070      208
-mdfreader 2.7.7 compress mdfv4                           255      313
+asammdf 4.0.0.dev full mdfv3                            1605      346
+asammdf 4.0.0.dev low mdfv3                             7224      199
+asammdf 4.0.0.dev minimum mdfv3                         9965       87
+mdfreader 2.7.8 mdfv3                                    102      430
+mdfreader 2.7.8 nodata mdfv3                           16696      211
+mdfreader 2.7.8 compress mdfv3                           622      129
+asammdf 4.0.0.dev full mdfv4                            1685      316
+asammdf 4.0.0.dev low mdfv4                            12592      157
+asammdf 4.0.0.dev minimum mdfv4                        16428       84
+mdfreader 2.7.8 mdfv4                                     93      441
+mdfreader 2.7.8 compress mdfv4                           624      141
+mdfreader 2.7.8 nodata mdfv4                           27146      206
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Convert file                                       Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 4.0.0.dev full v3 to v4                         6898      674
-asammdf 4.0.0.dev low v3 to v4                          7447      343
-asammdf 4.0.0.dev minimum v3 to v4                     11432      116
-asammdf 4.0.0.dev full v4 to v3                         7294      601
-asammdf 4.0.0.dev low v4 to v3                          6613      251
-asammdf 4.0.0.dev minimum v4 to v3                     13755      110
+asammdf 4.0.0.dev full v3 to v4                         5677      680
+asammdf 4.0.0.dev low v3 to v4                          5737      352
+asammdf 4.0.0.dev minimum v3 to v4                      9341      118
+asammdf 4.0.0.dev full v4 to v3                         5095      610
+asammdf 4.0.0.dev low v4 to v3                          5328      263
+asammdf 4.0.0.dev minimum v4 to v3                      9983      115
 ================================================== ========= ========
 
 
 ================================================== ========= ========
-Merge 2 files                                      Time [ms] RAM [MB]
+Merge 3 files                                      Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 4.0.0.dev full v3                              14380     1107
-asammdf 4.0.0.dev low v3                               13896      425
-asammdf 4.0.0.dev minimum v3                           20179      138
-mdfreader 2.7.7 v3                                      6081      251
-mdfreader 2.7.7 compress v3                             6285      250
-mdfreader 2.7.7 nodata v3                                 0*       0*
-asammdf 4.0.0.dev full v4                              18774     1054
-asammdf 4.0.0.dev low v4                               26612      349
-asammdf 4.0.0.dev minimum v4                           34256      135
-mdfreader 2.7.7 v4                                     28264      960
-mdfreader 2.7.7 nodata v4                              24660      998
-mdfreader 2.7.7 compress v4                            22881      959
+asammdf 4.0.0.dev full v3                              17059     1641
+asammdf 4.0.0.dev low v3                               16730      622
+asammdf 4.0.0.dev minimum v3                           25156      166
+mdfreader 2.7.8 v3                                     24608     1335
+mdfreader 2.7.8 compress v3                            30669     1347
+mdfreader 2.7.8 nodata v3                              24093     1456
+asammdf 4.0.0.dev full v4                              17949     1513
+asammdf 4.0.0.dev low v4                               17592      461
+asammdf 4.0.0.dev minimum v4                           36417      166
+mdfreader 2.7.8 v4                                     36287     1326
+mdfreader 2.7.8 nodata v4                              35904     1361
+mdfreader 2.7.8 compress v4                            42410     1336
 ================================================== ========= ========
 
 
