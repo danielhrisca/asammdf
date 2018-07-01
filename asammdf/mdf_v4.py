@@ -71,6 +71,7 @@ from .utils import (
     validate_version_argument,
     count_channel_groups,
     info_to_datatype_v4,
+    BufferedFile
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -5617,7 +5618,7 @@ class MDF4(object):
         else:
             destination = dst
 
-        with open(destination, 'wb+') as dst_:
+        with BufferedFile(destination, 'wb+', 50 * 2**20) as dst_:
             defined_texts = {}
             cc_map = {}
             si_map = {}
@@ -5631,6 +5632,7 @@ class MDF4(object):
             write(bytes(self.identification))
             write(bytes(self.header))
 
+            dst_.flush()
             original_data_addresses = []
 
             if compression == 1:
@@ -5798,6 +5800,7 @@ class MDF4(object):
                     self.close()
                     return
 
+            dst_.flush()
             address = tell()
 
             blocks = []
@@ -6196,7 +6199,7 @@ class MDF4(object):
         else:
             destination = dst
 
-        with open(destination, 'wb+') as dst_:
+        with BufferedFile(destination, 'wb+', 20 * 2**20) as dst_:
             defined_texts = {}
             cc_map = {}
             si_map = {}
@@ -6341,6 +6344,7 @@ class MDF4(object):
                     self.close()
                     return
 
+            dst_.flush()
             address = tell()
 
             if self.header.comment:
@@ -6379,6 +6383,7 @@ class MDF4(object):
             for blk in blocks:
                 write(bytes(blk))
 
+            dst_.flush()
             del blocks
 
             address = tell()
@@ -6529,6 +6534,8 @@ class MDF4(object):
                     dst_.close()
                     self.close()
                     return
+
+            dst_.flush()
 
             blocks = []
             address = tell()

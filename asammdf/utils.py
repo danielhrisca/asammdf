@@ -906,3 +906,45 @@ class ChannelsDB(dict):
                 self[channel_name].append(
                     entry
                 )
+
+class BufferedFile(object):
+
+    def __init__(self, name, mode, size):
+        self._file = open(name, mode)
+        self.size = size
+        self.buffer = []
+        self._current_size = 0
+
+    def write(self, data):
+        self.buffer.append(data)
+        self._current_size += len(data)
+        ret = None
+        if self._current_size >= self.size:
+            ret = self._file.write(b''.join(self.buffer))
+            self.buffer = []
+            self._current_size = 0
+        return ret
+
+    def flush(self):
+        self._file.write(b''.join(self.buffer))
+        self.buffer = []
+        self._current_size = 0
+
+    def seek(self, offset, whence=0):
+        self._file.seek(offset, whence)
+
+    def tell(self):
+        return self._file.tell()
+
+    def close(self):
+        self._file.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.flush()
+        self._file.close()
+
+
+
