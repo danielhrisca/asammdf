@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 from collections import namedtuple
 from struct import unpack, Struct
 from warnings import warn
+from tempfile import TemporaryFile
 
 from numpy import (
     amin,
@@ -907,17 +908,26 @@ class ChannelsDB(dict):
                     entry
                 )
 
+
 class BufferedFile(object):
 
-    def __init__(self, name, mode, size):
-        self._file = open(name, mode)
+    def __init__(self, name='', mode='rb+', size=10*2**20, temporary=False):
+        if temporary:
+            self._file = TemporaryFile()
+        else:
+            self._file = open(name, mode)
         self.size = size
         self.buffer = []
         self._current_size = 0
+        self._current_position = 0
+        self._current_file_size = 0
 
     def write(self, data):
         self.buffer.append(data)
-        self._current_size += len(data)
+        size = len(data)
+        self._current_size += size
+        self._current_position += size
+        self._current_file_size += size
         ret = None
         if self._current_size >= self.size:
             ret = self._file.write(b''.join(self.buffer))
@@ -926,15 +936,31 @@ class BufferedFile(object):
         return ret
 
     def flush(self):
-        self._file.write(b''.join(self.buffer))
-        self.buffer = []
-        self._current_size = 0
+        if self.buffer:
+            self._file.write(b''.join(self.buffer))
+            self.buffer = []
+            self._current_size = 0
+
+    def read(self, count=None):
+        if count:
+            self._current_position += count
+            return self._file.read(count)
+        else:
+            return b''
 
     def seek(self, offset, whence=0):
-        self._file.seek(offset, whence)
+        if (offset, whence) == (0, 2):
+            if self._current_position != self._current_file_size:
+                self.flush()
+                self._file.seek(offset, whence)
+                self._current_position = self._file.tell()
+        else:
+            self.flush()
+            self._file.seek(offset, whence)
+            self._current_position = self._file.tell()
 
     def tell(self):
-        return self._file.tell()
+        return self._current_position
 
     def close(self):
         self._file.close()
@@ -945,6 +971,3 @@ class BufferedFile(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self.flush()
         self._file.close()
-
-
-

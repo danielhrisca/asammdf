@@ -342,7 +342,7 @@ class MDF4(object):
         self._cg_map = {}
         self._dbc_cache = {}
 
-        self._tempfile = TemporaryFile()
+        self._tempfile = BufferedFile(temporary=True)
         self._file = None
 
         self._read_fragment_size = 0
@@ -5618,7 +5618,7 @@ class MDF4(object):
         else:
             destination = dst
 
-        with BufferedFile(destination, 'wb+', 50 * 2**20) as dst_:
+        with BufferedFile(destination, 'wb+') as dst_:
             defined_texts = {}
             cc_map = {}
             si_map = {}
@@ -6199,7 +6199,7 @@ class MDF4(object):
         else:
             destination = dst
 
-        with BufferedFile(destination, 'wb+', 20 * 2**20) as dst_:
+        with BufferedFile(destination, 'wb+') as dst_:
             defined_texts = {}
             cc_map = {}
             si_map = {}
