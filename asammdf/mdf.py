@@ -954,7 +954,7 @@ class MDF(object):
             'date',
             'time',
             'author',
-            'organization',
+            'department',
             'project',
             'subject',
         )

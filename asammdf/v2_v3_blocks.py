@@ -2239,6 +2239,14 @@ class HeaderBlock(dict):
         file comment
     program : ProgramBlock
         program block
+    author : str
+        measurement author
+    department : str
+        author's department
+    project : str
+        working project
+    subject : str
+        measurement subject
 
     '''
 
@@ -2262,7 +2270,7 @@ class HeaderBlock(dict):
              self['date'],
              self['time'],
              self['author'],
-             self['organization'],
+             self['department'],
              self['project'],
              self['subject']) = unpack(
                 v23c.HEADER_COMMON_FMT,
@@ -2320,7 +2328,7 @@ class HeaderBlock(dict):
                 .format(getuser())
                 .encode('latin-1')
             )
-            self['organization'] = (
+            self['department'] = (
                 '{:\0<32}'
                 .format('')
                 .encode('latin-1')
@@ -2345,6 +2353,11 @@ class HeaderBlock(dict):
                     .format('Local PC Reference Time')
                     .encode('latin-1')
                 )
+
+        self.author = self['author'].strip(' \r\n\t\0').decode('latin-1')
+        self.department = self['department'].strip(' \r\n\t\0').decode('latin-1')
+        self.project = self['project'].strip(' \r\n\t\0').decode('latin-1')
+        self.subject = self['subject'].strip(' \r\n\t\0').decode('latin-1')
 
     def to_blocks(self, address, blocks, defined_texts, si_map):
 
@@ -2371,6 +2384,11 @@ class HeaderBlock(dict):
 
         else:
             self[key] = 0
+
+        self['author'] = self.author.encode('latin-1')
+        self['department'] = self.department.encode('latin-1')
+        self['project'] = self.project.encode('latin-1')
+        self['subject'] = self.subject.encode('latin-1')
 
         blocks.append(self)
         self.address = address
@@ -2404,6 +2422,11 @@ class HeaderBlock(dict):
 
         else:
             self[key] = 0
+
+        self['author'] = self.author.encode('latin-1')
+        self['department'] = self.department.encode('latin-1')
+        self['project'] = self.project.encode('latin-1')
+        self['subject'] = self.subject.encode('latin-1')
 
         stream.write(bytes(self))
         self.address = address

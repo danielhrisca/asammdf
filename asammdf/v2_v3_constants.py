@@ -150,7 +150,7 @@ HEADER_COMMON_KEYS = (
     'date',
     'time',
     'author',
-    'organization',
+    'department',
     'project',
     'subject',
 )

@@ -3020,7 +3020,7 @@ class MDF3(object):
         """
         info = {}
         for key in ('author',
-                    'organization',
+                    'department',
                     'project',
                     'subject'):
             value = self.header[key].decode('latin-1').strip(' \n\t\0')
