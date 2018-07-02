@@ -214,7 +214,7 @@ class MDF3(object):
         self._master_channel_metadata = {}
 
         # used for appending to MDF created with memory=False
-        self._tempfile = BufferedFile(temporary=True)
+        self._tempfile = TemporaryFile()
         self._tempfile.write(b'\0')
         self._file = None
 
@@ -3196,7 +3196,7 @@ class MDF3(object):
         else:
             destination = dst
 
-        with BufferedFile(destination, 'wb+') as dst_:
+        with open(destination, 'wb+') as dst_:
 
             groups_nr = len(self.groups)
 
@@ -3466,7 +3466,7 @@ class MDF3(object):
         else:
             destination = dst
 
-        with BufferedFile(destination, 'wb+') as dst_:
+        with open(destination, 'wb+') as dst_:
 
             groups_nr = len(self.groups)
 
