@@ -5523,9 +5523,6 @@ class MDF4(object):
             )
             raise MdfException(message)
 
-        _read_fragment_size = self._read_fragment_size
-        self.configure(read_fragment_size=4 * 2 ** 20)
-
         if self.memory == 'minimum':
             output_file = self._save_without_metadata(
                 dst,
@@ -5538,8 +5535,6 @@ class MDF4(object):
                 overwrite,
                 compression,
             )
-
-        self.configure(read_fragment_size=_read_fragment_size)
 
         if self._callback:
             self._callback(100, 100)

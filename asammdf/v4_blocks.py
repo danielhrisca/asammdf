@@ -3798,6 +3798,8 @@ class HeaderBlock(dict):
 
         if self.comment.startswith('<HDcomment'):
             comment = self.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
+            if PYVERSION < 3:
+                comment = comment.encode('utf-8')
             comment_xml = ET.fromstring(comment)
             common_properties = comment_xml.find(".//common_properties")
             if common_properties is not None:
