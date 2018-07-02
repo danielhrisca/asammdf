@@ -2354,10 +2354,10 @@ class HeaderBlock(dict):
                     .encode('latin-1')
                 )
 
-        self.author = self['author'].strip(' \r\n\t\0').decode('latin-1')
-        self.department = self['department'].strip(' \r\n\t\0').decode('latin-1')
-        self.project = self['project'].strip(' \r\n\t\0').decode('latin-1')
-        self.subject = self['subject'].strip(' \r\n\t\0').decode('latin-1')
+        self.author = self['author'].strip(b' \r\n\t\0').decode('latin-1')
+        self.department = self['department'].strip(b' \r\n\t\0').decode('latin-1')
+        self.project = self['project'].strip(b' \r\n\t\0').decode('latin-1')
+        self.subject = self['subject'].strip(b' \r\n\t\0').decode('latin-1')
 
     def to_blocks(self, address, blocks, defined_texts, si_map):
 
