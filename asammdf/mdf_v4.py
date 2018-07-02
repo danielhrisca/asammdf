@@ -1739,8 +1739,6 @@ class MDF4(object):
                     Channel(
                         address=ch_addr,
                         stream=stream,
-                        cc_map=self._cc_map,
-                        si_map=self._si_map,
                         load_metadata=False,
                     )
                     for ch_addr in grp['channels']
@@ -2483,7 +2481,7 @@ class MDF4(object):
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
         t_ = signals[0].timestamps
-        if True or not common_timebase:
+        if not common_timebase:
             for s in signals[1:]:
                 if not array_equal(s.timestamps, t_):
                     different = True
@@ -4916,9 +4914,6 @@ class MDF4(object):
                 conversion and conversion.unit
                 or channel.unit
             )
-
-            if unit:
-                unit = unit.strip(' \t\r\n\0')
 
             comment = channel.comment
 

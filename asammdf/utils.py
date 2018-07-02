@@ -223,8 +223,8 @@ def get_text_v3(address, stream):
     try:
         text = (
             text_bytes
+            .strip(b' \r\t\n\0')
             .decode('latin-1')
-            .strip(' \r\t\n\0')
         )
     except UnicodeDecodeError as err:
         try:
@@ -232,8 +232,8 @@ def get_text_v3(address, stream):
             encoding = detect(text_bytes)['encoding']
             text = (
                 text_bytes
+                .strip(b' \r\t\n\0')
                 .decode(encoding)
-                .strip(' \r\t\n\0')
             )
         except ImportError:
             logger.warning(
@@ -659,9 +659,9 @@ def get_min_max(samples):
     """
 
     if samples.shape[0]:
-        try:
+        if samples.dtype.kind in 'uif':
             min_val, max_val = amin(samples), amax(samples)
-        except TypeError:
+        else:
             min_val, max_val = 1, 0
     else:
         min_val, max_val = 0, 0

@@ -57,7 +57,6 @@ from .utils import (
     validate_memory_argument,
     validate_version_argument,
     count_channel_groups,
-    BufferedFile,
 )
 from .v2_v3_blocks import (
     Channel,
