@@ -3084,8 +3084,8 @@ class MDF3(object):
                        'for MDF created from scratch')
             raise MdfException(message)
 
-        _read_fragment_size = self._read_fragment_size
-        self.configure(read_fragment_size=4 * 2**20)
+        if not os.path.exists(os.path.dirname(dst)):
+            os.makedirs(os.path.dirname(dst))
 
         if self.memory == 'minimum':
             output_file = self._save_without_metadata(
@@ -3099,8 +3099,6 @@ class MDF3(object):
                 overwrite,
                 compression,
             )
-
-        self.configure(read_fragment_size=_read_fragment_size)
 
         if self._callback:
             self._callback(100, 100)

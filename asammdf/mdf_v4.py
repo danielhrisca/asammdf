@@ -5523,6 +5523,9 @@ class MDF4(object):
             )
             raise MdfException(message)
 
+        if not os.path.exists(os.path.dirname(dst)):
+            os.makedirs(os.path.dirname(dst))
+
         if self.memory == 'minimum':
             output_file = self._save_without_metadata(
                 dst,
