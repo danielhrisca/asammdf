@@ -3722,6 +3722,14 @@ class HeaderBlock(dict):
         header address
     comment : str
         file comment
+    author : str
+        measurement author
+    department : str
+        author's department
+    project : str
+        working project
+    subject : str
+        measurement subject
 
     """
 

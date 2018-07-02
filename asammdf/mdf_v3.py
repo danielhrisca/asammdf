@@ -3084,8 +3084,9 @@ class MDF3(object):
                        'for MDF created from scratch')
             raise MdfException(message)
 
-        if not os.path.exists(os.path.dirname(dst)):
-            os.makedirs(os.path.dirname(dst))
+        destination_dir = os.path.dirname(dst)
+        if destination_dir and not os.path.exists(destination_dir):
+            os.makedirs(destination_dir)
 
         if self.memory == 'minimum':
             output_file = self._save_without_metadata(
