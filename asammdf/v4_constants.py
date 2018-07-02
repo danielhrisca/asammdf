@@ -446,3 +446,13 @@ CN_COMMENT_TEMPLATE = """<CNcomment>
     <display>{}</display>
 </names>
 </CNcomment>"""
+
+HD_COMMENT_TEMPLATE = """<HDcomment>
+<TX>{}</TX>
+<common_properties>
+    <e name="author">{}</e>
+    <e name="department">{}</e>
+    <e name="project">{}</e>
+    <e name="subject">{}</e>
+</common_properties>
+</HDcomment>"""

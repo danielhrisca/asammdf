@@ -706,7 +706,6 @@ class Channel(dict):
 
     def to_stream(self, stream, defined_texts, cc_map, si_map):
         address = stream.tell()
-
         key = 'name_addr'
         text = self.name
         if text:
@@ -860,9 +859,9 @@ class Channel(dict):
         return result
 
     def __repr__(self):
-        return '''<Channel (name: {}, unit: {}, comment: {}, address: {}, 
-    conversion: {}, 
-    source: {}, 
+        return '''<Channel (name: {}, unit: {}, comment: {}, address: {},
+    conversion: {},
+    source: {},
     fields: {})>'''.format(
             self.name,
             self.unit,
@@ -3731,6 +3730,8 @@ class HeaderBlock(dict):
 
         self.comment = ''
 
+        self.author = self.project = self.subject = self.department = ''
+
         try:
             self.address = address = kwargs['address']
             stream = kwargs['stream']
@@ -3795,6 +3796,22 @@ class HeaderBlock(dict):
             self['start_angle'] = kwargs.get('start_angle', 0)
             self['start_distance'] = kwargs.get('start_distance', 0)
 
+        if self.comment.startswith('<HDcomment'):
+            comment = self.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
+            comment_xml = ET.fromstring(comment)
+            common_properties = comment_xml.find(".//common_properties")
+            if common_properties is not None:
+                for e in common_properties:
+                    name = e.get('name')
+                    if name == 'author':
+                        self.author = e.text
+                    elif name == 'department':
+                        self.department = e.text
+                    elif name == 'project':
+                        self.project = e.text
+                    elif name == 'subject':
+                        self.subject = e.text
+
     @property
     def start_time(self):
         """ getter and setter the measurement start timestamp
@@ -3821,6 +3838,143 @@ class HeaderBlock(dict):
         self['abs_time'] = timestamp
         self['tz_offset'] = 0
         self['daylight_save_time'] = 0
+
+    def to_blocks(self, address, blocks):
+        if self.comment.startswith('<HDcomment'):
+            comment = self.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
+            comment = ET.fromstring(comment)
+            common_properties = comment.find(".//common_properties")
+            if common_properties is not None:
+                for e in common_properties:
+                    name = e.get('name')
+                    if name == 'author':
+                        e.text = self.author
+                        break
+                else:
+                    author = ET.SubElement(common_properties, "e", name="author").text = self.author
+
+                for e in common_properties:
+                    name = e.get('name')
+                    if name == 'department':
+                        e.text = self.department
+                        break
+                else:
+                    department = ET.SubElement(common_properties, "e", name="department").text = self.department
+
+                for e in common_properties:
+                    name = e.get('name')
+                    if name == 'project':
+                        e.text = self.author
+                        break
+                else:
+                    project = ET.SubElement(common_properties, "e", name="project").text = self.project
+
+                for e in common_properties:
+                    name = e.get('name')
+                    if name == 'subject':
+                        e.text = self.author
+                        break
+                else:
+                    subject = ET.SubElement(common_properties, "e", name="subject").text = self.subject
+
+            else:
+                common_properties = ET.SubElement(comment, "common_properties")
+                author = ET.SubElement(common_properties, "e", name="author").text = self.author
+                department = ET.SubElement(common_properties, "e", name="department").text = self.department
+                project = ET.SubElement(common_properties, "e", name="project").text = self.project
+                subject = ET.SubElement(common_properties, "e", name="subject").text = self.subject
+
+            comment = ET.tostring(comment, encoding='utf8', method='xml')
+
+        else:
+            comment = v4c.HD_COMMENT_TEMPLATE.format(
+                self.comment,
+                self.author,
+                self.department,
+                self.project,
+                self.subject,
+            )
+
+        tx_block = TextBlock(text=comment, meta=True)
+        self['comment_addr'] = address
+        tx_block.address = address
+        address += tx_block['block_len']
+        blocks.append(tx_block)
+
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
+        return address
+
+    def to_stream(self, stream):
+        address = stream.tell()
+        if self.comment.startswith('<HDcomment'):
+            comment = self.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
+            comment = ET.fromstring(comment)
+            common_properties = comment.find(".//common_properties")
+            if common_properties is not None:
+                for e in common_properties:
+                    name = e.get('name')
+                    if name == 'author':
+                        e.text = self.author
+                        break
+                else:
+                    author = ET.SubElement(common_properties, "e", name="author").text = self.author
+
+                for e in common_properties:
+                    name = e.get('name')
+                    if name == 'department':
+                        e.text = self.department
+                        break
+                else:
+                    department = ET.SubElement(common_properties, "e", name="department").text = self.department
+
+                for e in common_properties:
+                    name = e.get('name')
+                    if name == 'project':
+                        e.text = self.author
+                        break
+                else:
+                    project = ET.SubElement(common_properties, "e", name="project").text = self.project
+
+                for e in common_properties:
+                    name = e.get('name')
+                    if name == 'subject':
+                        e.text = self.author
+                        break
+                else:
+                    subject = ET.SubElement(common_properties, "e", name="subject").text = self.subject
+
+            else:
+                common_properties = ET.SubElement(comment, "common_properties")
+                author = ET.SubElement(common_properties, "e", name="author").text = self.author
+                department = ET.SubElement(common_properties, "e", name="department").text = self.department
+                project = ET.SubElement(common_properties, "e", name="project").text = self.project
+                subject = ET.SubElement(common_properties, "e", name="subject").text = self.subject
+
+            comment = ET.tostring(comment, encoding='utf8', method='xml')
+
+        else:
+            comment = v4c.HD_COMMENT_TEMPLATE.format(
+                self.comment,
+                self.author,
+                self.department,
+                self.project,
+                self.subject,
+            )
+
+        self['comment_addr'] = address + self['block_len']
+
+        self.address = address
+        address += self['block_len']
+        stream.write(bytes(self))
+
+        tx_block = TextBlock(text=comment, meta=True)
+        address += tx_block['block_len']
+        stream.write(bytes(tx_block))
+
+        return address
 
     def __bytes__(self):
         result = pack(

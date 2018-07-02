@@ -5625,7 +5625,7 @@ class MDF4(object):
             seek = dst_.seek
 
             write(bytes(self.identification))
-            write(bytes(self.header))
+            self.header.to_stream(dst_)
 
             dst_.flush()
             original_data_addresses = []
@@ -5799,16 +5799,6 @@ class MDF4(object):
             address = tell()
 
             blocks = []
-
-            if self.header.comment:
-                meta = self.header.comment.startswith('<HDcomment')
-                block = TextBlock(
-                    text=self.header.comment,
-                    meta=meta,
-                )
-                blocks.append(block)
-                self.header['comment_addr'] = address
-                address += block['block_len']
 
             # attachments
             at_map = {}
@@ -6206,7 +6196,7 @@ class MDF4(object):
             seek = dst_.seek
 
             write(bytes(self.identification))
-            write(bytes(self.header))
+            self.header.to_stream(dst_)
 
             original_data_addresses = []
 
@@ -6341,17 +6331,6 @@ class MDF4(object):
 
             dst_.flush()
             address = tell()
-
-            if self.header.comment:
-                meta = self.header.comment.startswith('<HDcomment')
-                block = TextBlock(
-                    text=self.header.comment,
-                    meta=meta,
-                )
-                write(bytes(block))
-                self.header['comment_addr'] = address
-            else:
-                self.header['comment_addr'] = 0
 
             # attachments
             address = tell()
