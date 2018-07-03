@@ -205,7 +205,7 @@ class MDF3(object):
         self.identification = None
         self.name = name
         self.memory = memory
-        self.channels_db = ChannelsDB()
+        self.channels_db = ChannelsDB(version=3)
         self.masters_db = {}
         self.version = version
 
@@ -503,6 +503,13 @@ class MDF3(object):
 
         if PYVERSION == 2:
             types = fix_dtype_fields(types, 'latin-1')
+            parents_ = {}
+            for key, (name, offset) in parents.items():
+                if isinstance(name, unicode):
+                    parents_[key] = name.encode('latin-1'), offset
+                else:
+                    parents_[key] = name, offset
+            parents = parents_
 
         return parents, dtype(types)
 

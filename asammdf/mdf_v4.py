@@ -1880,6 +1880,13 @@ class MDF4(object):
             types.append(dtype_pair)
             if PYVERSION == 2:
                 types = fix_dtype_fields(types, 'utf-8')
+                parents_ = {}
+                for key, (name, offset) in parents.items():
+                    if isinstance(name, unicode):
+                        parents_[key] = name.encode('utf-8'), offset
+                    else:
+                        parents_[key] = name, offset
+                parents = parents_
 
             dtypes = dtype(types)
 

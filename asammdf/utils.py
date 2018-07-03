@@ -18,6 +18,9 @@ from numpy import (
     where,
 )
 
+import sys
+PYVERSION = sys.version_info[0]
+
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
@@ -874,9 +877,13 @@ def validate_version_argument(version, hint=4):
 
 class ChannelsDB(dict):
 
-    def __init__(self):
+    def __init__(self, version=4):
 
         super(ChannelsDB, self).__init__()
+        if version == 4:
+            self.encoding = 'utf-8'
+        else:
+            self.encoding = 'latin-1'
 
     def add(self, channel_name, group_index, channel_index):
         """ add name to channels database and check if it contains a source path
@@ -891,6 +898,9 @@ class ChannelsDB(dict):
             channel index
 
         """
+        if PYVERSION == 2:
+            if isinstance(channel_name, unicode):
+                channel_name = channel_name.encode(self.encoding)
         if channel_name:
             entry = (group_index, channel_index)
             if channel_name not in self:

@@ -361,6 +361,7 @@ class Channel(dict):
                     blocks.append(tx_block)
             else:
                 self[key] = 0
+
         self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
 
         key = 'display_name_addr'
