@@ -3930,7 +3930,7 @@ class HeaderBlock(dict):
                         e.text = self.author
                         break
                 else:
-                    author = ET.SubElement(common_properties, "e", name="author").text = self.author
+                    ET.SubElement(common_properties, "e", name="author").text = self.author
 
                 for e in common_properties:
                     name = e.get('name')
@@ -3938,32 +3938,38 @@ class HeaderBlock(dict):
                         e.text = self.department
                         break
                 else:
-                    department = ET.SubElement(common_properties, "e", name="department").text = self.department
+                    ET.SubElement(common_properties, "e", name="department").text = self.department
 
                 for e in common_properties:
                     name = e.get('name')
                     if name == 'project':
-                        e.text = self.author
+                        e.text = self.project
                         break
                 else:
-                    project = ET.SubElement(common_properties, "e", name="project").text = self.project
+                    ET.SubElement(common_properties, "e", name="project").text = self.project
 
                 for e in common_properties:
                     name = e.get('name')
                     if name == 'subject':
-                        e.text = self.author
+                        e.text = self.subject
                         break
                 else:
-                    subject = ET.SubElement(common_properties, "e", name="subject").text = self.subject
+                    ET.SubElement(common_properties, "e", name="subject").text = self.subject
 
             else:
                 common_properties = ET.SubElement(comment, "common_properties")
-                author = ET.SubElement(common_properties, "e", name="author").text = self.author
-                department = ET.SubElement(common_properties, "e", name="department").text = self.department
-                project = ET.SubElement(common_properties, "e", name="project").text = self.project
-                subject = ET.SubElement(common_properties, "e", name="subject").text = self.subject
+                ET.SubElement(common_properties, "e", name="author").text = self.author
+                ET.SubElement(common_properties, "e", name="department").text = self.department
+                ET.SubElement(common_properties, "e", name="project").text = self.project
+                ET.SubElement(common_properties, "e", name="subject").text = self.subject
 
-            comment = ET.tostring(comment, encoding='utf8', method='xml')
+            comment = (
+                b'\n'.join(
+                    ET.tostring(comment, encoding='utf8')
+                    .splitlines()
+                    [1:]
+                )
+            )
 
         else:
             comment = v4c.HD_COMMENT_TEMPLATE.format(
