@@ -71,7 +71,6 @@ from .utils import (
     validate_version_argument,
     count_channel_groups,
     info_to_datatype_v4,
-    BufferedFile
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -342,7 +341,7 @@ class MDF4(object):
         self._cg_map = {}
         self._dbc_cache = {}
 
-        self._tempfile = BufferedFile(temporary=True)
+        self._tempfile = TemporaryFile()
         self._file = None
 
         self._read_fragment_size = 0
@@ -5619,7 +5618,7 @@ class MDF4(object):
         else:
             destination = dst
 
-        with BufferedFile(destination, 'wb+') as dst_:
+        with open(destination, 'wb+') as dst_:
             defined_texts = {}
             cc_map = {}
             si_map = {}
@@ -5633,7 +5632,6 @@ class MDF4(object):
             write(bytes(self.identification))
             self.header.to_stream(dst_)
 
-            dst_.flush()
             original_data_addresses = []
 
             if compression == 1:
@@ -5801,7 +5799,6 @@ class MDF4(object):
                     self.close()
                     return
 
-            dst_.flush()
             address = tell()
 
             blocks = []
@@ -6190,7 +6187,7 @@ class MDF4(object):
         else:
             destination = dst
 
-        with BufferedFile(destination, 'wb+') as dst_:
+        with open(destination, 'wb+') as dst_:
             defined_texts = {}
             cc_map = {}
             si_map = {}
@@ -6335,7 +6332,6 @@ class MDF4(object):
                     self.close()
                     return
 
-            dst_.flush()
             address = tell()
 
             # attachments
@@ -6363,7 +6359,6 @@ class MDF4(object):
             for blk in blocks:
                 write(bytes(blk))
 
-            dst_.flush()
             del blocks
 
             address = tell()
@@ -6514,8 +6509,6 @@ class MDF4(object):
                     dst_.close()
                     self.close()
                     return
-
-            dst_.flush()
 
             blocks = []
             address = tell()
