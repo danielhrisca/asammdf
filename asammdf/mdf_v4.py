@@ -838,11 +838,24 @@ class MDF4(object):
                 continue
 
             if group.get('raw_can', False):
-                can_ids = self.get('CAN_DataFrame.ID', group=i)
+                can_ids = self.get(
+                    'CAN_DataFrame.ID',
+                    group=i,
+                    ignore_invalidation_bits=True,
+                )
                 all_can_ids = sorted(set(can_ids.samples))
-                payload = self.get('CAN_DataFrame.DataBytes', group=i, samples_only=True)[0]
+                payload = self.get(
+                    'CAN_DataFrame.DataBytes',
+                    group=i,
+                    samples_only=True,
+                    ignore_invalidation_bits=True,
+                )[0]
 
-                _sig = self.get('CAN_DataFrame', group=i)
+                _sig = self.get(
+                    'CAN_DataFrame',
+                    group=i,
+                    ignore_invalidation_bits=True,
+                )
 
                 attachment = _sig.attachment
                 if attachment and attachment[1].lower().endswith(('dbc', 'arxml')):
@@ -884,6 +897,10 @@ class MDF4(object):
                         idx = argwhere(can_ids.samples == message_id).flatten()
                         data = payload[idx]
                         t = can_ids.timestamps[idx].copy()
+                        if can_ids.invalidation_bits is not None:
+                            invalidation_bits = can_ids.invalidation_bits[idx]
+                        else:
+                            invalidation_bits = None
 
                         for signal in sorted(can_msg.signals, key=lambda x: x.name):
 
@@ -894,6 +911,7 @@ class MDF4(object):
                                     signal.name,
                                 ),
                                 db=db,
+                                ignore_invalidation_bits=True,
                             ).samples
 
                             conversion = ChannelConversion(
@@ -911,6 +929,7 @@ class MDF4(object):
                                     source=source,
                                     unit=signal.unit,
                                     raw=True,
+                                    invalidation_bits=invalidation_bits,
                                 )
                             )
 
@@ -940,6 +959,10 @@ class MDF4(object):
                         idx = argwhere(can_ids.samples == message_id).flatten()
                         data = payload[idx]
                         t = can_ids.timestamps[idx]
+                        if can_ids.invalidation_bits is not None:
+                            invalidation_bits = can_ids.invalidation_bits[idx]
+                        else:
+                            invalidation_bits = None
 
                         sigs.append(
                             Signal(
@@ -948,6 +971,7 @@ class MDF4(object):
                                 name='CAN_DataFrame.DataBytes',
                                 source=source,
                                 raw=True,
+                                invalidation_bits=invalidation_bits,
                             )
                         )
                         processed_can.append(
@@ -1347,6 +1371,7 @@ class MDF4(object):
             # or a DataList
             elif id_string == b'##DL':
                 if size >= 0:
+                    print(size / 1024/1024)
                     data = bytearray(size)
                     view = memoryview(data)
                     position = 0
@@ -5151,7 +5176,9 @@ class MDF4(object):
             self,
             name,
             database=None,
-            db=None):
+            db=None,
+            ignore_invalidation_bits=False,
+    ):
         """ get CAN message signal. You can specify an external CAN database (
         *database* argument) or canmatrix databse object that has already been
         loaded from a file (*db* argument).
@@ -5189,7 +5216,8 @@ class MDF4(object):
             path of external CAN database file (.dbc or .arxml); default *None*
         db : canmatrix.database
             canmatrix CAN database object; default *None*
-
+        ignore_invalidation_bits : bool
+            option to ignore invalidation bits
 
         Returns
         -------
@@ -5333,16 +5361,25 @@ class MDF4(object):
                     )
                 )
 
-        can_ids = self.get('CAN_DataFrame.ID', group=index)
+        can_ids = self.get(
+            'CAN_DataFrame.ID',
+            group=index,
+            ignore_invalidation_bits=ignore_invalidation_bits,
+        )
         payload = self.get(
             'CAN_DataFrame.DataBytes',
             group=index,
             samples_only=True,
+            ignore_invalidation_bits=ignore_invalidation_bits,
         )[0]
 
         idx = argwhere(can_ids.samples == message.id).flatten()
         data = payload[idx]
         t = can_ids.timestamps[idx].copy()
+        if can_ids.invalidation_bits is not None:
+            invalidation_bits = can_ids.invalidation_bits
+        else:
+            invalidation_bits = None
 
         record_size = data.shape[1]
 
@@ -5445,13 +5482,30 @@ class MDF4(object):
         if (signal.factor, signal.offset) != (1, 0):
             vals = vals * signal.factor + signal.offset
 
-        return Signal(
-            samples=vals,
-            timestamps=t,
-            name=name,
-            unit=signal.unit or '',
-            comment=comment,
-        )
+        if ignore_invalidation_bits:
+
+            return Signal(
+                samples=vals,
+                timestamps=t,
+                name=name,
+                unit=signal.unit or '',
+                comment=comment,
+                invalidation_bits=invalidation_bits,
+            )
+
+        else:
+
+            if invalidation_bits is not None:
+                vals = vals[argwhere(~invalidation_bits)].flatten()
+                t = t[argwhere(~invalidation_bits)].flatten()
+
+            return Signal(
+                samples=vals,
+                timestamps=t,
+                name=name,
+                unit=signal.unit or '',
+                comment=comment,
+            )
 
     def info(self):
         """get MDF information as a dict
