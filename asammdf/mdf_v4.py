@@ -1859,8 +1859,7 @@ class MDF4(object):
                                     for i in range(ca_block['dims'])
                                 )
 
-                                if ca_block['byte_offset_base'] // size > 1 and \
-                                        len(shape) == 1:
+                                if ca_block['byte_offset_base'] // size > 1 and len(shape) == 1:
                                     shape += ca_block['byte_offset_base'] // size,
                                 dim = 1
                                 for d in shape:
@@ -4354,7 +4353,11 @@ class MDF4(object):
                                     types.append(dtype_pair)
                             else:
                                 for i in range(dims_nr):
-                                    ref_ch_nr, ref_dg_nr = ca_block.referenced_channels[i]
+                                    try:
+                                        ref_ch_nr, ref_dg_nr = ca_block.referenced_channels[i]
+                                    except:
+                                        debug_channel(self, grp, channel, dependency_list)
+                                        raise
                                     if memory == 'minimum':
                                         address = (
                                             self.groups[ref_dg_nr]
