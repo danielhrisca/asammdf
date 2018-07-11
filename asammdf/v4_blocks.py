@@ -1105,6 +1105,13 @@ class ChannelArrayBlock(dict):
                     for i in range(dims_nr):
                         self['dim_size_{}'.format(i)] = kwargs['dim_size_{}'.format(i)]
 
+    def __repr__(self):
+        return '<ChannelArrayBlock (referenced channels: {}, address: {}, fields: {})>'.format(
+            self.referenced_channels,
+            hex(self.address),
+            dict(self),
+        )
+
     def __bytes__(self):
         flags = self['flags']
         ca_type = self['ca_type']
