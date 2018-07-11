@@ -1465,6 +1465,7 @@ class MDF(object):
                     mdict,
                     long_field_names=True,
                     format='7.3',
+                    delete_unused_variables=False,
                 )
             else:
                 savemat(
