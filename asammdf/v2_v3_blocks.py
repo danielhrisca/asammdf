@@ -1357,9 +1357,20 @@ address: {}
             P4 = self['P4']
             P5 = self['P5']
             P6 = self['P6']
-            if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
-                X = values
-                values = evaluate(v23c.RAT_CONV_TEXT)
+
+            X = values
+            if (P1, P4, P5, P6) == (0, 0, 0, 1):
+                if (P2, P3) != (1, 0):
+                    values = values * P2
+                    if P3:
+                        values += P3
+            elif (P3, P4, P5, P6) == (0, 0, 1, 0):
+                if (P1, P2) != (1, 0):
+                    values = values * P1
+                    if P2:
+                        values += P2
+            else:
+                values = evaluate(v23c.CONV_RAT_TEXT)
 
         elif conversion_type == v23c.CONVERSION_TYPE_POLY:
             # pylint: disable=unused-variable,C0103
