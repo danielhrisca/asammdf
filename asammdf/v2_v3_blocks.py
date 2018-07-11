@@ -1370,7 +1370,7 @@ address: {}
                     if P2:
                         values += P2
             else:
-                values = evaluate(v23c.CONV_RAT_TEXT)
+                values = evaluate(v23c.RAT_CONV_TEXT)
 
         elif conversion_type == v23c.CONVERSION_TYPE_POLY:
             # pylint: disable=unused-variable,C0103
