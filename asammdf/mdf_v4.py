@@ -1558,183 +1558,187 @@ class MDF4(object):
             block_type = group['data_block_type']
             param = group['param']
 
-            if not group['sorted']:
-                cg_size = group['record_size']
-                record_id = channel_group['record_id']
-                if data_group['record_id_len'] <= 2:
-                    record_id_nr = data_group['record_id_len']
-                else:
-                    record_id_nr = 0
+            samples_size = (
+                channel_group['samples_byte_nr']
+                + channel_group['invalidation_bytes_nr']
+            )
+
+            if not samples_size:
+                yield b'', 0
             else:
-                samples_size = (
-                    channel_group['samples_byte_nr']
-                    + channel_group['invalidation_bytes_nr']
-                )
 
-                if self._read_fragment_size:
-                    split_size = self._read_fragment_size // samples_size
-                    split_size *= samples_size
-                else:
-                    channels_nr = len(group['channels'])
-
-                    if self.memory == 'minimum':
-                        y_axis = CONVERT_MINIMUM
+                if not group['sorted']:
+                    cg_size = group['record_size']
+                    record_id = channel_group['record_id']
+                    if data_group['record_id_len'] <= 2:
+                        record_id_nr = data_group['record_id_len']
                     else:
-                        y_axis = CONVERT_LOW
-                    split_size = interp(
-                        channels_nr,
-                        CHANNEL_COUNT,
-                        y_axis,
-                    )
-
-                    split_size = int(split_size)
-
-                    split_size = split_size // samples_size
-                    split_size *= samples_size
-
-                if split_size == 0:
-                    split_size = samples_size
-
-            if group['data_block_addr']:
-                blocks = zip(
-                    group['data_block_addr'],
-                    group['data_size'],
-                    group['data_block_size'],
-                )
-                if PYVERSION == 2:
-                    blocks = iter(blocks)
-
-                if block_type == v4c.DT_BLOCK and group['sorted']:
-                    cur_size = 0
-                    current_address = 0
-                    data = []
-
-                    while True:
-                        try:
-                            address, size, block_size = next(blocks)
-                            current_address = address
-                        except StopIteration:
-                            break
-                        stream.seek(address)
-
-                        while size >= split_size - cur_size:
-                            stream.seek(current_address)
-                            if data:
-                                data.append(stream.read(split_size - cur_size))
-                                yield b''.join(data), offset
-                                current_address += split_size - cur_size
-                            else:
-                                yield stream.read(split_size), offset
-                                current_address += split_size
-                            offset += split_size
-
-                            size -= split_size - cur_size
-                            data = []
-                            cur_size = 0
-
-                        if size:
-                            stream.seek(current_address)
-                            data.append(stream.read(size))
-                            cur_size += size
-                    if data:
-                        yield b''.join(data), offset
+                        record_id_nr = 0
                 else:
-                    extra_bytes = b''
-                    for (address, size, block_size) in blocks:
+                    if self._read_fragment_size:
+                        split_size = self._read_fragment_size // samples_size
+                        split_size *= samples_size
+                    else:
+                        channels_nr = len(group['channels'])
 
-                        stream.seek(address)
-                        data = stream.read(block_size)
+                        if self.memory == 'minimum':
+                            y_axis = CONVERT_MINIMUM
+                        else:
+                            y_axis = CONVERT_LOW
+                        split_size = interp(
+                            channels_nr,
+                            CHANNEL_COUNT,
+                            y_axis,
+                        )
 
-                        if block_type == v4c.DZ_BLOCK_DEFLATE:
-                            data = decompress(data)
+                        split_size = int(split_size)
 
-                            if group['sorted']:
+                        split_size = split_size // samples_size
+                        split_size *= samples_size
 
-                                if extra_bytes:
-                                    data = extra_bytes + data
+                    if split_size == 0:
+                        split_size = samples_size
 
-                                dim = len(data)
-                                new_extra_bytes = dim % samples_size
-                                if new_extra_bytes:
-                                    extra_bytes = data[-new_extra_bytes:]
-                                    data = data[:-new_extra_bytes]
-                                    offset_increase = dim - new_extra_bytes
+                if group['data_block_addr']:
+                    blocks = zip(
+                        group['data_block_addr'],
+                        group['data_size'],
+                        group['data_block_size'],
+                    )
+                    if PYVERSION == 2:
+                        blocks = iter(blocks)
+
+                    if block_type == v4c.DT_BLOCK and group['sorted']:
+                        cur_size = 0
+                        current_address = 0
+                        data = []
+
+                        while True:
+                            try:
+                                address, size, block_size = next(blocks)
+                                current_address = address
+                            except StopIteration:
+                                break
+                            stream.seek(address)
+
+                            while size >= split_size - cur_size:
+                                stream.seek(current_address)
+                                if data:
+                                    data.append(stream.read(split_size - cur_size))
+                                    yield b''.join(data), offset
+                                    current_address += split_size - cur_size
                                 else:
-                                    extra_bytes = b''
-                                    offset_increase = dim
+                                    yield stream.read(split_size), offset
+                                    current_address += split_size
+                                offset += split_size
 
-                                yield data, offset
-                                offset += offset_increase
+                                size -= split_size - cur_size
+                                data = []
+                                cur_size = 0
 
-                        elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                            data = decompress(data)
-                            cols = param
-                            lines = size // cols
+                            if size:
+                                stream.seek(current_address)
+                                data.append(stream.read(size))
+                                cur_size += size
+                        if data:
+                            yield b''.join(data), offset
+                    else:
+                        extra_bytes = b''
+                        for (address, size, block_size) in blocks:
 
-                            nd = fromstring(data[:lines * cols], dtype=uint8)
-                            nd = nd.reshape((cols, lines))
-                            data = nd.T.tostring() + data[lines * cols:]
+                            stream.seek(address)
+                            data = stream.read(block_size)
 
-                            if group['sorted']:
-                                if extra_bytes:
-                                    data = extra_bytes + data
+                            if block_type == v4c.DZ_BLOCK_DEFLATE:
+                                data = decompress(data)
 
-                                dim = len(data)
-                                new_extra_bytes = dim % samples_size
-                                if new_extra_bytes:
-                                    extra_bytes = data[-new_extra_bytes:]
-                                    data = data[:-new_extra_bytes]
-                                    offset_increase = dim - new_extra_bytes
+                                if group['sorted']:
+
+                                    if extra_bytes:
+                                        data = extra_bytes + data
+
+                                    dim = len(data)
+                                    new_extra_bytes = dim % samples_size
+                                    if new_extra_bytes:
+                                        extra_bytes = data[-new_extra_bytes:]
+                                        data = data[:-new_extra_bytes]
+                                        offset_increase = dim - new_extra_bytes
+                                    else:
+                                        extra_bytes = b''
+                                        offset_increase = dim
+
+                                    yield data, offset
+                                    offset += offset_increase
+
+                            elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                                data = decompress(data)
+                                cols = param
+                                lines = size // cols
+
+                                nd = fromstring(data[:lines * cols], dtype=uint8)
+                                nd = nd.reshape((cols, lines))
+                                data = nd.T.tostring() + data[lines * cols:]
+
+                                if group['sorted']:
+                                    if extra_bytes:
+                                        data = extra_bytes + data
+
+                                    dim = len(data)
+                                    new_extra_bytes = dim % samples_size
+                                    if new_extra_bytes:
+                                        extra_bytes = data[-new_extra_bytes:]
+                                        data = data[:-new_extra_bytes]
+                                        offset_increase = dim - new_extra_bytes
+                                    else:
+                                        extra_bytes = b''
+                                        offset_increase = dim
+
+                                    yield data, offset
+                                    offset += offset_increase
+
+                            if not group['sorted']:
+                                rec_data = []
+
+                                cg_size = group['record_size']
+                                record_id = channel_group['record_id']
+                                record_id_nr = data_group['record_id_len']
+
+                                if record_id_nr == 1:
+                                    fmt = '<B'
+                                elif record_id_nr == 2:
+                                    fmt = '<H'
+                                elif record_id_nr == 4:
+                                    fmt = '<I'
+                                elif record_id_nr == 8:
+                                    fmt = '<Q'
                                 else:
-                                    extra_bytes = b''
-                                    offset_increase = dim
+                                    message = "invalid record id size {}"
+                                    message = message.format(record_id_nr)
+                                    raise MdfException(message)
 
-                                yield data, offset
-                                offset += offset_increase
+                                i = 0
+                                size = len(data)
+                                while i < size:
+                                    rec_id = unpack(fmt, data[i: i+record_id_nr])[0]
+                                    # skip record id
+                                    i += record_id_nr
+                                    rec_size = cg_size[rec_id]
+                                    if rec_size:
+                                        if rec_id == record_id:
+                                            rec_data.append(data[i: i + rec_size])
+                                    else:
+                                        rec_size = unpack('<I', data[i: i + 4])[0]
+                                        if rec_id == record_id:
+                                            rec_data.append(data[i: i + 4 + rec_size])
+                                        i += 4
+                                    i += rec_size
+                                rec_data = b''.join(rec_data)
+                                size = len(rec_data)
+                                yield rec_data, offset
+                                offset += size
 
-                        if not group['sorted']:
-                            rec_data = []
-
-                            cg_size = group['record_size']
-                            record_id = channel_group['record_id']
-                            record_id_nr = data_group['record_id_len']
-
-                            if record_id_nr == 1:
-                                fmt = '<B'
-                            elif record_id_nr == 2:
-                                fmt = '<H'
-                            elif record_id_nr == 4:
-                                fmt = '<I'
-                            elif record_id_nr == 8:
-                                fmt = '<Q'
-                            else:
-                                message = "invalid record id size {}"
-                                message = message.format(record_id_nr)
-                                raise MdfException(message)
-
-                            i = 0
-                            size = len(data)
-                            while i < size:
-                                rec_id = unpack(fmt, data[i: i+record_id_nr])[0]
-                                # skip record id
-                                i += record_id_nr
-                                rec_size = cg_size[rec_id]
-                                if rec_size:
-                                    if rec_id == record_id:
-                                        rec_data.append(data[i: i + rec_size])
-                                else:
-                                    rec_size = unpack('<I', data[i: i + 4])[0]
-                                    if rec_id == record_id:
-                                        rec_data.append(data[i: i + 4 + rec_size])
-                                    i += 4
-                                i += rec_size
-                            rec_data = b''.join(rec_data)
-                            size = len(rec_data)
-                            yield rec_data, offset
-                            offset += size
-
-            else:
-                yield b'', offset
+                else:
+                    yield b'', offset
 
     def _prepare_record(self, group):
         """ compute record dtype and parents dict fro this group
@@ -6294,14 +6298,17 @@ class MDF4(object):
                         (gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr'])
                         * gp['channel_group']['cycles_nr']
                     )
-                    samples_size = gp['channel_group']['samples_byte_nr']
-                    split_size = self._write_fragment_size // samples_size
-                    split_size *= samples_size
-                    if split_size == 0:
-                        chunks = 1
+                    samples_size = gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr']
+                    if samples_size:
+                        split_size = self._write_fragment_size // samples_size
+                        split_size *= samples_size
+                        if split_size == 0:
+                            chunks = 1
+                        else:
+                            chunks = total_size / split_size
+                            chunks = int(ceil(chunks))
                     else:
-                        chunks = total_size / split_size
-                        chunks = int(ceil(chunks))
+                        chunks = 1
                 else:
                     chunks = 1
 
@@ -6481,9 +6488,12 @@ class MDF4(object):
                     else:
                         temp_deps.append(0)
 
-                next_ch_addr = [
-                    0 for _ in range(max(structs) + 1)
-                ]
+                if structs:
+                    next_ch_addr = [
+                        0 for _ in range(max(structs) + 1)
+                    ]
+                else:
+                    next_ch_addr = []
 
                 # channels
                 address = blocks_start_addr = tell()
@@ -6560,7 +6570,10 @@ class MDF4(object):
 
                 ch_addrs.reverse()
 
-                gp['channel_group']['first_ch_addr'] = next_ch_addr[0]
+                if next_ch_addr:
+                    gp['channel_group']['first_ch_addr'] = next_ch_addr[0]
+                else:
+                    gp['channel_group']['first_ch_addr'] = 0
 
                 if gp['channel_group']['flags'] & v4c.FLAG_CG_VLSD:
                     continue

@@ -257,73 +257,76 @@ class MDF3(object):
             # go to the first data block of the current data group
             if group['sorted']:
                 samples_size = channel_group['samples_byte_nr']
-                if self._read_fragment_size:
-                    split_size = self._read_fragment_size // samples_size
-                    split_size *= samples_size
-                else:
-                    channels_nr = len(group['channels'])
-
-                    if self.memory == 'minimum':
-                        y_axis = CONVERT_MINIMUM
-                    else:
-                        y_axis = CONVERT_LOW
-                    split_size = interp(
-                        channels_nr,
-                        CHANNEL_COUNT,
-                        y_axis,
-                    )
-
-                    split_size = int(split_size)
-
-                    split_size = split_size // samples_size
-                    split_size *= samples_size
-
-                if split_size == 0:
-                    split_size = samples_size
-
-                blocks = zip(
-                    group['data_block_addr'],
-                    group['data_block_size'],
-                )
-                if PYVERSION == 2:
-                    blocks = iter(blocks)
-
-                cur_size = 0
-                data = []
-
-                while True:
-                    try:
-                        address, size = next(blocks)
-                        current_address = address
-                    except StopIteration:
-                        break
-                    stream.seek(address)
-
-                    while size >= split_size - cur_size:
-                        stream.seek(current_address)
-                        if data:
-                            data.append(stream.read(split_size - cur_size))
-                            yield b''.join(data), offset
-                            current_address += split_size - cur_size
-                        else:
-                            yield stream.read(split_size), offset
-                            current_address += split_size
-                        offset += split_size
-
-                        size -= split_size - cur_size
-                        data = []
-                        cur_size = 0
-
-                    if size:
-                        stream.seek(current_address)
-                        data.append(stream.read(size))
-                        cur_size += size
-                        offset += size
-
-                if data:
-                    yield b''.join(data), offset
-                elif not offset:
+                if not samples_size:
                     yield b'', 0
+                else:
+                    if self._read_fragment_size:
+                        split_size = self._read_fragment_size // samples_size
+                        split_size *= samples_size
+                    else:
+                        channels_nr = len(group['channels'])
+
+                        if self.memory == 'minimum':
+                            y_axis = CONVERT_MINIMUM
+                        else:
+                            y_axis = CONVERT_LOW
+                        split_size = interp(
+                            channels_nr,
+                            CHANNEL_COUNT,
+                            y_axis,
+                        )
+
+                        split_size = int(split_size)
+
+                        split_size = split_size // samples_size
+                        split_size *= samples_size
+
+                    if split_size == 0:
+                        split_size = samples_size
+
+                    blocks = zip(
+                        group['data_block_addr'],
+                        group['data_block_size'],
+                    )
+                    if PYVERSION == 2:
+                        blocks = iter(blocks)
+
+                    cur_size = 0
+                    data = []
+
+                    while True:
+                        try:
+                            address, size = next(blocks)
+                            current_address = address
+                        except StopIteration:
+                            break
+                        stream.seek(address)
+
+                        while size >= split_size - cur_size:
+                            stream.seek(current_address)
+                            if data:
+                                data.append(stream.read(split_size - cur_size))
+                                yield b''.join(data), offset
+                                current_address += split_size - cur_size
+                            else:
+                                yield stream.read(split_size), offset
+                                current_address += split_size
+                            offset += split_size
+
+                            size -= split_size - cur_size
+                            data = []
+                            cur_size = 0
+
+                        if size:
+                            stream.seek(current_address)
+                            data.append(stream.read(size))
+                            cur_size += size
+                            offset += size
+
+                    if data:
+                        yield b''.join(data), offset
+                    elif not offset:
+                        yield b'', 0
 
             else:
                 record_id = group['channel_group']['record_id']
@@ -3547,7 +3550,10 @@ class MDF3(object):
                 cg.address = address
 
                 cg['next_cg_addr'] = 0
-                cg['first_ch_addr'] = ch_addrs[0]
+                if ch_addrs:
+                    cg['first_ch_addr'] = ch_addrs[0]
+                else:
+                    cg['first_ch_addr'] = 0
 
                 address = cg.to_stream(dst_, defined_texts, si_map)
 
