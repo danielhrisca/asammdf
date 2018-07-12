@@ -1063,8 +1063,8 @@ class MDF3(object):
 
         Parameters
         ----------
-        signals : list
-            list on *Signal* objects
+        signals : list | Signal
+            list on *Signal* objects, or a single *Signal* object
         acquisition_info : str
             acquisition information; default 'Python'
         common_timebase : bool
@@ -1095,28 +1095,30 @@ class MDF3(object):
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
 
         """
-        if not signals:
-            error = '"append" requires a non-empty list of Signal objects'
-            raise MdfException(error)
+        if isinstance(signals, Signal):
+            signals = [signals, ]
 
         version = self.version
 
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
-        timestamps = signals[0].timestamps
-        if not common_timebase:
-            for signal in signals[1:]:
-                if not array_equal(signal.timestamps, timestamps):
-                    different = True
-                    break
-            else:
-                different = False
+        if signals:
+            timestamps = signals[0].timestamps
+            if not common_timebase:
+                for signal in signals[1:]:
+                    if not array_equal(signal.timestamps, timestamps):
+                        different = True
+                        break
+                else:
+                    different = False
 
-            if different:
-                times = [s.timestamps for s in signals]
-                timestamps = reduce(union1d, times).flatten().astype(float64)
-                signals = [s.interp(timestamps) for s in signals]
-                times = None
+                if different:
+                    times = [s.timestamps for s in signals]
+                    timestamps = reduce(union1d, times).flatten().astype(float64)
+                    signals = [s.interp(timestamps) for s in signals]
+                    times = None
+        else:
+            timestamps = array([])
 
         if self.version < '3.10':
             if timestamps.dtype.byteorder == '>':
@@ -1180,66 +1182,70 @@ class MDF3(object):
         offset = 0
         field_names = set()
 
-        master_metadata = signals[0].master_metadata
+        if signals:
+            master_metadata = signals[0].master_metadata
+        else:
+            master_metadata = None
         if master_metadata:
             time_name = master_metadata[0]
         else:
             time_name = 'Time'
 
-        # conversion for time channel
-        kargs = {
-            'conversion_type': v23c.CONVERSION_TYPE_NONE,
-            'unit': b's',
-            'min_phy_value': timestamps[0] if cycles_nr else 0,
-            'max_phy_value': timestamps[-1] if cycles_nr else 0,
-        }
-        conversion = ChannelConversion(**kargs)
-        conversion.unit = 's'
-        source = ce_block
+        if signals:
+            # conversion for time channel
+            kargs = {
+                'conversion_type': v23c.CONVERSION_TYPE_NONE,
+                'unit': b's',
+                'min_phy_value': timestamps[0] if cycles_nr else 0,
+                'max_phy_value': timestamps[-1] if cycles_nr else 0,
+            }
+            conversion = ChannelConversion(**kargs)
+            conversion.unit = 's'
+            source = ce_block
 
-        # time channel
-        t_type, t_size = fmt_to_datatype_v3(
-            timestamps.dtype,
-            timestamps.shape,
-        )
-        kargs = {
-            'short_name': time_name.encode('latin-1'),
-            'channel_type': v23c.CHANNEL_TYPE_MASTER,
-            'data_type': t_type,
-            'start_offset': 0,
-            'min_raw_value': timestamps[0] if cycles_nr else 0,
-            'max_raw_value': timestamps[-1] if cycles_nr else 0,
-            'bit_count': t_size,
-            'block_len': channel_size,
-            'version': version,
-        }
-        channel = Channel(**kargs)
-        channel.name = name = time_name
-        channel.conversion = conversion
-        channel.source = source
+            # time channel
+            t_type, t_size = fmt_to_datatype_v3(
+                timestamps.dtype,
+                timestamps.shape,
+            )
+            kargs = {
+                'short_name': time_name.encode('latin-1'),
+                'channel_type': v23c.CHANNEL_TYPE_MASTER,
+                'data_type': t_type,
+                'start_offset': 0,
+                'min_raw_value': timestamps[0] if cycles_nr else 0,
+                'max_raw_value': timestamps[-1] if cycles_nr else 0,
+                'bit_count': t_size,
+                'block_len': channel_size,
+                'version': version,
+            }
+            channel = Channel(**kargs)
+            channel.name = name = time_name
+            channel.conversion = conversion
+            channel.source = source
 
-        if memory != 'minimum':
-            gp_channels.append(channel)
-        else:
-            channel.to_stream(file, defined_texts, cc_map, si_map)
-            gp_channels.append(channel.address)
+            if memory != 'minimum':
+                gp_channels.append(channel)
+            else:
+                channel.to_stream(file, defined_texts, cc_map, si_map)
+                gp_channels.append(channel.address)
 
-        self.channels_db.add(name, dg_cntr, ch_cntr)
-        self.masters_db[dg_cntr] = 0
-        # data group record parents
-        parents[ch_cntr] = name, 0
+            self.channels_db.add(name, dg_cntr, ch_cntr)
+            self.masters_db[dg_cntr] = 0
+            # data group record parents
+            parents[ch_cntr] = name, 0
 
-        # time channel doesn't have channel dependencies
-        gp_dep.append(None)
+            # time channel doesn't have channel dependencies
+            gp_dep.append(None)
 
-        fields.append(timestamps)
-        types.append((name, timestamps.dtype))
-        field_names.add(name)
+            fields.append(timestamps)
+            types.append((name, timestamps.dtype))
+            field_names.add(name)
 
-        offset += t_size
-        ch_cntr += 1
+            offset += t_size
+            ch_cntr += 1
 
-        gp_sig_types.append(0)
+            gp_sig_types.append(0)
 
         for signal in signals:
             sig = signal
@@ -1997,7 +2003,10 @@ class MDF3(object):
         gp['parents'] = parents
         gp['sorted'] = True
 
-        samples = fromarrays(fields, dtype=types)
+        if signals:
+            samples = fromarrays(fields, dtype=types)
+        else:
+            samples = array([])
 
         block = samples.tostring()
 
@@ -3307,7 +3316,10 @@ class MDF3(object):
 
                 # ChannelGroup
                 cg = gp['channel_group']
-                cg['first_ch_addr'] = gp['channels'][0].address
+                if gp['channels']:
+                    cg['first_ch_addr'] = gp['channels'][0].address
+                else:
+                    cg['first_ch_addr'] = 0
                 cg['next_cg_addr'] = 0
                 address = cg.to_blocks(address, blocks, defined_texts, si_map)
 

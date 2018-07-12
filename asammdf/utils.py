@@ -8,9 +8,8 @@ import string
 import xml.etree.ElementTree as ET
 
 from collections import namedtuple
-from struct import unpack, Struct
+from struct import Struct
 from warnings import warn
-from tempfile import TemporaryFile
 
 from numpy import (
     amin,

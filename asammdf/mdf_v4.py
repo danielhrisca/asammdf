@@ -2463,7 +2463,6 @@ class MDF4(object):
         if single_bit_uint_as_bool is not None:
             self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
 
-
     def append(self, signals, source_info='Python', common_timebase=False):
         """
         Appends a new data group.
@@ -2473,8 +2472,8 @@ class MDF4(object):
 
         Parameters
         ----------
-        signals : list
-            list on *Signal* objects
+        signals : list | Signal
+            list on *Signal* objects, or a single *Signal* object
         source_info : str
             source information; default 'Python'
         common_timebase : bool
@@ -2493,41 +2492,44 @@ class MDF4(object):
         >>> s1 = Signal(samples=s1, timstamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timstamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timstamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF3('new.mdf')
-        >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
+        >>> mdf = MDF4('new.mdf')
+        >>> mdf.append([s1, s2, s3], 'created by asammdf v4.0.0')
         >>> # case 2: VTAB conversions from channels inside another file
-        >>> mdf1 = MDF3('in.mdf')
+        >>> mdf1 = MDF4('in.mf4')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
         >>> sigs = [ch1, ch2]
-        >>> mdf2 = MDF3('out.mdf')
-        >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
+        >>> mdf2 = MDF4('out.mf4')
+        >>> mdf2.append(sigs, 'created by asammdf v4.0.0')
+        >>> mdf2.append(ch1, 'jsut a single channel')
 
         """
-        if not signals:
-            message = '"append" requires a non-empty list of Signal objects'
-            raise MdfException(message)
+        if isinstance(signals, Signal):
+            signals = [signals, ]
 
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
-        t_ = signals[0].timestamps
-        if not common_timebase:
-            for s in signals[1:]:
-                if not array_equal(s.timestamps, t_):
-                    different = True
-                    break
-            else:
-                different = False
+        if signals:
+            t_ = signals[0].timestamps
+            if not common_timebase:
+                for s in signals[1:]:
+                    if not array_equal(s.timestamps, t_):
+                        different = True
+                        break
+                else:
+                    different = False
 
-            if different:
-                times = [s.timestamps for s in signals]
-                t = reduce(union1d, times).flatten().astype(float64)
-                signals = [s.interp(t) for s in signals]
-                times = None
+                if different:
+                    times = [s.timestamps for s in signals]
+                    t = reduce(union1d, times).flatten().astype(float64)
+                    signals = [s.interp(t) for s in signals]
+                    times = None
+                else:
+                    t = t_
             else:
                 t = t_
         else:
-            t = t_
+            t = []
 
         canopen_time_fields = (
             'ms',
@@ -2599,7 +2601,10 @@ class MDF4(object):
 
         seek(0, 2)
 
-        master_metadata = signals[0].master_metadata
+        if signals:
+            master_metadata = signals[0].master_metadata
+        else:
+            master_metadata = None
         if master_metadata:
             time_name, sync_type = master_metadata
             if sync_type in (0, 1):
@@ -2617,53 +2622,54 @@ class MDF4(object):
         source_block = SourceInformation()
         source_block.name = source_block.path = source_info
 
-        # time channel
-        t_type, t_size = fmt_to_datatype_v4(
-            t.dtype,
-            t.shape,
-        )
-        kargs = {
-            'channel_type': v4c.CHANNEL_TYPE_MASTER,
-            'data_type': t_type,
-            'sync_type': sync_type,
-            'byte_offset': 0,
-            'bit_offset': 0,
-            'bit_count': t_size,
-            'min_raw_value': t[0] if cycles_nr else 0,
-            'max_raw_value': t[-1] if cycles_nr else 0,
-            'lower_limit': t[0] if cycles_nr else 0,
-            'upper_limit': t[-1] if cycles_nr else 0,
-            'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
-        }
-        ch = Channel(**kargs)
-        ch.unit = time_unit
-        ch.name = time_name
-        ch.source = source_block
-        name = time_name
-        if memory == 'minimum':
-            ch.to_stream(file, defined_texts, cc_map, si_map)
-            gp_channels.append(ch.address)
-        else:
-            gp_channels.append(ch)
+        if signals:
+            # time channel
+            t_type, t_size = fmt_to_datatype_v4(
+                t.dtype,
+                t.shape,
+            )
+            kargs = {
+                'channel_type': v4c.CHANNEL_TYPE_MASTER,
+                'data_type': t_type,
+                'sync_type': sync_type,
+                'byte_offset': 0,
+                'bit_offset': 0,
+                'bit_count': t_size,
+                'min_raw_value': t[0] if cycles_nr else 0,
+                'max_raw_value': t[-1] if cycles_nr else 0,
+                'lower_limit': t[0] if cycles_nr else 0,
+                'upper_limit': t[-1] if cycles_nr else 0,
+                'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
+            }
+            ch = Channel(**kargs)
+            ch.unit = time_unit
+            ch.name = time_name
+            ch.source = source_block
+            name = time_name
+            if memory == 'minimum':
+                ch.to_stream(file, defined_texts, cc_map, si_map)
+                gp_channels.append(ch.address)
+            else:
+                gp_channels.append(ch)
 
-        gp_sdata.append(None)
-        gp_sdata_size.append(0)
-        self.channels_db.add(name, dg_cntr, ch_cntr)
-        self.masters_db[dg_cntr] = 0
-        # data group record parents
-        parents[ch_cntr] = name, 0
+            gp_sdata.append(None)
+            gp_sdata_size.append(0)
+            self.channels_db.add(name, dg_cntr, ch_cntr)
+            self.masters_db[dg_cntr] = 0
+            # data group record parents
+            parents[ch_cntr] = name, 0
 
-        # time channel doesn't have channel dependencies
-        gp_dep.append(None)
+            # time channel doesn't have channel dependencies
+            gp_dep.append(None)
 
-        fields.append(t)
-        types.append((name, t.dtype))
-        field_names.add(name)
+            fields.append(t)
+            types.append((name, t.dtype))
+            field_names.add(name)
 
-        offset += t_size // 8
-        ch_cntr += 1
+            offset += t_size // 8
+            ch_cntr += 1
 
-        gp_sig_types.append(0)
+            gp_sig_types.append(0)
 
         for signal in signals:
             sig = signal
@@ -3233,14 +3239,16 @@ class MDF4(object):
         # data block
         if PYVERSION == 2:
             types = fix_dtype_fields(types, 'utf-8')
-        types_ = types
         types = dtype(types)
 
         gp['sorted'] = True
         gp['types'] = types
         gp['parents'] = parents
 
-        samples = fromarrays(fields, dtype=types)
+        if signals:
+            samples = fromarrays(fields, dtype=types)
+        else:
+            samples = array([])
 
         signals = None
         del signals
@@ -5717,13 +5725,16 @@ class MDF4(object):
                 if self._write_fragment_size:
 
                     samples_size = gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr']
-                    split_size = self._write_fragment_size // samples_size
-                    split_size *= samples_size
-                    if split_size == 0:
-                        chunks = 1
+                    if samples_size:
+                        split_size = self._write_fragment_size // samples_size
+                        split_size *= samples_size
+                        if split_size == 0:
+                            chunks = 1
+                        else:
+                            chunks = float(total_size) / split_size
+                            chunks = int(ceil(chunks))
                     else:
-                        chunks = float(total_size) / split_size
-                        chunks = int(ceil(chunks))
+                        chunks = 1
                 else:
                     chunks = 1
 
