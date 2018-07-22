@@ -52,6 +52,7 @@ from . import v4_constants as v4c
 from .signal import Signal
 from .conversion_utils import conversion_transfer
 from .utils import (
+    UINT64,
     CHANNEL_COUNT,
     CONVERT_LOW,
     CONVERT_MINIMUM,

@@ -34,11 +34,16 @@ from .utils import (
     MDF3_VERSIONS,
     MDF4_VERSIONS,
     SUPPORTED_VERSIONS,
+    UINT64,
+    randomized_string,
 )
 from .v2_v3_blocks import Channel as ChannelV3
 from .v2_v3_blocks import HeaderBlock as HeaderV3
+from .v4_blocks import SourceInformation
+from .v4_blocks import ChannelConversion as ChannelConversionV4
 from .v4_blocks import Channel as ChannelV4
 from .v4_blocks import HeaderBlock as HeaderV4
+from .v4_blocks import TextBlock as TextBlockV4
 from .v4_blocks import ChannelArrayBlock, EventBlock
 from . import v4_constants as v4c
 
@@ -2598,6 +2603,143 @@ class MDF(object):
             return tuple(self.channels_db[channel])
         else:
             return tuple()
+
+    @staticmethod
+    def scramble(name, memory='low'):
+        """ scramble text blocks and keep original file strcuture
+
+        Parameters
+        ----------
+        name : str
+            file name
+        memory : str
+            memory option; default *'low'*
+
+        """
+
+        memory = validate_memory_argument(memory)
+        mdf = MDF(name, memory=memory)
+        texts = {}
+
+        if mdf.version >= '4.00':
+            Channel = ChannelV4
+            ChannelConversion = ChannelConversionV4
+            TextBlock = TextBlockV4
+
+            stream = mdf._file
+
+            if mdf.header['comment_addr']:
+                stream.seek(mdf.header['comment_addr'] + 8)
+                size = UINT64(stream.read(8))[0] - 24
+                texts[mdf.header['comment_addr']] = randomized_string(size)
+
+            for fh in mdf.file_history:
+                addr = fh['comment_addr']
+                if addr and addr not in texts:
+                    stream.seek(addr + 8)
+                    size = UINT64(stream.read(8))[0] - 24
+                    texts[addr] = randomized_string(size)
+
+            for ev in mdf.events:
+                for addr in (ev['comment_addr'], ev['name_addr']):
+                    if addr and addr not in texts:
+                        stream.seek(addr + 8)
+                        size = UINT64(stream.read(8))[0] - 24
+                        texts[addr] = randomized_string(size)
+
+            for gp in mdf.groups:
+
+                addr = gp['data_group']['comment_addr']
+                if addr and addr not in texts:
+                    stream.seek(addr + 8)
+                    size = UINT64(stream.read(8))[0] - 24
+                    texts[addr] = randomized_string(size)
+
+                cg = gp['channel_group']
+                for addr in (
+                        cg['acq_name_addr'],
+                        cg['comment_addr']):
+                    if cg['flags'] & v4c.FLAG_CG_BUS_EVENT:
+                        continue
+
+                    if addr and addr not in texts:
+                        stream.seek(addr + 8)
+                        size = UINT64(stream.read(8))[0] - 24
+                        texts[addr] = randomized_string(size)
+
+                    source = cg['acq_source_addr']
+                    if source:
+                        source = SourceInformation(address=source, stream=stream)
+                        for addr in (
+                                source['name_addr'],
+                                source['path_addr'],
+                                source['comment_addr']):
+                            if addr and addr not in texts:
+                                stream.seek(addr + 8)
+                                size = UINT64(stream.read(8))[0] - 24
+                                texts[addr] = randomized_string(size)
+
+                for ch in gp['channels']:
+                    if mdf.memory == 'minimum':
+                        ch = Channel(address=ch, stream=stream,
+                                     load_metadata=False)
+
+                    for addr in (
+                            ch['name_addr'],
+                            ch['unit_addr'],
+                            ch['comment_addr']):
+                        if addr and addr not in texts:
+                            stream.seek(addr + 8)
+                            size = UINT64(stream.read(8))[0] - 24
+                            texts[addr] = randomized_string(size)
+
+                    source = ch['source_addr']
+                    if source:
+                        source = SourceInformation(address=source, stream=stream)
+                        for addr in (
+                                source['name_addr'],
+                                source['path_addr'],
+                                source['comment_addr']):
+                            if addr and addr not in texts:
+                                stream.seek(addr + 8)
+                                size = UINT64(stream.read(8))[0] - 24
+                                texts[addr] = randomized_string(size)
+
+                    conv = ch['conversion_addr']
+                    if conv:
+                        conv = ChannelConversion(address=conv, stream=stream)
+                        for addr in (
+                                conv['name_addr'],
+                                conv['unit_addr'],
+                                conv['comment_addr']):
+                            if addr and addr not in texts:
+                                stream.seek(addr + 8)
+                                size = UINT64(stream.read(8))[0] - 24
+                                texts[addr] = randomized_string(size)
+                        if conv['conversion_type'] == v4c.CONVERSION_TYPE_ALG:
+                            addr = conv['formula_addr']
+                            if addr and addr not in texts:
+                                stream.seek(addr + 8)
+                                size = UINT64(stream.read(8))[0] - 24
+                                texts[addr] = randomized_string(size)
+
+                        for key, block in conv.referenced_blocks.items():
+                            if block:
+                                if block['id'] == b'##TX':
+                                    addr = block.address
+                                    if addr not in texts:
+                                        stream.seek(addr + 8)
+                                        size = block['block_len'] - 24
+                                        texts[addr] = randomized_string(size)
+            mdf.close()
+
+            with open(name, 'rb+') as mdf:
+                for addr, bts in texts.items():
+                    mdf.seek(addr + 24)
+                    mdf.write(bts)
+
+        else:
+            raise NotImplementedError()
 
 
 if __name__ == '__main__':

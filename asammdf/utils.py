@@ -8,6 +8,7 @@ import string
 import xml.etree.ElementTree as ET
 
 from collections import namedtuple
+from random import randint
 from struct import Struct
 from warnings import warn
 
@@ -122,17 +123,18 @@ class MdfException(Exception):
     pass
 
 
-# pylint: disable=W0622
-def bytes(obj):
-    """ Python 2 compatibility function """
-    try:
-        return obj.__bytes__()
-    except AttributeError:
-        if isinstance(obj, str):
-            return obj
-        else:
-            raise
-# pylint: enable=W0622
+if PYVERSION < 3:
+    # pylint: disable=W0622
+    def bytes(obj):
+        """ Python 2 compatibility function """
+        try:
+            return obj.__bytes__()
+        except AttributeError:
+            if isinstance(obj, str):
+                return obj
+            else:
+                raise
+    # pylint: enable=W0622
 
 
 def extract_cncomment_xml(comment):
@@ -916,3 +918,23 @@ class ChannelsDB(dict):
                 self[channel_name].append(
                     entry
                 )
+
+
+def randomized_string(size):
+    """ get a \0 terminated string of size length
+
+    Parameters
+    ----------
+    size : int
+        target string length
+
+    Returns
+    -------
+    string : bytes
+        randomized string
+
+    """
+    if PYVERSION >= 3:
+        return bytes(randint(65, 90) for _ in range(size - 1)) + b'\0'
+    else:
+        return ''.join(chr(randint(65, 90)) for _ in range(size - 1)) + '\0'
