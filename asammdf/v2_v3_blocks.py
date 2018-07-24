@@ -362,7 +362,7 @@ class Channel(dict):
             else:
                 self[key] = 0
 
-        self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+        self['short_name'] = text.encode('latin-1')[:127]
 
         key = 'display_name_addr'
         text = self.display_name
@@ -384,7 +384,7 @@ class Channel(dict):
         text = self.comment
         if text:
             if len(text) < 128:
-                self['description'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+                self['description'] = text.encode('latin-1')[:127]
                 self[key] = 0
             else:
                 if text in defined_texts:
@@ -438,7 +438,7 @@ class Channel(dict):
                     stream.write(bytes(tx_block))
             else:
                 self[key] = 0
-        self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+        self['short_name'] = text.encode('latin-1')[:127]
 
         key = 'display_name_addr'
         text = self.display_name
@@ -460,11 +460,7 @@ class Channel(dict):
         text = self.comment
         if text:
             if len(text) < 128:
-                self['description'] = (
-                    '{:\0<128}'
-                    .format(text[:127])
-                    .encode('latin-1')
-                )
+                self['description'] = text.encode('latin-1')[:127]
                 self[key] = 0
             else:
                 if text in defined_texts:
@@ -1055,7 +1051,7 @@ class ChannelConversion(dict):
 
     def to_blocks(self, address, blocks, defined_texts, cc_map):
 
-        self['unit'] = '{:\0<20}'.format(self.unit[:19]).encode('latin-1')
+        self['unit'] = self.unit.encode('latin-1')[:19]
 
         if 'formula' in self:
             formula = self.formula
@@ -1095,7 +1091,7 @@ class ChannelConversion(dict):
     def to_stream(self, stream, defined_texts, cc_map):
         address = stream.tell()
 
-        self['unit'] = '{:\0<20}'.format(self.unit[:19]).encode('latin-1')
+        self['unit'] = self.unit.encode('latin-1')[:19]
 
         if 'formula' in self:
             formula = self.formula
@@ -1750,11 +1746,11 @@ class ChannelExtension(dict):
     def to_blocks(self, address, blocks, defined_texts, cc_map):
 
         if self['type'] == v23c.SOURCE_ECU:
-            self['ECU_identification'] = '{:\0<32}'.format(self.path[:31]).encode('latin-1')
-            self['description'] = '{:\0<80}'.format(self.name[:79]).encode('latin-1')
+            self['ECU_identification'] = self.path.encode('latin-1')[:31]
+            self['description'] = self.name.encode('latin-1')[:79]
         else:
-            self['sender_name'] = '{:\0<36}'.format(self.path[:35]).encode('latin-1')
-            self['message_name'] = '{:\0<36}'.format(self.name[:35]).encode('latin-1')
+            self['sender_name'] = self.path.encode('latin-1')[:35]
+            self['message_name'] = self.name.encode('latin-1')[:35]
 
         bts = bytes(self)
         if bts in cc_map:
@@ -1771,11 +1767,11 @@ class ChannelExtension(dict):
         address = stream.tell()
 
         if self['type'] == v23c.SOURCE_ECU:
-            self['ECU_identification'] = '{:\0<32}'.format(self.path[:31]).encode('latin-1')
-            self['description'] = '{:\0<80}'.format(self.name[:79]).encode('latin-1')
+            self['ECU_identification'] = self.path.encode('latin-1')[:31]
+            self['description'] = self.name.encode('latin-1')[:79]
         else:
-            self['sender_name'] = '{:\0<36}'.format(self.path[:35]).encode('latin-1')
-            self['message_name'] = '{:\0<36}'.format(self.name[:35]).encode('latin-1')
+            self['sender_name'] = self.path.encode('latin-1')[:35]
+            self['message_name'] = self.name.encode('latin-1')[:35]
 
         bts = bytes(self)
         if bts in cc_map:

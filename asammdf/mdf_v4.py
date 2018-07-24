@@ -1372,7 +1372,6 @@ class MDF4(object):
             # or a DataList
             elif id_string == b'##DL':
                 if size >= 0:
-                    print(size / 1024/1024)
                     data = bytearray(size)
                     view = memoryview(data)
                     position = 0
