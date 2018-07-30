@@ -109,7 +109,7 @@ SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 VALID_MEMORY_ARGUMENT_VALUES = ('full', 'low', 'minimum')
 
 
-ALLOWED_MATLAB_CHARS = string.ascii_letters + string.digits + '_'
+ALLOWED_MATLAB_CHARS = set(string.ascii_letters + string.digits + '_')
 
 
 SignalSource = namedtuple(
@@ -317,9 +317,9 @@ def get_fmt_v3(data_type, size):
         numpy compatible data type format string
 
     """
-    if data_type in (
+    if data_type in {
             v3c.DATA_TYPE_STRING,
-            v3c.DATA_TYPE_BYTEARRAY):
+            v3c.DATA_TYPE_BYTEARRAY}:
         size = size // 8
         if data_type == v3c.DATA_TYPE_STRING:
             fmt = 'S{}'.format(size)
@@ -337,32 +337,32 @@ def get_fmt_v3(data_type, size):
         else:
             size = size // 8
 
-        if data_type in (
+        if data_type in {
                 v3c.DATA_TYPE_UNSIGNED_INTEL,
-                v3c.DATA_TYPE_UNSIGNED):
+                v3c.DATA_TYPE_UNSIGNED}:
             fmt = '<u{}'.format(size)
 
         elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
             fmt = '>u{}'.format(size)
 
-        elif data_type in (
+        elif data_type in {
                 v3c.DATA_TYPE_SIGNED_INTEL,
-                v3c.DATA_TYPE_SIGNED):
+                v3c.DATA_TYPE_SIGNED}:
             fmt = '<i{}'.format(size)
 
         elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
             fmt = '>i{}'.format(size)
 
-        elif data_type in (
+        elif data_type in {
                 v3c.DATA_TYPE_FLOAT,
                 v3c.DATA_TYPE_DOUBLE,
                 v3c.DATA_TYPE_FLOAT_INTEL,
-                v3c.DATA_TYPE_DOUBLE_INTEL):
+                v3c.DATA_TYPE_DOUBLE_INTEL}:
             fmt = '<f{}'.format(size)
 
-        elif data_type in (
+        elif data_type in {
                 v3c.DATA_TYPE_FLOAT_MOTOROLA,
-                v3c.DATA_TYPE_DOUBLE_MOTOROLA):
+                v3c.DATA_TYPE_DOUBLE_MOTOROLA}:
             fmt = '>f{}'.format(size)
 
     return fmt
@@ -386,14 +386,14 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
         numpy compatible data type format string
 
     """
-    if data_type in (
+    if data_type in {
             v4c.DATA_TYPE_BYTEARRAY,
             v4c.DATA_TYPE_STRING_UTF_8,
             v4c.DATA_TYPE_STRING_LATIN_1,
             v4c.DATA_TYPE_STRING_UTF_16_BE,
             v4c.DATA_TYPE_STRING_UTF_16_LE,
             v4c.DATA_TYPE_CANOPEN_DATE,
-            v4c.DATA_TYPE_CANOPEN_TIME):
+            v4c.DATA_TYPE_CANOPEN_TIME}:
         size = size // 8
 
         if data_type == v4c.DATA_TYPE_BYTEARRAY:
@@ -405,11 +405,11 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
                 elif size == 8:
                     fmt = '<u8'
 
-        elif data_type in (
+        elif data_type in {
                 v4c.DATA_TYPE_STRING_UTF_8,
                 v4c.DATA_TYPE_STRING_LATIN_1,
                 v4c.DATA_TYPE_STRING_UTF_16_BE,
-                v4c.DATA_TYPE_STRING_UTF_16_LE):
+                v4c.DATA_TYPE_STRING_UTF_16_LE}:
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
                 fmt = 'S{}'.format(size)
             else:
@@ -520,7 +520,7 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
                     data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
                 else:
                     data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
-        elif fmt.kind in 'SV':
+        elif fmt.kind in {'S', 'V'}:
             data_type = v3c.DATA_TYPE_STRING
         elif fmt.kind == 'b':
             data_type = v3c.DATA_TYPE_UNSIGNED
@@ -593,21 +593,21 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
 
     else:
         if fmt.kind == 'u':
-            if fmt.byteorder in '=<|':
+            if fmt.byteorder in {'=', '<', '|'}:
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
         elif fmt.kind == 'i':
-            if fmt.byteorder in '=<|':
+            if fmt.byteorder in {'=', '<', '|'}:
                 data_type = v4c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
         elif fmt.kind == 'f':
-            if fmt.byteorder in '=<':
+            if fmt.byteorder in {'=', '<'}:
                 data_type = v4c.DATA_TYPE_REAL_INTEL
             else:
                 data_type = v4c.DATA_TYPE_REAL_MOTOROLA
-        elif fmt.kind in 'SV':
+        elif fmt.kind in {'S', 'V'}:
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
         elif fmt.kind == 'b':
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
@@ -663,7 +663,7 @@ def get_min_max(samples):
     """
 
     if samples.shape[0]:
-        if samples.dtype.kind in 'uif':
+        if samples.dtype.kind in {'u', 'i', 'f'}:
             min_val, max_val = amin(samples), amax(samples)
         else:
             min_val, max_val = 1, 0

@@ -1807,8 +1807,8 @@ class MDF4(object):
                 group_channels.add(name)
 
                 if start_offset >= next_byte_aligned_position:
-                    if ch_type not in (v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
-                                       v4c.CHANNEL_TYPE_VIRTUAL):
+                    if ch_type not in {v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
+                                       v4c.CHANNEL_TYPE_VIRTUAL}:
                         if not dependency_list:
                             parent_start_offset = start_offset
 
@@ -1819,14 +1819,14 @@ class MDF4(object):
 
                             # adjust size to 1, 2, 4 or 8 bytes
                             size = bit_offset + bit_count
-                            if data_type not in (
+                            if data_type not in {
                                     v4c.DATA_TYPE_BYTEARRAY,
                                     v4c.DATA_TYPE_STRING_UTF_8,
                                     v4c.DATA_TYPE_STRING_LATIN_1,
                                     v4c.DATA_TYPE_STRING_UTF_16_BE,
                                     v4c.DATA_TYPE_STRING_UTF_16_LE,
                                     v4c.DATA_TYPE_CANOPEN_TIME,
-                                    v4c.DATA_TYPE_CANOPEN_DATE):
+                                    v4c.DATA_TYPE_CANOPEN_DATE}:
                                 if size > 32:
                                     size = 8
                                 elif size > 16:
@@ -2682,7 +2682,7 @@ class MDF4(object):
 
             if names is None:
                 sig_type = v4c.SIGNAL_TYPE_SCALAR
-                if sig.samples.dtype.kind in 'SV':
+                if sig.samples.dtype.kind in {'S', 'V'}:
                     sig_type = v4c.SIGNAL_TYPE_STRING
             else:
                 if names in (canopen_time_fields, canopen_date_fields):
@@ -4557,8 +4557,8 @@ class MDF4(object):
 
         else:
             # get channel values
-            if channel['channel_type'] in (v4c.CHANNEL_TYPE_VIRTUAL,
-                                           v4c.CHANNEL_TYPE_VIRTUAL_MASTER):
+            if channel['channel_type'] in {v4c.CHANNEL_TYPE_VIRTUAL,
+                                           v4c.CHANNEL_TYPE_VIRTUAL_MASTER}:
                 data_type = channel['data_type']
                 ch_dtype = dtype(get_fmt_v4(data_type, 64))
 
@@ -4667,7 +4667,7 @@ class MDF4(object):
 
                         if vals_dtype == 'b':
                             pass
-                        elif vals_dtype not in 'ui' and (bit_offset or not bits == size * 8) or \
+                        elif vals_dtype not in {'u', 'i'} and (bit_offset or not bits == size * 8) or \
                                 (len(vals.shape) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY):
                             vals = self._get_not_byte_aligned_data(
                                 data_bytes,
@@ -4776,10 +4776,10 @@ class MDF4(object):
             else:
                 conversion_type = conversion['conversion_type']
 
-            if conversion_type in (
+            if conversion_type in {
                     v4c.CONVERSION_TYPE_NON,
                     v4c.CONVERSION_TYPE_TRANS,
-                    v4c.CONVERSION_TYPE_TTAB):
+                    v4c.CONVERSION_TYPE_TTAB}:
 
                 if channel_type == v4c.CHANNEL_TYPE_VLSD:
                     if signal_data:
@@ -4841,7 +4841,7 @@ class MDF4(object):
                         # no VLSD signal data samples
                         vals = array([], dtype=dtype('S'))
 
-                elif channel_type in (v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD) and \
+                elif channel_type in {v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD} and \
                     (v4c.DATA_TYPE_STRING_LATIN_1 <= data_type <= v4c.DATA_TYPE_STRING_UTF_16_BE):
 
                     if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
@@ -4931,19 +4931,19 @@ class MDF4(object):
                 if conversion_type == v4c.CONVERSION_TYPE_TTAB:
                     raw = True
 
-            elif conversion_type in (
+            elif conversion_type in {
                     v4c.CONVERSION_TYPE_LIN,
                     v4c.CONVERSION_TYPE_RAT,
                     v4c.CONVERSION_TYPE_ALG,
                     v4c.CONVERSION_TYPE_TABI,
                     v4c.CONVERSION_TYPE_TAB,
-                    v4c.CONVERSION_TYPE_RTAB):
+                    v4c.CONVERSION_TYPE_RTAB}:
                 if not raw:
                     vals = conversion.convert(vals)
 
-            elif conversion_type in (
+            elif conversion_type in {
                     v4c.CONVERSION_TYPE_TABX,
-                    v4c.CONVERSION_TYPE_RTABX):
+                    v4c.CONVERSION_TYPE_RTABX}:
                 raw = True
 
         if samples_only:
