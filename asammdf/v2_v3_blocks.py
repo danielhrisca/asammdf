@@ -328,7 +328,7 @@ class Channel(dict):
             self['comment_addr'] = kwargs.get('comment_addr', 0)
             self['channel_type'] = kwargs.get('channel_type', 0)
             self['short_name'] = kwargs.get('short_name', (b'\0' * 32))
-            self['description'] = kwargs.get('description', (b'\0' * 32))
+            self['description'] = kwargs.get('description', (b'\0' * 128))
             self['start_offset'] = kwargs.get('start_offset', 0)
             self['bit_count'] = kwargs.get('bit_count', 8)
             self['data_type'] = kwargs.get('data_type', 0)
@@ -349,7 +349,7 @@ class Channel(dict):
         key = 'long_name_addr'
         text = self.name
         if key in self:
-            if len(text) > 127:
+            if len(text) > 31:
                 if text in defined_texts:
                     self[key] = defined_texts[text]
                 else:
@@ -362,7 +362,7 @@ class Channel(dict):
             else:
                 self[key] = 0
 
-        self['short_name'] = text.encode('latin-1')[:127]
+        self['short_name'] = text.encode('latin-1')[:31]
 
         key = 'display_name_addr'
         text = self.display_name
@@ -426,7 +426,7 @@ class Channel(dict):
         key = 'long_name_addr'
         text = self.name
         if key in self:
-            if len(text) > 127:
+            if len(text) > 31:
                 if text in defined_texts:
                     self[key] = defined_texts[text]
                 else:
@@ -438,7 +438,7 @@ class Channel(dict):
                     stream.write(bytes(tx_block))
             else:
                 self[key] = 0
-        self['short_name'] = text.encode('latin-1')[:127]
+        self['short_name'] = text.encode('latin-1')[:31]
 
         key = 'display_name_addr'
         text = self.display_name
