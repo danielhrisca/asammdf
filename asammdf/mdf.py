@@ -1012,7 +1012,9 @@ class MDF(object):
             for i, grp in enumerate(self.groups):
                 if self._terminate:
                     return
-                master_index = self.masters_db.get(i, -1)
+
+                included_channels = self._included_channels(i)
+
                 data = self._load_group_data(grp)
 
                 if PYVERSION == 2:
@@ -1021,9 +1023,7 @@ class MDF(object):
                     data = b''.join(d[0] for d in data)
                 data = (data, 0)
 
-                for j, _ in enumerate(grp['channels']):
-                    if j == master_index:
-                        continue
+                for j in included_channels:
                     sig = self.get(
                         group=i,
                         index=j,
@@ -1412,7 +1412,13 @@ class MDF(object):
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
                         return
+
+                    included_channels = self._included_channels(i)
+
                     master_index = self.masters_db.get(i, -1)
+
+                    if master_index >= 0:
+                        included_channels.add(master_index)
                     data = self._load_group_data(grp)
 
                     if PYVERSION == 2:
@@ -1421,7 +1427,7 @@ class MDF(object):
                         data = b''.join(d[0] for d in data)
                     data = (data, 0)
 
-                    for j, _ in enumerate(grp['channels']):
+                    for j in included_channels:
                         sig = self.get(
                             group=i,
                             index=j,
