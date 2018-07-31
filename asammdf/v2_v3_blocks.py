@@ -350,7 +350,7 @@ class Channel(dict):
         key = 'long_name_addr'
         text = self.name
         if key in self:
-            if len(text) > 127:
+            if len(text) > 31:
                 if text in defined_texts:
                     self[key] = defined_texts[text]
                 else:
@@ -362,7 +362,7 @@ class Channel(dict):
                     blocks.append(tx_block)
             else:
                 self[key] = 0
-        self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+        self['short_name'] = '{:\0<32}'.format(text[:31]).encode('latin-1')
 
         key = 'display_name_addr'
         text = self.display_name
@@ -426,7 +426,7 @@ class Channel(dict):
         key = 'long_name_addr'
         text = self.name
         if key in self:
-            if len(text) > 127:
+            if len(text) > 31:
                 if text in defined_texts:
                     self[key] = defined_texts[text]
                 else:
@@ -438,7 +438,7 @@ class Channel(dict):
                     stream.write(bytes(tx_block))
             else:
                 self[key] = 0
-        self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+        self['short_name'] = '{:\0<32}'.format(text[:31]).encode('latin-1')
 
         key = 'display_name_addr'
         text = self.display_name
