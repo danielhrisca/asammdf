@@ -448,7 +448,7 @@ class MDF(object):
                     if gp_nr == index:
                         included_channels.add(ch_nr)
         else:
-            if group.get('CAN_logging', True):
+            if group.get('CAN_logging', False):
                 where = self.whereis('CAN_DataFrame')
                 for dg_cntr, ch_cntr in where:
                     if dg_cntr == index:
