@@ -448,7 +448,7 @@ class MDF(object):
                     if gp_nr == index:
                         included_channels.add(ch_nr)
         else:
-            if channel_group['flags'] & v4c.FLAG_CG_BUS_EVENT:
+            if group.get('CAN_logging', True):
                 where = self.whereis('CAN_DataFrame')
                 for dg_cntr, ch_cntr in where:
                     if dg_cntr == index:
@@ -479,12 +479,14 @@ class MDF(object):
                         )
                     if channel['byte_offset'] in frame_bytes:
                         included_channels.remove(i)
-                dbc_addr = group['dbc_addr']
-                message_id = group['message_id']
-                can_msg = self._dbc_cache[dbc_addr].frameById(message_id)
 
-                for i, _ in enumerate(can_msg.signals, 1):
-                    included_channels.add(-i)
+                if group['CAN_database']:
+                    dbc_addr = group['dbc_addr']
+                    message_id = group['message_id']
+                    can_msg = self._dbc_cache[dbc_addr].frameById(message_id)
+
+                    for i, _ in enumerate(can_msg.signals, 1):
+                        included_channels.add(-i)
 
             for dependencies in group['channel_dependencies']:
                 if dependencies is None:
