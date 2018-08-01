@@ -3239,6 +3239,7 @@ class MDF3(object):
 
             comment = TextBlock(text=self.header.comment)
             write(bytes(comment))
+            self.header['comment_addr'] = address
             address += comment['block_len']
 
             # DataGroup
