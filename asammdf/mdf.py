@@ -480,7 +480,7 @@ class MDF(object):
                     if channel['byte_offset'] in frame_bytes:
                         included_channels.remove(i)
 
-                if group['CAN_database']:
+                if group.get('CAN_database', False):
                     dbc_addr = group['dbc_addr']
                     message_id = group['message_id']
                     can_msg = self._dbc_cache[dbc_addr].frameById(message_id)
