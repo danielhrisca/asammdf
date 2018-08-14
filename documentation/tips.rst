@@ -101,7 +101,7 @@ Disadvantages
 Chunked data access
 ===================
 When the *MDF* is created with the option "full" all the samples are loaded into RAM 
-and are processed as a signle block. For large files this can lead to MemoryError exceptions
+and are processed as a single block. For large files this can lead to MemoryError exceptions
 (for example trying to merge several GB sized files).
 
 *asammdf* optimizes memory usage for options "low" and "minimum" by processing samples
