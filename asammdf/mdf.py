@@ -1457,6 +1457,12 @@ class MDF(object):
                         )
                         used_names.add(channel_name)
 
+                        if sig.samples.dtype.names:
+                            sig.samples.dtype.names = [
+                                matlab_compatible(name)
+                                for name in sig.samples.dtype.names
+                            ]
+
                         mdict[channel_name] = sig.samples
             else:
                 used_names = set()
@@ -1473,6 +1479,7 @@ class MDF(object):
                 mdict = new_mdict
 
             if format == '7.3':
+
                 savemat(
                     name,
                     mdict,
