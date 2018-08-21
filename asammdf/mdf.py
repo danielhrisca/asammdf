@@ -9,7 +9,6 @@ import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from copy import deepcopy
 from functools import reduce
-from io import BytesIO
 from struct import unpack
 
 import numpy as np
@@ -36,6 +35,7 @@ from .utils import (
     SUPPORTED_VERSIONS,
     UINT64,
     randomized_string,
+    is_file_like,
 )
 from .v2_v3_blocks import Channel as ChannelV3
 from .v2_v3_blocks import HeaderBlock as HeaderV3
@@ -64,7 +64,7 @@ class MDF(object):
     ----------
     name : string | BytesIO
         mdf file name (if provided it must be a real file name) or
-        BytesIO object
+        file-like object
     memory : str
         memory option; default `full`:
 
@@ -93,7 +93,7 @@ class MDF(object):
     def __init__(self, name=None, memory='full', version='4.10', **kwargs):
         if name:
             memory = validate_memory_argument(memory)
-            if isinstance(name, BytesIO):
+            if is_file_like(name):
                 file_stream = name
             else:
                 if os.path.isfile(name):

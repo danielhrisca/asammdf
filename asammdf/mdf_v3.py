@@ -11,7 +11,6 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
-from io import BytesIO
 from itertools import product
 from math import ceil
 from struct import unpack
@@ -57,6 +56,7 @@ from .utils import (
     validate_memory_argument,
     validate_version_argument,
     count_channel_groups,
+    is_file_like,
 )
 from .v2_v3_blocks import (
     Channel,
