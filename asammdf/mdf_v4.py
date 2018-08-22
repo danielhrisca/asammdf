@@ -1384,9 +1384,13 @@ class MDF4(object):
                             if id_string == b'##DT':
                                 _, dim, __ = unpack('<4s2Q', stream.read(20))
                                 dim -= 24
-                                position += stream.readinto(
-                                    view[position: position+dim]
-                                )
+                                if hasattr(stream, 'readinto'):
+                                    position += stream.readinto(
+                                        view[position: position+dim]
+                                    )
+                                else: # Try to fall back to simple read
+                                    view[position: position+dim] = stream.read(dim)
+                                    position += dim
                             elif id_string == b'##DZ':
                                 block = DataZippedBlock(
                                     stream=stream,
