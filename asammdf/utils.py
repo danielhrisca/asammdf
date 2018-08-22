@@ -945,8 +945,8 @@ def is_file_like(obj):
     Check if the object is a file-like object.
 
     For objects to be considered file-like, they must
-    be an iterator AND have either a `read` and/or `write`
-    method as an attribute.
+    be an iterator AND have a 'read' and 'seek' method
+    as an attribute.
 
     Note: file-like objects must be iterable, but
     iterable objects need not be file-like.
@@ -969,7 +969,7 @@ def is_file_like(obj):
     False
     """
 
-    if not (hasattr(obj, 'read') or hasattr(obj, 'write')):
+    if not (hasattr(obj, 'read') and hasattr(obj, 'seek')):
         return False
 
     if not hasattr(obj, "__iter__"):
