@@ -13,7 +13,6 @@ from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
 from hashlib import md5
-from io import BytesIO
 from itertools import chain
 from math import ceil
 from struct import unpack, unpack_from
@@ -72,6 +71,7 @@ from .utils import (
     validate_version_argument,
     count_channel_groups,
     info_to_datatype_v4,
+    is_file_like,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -258,7 +258,7 @@ class MDF4(object):
     ----------
     name : string
         mdf file name (if provided it must be a real file name) or
-        BytesIO object
+        file-like object
     memory : str
         memory optimization option; default `full`
 
@@ -356,17 +356,17 @@ class MDF4(object):
         self._callback = kwargs.get('callback', None)
 
         if name:
-            if isinstance(name, BytesIO):
+            if is_file_like(name):
                 self._file = name
-                self.name = 'From_BytesIO.mf4'
-                self._from_bytesio = True
+                self.name = 'From_FileLike.mf4'
+                self._from_filelike = True
             else:
                 self._file = open(self.name, 'rb')
-                self._from_bytesio = False
+                self._from_filelike = False
             self._read()
 
         else:
-            self._from_bytesio = False
+            self._from_filelike = False
             version = validate_version_argument(version)
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
@@ -1384,9 +1384,13 @@ class MDF4(object):
                             if id_string == b'##DT':
                                 _, dim, __ = unpack('<4s2Q', stream.read(20))
                                 dim -= 24
-                                position += stream.readinto(
-                                    view[position: position+dim]
-                                )
+                                if hasattr(stream, 'readinto'):
+                                    position += stream.readinto(
+                                        view[position: position+dim]
+                                    )
+                                else: # Try to fall back to simple read
+                                    view[position: position+dim] = stream.read(dim)
+                                    position += dim
                             elif id_string == b'##DZ':
                                 block = DataZippedBlock(
                                     stream=stream,
@@ -3660,7 +3664,7 @@ class MDF4(object):
         object is not used anymore to clean-up the temporary file"""
         if self._tempfile is not None:
             self._tempfile.close()
-        if self._file is not None and not self._from_bytesio:
+        if self._file is not None and not self._from_filelike:
             self._file.close()
 
     def extract_attachment(self, address=None, index=None):
