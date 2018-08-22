@@ -157,7 +157,7 @@ class MDF3(object):
     ----------
     name : string
         mdf file name (if provided it must be a real file name) or
-        BytesIO object
+        file-like object
     memory : str
         memory optimization option; default `full`
 
@@ -224,16 +224,16 @@ class MDF3(object):
         self._callback = kwargs.get('callback', None)
 
         if name:
-            if isinstance(name, BytesIO):
+            if is_file_like(name):
                 self._file = name
-                self.name = 'From_BytesIO.mdf'
-                self._from_bytesio = True
+                self.name = 'From_FileLike.mf4'
+                self._from_filelike = True
             else:
                 self._file = open(self.name, 'rb')
-                self._from_bytesio = False
+                self._from_filelike = False
             self._read()
         else:
-            self._from_bytesio = False
+            self._from_filelike = False
             version = validate_version_argument(version, hint=3)
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
@@ -2041,7 +2041,7 @@ class MDF3(object):
         """
         if self._tempfile is not None:
             self._tempfile.close()
-        if self._file is not None and not self._from_bytesio:
+        if self._file is not None and not self._from_filelike:
             self._file.close()
 
     def extend(self, index, signals):
