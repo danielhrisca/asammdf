@@ -1294,12 +1294,8 @@ class MDF(object):
 
                     if self._terminate:
                         return
-                    
-                    print([len(x) for x in vals])
 
                     for idx, row in enumerate(zip(*vals)):
-                        if idx % 1000 == 0:
-                            print(idx)
                         writer.writerow(row)
 
             else:
@@ -1326,8 +1322,6 @@ class MDF(object):
                     with open(group_csv_name, 'w', newline='') as csvfile:
                         writer = csv.writer(csvfile)
                         
-                        debug_channel(self, grp, None, None)
-
                         master_index = self.masters_db.get(i, None)
                         if master_index is not None:
                             master = self.get(group=i, index=master_index, data=data)
@@ -1346,8 +1340,11 @@ class MDF(object):
                             master = None
                             raster_ = None
 
-                        if time_from_zero and len(master):
-                            master.samples -= master.samples[0]
+                        if time_from_zero:
+                            if master is None:
+                                pass
+                            elif len(master):
+                                master.samples -= master.samples[0]
 
                         ch_nr = len(grp['channels'])
                         if master is None:
@@ -1393,7 +1390,8 @@ class MDF(object):
 
                         vals += [ch.samples for ch in channels]
 
-                        writer.writerows(zip(*vals))
+                        for idx, row in enumerate(zip(*vals)):
+                            writer.writerow(row)
 
         elif fmt == 'mat':
             if format == '7.3':
