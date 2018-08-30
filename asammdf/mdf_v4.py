@@ -5087,9 +5087,12 @@ class MDF4(object):
             cycles_nr = len(data_bytes) // record_size
 
         if time_ch_nr is None:
-            offset = offset // record_size
-            t = arange(cycles_nr, dtype=float64)
-            t += offset
+            if record_size:
+                offset = offset // record_size
+                t = arange(cycles_nr, dtype=float64)
+                t += offset
+            else:
+                t = array([], dtype=float64)
             metadata = (
                 'Time',
                 v4c.SYNC_TYPE_TIME,

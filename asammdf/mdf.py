@@ -36,6 +36,7 @@ from .utils import (
     UINT64,
     randomized_string,
     is_file_like,
+    debug_channel,
 )
 from .v2_v3_blocks import Channel as ChannelV3
 from .v2_v3_blocks import HeaderBlock as HeaderV3
@@ -1293,8 +1294,13 @@ class MDF(object):
 
                     if self._terminate:
                         return
+                    
+                    print([len(x) for x in vals])
 
-                    writer.writerows(zip(*vals))
+                    for idx, row in enumerate(zip(*vals)):
+                        if idx % 1000 == 0:
+                            print(idx)
+                        writer.writerow(row)
 
             else:
 
@@ -1319,6 +1325,8 @@ class MDF(object):
                     group_csv_name = '{}_{}.csv'.format(name, group_name)
                     with open(group_csv_name, 'w', newline='') as csvfile:
                         writer = csv.writer(csvfile)
+                        
+                        debug_channel(self, grp, None, None)
 
                         master_index = self.masters_db.get(i, None)
                         if master_index is not None:
