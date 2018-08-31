@@ -982,7 +982,43 @@ class MDF(object):
 
         name = filename if filename else self.name
 
-        if single_time_base or fmt == 'pandas':
+        if fmt == 'parquet':
+            try:
+                from fastparquet import write as write_parquet
+            except ImportError:
+                logger.warning(
+                    'fastparquet not found; export to parquet is unavailable')
+                return
+
+        elif fmt == 'hdf5':
+            try:
+                from h5py import File as HDF5
+            except ImportError:
+                logger.warning('h5py not found; export to HDF5 is unavailable')
+                return
+
+        elif fmt == 'excel':
+            try:
+                import xlsxwriter
+            except ImportError:
+                logger.warning('xlsxwriter not found; export to Excel unavailable')
+                return
+
+        elif fmt == 'mat':
+            if format == '7.3':
+                try:
+                    from hdf5storage import savemat
+                except ImportError:
+                    logger.warning('hdf5storage not found; export to mat v7.3 is unavailable')
+                    return
+            else:
+                try:
+                    from scipy.io import savemat
+                except ImportError:
+                    logger.warning('scipy not found; export to mat is unavailable')
+                    return
+
+        if single_time_base or fmt in ('pandas', 'parquet'):
             mdict = OrderedDict()
             units = OrderedDict()
             comments = OrderedDict()
@@ -1068,135 +1104,59 @@ class MDF(object):
                             comments[channel_name] = sig.comment
 
         if fmt == 'hdf5':
+            if not name.endswith('.hdf'):
+                name += '.hdf'
 
-            try:
-                from h5py import File as HDF5
-            except ImportError:
-                logger.warning('h5py not found; export to HDF5 is unavailable')
-                return
-            else:
+            if single_time_base:
+                with HDF5(name, 'w') as hdf:
+                    # header information
+                    group = hdf.create_group(os.path.basename(name))
 
-                if not name.endswith('.hdf'):
-                    name += '.hdf'
+                    if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
+                        for item in header_items:
+                            group.attrs[item] = self.header[item]
 
-                if single_time_base:
-                    with HDF5(name, 'w') as hdf:
-                        # header information
-                        group = hdf.create_group(os.path.basename(name))
+                    # save each data group in a HDF5 group called
+                    # "DataGroup_<cntr>" with the index starting from 1
+                    # each HDF5 group will have a string attribute "master"
+                    # that will hold the name of the master channel
 
-                        if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-                            for item in header_items:
-                                group.attrs[item] = self.header[item]
+                    for channel in mdict:
+                        samples = mdict[channel]
+                        unit = units[channel]
+                        comment = comments[channel]
 
-                        # save each data group in a HDF5 group called
-                        # "DataGroup_<cntr>" with the index starting from 1
-                        # each HDF5 group will have a string attribute "master"
-                        # that will hold the name of the master channel
-
-                        for channel in mdict:
-                            samples = mdict[channel]
-                            unit = units[channel]
-                            comment = comments[channel]
-
-                            dataset = group.create_dataset(
-                                channel,
-                                data=samples,
-                            )
-                            unit = unit.replace('\0', '')
-                            if unit:
-                                dataset.attrs['unit'] = unit
-                            comment = comment.replace('\0', '')
-                            if comment:
-                                dataset.attrs['comment'] = comment
-
-                else:
-                    with HDF5(name, 'w') as hdf:
-                        # header information
-                        group = hdf.create_group(os.path.basename(name))
-
-                        if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-                            for item in header_items:
-                                group.attrs[item] = self.header[item]
-
-                        # save each data group in a HDF5 group called
-                        # "DataGroup_<cntr>" with the index starting from 1
-                        # each HDF5 group will have a string attribute "master"
-                        # that will hold the name of the master channel
-                        for i, grp in enumerate(self.groups):
-                            if self._terminate:
-                                return
-                            group_name = r'/' + 'DataGroup_{}'.format(i + 1)
-                            group = hdf.create_group(group_name)
-
-                            master_index = self.masters_db.get(i, -1)
-
-                            data = self._load_group_data(grp)
-
-                            if PYVERSION == 2:
-                                data = b''.join(str(d[0]) for d in data)
-                            else:
-                                data = b''.join(d[0] for d in data)
-                            data = (data, 0)
-
-                            for j, _ in enumerate(grp['channels']):
-                                sig = self.get(group=i, index=j, data=data)
-                                name = sig.name
-                                if j == master_index:
-                                    group.attrs['master'] = name
-                                dataset = group.create_dataset(name,
-                                                               data=sig.samples)
-                                unit = sig.unit.replace('\0', '')
-                                if unit:
-                                    dataset.attrs['unit'] = unit
-                                comment = sig.comment.replace('\0', '')
-                                if comment:
-                                    dataset.attrs['comment'] = comment
-
-        elif fmt == 'excel':
-            try:
-                import xlsxwriter
-            except ImportError:
-                logger.warning('xlsxwriter not found; export to Excel unavailable')
-                return
-            else:
-
-                if single_time_base:
-                    if not name.endswith('.xlsx'):
-                        name += '.xlsx'
-                    message = 'Writing excel export to file "{}"'.format(name)
-                    logger.info(message)
-
-                    workbook = xlsxwriter.Workbook(name)
-                    sheet = workbook.add_worksheet('Channels')
-
-                    for col, (channel_name, channel_unit) in enumerate(units.items()):
-                        if self._terminate:
-                            return
-                        samples = mdict[channel_name]
-                        sig_description = '{} [{}]'.format(
-                            channel_name,
-                            channel_unit,
+                        dataset = group.create_dataset(
+                            channel,
+                            data=samples,
                         )
-                        sheet.write(0, col, sig_description)
-                        try:
-                            sheet.write_column(1, col, samples.astype(str))
-                        except:
-                            vals = [str(e) for e in sig.samples]
-                            sheet.write_column(1, col, vals)
+                        unit = unit.replace('\0', '')
+                        if unit:
+                            dataset.attrs['unit'] = unit
+                        comment = comment.replace('\0', '')
+                        if comment:
+                            dataset.attrs['comment'] = comment
 
-                    workbook.close()
+            else:
+                with HDF5(name, 'w') as hdf:
+                    # header information
+                    group = hdf.create_group(os.path.basename(name))
 
-                else:
-                    while name.endswith('.xlsx'):
-                        name = name[:-5]
+                    if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
+                        for item in header_items:
+                            group.attrs[item] = self.header[item]
 
-                    count = len(self.groups)
-
+                    # save each data group in a HDF5 group called
+                    # "DataGroup_<cntr>" with the index starting from 1
+                    # each HDF5 group will have a string attribute "master"
+                    # that will hold the name of the master channel
                     for i, grp in enumerate(self.groups):
                         if self._terminate:
                             return
-                        message = 'Exporting group {} of {}'.format(i + 1, count)
-                        logger.info(message)
+                        group_name = r'/' + 'DataGroup_{}'.format(i + 1)
+                        group = hdf.create_group(group_name)
+
+                        master_index = self.masters_db.get(i, -1)
 
                         data = self._load_group_data(grp)
 
@@ -1206,70 +1166,132 @@ class MDF(object):
                             data = b''.join(d[0] for d in data)
                         data = (data, 0)
 
-                        master_index = self.masters_db.get(i, None)
-                        if master_index is not None:
-                            master = self.get(group=i, index=master_index, data=data)
+                        for j, _ in enumerate(grp['channels']):
+                            sig = self.get(group=i, index=j, data=data)
+                            name = sig.name
+                            if j == master_index:
+                                group.attrs['master'] = name
+                            dataset = group.create_dataset(name,
+                                                           data=sig.samples)
+                            unit = sig.unit.replace('\0', '')
+                            if unit:
+                                dataset.attrs['unit'] = unit
+                            comment = sig.comment.replace('\0', '')
+                            if comment:
+                                dataset.attrs['comment'] = comment
 
-                            if raster and len(master):
-                                raster_ = np.arange(
-                                    master[0],
-                                    master[-1],
-                                    raster,
-                                    dtype=np.float64,
-                                )
-                                master = master.interp(raster_)
-                            else:
-                                raster_ = None
+        elif fmt == 'excel':
+
+            if single_time_base:
+                if not name.endswith('.xlsx'):
+                    name += '.xlsx'
+                message = 'Writing excel export to file "{}"'.format(name)
+                logger.info(message)
+
+                workbook = xlsxwriter.Workbook(name)
+                sheet = workbook.add_worksheet('Channels')
+
+                for col, (channel_name, channel_unit) in enumerate(units.items()):
+                    if self._terminate:
+                        return
+                    samples = mdict[channel_name]
+                    sig_description = '{} [{}]'.format(
+                        channel_name,
+                        channel_unit,
+                    )
+                    sheet.write(0, col, sig_description)
+                    try:
+                        sheet.write_column(1, col, samples.astype(str))
+                    except:
+                        vals = [str(e) for e in sig.samples]
+                        sheet.write_column(1, col, vals)
+
+                workbook.close()
+
+            else:
+                while name.endswith('.xlsx'):
+                    name = name[:-5]
+
+                count = len(self.groups)
+
+                for i, grp in enumerate(self.groups):
+                    if self._terminate:
+                        return
+                    message = 'Exporting group {} of {}'.format(i + 1, count)
+                    logger.info(message)
+
+                    data = self._load_group_data(grp)
+
+                    if PYVERSION == 2:
+                        data = b''.join(str(d[0]) for d in data)
+                    else:
+                        data = b''.join(d[0] for d in data)
+                    data = (data, 0)
+
+                    master_index = self.masters_db.get(i, None)
+                    if master_index is not None:
+                        master = self.get(group=i, index=master_index, data=data)
+
+                        if raster and len(master):
+                            raster_ = np.arange(
+                                master[0],
+                                master[-1],
+                                raster,
+                                dtype=np.float64,
+                            )
+                            master = master.interp(raster_)
                         else:
-                            master = None
                             raster_ = None
+                    else:
+                        master = None
+                        raster_ = None
 
-                        if time_from_zero:
-                            master.samples -= master.samples[0]
+                    if time_from_zero:
+                        master.samples -= master.samples[0]
 
-                        group_name = 'DataGroup_{}'.format(i + 1)
-                        wb_name = '{}_{}.xlsx'.format(name, group_name)
-                        workbook = xlsxwriter.Workbook(wb_name)
+                    group_name = 'DataGroup_{}'.format(i + 1)
+                    wb_name = '{}_{}.xlsx'.format(name, group_name)
+                    workbook = xlsxwriter.Workbook(wb_name)
 
-                        sheet = workbook.add_worksheet(group_name)
+                    sheet = workbook.add_worksheet(group_name)
 
-                        if master is not None:
+                    if master is not None:
 
-                            sig_description = '{} [{}]'.format(
-                                master.name,
-                                master.unit,
-                            )
-                            sheet.write(0, 0, sig_description)
-                            sheet.write_column(1, 0, master.samples.astype(str))
+                        sig_description = '{} [{}]'.format(
+                            master.name,
+                            master.unit,
+                        )
+                        sheet.write(0, 0, sig_description)
+                        sheet.write_column(1, 0, master.samples.astype(str))
 
-                            offset = 1
-                        else:
-                            offset = 0
+                        offset = 1
+                    else:
+                        offset = 0
 
-                        for col, _ in enumerate(grp['channels']):
-                            if self._terminate:
-                                return
-                            if col == master_index:
-                                offset -= 1
-                                continue
+                    for col, _ in enumerate(grp['channels']):
+                        if self._terminate:
+                            return
+                        if col == master_index:
+                            offset -= 1
+                            continue
 
-                            sig = self.get(group=i, index=col, data=data)
-                            if raster_ is not None:
-                                sig = sig.interp(raster_)
+                        sig = self.get(group=i, index=col, data=data)
+                        if raster_ is not None:
+                            sig = sig.interp(raster_)
 
-                            sig_description = '{} [{}]'.format(
-                                sig.name,
-                                sig.unit,
-                            )
-                            sheet.write(0, col + offset, sig_description)
+                        sig_description = '{} [{}]'.format(
+                            sig.name,
+                            sig.unit,
+                        )
+                        sheet.write(0, col + offset, sig_description)
 
-                            try:
-                                sheet.write_column(1, col + offset, sig.samples.astype(str))
-                            except:
-                                vals = [str(e) for e in sig.samples]
-                                sheet.write_column(1, col + offset, vals)
+                        try:
+                            sheet.write_column(1, col + offset, sig.samples.astype(str))
+                        except:
+                            vals = [str(e) for e in sig.samples]
+                            sheet.write_column(1, col + offset, vals)
 
-                        workbook.close()
+                    workbook.close()
 
         elif fmt == 'csv':
 
@@ -1321,7 +1343,7 @@ class MDF(object):
                     group_csv_name = '{}_{}.csv'.format(name, group_name)
                     with open(group_csv_name, 'w', newline='') as csvfile:
                         writer = csv.writer(csvfile)
-                        
+
                         master_index = self.masters_db.get(i, None)
                         if master_index is not None:
                             master = self.get(group=i, index=master_index, data=data)
@@ -1394,18 +1416,6 @@ class MDF(object):
                             writer.writerow(row)
 
         elif fmt == 'mat':
-            if format == '7.3':
-                try:
-                    from hdf5storage import savemat
-                except ImportError:
-                    logger.warning('hdf5storage not found; export to mat v7.3 is unavailable')
-                    return
-            else:
-                try:
-                    from scipy.io import savemat
-                except ImportError:
-                    logger.warning('scipy not found; export to mat is unavailable')
-                    return
 
             if not name.endswith('.mat'):
                 name = name + '.mat'
@@ -1501,8 +1511,13 @@ class MDF(object):
 
                 )
 
-        elif fmt == 'pandas':
-            return DataFrame.from_dict(mdict)
+        elif fmt in ('pandas', 'parquet'):
+            if fmt == 'pandas':
+                return DataFrame.from_dict(mdict)
+            else:
+                if not name.endswith('.parquet'):
+                    name = name + '.parquet'
+                write_parquet(name, DataFrame.from_dict(mdict))
 
         else:
             message = (
