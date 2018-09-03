@@ -1192,7 +1192,7 @@ class MDF3(object):
         if master_metadata:
             time_name = master_metadata[0]
         else:
-            time_name = 'Time'
+            time_name = 'time'
 
         if signals:
             # conversion for time channel
@@ -2894,7 +2894,7 @@ class MDF3(object):
         if time_ch_nr is None:
             t = arange(cycles_nr, dtype=float64)
             metadata = (
-                'Time',
+                'time',
                 1,
             )
         else:

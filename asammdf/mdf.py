@@ -1039,14 +1039,14 @@ class MDF(object):
                     master = master_
 
             if time_from_zero and len(master):
-                mdict['t'] = master - master[0]
+                mdict['time'] = master - master[0]
             else:
-                mdict['t'] = master
+                mdict['time'] = master
 
-            units['t'] = 's'
-            comments['t'] = ''
+            units['time'] = 's'
+            comments['time'] = ''
 
-            used_names = {'t'}
+            used_names = {'time'}
 
             for i, grp in enumerate(self.groups):
                 if self._terminate:
@@ -2605,7 +2605,7 @@ class MDF(object):
             t = reduce(np.union1d, times).flatten().astype(np.float64)
             signals = [s.interp(t) for s in signals]
 
-            pandas_dict = {'t': t}
+            pandas_dict = {'time': t}
             for sig in signals:
                 pandas_dict[sig.name] = sig.samples
 

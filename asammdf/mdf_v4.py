@@ -2628,7 +2628,7 @@ class MDF4(object):
             elif sync_type == 4:
                 time_unit = 'index'
         else:
-            time_name, sync_type = 'Time', v4c.SYNC_TYPE_TIME
+            time_name, sync_type = 'time', v4c.SYNC_TYPE_TIME
             time_unit = 's'
 
         source_block = SourceInformation()
@@ -5094,7 +5094,7 @@ class MDF4(object):
             else:
                 t = array([], dtype=float64)
             metadata = (
-                'Time',
+                'time',
                 v4c.SYNC_TYPE_TIME,
             )
         else:
