@@ -35,6 +35,7 @@ from numpy import (
 )
 
 from numpy.core.records import fromarrays, fromstring
+from pandas import DataFrame
 
 from .signal import Signal
 from . import v2_v3_constants as v23c
@@ -1066,8 +1067,9 @@ class MDF3(object):
 
         Parameters
         ----------
-        signals : list | Signal
-            list on *Signal* objects, or a single *Signal* object
+        signals : list | Signal | pandas.DataFrame
+            list of *Signal* objects, or a single *Signal* object, or a pandas
+            *DataFrame* object
         acquisition_info : str
             acquisition information; default 'Python'
         common_timebase : bool
@@ -1100,6 +1102,9 @@ class MDF3(object):
         """
         if isinstance(signals, Signal):
             signals = [signals, ]
+        elif isinstance(signals, DataFrame):
+            self._append_dataframe(signals, acquisition_info)
+            return
 
         version = self.version
 
@@ -2007,6 +2012,251 @@ class MDF3(object):
         gp['sorted'] = True
 
         if signals:
+            samples = fromarrays(fields, dtype=types)
+        else:
+            samples = array([])
+
+        block = samples.tostring()
+
+        if memory == 'full':
+            gp['data_location'] = v23c.LOCATION_MEMORY
+            kargs = {'data': block}
+            gp['data_block'] = DataBlock(**kargs)
+        else:
+            gp['data_location'] = v23c.LOCATION_TEMPORARY_FILE
+            if cycles_nr:
+                data_address = tell()
+                gp['data_group']['data_block_addr'] = data_address
+                gp['data_block_addr'] = [data_address, ]
+                gp['data_block_size'] = [len(block), ]
+                self._tempfile.write(block)
+            else:
+                gp['data_group']['data_block_addr'] = 0
+                gp['data_block_addr'] = [0, ]
+                gp['data_block_size'] = [0, ]
+
+        # data group trigger
+        gp['trigger'] = None
+
+    def _append_dataframe(self, df, source_info=''):
+        """
+        Appends a new data group from a Pandas data frame.
+        """
+
+        t = df.index
+        index_name = df.index.name
+        time_name = index_name or 'time'
+        time_unit = 's'
+
+        version = self.version
+
+        timestamps = t
+
+        # if self.version < '3.10':
+        #     if timestamps.dtype.byteorder == '>':
+        #         timestamps = timestamps.byteswap().newbyteorder()
+        #     for signal in signals:
+        #         if signal.samples.dtype.byteorder == '>':
+        #             signal.samples = signal.samples.byteswap().newbyteorder()
+
+        if self.version >= '3.00':
+            channel_size = v23c.CN_DISPLAYNAME_BLOCK_SIZE
+        elif self.version >= '2.10':
+            channel_size = v23c.CN_LONGNAME_BLOCK_SIZE
+        else:
+            channel_size = v23c.CN_SHORT_BLOCK_SIZE
+
+        memory = self.memory
+        file = self._tempfile
+        write = file.write
+        tell = file.tell
+
+        kargs = {
+            'module_nr': 0,
+            'module_address': 0,
+            'type': v23c.SOURCE_ECU,
+            'description': b'Channel inserted by Python Script',
+        }
+        ce_block = ChannelExtension(**kargs)
+
+        defined_texts, cc_map, si_map = {}, {}, {}
+
+        dg_cntr = len(self.groups)
+
+        gp = {}
+        gp['channels'] = gp_channels = []
+        gp['channel_dependencies'] = gp_dep = []
+        gp['signal_types'] = gp_sig_types = []
+        gp['string_dtypes'] = []
+
+        self.groups.append(gp)
+
+        cycles_nr = len(timestamps)
+        fields = []
+        types = []
+        parents = {}
+        ch_cntr = 0
+        offset = 0
+        field_names = set()
+
+        if df.shape[0]:
+            # conversion for time channel
+            kargs = {
+                'conversion_type': v23c.CONVERSION_TYPE_NONE,
+                'unit': b's',
+                'min_phy_value': timestamps[0] if cycles_nr else 0,
+                'max_phy_value': timestamps[-1] if cycles_nr else 0,
+            }
+            conversion = ChannelConversion(**kargs)
+            conversion.unit = 's'
+            source = ce_block
+
+            # time channel
+            t_type, t_size = fmt_to_datatype_v3(
+                timestamps.dtype,
+                timestamps.shape,
+            )
+            kargs = {
+                'short_name': time_name.encode('latin-1'),
+                'channel_type': v23c.CHANNEL_TYPE_MASTER,
+                'data_type': t_type,
+                'start_offset': 0,
+                'min_raw_value': timestamps[0] if cycles_nr else 0,
+                'max_raw_value': timestamps[-1] if cycles_nr else 0,
+                'bit_count': t_size,
+                'block_len': channel_size,
+                'version': version,
+            }
+            channel = Channel(**kargs)
+            channel.name = name = time_name
+            channel.conversion = conversion
+            channel.source = source
+
+            if memory != 'minimum':
+                gp_channels.append(channel)
+            else:
+                channel.to_stream(file, defined_texts, cc_map, si_map)
+                gp_channels.append(channel.address)
+
+            self.channels_db.add(name, dg_cntr, ch_cntr)
+            self.masters_db[dg_cntr] = 0
+            # data group record parents
+            parents[ch_cntr] = name, 0
+
+            # time channel doesn't have channel dependencies
+            gp_dep.append(None)
+
+            fields.append(timestamps)
+            types.append((name, timestamps.dtype))
+            field_names.add(name)
+
+            offset += t_size
+            ch_cntr += 1
+
+            gp_sig_types.append(0)
+
+        for signal in df:
+
+            sig = df[signal]
+            name = signal
+
+            sig_type = v23c.SIGNAL_TYPE_SCALAR
+
+            gp_sig_types.append(sig_type)
+
+            min_val, max_val = get_min_max(sig)
+
+            new_source = ce_block
+
+            # compute additional byte offset for large records size
+            if offset > v23c.MAX_UINT16:
+                additional_byte_offset = ceil(
+                    (offset - v23c.MAX_UINT16) / 8)
+                start_bit_offset = offset - additional_byte_offset * 8
+            else:
+                start_bit_offset = offset
+                additional_byte_offset = 0
+
+            s_type, s_size = fmt_to_datatype_v3(
+                sig.dtype,
+                sig.shape,
+            )
+
+            kargs = {
+                'channel_type': v23c.CHANNEL_TYPE_VALUE,
+                'data_type': s_type,
+                'min_raw_value': min_val if min_val <= max_val else 0,
+                'max_raw_value': max_val if min_val <= max_val else 0,
+                'start_offset': start_bit_offset,
+                'bit_count': s_size,
+                'aditional_byte_offset': additional_byte_offset,
+                'block_len': channel_size,
+                'version': version,
+            }
+
+            if s_size < 8:
+                s_size = 8
+
+            channel = Channel(**kargs)
+            channel.name = name
+            channel.source = new_source
+            if memory != 'minimum':
+                gp_channels.append(channel)
+            else:
+                channel.to_stream(file, defined_texts, cc_map, si_map)
+                gp_channels.append(channel.address)
+
+            offset += s_size
+
+            self.channels_db.add(name, dg_cntr, ch_cntr)
+
+            # update the parents as well
+            field_name = get_unique_name(field_names, name)
+            parents[ch_cntr] = field_name, 0
+
+            if sig.dtype.kind == 'S':
+                gp['string_dtypes'].append(sig.dtype)
+
+            fields.append(sig)
+            types.append((field_name, sig.dtype))
+            field_names.add(field_name)
+
+            ch_cntr += 1
+
+            # simple channels don't have channel dependencies
+            gp_dep.append(None)
+
+        # channel group
+        kargs = {
+            'cycles_nr': cycles_nr,
+            'samples_byte_nr': offset >> 3,
+            'ch_nr': ch_cntr,
+        }
+        if self.version >= '3.30':
+            kargs['block_len'] = v23c.CG_POST_330_BLOCK_SIZE
+        else:
+            kargs['block_len'] = v23c.CG_PRE_330_BLOCK_SIZE
+        gp['channel_group'] = ChannelGroup(**kargs)
+        gp['channel_group'].comment = source_info
+        gp['size'] = cycles_nr * (offset >> 3)
+
+        # data group
+        if self.version >= '3.20':
+            block_len = v23c.DG_POST_320_BLOCK_SIZE
+        else:
+            block_len = v23c.DG_PRE_320_BLOCK_SIZE
+        gp['data_group'] = DataGroup(block_len=block_len)
+
+        # data block
+        if PYVERSION == 2:
+            types = fix_dtype_fields(types, 'latin-1')
+        types = dtype(types)
+
+        gp['types'] = types
+        gp['parents'] = parents
+        gp['sorted'] = True
+
+        if df.shape[0]:
             samples = fromarrays(fields, dtype=types)
         else:
             samples = array([])
