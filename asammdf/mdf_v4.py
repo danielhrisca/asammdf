@@ -46,6 +46,7 @@ from numpy import (
 from numpy.core.defchararray import encode, decode
 from numpy.core.records import fromarrays, fromstring
 from canmatrix.formats import loads
+from pandas import DataFrame
 
 from . import v4_constants as v4c
 from .signal import Signal
@@ -2484,8 +2485,9 @@ class MDF4(object):
 
         Parameters
         ----------
-        signals : list | Signal
-            list on *Signal* objects, or a single *Signal* object
+        signals : list | Signal | pandas.DataFrame
+            list of *Signal* objects, or a single *Signal* object, or a pandas
+            *DataFrame* object
         source_info : str
             source information; default 'Python'
         common_timebase : bool
@@ -2513,11 +2515,14 @@ class MDF4(object):
         >>> sigs = [ch1, ch2]
         >>> mdf2 = MDF4('out.mf4')
         >>> mdf2.append(sigs, 'created by asammdf v4.0.0')
-        >>> mdf2.append(ch1, 'jsut a single channel')
+        >>> mdf2.append(ch1, 'just a single channel')
 
         """
         if isinstance(signals, Signal):
             signals = [signals, ]
+        elif isinstance(signals, DataFrame):
+            self._append_dataframe(signals, source_info)
+            return
 
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
@@ -2574,6 +2579,7 @@ class MDF4(object):
             'samples_byte_nr': 0,
         }
         gp['channel_group'] = ChannelGroup(**kargs)
+        gp['channel_group'].name = source_info
 
         if any(sig.invalidation_bits is not None for sig in signals):
             invalidation_bytes_nr = len(signals)
@@ -3264,6 +3270,347 @@ class MDF4(object):
 
         signals = None
         del signals
+
+        try:
+            block = samples.tostring()
+
+            if memory == 'full':
+                gp['data_location'] = v4c.LOCATION_MEMORY
+                gp['data_block'] = DataBlock(data=block)
+
+                gp['data_block_type'] = v4c.DT_BLOCK
+                gp['param'] = 0
+                gp['data_size'] = []
+                gp['data_block_size'] = []
+                gp['data_block_addr'] = []
+
+            else:
+                if block:
+                    data_address = self._tempfile.tell()
+                    gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
+                    size = len(block)
+                    self._tempfile.write(block)
+                    gp['data_block_type'] = v4c.DT_BLOCK
+                    gp['param'] = 0
+                    gp['data_size'] = [size, ]
+                    gp['data_block_size'] = [size, ]
+                    gp['data_block_addr'] = [data_address, ]
+                    gp['data_block'] = [data_address, ]
+                else:
+                    gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
+                    gp['data_block'] = []
+                    gp['data_block_type'] = v4c.DT_BLOCK
+                    gp['param'] = 0
+                    gp['data_size'] = []
+                    gp['data_block_size'] = []
+                    gp['data_block_addr'] = []
+
+        except MemoryError:
+            if memory == 'full':
+                raise
+            else:
+                size = 0
+                gp['data_location'] = v4c.LOCATION_TEMPORARY_FILE
+
+                data_address = self._tempfile.tell()
+                gp['data_group']['data_block_addr'] = data_address
+                for sample in samples:
+                    size += self._tempfile.write(sample.tostring())
+                gp['data_block_type'] = v4c.DT_BLOCK
+                gp['param'] = 0
+                gp['data_size'] = [size, ]
+                gp['data_block_size'] = [size, ]
+                if size:
+                    gp['data_block_addr'] = [data_address, ]
+                else:
+                    gp['data_block_addr'] = [0, ]
+
+    def _append_dataframe(self, df, source_info=''):
+        """
+        Appends a new data group from a Pandas data frame.
+
+        """
+
+        t = df.index
+        index_name = df.index.name
+        time_name = index_name or 'time'
+        sync_type = v4c.SYNC_TYPE_TIME
+        time_unit = 's'
+
+        dg_cntr = len(self.groups)
+
+        gp = {}
+        gp['signal_data'] = gp_sdata = []
+        gp['signal_data_size'] = gp_sdata_size = []
+        gp['channels'] = gp_channels = []
+        gp['channel_dependencies'] = gp_dep = []
+        gp['signal_types'] = gp_sig_types = []
+        gp['logging_channels'] = []
+
+        # channel group
+        kargs = {
+            'cycles_nr': 0,
+            'samples_byte_nr': 0,
+        }
+        gp['channel_group'] = ChannelGroup(**kargs)
+        gp['channel_group'].acq_name = source_info
+
+        invalidation_bytes_nr = 0
+        inval_bits = []
+
+        self.groups.append(gp)
+
+        cycles_nr = len(t)
+        fields = []
+        types = []
+        parents = {}
+        ch_cntr = 0
+        offset = 0
+        field_names = set()
+
+        defined_texts = {}
+        si_map = {}
+        cc_map = {}
+
+        # setup all blocks related to the time master channel
+
+        memory = self.memory
+        file = self._tempfile
+        write = file.write
+        tell = file.tell
+        seek = file.seek
+
+        seek(0, 2)
+
+        source_block = SourceInformation()
+        source_block.name = source_block.path = source_info
+
+        if df.shape[0]:
+            # time channel
+            t_type, t_size = fmt_to_datatype_v4(
+                t.dtype,
+                t.shape,
+            )
+            kargs = {
+                'channel_type': v4c.CHANNEL_TYPE_MASTER,
+                'data_type': t_type,
+                'sync_type': sync_type,
+                'byte_offset': 0,
+                'bit_offset': 0,
+                'bit_count': t_size,
+                'min_raw_value': t[0] if cycles_nr else 0,
+                'max_raw_value': t[-1] if cycles_nr else 0,
+                'lower_limit': t[0] if cycles_nr else 0,
+                'upper_limit': t[-1] if cycles_nr else 0,
+                'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
+            }
+            ch = Channel(**kargs)
+            ch.unit = time_unit
+            ch.name = time_name
+            ch.source = source_block
+            name = time_name
+            if memory == 'minimum':
+                ch.to_stream(file, defined_texts, cc_map, si_map)
+                gp_channels.append(ch.address)
+            else:
+                gp_channels.append(ch)
+
+            gp_sdata.append(None)
+            gp_sdata_size.append(0)
+            self.channels_db.add(name, dg_cntr, ch_cntr)
+            self.masters_db[dg_cntr] = 0
+            # data group record parents
+            parents[ch_cntr] = name, 0
+
+            # time channel doesn't have channel dependencies
+            gp_dep.append(None)
+
+            fields.append(t)
+            types.append((name, t.dtype))
+            field_names.add(name)
+
+            offset += t_size // 8
+            ch_cntr += 1
+
+            gp_sig_types.append(0)
+
+        for signal in df:
+            if index_name == signal:
+                continue
+
+            sig = df[signal]
+            name = signal
+
+            sig_type = v4c.SIGNAL_TYPE_SCALAR
+            if sig.dtype.kind in {'S', 'V'}:
+                sig_type = v4c.SIGNAL_TYPE_STRING
+
+            gp_sig_types.append(sig_type)
+
+            # first add the signals in the simple signal list
+            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
+
+                # compute additional byte offset for large records size
+                s_type, s_size = fmt_to_datatype_v4(
+                    sig.dtype,
+                    sig.shape,
+                )
+
+                byte_size = max(s_size // 8, 1)
+                min_val, max_val = get_min_max(sig)
+
+                channel_type = v4c.CHANNEL_TYPE_VALUE
+                data_block_addr = 0
+                sync_type = v4c.SYNC_TYPE_NONE
+
+                kargs = {
+                    'channel_type': channel_type,
+                    'sync_type': sync_type,
+                    'bit_count': s_size,
+                    'byte_offset': offset,
+                    'bit_offset': 0,
+                    'data_type': s_type,
+                    'min_raw_value': min_val if min_val <= max_val else 0,
+                    'max_raw_value': max_val if min_val <= max_val else 0,
+                    'lower_limit': min_val if min_val <= max_val else 0,
+                    'upper_limit': max_val if min_val <= max_val else 0,
+                    'data_block_addr': data_block_addr,
+                }
+
+                if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
+                    kargs['flags'] = 0
+                else:
+                    kargs['flags'] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
+
+                ch = Channel(**kargs)
+                ch.name = name
+
+                if memory != 'minimum':
+                    gp_channels.append(ch)
+                else:
+                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    gp_channels.append(ch.address)
+
+                offset += byte_size
+
+                gp_sdata.append(None)
+                gp_sdata_size.append(0)
+                self.channels_db.add(name, dg_cntr, ch_cntr)
+
+                # update the parents as well
+                field_name = get_unique_name(field_names, name)
+                parents[ch_cntr] = field_name, 0
+
+                fields.append(sig)
+                if s_type == v4c.DATA_TYPE_BYTEARRAY:
+                    types.append(
+                        (field_name, sig.dtype, sig.shape[1:])
+                    )
+                else:
+                    types.append(
+                        (field_name, sig.dtype)
+                    )
+                field_names.add(field_name)
+
+                ch_cntr += 1
+
+                # simple channels don't have channel dependencies
+                gp_dep.append(None)
+
+            elif sig_type == v4c.SIGNAL_TYPE_STRING:
+                offsets = arange(
+                    len(sig),
+                    dtype=uint64,
+                ) * (sig.itemsize + 4)
+
+                values = [
+                    ones(len(signal), dtype=uint32) * sig.itemsize,
+                    sig,
+                ]
+
+                types_ = [
+                    ('', uint32),
+                    ('', sig.dtype),
+                ]
+
+                data = fromarrays(values, dtype=types_).tostring()
+
+                if memory == 'full':
+                    gp_sdata.append(data)
+                    data_addr = 0
+                else:
+                    if data:
+                        data_addr = tell()
+                        gp_sdata.append([data_addr, ])
+                        gp_sdata_size.append([len(data), ])
+                        write(data)
+                    else:
+                        data_addr = 0
+                        gp_sdata.append([])
+                        gp_sdata_size.append([])
+
+                # compute additional byte offset for large records size
+                byte_size = 8
+                kargs = {
+                    'channel_type': v4c.CHANNEL_TYPE_VLSD,
+                    'bit_count': 64,
+                    'byte_offset': offset,
+                    'bit_offset': 0,
+                    'data_type': v4c.DATA_TYPE_STRING_UTF_8,
+                    'min_raw_value':  0,
+                    'max_raw_value': 0,
+                    'lower_limit': 0,
+                    'upper_limit': 0,
+                    'flags': 0,
+                    'data_block_addr': data_addr,
+                }
+
+                ch = Channel(**kargs)
+                ch.name = name
+
+                if memory != 'minimum':
+                    gp_channels.append(ch)
+                else:
+                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    gp_channels.append(ch.address)
+
+                offset += byte_size
+
+                self.channels_db.add(name, dg_cntr, ch_cntr)
+
+                # update the parents as well
+                field_name = get_unique_name(field_names, name)
+                parents[ch_cntr] = field_name, 0
+
+                fields.append(offsets)
+                types.append((field_name, uint64))
+                field_names.add(field_name)
+
+                ch_cntr += 1
+
+                # simple channels don't have channel dependencies
+                gp_dep.append(None)
+
+        gp['channel_group']['cycles_nr'] = cycles_nr
+        gp['channel_group']['samples_byte_nr'] = offset
+        gp['size'] = cycles_nr * (offset + invalidation_bytes_nr)
+
+        # data group
+        gp['data_group'] = DataGroup()
+
+        # data block
+        if PYVERSION == 2:
+            types = fix_dtype_fields(types, 'utf-8')
+        types = dtype(types)
+
+        gp['sorted'] = True
+        gp['types'] = types
+        gp['parents'] = parents
+
+        if df.shape[0]:
+            samples = fromarrays(fields, dtype=types)
+        else:
+            samples = array([])
 
         try:
             block = samples.tostring()
