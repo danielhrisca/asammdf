@@ -2368,6 +2368,9 @@ class HeaderBlock(dict):
         self.subject = self['subject'].strip(b' \r\n\t\0').decode('latin-1')
 
     def to_blocks(self, address, blocks, defined_texts, si_map):
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
 
         key = 'comment_addr'
         text = self.comment
@@ -2398,14 +2401,12 @@ class HeaderBlock(dict):
         self['project'] = self.project.encode('latin-1')
         self['subject'] = self.subject.encode('latin-1')
 
-        blocks.append(self)
-        self.address = address
-        address += self['block_len']
-
         return address
 
     def to_stream(self, stream, defined_texts, si_map):
-        address = stream.tell()
+        address = start = stream.tell()
+        stream.write(bytes(self))
+        address += self['block_len']
 
         key = 'comment_addr'
         text = self.comment
@@ -2436,6 +2437,7 @@ class HeaderBlock(dict):
         self['project'] = self.project.encode('latin-1')
         self['subject'] = self.subject.encode('latin-1')
 
+        stream.seek(start)
         stream.write(bytes(self))
         self.address = address
         address += self['block_len']
