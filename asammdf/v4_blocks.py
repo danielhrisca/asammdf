@@ -3862,6 +3862,10 @@ class HeaderBlock(dict):
         self['daylight_save_time'] = 0
 
     def to_blocks(self, address, blocks):
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
+
         if self.comment.startswith('<HDcomment'):
             comment = self.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
             comment = ET.fromstring(comment)
@@ -3922,10 +3926,6 @@ class HeaderBlock(dict):
         tx_block.address = address
         address += tx_block['block_len']
         blocks.append(tx_block)
-
-        blocks.append(self)
-        self.address = address
-        address += self['block_len']
 
         return address
 
