@@ -1059,7 +1059,9 @@ class MDF3(object):
             self,
             signals,
             acquisition_info='Python',
-            common_timebase=False):
+            common_timebase=False,
+            units=None,
+        ):
         """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
@@ -1074,6 +1076,9 @@ class MDF3(object):
             acquisition information; default 'Python'
         common_timebase : bool
             flag to hint that the signals have the same timebase
+        units : dict
+            will contain the signal units mapped to the singal names when
+            appending a pandas DataFrame
 
 
         Examples
@@ -1103,7 +1108,7 @@ class MDF3(object):
         if isinstance(signals, Signal):
             signals = [signals, ]
         elif isinstance(signals, DataFrame):
-            self._append_dataframe(signals, acquisition_info)
+            self._append_dataframe(signals, acquisition_info, units=units)
             return
 
         version = self.version
@@ -2038,10 +2043,12 @@ class MDF3(object):
         # data group trigger
         gp['trigger'] = None
 
-    def _append_dataframe(self, df, source_info=''):
+    def _append_dataframe(self, df, source_info='', units=None):
         """
         Appends a new data group from a Pandas data frame.
         """
+
+        units = units or {}
 
         t = df.index
         index_name = df.index.name
@@ -2200,6 +2207,21 @@ class MDF3(object):
             channel = Channel(**kargs)
             channel.name = name
             channel.source = new_source
+
+            unit = units.get(name, b'')
+            if unit:
+                if hasattr(unit, 'encode'):
+                    unit = unit.encode('latin-1')
+                # conversion for time channel
+                kargs = {
+                    'conversion_type': v23c.CONVERSION_TYPE_NONE,
+                    'unit': unit,
+                    'min_phy_value': min_val if min_val <= max_val else 0,
+                    'max_phy_value': max_val if min_val <= max_val else 0,
+                }
+                conversion = ChannelConversion(**kargs)
+                conversion.unit = unit
+
             if memory != 'minimum':
                 gp_channels.append(channel)
             else:
