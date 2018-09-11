@@ -2525,6 +2525,9 @@ class MDF4(object):
         >>> mdf2 = MDF4('out.mf4')
         >>> mdf2.append(sigs, 'created by asammdf v4.0.0')
         >>> mdf2.append(ch1, 'just a single channel')
+        >>> df = pd.DataFrame.from_dict({'s1': np.array([1, 2, 3, 4, 5]), 's2': np.array([-1, -2, -3, -4, -5])})
+        >>> units = {'s1': 'V', 's2': 'A'}
+        >>> mdf2.append(df, units=units)
 
         """
         if isinstance(signals, Signal):
