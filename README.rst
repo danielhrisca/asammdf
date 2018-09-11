@@ -53,7 +53,7 @@ Features
 * filter a subset of channels from original mdf file
 * cut measurement to specified time interval
 * convert to different mdf version
-* export to pandas, Excel, HDF5, Matlab (v4, v5 and v7.3) and CSV
+* export to pandas, Excel, HDF5, Matlab (v4, v5 and v7.3), CSV and parquet
 * merge (concatenate) multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
 * space optimizations for saved files (no duplicated blocks)
@@ -148,6 +148,9 @@ Thanks to all who contributed with commits to *asammdf*
 * Jack Weinstein `jacklev <https://github.com/jacklev>`_.
 * Isuru Fernando `isuruf <https://github.com/isuruf>`_.
 * Felix Kohlgrüber `fkohlgrueber <https://github.com/fkohlgrueber>`_.
+* Stanislav Frolov `stanifrolov <https://github.com/stanifrolov>`_.
+* Thomas Kastl `kasuteru <https://github.com/kasuteru`_.
+* venden `venden <https://github.com/venden`_.
 
 Installation
 ============

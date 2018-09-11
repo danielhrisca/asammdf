@@ -44,7 +44,7 @@ The main goals for this library are:
 * filter a subset of channels from original mdf file
 * cut measurement to specified time interval
 * convert to different mdf version
-* export to pandas, Excel, HDF5, Matlab (v4, v5 and v7.3) and CSV
+* export to pandas, Excel, HDF5, Matlab (v4, v5 and v7.3),CSV and parquet
 * merge multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
 * space optimizations for saved files (no duplicated blocks)
@@ -115,10 +115,10 @@ The main goals for this library are:
 ```  
  
 Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/develoment/examples.html
+http://asammdf.readthedocs.io/en/master/examples.html
 
 # Documentation
-http://asammdf.readthedocs.io/en/develoment
+http://asammdf.readthedocs.io/en/master
 
 # Contributing
 Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/develoment/CONTRIBUTING.md)
@@ -131,6 +131,9 @@ Thanks to all who contributed with commits to *asammdf*:
 * Jack Weinstein [jacklev](https://github.com/jacklev)
 * Isuru Fernando [isuruf](https://github.com/isuruf)
 * Felix Kohlgrüber [fkohlgrueber](https://github.com/fkohlgrueber)
+* Stanislav Frolov [stanifrolov] (https://github.com/stanifrolov)
+* Thomas Kastl [kasuteru] (https://github.com/kasuteru)
+* venden [venden] (https://github.com/venden)
 
 # Installation
 *asammdf* is available on 
