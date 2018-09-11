@@ -32,4 +32,8 @@ except ImportError:
   _please write here the error traceback_
   
 # Description
+
+The fastest way to debug is to have the original file. For data protection you can use the static 
+method _scramble_ to scramble all text blocks, and send the scrambled file by e-mail.
+
 _Please describe the issue here._

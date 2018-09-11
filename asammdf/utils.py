@@ -8,7 +8,8 @@ import string
 import xml.etree.ElementTree as ET
 
 from collections import namedtuple
-from struct import unpack
+from random import randint
+from struct import Struct
 from warnings import warn
 
 from numpy import (
@@ -17,9 +18,15 @@ from numpy import (
     where,
 )
 
+import sys
+PYVERSION = sys.version_info[0]
+
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
+UINT16 = Struct('<H').unpack
+UINT32 = Struct('<I').unpack
+UINT64 = Struct('<Q').unpack
 logger = logging.getLogger('asammdf')
 
 __all__ = [
@@ -102,7 +109,7 @@ SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 VALID_MEMORY_ARGUMENT_VALUES = ('full', 'low', 'minimum')
 
 
-ALLOWED_MATLAB_CHARS = string.ascii_letters + string.digits + '_'
+ALLOWED_MATLAB_CHARS = set(string.ascii_letters + string.digits + '_')
 
 
 SignalSource = namedtuple(
@@ -116,17 +123,18 @@ class MdfException(Exception):
     pass
 
 
-# pylint: disable=W0622
-def bytes(obj):
-    """ Python 2 compatibility function """
-    try:
-        return obj.__bytes__()
-    except AttributeError:
-        if isinstance(obj, str):
-            return obj
-        else:
-            raise
-# pylint: enable=W0622
+if PYVERSION < 3:
+    # pylint: disable=W0622
+    def bytes(obj):
+        """ Python 2 compatibility function """
+        try:
+            return obj.__bytes__()
+        except AttributeError:
+            if isinstance(obj, str):
+                return obj
+            else:
+                raise
+    # pylint: enable=W0622
 
 
 def extract_cncomment_xml(comment):
@@ -214,13 +222,13 @@ def get_text_v3(address, stream):
         return ''
 
     stream.seek(address + 2)
-    size = unpack('<H', stream.read(2))[0] - 4
+    size = UINT16(stream.read(2))[0] - 4
     text_bytes = stream.read(size)
     try:
         text = (
             text_bytes
+            .strip(b' \r\t\n\0')
             .decode('latin-1')
-            .strip(' \r\t\n\0')
         )
     except UnicodeDecodeError as err:
         try:
@@ -228,8 +236,8 @@ def get_text_v3(address, stream):
             encoding = detect(text_bytes)['encoding']
             text = (
                 text_bytes
+                .strip(b' \r\t\n\0')
                 .decode(encoding)
-                .strip(' \r\t\n\0')
             )
         except ImportError:
             logger.warning(
@@ -264,9 +272,8 @@ def get_text_v4(address, stream):
         return ''
 
     stream.seek(address + 8)
-    size = unpack('<Q', stream.read(8))[0] - 24
-    stream.read(8)
-    text_bytes = stream.read(size)
+    size = UINT64(stream.read(8))[0] - 16
+    text_bytes = stream.read(size)[8:]
     try:
         text = (
             text_bytes
@@ -310,9 +317,9 @@ def get_fmt_v3(data_type, size):
         numpy compatible data type format string
 
     """
-    if data_type in (
+    if data_type in {
             v3c.DATA_TYPE_STRING,
-            v3c.DATA_TYPE_BYTEARRAY):
+            v3c.DATA_TYPE_BYTEARRAY}:
         size = size // 8
         if data_type == v3c.DATA_TYPE_STRING:
             fmt = 'S{}'.format(size)
@@ -330,32 +337,32 @@ def get_fmt_v3(data_type, size):
         else:
             size = size // 8
 
-        if data_type in (
+        if data_type in {
                 v3c.DATA_TYPE_UNSIGNED_INTEL,
-                v3c.DATA_TYPE_UNSIGNED):
+                v3c.DATA_TYPE_UNSIGNED}:
             fmt = '<u{}'.format(size)
 
         elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
             fmt = '>u{}'.format(size)
 
-        elif data_type in (
+        elif data_type in {
                 v3c.DATA_TYPE_SIGNED_INTEL,
-                v3c.DATA_TYPE_SIGNED):
+                v3c.DATA_TYPE_SIGNED}:
             fmt = '<i{}'.format(size)
 
         elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
             fmt = '>i{}'.format(size)
 
-        elif data_type in (
+        elif data_type in {
                 v3c.DATA_TYPE_FLOAT,
                 v3c.DATA_TYPE_DOUBLE,
                 v3c.DATA_TYPE_FLOAT_INTEL,
-                v3c.DATA_TYPE_DOUBLE_INTEL):
+                v3c.DATA_TYPE_DOUBLE_INTEL}:
             fmt = '<f{}'.format(size)
 
-        elif data_type in (
+        elif data_type in {
                 v3c.DATA_TYPE_FLOAT_MOTOROLA,
-                v3c.DATA_TYPE_DOUBLE_MOTOROLA):
+                v3c.DATA_TYPE_DOUBLE_MOTOROLA}:
             fmt = '>f{}'.format(size)
 
     return fmt
@@ -379,14 +386,14 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
         numpy compatible data type format string
 
     """
-    if data_type in (
+    if data_type in {
             v4c.DATA_TYPE_BYTEARRAY,
             v4c.DATA_TYPE_STRING_UTF_8,
             v4c.DATA_TYPE_STRING_LATIN_1,
             v4c.DATA_TYPE_STRING_UTF_16_BE,
             v4c.DATA_TYPE_STRING_UTF_16_LE,
             v4c.DATA_TYPE_CANOPEN_DATE,
-            v4c.DATA_TYPE_CANOPEN_TIME):
+            v4c.DATA_TYPE_CANOPEN_TIME}:
         size = size // 8
 
         if data_type == v4c.DATA_TYPE_BYTEARRAY:
@@ -398,11 +405,11 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
                 elif size == 8:
                     fmt = '<u8'
 
-        elif data_type in (
+        elif data_type in {
                 v4c.DATA_TYPE_STRING_UTF_8,
                 v4c.DATA_TYPE_STRING_LATIN_1,
                 v4c.DATA_TYPE_STRING_UTF_16_BE,
-                v4c.DATA_TYPE_STRING_UTF_16_LE):
+                v4c.DATA_TYPE_STRING_UTF_16_LE}:
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
                 fmt = 'S{}'.format(size)
             else:
@@ -451,14 +458,17 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
     return fmt
 
 
-def fix_dtype_fields(fields):
+def fix_dtype_fields(fields, encoding='utf-8'):
     """ convert field names to str in case of Python 2"""
     new_types = []
     for pair_ in fields:
-        new_pair = [str(pair_[0])]
-        for item in pair_[1:]:
-            new_pair.append(item)
-        new_types.append(tuple(new_pair))
+        if not isinstance(pair_[0], unicode):
+            new_types.append(pair_)
+        else:
+            new_pair = [pair_[0].encode(encoding)]
+            for item in pair_[1:]:
+                new_pair.append(item)
+            new_types.append(tuple(new_pair))
 
     return new_types
 
@@ -510,7 +520,7 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
                     data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
                 else:
                     data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
-        elif fmt.kind in 'SV':
+        elif fmt.kind in {'S', 'V'}:
             data_type = v3c.DATA_TYPE_STRING
         elif fmt.kind == 'b':
             data_type = v3c.DATA_TYPE_UNSIGNED
@@ -583,21 +593,21 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
 
     else:
         if fmt.kind == 'u':
-            if fmt.byteorder in '=<|':
+            if fmt.byteorder in {'=', '<', '|'}:
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
         elif fmt.kind == 'i':
-            if fmt.byteorder in '=<|':
+            if fmt.byteorder in {'=', '<', '|'}:
                 data_type = v4c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
         elif fmt.kind == 'f':
-            if fmt.byteorder in '=<':
+            if fmt.byteorder in {'=', '<'}:
                 data_type = v4c.DATA_TYPE_REAL_INTEL
             else:
                 data_type = v4c.DATA_TYPE_REAL_MOTOROLA
-        elif fmt.kind in 'SV':
+        elif fmt.kind in {'S', 'V'}:
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
         elif fmt.kind == 'b':
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
@@ -653,9 +663,9 @@ def get_min_max(samples):
     """
 
     if samples.shape[0]:
-        try:
+        if samples.dtype.kind in {'u', 'i', 'f'}:
             min_val, max_val = amin(samples), amax(samples)
-        except TypeError:
+        else:
             min_val, max_val = 1, 0
     else:
         min_val, max_val = 0, 0
@@ -692,8 +702,8 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
     )
 
 
-def debug_channel(mdf, group, channel, conversion, dependency):
-    """ use this to print debug infromation in case of errors
+def debug_channel(mdf, group, channel, dependency):
+    """ use this to print debug information in case of errors
 
     Parameters
     ----------
@@ -703,10 +713,8 @@ def debug_channel(mdf, group, channel, conversion, dependency):
         group
     channel : Channel
         channel object
-    conversion : Channelonversion
-        channel conversion object
     dependency : ChannelDependency
-        channel dependecy object
+        channel dependency object
 
     """
     print('MDF', '='*76)
@@ -721,29 +729,33 @@ def debug_channel(mdf, group, channel, conversion, dependency):
     print('GROUP', '='*74)
     print('sorted:', group['sorted'])
     print('data location:', group['data_location'])
+    print('data block type:', group['data_block_type'])
+    print('param:', group['param'])
+    print('data size:', group['data_size'])
+    print('data block size:', group['data_block_size'])
+    print('data block addr:', group['data_block_addr'])
+    print('data block:', group['data_block'])
     print('record_size:', group['record_size'])
+    print('dependencies', group['channel_dependencies'])
     print('parets:', parents)
     print('dtypes:', dtypes)
     print()
 
     cg = group['channel_group']
     print('CHANNEL GROUP', '='*66)
-    print('record id:', cg['record_id'])
-    print('record size:', cg['samples_byte_nr'])
-    print('invalidation bytes:', cg.get('invalidation_bytes_nr', 0))
-    print('cycles:', cg['cycles_nr'])
+    print(cg)
     print()
 
     print('CHANNEL', '='*72)
-    print('channel:', channel)
-    print('name:', channel.name)
-    print('conversion:', conversion)
-    print('conversion ref blocks:', conversion.referenced_blocks if conversion else None)
+    print(channel)
     print()
 
     print('CHANNEL ARRAY', '='*66)
-    print('array:', bool(dependency))
+    print(dependency)
     print()
+
+    print('MASTER CACHE', '='*67)
+    print([(key, len(val)) for key, val in mdf._master_channel_cache.items()])
 
 
 def count_channel_groups(stream, version=4):
@@ -767,31 +779,31 @@ def count_channel_groups(stream, version=4):
     count = 0
     if version >= 4:
         stream.seek(88, 0)
-        dg_addr = unpack('<Q', stream.read(8))[0]
+        dg_addr = UINT64(stream.read(8))[0]
         while dg_addr:
             stream.seek(dg_addr + 32)
-            cg_addr = unpack('<Q', stream.read(8))[0]
+            cg_addr = UINT64(stream.read(8))[0]
             while cg_addr:
                 count += 1
                 stream.seek(cg_addr + 24)
-                cg_addr = unpack('<Q', stream.read(8))[0]
+                cg_addr = UINT64(stream.read(8))[0]
 
             stream.seek(dg_addr + 24)
-            dg_addr = unpack('<Q', stream.read(8))[0]
+            dg_addr = UINT64(stream.read(8))[0]
 
     else:
         stream.seek(68, 0)
-        dg_addr = unpack('<I', stream.read(4))[0]
+        dg_addr = UINT32(stream.read(4))[0]
         while dg_addr:
             stream.seek(dg_addr + 8)
-            cg_addr = unpack('<I', stream.read(4))[0]
+            cg_addr = UINT32(stream.read(4))[0]
             while cg_addr:
                 count += 1
                 stream.seek(cg_addr + 4)
-                cg_addr = unpack('<I', stream.read(4))[0]
+                cg_addr = UINT32(stream.read(4))[0]
 
             stream.seek(dg_addr + 4)
-            dg_addr = unpack('<I', stream.read(4))[0]
+            dg_addr = UINT32(stream.read(4))[0]
 
     return count
 
@@ -802,7 +814,7 @@ def validate_memory_argument(memory):
 
     Parameters
     ----------
-    version : memory
+    memory : memory
         requested memory argument
 
     Returns
@@ -866,9 +878,13 @@ def validate_version_argument(version, hint=4):
 
 class ChannelsDB(dict):
 
-    def __init__(self):
+    def __init__(self, version=4):
 
         super(ChannelsDB, self).__init__()
+        if version == 4:
+            self.encoding = 'utf-8'
+        else:
+            self.encoding = 'latin-1'
 
     def add(self, channel_name, group_index, channel_index):
         """ add name to channels database and check if it contains a source path
@@ -883,18 +899,80 @@ class ChannelsDB(dict):
             channel index
 
         """
+        if PYVERSION == 2:
+            if isinstance(channel_name, unicode):
+                channel_name = channel_name.encode(self.encoding)
         if channel_name:
+            entry = (group_index, channel_index)
             if channel_name not in self:
                 self[channel_name] = []
             self[channel_name].append(
-                (group_index, channel_index)
+                entry
             )
 
-            channel_name = channel_name.split('\\')
-            if len(channel_name) > 1:
-                channel_name = channel_name[0]
+            if '\\' in channel_name:
+                channel_name = channel_name.split('\\')[0]
+
                 if channel_name not in self:
                     self[channel_name] = []
                 self[channel_name].append(
-                    (group_index, channel_index)
+                    entry
                 )
+
+
+def randomized_string(size):
+    """ get a \0 terminated string of size length
+
+    Parameters
+    ----------
+    size : int
+        target string length
+
+    Returns
+    -------
+    string : bytes
+        randomized string
+
+    """
+    if PYVERSION >= 3:
+        return bytes(randint(65, 90) for _ in range(size - 1)) + b'\0'
+    else:
+        return ''.join(chr(randint(65, 90)) for _ in range(size - 1)) + '\0'
+
+
+def is_file_like(obj):
+    """
+    Check if the object is a file-like object.
+
+    For objects to be considered file-like, they must
+    be an iterator AND have a 'read' and 'seek' method
+    as an attribute.
+
+    Note: file-like objects must be iterable, but
+    iterable objects need not be file-like.
+
+    Parameters
+    ----------
+    obj : The object to check.
+
+    Returns
+    -------
+    is_file_like : bool
+        Whether `obj` has file-like properties.
+
+    Examples
+    --------
+    >>> buffer(StringIO("data"))
+    >>> is_file_like(buffer)
+    True
+    >>> is_file_like([1, 2, 3])
+    False
+    """
+
+    if not (hasattr(obj, 'read') and hasattr(obj, 'seek')):
+        return False
+
+    if not hasattr(obj, "__iter__"):
+        return False
+
+    return True

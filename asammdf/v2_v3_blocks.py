@@ -17,7 +17,6 @@ from . import v2_v3_constants as v23c
 from .utils import MdfException, get_text_v3
 
 PYVERSION = sys.version_info[0]
-PYVERSION_MAJOR = sys.version_info[0] * 10 + sys.version_info[1]
 SEEK_START = v23c.SEEK_START
 SEEK_END = v23c.SEEK_END
 
@@ -309,8 +308,8 @@ class Channel(dict):
                         )
 
             if self['id'] != b'CN':
-                message = 'Expected "CN" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "CN" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -329,7 +328,7 @@ class Channel(dict):
             self['comment_addr'] = kwargs.get('comment_addr', 0)
             self['channel_type'] = kwargs.get('channel_type', 0)
             self['short_name'] = kwargs.get('short_name', (b'\0' * 32))
-            self['description'] = kwargs.get('description', (b'\0' * 32))
+            self['description'] = kwargs.get('description', (b'\0' * 128))
             self['start_offset'] = kwargs.get('start_offset', 0)
             self['bit_count'] = kwargs.get('bit_count', 8)
             self['data_type'] = kwargs.get('data_type', 0)
@@ -350,7 +349,7 @@ class Channel(dict):
         key = 'long_name_addr'
         text = self.name
         if key in self:
-            if len(text) > 127:
+            if len(text) > 31:
                 if text in defined_texts:
                     self[key] = defined_texts[text]
                 else:
@@ -362,7 +361,8 @@ class Channel(dict):
                     blocks.append(tx_block)
             else:
                 self[key] = 0
-        self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+
+        self['short_name'] = text.encode('latin-1')[:31]
 
         key = 'display_name_addr'
         text = self.display_name
@@ -384,7 +384,7 @@ class Channel(dict):
         text = self.comment
         if text:
             if len(text) < 128:
-                self['description'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+                self['description'] = text.encode('latin-1')[:127]
                 self[key] = 0
             else:
                 if text in defined_texts:
@@ -426,7 +426,7 @@ class Channel(dict):
         key = 'long_name_addr'
         text = self.name
         if key in self:
-            if len(text) > 127:
+            if len(text) > 31:
                 if text in defined_texts:
                     self[key] = defined_texts[text]
                 else:
@@ -438,7 +438,7 @@ class Channel(dict):
                     stream.write(bytes(tx_block))
             else:
                 self[key] = 0
-        self['short_name'] = '{:\0<128}'.format(text[:127]).encode('latin-1')
+        self['short_name'] = text.encode('latin-1')[:31]
 
         key = 'display_name_addr'
         text = self.display_name
@@ -460,11 +460,7 @@ class Channel(dict):
         text = self.comment
         if text:
             if len(text) < 128:
-                self['description'] = (
-                    '{:\0<128}'
-                    .format(text[:127])
-                    .encode('latin-1')
-                )
+                self['description'] = text.encode('latin-1')[:127]
                 self[key] = 0
             else:
                 if text in defined_texts:
@@ -561,10 +557,7 @@ comment: {}
             fmt = v23c.FMT_CHANNEL_SHORT
             keys = v23c.KEYS_CHANNEL_SHORT
 
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
     def __lt__(self, other):
@@ -911,8 +904,8 @@ class ChannelConversion(dict):
                             )
 
             if self['id'] != b'CC':
-                message = 'Expected "CC" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "CC" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1058,7 +1051,7 @@ class ChannelConversion(dict):
 
     def to_blocks(self, address, blocks, defined_texts, cc_map):
 
-        self['unit'] = '{:\0<20}'.format(self.unit[:19]).encode('latin-1')
+        self['unit'] = self.unit.encode('latin-1')[:19]
 
         if 'formula' in self:
             formula = self.formula
@@ -1098,7 +1091,7 @@ class ChannelConversion(dict):
     def to_stream(self, stream, defined_texts, cc_map):
         address = stream.tell()
 
-        self['unit'] = '{:\0<20}'.format(self.unit[:19]).encode('latin-1')
+        self['unit'] = self.unit.encode('latin-1')[:19]
 
         if 'formula' in self:
             formula = self.formula
@@ -1360,8 +1353,19 @@ address: {}
             P4 = self['P4']
             P5 = self['P5']
             P6 = self['P6']
-            if (P1, P2, P3, P4, P5, P6) != (0, 1, 0, 0, 0, 1):
-                X = values
+
+            X = values
+            if (P1, P4, P5, P6) == (0, 0, 0, 1):
+                if (P2, P3) != (1, 0):
+                    values = values * P2
+                    if P3:
+                        values += P3
+            elif (P3, P4, P5, P6) == (0, 0, 1, 0):
+                if (P1, P2) != (1, 0):
+                    values = values * P1
+                    if P2:
+                        values += P2
+            else:
                 values = evaluate(v23c.RAT_CONV_TEXT)
 
         elif conversion_type == v23c.CONVERSION_TYPE_POLY:
@@ -1420,51 +1424,46 @@ address: {}
             nr = self['ref_param_nr']
             fmt = v23c.FMT_CONVERSION_COMMON + 'd32s' * nr
 
-        # compute the keys only for Python < 3.6
-        if PYVERSION_MAJOR < 36:
-            if conv == v23c.CONVERSION_TYPE_NONE:
-                keys = v23c.KEYS_CONVESION_NONE
-            elif conv == v23c.CONVERSION_TYPE_FORMULA:
-                keys = v23c.KEYS_CONVESION_FORMULA
-            elif conv == v23c.CONVERSION_TYPE_LINEAR:
-                keys = v23c.KEYS_CONVESION_LINEAR
-                if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:
-                    keys += ('CANapeHiddenExtra',)
-            elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
-                keys = v23c.KEYS_CONVESION_POLY_RAT
-            elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
-                keys = v23c.KEYS_CONVESION_EXPO_LOGH
-            elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
-                nr = self['ref_param_nr']
-                keys = list(v23c.KEYS_CONVESION_NONE)
-                for i in range(nr):
-                    keys.append('raw_{}'.format(i))
-                    keys.append('phys_{}'.format(i))
-            elif conv == v23c.CONVERSION_TYPE_RTABX:
-                nr = self['ref_param_nr']
-                keys = list(v23c.KEYS_CONVESION_NONE)
-                keys += [
-                    'default_lower',
-                    'default_upper',
-                    'default_addr',
-                ]
-                for i in range(nr - 1):
-                    keys.append('lower_{}'.format(i))
-                    keys.append('upper_{}'.format(i))
-                    keys.append('text_{}'.format(i))
-            elif conv == v23c.CONVERSION_TYPE_TABX:
-                nr = self['ref_param_nr']
-                keys = list(v23c.KEYS_CONVESION_NONE)
-                for i in range(nr):
-                    keys.append('param_val_{}'.format(i))
-                    keys.append('text_{}'.format(i))
+        if conv == v23c.CONVERSION_TYPE_NONE:
+            keys = v23c.KEYS_CONVESION_NONE
+        elif conv == v23c.CONVERSION_TYPE_FORMULA:
+            keys = v23c.KEYS_CONVESION_FORMULA
+        elif conv == v23c.CONVERSION_TYPE_LINEAR:
+            keys = v23c.KEYS_CONVESION_LINEAR
+            if not self['block_len'] == v23c.CC_LIN_BLOCK_SIZE:
+                keys += ('CANapeHiddenExtra',)
+        elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
+            keys = v23c.KEYS_CONVESION_POLY_RAT
+        elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
+            keys = v23c.KEYS_CONVESION_EXPO_LOGH
+        elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
+            nr = self['ref_param_nr']
+            keys = list(v23c.KEYS_CONVESION_NONE)
+            for i in range(nr):
+                keys.append('raw_{}'.format(i))
+                keys.append('phys_{}'.format(i))
+        elif conv == v23c.CONVERSION_TYPE_RTABX:
+            nr = self['ref_param_nr']
+            keys = list(v23c.KEYS_CONVESION_NONE)
+            keys += [
+                'default_lower',
+                'default_upper',
+                'default_addr',
+            ]
+            for i in range(nr - 1):
+                keys.append('lower_{}'.format(i))
+                keys.append('upper_{}'.format(i))
+                keys.append('text_{}'.format(i))
+        elif conv == v23c.CONVERSION_TYPE_TABX:
+            nr = self['ref_param_nr']
+            keys = list(v23c.KEYS_CONVESION_NONE)
+            for i in range(nr):
+                keys.append('param_val_{}'.format(i))
+                keys.append('text_{}'.format(i))
 
         if self['block_len'] > v23c.MAX_UINT16:
             self['block_len'] = v23c.MAX_UINT16
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
     def __str__(self):
@@ -1547,8 +1546,8 @@ class ChannelDependency(dict):
                     self['dim_{}'.format(i)] = dim
 
             if self['id'] != b'CD':
-                message = 'Expected "CD" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "CD" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1583,10 +1582,7 @@ class ChannelDependency(dict):
         if option_dims_nr:
             fmt += '{}H'.format(option_dims_nr)
             keys += tuple('dim_{}'.format(i) for i in range(option_dims_nr))
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
 
@@ -1705,8 +1701,8 @@ class ChannelExtension(dict):
                     )
 
             if self['id'] != b'CE':
-                message = 'Expected "CE" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "CE" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1750,11 +1746,11 @@ class ChannelExtension(dict):
     def to_blocks(self, address, blocks, defined_texts, cc_map):
 
         if self['type'] == v23c.SOURCE_ECU:
-            self['ECU_identification'] = '{:\0<32}'.format(self.path[:31]).encode('latin-1')
-            self['description'] = '{:\0<80}'.format(self.name[:79]).encode('latin-1')
+            self['ECU_identification'] = self.path.encode('latin-1')[:31]
+            self['description'] = self.name.encode('latin-1')[:79]
         else:
-            self['sender_name'] = '{:\0<36}'.format(self.path[:35]).encode('latin-1')
-            self['message_name'] = '{:\0<36}'.format(self.name[:35]).encode('latin-1')
+            self['sender_name'] = self.path.encode('latin-1')[:35]
+            self['message_name'] = self.name.encode('latin-1')[:35]
 
         bts = bytes(self)
         if bts in cc_map:
@@ -1771,11 +1767,11 @@ class ChannelExtension(dict):
         address = stream.tell()
 
         if self['type'] == v23c.SOURCE_ECU:
-            self['ECU_identification'] = '{:\0<32}'.format(self.path[:31]).encode('latin-1')
-            self['description'] = '{:\0<80}'.format(self.name[:79]).encode('latin-1')
+            self['ECU_identification'] = self.path.encode('latin-1')[:31]
+            self['description'] = self.name.encode('latin-1')[:79]
         else:
-            self['sender_name'] = '{:\0<36}'.format(self.path[:35]).encode('latin-1')
-            self['message_name'] = '{:\0<36}'.format(self.name[:35]).encode('latin-1')
+            self['sender_name'] = self.path.encode('latin-1')[:35]
+            self['message_name'] = self.name.encode('latin-1')[:35]
 
         bts = bytes(self)
         if bts in cc_map:
@@ -1839,10 +1835,7 @@ address: {}
             fmt = v23c.FMT_SOURCE_VECTOR
             keys = v23c.KEYS_SOURCE_VECTOR
 
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
     def __str__(self):
@@ -1929,7 +1922,8 @@ class ChannelGroup(dict):
                 # sample reduction blocks are not yet used
                 self['sample_reduction_addr'] = 0
             if self['id'] != b'CG':
-                message = 'Expected "CG" block but found "{}"'
+                message = 'Expected "CG" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 raise MdfException(message.format(self['id']))
             if self['comment_addr']:
                 self.comment = get_text_v3(
@@ -2005,10 +1999,7 @@ class ChannelGroup(dict):
         if self['block_len'] == v23c.CG_POST_330_BLOCK_SIZE:
             fmt += 'I'
             keys += ('sample_reduction_addr',)
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
 
@@ -2107,8 +2098,8 @@ class DataGroup(dict):
                 self['reserved0'] = stream.read(4)
 
             if self['id'] != b'DG':
-                message = 'Expected "DG" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "DG" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2135,10 +2126,7 @@ class DataGroup(dict):
         else:
             fmt = v23c.FMT_DATA_GROUP_PRE_320
             keys = v23c.KEYS_DATA_GROUP_PRE_320
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
 
@@ -2211,10 +2199,7 @@ class FileIdentificationBlock(dict):
             self['unfinalized_custom_flags'] = 0
 
     def __bytes__(self):
-        if PYVERSION_MAJOR >= 36:
-            result = pack(v23c.ID_FMT, *self.values())
-        else:
-            result = pack(v23c.ID_FMT, *[self[key] for key in v23c.ID_KEYS])
+        result = pack(v23c.ID_FMT, *[self[key] for key in v23c.ID_KEYS])
         return result
 
 
@@ -2262,6 +2247,14 @@ class HeaderBlock(dict):
         file comment
     program : ProgramBlock
         program block
+    author : str
+        measurement author
+    department : str
+        author's department
+    project : str
+        working project
+    subject : str
+        measurement subject
 
     '''
 
@@ -2285,7 +2278,7 @@ class HeaderBlock(dict):
              self['date'],
              self['time'],
              self['author'],
-             self['organization'],
+             self['department'],
              self['project'],
              self['subject']) = unpack(
                 v23c.HEADER_COMMON_FMT,
@@ -2302,8 +2295,8 @@ class HeaderBlock(dict):
                 )
 
             if self['id'] != b'HD':
-                message = 'Expected "HD" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "HD" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2343,7 +2336,7 @@ class HeaderBlock(dict):
                 .format(getuser())
                 .encode('latin-1')
             )
-            self['organization'] = (
+            self['department'] = (
                 '{:\0<32}'
                 .format('')
                 .encode('latin-1')
@@ -2369,7 +2362,15 @@ class HeaderBlock(dict):
                     .encode('latin-1')
                 )
 
+        self.author = self['author'].strip(b' \r\n\t\0').decode('latin-1')
+        self.department = self['department'].strip(b' \r\n\t\0').decode('latin-1')
+        self.project = self['project'].strip(b' \r\n\t\0').decode('latin-1')
+        self.subject = self['subject'].strip(b' \r\n\t\0').decode('latin-1')
+
     def to_blocks(self, address, blocks, defined_texts, si_map):
+        blocks.append(self)
+        self.address = address
+        address += self['block_len']
 
         key = 'comment_addr'
         text = self.comment
@@ -2395,14 +2396,17 @@ class HeaderBlock(dict):
         else:
             self[key] = 0
 
-        blocks.append(self)
-        self.address = address
-        address += self['block_len']
+        self['author'] = self.author.encode('latin-1')
+        self['department'] = self.department.encode('latin-1')
+        self['project'] = self.project.encode('latin-1')
+        self['subject'] = self.subject.encode('latin-1')
 
         return address
 
     def to_stream(self, stream, defined_texts, si_map):
-        address = stream.tell()
+        address = start = stream.tell()
+        stream.write(bytes(self))
+        address += self['block_len']
 
         key = 'comment_addr'
         text = self.comment
@@ -2428,6 +2432,12 @@ class HeaderBlock(dict):
         else:
             self[key] = 0
 
+        self['author'] = self.author.encode('latin-1')
+        self['department'] = self.department.encode('latin-1')
+        self['project'] = self.project.encode('latin-1')
+        self['subject'] = self.subject.encode('latin-1')
+
+        stream.seek(start)
         stream.write(bytes(self))
         self.address = address
         address += self['block_len']
@@ -2481,10 +2491,7 @@ class HeaderBlock(dict):
         if self['block_len'] > v23c.HEADER_COMMON_SIZE:
             fmt += v23c.HEADER_POST_320_EXTRA_FMT
             keys += v23c.HEADER_POST_320_EXTRA_KEYS
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result
 
 
@@ -2524,8 +2531,8 @@ class ProgramBlock(dict):
             self['data'] = stream.read(self['block_len'] - 4)
 
             if self['id'] != b'PR':
-                message = 'Expected "PR" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "PR" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2536,10 +2543,7 @@ class ProgramBlock(dict):
 
     def __bytes__(self):
         fmt = v23c.FMT_PROGRAM_BLOCK.format(self['block_len'])
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in v23c.KEYS_PROGRAM_BLOCK])
+        result = pack(fmt, *[self[key] for key in v23c.KEYS_PROGRAM_BLOCK])
         return result
 
 
@@ -2590,8 +2594,8 @@ class SampleReduction(dict):
             )
 
             if self['id'] != b'SR':
-                message = 'Expected "SR" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "SR" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2652,8 +2656,8 @@ class TextBlock(dict):
             self['text'] = stream.read(size)
 
             if self['id'] != b'TX':
-                message = 'Expected "TX" block @ 0x{:X} but found "{}"'
-                message = message.format(address, self['id'])
+                message = 'Expected "TX" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2677,16 +2681,10 @@ class TextBlock(dict):
             self['text'] = text + b'\0'
 
     def __bytes__(self):
-        if PYVERSION_MAJOR >= 36:
-            result = pack(
-                '<2sH{}s'.format(self['block_len'] - 4),
-                *self.values()
-            )
-        else:
-            result = pack(
-                '<2sH{}s'.format(self['block_len'] - 4),
-                *[self[key] for key in v23c.KEYS_TEXT_BLOCK]
-            )
+        result = pack(
+            '<2sH{}s'.format(self['block_len'] - 4),
+            *[self[key] for key in v23c.KEYS_TEXT_BLOCK]
+        )
         return result
 
 
@@ -2760,8 +2758,8 @@ class TriggerBlock(dict):
                 )
 
             if self['id'] != b'TR':
-                message = 'Expected "TR" block but found "{}"'
-                message = message.format(self['id'])
+                message = 'Expected "TR" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2835,8 +2833,5 @@ class TriggerBlock(dict):
                 'trigger_{}_pretime'.format(i),
                 'trigger_{}_posttime'.format(i),
             )
-        if PYVERSION_MAJOR >= 36:
-            result = pack(fmt, *self.values())
-        else:
-            result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[self[key] for key in keys])
         return result

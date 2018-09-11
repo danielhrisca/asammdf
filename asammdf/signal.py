@@ -48,6 +48,15 @@ class Signal(object):
         display name used by mdf version 3
     attachment : bytes, name
         channel attachment and name from MDF version 4
+    source : NamedTuple
+        source information named tuple
+    bit_count : int
+        bit count; useful for integer channels
+    stream_sync : bool
+        the channel is a synchronisation for the attachment stream (mdf v4 only)
+    invalidation_bits : numpy.array | None
+        channel invalidation bits, default *None*
+
 
     """
 
@@ -63,7 +72,9 @@ class Signal(object):
                  display_name='',
                  attachment=(),
                  source=None,
-                 bit_count=None):
+                 bit_count=None,
+                 stream_sync=False,
+                 invalidation_bits=None):
 
         if samples is None or timestamps is None or name == '':
             message = ('"samples", "timestamps" and "name" are mandatory '
@@ -99,6 +110,9 @@ class Signal(object):
                 self.bit_count = samples.dtype.itemsize * 8
             else:
                 self.bit_count = bit_count
+
+            self.stream_sync = stream_sync
+            self.invalidation_bits = invalidation_bits
 
             if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
                 if conversion is None:
@@ -181,7 +195,8 @@ class Signal(object):
 \tcomment="{}"
 \tmastermeta="{}"
 \traw={}
-\tdisplay_name={}>
+\tdisplay_name={}
+\tattachment={}>
 """
         return string.format(
             self.name,
@@ -194,6 +209,7 @@ class Signal(object):
             self.master_metadata,
             self.raw,
             self.display_name,
+            self.attachment,
         )
 
     def plot(self):
@@ -431,6 +447,9 @@ class Signal(object):
                 self.master_metadata,
                 self.display_name,
                 self.attachment,
+                self.source,
+                self.bit_count,
+                self.stream_sync,
             )
 
         elif start is None and stop is None:
@@ -446,6 +465,10 @@ class Signal(object):
                 self.master_metadata,
                 self.display_name,
                 self.attachment,
+                self.source,
+                self.bit_count,
+                self.stream_sync,
+                invalidation_bits=self.invalidation_bits.copy() if self.invalidation_bits is not None else None,
             )
 
         else:
@@ -464,6 +487,10 @@ class Signal(object):
                         self.master_metadata,
                         self.display_name,
                         self.attachment,
+                        self.source,
+                        self.bit_count,
+                        self.stream_sync,
+                        invalidation_bits=self.invalidation_bits[:stop] if self.invalidation_bits is not None else None,
                     )
                 else:
                     result = Signal(
@@ -477,6 +504,9 @@ class Signal(object):
                         self.master_metadata,
                         self.display_name,
                         self.attachment,
+                        self.source,
+                        self.bit_count,
+                        self.stream_sync,
                     )
 
             elif stop is None:
@@ -493,6 +523,10 @@ class Signal(object):
                     self.master_metadata,
                     self.display_name,
                     self.attachment,
+                    self.source,
+                    self.bit_count,
+                    self.stream_sync,
+                    invalidation_bits=self.invalidation_bits[start:] if self.invalidation_bits is not None else None,
                 )
 
             else:
@@ -509,6 +543,9 @@ class Signal(object):
                         self.master_metadata,
                         self.display_name,
                         self.attachment,
+                        self.source,
+                        self.bit_count,
+                        self.stream_sync,
                     )
                 else:
                     start_ = np.searchsorted(self.timestamps, start, side='left')
@@ -534,6 +571,10 @@ class Signal(object):
                                 self.master_metadata,
                                 self.display_name,
                                 self.attachment,
+                                self.source,
+                                self.bit_count,
+                                self.stream_sync,
+                                invalidation_bits=self.invalidation_bits[start_ - 1: start_] if self.invalidation_bits is not None else None,
                             )
                         else:
                             # signal is empty or start and stop are outside the
@@ -549,6 +590,9 @@ class Signal(object):
                                 self.master_metadata,
                                 self.display_name,
                                 self.attachment,
+                                self.source,
+                                self.bit_count,
+                                self.stream_sync,
                             )
                     else:
                         result = Signal(
@@ -562,6 +606,10 @@ class Signal(object):
                             self.master_metadata,
                             self.display_name,
                             self.attachment,
+                            self.source,
+                            self.bit_count,
+                            self.stream_sync,
+                            invalidation_bits=self.invalidation_bits[start_: stop_] if self.invalidation_bits is not None else None,
                         )
         return result
 
@@ -591,6 +639,15 @@ class Signal(object):
             else:
                 timestamps = other.timestamps
 
+            if self.invalidation_bits is not None is None and other.invalidation_bits is None:
+                invalidation_bits = None
+            elif self.invalidation_bits is not None is None and other.invalidation_bits is not None:
+                invalidation_bits = other.invalidation_bits
+            elif self.invalidation_bits is not None is not None and other.invalidation_bits is None:
+                invalidation_bits = self.invalidation_bits
+            else:
+                invalidation_bits = np.append(self.invalidation_bits, other.invalidation_bits)
+
             result = Signal(
                 np.append(self.samples, other.samples),
                 np.append(self.timestamps, timestamps),
@@ -602,6 +659,10 @@ class Signal(object):
                 self.master_metadata,
                 self.display_name,
                 self.attachment,
+                self.source,
+                self.bit_count,
+                self.stream_sync,
+                invalidation_bits=invalidation_bits,
             )
         else:
             result = self
@@ -634,6 +695,8 @@ class Signal(object):
                 master_metadata=self.master_metadata,
                 display_name=self.display_name,
                 attachment=self.attachment,
+                stream_sync=self.stream_sync,
+                invalidation_bits=self.invalidation_bits.copy() if self.invalidation_bits is not None else None,
             )
         else:
             if self.samples.dtype.kind == 'f':
@@ -648,6 +711,18 @@ class Signal(object):
                 idx = np.clip(idx, 0, idx[-1])
                 s = self.samples[idx]
 
+            if self.invalidation_bits is not None is not None:
+                idx = np.searchsorted(
+                    self.timestamps,
+                    new_timestamps,
+                    side='right',
+                )
+                idx -= 1
+                idx = np.clip(idx, 0, idx[-1])
+                invalidation_bits = self.invalidation_bits[idx]
+            else:
+                invalidation_bits = None
+
             return Signal(
                 s,
                 new_timestamps,
@@ -659,6 +734,8 @@ class Signal(object):
                 master_metadata=self.master_metadata,
                 display_name=self.display_name,
                 attachment=self.attachment,
+                stream_sync=self.stream_sync,
+                invalidation_bits=invalidation_bits,
             )
 
     def __apply_func(self, other, func_name):
@@ -690,6 +767,8 @@ class Signal(object):
             self.master_metadata,
             self.display_name,
             attachment=self.attachment,
+            stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def __pos__(self):
@@ -705,7 +784,9 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
-            self.attachment,
+            attachment=self.attachment,
+            stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def __round__(self, n):
@@ -718,7 +799,9 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
-            self.attachment,
+            attachment=self.attachment,
+            stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def __sub__(self, other):
@@ -784,7 +867,9 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
-            self.attachment,
+            attachment=self.attachment,
+            stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def __lshift__(self, other):
@@ -836,7 +921,9 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
-            self.attachment,
+            attachment=self.attachment,
+            stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def __getitem__(self, val):
@@ -868,7 +955,9 @@ class Signal(object):
             self.raw,
             self.master_metadata,
             self.display_name,
-            self.attachment,
+            attachment=self.attachment,
+            stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
     def physical(self):
@@ -897,6 +986,8 @@ class Signal(object):
             master_metadata=self.master_metadata,
             display_name=self.display_name,
             attachment=self.attachment,
+            stream_sync=self.stream_sync,
+            invalidation_bits=self.invalidation_bits,
         )
 
 

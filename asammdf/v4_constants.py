@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ MDF v4 constants """
+import re
 
 MAX_UINT64 = (1 << 64) - 1
 
@@ -187,6 +188,9 @@ FLAG_CN_VIRTUAL = 1 << 9
 FLAG_CN_BUS_EVENT = 1 << 10
 FLAG_CN_MONOTONOUS = 1 << 11
 FLAG_CN_DEFAULT_X = 1 << 12
+
+FLAG_CC_PRECISION = 1
+FLAG_CC_RANGE = 1 << 1
 
 # data location
 LOCATION_ORIGINAL_FILE = 0
@@ -432,3 +436,23 @@ FMT_EVENT_PARAMS = '<5B3sI2HQd'
 FMT_EVENT = '<4sI2Q{}Q5B3sI2HQd'
 
 ASAM_XML_NAMESPACE = '{http://www.asam.net/mdf/v4}'
+
+CAN_ID_PATTERN = re.compile(r'((?i)can)(?P<id>\d+)')
+CAN_DATA_FRAME_PATTERN = re.compile(r'((?i)CAN_DataFrame)_(?P<id>\d+)')
+
+CN_COMMENT_TEMPLATE = """<CNcomment>
+<TX>{}</TX>
+<names>
+    <display>{}</display>
+</names>
+</CNcomment>"""
+
+HD_COMMENT_TEMPLATE = """<HDcomment>
+<TX>{}</TX>
+<common_properties>
+    <e name="author">{}</e>
+    <e name="department">{}</e>
+    <e name="project">{}</e>
+    <e name="subject">{}</e>
+</common_properties>
+</HDcomment>"""

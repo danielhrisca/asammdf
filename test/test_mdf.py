@@ -128,7 +128,7 @@ class TestMDF(unittest.TestCase):
                         if i == 0:
                             v = np.ones(cycles, dtype=np.uint64)
                             for j in range(1, 20):
-                                vals = mdf.get(group=i, index=j, samples_only=True)
+                                vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                 if not np.array_equal(
                                         vals,
                                         v * (j - 1)):
@@ -136,7 +136,7 @@ class TestMDF(unittest.TestCase):
                         elif i == 1:
                             v = np.ones(cycles, dtype=np.int64)
                             for j in range(1, 20):
-                                vals = mdf.get(group=i, index=j, samples_only=True)
+                                vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                 if not np.array_equal(
                                         vals,
                                         v * (j - 1) - 0.5):
@@ -145,7 +145,7 @@ class TestMDF(unittest.TestCase):
                             v = np.arange(cycles, dtype=np.int64) / 100.0
                             form = '{} * sin(v)'
                             for j in range(1, 20):
-                                vals = mdf.get(group=i, index=j, samples_only=True)
+                                vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                 f = form.format(j-1)
                                 if not np.array_equal(
                                         vals,
@@ -156,7 +156,7 @@ class TestMDF(unittest.TestCase):
                             form = '({} * v -0.5) / 1'
                             for j in range(1, 20):
                                 f = form.format(j - 1)
-                                vals = mdf.get(group=i, index=j, samples_only=True)
+                                vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                 if not np.array_equal(
                                         vals,
                                         numexpr.evaluate(f)):
@@ -168,7 +168,7 @@ class TestMDF(unittest.TestCase):
                                     'Channel {} sample {}'.format(j, k).encode('ascii')
                                     for k in range(cycles)
                                 ])
-                                vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                 cond = np.array_equal(
                                     vals,
                                     target)
@@ -180,7 +180,7 @@ class TestMDF(unittest.TestCase):
                             v = np.ones(cycles, dtype=np.dtype('(8,)u1'))
                             for j in range(1, 20):
                                 target = v * j
-                                vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                 cond = np.array_equal(
                                     vals,
                                     target)
@@ -192,7 +192,7 @@ class TestMDF(unittest.TestCase):
                             v = np.ones(cycles, dtype=np.uint64)
                             for j in range(1, 20):
                                 target = v * j
-                                vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                 cond = np.array_equal(
                                     vals,
                                     target)
@@ -235,7 +235,7 @@ class TestMDF(unittest.TestCase):
                                 ]
                                 types = np.dtype(types)
 
-                                vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)
+                                vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)[0]
                                 target = [arr * j for arr in samples]
                                 target = np.core.records.fromarrays(
                                     target,
@@ -260,7 +260,7 @@ class TestMDF(unittest.TestCase):
                                 ]
                                 types = np.dtype(types)
 
-                                vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)
+                                vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)[0]
                                 target = [
                                     samples * j,
                                 ]
@@ -301,7 +301,7 @@ class TestMDF(unittest.TestCase):
                                 ]
                                 types = np.dtype(types)
 
-                                vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)
+                                vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)[0]
                                 target = [arr * j for arr in samples]
                                 target = np.core.records.fromarrays(
                                     target,
@@ -378,16 +378,18 @@ class TestMDF(unittest.TestCase):
                             if i == 0:
                                 v = np.ones(cycles, dtype=np.uint64)
                                 for j in range(1, 20):
-                                    vals = mdf.get(group=i, index=j, samples_only=True)
+                                    vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     if not np.array_equal(
                                             vals,
                                             v * (j - 1)):
                                         equal = False
+                                        print(vals, len(vals))
+                                        print(v * (j - 1), len(v))
                                         1/0
                             elif i == 1:
                                 v = np.ones(cycles, dtype=np.int64)
                                 for j in range(1, 20):
-                                    vals = mdf.get(group=i, index=j, samples_only=True)
+                                    vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     if not np.array_equal(
                                             vals,
                                             v * (j - 1) - 0.5):
@@ -397,7 +399,7 @@ class TestMDF(unittest.TestCase):
                                 v = np.arange(cycles, dtype=np.int64) / 100.0
                                 form = '{} * sin(v)'
                                 for j in range(1, 20):
-                                    vals = mdf.get(group=i, index=j, samples_only=True)
+                                    vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     f = form.format(j - 1)
                                     if not np.array_equal(
                                             vals,
@@ -409,7 +411,7 @@ class TestMDF(unittest.TestCase):
                                 form = '({} * v -0.5) / 1'
                                 for j in range(1, 20):
                                     f = form.format(j - 1)
-                                    vals = mdf.get(group=i, index=j, samples_only=True)
+                                    vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     if not np.array_equal(
                                             vals,
                                             numexpr.evaluate(f)):
@@ -424,7 +426,7 @@ class TestMDF(unittest.TestCase):
                                         'Channel {} sample {}'.format(j, k).encode('ascii')
                                         for k in range(cycles)
                                     ])
-                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                     cond = np.array_equal(
                                         vals,
                                         target)
@@ -437,7 +439,7 @@ class TestMDF(unittest.TestCase):
                                 v = np.ones(cycles, dtype=np.dtype('(8,)u1'))
                                 for j in range(1, 20):
                                     target = v * j
-                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                     cond = np.array_equal(
                                         vals,
                                         target)
@@ -450,7 +452,7 @@ class TestMDF(unittest.TestCase):
                                 v = np.ones(cycles, dtype=np.uint64)
                                 for j in range(1, 20):
                                     target = v * j
-                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                     cond = np.array_equal(
                                         vals,
                                         target)
@@ -533,7 +535,7 @@ class TestMDF(unittest.TestCase):
 
                     outfile = MDF.concatenate(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
-                        MDF(input_file, memory='minimum').version,
+                        version=MDF(input_file, memory='minimum').version,
                         memory=memory,
                     ).save('tmp_cut', overwrite=True)
 
@@ -543,7 +545,7 @@ class TestMDF(unittest.TestCase):
                             if i == 0:
                                 v = np.ones(cycles, dtype=np.uint64)
                                 for j in range(1, 20):
-                                    vals = mdf.get(group=i, index=j, samples_only=True)
+                                    vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     cond = np.array_equal(
                                             vals,
                                             v * (j - 1))
@@ -553,7 +555,7 @@ class TestMDF(unittest.TestCase):
                             elif i == 1:
                                 v = np.ones(cycles, dtype=np.int64)
                                 for j in range(1, 20):
-                                    vals = mdf.get(group=i, index=j, samples_only=True)
+                                    vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     cond = np.array_equal(
                                             vals,
                                             v * (j - 1) - 0.5)
@@ -564,7 +566,7 @@ class TestMDF(unittest.TestCase):
                                 v = np.arange(cycles, dtype=np.int64) / 100.0
                                 form = '{} * sin(v)'
                                 for j in range(1, 20):
-                                    vals = mdf.get(group=i, index=j, samples_only=True)
+                                    vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     f = form.format(j-1)
                                     cond = np.array_equal(
                                             vals,
@@ -577,7 +579,7 @@ class TestMDF(unittest.TestCase):
                                 form = '({} * v -0.5) / 1'
                                 for j in range(1, 20):
                                     f = form.format(j - 1)
-                                    vals = mdf.get(group=i, index=j, samples_only=True)
+                                    vals = mdf.get(group=i, index=j, samples_only=True)[0]
                                     cond = np.array_equal(
                                             vals,
                                             numexpr.evaluate(f))
@@ -592,7 +594,7 @@ class TestMDF(unittest.TestCase):
                                         'Channel {} sample {}'.format(j, k).encode('ascii')
                                         for k in range(cycles)
                                     ])
-                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                     cond = np.array_equal(
                                             vals,
                                             target)
@@ -604,7 +606,7 @@ class TestMDF(unittest.TestCase):
                                 v = np.ones(cycles, dtype=np.dtype('(8,)u1'))
                                 for j in range(1, 20):
                                     target = v*j
-                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                     cond = np.array_equal(
                                             vals,
                                             target)
@@ -616,7 +618,7 @@ class TestMDF(unittest.TestCase):
                                 v = np.ones(cycles, dtype=np.uint64)
                                 for j in range(1, 20):
                                     target = v * j
-                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)
+                                    vals = mdf.get(group=i, index=j + 1, samples_only=True)[0]
                                     cond = np.array_equal(
                                             vals,
                                             target)
@@ -673,7 +675,7 @@ class TestMDF(unittest.TestCase):
                                     ]
                                     types = np.dtype(types)
 
-                                    vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)
+                                    vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)[0]
                                     target = [arr * j for arr in samples]
                                     target = np.core.records.fromarrays(
                                         target,
@@ -699,7 +701,7 @@ class TestMDF(unittest.TestCase):
                                     ]
                                     types = np.dtype(types)
 
-                                    vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)
+                                    vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)[0]
                                     target = [
                                         samples * j,
                                     ]
@@ -740,7 +742,7 @@ class TestMDF(unittest.TestCase):
                                     ]
                                     types = np.dtype(types)
 
-                                    vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)
+                                    vals = mdf.get('Channel_{}'.format(j), group=i, samples_only=True)[0]
                                     target = [arr * j for arr in samples]
                                     target = np.core.records.fromarrays(
                                         target,
@@ -775,7 +777,7 @@ class TestMDF(unittest.TestCase):
 
                     outfile = MDF.concatenate(
                         [outfile1, outfile2, outfile3],
-                        MDF(input_file, memory='minimum').version,
+                        vedrsion=MDF(input_file, memory='minimum').version,
                         memory=memory,
                     ).save('tmp', overwrite=True)
 

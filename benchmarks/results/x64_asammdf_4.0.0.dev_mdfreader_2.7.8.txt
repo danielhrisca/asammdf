@@ -1,0 +1,110 @@
+Benchmark environment
+
+* 3.6.2 (v3.6.2:5fd33b5, Jul  8 2017, 04:57:36) [MSC v.1900 64 bit (AMD64)]
+* Windows-10-10.0.17134-SP0
+* Intel64 Family 6 Model 69 Stepping 1, GenuineIntel
+* 16GB installed RAM
+
+Notations used in the results
+
+* full =  asammdf MDF object created with memory=full (everything loaded into RAM)
+* low =  asammdf MDF object created with memory=low (raw channel data not loaded into RAM, but metadata loaded to RAM)
+* minimum =  asammdf MDF object created with memory=full (lowest possible RAM usage)
+* compress = mdfreader mdf object created with compression=blosc
+* noDataLoading = mdfreader mdf object read with noDataLoading=True
+
+Files used for benchmark:
+
+* mdf version 3.10
+    * 167 MB file size
+    * 183 groups
+    * 36424 channels
+* mdf version 4.00
+    * 183 MB file size
+    * 183 groups
+    * 36424 channels
+
+
+
+================================================== ========= ========
+Open file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 4.0.0.dev full mdfv3                            1466      337
+asammdf 4.0.0.dev low mdfv3                             1372      184
+asammdf 4.0.0.dev minimum mdfv3                          420       70
+mdfreader 2.7.8 mdfv3                                   2794      430
+mdfreader 2.7.8 compress mdfv3                          4323      129
+mdfreader 2.7.8 noDataLoading mdfv3                     1187      176
+asammdf 4.0.0.dev full mdfv4                            1786      312
+asammdf 4.0.0.dev low mdfv4                             1637      147
+asammdf 4.0.0.dev minimum mdfv4                         1099       71
+mdfreader 2.7.8 mdfv4                                   6706      441
+mdfreader 2.7.8 compress mdfv4                          8542      141
+mdfreader 2.7.8 noDataLoading mdfv4                     4539      182
+================================================== ========= ========
+
+
+================================================== ========= ========
+Save file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 4.0.0.dev full mdfv3                             894      343
+asammdf 4.0.0.dev low mdfv3                              866      190
+asammdf 4.0.0.dev minimum mdfv3                         3135       78
+mdfreader 2.7.8 mdfv3                                   7733      459
+mdfreader 2.7.8 noDataLoading mdfv3                     9353      520
+mdfreader 2.7.8 compress mdfv3                          7827      428
+asammdf 4.0.0.dev full mdfv4                             982      316
+asammdf 4.0.0.dev low mdfv4                              974      157
+asammdf 4.0.0.dev minimum mdfv4                         3600       80
+mdfreader 2.7.8 mdfv4                                   4669      459
+mdfreader 2.7.8 noDataLoading mdfv4                     6612      478
+mdfreader 2.7.8 compress mdfv4                          4525      418
+================================================== ========= ========
+
+
+================================================== ========= ========
+Get all channels (36424 calls)                     Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 4.0.0.dev full mdfv3                            1605      346
+asammdf 4.0.0.dev low mdfv3                             7224      199
+asammdf 4.0.0.dev minimum mdfv3                         9965       87
+mdfreader 2.7.8 mdfv3                                    102      430
+mdfreader 2.7.8 nodata mdfv3                           16696      211
+mdfreader 2.7.8 compress mdfv3                           622      129
+asammdf 4.0.0.dev full mdfv4                            1685      316
+asammdf 4.0.0.dev low mdfv4                            12592      157
+asammdf 4.0.0.dev minimum mdfv4                        16428       84
+mdfreader 2.7.8 mdfv4                                     93      441
+mdfreader 2.7.8 compress mdfv4                           624      141
+mdfreader 2.7.8 nodata mdfv4                           27146      206
+================================================== ========= ========
+
+
+================================================== ========= ========
+Convert file                                       Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 4.0.0.dev full v3 to v4                         5677      680
+asammdf 4.0.0.dev low v3 to v4                          5737      352
+asammdf 4.0.0.dev minimum v3 to v4                      9341      118
+asammdf 4.0.0.dev full v4 to v3                         5095      610
+asammdf 4.0.0.dev low v4 to v3                          5328      263
+asammdf 4.0.0.dev minimum v4 to v3                      9983      115
+================================================== ========= ========
+
+
+================================================== ========= ========
+Merge 3 files                                      Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 4.0.0.dev full v3                              17059     1641
+asammdf 4.0.0.dev low v3                               16730      622
+asammdf 4.0.0.dev minimum v3                           25156      166
+mdfreader 2.7.8 v3                                     24608     1335
+mdfreader 2.7.8 compress v3                            30669     1347
+mdfreader 2.7.8 nodata v3                              24093     1456
+asammdf 4.0.0.dev full v4                              17949     1513
+asammdf 4.0.0.dev low v4                               17592      461
+asammdf 4.0.0.dev minimum v4                           36417      166
+mdfreader 2.7.8 v4                                     36287     1326
+mdfreader 2.7.8 nodata v4                              35904     1361
+mdfreader 2.7.8 compress v4                            42410     1336
+================================================== ========= ========

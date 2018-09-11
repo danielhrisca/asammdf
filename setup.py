@@ -12,7 +12,7 @@ from os import path, listdir, walk
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-long_description = open('README.rst').read()
+long_description = open('README.rst', 'rb').read().decode('utf-8')
 
 with open(path.join('asammdf', 'version.py'), 'r') as f:
     for line in f:

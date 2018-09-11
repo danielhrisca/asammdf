@@ -116,3 +116,56 @@ Optimized methods
 =================
 The *MDF* methods (*cut*, *filter*, *select*) are optimized and should be used instead of calling *get* for several channels.
 For "low" and "minimum" options the time savings can be dramatic.
+
+
+Faster file loading
+===================
+
+BytesIO and *memory='full'*
+---------------------------
+In case of files with high block count (large number of channels, or large number of data blocks) you cand speed up the 
+loading in case of *full* memory option, at the expense of higher RAM usage by reading the file into a *BytesIO* object
+and feeding it to the *MDF* class
+
+.. code::python
+
+    with open(file_name, 'rb') as fin:
+        mdf = MDF(BytesIO(fin.read()))
+            
+Using a test file with the size of 3.2GB that contained ~580000 channels the loading time and RAM usage were
+
+* Python 3.6.3 (v3.6.3:2c5fed8, Oct  3 2017, 18:11:49) [MSC v.1900 64 bit (AMD64)]
+* Windows-10-10.0.15063-SP0
+* Intel64 Family 6 Model 94 Stepping 3, GenuineIntel
+* 16GB installed RAM
+
+================================================== ========= ========
+Open file                                          Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 3.5.1.dev mdfv4                                62219     4335
+asammdf w BytesIO 3.5.1.dev mdfv4                      31232     7409
+================================================== ========= ========
+
+Skip XML parsing for MDF4 files
+-------------------------------
+MDF4 uses the XML channel comment to define the channel's display name (this acts
+as an alias for the channel name). XML pasring is an expensive operation that can
+have a big impact on the loading performance of measurements with hihg channel  
+count. 
+
+You can use the keyword only argument *use_display_names* when creating MDF
+objects to skip the XML parsing. This means that the display names will not be
+available when calling the *get* method.
+
+Using a test file that contained ~36000 channels the loading times were
+
+======================================================= ========= ========
+Open file                                               Time [ms] RAM [MB]
+======================================================= ========= ========
+asammdf 3.5.1.dev full mdfv4    use_display_names=True       6086      335
+asammdf 3.5.1.dev low mdfv4     use_display_names=True       5590      170
+asammdf 3.5.1.dev minimum mdfv4 use_display_names=True       4694       61
+asammdf 3.5.1.dev full mdfv4    use_display_names=False      2020      328
+asammdf 3.5.1.dev low mdfv4     use_display_names=False      1912      163
+asammdf 3.5.1.dev minimum mdfv4 use_display_names=False       966       59
+======================================================= ========= ========

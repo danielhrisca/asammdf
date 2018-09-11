@@ -399,7 +399,7 @@ def merge_v3(output, fmt, memory):
 
 
 def merge_v4(output, fmt, memory):
-    files = [r'test.mf4', ] * 3
+    files = [r'test.mf4', ] * 2
 
     with Timer('Merge 3 files',
                'asammdf {} {} v4'.format(asammdf_version, memory),
@@ -651,8 +651,8 @@ def merge_reader_v3_nodata(output, fmt):
     output.send([timer.output, timer.error])
 
 
-def merge_reader_v4(output, fmt, size):
-    files = [r'test.mf4', ] * 3
+def merge_reader_v4(output, fmt):
+    files = [r'test.mf4', ] * 2
 
     with Timer('Merge 3 files',
                'mdfreader {} v4'.format(mdfreader_version),
@@ -662,13 +662,11 @@ def merge_reader_v4(output, fmt, size):
         x2 = MDFreader(files[1])
         x2.resample(0.01)
         x1.mergeMdf(x2)
-        x2 = MDFreader(files[2])
-        x2.resample(0.01)
-        x1.mergeMdf(x2)
+
     output.send([timer.output, timer.error])
 
 
-def merge_reader_v4_compress(output, fmt, size):
+def merge_reader_v4_compress(output, fmt):
 
     files = [r'test.mf4', ] * 3
     with Timer('Merge 3 files',
@@ -679,12 +677,10 @@ def merge_reader_v4_compress(output, fmt, size):
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.mergeMdf(x2)
-        x2 = MDFreader(files[2])
-        x2.resample(0.01)
-        x1.mergeMdf(x2)
+
     output.send([timer.output, timer.error])
 
-def merge_reader_v4_nodata(output, fmt, size):
+def merge_reader_v4_nodata(output, fmt):
 
     files = [r'test.mf4', ] * 3
     with Timer('Merge 3 files',
@@ -695,9 +691,7 @@ def merge_reader_v4_nodata(output, fmt, size):
         x2 = MDFreader(files[1], noDataLoading=True)
         x2.resample(0.01)
         x1.mergeMdf(x2)
-        x2 = MDFreader(files[2])
-        x2.resample(0.01)
-        x1.mergeMdf(x2)
+
     output.send([timer.output, timer.error])
 
 #
@@ -789,18 +783,18 @@ def main(text_output, fmt):
     output.append('    * {} channels\n\n'.format(v4_channels))
 
     tests = (
-        # partial(open_mdf3, memory='full'),
-        # partial(open_mdf3, memory='low'),
-        # partial(open_mdf3, memory='minimum'),
-        # open_reader3,
-        # open_reader3_compression,
-        # open_reader3_nodata,
-        # partial(open_mdf4, memory='full'),
-        # partial(open_mdf4, memory='low'),
-        # partial(open_mdf4, memory='minimum'),
-        # open_reader4,
-        # open_reader4_compression,
-        # open_reader4_nodata,
+         partial(open_mdf3, memory='full'),
+         partial(open_mdf3, memory='low'),
+         partial(open_mdf3, memory='minimum'),
+         # open_reader3,
+         # open_reader3_compression,
+         # open_reader3_nodata,
+         partial(open_mdf4, memory='full'),
+         partial(open_mdf4, memory='low'),
+         partial(open_mdf4, memory='minimum'),
+         # open_reader4,
+         # open_reader4_compression,
+         # open_reader4_nodata,
     )
 
     if tests:
@@ -815,18 +809,18 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        # partial(save_mdf3, memory='full'),
-        # partial(save_mdf3, memory='low'),
-        # partial(save_mdf3, memory='minimum'),
-        # save_reader3,
-        # save_reader3_nodata,
-        # save_reader3_compression,
-        # partial(save_mdf4, memory='full'),
-        # partial(save_mdf4, memory='low'),
-        # partial(save_mdf4, memory='minimum'),
-        # save_reader4,
-        # save_reader4_nodata,
-        # save_reader4_compression,
+         partial(save_mdf3, memory='full'),
+         partial(save_mdf3, memory='low'),
+         partial(save_mdf3, memory='minimum'),
+         # save_reader3,
+         # save_reader3_nodata,
+         # save_reader3_compression,
+         partial(save_mdf4, memory='full'),
+         partial(save_mdf4, memory='low'),
+         partial(save_mdf4, memory='minimum'),
+         # save_reader4,
+         # save_reader4_nodata,
+         # save_reader4_compression,
     )
 
     if tests:
@@ -841,22 +835,20 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        # partial(get_all_mdf3, memory='full'),
-        # partial(get_all_mdf3, memory='low'),
-        # partial(get_all_mdf3, memory='minimum'),
-        # get_all_reader3,
-        # get_all_reader3_nodata,
-        # get_all_reader3_compression,
-
-        partial(get_all_iter_mdf4, memory='minimum'),
-
-        partial(get_all_mdf4, memory='full'),
-        partial(get_all_mdf4, memory='low'),
-        partial(get_all_mdf4, memory='minimum'),
-
-        get_all_reader4,
-        get_all_reader4_compression,
-        get_all_reader4_nodata,
+        #  partial(get_all_mdf3, memory='full'),
+        #  partial(get_all_mdf3, memory='low'),
+        #  partial(get_all_mdf3, memory='minimum'),
+        #  get_all_reader3,
+        #  get_all_reader3_nodata,
+        #  get_all_reader3_compression,
+        #
+        # partial(get_all_mdf4, memory='full'),
+        # partial(get_all_mdf4, memory='low'),
+        # partial(get_all_mdf4, memory='minimum'),
+        #
+        # get_all_reader4,
+        # get_all_reader4_compression,
+        # get_all_reader4_nodata,
 
 
     )
@@ -873,12 +865,12 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        # partial(convert_v3_v4, memory='full'),
-        # partial(convert_v3_v4, memory='low'),
-        # partial(convert_v3_v4, memory='minimum'),
-        # partial(convert_v4_v3, memory='full'),
-        # partial(convert_v4_v3, memory='low'),
-        # partial(convert_v4_v3, memory='minimum'),
+         partial(convert_v3_v4, memory='full'),
+         partial(convert_v3_v4, memory='low'),
+         partial(convert_v3_v4, memory='minimum'),
+         partial(convert_v4_v3, memory='full'),
+         partial(convert_v4_v3, memory='low'),
+         partial(convert_v4_v3, memory='minimum'),
     )
 
     if tests:
@@ -893,18 +885,18 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        # partial(merge_v3, memory='full'),
-        # partial(merge_v3, memory='low'),
-        # partial(merge_v3, memory='minimum'),
-        # merge_reader_v3,
-        # merge_reader_v3_compress,
-        # merge_reader_v3_nodata,
-        # partial(merge_v4, memory='full'),
-        # partial(merge_v4, memory='low'),
-        # partial(merge_v4, memory='minimum'),
-        # merge_reader_v4,
-        # merge_reader_v4_nodata,
-        # merge_reader_v4_compress,
+         partial(merge_v3, memory='full'),
+         partial(merge_v3, memory='low'),
+         partial(merge_v3, memory='minimum'),
+         # merge_reader_v3,
+         # merge_reader_v3_compress,
+         # merge_reader_v3_nodata,
+         partial(merge_v4, memory='full'),
+         partial(merge_v4, memory='low'),
+         partial(merge_v4, memory='minimum'),
+         # merge_reader_v4,
+         # merge_reader_v4_nodata,
+         # merge_reader_v4_compress,
     )
 
     if tests:
