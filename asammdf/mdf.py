@@ -1341,7 +1341,7 @@ class MDF(object):
 
                     group_name = 'DataGroup_{}'.format(i + 1)
                     group_csv_name = '{}_{}.csv'.format(name, group_name)
-                    with open(group_csv_name, 'w', newline='') as csvfile:
+                    with open(group_csv_name, 'w') as csvfile:
                         writer = csv.writer(csvfile)
 
                         master_index = self.masters_db.get(i, None)
