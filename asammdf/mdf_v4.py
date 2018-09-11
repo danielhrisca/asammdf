@@ -2476,7 +2476,13 @@ class MDF4(object):
         if single_bit_uint_as_bool is not None:
             self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
 
-    def append(self, signals, source_info='Python', common_timebase=False):
+    def append(
+            self,
+            signals,
+            source_info='Python',
+            common_timebase=False,
+            units=None,
+        ):
         """
         Appends a new data group.
 
@@ -2492,6 +2498,9 @@ class MDF4(object):
             source information; default 'Python'
         common_timebase : bool
             flag to hint that the signals have the same timebase
+        units : dict
+            will contain the signal units mapped to the singal names when
+            appending a pandas DataFrame
 
         Examples
         --------
@@ -2521,7 +2530,7 @@ class MDF4(object):
         if isinstance(signals, Signal):
             signals = [signals, ]
         elif isinstance(signals, DataFrame):
-            self._append_dataframe(signals, source_info)
+            self._append_dataframe(signals, source_info, units=units)
             return
 
         # check if the signals have a common timebase
@@ -3325,11 +3334,13 @@ class MDF4(object):
                 else:
                     gp['data_block_addr'] = [0, ]
 
-    def _append_dataframe(self, df, source_info=''):
+    def _append_dataframe(self, df, source_info='', units=None):
         """
         Appends a new data group from a Pandas data frame.
 
         """
+
+        units = units or {}
 
         t = df.index
         index_name = df.index.name
@@ -3484,6 +3495,7 @@ class MDF4(object):
 
                 ch = Channel(**kargs)
                 ch.name = name
+                ch.unit = units.get(name, '')
 
                 if memory != 'minimum':
                     gp_channels.append(ch)
@@ -3567,6 +3579,7 @@ class MDF4(object):
 
                 ch = Channel(**kargs)
                 ch.name = name
+                ch.unit = units.get(name, '')
 
                 if memory != 'minimum':
                     gp_channels.append(ch)
