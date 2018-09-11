@@ -1098,6 +1098,8 @@ class MDF3(object):
         >>> sigs = [ch1, ch2]
         >>> mdf2 = MDF3('out.mdf')
         >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
+        >>> df = pd.DataFrame.from_dict({'s1': np.array([1, 2, 3, 4, 5]), 's2': np.array([-1, -2, -3, -4, -5])})
+        >>> mdf2.append(df)
 
         """
         if isinstance(signals, Signal):
