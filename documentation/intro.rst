@@ -121,6 +121,6 @@ Thanks to all who contributed with commits to *asammdf*
 * Isuru Fernando `isuruf <https://github.com/isuruf>`_.
 * Felix Kohlgrüber `fkohlgrueber <https://github.com/fkohlgrueber>`_.
 * Stanislav Frolov `stanifrolov <https://github.com/stanifrolov>`_.
-* Thomas Kastl `kasuteru <https://github.com/kasuteru`_.
-* venden `venden <https://github.com/venden`_.
+* Thomas Kastl `kasuteru <https://github.com/kasuteru>`_.
+* venden `venden <https://github.com/venden>`_.
 
