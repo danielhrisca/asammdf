@@ -131,9 +131,9 @@ Thanks to all who contributed with commits to *asammdf*:
 * Jack Weinstein [jacklev](https://github.com/jacklev)
 * Isuru Fernando [isuruf](https://github.com/isuruf)
 * Felix Kohlgrüber [fkohlgrueber](https://github.com/fkohlgrueber)
-* Stanislav Frolov [stanifrolov] (https://github.com/stanifrolov)
-* Thomas Kastl [kasuteru] (https://github.com/kasuteru)
-* venden [venden] (https://github.com/venden)
+* Stanislav Frolov [stanifrolov](https://github.com/stanifrolov)
+* Thomas Kastl [kasuteru](https://github.com/kasuteru)
+* venden [venden](https://github.com/venden)
 
 # Installation
 *asammdf* is available on 
