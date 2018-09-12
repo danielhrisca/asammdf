@@ -86,47 +86,6 @@ logger = logging.getLogger('asammdf')
 __all__ = ['MDF3', ]
 
 
-def write_cc(conversion, defined_texts, blocks=None, address=None, stream=None):
-    if conversion:
-        if stream:
-            tell = stream.tell
-            write = stream.write
-
-        for key, item in conversion.referenced_blocks.items():
-            if isinstance(item, TextBlock):
-                text = item['text']
-                if text in defined_texts:
-                    conversion[key] = defined_texts[text]
-                else:
-                    if stream:
-                        address = tell()
-                    conversion[key] = address
-                    defined_texts[text] = address
-                    item.address = address
-                    if stream:
-                        write(bytes(item))
-                    else:
-                        address += item['block_len']
-                        blocks.append(item)
-
-            elif isinstance(item, ChannelConversion):
-
-                if stream:
-                    write_cc(item, defined_texts, blocks, stream=stream)
-                    address = tell()
-                    item.address = address
-                    conversion[key] = address
-                    write(bytes(item))
-                else:
-                    item.address = address
-                    conversion[key] = address
-                    address += item['block_len']
-                    blocks.append(item)
-                    address = write_cc(item, defined_texts, blocks, address)
-
-    return address
-
-
 class MDF3(object):
     """The *header* attibute is a *HeaderBlock*.
 
