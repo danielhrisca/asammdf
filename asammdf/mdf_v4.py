@@ -2418,14 +2418,14 @@ class MDF4(object):
                     stream=stream,
                 )
                 if channel.source:
-                    name = channel.source.acq_name
+                    name = channel.source.name
                 else:
                     name = ''
             else:
                 name = ''
         else:
             if grp['channels'][index].source:
-                name = grp['channels'][index].source.acq_name
+                name = grp['channels'][index].source.name
             else:
                 name = ''
         return name
