@@ -116,6 +116,22 @@ SignalSource = namedtuple(
     'SignalSource',
     ['name', 'path', 'comment', 'source_type', 'bus_type'],
 )
+""" Commons reprezentation for source information
+
+Attributes
+----------
+name : str
+    source name
+path : str
+    source path
+comment : str
+    source comment
+source_type : int
+    source type code
+bus_type : int
+    source bus code
+
+"""
 
 
 class MdfException(Exception):

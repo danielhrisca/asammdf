@@ -6,7 +6,7 @@ from textwrap import fill
 
 import numpy as np
 
-from .utils import MdfException, extract_cncomment_xml
+from .utils import MdfException, extract_cncomment_xml, SignalSource
 from . import v2_v3_blocks as v3b
 from . import v4_constants as v4c
 from . import v4_blocks as v4b
@@ -48,7 +48,7 @@ class Signal(object):
         display name used by mdf version 3
     attachment : bytes, name
         channel attachment and name from MDF version 4
-    source : NamedTuple
+    source : SignalSource
         source information named tuple
     bit_count : int
         bit count; useful for integer channels
@@ -105,7 +105,15 @@ class Signal(object):
             self.master_metadata = master_metadata
             self.display_name = display_name
             self.attachment = attachment
-            self.source = source
+
+            if source:
+                if isinstance(source, SignalSource):
+                    self.source = source
+                else:
+                    self.source = source.to_common_source()
+            else:
+                self.source = source
+
             if bit_count is None:
                 self.bit_count = samples.dtype.itemsize * 8
             else:

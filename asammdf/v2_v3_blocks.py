@@ -14,7 +14,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v2_v3_constants as v23c
-from .utils import MdfException, get_text_v3
+from .utils import MdfException, get_text_v3, SignalSource
 
 PYVERSION = sys.version_info[0]
 SEEK_START = v23c.SEEK_START
@@ -1783,6 +1783,25 @@ class ChannelExtension(dict):
             address += self['block_len']
 
         return address
+
+    def to_common_source(self):
+        if self['type'] == v23c.SOURCE_ECU:
+            source = SignalSource(
+                self.name,
+                self.path,
+                self.comment,
+                0,  # source type other
+                0,  # bus type none
+            )
+        else:
+            source = SignalSource(
+                self.name,
+                self.path,
+                self.comment,
+                2,  # source type bus
+                2,  # bus type
+            )
+        return source
 
     def metadata(self):
         max_len = max(

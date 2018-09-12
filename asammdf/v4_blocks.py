@@ -18,7 +18,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v4_constants as v4c
-from .utils import MdfException, get_text_v4
+from .utils import MdfException, get_text_v4, SignalSource
 
 
 PYVERSION = sys.version_info[0]
@@ -4190,6 +4190,10 @@ class SourceInformation(dict):
             self['flags'] = 0
             self['reserved1'] = b'\x00' * 5
 
+            self.name = kwargs.get('name', '')
+            self.path = kwargs.get('path', '')
+            self.comment = kwargs.get('comment', '')
+
     def metadata(self):
         max_len = max(
             len(key)
@@ -4355,6 +4359,15 @@ comment: {}
             address += self['block_len']
 
         return address
+
+    def to_common_source(self):
+        return SignalSource(
+            self.name,
+            self.path,
+            self.comment,
+            self['source_type'],
+            self['bus_type'],
+        )
 
     def __bytes__(self):
         result = pack(
