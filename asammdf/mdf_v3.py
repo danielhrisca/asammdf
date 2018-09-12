@@ -590,7 +590,7 @@ class MDF3(object):
         else:
             return vals
 
-    def _validate_channel_selection(self, name=None, group=None, index=None):
+    def _validate_channel_selection(self, name=None, group=None, index=None, source=None):
         """Gets channel comment.
         Channel can be specified in two ways:
 
