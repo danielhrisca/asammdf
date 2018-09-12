@@ -714,6 +714,32 @@ class MDF3(object):
                         raise MdfException(message)
         return gp_nr, ch_nr
 
+    def _get_source_name(self, group, index):
+        grp = self.groups[group]
+        if self.memory == 'minimum':
+            if grp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
+                stream = self._file
+            else:
+                stream = self._tempfile
+
+            if index >= 0:
+                channel = Channel(
+                    address=grp['channels'][index],
+                    stream=stream,
+                )
+                if channel.source:
+                    name = channel.source.name
+                else:
+                    name = ''
+            else:
+                name = ''
+        else:
+            if grp['channels'][index].source:
+                name = grp['channels'][index].source.name
+            else:
+                name = ''
+        return name
+
     def _read(self):
         stream = self._file
         memory = self.memory
@@ -2702,12 +2728,15 @@ class MDF3(object):
             samples_only=False,
             data=None,
             raw=False,
-            ignore_invalidation_bits=False):
+            ignore_invalidation_bits=False,
+            source=None):
         """Gets channel samples.
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
+            * if *source* is given this will be first used to validate the
+              channel selection
             * if there are multiple occurances for this channel then the
               *group* and *index* arguments can be used to select a specific
               group.
@@ -2820,12 +2849,22 @@ class MDF3(object):
                 unit=""
                 info=None
                 comment="">
+        >>> mdf.get('Sig', source='VN7060')
+        <Signal Sig:
+                samples=[ 12.  12.  12.  12.  12.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
 
         """
+
+
         gp_nr, ch_nr = self._validate_channel_selection(
             name,
             group,
             index,
+            source=source,
         )
 
         original_data = data
