@@ -2304,7 +2304,7 @@ class MDF4(object):
         else:
             return vals
 
-    def _validate_channel_selection(self, name=None, group=None, index=None):
+    def _validate_channel_selection(self, name=None, group=None, index=None, source=None):
         """Gets channel comment.
         Channel can be specified in two ways:
 
@@ -2358,7 +2358,16 @@ class MDF4(object):
             if name not in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
-                if group is None:
+                if source is not None:
+                    for gp_nr, ch_nr in self.channels_db[name]:
+                        source_name = self._get_source_name(gp_nr, ch_nr)
+                        if source_name == source:
+                            break
+                    else:
+                        raise MdfException(
+                            '{} with source {} not found'.format(name, source))
+                elif group is None:
+
                     gp_nr, ch_nr = self.channels_db[name][0]
                     if len(self.channels_db[name]) > 1 and not suppress:
                         message = (
@@ -2369,6 +2378,7 @@ class MDF4(object):
                         )
                         message = message.format(name, gp_nr)
                         logger.warning(message)
+
                 else:
                     if index is not None and index < 0:
                         gp_nr = group
@@ -2393,6 +2403,32 @@ class MDF4(object):
                             raise MdfException(message)
 
         return gp_nr, ch_nr
+
+    def _get_source_name(self, group, index):
+        grp = self.groups[group]
+        if self.memory == 'minimum':
+            if grp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+                stream = self._file
+            else:
+                stream = self._tempfile
+
+            if index >= 0:
+                channel = Channel(
+                    address=grp['channels'][index],
+                    stream=stream,
+                )
+                if channel.source:
+                    name = channel.source.acq_name
+                else:
+                    name = ''
+            else:
+                name = ''
+        else:
+            if grp['channels'][index].source:
+                name = grp['channels'][index].source.acq_name
+            else:
+                name = ''
+        return name
 
     def get_invalidation_bits(self, group_index, channel, fragment):
         """ get invalidation indexes for the channel
@@ -4316,12 +4352,15 @@ class MDF4(object):
             samples_only=False,
             data=None,
             raw=False,
-            ignore_invalidation_bits=False):
+            ignore_invalidation_bits=False,
+            source=None):
         """Gets channel samples.
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
 
+            * if *source* is given this will be first used to validate the
+              channel selection
             * if there are multiple occurances for this channel then the
               *group* and *index* arguments can be used to select a specific
               group.
@@ -4355,6 +4394,8 @@ class MDF4(object):
             `False`
         ignore_invalidation_bits : bool
             option to ignore invalidation bits
+        source : str
+            source name
 
         Returns
         -------
@@ -4435,6 +4476,15 @@ class MDF4(object):
                 unit=""
                 info=None
                 comment="">
+        >>> # validation using source name
+        ...
+        >>> mdf.get('Sig', source='VN7060')
+        <Signal Sig:
+                samples=[ 12.  12.  12.  12.  12.]
+                timestamps=[0 1 2 3 4]
+                unit=""
+                info=None
+                comment="">
 
         """
 
@@ -4442,6 +4492,7 @@ class MDF4(object):
             name,
             group,
             index,
+            source=source,
         )
 
         memory = self.memory
