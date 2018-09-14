@@ -200,7 +200,6 @@ class MDF4(object):
     def __init__(self, name=None, memory='full', version='4.10', **kwargs):
         memory = validate_memory_argument(memory)
 
-
         self.groups = []
         self.header = None
         self.identification = None
@@ -676,7 +675,6 @@ class MDF4(object):
             self.groups.extend(new_groups)
 
             dg_addr = group['next_dg_addr']
-
 
         # all channels have been loaded so now we can link the
         # channel dependencies and load the signal data for VLSD channels

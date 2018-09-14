@@ -2773,7 +2773,7 @@ class FileWidget(QWidget):
             # convert self.mdf
             target = self.mdf.convert
             kwargs = {
-                'to': version,
+                'version': version,
                 'memory': memory,
             }
 
@@ -3070,6 +3070,7 @@ class FileWidget(QWidget):
             'excel': "Excel files (*.xlsx)",
             'hdf5': "HDF5 files (*.hdf)",
             'mat': "Matlab MAT files (*.mat)",
+            'parquet': 'Apache Parquet files (*.parquet)',
         }
 
         if QT > 4:
