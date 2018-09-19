@@ -590,7 +590,7 @@ class MDF3(object):
         else:
             return vals
 
-    def _validate_channel_selection(self, name=None, group=None, index=None):
+    def _validate_channel_selection(self, name=None, group=None, index=None, source=None):
         """Gets channel comment.
         Channel can be specified in two ways:
 
@@ -625,6 +625,7 @@ class MDF3(object):
             selected channel's group and channel index
 
         """
+        suppress = True
         if name is None:
             if group is None or index is None:
                 message = (
@@ -634,17 +635,27 @@ class MDF3(object):
                 raise MdfException(message)
             else:
                 gp_nr, ch_nr = group, index
-                if gp_nr > len(self.groups) - 1:
-                    raise MdfException('Group index out of range')
-                if index > len(self.groups[gp_nr]['channels']) - 1:
-                    raise MdfException('Channel index out of range')
+                if ch_nr >= 0:
+                    if gp_nr > len(self.groups) - 1:
+                        raise MdfException('Group index out of range')
+                    if index > len(self.groups[gp_nr]['channels']) - 1:
+                        raise MdfException('Channel index out of range')
         else:
             if name not in self.channels_db:
                 raise MdfException('Channel "{}" not found'.format(name))
             else:
-                if group is None:
+                if source is not None:
+                    for gp_nr, ch_nr in self.channels_db[name]:
+                        source_name = self._get_source_name(gp_nr, ch_nr)
+                        if source_name == source:
+                            break
+                    else:
+                        raise MdfException(
+                            '{} with source {} not found'.format(name, source))
+                elif group is None:
+
                     gp_nr, ch_nr = self.channels_db[name][0]
-                    if len(self.channels_db[name]) > 1:
+                    if len(self.channels_db[name]) > 1 and not suppress:
                         message = (
                             'Multiple occurances for channel "{}". '
                             'Using first occurance from data group {}. '
@@ -653,24 +664,30 @@ class MDF3(object):
                         )
                         message = message.format(name, gp_nr)
                         logger.warning(message)
+
                 else:
-                    for gp_nr, ch_nr in self.channels_db[name]:
-                        if gp_nr == group:
-                            if index is None:
-                                break
-                            elif index == ch_nr:
-                                break
+                    if index is not None and index < 0:
+                        gp_nr = group
+                        ch_nr = index
                     else:
-                        if index is None:
-                            message = 'Channel "{}" not found in group {}'
-                            message = message.format(name, group)
+                        for gp_nr, ch_nr in self.channels_db[name]:
+                            if gp_nr == group:
+                                if index is None:
+                                    break
+                                elif index == ch_nr:
+                                    break
                         else:
-                            message = (
-                                'Channel "{}" not found in group {} '
-                                'at index {}'
-                            )
-                            message = message.format(name, group, index)
-                        raise MdfException(message)
+                            if index is None:
+                                message = 'Channel "{}" not found in group {}'
+                                message = message.format(name, group)
+                            else:
+                                message = (
+                                    'Channel "{}" not found in group {} '
+                                    'at index {}'
+                                )
+                                message = message.format(name, group, index)
+                            raise MdfException(message)
+
         return gp_nr, ch_nr
 
     def _get_source_name(self, group, index):
