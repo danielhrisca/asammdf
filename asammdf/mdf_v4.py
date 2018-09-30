@@ -6261,7 +6261,7 @@ class MDF4(object):
                             if align:
                                 blocks.append(b'\0' * (8 - align))
                                 address += 8 - align
-                            gp_sd.append(signal_data)
+                        gp_sd.append(signal_data)
                     else:
                         gp_sd.append(None)
 
