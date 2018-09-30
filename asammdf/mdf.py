@@ -967,7 +967,7 @@ class MDF(object):
             'subject',
         )
 
-        if filename is None and self.name is None:
+        if fmt != 'pandas' and filename is None and self.name is None:
             message = ('Must specify filename for export'
                        'if MDF was created without a file name')
             logger.warning(message)
