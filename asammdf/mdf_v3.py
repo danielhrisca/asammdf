@@ -597,14 +597,14 @@ class MDF3(object):
         * using the first positional argument *name*
 
             * if there are multiple occurrences for this channel then the
-            *group* and *index* arguments can be used to select a specific
-            group.
+              *group* and *index* arguments can be used to select a specific
+              group.
             * if there are multiple occurrences for this channel and either the
-            *group* or *index* arguments is None then a warning is issued
+              *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
-        number (keyword argument *index*). Use *info* method for group and
-        channel numbers
+          number (keyword argument *index*). Use *info* method for group and
+           numbers
 
 
         If the *raster* keyword argument is not *None* the output is
