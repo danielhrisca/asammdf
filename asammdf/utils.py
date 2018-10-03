@@ -753,7 +753,7 @@ def debug_channel(mdf, group, channel, dependency):
     print('data block:', group['data_block'])
     print('record_size:', group['record_size'])
     print('dependencies', group['channel_dependencies'])
-    print('parets:', parents)
+    print('parents:', parents)
     print('dtypes:', dtypes)
     print()
 
