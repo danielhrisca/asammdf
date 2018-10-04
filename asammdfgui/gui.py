@@ -1676,56 +1676,67 @@ class FileWidget(QWidget):
         progress.setWindowIcon(icon)
         progress.show()
 
-        if file_name.lower().endswith('dl3'):
-            progress.setLabelText('Converting from dl3 to mdf')
+        if file_name.lower().endswith('erg'):
+            progress.setLabelText('Converting from erg to mdf')
             try:
-                import win32com.client
+                from mfile import ERG
 
-                index = 0
-                while True:
-                    mdf_name = '{}.{}.mdf'.format(
-                        file_name,
-                        index,
-                    )
-                    if os.path.exists(mdf_name):
-                        index += 1
-                    else:
-                        break
-
-                datalyser = win32com.client.Dispatch('Datalyser3.Datalyser3_COM')
-                try:
-                    datalyser.DCOM_set_datalyser_visibility(False)
-                except:
-                    pass
-                ret = datalyser.DCOM_convert_file_mdf_dl3(
-                    file_name,
-                    mdf_name,
-                    0
-                )
-                datalyser.DCOM_TerminateDAS()
-                file_name = mdf_name
+                self.mdf = ERG(file_name).export_mdf()
             except Exception as err:
                 print(err)
                 return
+        else:
 
-        target = MDF
-        kwargs = {
-            'name': file_name,
-            'memory': memory,
-            'callback': self.update_progress,
-        }
+            if file_name.lower().endswith('dl3'):
+                progress.setLabelText('Converting from dl3 to mdf')
+                try:
+                    import win32com.client
 
-        self.mdf = run_thread_with_progress(
-            self,
-            target=target,
-            kwargs=kwargs,
-            factor=33,
-            offset=0,
-            progress=progress,
-        )
+                    index = 0
+                    while True:
+                        mdf_name = '{}.{}.mdf'.format(
+                            file_name,
+                            index,
+                        )
+                        if os.path.exists(mdf_name):
+                            index += 1
+                        else:
+                            break
 
-        if self.mdf is TERMINATED:
-            return
+                    datalyser = win32com.client.Dispatch('Datalyser3.Datalyser3_COM')
+                    try:
+                        datalyser.DCOM_set_datalyser_visibility(False)
+                    except:
+                        pass
+                    ret = datalyser.DCOM_convert_file_mdf_dl3(
+                        file_name,
+                        mdf_name,
+                        0
+                    )
+                    datalyser.DCOM_TerminateDAS()
+                    file_name = mdf_name
+                except Exception as err:
+                    print(err)
+                    return
+
+            target = MDF
+            kwargs = {
+                'name': file_name,
+                'memory': memory,
+                'callback': self.update_progress,
+            }
+
+            self.mdf = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=33,
+                offset=0,
+                progress=progress,
+            )
+
+            if self.mdf is TERMINATED:
+                return
 
         progress.setLabelText('Loading graphical elements')
 
@@ -3922,14 +3933,14 @@ class MainWindow(QMainWindow):
                 self,
                 "Select measurement file",
                 '',
-                "MDF/DL3 files (*.dat *.mdf *.mf4 *.dl3)",
+                "MDF/DL3/ERG files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
             )
         else:
             file_name = QFileDialog.getOpenFileName(
                 self,
                 "Select measurement file",
                 '',
-                "MDF/DL3 files (*.dat *.mdf *.mf4 *.dl3)",
+                "MDF/DL3/ERG files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
             )
             file_name = str(file_name)
 
