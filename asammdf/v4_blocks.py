@@ -2308,6 +2308,7 @@ class ChannelConversion(dict):
         return address
 
     def convert(self, values):
+        numexpr_favorable_size = 140000
         conversion_type = self['conversion_type']
         if conversion_type == v4c.CONVERSION_TYPE_NON:
             pass
@@ -2315,9 +2316,12 @@ class ChannelConversion(dict):
             a = self['a']
             b = self['b']
             if (a, b) != (1, 0):
-                values = values * a
-                if b:
-                    values += b
+                if len(values) >= 140000:
+                    values = evaluate("values * a + b")
+                else:
+                    values = values * a
+                    if b:
+                        values += b
         elif conversion_type == v4c.CONVERSION_TYPE_RAT:
             P1 = self['P1']
             P2 = self['P2']
@@ -2329,14 +2333,20 @@ class ChannelConversion(dict):
             X = values
             if (P1, P4, P5, P6) == (0, 0, 0, 1):
                 if (P2, P3) != (1, 0):
-                    values = values * P2
-                    if P3:
-                        values += P3
+                    if len(values) >= numexpr_favorable_size:
+                        values = evaluate("values * P2 + P3")
+                    else:
+                        values = values * P2
+                        if P3:
+                            values += P3
             elif (P3, P4, P5, P6) == (0, 0, 1, 0):
                 if (P1, P2) != (1, 0):
-                    values = values * P1
-                    if P2:
-                        values += P2
+                    if len(values) >= numexpr_favorable_size:
+                        values = evaluate("values * P1 + P2")
+                    else:
+                        values = values * P1
+                        if P2:
+                            values += P2
             else:
                 values = evaluate(v4c.CONV_RAT_TEXT)
 
