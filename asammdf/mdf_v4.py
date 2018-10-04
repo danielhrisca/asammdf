@@ -4322,7 +4322,7 @@ class MDF4(object):
                 timestamps=[0 1 2 3 4]
                 unit=""
                 info=None
-                comment="">ref_ch_nr, ref_dg_nr = ca_block.referenced_channels[i]
+                comment="">
         >>> # first channel index in the specified group
         ...
         >>> mdf.get('Sig', 1)
