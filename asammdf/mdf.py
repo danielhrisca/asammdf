@@ -932,7 +932,7 @@ class MDF(object):
               ( *<cntr>* is the data group index starting from 0)
 
             * `pandas` : export all channels as a single pandas DataFrame
-            
+
             * `parquet` : export to Apache parquet format
 
         filename : string
@@ -2345,7 +2345,7 @@ class MDF(object):
                             index=j,
                             data=fragment,
                             samples_only=True,
-                        )
+                        )[0]
                     )
                     idx += 1
 
