@@ -345,131 +345,134 @@ class MDF3(object):
 
         """
 
-        memory = self.memory
-        if group['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-        grp = group
-        record_size = grp['channel_group']['samples_byte_nr'] << 3
-        next_byte_aligned_position = 0
-        types = []
-        current_parent = ""
-        parent_start_offset = 0
-        parents = {}
-        group_channels = set()
-
-        if memory != 'minimum':
-            channels = grp['channels']
-        else:
-            channels = grp['temp_channels']
-
-        # the channels are first sorted ascending (see __lt__ method of Channel
-        # class): a channel with lower start offset is smaller, when two
-        # channels havethe same start offset the one with higer bit size is
-        # considered smaller. The reason is that when the numpy record is built
-        # and there are overlapping channels, the parent fields mustbe bigger
-        # (bit size) than the embedded channels. For each channel the parent
-        # dict will have a (parent name, bit offset) pair: the channel value is
-        # computed using the values from the parent field, and the bit offset,
-        # which is the channel's bit offset within the parent bytes.
-        # This means all parents will have themselves as parent, and bit offset
-        # of 0. Gaps in the records are also considered. Non standard integers
-        # size is adjusted to the first higher standard integer size (eq. uint
-        # of 28bits will be adjusted to 32bits)
-
-        sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
-        for original_index, new_ch in sortedchannels:
-            # skip channels with channel dependencies from the numpy record
-            if new_ch['ch_depend_addr']:
-                continue
-
-            start_offset = new_ch['start_offset']
-            try:
-                additional_byte_offset = new_ch['aditional_byte_offset']
-                start_offset += 8 * additional_byte_offset
-            except KeyError:
-                pass
-
-            bit_offset = start_offset % 8
-            data_type = new_ch['data_type']
-            bit_count = new_ch['bit_count']
-            name = new_ch.name
-
-            # handle multiple occurance of same channel name
-            name = get_unique_name(group_channels, name)
-            group_channels.add(name)
-
-            if start_offset >= next_byte_aligned_position:
-                parent_start_offset = (start_offset // 8) * 8
-
-                # check if there are byte gaps in the record
-                gap = (parent_start_offset - next_byte_aligned_position) // 8
-                if gap:
-                    types.append(('', 'a{}'.format(gap)))
-
-                # adjust size to 1, 2, 4 or 8 bytes for nonstandard integers
-                size = bit_offset + bit_count
-                if data_type == v23c.DATA_TYPE_STRING:
-                    next_byte_aligned_position = parent_start_offset + size
-                    if next_byte_aligned_position <= record_size:
-                        dtype_pair = (name, get_fmt_v3(data_type, size))
-                        types.append(dtype_pair)
-                        parents[original_index] = name, bit_offset
-                    else:
-                        next_byte_aligned_position = parent_start_offset
-
-                elif data_type == v23c.DATA_TYPE_BYTEARRAY:
-                    next_byte_aligned_position = parent_start_offset + size
-                    if next_byte_aligned_position <= record_size:
-                        dtype_pair = (name, get_fmt_v3(data_type, size))
-                        types.append(dtype_pair)
-                        parents[original_index] = name, bit_offset
-                    else:
-                        next_byte_aligned_position = parent_start_offset
-
-                else:
-                    if size > 32:
-                        next_byte_aligned_position = parent_start_offset + 64
-                    elif size > 16:
-                        next_byte_aligned_position = parent_start_offset + 32
-                    elif size > 8:
-                        next_byte_aligned_position = parent_start_offset + 16
-                    else:
-                        next_byte_aligned_position = parent_start_offset + 8
-
-                    if next_byte_aligned_position <= record_size:
-                        dtype_pair = (name, get_fmt_v3(data_type, size))
-                        types.append(dtype_pair)
-                        parents[original_index] = name, bit_offset
-                    else:
-                        next_byte_aligned_position = parent_start_offset
-
-                current_parent = name
+        try:
+            parents, dtypes = group['parents'], group['types']
+        except KeyError:
+            memory = self.memory
+            if group['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
+                stream = self._file
             else:
-                max_overlapping = next_byte_aligned_position - start_offset
-                if max_overlapping >= bit_count:
-                    parents[original_index] = (
-                        current_parent,
-                        start_offset - parent_start_offset,
-                    )
-            if next_byte_aligned_position > record_size:
-                break
+                stream = self._tempfile
+            grp = group
+            record_size = grp['channel_group']['samples_byte_nr'] << 3
+            next_byte_aligned_position = 0
+            types = []
+            current_parent = ""
+            parent_start_offset = 0
+            parents = {}
+            group_channels = set()
 
-        gap = (record_size - next_byte_aligned_position) >> 3
-        if gap:
-            dtype_pair = ('', 'a{}'.format(gap))
-            types.append(dtype_pair)
+            if memory != 'minimum':
+                channels = grp['channels']
+            else:
+                channels = grp['temp_channels']
 
-        if PYVERSION == 2:
-            types = fix_dtype_fields(types, 'latin-1')
-            parents_ = {}
-            for key, (name, offset) in parents.items():
-                if isinstance(name, unicode):
-                    parents_[key] = name.encode('latin-1'), offset
+            # the channels are first sorted ascending (see __lt__ method of Channel
+            # class): a channel with lower start offset is smaller, when two
+            # channels havethe same start offset the one with higer bit size is
+            # considered smaller. The reason is that when the numpy record is built
+            # and there are overlapping channels, the parent fields mustbe bigger
+            # (bit size) than the embedded channels. For each channel the parent
+            # dict will have a (parent name, bit offset) pair: the channel value is
+            # computed using the values from the parent field, and the bit offset,
+            # which is the channel's bit offset within the parent bytes.
+            # This means all parents will have themselves as parent, and bit offset
+            # of 0. Gaps in the records are also considered. Non standard integers
+            # size is adjusted to the first higher standard integer size (eq. uint
+            # of 28bits will be adjusted to 32bits)
+
+            sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
+            for original_index, new_ch in sortedchannels:
+                # skip channels with channel dependencies from the numpy record
+                if new_ch['ch_depend_addr']:
+                    continue
+
+                start_offset = new_ch['start_offset']
+                try:
+                    additional_byte_offset = new_ch['aditional_byte_offset']
+                    start_offset += 8 * additional_byte_offset
+                except KeyError:
+                    pass
+
+                bit_offset = start_offset % 8
+                data_type = new_ch['data_type']
+                bit_count = new_ch['bit_count']
+                name = new_ch.name
+
+                # handle multiple occurance of same channel name
+                name = get_unique_name(group_channels, name)
+                group_channels.add(name)
+
+                if start_offset >= next_byte_aligned_position:
+                    parent_start_offset = (start_offset // 8) * 8
+
+                    # check if there are byte gaps in the record
+                    gap = (parent_start_offset - next_byte_aligned_position) // 8
+                    if gap:
+                        types.append(('', 'a{}'.format(gap)))
+
+                    # adjust size to 1, 2, 4 or 8 bytes for nonstandard integers
+                    size = bit_offset + bit_count
+                    if data_type == v23c.DATA_TYPE_STRING:
+                        next_byte_aligned_position = parent_start_offset + size
+                        if next_byte_aligned_position <= record_size:
+                            dtype_pair = (name, get_fmt_v3(data_type, size))
+                            types.append(dtype_pair)
+                            parents[original_index] = name, bit_offset
+                        else:
+                            next_byte_aligned_position = parent_start_offset
+
+                    elif data_type == v23c.DATA_TYPE_BYTEARRAY:
+                        next_byte_aligned_position = parent_start_offset + size
+                        if next_byte_aligned_position <= record_size:
+                            dtype_pair = (name, get_fmt_v3(data_type, size))
+                            types.append(dtype_pair)
+                            parents[original_index] = name, bit_offset
+                        else:
+                            next_byte_aligned_position = parent_start_offset
+
+                    else:
+                        if size > 32:
+                            next_byte_aligned_position = parent_start_offset + 64
+                        elif size > 16:
+                            next_byte_aligned_position = parent_start_offset + 32
+                        elif size > 8:
+                            next_byte_aligned_position = parent_start_offset + 16
+                        else:
+                            next_byte_aligned_position = parent_start_offset + 8
+
+                        if next_byte_aligned_position <= record_size:
+                            dtype_pair = (name, get_fmt_v3(data_type, size))
+                            types.append(dtype_pair)
+                            parents[original_index] = name, bit_offset
+                        else:
+                            next_byte_aligned_position = parent_start_offset
+
+                    current_parent = name
                 else:
-                    parents_[key] = name, offset
-            parents = parents_
+                    max_overlapping = next_byte_aligned_position - start_offset
+                    if max_overlapping >= bit_count:
+                        parents[original_index] = (
+                            current_parent,
+                            start_offset - parent_start_offset,
+                        )
+                if next_byte_aligned_position > record_size:
+                    break
+
+            gap = (record_size - next_byte_aligned_position) >> 3
+            if gap:
+                dtype_pair = ('', 'a{}'.format(gap))
+                types.append(dtype_pair)
+
+            if PYVERSION == 2:
+                types = fix_dtype_fields(types, 'latin-1')
+                parents_ = {}
+                for key, (name, offset) in parents.items():
+                    if isinstance(name, unicode):
+                        parents_[key] = name.encode('latin-1'), offset
+                    else:
+                        parents_[key] = name, offset
+                parents = parents_
 
         return parents, dtype(types)
 
