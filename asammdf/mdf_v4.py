@@ -4988,11 +4988,11 @@ class MDF4(object):
                                     vals = vals >> bit_offset
                                 else:
 
-                                if dtype_.kind == 'i':
-                                    vals = vals.astype(dtype('<u{}'.format(size)))
-                                    vals >>= bit_offset
-                                else:
-                                    vals = vals >> bit_offset
+                                    if dtype_.kind == 'i':
+                                        vals = vals.astype(dtype('<u{}'.format(size)))
+                                        vals >>= bit_offset
+                                    else:
+                                        vals = vals >> bit_offset
 
                             if not bits == size * 8:
                                 if data_type in v4c.SIGNED_INT:
