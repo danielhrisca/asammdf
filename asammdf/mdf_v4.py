@@ -1234,8 +1234,6 @@ class MDF4(object):
                         )
                         ca_list.append(ca_block)
                     grp['channel_dependencies'].append(ca_list)
-                    if memory == 'minimum':
-                        temp_deps.append(ca_list)
 
             else:
                 grp['channel_dependencies'].append(None)
