@@ -474,7 +474,9 @@ class MDF3(object):
                         parents_[key] = name, offset
                 parents = parents_
 
-        return parents, dtype(types)
+            dtypes = dtype(types)
+
+        return parents, dtypes
 
     def _get_not_byte_aligned_data(self, data, group, ch_nr):
 
