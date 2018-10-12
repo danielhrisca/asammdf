@@ -362,10 +362,7 @@ class MDF3(object):
         if memory != 'minimum':
             channels = grp['channels']
         else:
-            channels = [
-                Channel(address=ch_addr, stream=stream, load_metadata=False)
-                for ch_addr in grp['channels']
-            ]
+            channels = grp['temp_channels']
 
         # the channels are first sorted ascending (see __lt__ method of Channel
         # class): a channel with lower start offset is smaller, when two
@@ -782,6 +779,8 @@ class MDF3(object):
                 grp['data_block'] = None
                 grp['trigger'] = trigger
                 grp['channel_dependencies'] = []
+                if memory == 'minimum':
+                    grp['temp_channels'] = temp_channels = []
 
                 if record_id_nr:
                     grp['sorted'] = False
@@ -845,7 +844,13 @@ class MDF3(object):
                         grp_chs.append(new_ch)
                     else:
                         grp_chs.append(ch_addr)
+                        temp_channels.append(new_ch)
                     ch_addr = new_ch['next_ch_addr']
+
+                if memory == 'minimum':
+                    grp['parents'], grp['types'] = self._prepare_record(grp)
+                    del grp['temp_channels']
+                    del temp_channels
 
                 cg_addr = grp['channel_group']['next_cg_addr']
                 dg_cntr += 1
