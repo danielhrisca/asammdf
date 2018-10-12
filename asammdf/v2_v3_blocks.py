@@ -15,6 +15,7 @@ from numexpr import evaluate
 
 from . import v2_v3_constants as v23c
 from .utils import MdfException, get_text_v3, SignalSource
+from .version import __version__
 
 PYVERSION = sys.version_info[0]
 SEEK_START = v23c.SEEK_START
@@ -2218,7 +2219,11 @@ class FileIdentificationBlock(dict):
             version = kwargs['version']
             self['file_identification'] = 'MDF     '.encode('latin-1')
             self['version_str'] = version.encode('latin-1') + b'\0' * 4
-            self['program_identification'] = 'Python  '.encode('latin-1')
+            self['program_identification'] = (
+                'amdf{}'
+                .format(__version__.replace('.', ''))
+                .encode('latin-1')
+            )
             self['byte_order'] = v23c.BYTE_ORDER_INTEL
             self['float_format'] = 0
             self['mdf_version'] = int(version.replace('.', ''))

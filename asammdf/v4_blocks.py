@@ -19,6 +19,7 @@ from numexpr import evaluate
 
 from . import v4_constants as v4c
 from .utils import MdfException, get_text_v4, SignalSource
+from .version import __version__
 
 
 PYVERSION = sys.version_info[0]
@@ -3564,7 +3565,11 @@ class FileIdentificationBlock(dict):
             version = kwargs.get('version', 400)
             self['file_identification'] = 'MDF     '.encode('utf-8')
             self['version_str'] = '{}    '.format(version).encode('utf-8')
-            self['program_identification'] = 'Python  '.encode('utf-8')
+            self['program_identification'] = (
+                'amdf{}'
+                .format(__version__.replace('.', ''))
+                .encode('utf-8')
+            )
             self['reserved0'] = b'\0' * 4
             self['mdf_version'] = int(version.replace('.', ''))
             self['reserved1'] = b'\0' * 30
