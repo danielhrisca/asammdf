@@ -848,6 +848,7 @@ class MDF3(object):
                     ch_addr = new_ch['next_ch_addr']
 
                 if memory == 'minimum':
+                    grp['data_location'] = v23c.LOCATION_ORIGINAL_FILE
                     grp['parents'], grp['types'] = self._prepare_record(grp)
                     del grp['temp_channels']
                     del temp_channels
