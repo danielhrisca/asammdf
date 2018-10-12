@@ -1206,6 +1206,7 @@ address: {}
             b = self['b']
             if (a, b) != (1, 0):
                 if len(values) >= numexpr_favorable_size:
+                    values = values.astype('float64')
                     values = evaluate("values * a + b")
                 else:
                     values = values * a

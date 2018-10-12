@@ -360,6 +360,8 @@ class MDF4(object):
                 grp['data_block'] = None
                 grp['channel_dependencies'] = []
                 grp['signal_data'] = []
+                if memory == 'minimum':
+                    grp['temp_channels'] = []
 
                 # read each channel group sequentially
                 block = ChannelGroup(address=cg_addr, stream=stream)
@@ -471,6 +473,10 @@ class MDF4(object):
                     ch_cntr,
                     neg_ch_cntr,
                 )
+
+                if memory == 'minimum':
+                    grp['parents'], grp['types'] = self._prepare_record(grp)
+                    del grp['temp_channels']
 
                 cg_addr = channel_group['next_cg_addr']
                 dg_cntr += 1
@@ -972,6 +978,9 @@ class MDF4(object):
 
         memory = self.memory
         channels = grp['channels']
+        if memory == 'minimum':
+            temp_channels = grp['temp_channels']
+
         composition = []
         while ch_addr:
             # read channel block and create channel object
@@ -984,6 +993,7 @@ class MDF4(object):
                     load_metadata=False,
                     at_map=self._attachments_map,
                 )
+                temp_channels.append(channel)
                 value = ch_addr
                 name = get_text_v4(
                     address=channel['name_addr'],
@@ -1224,6 +1234,8 @@ class MDF4(object):
                         )
                         ca_list.append(ca_block)
                     grp['channel_dependencies'].append(ca_list)
+                    if memory == 'minimum':
+                        temp_deps.append(ca_list)
 
             else:
                 grp['channel_dependencies'].append(None)
@@ -1652,14 +1664,7 @@ class MDF4(object):
             memory = self.memory
             channel_group = grp['channel_group']
             if memory == 'minimum':
-                channels = [
-                    Channel(
-                        address=ch_addr,
-                        stream=stream,
-                        load_metadata=False,
-                    )
-                    for ch_addr in grp['channels']
-                ]
+                channels = grp['temp_channels']
             else:
                 channels = grp['channels']
 
