@@ -718,7 +718,7 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
     )
 
 
-def debug_channel(mdf, group, channel, dependency):
+def debug_channel(mdf, group, channel, dependency, file=None):
     """ use this to print debug information in case of errors
 
     Parameters
@@ -733,45 +733,45 @@ def debug_channel(mdf, group, channel, dependency):
         channel dependency object
 
     """
-    print('MDF', '='*76)
-    print('name:', mdf.name)
-    print('version:', mdf.version)
-    print('memory:', mdf.memory)
-    print('read fragment size:', mdf._read_fragment_size)
-    print('write fragment size:', mdf._write_fragment_size)
+    print('MDF', '='*76, file=file)
+    print('name:', mdf.name, file=file)
+    print('version:', mdf.version, file=file)
+    print('memory:', mdf.memory, file=file)
+    print('read fragment size:', mdf._read_fragment_size, file=file)
+    print('write fragment size:', mdf._write_fragment_size, file=file)
     print()
 
     parents, dtypes = mdf._prepare_record(group)
-    print('GROUP', '='*74)
-    print('sorted:', group['sorted'])
-    print('data location:', group['data_location'])
-    print('data block type:', group['data_block_type'])
-    print('param:', group['param'])
-    print('data size:', group['data_size'])
-    print('data block size:', group['data_block_size'])
-    print('data block addr:', group['data_block_addr'])
-    print('data block:', group['data_block'])
-    print('record_size:', group['record_size'])
-    print('dependencies', group['channel_dependencies'])
-    print('parents:', parents)
-    print('dtypes:', dtypes)
-    print()
+    print('GROUP', '='*74, file=file)
+    print('sorted:', group['sorted'], file=file)
+    print('data location:', group['data_location'], file=file)
+    print('data block type:', group['data_block_type'], file=file)
+    print('param:', group['param'], file=file)
+    print('data size:', group['data_size'], file=file)
+    print('data block size:', group['data_block_size'], file=file)
+    print('data block addr:', group['data_block_addr'], file=file)
+    print('data block:', group['data_block'], file=file)
+    print('record_size:', group['record_size'], file=file)
+    print('dependencies', group['channel_dependencies'], file=file)
+    print('parents:', parents, file=file)
+    print('dtypes:', dtypes, file=file)
+    print(file=file)
 
     cg = group['channel_group']
-    print('CHANNEL GROUP', '='*66)
-    print(cg)
-    print()
+    print('CHANNEL GROUP', '='*66, file=file)
+    print(cg, file=file)
+    print(file=file)
 
-    print('CHANNEL', '='*72)
-    print(channel)
-    print()
+    print('CHANNEL', '='*72, file=file)
+    print(channel, file=file)
+    print(file=file)
 
-    print('CHANNEL ARRAY', '='*66)
-    print(dependency)
-    print()
+    print('CHANNEL ARRAY', '='*66, file=file)
+    print(dependency, file=file)
+    print(file=file)
 
-    print('MASTER CACHE', '='*67)
-    print([(key, len(val)) for key, val in mdf._master_channel_cache.items()])
+    print('MASTER CACHE', '='*67, file=file)
+    print([(key, len(val)) for key, val in mdf._master_channel_cache.items()], file=file)
 
 
 def count_channel_groups(stream, version=4):

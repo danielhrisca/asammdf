@@ -4980,6 +4980,14 @@ class MDF4(object):
                         else:
                             if bit_offset:
                                 dtype_ = vals.dtype
+                                if dtype_.byteorder == '>':
+                                    vals = frombuffer(
+                                        vals.tostring(),
+                                        dtype=dtype('<u{}'.format(size)),
+                                    )
+                                    vals = vals >> bit_offset
+                                else:
+
                                 if dtype_.kind == 'i':
                                     vals = vals.astype(dtype('<u{}'.format(size)))
                                     vals >>= bit_offset
