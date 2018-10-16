@@ -3982,7 +3982,7 @@ class MDF4(object):
         current_path = os.getcwd()
         file_path = attachment.file_name or 'embedded'
         try:
-            os.chdir(os.path.dirname(self.name))
+            os.chdir(os.path.dirname(os.path.abspath(self.name)))
 
             flags = attachment['flags']
 
