@@ -33,6 +33,8 @@ from .utils import (
     MDF3_VERSIONS,
     MDF4_VERSIONS,
     SUPPORTED_VERSIONS,
+    UINT16,
+    UINT32,
     UINT64,
     randomized_string,
     is_file_like,
@@ -40,6 +42,9 @@ from .utils import (
 )
 from .v2_v3_blocks import Channel as ChannelV3
 from .v2_v3_blocks import HeaderBlock as HeaderV3
+from .v2_v3_blocks import ChannelConversion as ChannelConversionV3
+from .v2_v3_blocks import ChannelExtension
+from .v2_v3_blocks import TextBlock as TextBlockV3
 from .v4_blocks import SourceInformation
 from .v4_blocks import ChannelConversion as ChannelConversionV4
 from .v4_blocks import Channel as ChannelV4
@@ -47,6 +52,7 @@ from .v4_blocks import HeaderBlock as HeaderV4
 from .v4_blocks import TextBlock as TextBlockV4
 from .v4_blocks import ChannelArrayBlock, EventBlock
 from . import v4_constants as v4c
+from . import v2_v3_constants as v23c
 
 PYVERSION = sys.version_info[0]
 
@@ -2777,7 +2783,92 @@ class MDF(object):
                     mdf.write(bts)
 
         else:
-            raise NotImplementedError()
+            Channel = ChannelV3
+            ChannelConversion = ChannelConversionV3
+            TextBlock = TextBlockV3
+
+            stream = mdf._file
+
+            if mdf.header['comment_addr']:
+                stream.seek(mdf.header['comment_addr'] + 2)
+                size = UINT16(stream.read(2))[0] - 4
+                texts[mdf.header['comment_addr']+4] = randomized_string(size)
+            texts[36+ 0x40] = randomized_string(32)
+            texts[68+ 0x40] = randomized_string(32)
+            texts[100+ 0x40] = randomized_string(32)
+            texts[132+ 0x40] = randomized_string(32)
+
+            for gp in mdf.groups:
+
+                cg = gp['channel_group']
+                addr = cg['comment_addr']
+
+                if addr and addr not in texts:
+                    stream.seek(addr + 2)
+                    size = UINT16(stream.read(2))[0] - 4
+                    texts[addr+4] = randomized_string(size)
+
+                if gp['trigger']:
+                    addr = gp['trigger']['text_addr']
+                    if addr:
+                        stream.seek(addr + 2)
+                        size = UINT16(stream.read(2))[0] - 4
+                        texts[addr + 4] = randomized_string(size)
+
+                for ch in gp['channels']:
+                    if mdf.memory == 'minimum':
+                        ch = Channel(address=ch, stream=stream,
+                                     load_metadata=False)
+
+                    for key in (
+                            'long_name_addr',
+                            'display_name_addr',
+                            'comment_addr'):
+                        addr = ch.get(key, 0)
+                        if addr and addr not in texts:
+                            stream.seek(addr + 2)
+                            size = UINT16(stream.read(2))[0] - 4
+                            texts[addr+4] = randomized_string(size)
+
+                    texts[ch.address + 26] = randomized_string(32)
+                    texts[ch.address + 58] = randomized_string(128)
+
+                    source = ch['source_addr']
+                    if source:
+                        source = ChannelExtension(
+                            address=source,
+                            stream=stream,
+                        )
+                        if source['type'] == v23c.SOURCE_ECU:
+                            texts[source.address + 12] = randomized_string(80)
+                            texts[source.address + 92] = randomized_string(32)
+                        else:
+                            texts[source.address + 14] = randomized_string(36)
+                            texts[source.address + 50] = randomized_string(36)
+
+                    conv = ch['conversion_addr']
+                    if conv:
+                        texts[conv + 22] = randomized_string(20)
+
+                        conv = ChannelConversion(address=conv, stream=stream)
+
+                        if conv['conversion_type'] == v23c.CONVERSION_TYPE_FORMULA:
+                            texts[conv + 36] = randomized_string(conv['block_len'] - 36)
+
+                        for key, block in conv.referenced_blocks.items():
+                            if block:
+                                if block['id'] == b'TX':
+                                    addr = block.address
+                                    if addr and addr not in texts:
+                                        stream.seek(addr + 2)
+                                        size = UINT16(stream.read(2))[0] - 4
+                                        texts[addr+4] = randomized_string(size)
+            mdf.close()
+
+            with open(name, 'rb+') as mdf:
+                for addr, bts in texts.items():
+                    mdf.seek(addr)
+                    mdf.write(bts)
 
 
 if __name__ == '__main__':
