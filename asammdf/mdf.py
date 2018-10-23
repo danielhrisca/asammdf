@@ -2650,7 +2650,7 @@ class MDF(object):
 
     @staticmethod
     def scramble(name, memory='low'):
-        """ scramble text blocks and keep original file strcuture
+        """ scramble text blocks and keep original file structure
 
         Parameters
         ----------
@@ -2668,7 +2668,6 @@ class MDF(object):
         if mdf.version >= '4.00':
             Channel = ChannelV4
             ChannelConversion = ChannelConversionV4
-            TextBlock = TextBlockV4
 
             stream = mdf._file
 
@@ -2785,7 +2784,6 @@ class MDF(object):
         else:
             Channel = ChannelV3
             ChannelConversion = ChannelConversionV3
-            TextBlock = TextBlockV3
 
             stream = mdf._file
 
@@ -2793,10 +2791,10 @@ class MDF(object):
                 stream.seek(mdf.header['comment_addr'] + 2)
                 size = UINT16(stream.read(2))[0] - 4
                 texts[mdf.header['comment_addr']+4] = randomized_string(size)
-            texts[36+ 0x40] = randomized_string(32)
-            texts[68+ 0x40] = randomized_string(32)
-            texts[100+ 0x40] = randomized_string(32)
-            texts[132+ 0x40] = randomized_string(32)
+            texts[36 + 0x40] = randomized_string(32)
+            texts[68 + 0x40] = randomized_string(32)
+            texts[100 + 0x40] = randomized_string(32)
+            texts[132 + 0x40] = randomized_string(32)
 
             for gp in mdf.groups:
 
