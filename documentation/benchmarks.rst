@@ -28,14 +28,14 @@ so for best performance it is advised to use Python >= 3.6.
 Test setup
 ==========
 
-The benchmarks were done using two test files (available here https://github.com/danielhrisca/asammdf/issues/14) (for mdf version 3 and 4) of around 170MB.
+The benchmarks were done using two test files (available `here <https://github.com/danielhrisca/asammdf/issues/14>`_) (for mdf version 3 and 4) of around 170MB.
 The files contain 183 data groups and a total of 36424 channels.
 
 *asamdf 4.0.0.dev* was compared against *mdfreader 2.7.8*.
 *mdfreader* seems to be the most used Python package to handle MDF files, and it also supports both version 3 and 4 of the standard.
 
-The three benchmark cathegories are file open, file save and extracting the data for all channels inside the file(36424 calls).
-For each cathegory two aspect were noted: elapsed time and peak RAM usage.
+The three benchmark categories are file open, file save and extracting the data for all channels inside the file (36424 calls).
+For each category two aspect were noted: elapsed time and peak RAM usage.
 
 Dependencies
 ------------
