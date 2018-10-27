@@ -22,7 +22,7 @@
 GUI
 ---
 
-Starting with version 3.4.0 there is a graphical user interface that comes together with *asammdf*. 
+Starting with version `3.4.0` there is a graphical user interface that comes together with *asammdf*.
 
 With the GUI tool you can
 
@@ -30,7 +30,7 @@ With the GUI tool you can
 * see channel, conversion and source metadata as stored in the MDF file
 * access library functionality for single files (convert, export, cut, filter, resample) and multiple files (concatenate, stack)
 
-After you pip install asammdf there will be a new script called *asammdf.exe* in the ````python_installation_folder\Scripts```` folder.
+After you pip install asammdf there will be a new script called *asammdf.exe* in the `python_installation_folder\\Scripts` folder.
 
 The following dependencies are required by the GUI
 
@@ -57,7 +57,7 @@ The following settings are available
       * ``low``
       * ``minimum``
       
-  Changing this option does not affect already opened files; it will only apply later when openeing a new file.
+  Changing this option does not affect already opened files; it will only apply later when opening a new file.
   
 * **Plot lines**: controls the visual style of the channels plot lines:
 
@@ -77,7 +77,7 @@ The following settings are available
       
 .. note::
 
-    * Changing the *Memory* option does not affect already opened files; it will only apply later when openeing a new file.
+    * Changing the *Memory* option does not affect already opened files; it will only apply later when opening a new file.
       
 Plot
 ----
@@ -98,15 +98,15 @@ R        Range             Display a movable range that will trigger the display
 S        Stack             Y Stack all active channels so that they don't overlap, keeping the X-axis range
 ←        Move cursor left  Moves the cursor to the next sample on the left
 →        Move cursor right Moves the cursor to the next sample on the right
-Ctrl+B   Bin               Toggle binary reprezentation of integer channels
-Ctrl+H   Hex               Toggle hex reprezentation of integer channels
-Ctrl+P   Physical          Toggle physical reprezentation of integer channels
+Ctrl+B   Bin               Toggle binary representation of integer channels
+Ctrl+H   Hex               Toggle hex representation of integer channels
+Ctrl+P   Physical          Toggle physical representation of integer channels
 ======== ================= ================================================================================================================
 
 
 .. rubric:: Footnotes
 
-.. [#f1] If the cursor is prezent the zooming will center on it.
+.. [#f1] If the cursor is present the zooming will center on it.
 
 
 Single files
@@ -134,9 +134,9 @@ There is no restriction, so the same file can be opened several times.
 
 Quick channel search field for the current file
 -----------------------------------------------
-Using the *Seetings->Searh* menu option the user can choose how the search is performed. A positive search match will scroll the channels tree and highlight the channel entry. 
+Using the *Settings->Search* menu option the user can choose how the search is performed. A positive search match will scroll the channels tree and highlight the channel entry.
 
-When the same channel name exist several times in the file, you can switch between the occurences using the arrow buttons.
+When the same channel name exist several times in the file, you can switch between the occurrences using the arrow buttons.
 
 Complete channels tree
 ----------------------
@@ -146,7 +146,7 @@ Double clicking a channel name will display a pop-up window with the channel inf
 
 .. image:: images/channel_info.png
    
-Only the channels that are checked in the channels tree will pe selected for plotting when the *Plot* button willbe pressed. 
+Only the channels that are checked in the channels tree will be selected for plotting when the *Plot* button is pressed.
 Checking or unchecking channels will not affect the current plot.
 
 Command buttons
@@ -184,7 +184,7 @@ Each item has four elements
 4. channel value label 
 
     * the value is only displayed if the cursor or range are active. For the cursor is will show the current value, and for the range it will
-      shwo the value delta between the range start and stop timestamps
+      show the value delta between the range start and stop timestamps
       
 Double clicking an item will open a range editor dialog
 
@@ -205,7 +205,7 @@ Selecting items from the *Selected channels list* will enable the Y-axis
 
 .. image:: images/graph_axis.png
 
-Using the *C* keyboard shotcut will toggle the cursor, and with it the channel values will be displayed for each item in the *Selected channels list*
+Using the *C* keyboard shortcut will toggle the cursor, and with it the channel values will be displayed for each item in the *Selected channels list*
 
 .. image:: images/cursor_phys.png
 
@@ -217,7 +217,7 @@ The *Ctrl+H* and *Ctrl+B* keyboard shortcuts will
 .. image:: images/cursor_hex.png
 .. image:: images/cursor_bin.png
 
-Using the *R* keyboard shotcut will toggle the range, and with it the channel values will be displayed for each item in the *Selected channels list*. When the range is
+Using the *R* keyboard shortcut will toggle the range, and with it the channel values will be displayed for each item in the *Selected channels list*. When the range is
 enabled, using the *H* keyboard shortcut will not home to the whole time range, but instead will use the range time interval. 
 
 .. image:: images/range.png
@@ -232,7 +232,7 @@ The *Multiple files* toolbox page is used to concatenate or stack multiple files
 
 .. image:: images/multiple_files.png
 
-The files list can be rearanged in the list (1) by drag and dropping lines. Unwanted files can be deleted by 
+The files list can be rearranged in the list (1) by drag and dropping lines. Unwanted files can be deleted by
 selecting them and pressing the *DEL* key. The files order is considered from top to bottom. 
 
 

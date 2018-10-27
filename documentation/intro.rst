@@ -39,7 +39,7 @@ Features
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
 * time domain operation using the *Signal* class
 
-    * Pandas data frames are good if all the channels have the same time based
+    * Pandas data frames are good if all the channels have the same time base
     * a measurement will usually have channels from different sources at different rates
     * the *Signal* class facilitates operations with such channels
 
@@ -48,11 +48,11 @@ Major features not implemented (yet)
 
 * for version 3
 
-    * functionality related to sample reduction block: the samples reduction blocks are simply ignored
-    
+    * functionality related to sample reduction block: the sample reduction blocks are simply ignored
+
 * for version 4
 
-    * functionality related to sample reduction block: the samples reduction blocks are simply ignored
+    * functionality related to sample reduction block: the sample reduction blocks are simply ignored
     * handling of channel hierarchy: channel hierarchy is ignored
     * full handling of bus logging measurements: currently only CAN bus logging is implemented with the
       ability to *get* signals defined in the attached CAN database (.arxml or .dbc)
@@ -60,16 +60,16 @@ Major features not implemented (yet)
       but no further steps are taken to sanitize the measurement
     * full support for remaining mdf 4 channel arrays types
     * xml schema for MDBLOCK: most metadata stored in the comment blocks will not be available
-    * full handling of event blocks: events are transfered to the new files (in case of calling methods 
+    * full handling of event blocks: events are transferred to the new files (in case of calling methods
       that return new *MDF* objects) but no new events can be created
-    * channels with default X axis: the defaukt X axis is ignored and the channel group's master channel
+    * channels with default X axis: the default X axis is ignored and the channel group's master channel
       is used
-    
-    
+
+
 Dependencies
 ============
 asammdf uses the following libraries
-    
+
 * numpy : the heart that makes all tick
 * numexpr : for algebraic and rational channel conversions
 * matplotlib : for Signal plotting
@@ -94,21 +94,21 @@ other optional dependencies
 
 Installation
 ============
-*asammdf* is available on 
+*asammdf* is available on
 
     * github: https://github.com/danielhrisca/asammdf/
     * PyPI: https://pypi.org/project/asammdf/
     * conda-forge: https://anaconda.org/conda-forge/asammdf
-    
-    .. code-block: python
+
+    .. code:: python
 
        pip install asammdf
        # or for anaconda
        conda install -c conda-forge asammdf
-       
+
 Contributing
 ============
-Please have a look over the [contributing guidelines](https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md)
+Please have a look over the `contributing guidelines <https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md>`_
 
 Contributors
 ------------

@@ -44,7 +44,7 @@ Disadvantages
 
 * higher RAM usage, there is the chance of MemoryError for large files
 * data is not accessed in chunks 
-* time can be wasted if only a small number of channels is retreived from the file (for example *filter*, *get* or *select* methods)
+* time can be wasted if only a small number of channels is retrieved from the file (for example *filter*, *get* or *select* methods)
 
 Use case
 
@@ -73,7 +73,7 @@ Use case
 
 * when 'full' data exceeds available RAM
 * it is advised to avoid getting individual channels when using this option
-* best performance / memory usage ratio when using *cut*, *convert*, *flter*, *merge* or *select* methods
+* best performance / memory usage ratio when using *cut*, *convert*, *filter*, *merge* or *select* methods
 
 .. note::
 
@@ -85,12 +85,12 @@ Use case
 Advantages
 
 * lowest RAM usage
-* the only choise when dealing with huge files (10's of thousands of channels and GB of sample data)
+* the only choice when dealing with huge files (10's of thousands of channels and GB of sample data)
 * handle big files on 32 bit Python ()
 
 Disadvantages
 
-* slightly slower performance compared to momeory='low'
+* slightly slower performance compared to memory='low'
 * must call *close* method to release the temporary file used in case of appending.
 
 .. note::
@@ -123,7 +123,7 @@ Faster file loading
 
 BytesIO and *memory='full'*
 ---------------------------
-In case of files with high block count (large number of channels, or large number of data blocks) you cand speed up the 
+In case of files with high block count (large number of channels, or large number of data blocks) you can speed up the
 loading in case of *full* memory option, at the expense of higher RAM usage by reading the file into a *BytesIO* object
 and feeding it to the *MDF* class
 
@@ -150,7 +150,7 @@ Skip XML parsing for MDF4 files
 -------------------------------
 MDF4 uses the XML channel comment to define the channel's display name (this acts
 as an alias for the channel name). XML pasring is an expensive operation that can
-have a big impact on the loading performance of measurements with hihg channel  
+have a big impact on the loading performance of measurements with high channel
 count. 
 
 You can use the keyword only argument *use_display_names* when creating MDF
