@@ -10,6 +10,7 @@ from collections import OrderedDict
 from copy import deepcopy
 from functools import reduce
 from struct import unpack
+from shutil import copy
 
 import numpy as np
 from pandas import DataFrame
@@ -2776,7 +2777,14 @@ class MDF(object):
                                         texts[addr] = randomized_string(size)
             mdf.close()
 
-            with open(name, 'rb+') as mdf:
+            if name.lower.endswith('.mf4'):
+                dst = name[:-4] + '.scrambled.mf4'
+            else:
+                dst = name + '.scrambled.mf4'
+
+            copy(name, dst)
+
+            with open(dst, 'rb+') as mdf:
                 for addr, bts in texts.items():
                     mdf.seek(addr + 24)
                     mdf.write(bts)
@@ -2863,7 +2871,14 @@ class MDF(object):
                                         texts[addr+4] = randomized_string(size)
             mdf.close()
 
-            with open(name, 'rb+') as mdf:
+            if name.lower.endswith('.mdf'):
+                dst = name[:-4] + '.scrambled.mdf'
+            else:
+                dst = name + '.scrambled.mdf'
+
+            copy(name, dst)
+
+            with open(dst, 'rb+') as mdf:
                 for addr, bts in texts.items():
                     mdf.seek(addr)
                     mdf.write(bts)
