@@ -3715,9 +3715,7 @@ class MDF4(object):
 
                 if invalidation_bytes_nr:
                     if invalidation_bits is not None:
-                        inval_bits.insert(0, invalidation_bits)
-                    else:
-                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+                        inval_bits.append(invalidation_bits)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRING:
                 if self.memory == 'full':
@@ -3754,9 +3752,7 @@ class MDF4(object):
 
                 if invalidation_bytes_nr:
                     if invalidation_bits is not None:
-                        inval_bits.insert(0, invalidation_bits)
-                    else:
-                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+                        inval_bits.append(invalidation_bits)
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 names = signal.dtype.names
@@ -3779,18 +3775,14 @@ class MDF4(object):
 
                 if invalidation_bytes_nr:
                     if invalidation_bits is not None:
-                        inval_bits.insert(0, invalidation_bits)
-                    else:
-                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+                        inval_bits.append(invalidation_bits)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 names = signal.dtype.names
 
                 if invalidation_bytes_nr:
                     if invalidation_bits is not None:
-                        inval_bits.insert(0, invalidation_bits)
-                    else:
-                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+                        inval_bits.append(invalidation_bits)
 
                 for name in names:
                     samples = signal[name]
@@ -3800,9 +3792,7 @@ class MDF4(object):
 
                     if invalidation_bytes_nr:
                         if invalidation_bits is not None:
-                            inval_bits.insert(0, invalidation_bits)
-                        else:
-                            inval_bits.insert(0, zeros(len(signal), dtype=bool))
+                            inval_bits.append(invalidation_bits)
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names
@@ -3833,27 +3823,29 @@ class MDF4(object):
 
                     if invalidation_bytes_nr:
                         if invalidation_bits is not None:
-                            inval_bits.insert(0, invalidation_bits)
-                        else:
-                            inval_bits.insert(0, zeros(len(signal), dtype=bool))
+                            inval_bits.append(invalidation_bits)
 
         if invalidation_bytes_nr:
             invalidation_bytes_nr = len(inval_bits)
-            if invalidation_bytes_nr % 8:
-                invalidation_bytes_nr = invalidation_bytes_nr // 8 + 1
-            else:
-                invalidation_bytes_nr = invalidation_bytes_nr // 8
+            cycles_nr = len(inval_bits[0])
+
+            for _ in range(8 - invalidation_bytes_nr % 8):
+                inval_bits.append(zeros(cycles_nr, dtype=bool))
+
+            inval_bits.reverse()
+
+            invalidation_bytes_nr = len(inval_bits) // 8
 
             gp['channel_group']['invalidation_bytes_nr'] = invalidation_bytes_nr
 
-            inval_bits = [
-                packbits(list(vals))
-                for vals in zip(*inval_bits)
-            ]
-
-            # inval_bits = array(inval_bits, dtype='({},)u1'.format(invalidation_bytes_nr))
-
-            inval_bits = array(inval_bits)
+            inval_bits = fliplr(
+                packbits(
+                    array(inval_bits).T
+                )
+                .reshape(
+                    (cycles_nr, invalidation_bytes_nr)
+                )
+            )
 
             fields.append(inval_bits)
             types.append(('invalidation_bytes', inval_bits.dtype, inval_bits.shape[1:]))
