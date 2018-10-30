@@ -6781,16 +6781,8 @@ class MDF4(object):
                 ]
 
                 temp_deps = []
-                incs = [0 for _ in chans]
-                level = 0
+
                 for j, dep_list in enumerate(gp['channel_dependencies'] + [None for _ in gp['logging_channels']]):
-                    incs_ = [e for e in incs if e]
-                    incs[level] -= 1
-                    if incs[level] < 0:
-                        incs[level] = 0
-                    elif incs[level] == 0:
-                        level -= 1
-                    structs[j] = len(incs_)
                     if dep_list:
                         if all(isinstance(dep, ChannelArrayBlock)
                                for dep in dep_list):
@@ -6805,10 +6797,12 @@ class MDF4(object):
                                 dep['composition_addr'] = dep_list[k + 1].address
                             dep_list[-1]['composition_addr'] = 0
                         else:
-                            level += 1
-                            incs[level] = len(dep_list)
+
                             temp_deps.append([])
-                            for _ in dep_list:
+                            level = structs[j]
+                            for (ch_c, _) in dep_list:
+                                structs[ch_c] = level + 1
+
                                 temp_deps[-1].append(0)
                     else:
                         temp_deps.append(0)
