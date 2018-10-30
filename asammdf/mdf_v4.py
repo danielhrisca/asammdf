@@ -1816,7 +1816,7 @@ class MDF4(object):
     def _append_structure_composition(
             self, grp, signal, field_names, offset,
             dg_cntr, ch_cntr, parents, defined_texts, cc_map, si_map,
-            invalidation_bytes_nr, inval_bits):
+            invalidation_bytes_nr, inval_bits, inval_cntr):
 
         fields = []
         types = []
@@ -1885,9 +1885,10 @@ class MDF4(object):
         if invalidation_bytes_nr:
             if signal.invalidation_bits is not None:
                 inval_bits.append(signal.invalidation_bits)
-            else:
-                inval_bits.append(zeros(len(signal), dtype=bool))
-            kargs['pos_invalidation_bit'] = ch_cntr
+                kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                kargs['pos_invalidation_bit'] = inval_cntr
+                inval_cntr += 1
+
         ch = Channel(**kargs)
         ch.name = name
         ch.unit = signal.unit
@@ -1995,9 +1996,9 @@ class MDF4(object):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                    else:
-                        inval_bits.append(zeros(len(signal), dtype=bool))
-                    kargs['pos_invalidation_bit'] = ch_cntr
+                        kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kargs['pos_invalidation_bit'] = inval_cntr
+                        inval_cntr += 1
 
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2054,7 +2055,7 @@ class MDF4(object):
                 fields.extend(new_fields)
                 types.extend(new_types)
 
-        return offset, dg_cntr, ch_cntr, struct_self, fields, types
+        return offset, dg_cntr, ch_cntr, struct_self, fields, types, inval_cntr
 
     def _get_not_byte_aligned_data(self, data, group, ch_nr):
         big_endian_types = (
@@ -2526,11 +2527,7 @@ class MDF4(object):
         gp['channel_group'].name = source_info
 
         if any(sig.invalidation_bits is not None for sig in signals):
-            invalidation_bytes_nr = len(signals) + 1
-            if invalidation_bytes_nr % 8:
-                invalidation_bytes_nr = invalidation_bytes_nr // 8 + 1
-            else:
-                invalidation_bytes_nr = invalidation_bytes_nr // 8
+            invalidation_bytes_nr = 1
             gp['channel_group']['invalidation_bytes_nr'] = invalidation_bytes_nr
 
             inval_bits = []
@@ -2538,6 +2535,7 @@ class MDF4(object):
         else:
             invalidation_bytes_nr = 0
             inval_bits = []
+        inval_cntr = 0
 
         self.groups.append(gp)
 
@@ -2603,9 +2601,6 @@ class MDF4(object):
                 'upper_limit': t[-1] if cycles_nr else 0,
                 'flags': v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
             }
-            if invalidation_bytes_nr:
-                inval_bits.append(zeros(len(t), dtype=bool))
-                kargs['pos_invalidation_bit'] = ch_cntr
 
             ch = Channel(**kargs)
             ch.unit = time_unit
@@ -2709,9 +2704,8 @@ class MDF4(object):
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
                         kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                    else:
-                        inval_bits.append(zeros(len(signal), dtype=bool))
-                    kargs['pos_invalidation_bit'] = ch_cntr
+                        kargs['pos_invalidation_bit'] = inval_cntr
+                        inval_cntr += 1
 
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2821,9 +2815,8 @@ class MDF4(object):
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
                         kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                    else:
-                        inval_bits.append(zeros(len(signal), dtype=bool))
-                    kargs['pos_invalidation_bit'] = ch_cntr
+                        kargs['pos_invalidation_bit'] = inval_cntr
+                        inval_cntr += 1
 
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2924,9 +2917,8 @@ class MDF4(object):
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
                         kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                    else:
-                        inval_bits.append(zeros(len(signal), dtype=bool))
-                    kargs['pos_invalidation_bit'] = ch_cntr
+                        kargs['pos_invalidation_bit'] = inval_cntr
+                        inval_cntr += 1
 
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2970,10 +2962,10 @@ class MDF4(object):
                 ch_cntr += 1
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
-                offset, dg_cntr, ch_cntr, struct_self, new_fields, new_types = self._append_structure_composition(
+                offset, dg_cntr, ch_cntr, struct_self, new_fields, new_types, inval_cntr = self._append_structure_composition(
                     gp, signal, field_names,
                     offset, dg_cntr, ch_cntr,
-                    parents, defined_texts, cc_map, si_map, invalidation_bytes_nr, inval_bits)
+                    parents, defined_texts, cc_map, si_map, invalidation_bytes_nr, inval_bits, inval_cntr)
                 fields.extend(new_fields)
                 types.extend(new_types)
 
@@ -3064,9 +3056,8 @@ class MDF4(object):
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
                         kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                    else:
-                        inval_bits.append(zeros(len(signal), dtype=bool))
-                    kargs['pos_invalidation_bit'] = ch_cntr
+                        kargs['pos_invalidation_bit'] = inval_cntr
+                        inval_cntr += 1
 
                 ch = Channel(**kargs)
                 ch.name = name
@@ -3151,9 +3142,8 @@ class MDF4(object):
                         if signal.invalidation_bits is not None:
                             inval_bits.append(signal.invalidation_bits)
                             kargs['flags'] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        else:
-                            inval_bits.append( zeros(len(signal), dtype=bool))
-                        kargs['pos_invalidation_bit'] = ch_cntr
+                            kargs['pos_invalidation_bit'] = inval_cntr
+                            inval_cntr += 1
 
                     ch = Channel(**kargs)
                     ch.name = name
