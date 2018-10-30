@@ -2335,6 +2335,7 @@ class MDF4(object):
         """
         group = self.groups[group_index]
         dtypes = group['types']
+        invalidation_size = group['channel_group']['invalidation_bytes_nr']
 
         data_bytes, offset = fragment
         try:
@@ -2348,17 +2349,25 @@ class MDF4(object):
                 else:
                     record = None
 
-            invalidation = record['invalidation_bytes'].copy()
+            invalidation = record['invalidation_bytes'].tostring()
             self._invalidation_cache[(group_index, offset)] = invalidation
 
         ch_invalidation_pos = channel['pos_invalidation_bit']
         pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
+
+        rec = fromstring(
+            invalidation,
+            dtype=[
+                ('', 'S{}'.format(pos_byte)),
+                ('vals', '<u1'),
+                ('', 'S{}'.format(invalidation_size-pos_byte-1)),
+            ],
+        )
+
         mask = 1 << pos_offset
 
-        invalidation_bits = array(
-            [bytes_[pos_byte] & mask for bytes_ in invalidation],
-            dtype=bool,
-        ).flatten()
+        invalidation_bits = rec['vals'] & mask
+        invalidation_bits = invalidation_bits.astype(bool)
 
         return invalidation_bits
 
