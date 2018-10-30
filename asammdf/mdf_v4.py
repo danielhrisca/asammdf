@@ -6765,6 +6765,8 @@ class MDF4(object):
 
             # go through each data group and append the rest of the blocks
             for i, gp in enumerate(self.groups):
+                read_cc_map = {}
+                read_si_map = {}
 
                 gp['temp_channels'] = ch_addrs = []
 
@@ -6828,6 +6830,8 @@ class MDF4(object):
                             address=channel,
                             stream=stream,
                             use_display_names=False,
+                            cc_map=read_cc_map,
+                            si_map=read_si_map,
                         )
 
                     channel['next_ch_addr'] = next_ch_addr[level]
@@ -6879,8 +6883,8 @@ class MDF4(object):
 
                     del signal_data
 
-                    for j, idx in enumerate(channel.attachments):
-                        key = 'attachment_{}_addr'.format(j)
+                    for att_idx, idx in enumerate(channel.attachments):
+                        key = 'attachment_{}_addr'.format(att_idx)
                         channel[key] = self.attachments[idx].address
 
                     address = channel.to_stream(dst_, defined_texts, cc_map, si_map)
