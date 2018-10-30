@@ -585,7 +585,7 @@ class Channel(dict):
             self['byte_offset'] = kwargs['byte_offset']
             self['bit_count'] = kwargs['bit_count']
             self['flags'] = kwargs.get('flags', 28)
-            self['pos_invalidation_bit'] = 0
+            self['pos_invalidation_bit'] = kwargs.get('pos_invalidation_bit', 0)
             self['precision'] = kwargs.get('precision', 3)
             self['reserved1'] = 0
             self['attachment_nr'] = attachments
