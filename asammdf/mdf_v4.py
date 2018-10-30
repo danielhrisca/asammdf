@@ -2047,9 +2047,9 @@ class MDF4(object):
                     name=name,
                     invalidation_bits=signal.invalidation_bits,
                 )
-                offset, dg_cntr, ch_cntr, sub_structure, new_fields, new_types = self._append_structure_composition(
+                offset, dg_cntr, ch_cntr, sub_structure, new_fields, new_types, inval_cntr = self._append_structure_composition(
                     grp, struct, field_names, offset, dg_cntr, ch_cntr,
-                    parents, defined_texts, cc_map, si_map, invalidation_bytes_nr, inval_bits
+                    parents, defined_texts, cc_map, si_map, invalidation_bytes_nr, inval_bits, inval_cntr
                 )
                 dep_list.append(sub_structure)
                 fields.extend(new_fields)
