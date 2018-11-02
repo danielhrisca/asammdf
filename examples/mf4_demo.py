@@ -197,7 +197,6 @@ mdf.append(sigs, 'single dimensional channels', common_timebase=True)
 
 
 
-
 sigs = []
 
 # lookup tabel with axis
@@ -271,6 +270,70 @@ sig = Signal(
 )
 sigs.append(sig)
 
+
+# nested structures
+l4_arr = [
+    np.ones(cycles, dtype=np.float64) * 41,
+    np.ones(cycles, dtype=np.float64) * 42,
+    np.ones(cycles, dtype=np.float64) * 43,
+    np.ones(cycles, dtype=np.float64) * 44,
+]
+
+types = [
+    ('level41', np.float64),
+    ('level42', np.float64),
+    ('level43', np.float64),
+    ('level44', np.float64),
+]
+
+l4_arr = np.core.records.fromarrays(l4_arr, dtype=types)
+
+l3_arr = [
+    l4_arr,
+    l4_arr,
+    l4_arr,
+]
+
+types = [
+    ('level31', l4_arr.dtype),
+    ('level32', l4_arr.dtype),
+    ('level33', l4_arr.dtype),
+]
+
+l3_arr = np.core.records.fromarrays(l3_arr, dtype=types)
+
+
+l2_arr = [
+    l3_arr,
+    l3_arr,
+]
+
+types = [
+    ('level21', l3_arr.dtype),
+    ('level22', l3_arr.dtype),
+]
+
+l2_arr = np.core.records.fromarrays(l2_arr, dtype=types)
+
+
+l1_arr = [
+    l2_arr,
+]
+
+types = [
+    ('level11', l2_arr.dtype),
+]
+
+l1_arr = np.core.records.fromarrays(l1_arr, dtype=types)
+
+
+sigs.append(
+    Signal(
+        l1_arr,
+        t,
+        name='Nested_structures',
+    )
+)
 
 mdf.append(sigs, 'arrays', common_timebase=True)
 

@@ -738,6 +738,7 @@ class Signal(object):
                 self.name,
                 comment=self.comment,
                 conversion=self.conversion,
+                source=self.source,
                 raw=self.raw,
                 master_metadata=self.master_metadata,
                 display_name=self.display_name,
@@ -766,17 +767,18 @@ class Signal(object):
             s = func(other)
             time = self.timestamps
         return Signal(
-            s,
-            time,
-            self.unit,
-            self.name,
-            self.conversion,
-            self.raw,
-            self.master_metadata,
-            self.display_name,
+            samples=s,
+            timestamps=time,
+            unit=self.unit,
+            name=self.name,
+            conversion=self.conversion,
+            raw=self.raw,
+            master_metadata=self.master_metadata,
+            display_name=self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
+            source=self.source,
         )
 
     def __pos__(self):
@@ -786,30 +788,32 @@ class Signal(object):
         return Signal(
             np.negative(self.samples),
             self.timestamps,
-            self.unit,
-            self.name,
-            self.conversion,
-            self.raw,
-            self.master_metadata,
-            self.display_name,
+            unit=self.unit,
+            name=self.name,
+            conversion=self.conversion,
+            raw=self.raw,
+            master_metadata=self.master_metadata,
+            display_name=self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
+            source=self.source,
         )
 
     def __round__(self, n):
         return Signal(
             np.around(self.samples, n),
             self.timestamps,
-            self.unit,
-            self.name,
-            self.conversion,
-            self.raw,
-            self.master_metadata,
-            self.display_name,
+            unit=self.unit,
+            name=self.name,
+            conversion=self.conversion,
+            raw=self.raw,
+            master_metadata=self.master_metadata,
+            display_name=self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
+            source=self.source,
         )
 
     def __sub__(self, other):
@@ -869,15 +873,16 @@ class Signal(object):
         return Signal(
             s,
             time,
-            self.unit,
-            self.name,
-            self.conversion,
-            self.raw,
-            self.master_metadata,
-            self.display_name,
+            unit=self.unit,
+            name=self.name,
+            conversion=self.conversion,
+            raw=self.raw,
+            master_metadata=self.master_metadata,
+            display_name=self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
+            source=self.source,
         )
 
     def __lshift__(self, other):
@@ -923,15 +928,16 @@ class Signal(object):
         return Signal(
             np.fabs(self.samples),
             self.timestamps,
-            self.unit,
-            self.name,
-            self.conversion,
-            self.raw,
-            self.master_metadata,
-            self.display_name,
+            unit=self.unit,
+            name=self.name,
+            conversion=self.conversion,
+            raw=self.raw,
+            master_metadata=self.master_metadata,
+            display_name=self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
+            source=self.source,
         )
 
     def __getitem__(self, val):
@@ -957,15 +963,16 @@ class Signal(object):
         return Signal(
             self.samples.astype(np_type),
             self.timestamps,
-            self.unit,
-            self.name,
-            self.conversion,
-            self.raw,
-            self.master_metadata,
-            self.display_name,
+            unit=self.unit,
+            name=self.name,
+            conversion=self.conversion,
+            raw=self.raw,
+            master_metadata=self.master_metadata,
+            display_name=self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
+            source=self.source,
         )
 
     def physical(self):
@@ -989,13 +996,14 @@ class Signal(object):
             self.timestamps.copy(),
             unit=self.unit,
             name=self.name,
+            conversion=self.conversion,
             raw=False,
-            comment=self.comment,
             master_metadata=self.master_metadata,
             display_name=self.display_name,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
+            source=self.source,
         )
 
 
