@@ -2885,7 +2885,7 @@ class DataBlock(dict):
 
         except KeyError:
             type = kwargs.get('type', 'DT')
-            if type not in ('DT', 'SR', 'RD'):
+            if type not in ('DT', 'SD', 'RD'):
                 type = 'DT'
 
             self['id'] = '##{}'.format(type).encode('ascii')
