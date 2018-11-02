@@ -1908,7 +1908,7 @@ class FileWidget(QWidget):
 
             for j, ch in enumerate(group['channels']):
 
-                name = self.mdf.get_channel_name(group=i, index=j)
+                name = ch.name
                 channel = TreeItem((i, j), channel_group)
                 channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
                 channel.setText(0, name)
@@ -2657,10 +2657,7 @@ class FileWidget(QWidget):
         if item and item.parent():
             group, index = item.entry
 
-            channel = self.mdf.get_channel_metadata(
-                group=group,
-                index=index,
-            )
+            channel = self.mdf.groups[group]['channels'][index]
 
             msg = ChannelInfoDialog(channel, self)
             msg.show()
@@ -3434,7 +3431,8 @@ class MainWindow(QMainWindow):
         for option in (
                 'full',
                 'low',
-                'minimum'):
+#                'minimum',
+                ):
 
             action = QAction(option, menu)
             action.setCheckable(True)
@@ -3443,7 +3441,7 @@ class MainWindow(QMainWindow):
                 partial(self.set_memory_option, option)
             )
 
-            if option == 'minimum':
+            if option == 'low': # == 'minimum'
                 action.setChecked(True)
 
         submenu = QMenu('Memory', self.menubar)
@@ -3711,7 +3709,7 @@ class MainWindow(QMainWindow):
         menu.addActions(open_group.actions())
 
 
-        self.memory = 'minimum'
+        self.memory = 'low' # 'minimum'
         self.match = 'Match start'
         self.with_dots = False
         self.step_mode = True
