@@ -79,3 +79,13 @@ TextBlock Class
 ===============
 .. autoclass:: asammdf.v4_blocks.TextBlock
     :members:
+
+SampleReductionBlock Class
+==========================
+.. autoclass:: asammdf.v4_blocks.SampleReductionBlock
+    :members:
+
+EventBlock Class
+================
+.. autoclass:: asammdf.v4_blocks.EventBlock
+    :members:
