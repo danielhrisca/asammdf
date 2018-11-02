@@ -1328,9 +1328,6 @@ class ChannelGroup(dict):
                 0,
             )
 
-        # sample reduction blocks are not supported yet
-        self['first_sample_reduction_addr'] = 0
-
     def to_blocks(self, address, blocks, defined_texts, si_map):
         key = 'acq_name_addr'
         text = self.acq_name
@@ -2836,11 +2833,12 @@ formula: {}
 
 
 class DataBlock(dict):
-    """DTBLOCK class
+    """DTBLOCK/RDBLOCK/SDBLOCK class
 
     *DataBlock* has the following key-value pairs
 
-    * ``id`` - bytes : block ID; always b'##DT'
+    * ``id`` - bytes : block ID; b'##DT' for DTBLOCK, b'##RD' for RDBLOCK or
+      b'##SD' for SDBLOCK
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
@@ -2854,9 +2852,11 @@ class DataBlock(dict):
     Parameters
     ----------
     address : int
-        DTBLOCK address inside the file
+        DTBLOCK/RDBLOCK/SDBLOCK address inside the file
     stream : int
         file handle
+    reduction : bool
+        sample reduction data block
 
     """
 
@@ -2877,15 +2877,18 @@ class DataBlock(dict):
             )
             self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
 
-            if self['id'] != b'##DT':
-                message = 'Expected "##DT" block @{} but found "{}"'
+            if self['id'] not in (b'##DT', b'##RD', b'##SD'):
+                message = 'Expected "##DT", "##RD" or "##SD" block @{} but found "{}"'
                 message = message.format(hex(address), self['id'])
                 logger.exception(message)
                 raise MdfException(message)
 
         except KeyError:
+            type = kwargs.get('type', 'DT')
+            if type not in ('DT', 'SR', 'RD'):
+                type = 'DT'
 
-            self['id'] = b'##DT'
+            self['id'] = '##{}'.format(type).encode('ascii')
             self['reserved0'] = 0
             self['block_len'] = len(kwargs['data']) + v4c.COMMON_SIZE
             self['links_nr'] = 0
@@ -4401,64 +4404,6 @@ comment: {}
         )
 
 
-class SignalDataBlock(dict):
-    """SDBLOCK class
-
-    *SignalDataBlock* has the following key-value pairs
-
-    * ``id`` - bytes : block ID; always b'##SD'
-    * ``reserved0`` - int : reserved bytes
-    * ``block_len`` - int : block bytes size
-    * ``links_nr`` - int : number of links
-    * ``data`` - bytes : raw samples
-
-    Attributes
-    ----------
-    address : int
-        signal data block address
-
-    """
-
-    def __init__(self, **kwargs):
-        super(SignalDataBlock, self).__init__()
-
-        try:
-            self.address = address = kwargs['address']
-            stream = kwargs['stream']
-            stream.seek(address)
-
-            (self['id'],
-             self['reserved0'],
-             self['block_len'],
-             self['links_nr']) = unpack(
-                v4c.FMT_COMMON,
-                stream.read(v4c.COMMON_SIZE),
-            )
-            self['data'] = stream.read(self['block_len'] - v4c.COMMON_SIZE)
-
-            if self['id'] != b'##SD':
-                message = 'Expected "##SD" block @{} but found "{}"'
-                message = message.format(hex(address), self['id'])
-                logger.exception(message)
-                raise MdfException(message)
-
-        except KeyError:
-
-            self.address = 0
-            self['id'] = b'##SD'
-            self['reserved0'] = 0
-            data = kwargs['data']
-            self['block_len'] = len(data) + v4c.COMMON_SIZE
-            self['links_nr'] = 0
-            self['data'] = data
-
-    def __bytes__(self):
-        fmt = v4c.FMT_DATA_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)
-        keys = v4c.KEYS_DATA_BLOCK
-        res = pack(fmt, *[self[key] for key in keys])
-        return res
-
-
 class TextBlock(dict):
     """common TXBLOCK and MDBLOCK class
 
@@ -4552,4 +4497,84 @@ class TextBlock(dict):
     def __bytes__(self):
         fmt = v4c.FMT_TEXT_BLOCK.format(self['block_len'] - v4c.COMMON_SIZE)
         result = pack(fmt, *[self[key] for key in v4c.KEYS_TEXT_BLOCK])
+        return result
+
+
+class SampleReductionBlock(dict):
+    """SRBLOCK class
+
+    *SampleReductionBlock* has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##SR'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``next_sr_addr`` - int : address of next SampleReductionBlock
+    * ``data_block_addr`` - int : address of data block that contains the
+      raw samples for this sample reduction block
+    * ``cycles_nr`` - int : number of cycles
+    * ``interval`` - float : interval between consecutive samples
+    * ``sync_type`` - int : sync channel type
+    * ``flags`` - int : flags
+    * ``reserved1`` - int : reserved byte
+
+    Attributes
+    ----------
+    address : int
+        data block address
+
+    Parameters
+    ----------
+    address : int
+        DTBLOCK/RDBLOCK address inside the file
+    stream : int
+        file handle
+
+    """
+
+    def __init__(self, **kwargs):
+        super(SampleReductionBlock, self).__init__()
+
+        try:
+            self.address = address = kwargs['address']
+            stream = kwargs['stream']
+            stream.seek(address)
+
+            (self['id'],
+             self['reserved0'],
+             self['block_len'],
+             self['links_nr'],
+             self['next_sr_addr'],
+             self['data_block_addr'],
+             self['cycles_nr'],
+             self['interval'],
+             self['sync_type'],
+             self['flags'],
+             self['reserved1']) = unpack(
+                v4c.FMT_SR_BLOCK,
+                stream.read(v4c.SR_BLOCK_SIZE),
+            )
+
+            if self['id'] != b'##SR':
+                message = 'Expected "##SR" block @{} but found "{}"'
+                message = message.format(hex(address), self['id'])
+                logger.exception(message)
+                raise MdfException(message)
+
+        except KeyError:
+
+            self['id'] = b'##DT' if kwargs.get('reduction', False) else b'##RD'
+            self['reserved0'] = 0
+            self['block_len'] = len(kwargs['data']) + v4c.COMMON_SIZE
+            self['links_nr'] = 0
+            self['next_sr_addr'] = 0
+            self['data_block_addr'] = kwargs.get('data_block_addr', 0)
+            self['cycles_nr'] = kwargs.get('cycles_nr', 0)
+            self['interval'] = kwargs.get('interval', 0)
+            self['sync_type'] = kwargs.get('sync_type', 1)
+            self['reserved1'] = b'\0'*6
+
+    def __bytes__(self):
+        fmt = v4c.FMT_SR_BLOCK.format(self['block_len'] - v4c.SR_BLOCK_SIZE)
+        result = pack(fmt, *[self[key] for key in v4c.KEYS_SR_BLOCK])
         return result

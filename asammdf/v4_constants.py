@@ -153,6 +153,7 @@ CC_COMMON_BLOCK_SIZE = 80
 HL_BLOCK_SIZE = 40
 IDENTIFICATION_BLOCK_SIZE = 64
 HEADER_BLOCK_SIZE = 104
+SR_BLOCK_SIZE = 64
 
 FLAG_ALL_SAMPLES_VALID = 1
 FLAG_INVALIDATION_BIT_VALID = 2
@@ -434,6 +435,21 @@ KEYS_HL_BLOCK = (
 
 FMT_EVENT_PARAMS = '<5B3sI2HQd'
 FMT_EVENT = '<4sI2Q{}Q5B3sI2HQd'
+
+FMT_SR_BLOCK = '<4sI5Qd2B6s'
+KEYS_SR_BLOCK = (
+    'id',
+    'reserved0',
+    'block_len',
+    'links_nr',
+    'next_sr_addr',
+    'data_block_addr',
+    'cycles_nr',
+    'interval',
+    'sync_type',
+    'flags',
+    'reserved1',
+)
 
 ASAM_XML_NAMESPACE = '{http://www.asam.net/mdf/v4}'
 

@@ -199,7 +199,7 @@ class MDF3(object):
             self.version = version
             self.header = HeaderBlock(version=self.version)
 
-    def _load_group_data(self, group):
+    def _load_data(self, group):
         """ get group's data block bytes"""
 
         offset = 0
@@ -2883,7 +2883,7 @@ class MDF3(object):
 
         # get data group record
         if data is None:
-            data = self._load_group_data(grp)
+            data = self._load_data(grp)
         else:
             data = (data, )
 
@@ -3227,7 +3227,7 @@ class MDF3(object):
 
                 # get data group record
                 if data is None:
-                    data = self._load_group_data(group)
+                    data = self._load_data(group)
                 else:
                     data = (data, )
 
@@ -3560,7 +3560,7 @@ class MDF3(object):
                 dg['record_id_len'] = 0
 
                 # DataBlock
-                for (data_bytes, _) in self._load_group_data(gp):
+                for (data_bytes, _) in self._load_data(gp):
                     if self.memory == 'full':
                         data = memoryview(data_bytes)
                         read_size = 4 * 2**20
@@ -3866,7 +3866,7 @@ class MDF3(object):
                     address = trigger.to_stream(dst_)
 
                 # DataBlock
-                data = self._load_group_data(gp)
+                data = self._load_data(gp)
 
                 dat_addr = tell()
                 for (data_bytes, _) in data:

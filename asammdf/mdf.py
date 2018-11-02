@@ -566,7 +566,7 @@ class MDF(object):
             parents, dtypes = self._prepare_record(group)
             group['parents'], group['types'] = parents, dtypes
 
-            data = self._load_group_data(group)
+            data = self._load_data(group)
             for idx, fragment in enumerate(data):
 
                 if dtypes.itemsize:
@@ -705,7 +705,7 @@ class MDF(object):
         if whence == 1:
             timestamps = []
             for i, group in enumerate(self.groups):
-                fragment = next(self._load_group_data(group))
+                fragment = next(self._load_data(group))
                 master = self.get_master(i, fragment)
                 if master.size:
                     timestamps.append(master[0])
@@ -731,7 +731,7 @@ class MDF(object):
         for i, group in enumerate(self.groups):
             included_channels = self._included_channels(i)
 
-            data = self._load_group_data(group)
+            data = self._load_data(group)
             parents, dtypes = self._prepare_record(group)
             group['parents'], group['types'] = parents, dtypes
 
@@ -867,7 +867,7 @@ class MDF(object):
                 self.configure(read_fragment_size=1)
                 sigs = []
 
-                fragment = next(self._load_group_data(group))
+                fragment = next(self._load_data(group))
 
                 fragment = (fragment[0], -1)
 
@@ -1063,7 +1063,7 @@ class MDF(object):
 
                 included_channels = self._included_channels(i)
 
-                data = self._load_group_data(grp)
+                data = self._load_data(grp)
 
                 if PYVERSION == 2:
                     data = b''.join(str(d[0]) for d in data)
@@ -1167,7 +1167,7 @@ class MDF(object):
 
                         master_index = self.masters_db.get(i, -1)
 
-                        data = self._load_group_data(grp)
+                        data = self._load_data(grp)
 
                         if PYVERSION == 2:
                             data = b''.join(str(d[0]) for d in data)
@@ -1229,7 +1229,7 @@ class MDF(object):
                     message = 'Exporting group {} of {}'.format(i + 1, count)
                     logger.info(message)
 
-                    data = self._load_group_data(grp)
+                    data = self._load_data(grp)
 
                     if PYVERSION == 2:
                         data = b''.join(str(d[0]) for d in data)
@@ -1340,7 +1340,7 @@ class MDF(object):
                         return
                     message = 'Exporting group {} of {}'.format(i + 1, count)
                     logger.info(message)
-                    data = self._load_group_data(grp)
+                    data = self._load_data(grp)
 
                     if PYVERSION == 2:
                         data = b''.join(str(d[0]) for d in data)
@@ -1446,7 +1446,7 @@ class MDF(object):
 
                     if master_index >= 0:
                         included_channels.add(master_index)
-                    data = self._load_group_data(grp)
+                    data = self._load_data(grp)
 
                     if PYVERSION == 2:
                         data = b''.join(str(d[0]) for d in data)
@@ -1687,7 +1687,7 @@ class MDF(object):
         for new_index, (group_index, indexes) in enumerate(gps.items()):
             group = self.groups[group_index]
 
-            data = self._load_group_data(group)
+            data = self._load_data(group)
             parents, dtypes = self._prepare_record(group)
             group['parents'], group['types'] = parents, dtypes
 
@@ -1810,7 +1810,7 @@ class MDF(object):
 
         grp = self.groups[gp_nr]
 
-        data = self._load_group_data(grp)
+        data = self._load_data(grp)
 
         for fragment in data:
             yield self.get(
@@ -1993,7 +1993,7 @@ class MDF(object):
                 parents, dtypes = mdf._prepare_record(group)
                 group['parents'], group['types'] = parents, dtypes
 
-                data = mdf._load_group_data(group)
+                data = mdf._load_data(group)
 
                 for fragment in data:
                     if dtypes.itemsize:
@@ -2209,7 +2209,7 @@ class MDF(object):
                 parents, dtypes = mdf._prepare_record(group)
                 group['parents'], group['types'] = parents, dtypes
 
-                data = mdf._load_group_data(group)
+                data = mdf._load_data(group)
 
                 for fragment in data:
                     if dtypes.itemsize:
@@ -2337,7 +2337,7 @@ class MDF(object):
                 if j != master_index
             ]
 
-            data = self._load_group_data(group)
+            data = self._load_data(group)
             for fragment in data:
 
                 master.append(self.get_master(i, data=fragment))
@@ -2415,7 +2415,7 @@ class MDF(object):
 
             included_channels = self._included_channels(i)
 
-            data = self._load_group_data(group)
+            data = self._load_data(group)
             for idx, fragment in enumerate(data):
                 if idx == 0:
                     sigs = []
@@ -2575,7 +2575,7 @@ class MDF(object):
         signal_parts = {}
         for group in gps:
             grp = self.groups[group]
-            data = self._load_group_data(grp)
+            data = self._load_data(grp)
             parents, dtypes = self._prepare_record(grp)
             grp['parents'], grp['types'] = parents, dtypes
 

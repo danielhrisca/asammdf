@@ -90,7 +90,7 @@ from .v4_blocks import (
     FileIdentificationBlock,
     HeaderBlock,
     HeaderList,
-    SignalDataBlock,
+    SampleReductionBlock,
     SourceInformation,
     TextBlock,
 )
@@ -361,6 +361,8 @@ class MDF4(object):
                 grp['data_block'] = None
                 grp['channel_dependencies'] = []
                 grp['signal_data'] = []
+                grp['reduction_blocks'] = []
+                grp['reduction_data_block'] = []
                 if memory == 'minimum':
                     grp['temp_channels'] = []
 
@@ -587,97 +589,63 @@ class MDF4(object):
             else:
                 address = group['data_block_addr']
 
-                info = {
-                    'data_block_addr': [],
-                    'data_block_type': 0,
-                    'data_size': [],
-                    'data_block_size': [],
-                    'param': 0,
-                }
-
-                # for low and minimum options save each block's type,
-                # address and size
-
-                if address:
-                    stream.seek(address)
-                    id_string, _, block_len, __ = unpack(
-                        v4c.FMT_COMMON,
-                        stream.read(v4c.COMMON_SIZE),
-                    )
-                    # can be a DataBlock
-                    if id_string == b'##DT':
-                        size = block_len - 24
-                        info['data_size'].append(size)
-                        info['data_block_size'].append(size)
-                        info['data_block_addr'].append(address + v4c.COMMON_SIZE)
-                        info['data_block_type'] = v4c.DT_BLOCK
-                    # or a DataZippedBlock
-                    elif id_string == b'##DZ':
-                        stream.seek(address)
-                        temp = {}
-                        (temp['id'],
-                         temp['reserved0'],
-                         temp['block_len'],
-                         temp['links_nr'],
-                         temp['original_type'],
-                         temp['zip_type'],
-                         temp['reserved1'],
-                         temp['param'],
-                         temp['original_size'],
-                         temp['zip_size'],) = unpack(
-                            v4c.FMT_DZ_COMMON,
-                            stream.read(v4c.DZ_COMMON_SIZE),
-                        )
-                        info['data_size'].append(temp['original_size'])
-                        info['data_block_size'].append(temp['zip_size'])
-                        info['data_block_addr'].append(address + v4c.DZ_COMMON_SIZE)
-                        if temp['zip_type'] == v4c.FLAG_DZ_DEFLATE:
-                            info['data_block_type'] = v4c.DZ_BLOCK_DEFLATE
-                        else:
-                            info['data_block_type'] = v4c.DZ_BLOCK_TRANSPOSED
-                            info['param'] = temp['param']
-
-                    # or a DataList
-                    elif id_string == b'##DL':
-                        info['data_block_type'] = v4c.DT_BLOCK
-                        while address:
-                            dl = DataList(address=address, stream=stream)
-                            for i in range(dl['data_block_nr']):
-                                addr = dl['data_block_addr{}'.format(i)]
-                                info['data_block_addr'].append(addr + v4c.COMMON_SIZE)
-                                stream.seek(addr+8)
-                                size = unpack('<Q', stream.read(8))[0] - 24
-                                info['data_size'].append(size)
-                                info['data_block_size'].append(size)
-                            address = dl['next_dl_addr']
-                    # or a header list
-                    elif id_string == b'##HL':
-                        hl = HeaderList(address=address, stream=stream)
-                        if hl['zip_type'] == v4c.FLAG_DZ_DEFLATE:
-                            info['data_block_type'] = v4c.DZ_BLOCK_DEFLATE
-                        else:
-                            info['data_block_type'] = v4c.DZ_BLOCK_TRANSPOSED
-
-                        address = hl['first_dl_addr']
-                        while address:
-                            dl = DataList(address=address, stream=stream)
-                            for i in range(dl['data_block_nr']):
-                                addr = dl['data_block_addr{}'.format(i)]
-                                info['data_block_addr'].append(addr + v4c.DZ_COMMON_SIZE)
-                                stream.seek(addr + 28)
-                                param, size, zip_size = unpack(
-                                    '<I2Q',
-                                    stream.read(20),
-                                )
-                                info['data_size'].append(size)
-                                info['data_block_size'].append(zip_size)
-                                info['param'] = param
-
-                            address = dl['next_dl_addr']
+                info = self._get_data_blocks_info(
+                    address=address,
+                    stream=stream,
+                    block_type=b'##DT',
+                )
 
                 for grp in new_groups:
                     grp['data_location'] = v4c.LOCATION_ORIGINAL_FILE
                     grp.update(info)
+
+            # sample reduction blocks
+            if memory == 'full':
+                addr = grp['channel_group']['first_sample_reduction_addr']
+                while addr:
+                    reduction_block = SampleReductionBlock(
+                        address=addr,
+                        stream=stream,
+                    )
+                    address = reduction_block['data_block_addr']
+
+                    grp['reduction_blocks'].append(reduction_block)
+
+                    data = self._read_data_block(
+                        address=address,
+                        stream=stream,
+                        size=size,
+                    )
+
+                    data = next(data)
+
+                    grp['reduction_data_block'].append(
+                        DataBlock(data=data, type='RD')
+                    )
+
+                    addr = reduction_block['next_sr_addr']
+            else:
+                addr = grp['channel_group']['first_sample_reduction_addr']
+
+                while addr:
+
+                    reduction_block = SampleReductionBlock(
+                        address=addr,
+                        stream=stream,
+                    )
+                    address = reduction_block['data_block_addr']
+
+                    grp['reduction_blocks'].append(reduction_block)
+
+                    grp['reduction_data_block'].append(
+                        self._get_data_blocks_info(
+                            address=address,
+                            stream=stream,
+                            block_type=b'##RD',
+                        )
+                    )
+
+                    addr = reduction_block['next_sr_addr']
 
             self.groups.extend(new_groups)
 
@@ -1256,7 +1224,7 @@ class MDF4(object):
             stream.seek(address)
             id_string = stream.read(4)
             # can be a DataBlock
-            if id_string == b'##DT':
+            if id_string in (b'##DT', b'##RD'):
                 data = DataBlock(address=address, stream=stream)
                 data = data['data']
                 yield data
@@ -1364,7 +1332,7 @@ class MDF4(object):
                 data = data['data']
             elif blk_id == b'##CG':
                 group = self.groups[self._cg_map[address]]
-                data = b''.join(fragment[0] for fragment in self._load_group_data(group))
+                data = b''.join(fragment[0] for fragment in self._load_data(group))
             elif blk_id == b'##DL':
                 data = []
                 while address:
@@ -1441,11 +1409,14 @@ class MDF4(object):
 
         return data
 
-    def _load_group_data(self, group):
+    def _load_data(self, group, index=None):
         """ get group's data block bytes """
         offset = 0
         if self.memory == 'full':
-            yield group['data_block']['data'], offset
+            if index is None:
+                yield group['data_block']['data'], offset
+            else:
+                yield group['reduction_blocks'][index]['data'], offset
         else:
             data_group = group['data_group']
             channel_group = group['channel_group']
@@ -1455,13 +1426,23 @@ class MDF4(object):
             else:
                 stream = self._tempfile
 
-            block_type = group['data_block_type']
-            param = group['param']
+            if index is None:
+                block_type = group['data_block_type']
+                param = group['param']
+            else:
+                block_type = group['reduction_data_block'][index]['data_block_type']
+                param = group['reduction_data_block'][index]['param']
 
-            samples_size = (
-                channel_group['samples_byte_nr']
-                + channel_group['invalidation_bytes_nr']
-            )
+            if index is None:
+                samples_size = (
+                    channel_group['samples_byte_nr']
+                    + channel_group['invalidation_bytes_nr']
+                )
+            else:
+                samples_size = (
+                    channel_group['samples_byte_nr'] * 3
+                    + channel_group['invalidation_bytes_nr']
+                )
 
             if not samples_size:
                 yield b'', 0
@@ -1499,12 +1480,22 @@ class MDF4(object):
                     if split_size == 0:
                         split_size = samples_size
 
-                if group['data_block_addr']:
+                if index is None:
+                    addr = group['data_block_addr']
                     blocks = zip(
                         group['data_block_addr'],
                         group['data_size'],
                         group['data_block_size'],
                     )
+                else:
+                    addr = group['reduction_data_block'][index]['data_block_addr']
+                    blocks = zip(
+                        group['reduction_data_block'][index]['data_block_addr'],
+                        group['reduction_data_block'][index]['data_size'],
+                        group['reduction_data_block'][index]['data_block_size'],
+                    )
+
+                if addr:
                     if PYVERSION == 2:
                         blocks = iter(blocks)
 
@@ -2317,6 +2308,97 @@ class MDF4(object):
             else:
                 name = ''
         return name
+
+    def _get_data_blocks_info(self, address, stream, block_type=b'##DT'):
+        info = {
+            'data_block_addr': [],
+            'data_block_type': 0,
+            'data_size': [],
+            'data_block_size': [],
+            'param': 0,
+        }
+
+        # for low and minimum options save each block's type,
+        # address and size
+
+        if address:
+            stream.seek(address)
+            id_string, _, block_len, __ = unpack(
+                v4c.FMT_COMMON,
+                stream.read(v4c.COMMON_SIZE),
+            )
+            # can be a DataBlock
+            if id_string == block_type:
+                size = block_len - 24
+                info['data_size'].append(size)
+                info['data_block_size'].append(size)
+                info['data_block_addr'].append(address + v4c.COMMON_SIZE)
+                info['data_block_type'] = v4c.DT_BLOCK
+            # or a DataZippedBlock
+            elif id_string == b'##DZ':
+                stream.seek(address)
+                temp = {}
+                (temp['id'],
+                 temp['reserved0'],
+                 temp['block_len'],
+                 temp['links_nr'],
+                 temp['original_type'],
+                 temp['zip_type'],
+                 temp['reserved1'],
+                 temp['param'],
+                 temp['original_size'],
+                 temp['zip_size'],) = unpack(
+                    v4c.FMT_DZ_COMMON,
+                    stream.read(v4c.DZ_COMMON_SIZE),
+                )
+                info['data_size'].append(temp['original_size'])
+                info['data_block_size'].append(temp['zip_size'])
+                info['data_block_addr'].append(address + v4c.DZ_COMMON_SIZE)
+                if temp['zip_type'] == v4c.FLAG_DZ_DEFLATE:
+                    info['data_block_type'] = v4c.DZ_BLOCK_DEFLATE
+                else:
+                    info['data_block_type'] = v4c.DZ_BLOCK_TRANSPOSED
+                    info['param'] = temp['param']
+
+            # or a DataList
+            elif id_string == b'##DL':
+                info['data_block_type'] = v4c.DT_BLOCK
+                while address:
+                    dl = DataList(address=address, stream=stream)
+                    for i in range(dl['data_block_nr']):
+                        addr = dl['data_block_addr{}'.format(i)]
+                        info['data_block_addr'].append(addr + v4c.COMMON_SIZE)
+                        stream.seek(addr+8)
+                        size = unpack('<Q', stream.read(8))[0] - 24
+                        info['data_size'].append(size)
+                        info['data_block_size'].append(size)
+                    address = dl['next_dl_addr']
+            # or a header list
+            elif id_string == b'##HL':
+                hl = HeaderList(address=address, stream=stream)
+                if hl['zip_type'] == v4c.FLAG_DZ_DEFLATE:
+                    info['data_block_type'] = v4c.DZ_BLOCK_DEFLATE
+                else:
+                    info['data_block_type'] = v4c.DZ_BLOCK_TRANSPOSED
+
+                address = hl['first_dl_addr']
+                while address:
+                    dl = DataList(address=address, stream=stream)
+                    for i in range(dl['data_block_nr']):
+                        addr = dl['data_block_addr{}'.format(i)]
+                        info['data_block_addr'].append(addr + v4c.DZ_COMMON_SIZE)
+                        stream.seek(addr + 28)
+                        param, size, zip_size = unpack(
+                            '<I2Q',
+                            stream.read(20),
+                        )
+                        info['data_size'].append(size)
+                        info['data_block_size'].append(zip_size)
+                        info['param'] = param
+
+                    address = dl['next_dl_addr']
+
+        return info
 
     def get_invalidation_bits(self, group_index, channel, fragment):
         """ get invalidation indexes for the channel
@@ -4433,7 +4515,7 @@ class MDF4(object):
 
             # get group data
             if data is None:
-                data = self._load_group_data(grp)
+                data = self._load_data(grp)
             else:
                 data = (data, )
 
@@ -4471,7 +4553,7 @@ class MDF4(object):
 
             # get group data
             if data is None:
-                data = self._load_group_data(grp)
+                data = self._load_data(grp)
             else:
                 data = (data,)
 
@@ -5449,7 +5531,7 @@ class MDF4(object):
 
                 # get data
                 if fragment is None:
-                    data = self._load_group_data(group)
+                    data = self._load_data(group)
                 else:
                     data = (fragment, )
                 time_values = []
@@ -6044,7 +6126,7 @@ class MDF4(object):
 
                 address = tell()
 
-                data = self._load_group_data(gp)
+                data = self._load_data(gp)
 
                 total_size = (
                     (gp['channel_group']['samples_byte_nr'] + gp['channel_group']['invalidation_bytes_nr'])
@@ -6273,7 +6355,7 @@ class MDF4(object):
                                 blocks.append(b'\0' * (8 - align))
                                 address += 8 - align
                         else:
-                            signal_data = SignalDataBlock(data=sdata)
+                            signal_data = DataBlock(data=sdata, type='SD')
                             signal_data.address = address
                             address += signal_data['block_len']
                             blocks.append(signal_data)
@@ -6616,7 +6698,7 @@ class MDF4(object):
 
                 address = tell()
 
-                data = self._load_group_data(gp)
+                data = self._load_data(gp)
 
                 if self._write_fragment_size:
                     total_size = (
@@ -6867,7 +6949,7 @@ class MDF4(object):
                                 write(b'\0' * (8 - align))
                                 address += 8 - align
                         else:
-                            signal_data = SignalDataBlock(data=signal_data)
+                            signal_data = DataBlock(data=signal_data, type='SD')
                             channel['data_block_addr'] = address
                             write(bytes(signal_data))
                             address += signal_data['block_len']
