@@ -3281,6 +3281,9 @@ class MDF4(object):
         gp['channel_group']['samples_byte_nr'] = offset
         gp['size'] = cycles_nr * (offset + invalidation_bytes_nr)
 
+        gp['reduction_blocks'] = []
+        gp['reduction_data_block'] = []
+
         # data group
         gp['data_group'] = DataGroup()
 
@@ -3628,6 +3631,9 @@ class MDF4(object):
         gp['channel_group']['cycles_nr'] = cycles_nr
         gp['channel_group']['samples_byte_nr'] = offset
         gp['size'] = cycles_nr * (offset + invalidation_bytes_nr)
+
+        gp['reduction_blocks'] = []
+        gp['reduction_data_block'] = []
 
         # data group
         gp['data_group'] = DataGroup()
@@ -4128,7 +4134,8 @@ class MDF4(object):
             data=None,
             raw=False,
             ignore_invalidation_bits=False,
-            source=None):
+            source=None,
+            sample_reduction_index=None):
         """Gets channel samples.
         Channel can be specified in two ways:
 
