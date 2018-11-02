@@ -54,36 +54,37 @@ Working with MDF
                        unit='f8')
 
     # create empty MDf version 4.00 file
-    mdf4 = MDF(version='4.10')
+    with MDF(version='4.10') as mdf4:
 
-    # append the 3 signals to the new file
-    signals = [s_uint8, s_int32, s_float64]
-    mdf4.append(signals, 'Created by Python')
+        # append the 3 signals to the new file
+        signals = [s_uint8, s_int32, s_float64]
+        mdf4.append(signals, 'Created by Python')
 
-    # save new file
-    mdf4.save('my_new_file.mf4', overwrite=True)
+        # save new file
+        mdf4.save('my_new_file.mf4', overwrite=True)
 
-    # convert new file to mdf version 3.10 with lowest possible RAM usage
-    mdf3 = mdf4.convert(to='3.10', memory='minimum')
-    print(mdf3.version)
+        # convert new file to mdf version 3.10 with lowest possible RAM usage
+        mdf3 = mdf4.convert(version='3.10', memory='minimum')
+        print(mdf3.version)
 
-    # get the float signal
-    sig = mdf3.get('Float64_Signal')
-    print(sig)
+        # get the float signal
+        sig = mdf3.get('Float64_Signal')
+        print(sig)
 
-    # cut measurement from 0.3s to end of measurement
-    mdf4_cut = mdf4.cut(start=0.3)
-    mdf4_cut.get('Float64_Signal').plot()
+        # cut measurement from 0.3s to end of measurement
+        mdf4_cut = mdf4.cut(start=0.3)
+        mdf4_cut.get('Float64_Signal').plot()
 
-    # cut measurement from start of measurement to 0.4s
-    mdf4_cut = mdf4.cut(stop=0.45)
-    mdf4_cut.get('Float64_Signal').plot()
+        # cut measurement from start of measurement to 0.4s
+        mdf4_cut = mdf4.cut(stop=0.45)
+        mdf4_cut.get('Float64_Signal').plot()
 
-    # filter some signals from the file
-    mdf4 = mdf4.filter(['Int32_Signal', 'Uint8_Signal'])
+        # filter some signals from the file
+        mdf4 = mdf4.filter(['Int32_Signal', 'Uint8_Signal'])
 
-    # save using zipped transpose deflate blocks
-    mdf4.save('out.mf4', compression=2, overwrite=True)
+        # save using zipped transpose deflate blocks
+        mdf4.save('out.mf4', compression=2, overwrite=True)
+
 
 
 
@@ -370,7 +371,6 @@ MF4 demo file generator
 
 
 
-
     sigs = []
 
     # lookup tabel with axis
@@ -445,7 +445,72 @@ MF4 demo file generator
     sigs.append(sig)
 
 
+    # nested structures
+    l4_arr = [
+        np.ones(cycles, dtype=np.float64) * 41,
+        np.ones(cycles, dtype=np.float64) * 42,
+        np.ones(cycles, dtype=np.float64) * 43,
+        np.ones(cycles, dtype=np.float64) * 44,
+    ]
+
+    types = [
+        ('level41', np.float64),
+        ('level42', np.float64),
+        ('level43', np.float64),
+        ('level44', np.float64),
+    ]
+
+    l4_arr = np.core.records.fromarrays(l4_arr, dtype=types)
+
+    l3_arr = [
+        l4_arr,
+        l4_arr,
+        l4_arr,
+    ]
+
+    types = [
+        ('level31', l4_arr.dtype),
+        ('level32', l4_arr.dtype),
+        ('level33', l4_arr.dtype),
+    ]
+
+    l3_arr = np.core.records.fromarrays(l3_arr, dtype=types)
+
+
+    l2_arr = [
+        l3_arr,
+        l3_arr,
+    ]
+
+    types = [
+        ('level21', l3_arr.dtype),
+        ('level22', l3_arr.dtype),
+    ]
+
+    l2_arr = np.core.records.fromarrays(l2_arr, dtype=types)
+
+
+    l1_arr = [
+        l2_arr,
+    ]
+
+    types = [
+        ('level11', l2_arr.dtype),
+    ]
+
+    l1_arr = np.core.records.fromarrays(l1_arr, dtype=types)
+
+
+    sigs.append(
+        Signal(
+            l1_arr,
+            t,
+            name='Nested_structures',
+        )
+    )
+
     mdf.append(sigs, 'arrays', common_timebase=True)
 
     mdf.save('demo.mf4', overwrite=True)
+
 
