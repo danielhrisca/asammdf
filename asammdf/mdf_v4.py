@@ -1325,7 +1325,7 @@ class MDF4(object):
             stream.seek(address)
             blk_id = stream.read(4)
             if blk_id == b'##SD':
-                data = SignalDataBlock(address=address, stream=stream)
+                data = DataBlock(address=address, stream=stream)
                 data = data['data']
             elif blk_id == b'##DZ':
                 data = DataZippedBlock(address=address, stream=stream)
@@ -1345,7 +1345,7 @@ class MDF4(object):
                         stream.seek(addr)
                         blk_id = stream.read(4)
                         if blk_id == b'##SD':
-                            block = SignalDataBlock(
+                            block = DataBlock(
                                 address=addr,
                                 stream=stream,
                             )
