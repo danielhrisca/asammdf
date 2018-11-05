@@ -2553,8 +2553,9 @@ class MDF3(object):
                 stream=stream,
                 load_metadata=False,
             )
+
         else:
-            channel = grp['channels'][ch_nr]
+            channel = grp['channels'][ch_nr].name
 
         return channel.name
 
@@ -2583,129 +2584,7 @@ class MDF3(object):
                 stream=stream,
             )
 
-        channel = deepcopy(channel)
-
         return channel
-
-    def get_channel_unit(self, name=None, group=None, index=None):
-        """Gets channel unit.
-
-        Channel can be specified in two ways:
-
-        * using the first positional argument *name*
-
-            * if there are multiple occurances for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurances for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
-
-        * using the group number (keyword argument *group*) and the channel
-          number (keyword argument *index*). Use *info* method for group and
-          channel numbers
-
-
-        If the *raster* keyword argument is not *None* the output is
-        interpolated accordingly.
-
-        Parameters
-        ----------
-        name : string
-            name of channel
-        group : int
-            0-based group index
-        index : int
-            0-based channel index
-
-        Returns
-        -------
-        unit : str
-            found channel unit
-
-        """
-        gp_nr, ch_nr = self._validate_channel_selection(
-            name,
-            group,
-            index,
-        )
-
-        grp = self.groups[gp_nr]
-        if grp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-
-        if self.memory == 'minimum':
-            channel = Channel(
-                address=grp['channels'][ch_nr],
-                stream=stream,
-            )
-        else:
-            channel = grp['channels'][ch_nr]
-
-        if channel.conversion:
-            unit = channel.conversion.unit
-        else:
-            unit = ''
-
-        return unit
-
-    def get_channel_comment(self, name=None, group=None, index=None):
-        """Gets channel comment.
-        Channel can be specified in two ways:
-
-        * using the first positional argument *name*
-
-            * if there are multiple occurances for this channel then the
-              *group* and *index* arguments can be used to select a specific
-              group.
-            * if there are multiple occurances for this channel and either the
-              *group* or *index* arguments is None then a warning is issued
-
-        * using the group number (keyword argument *group*) and the channel
-          number (keyword argument *index*). Use *info* method for group and
-          channel numbers
-
-
-        If the *raster* keyword argument is not *None* the output is
-        interpolated accordingly.
-
-        Parameters
-        ----------
-        name : string
-            name of channel
-        group : int
-            0-based group index
-        index : int
-            0-based channel index
-
-        Returns
-        -------
-        comment : str
-            found channel comment
-
-        """
-        gp_nr, ch_nr = self._validate_channel_selection(
-            name,
-            group,
-            index,
-        )
-
-        grp = self.groups[gp_nr]
-        if grp['data_location'] == v23c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-
-        if self.memory == 'minimum':
-            channel = Channel(
-                address=grp['channels'][ch_nr],
-                stream=stream,
-            )
-        else:
-            channel = grp['channels'][ch_nr]
-
-        return channel.comment
 
     def get(self,
             name=None,

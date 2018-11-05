@@ -7016,3 +7016,72 @@ class MDF4(object):
             self._read()
         return dst
 
+    def get_channel_name(self, group, index):
+        """Gets channel name.
+
+        Parameters
+        ----------
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        name : str
+            found channel name
+
+        """
+        gp_nr, ch_nr = self._validate_channel_selection(
+            None,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+
+        if grp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        channel = grp['channels'][ch_nr]
+
+        if self.memory == 'minimum':
+            stream.seek(channel + 40)
+            name = get_text_v4(UINT64(stream.read(8))[0], stream)
+        else:
+            name = channel.name
+
+        return name
+
+    def get_channel_metadata(
+            self,
+            name=None,
+            group=None,
+            index=None):
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+
+        if grp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        if ch_nr >= 0:
+            channel = grp['channels'][ch_nr]
+
+            if self.memory == 'minimum':
+                channel = Channel(
+                    address=channel,
+                    stream=stream,
+                )
+        else:
+            channel = grp['logging_channels'][-ch_nr -1]
+
+        return channel

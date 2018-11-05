@@ -1602,62 +1602,6 @@ CHANNELS_ARRAY['Composed'] = np.core.records.fromarrays(
     dtype=np.dtype(types),
 )
 
-COMMENTS = {
-    "ASAM.M.VIRTUAL.SCALAR.SWORD.PHYSICAL": "Virtual measurement with 2 * ASAM.M.SCALAR.SBYTE.LINEAR_MUL_2 as input (based on the phys value of ASAM.M.SCALAR.SBYTE.LINEAR_MUL_2",
-    "ASAM_[0][0].M.MATRIX_DIM_8_2_1.UBYTE.IDENTICAL": "Scalar measurement",
-    "ASAM_[0].M.MATRIX_DIM_16_1_1.UBYTE.IDENTICAL": "Scalar measurement",
-    "ASAM_[0].M.ARRAY_SIZE_16.UBYTE.IDENTICAL": "Scalar measurement",
-    "ASAM.M.SCALAR.UBYTE.TAB_NOINTP_DEFAULT_VALUE": "Scalar measurement with verbal conversion and default value",
-    "ASAM.M.SCALAR.UBYTE.TAB_INTP_NO_DEFAULT_VALUE": "Scalar measurement with verbal conversion and default value",
-    "ASAM.M.SCALAR.UBYTE.TAB_INTP_DEFAULT_VALUE": "Scalar measurement with verbal conversion and default value",
-    "ASAM.M.SCALAR.UBYTE.IDENTICAL": "Scalar measurement",
-    "ASAM.M.SCALAR.UBYTE.FORM_X_PLUS_4": "Scalar measurement",
-    "ASAM.M.SCALAR.SWORD.IDENTICAL": "Scalar measurement",
-    "ASAM.M.SCALAR.SLONG.IDENTICAL": "Scalar measurement",
-    "ASAM.M.SCALAR.SBYTE.LINEAR_MUL_2": "Scalar measurement",
-    "ASAM.M.SCALAR.UWORD.IDENTICAL.BITMASK_0FF0": "Scalar measurement with Bitmask for a bit-area",
-    "ASAM.M.SCALAR.UWORD.IDENTICAL.BITMASK_0008": "Scalar measurement with Bitmask for a single bit",
-    "ASAM.M.SCALAR.UWORD.IDENTICAL": "Scalar measurement",
-    "ASAM.M.SCALAR.ULONG.IDENTICAL": "Scalar measurement",
-    "ASAM.M.SCALAR.UBYTE.VTAB_RANGE_NO_DEFAULT_VALUE": "Scalar measurement with verbal conversion and default value",
-    "ASAM.M.SCALAR.UBYTE.VTAB_RANGE_DEFAULT_VALUE": "Scalar measurement with verbal conversion and default value",
-    "ASAM.M.SCALAR.UBYTE.TAB_VERB_NO_DEFAULT_VALUE": "Scalar measurement with verbal conversion",
-    "ASAM.M.SCALAR.UBYTE.TAB_VERB_DEFAULT_VALUE": "Scalar measurement with verbal conversion and default value",
-    "ASAM.M.SCALAR.UBYTE.TAB_NOINTP_NO_DEFAULT_VALUE": "Scalar measurement with verbal conversion and default value",
-    "ASAM.M.SCALAR.FLOAT64.IDENTICAL": "Scalar measurement",
-    "ASAM.M.SCALAR.FLOAT32.IDENTICAL": "Scalar measurement",
-    "$CalibrationLog": "",
-    "$ActiveCalibrationPage": "",
-}
-
-UNITS = {
-    "ASAM.M.VIRTUAL.SCALAR.SWORD.PHYSICAL": "",
-    "ASAM_[0][0].M.MATRIX_DIM_8_2_1.UBYTE.IDENTICAL": "hours",
-    "ASAM_[0].M.MATRIX_DIM_16_1_1.UBYTE.IDENTICAL": "hours",
-    "ASAM_[0].M.ARRAY_SIZE_16.UBYTE.IDENTICAL": "hours",
-    "ASAM.M.SCALAR.UBYTE.TAB_NOINTP_DEFAULT_VALUE": "U/  min",
-    "ASAM.M.SCALAR.UBYTE.TAB_INTP_NO_DEFAULT_VALUE": "U/  min",
-    "ASAM.M.SCALAR.UBYTE.TAB_INTP_DEFAULT_VALUE": "U/  min",
-    "ASAM.M.SCALAR.UBYTE.IDENTICAL": "hours",
-    "ASAM.M.SCALAR.UBYTE.FORM_X_PLUS_4": "rpm",
-    "ASAM.M.SCALAR.SWORD.IDENTICAL": "hours",
-    "ASAM.M.SCALAR.SLONG.IDENTICAL": "hours",
-    "ASAM.M.SCALAR.SBYTE.LINEAR_MUL_2": "m/s",
-    "ASAM.M.SCALAR.UWORD.IDENTICAL.BITMASK_0FF0": "hours",
-    "ASAM.M.SCALAR.UWORD.IDENTICAL.BITMASK_0008": "hours",
-    "ASAM.M.SCALAR.UWORD.IDENTICAL": "hours",
-    "ASAM.M.SCALAR.ULONG.IDENTICAL": "hours",
-    "ASAM.M.SCALAR.UBYTE.VTAB_RANGE_NO_DEFAULT_VALUE": "",
-    "ASAM.M.SCALAR.UBYTE.VTAB_RANGE_DEFAULT_VALUE": "",
-    "ASAM.M.SCALAR.UBYTE.TAB_VERB_NO_DEFAULT_VALUE": "",
-    "ASAM.M.SCALAR.UBYTE.TAB_VERB_DEFAULT_VALUE": "",
-    "ASAM.M.SCALAR.UBYTE.TAB_NOINTP_NO_DEFAULT_VALUE": "U/  min",
-    "ASAM.M.SCALAR.FLOAT64.IDENTICAL": "hours",
-    "ASAM.M.SCALAR.FLOAT32.IDENTICAL": "hours",
-    "$CalibrationLog": "",
-    "$ActiveCalibrationPage": "",
-}
-
 
 def get_test_data(filename=""):
     """

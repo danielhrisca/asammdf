@@ -345,7 +345,6 @@ class FormatedAxis(pg.AxisItem):
             for val in values:
                 val = float(val)
                 if val.is_integer():
-                    print(type(int(val)), bin)
                     val = bin_(int(val))
                 else:
                     val = ''
@@ -1053,8 +1052,6 @@ class Plot(pg.PlotWidget):
                 else:
                     delta = 0
 
-                print(left_side, right_side, delta)
-
                 self.cursor1.setValue(pos)
 
         elif key == Qt.Key_H:
@@ -1313,8 +1310,6 @@ class TabularValuesDialog(QDialog):
         self.table.horizontalHeader().sectionClicked.connect(self.show_name)
         self.table.horizontalHeader().entered.connect(self.hover)
         self.table.cellEntered.connect(self.hover)
-
-        print(dir(self.table.horizontalHeader()))
 
         for i, sig in enumerate(signals):
             range_ = ranges[i]
@@ -1908,7 +1903,7 @@ class FileWidget(QWidget):
 
             for j, ch in enumerate(group['channels']):
 
-                name = ch.name
+                name = self.mdf.get_channel_name(i, j)
                 channel = TreeItem((i, j), channel_group)
                 channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
                 channel.setText(0, name)
@@ -2657,7 +2652,10 @@ class FileWidget(QWidget):
         if item and item.parent():
             group, index = item.entry
 
-            channel = self.mdf.groups[group]['channels'][index]
+            channel = self.mdf.get_channel_metadata(
+                group=group,
+                index=index,
+            )
 
             msg = ChannelInfoDialog(channel, self)
             msg.show()
@@ -3431,7 +3429,7 @@ class MainWindow(QMainWindow):
         for option in (
                 'full',
                 'low',
-#                'minimum',
+                'minimum',
                 ):
 
             action = QAction(option, menu)
@@ -3441,7 +3439,7 @@ class MainWindow(QMainWindow):
                 partial(self.set_memory_option, option)
             )
 
-            if option == 'low': # == 'minimum'
+            if option == 'minimum':
                 action.setChecked(True)
 
         submenu = QMenu('Memory', self.menubar)
@@ -3709,7 +3707,7 @@ class MainWindow(QMainWindow):
         menu.addActions(open_group.actions())
 
 
-        self.memory = 'low' # 'minimum'
+        self.memory = 'minimum'
         self.match = 'Match start'
         self.with_dots = False
         self.step_mode = True
