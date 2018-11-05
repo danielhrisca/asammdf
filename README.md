@@ -119,15 +119,18 @@ http://asammdf.readthedocs.io/en/master/examples.html
 # Documentation
 http://asammdf.readthedocs.io/en/master
 
-# Contributing
+# Contributing & Support
 Please have a look over the [contributing guidelines](CONTRIBUTING.md)
+
+If you enjoy this library please consider making a donation to the 
+[numpy project](https://www.flipcause.com/secure/cause_pdetails/MzUwMQ==).
 
 ## Contributors
 Thanks to all who contributed with commits to *asammdf*:
 * Julien Grave [JulienGrv](https://github.com/JulienGrv)
 * Jed Frey [jed-frey](https://github.com/jed-frey)
 * Mihai [yahym](https://github.com/yahym)
-* Jack Weinstein [jacklev](https://github.com/jacklev)
+* Jack Weinstein [jackjweinstein](https://github.com/jackjweinstein)
 * Isuru Fernando [isuruf](https://github.com/isuruf)
 * Felix Kohlgrüber [fkohlgrueber](https://github.com/fkohlgrueber)
 * Stanislav Frolov [stanifrolov](https://github.com/stanifrolov)
@@ -150,7 +153,7 @@ conda install -c conda-forge asammdf
 # Dependencies
 asammdf uses the following libraries
 
-* numpy : the heart that makes all tick
+* numpy : the heart that makes all tick 
 * numexpr : for algebraic and rational channel conversions
 * matplotlib : for Signal plotting
 * wheel : for installation in virtual environments

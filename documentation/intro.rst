@@ -106,9 +106,12 @@ Installation
        # or for anaconda
        conda install -c conda-forge asammdf
 
-Contributing
-============
+Contributing & Support
+======================
 Please have a look over the `contributing guidelines <https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md>`_
+
+If you enjoy this library please consider making a donation to the 
+`numpy project <https://www.flipcause.com/secure/cause_pdetails/MzUwMQ==>`_
 
 Contributors
 ------------
@@ -117,7 +120,7 @@ Thanks to all who contributed with commits to *asammdf*
 * Julien Grave `JulienGrv <https://github.com/JulienGrv>`_.
 * Jed Frey `jed-frey <https://github.com/jed-frey>`_.
 * Mihai `yahym <https://github.com/yahym>`_.
-* Jack Weinstein `jacklev <https://github.com/jacklev>`_.
+* Jack Weinstein `jackjweinstein <https://github.com/jackjweinstein>`_.
 * Isuru Fernando `isuruf <https://github.com/isuruf>`_.
 * Felix Kohlgrüber `fkohlgrueber <https://github.com/fkohlgrueber>`_.
 * Stanislav Frolov `stanifrolov <https://github.com/stanifrolov>`_.
