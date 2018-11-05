@@ -223,12 +223,38 @@ class Signal(object):
     def plot(self):
         """ plot Signal samples """
         try:
-            import matplotlib.pyplot as plt
-            from mpl_toolkits.mplot3d import axes3d
-            from matplotlib.widgets import Slider
-        except ImportError:
-            logging.warning("Signal plotting requires matplotlib")
-            return
+            from .plot import Plot
+            try:
+                from PyQt5.QtWidgets import QApplication
+            except ImportError:
+                from PyQt4.QtGui import QApplication
+
+            app = QApplication([])
+            plt = Plot([self,], True, False)
+
+            name = self.name
+
+            if self.comment:
+                comment = self.comment.replace('$', '')
+                comment = extract_cncomment_xml(comment)
+                comment = fill(comment, 120).replace('\\n', ' ')
+
+                title = '{}\n({})'.format(name, comment)
+                plt.plotItem.setTitle(title)
+            else:
+                plt.plotItem.setTitle(name)
+
+            plt.show()
+            app.exec_()
+
+        except:
+            try:
+                import matplotlib.pyplot as plt
+                from mpl_toolkits.mplot3d import axes3d
+                from matplotlib.widgets import Slider
+            except ImportError:
+                logging.warning("Signal plotting requires pyqtgraph or matplotlib")
+                return
 
         if len(self.samples.shape) <= 1 and self.samples.dtype.names is None:
             fig = plt.figure()
