@@ -7085,3 +7085,130 @@ class MDF4(object):
             channel = grp['logging_channels'][-ch_nr -1]
 
         return channel
+
+    def get_channel_unit(self, name=None, group=None, index=None):
+        """Gets channel unit.
+
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurrences for this channel then the
+              *group* and *index* arguments can be used to select a specific
+              group.
+            * if there are multiple occurrences for this channel and either the
+              *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+          number (keyword argument *index*). Use *info* method for group and
+          channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        unit : str
+            found channel unit
+
+        """
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+
+        if grp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        channel = grp['channels'][ch_nr]
+
+        if self.memory == 'minimum':
+
+            channel = Channel(
+                address=channel,
+                stream=stream,
+            )
+
+        conversion = channel.conversion
+
+        unit = (
+            conversion and conversion.unit
+            or channel.unit
+            or ''
+        )
+
+        return unit
+
+    def get_channel_comment(self, name=None, group=None, index=None):
+        """Gets channel comment.
+
+        Channel can be specified in two ways:
+
+        * using the first positional argument *name*
+
+            * if there are multiple occurrences for this channel then the
+              *group* and *index* arguments can be used to select a specific
+              group.
+            * if there are multiple occurrences for this channel and either the
+              *group* or *index* arguments is None then a warning is issued
+
+        * using the group number (keyword argument *group*) and the channel
+          number (keyword argument *index*). Use *info* method for group and
+          channel numbers
+
+
+        If the *raster* keyword argument is not *None* the output is
+        interpolated accordingly.
+
+        Parameters
+        ----------
+        name : string
+            name of channel
+        group : int
+            0-based group index
+        index : int
+            0-based channel index
+
+        Returns
+        -------
+        comment : str
+            found channel comment
+
+        """
+        gp_nr, ch_nr = self._validate_channel_selection(
+            name,
+            group,
+            index,
+        )
+
+        grp = self.groups[gp_nr]
+
+        if grp['data_location'] == v4c.LOCATION_ORIGINAL_FILE:
+            stream = self._file
+        else:
+            stream = self._tempfile
+
+        channel = grp['channels'][ch_nr]
+
+        if self.memory == 'minimum':
+            channel = Channel(
+                address=channel,
+                stream=stream,
+            )
+
+        return extract_cncomment_xml(channel.comment)
