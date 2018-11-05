@@ -223,14 +223,17 @@ class Signal(object):
     def plot(self):
         """ plot Signal samples """
         try:
-            from .plot import Plot
+            from .plot import Plot, COLORS
             try:
                 from PyQt5.QtWidgets import QApplication
+                from PyQt5.QtGui import QIcon, QPixmap
             except ImportError:
                 from PyQt4.QtGui import QApplication
+                from PyQt5.QtGui import QIcon, QPixmap
 
             app = QApplication([])
-            plt = Plot([self,], True, False)
+
+            plot = Plot([self,], True, False)
 
             name = self.name
 
@@ -240,12 +243,18 @@ class Signal(object):
                 comment = fill(comment, 120).replace('\\n', ' ')
 
                 title = '{}\n({})'.format(name, comment)
-                plt.plotItem.setTitle(title)
+                plot.plotItem.setTitle(title, color=COLORS[0])
             else:
-                plt.plotItem.setTitle(name)
+                plot.plotItem.setTitle(name, color=COLORS[0])
 
-            plt.show()
+            plot.show()
+            plot.setWindowTitle('{} - asammdf{}'.format(self.name, __version__))
+
+            icon = QIcon()
+            icon.addPixmap(QPixmap(":/info.png"), QIcon.Normal, QIcon.Off)
+            plot.setWindowIcon(icon)
             app.exec_()
+            return
 
         except:
             try:
