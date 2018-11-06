@@ -1573,7 +1573,22 @@ class FileWidget(QWidget):
         if not self.plot.region:
             self.cursor_info.setText('t = {:.6f}s'.format(position))
             for i, signal in enumerate(self.plot.signals):
-                samples = signal.cut(position, position).samples
+                cut_sig = signal.cut(position, position)
+                if signal.texts is None or len(cut_sig) == 0:
+                    samples = cut_sig.samples
+                    if signal.conversion and 'text_0' in signal.conversion:
+                        samples = signal.conversion.convert(samples)
+                        try:
+                            samples = [s.decode('utf-8') for s in samples]
+                        except:
+                            samples = [s.decode('latin-1') for s in samples]
+                else:
+                    t = np.argwhere(signal.timestamps == cut_sig.timestamps).flatten()
+                    try:
+                        samples = [e.decode('utf-8') for e in signal.texts[t]]
+                    except:
+                        samples = [e.decode('latin-1') for e in signal.texts[t]]
+
                 item = self.channel_selection.item(i)
                 item = self.channel_selection.itemWidget(item)
 
@@ -2277,7 +2292,6 @@ class FileWidget(QWidget):
                 sig
                 for sig in signals
                 if not sig.samples.dtype.names
-                and sig.samples.dtype.kind not in 'SV'
                 and len(sig.samples.shape) <= 1
             ]
 

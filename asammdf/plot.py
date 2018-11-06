@@ -103,6 +103,7 @@ try:
             super(FormatedAxis, self).__init__(*args, **kwargs)
 
             self.format = 'phys'
+            self.text_conversion = None
 
         def tickStrings(self, values, scale, spacing):
             strns = []
@@ -111,6 +112,12 @@ try:
                 strns = super(FormatedAxis, self).tickStrings(
                     values, scale, spacing
                 )
+                if self.text_conversion:
+                    strns = self.text_conversion.convert(np.array(values))
+                    try:
+                        strns = [s.decode('utf-8') for s in strns]
+                    except:
+                        strns = [s.decode('latin-1') for s in strns]
 
             elif self.format == 'hex':
                 for val in values:
@@ -254,12 +261,18 @@ try:
                 if sig.samples.dtype.kind == 'f':
                     sig.stepmode = False
                     sig.format = '{:.6f}'
+                    sig.texts = None
                 else:
                     if self.step_mode:
                         sig.stepmode = True
                     else:
                         sig.stepmode = False
                     sig.format = 'phys'
+                    if sig.samples.dtype.kind in 'SV':
+                        sig.texts = sig.samples
+                        sig.samples = np.zeros(len(sig.samples))
+                    else:
+                        sig.texts = None
                 sig.enable = True
 
             if self.signals:
@@ -334,6 +347,8 @@ try:
                     sig.empty = True
 
                 axis = FormatedAxis("right")
+                if sig.conversion and 'text_0' in sig.conversion:
+                    axis.text_conversion = sig.conversion
 
                 view_box = pg.ViewBox()
                 view_box.enableAutoRange(
@@ -539,6 +554,11 @@ try:
                     viewbox.setXLink(self.viewbox)
                     axis = self.axis
 
+                    if sig.conversion and 'text_0' in sig.conversion:
+                        axis.text_conversion = sig.conversion
+                    else:
+                        axis.text_conversion = None
+
                     axis.setRange(*sig_axis.range)
                     axis.linkedView().setYRange(*sig_axis.range)
 
@@ -624,78 +644,126 @@ try:
 
             if size:
 
-                stats['overall_min'] = sig.min
-                stats['overall_max'] = sig.max
-                stats['overall_start'] = sig.timestamps[0]
-                stats['overall_stop'] = sig.timestamps[-1]
-                stats['unit'] = sig.unit
-                stats['color'] = sig.color
-                stats['name'] = sig.name
+                if sig.texts is not None:
+                    stats['overall_min'] = ''
+                    stats['overall_max'] = ''
+                    stats['overall_start'] = sig.timestamps[0]
+                    stats['overall_stop'] = sig.timestamps[-1]
+                    stats['unit'] = ''
+                    stats['color'] = sig.color
+                    stats['name'] = sig.name
 
-                if self.cursor1:
-                    position = self.cursor1.value()
-                    stats['cursor_t'] = position
+                    if self.cursor1:
+                        position = self.cursor1.value()
+                        stats['cursor_t'] = position
 
-                    if x[0] <= position <= x[-1]:
-                        idx = np.searchsorted(x, position)
-                        stats['cursor_value'] = sig.samples[idx]
+                        if x[0] <= position <= x[-1]:
+                            idx = np.searchsorted(x, position)
+                            text = sig.texts[idx]
+                            try:
+                                text = text.decode('utf-8')
+                            except:
+                                text = text.decode('latin-1')
+                            stats['cursor_value'] = text
 
-                    else:
-                        stats['cursor_value'] = 'n.a.'
-
-                else:
-                    stats['cursor_t'] = ''
-                    stats['cursor_value'] = ''
-
-                if self.region:
-                    start, stop = self.region.getRegion()
-
-                    stats['selected_start'] = start
-                    stats['selected_stop'] = stop
-                    stats['selected_delta_t'] = stop - start
-
-                    cut = sig.cut(start, stop)
-
-                    if len(cut):
-                        stats['selected_min'] = np.amin(cut.samples)
-                        stats['selected_max'] = np.amax(cut.samples)
-                        if cut.samples.dtype.kind in 'ui':
-                            stats['selected_delta'] = int(
-                                float(cut.samples[-1]) - (cut.samples[0])
-                            )
                         else:
-                            stats['selected_delta'] = cut.samples[-1] - cut.samples[0]
+                            stats['cursor_value'] = 'n.a.'
 
                     else:
-                        stats['selected_min'] = 'n.a.'
-                        stats['selected_max'] = 'n.a.'
-                        stats['selected_delta'] = 'n.a.'
+                        stats['cursor_t'] = ''
+                        stats['cursor_value'] = ''
 
-                else:
                     stats['selected_start'] = ''
                     stats['selected_stop'] = ''
                     stats['selected_delta_t'] = ''
                     stats['selected_min'] = ''
                     stats['selected_max'] = ''
                     stats['selected_delta'] = ''
-
-                (start, stop), _ = self.viewbox.viewRange()
-
-                stats['visible_start'] = start
-                stats['visible_stop'] = stop
-                stats['visible_delta_t'] = stop - start
-
-                cut = sig.cut(start, stop)
-
-                if len(cut):
-                    stats['visible_min'] = np.amin(cut.samples)
-                    stats['visible_max'] = np.amax(cut.samples)
-                    stats['visible_delta'] = cut.samples[-1] - cut.samples[0]
-
+                    stats['visible_min'] = ''
+                    stats['visible_max'] = ''
+                    stats['visible_delta'] = ''
                 else:
-                    stats['visible_min'] = 'n.a.'
-                    stats['visible_max'] = 'n.a.'
-                    stats['visible_delta'] = 'n.a.'
+                    stats['overall_min'] = sig.min
+                    stats['overall_max'] = sig.max
+                    stats['overall_start'] = sig.timestamps[0]
+                    stats['overall_stop'] = sig.timestamps[-1]
+                    stats['unit'] = sig.unit
+                    stats['color'] = sig.color
+                    stats['name'] = sig.name
+
+                    if self.cursor1:
+                        position = self.cursor1.value()
+                        stats['cursor_t'] = position
+
+                        if x[0] <= position <= x[-1]:
+                            idx = np.searchsorted(x, position)
+                            val = sig.samples[idx]
+                            if sig.conversion and 'text_0' in sig.conversion:
+                                vals = np.array([val,])
+                                vals = sig.conversion.convert(vals)
+                                try:
+                                    vals = [s.decode('utf-8') for s in vals]
+                                except:
+                                    vals = [s.decode('latin-1') for s in vals]
+                            val = '{}= {}'.format(val, vals[0])
+                            stats['cursor_value'] = val
+
+                        else:
+                            stats['cursor_value'] = 'n.a.'
+
+                    else:
+                        stats['cursor_t'] = ''
+                        stats['cursor_value'] = ''
+
+                    if self.region:
+                        start, stop = self.region.getRegion()
+
+                        stats['selected_start'] = start
+                        stats['selected_stop'] = stop
+                        stats['selected_delta_t'] = stop - start
+
+                        cut = sig.cut(start, stop)
+
+                        if len(cut):
+                            stats['selected_min'] = np.amin(cut.samples)
+                            stats['selected_max'] = np.amax(cut.samples)
+                            if cut.samples.dtype.kind in 'ui':
+                                stats['selected_delta'] = int(
+                                    float(cut.samples[-1]) - (cut.samples[0])
+                                )
+                            else:
+                                stats['selected_delta'] = cut.samples[-1] - cut.samples[0]
+
+                        else:
+                            stats['selected_min'] = 'n.a.'
+                            stats['selected_max'] = 'n.a.'
+                            stats['selected_delta'] = 'n.a.'
+
+                    else:
+                        stats['selected_start'] = ''
+                        stats['selected_stop'] = ''
+                        stats['selected_delta_t'] = ''
+                        stats['selected_min'] = ''
+                        stats['selected_max'] = ''
+                        stats['selected_delta'] = ''
+
+                    (start, stop), _ = self.viewbox.viewRange()
+
+                    stats['visible_start'] = start
+                    stats['visible_stop'] = stop
+                    stats['visible_delta_t'] = stop - start
+
+                    cut = sig.cut(start, stop)
+
+                    if len(cut):
+                        stats['visible_min'] = np.amin(cut.samples)
+                        stats['visible_max'] = np.amax(cut.samples)
+                        stats['visible_delta'] = cut.samples[-1] - cut.samples[0]
+
+                    else:
+                        stats['visible_min'] = 'n.a.'
+                        stats['visible_max'] = 'n.a.'
+                        stats['visible_delta'] = 'n.a.'
 
             else:
                 stats['overall_min'] = 'n.a.'

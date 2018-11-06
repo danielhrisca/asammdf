@@ -6,7 +6,6 @@ from __future__ import division, print_function
 
 import logging
 import xml.etree.ElementTree as ET
-import re
 import os
 import sys
 from collections import defaultdict
@@ -1501,7 +1500,6 @@ class MDF4(object):
 
                     if block_type == v4c.DT_BLOCK and group['sorted']:
                         cur_size = 0
-                        current_address = 0
                         data = []
 
                         while True:

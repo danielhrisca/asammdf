@@ -13,7 +13,6 @@ from copy import deepcopy
 from functools import reduce
 from itertools import product
 from math import ceil
-from struct import unpack
 from tempfile import TemporaryFile
 
 from numpy import (
@@ -53,7 +52,6 @@ from .utils import (
     get_fmt_v3,
     get_min_max,
     get_unique_name,
-    get_text_v3,
     validate_memory_argument,
     validate_version_argument,
     count_channel_groups,
@@ -69,7 +67,6 @@ from .v2_v3_blocks import (
     DataGroup,
     FileIdentificationBlock,
     HeaderBlock,
-    ProgramBlock,
     TextBlock,
     TriggerBlock,
 )
@@ -1018,8 +1015,11 @@ class MDF3(object):
         if comment:
             try:
                 comment = ET.fromstring(comment)
-                comment = comment.find('.//TX').text
-            except:
+                if comment.find('.//TX'):
+                    comment = comment.find('.//TX').text
+                else:
+                    comment = ''
+            except ET.ParseError:
                 pass
 
         if trigger:
@@ -1041,9 +1041,12 @@ class MDF3(object):
                     current_comment = trigger.comment
                     try:
                         current_comment = ET.fromstring(current_comment)
-                        current_comment = current_comment.find('.//TX').text
-                    except:
-                        raise
+                        if current_comment.find('.//TX'):
+                            current_comment = current_comment.find('.//TX').text
+                        else:
+                            current_comment = ''
+                    except ET.ParseError:
+                        pass
 
                     comment = '{}\n{}. {}'.format(
                         current_comment,
@@ -1073,8 +1076,7 @@ class MDF3(object):
             signals,
             acquisition_info='Python',
             common_timebase=False,
-            units=None,
-        ):
+            units=None):
         """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
