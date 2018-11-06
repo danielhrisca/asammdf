@@ -1051,8 +1051,8 @@ try:
                     (':/zoom-out.png', 'O - Zoom-out'),
                     (':/info.png', 'M - Statistics'),
                     (':/range.png', 'R - Range'),
-                    (':/left.png', '← - Move cursor left'),
-                    (':/right.png', '→ - Move cursor right')):
+                    (':/right.png', '← - Move cursor left'),
+                    (':/left.png', '→ - Move cursor right')):
                 label = QLabel('')
                 label.setPixmap(QPixmap(icon).scaled(QSize(16, 16)))
 

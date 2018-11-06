@@ -2770,7 +2770,7 @@ class MainWindow(QMainWindow):
 
         icon = QIcon()
         icon.addPixmap(
-            QPixmap(":/left.png"),
+            QPixmap(":/right.png"),
             QIcon.Normal,
             QIcon.Off,
         )
@@ -2783,7 +2783,7 @@ class MainWindow(QMainWindow):
 
         icon = QIcon()
         icon.addPixmap(
-            QPixmap(":/right.png"),
+            QPixmap(":/left.png"),
             QIcon.Normal,
             QIcon.Off,
         )
