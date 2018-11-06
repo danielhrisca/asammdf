@@ -1219,6 +1219,7 @@ class MDF4(object):
         data : bytes
             aggregated raw data
         """
+        count = 0
         if address:
             stream.seek(address)
             id_string = stream.read(4)
@@ -1226,11 +1227,13 @@ class MDF4(object):
             if id_string in (b'##DT', b'##RD'):
                 data = DataBlock(address=address, stream=stream)
                 data = data['data']
+                count += 1
                 yield data
             # or a DataZippedBlock
             elif id_string == b'##DZ':
                 data = DataZippedBlock(address=address, stream=stream)
                 data = data['data']
+                count += 1
                 yield data
             # or a DataList
             elif id_string == b'##DL':
@@ -1263,6 +1266,7 @@ class MDF4(object):
                                 view[position: position+uncompressed_size] = block['data']
                                 position += uncompressed_size
                         address = dl['next_dl_addr']
+                    count += 1
                     yield data
 
                 else:
@@ -1274,17 +1278,20 @@ class MDF4(object):
                             id_string = stream.read(4)
                             if id_string == b'##DT':
                                 block = DataBlock(stream=stream, address=addr)
+                                count += 1
                                 yield block['data']
                             elif id_string == b'##DZ':
                                 block = DataZippedBlock(
                                     stream=stream,
                                     address=addr,
                                 )
+                                count += 1
                                 yield block['data']
                             elif id_string == b'##DL':
                                 for data in self._read_data_block(
                                         address=addr,
                                         stream=stream):
+                                    count += 1
                                     yield data
                         address = dl['next_dl_addr']
 
@@ -1295,7 +1302,10 @@ class MDF4(object):
                         address=hl['first_dl_addr'],
                         stream=stream,
                         size=size):
+                    count += 1
                     yield data
+            if not count:
+                yield b''
         else:
             yield b''
 
