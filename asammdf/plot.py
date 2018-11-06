@@ -705,7 +705,7 @@ try:
                                     vals = [s.decode('utf-8') for s in vals]
                                 except:
                                     vals = [s.decode('latin-1') for s in vals]
-                            val = '{}= {}'.format(val, vals[0])
+                                val = '{}= {}'.format(val, vals[0])
                             stats['cursor_value'] = val
 
                         else:
