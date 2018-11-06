@@ -970,9 +970,36 @@ try:
 
             vbox = QVBoxLayout()
 
-            vbox.addWidget(self.splitter)
+            vbox.addWidget(self.splitter, 1)
 
+            hbox = QHBoxLayout()
+
+            for icon, description in (
+                    (':/cursor.png', 'C - Cursor'),
+                    (':/fit.png', 'F - Fit'),
+                    (':/grid.png', 'G - Grid'),
+                    (':/home.png', 'H - Home'),
+                    (':/zoom-in.png', 'I - Zoom-in'),
+                    (':/zoom-out.png', 'O - Zoom-out'),
+                    (':/info.png', 'M - Statistics'),
+                    (':/range.png', 'R - Range'),
+                    (':/left.png', '← - Move cursor left'),
+                    (':/right.png', '→ - Move cursor right')):
+                label = QLabel('')
+                label.setPixmap(QPixmap(icon).scaled(QSize(16, 16)))
+
+                hbox.addWidget(label)
+                label = QLabel(description)
+                hbox.addWidget(label)
+                hbox.addStretch()
+
+            vbox.addLayout(hbox, 0)
             self.setLayout(vbox)
+
+
+            icon = QIcon()
+            icon.addPixmap(QPixmap(":/info.png"), QIcon.Normal, QIcon.Off)
+            self.setWindowIcon(icon)
 
             self.show()
 

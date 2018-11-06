@@ -251,9 +251,6 @@ class Signal(object):
             plot.show()
             plot.setWindowTitle('{} - asammdf{}'.format(self.name, __version__))
 
-            icon = QIcon()
-            icon.addPixmap(QPixmap(":/info.png"), QIcon.Normal, QIcon.Off)
-            plot.setWindowIcon(icon)
             app.exec_()
             return
 
