@@ -1552,16 +1552,17 @@ class FileWidget(QWidget):
             if self.plot.curve.isVisible():
                 timestamps = self.plot.curve.xData
                 samples = self.plot.curve.yData
-                index = np.argwhere(
-                    timestamps == next_pos
-                ).flatten()
-                if len(index):
-                    _, (y_min, y_max) = self.plot.viewbox.viewRange()
+                if len(samples):
+                    index = np.argwhere(
+                        timestamps == next_pos
+                    ).flatten()
+                    if len(index):
+                        _, (y_min, y_max) = self.plot.viewbox.viewRange()
 
-                    sample = samples[index[0]]
-                    sample = (sample - y_min) / (y_max - y_min) * (hint_max - hint_min) + hint_min
+                        sample = samples[index[0]]
+                        sample = (sample - y_min) / (y_max - y_min) * (hint_max - hint_min) + hint_min
 
-                    y.append(sample)
+                        y.append(sample)
 
             self.plot.viewbox.setYRange(hint_min, hint_max, padding=0)
             self.plot.cursor_hint.setData(

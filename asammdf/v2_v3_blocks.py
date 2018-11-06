@@ -1308,7 +1308,8 @@ address: {}
                 new_values[idx] = evaluate(default)
 
                 idx = np.argwhere(idx1 == idx2).flatten()
-                new_values[idx] = np.nan
+                if len(idx):
+                    new_values[idx] = np.nan
                 values = new_values
 
             else:
@@ -1320,7 +1321,9 @@ address: {}
                     new_values[idx] = default
 
                     idx = np.argwhere(idx1 == idx2).flatten()
-                    new_values[idx] = phys[values[idx]]
+                    if len(idx):
+                        print(values[idx], type(values[idx]))
+                        new_values[idx] = phys[values[idx]]
                     values = new_values
                 else:
                     values = phys[idx1]

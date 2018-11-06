@@ -2398,8 +2398,10 @@ class ChannelConversion(dict):
                 dtype=phys.dtype,
             )
 
-            new_values[idx_ne] = default
-            new_values[idx_eq] = phys[idx1[idx_eq]]
+            if len(idx_ne):
+                new_values[idx_ne] = default
+            if len(idx_eq):
+                new_values[idx_eq] = phys[idx1[idx_eq]]
 
             values = new_values
 
@@ -2516,8 +2518,10 @@ class ChannelConversion(dict):
                     dtype=all_values.dtype,
                 )
 
-                new_values[idx_ne] = default
-                new_values[idx_eq] = phys[idx1[idx_eq]]
+                if len(idx_ne):
+                    new_values[idx_ne] = default
+                if len(idx_eq):
+                    new_values[idx_eq] = phys[idx1[idx_eq]]
 
                 values = new_values
             else:
