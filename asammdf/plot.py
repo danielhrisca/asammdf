@@ -1,11 +1,19 @@
 # -*- coding: utf-8 -*-
 import sys
+import os
 PYVERSION = sys.version_info[0]
 bin_ = bin
 import logging
 from functools import reduce, partial
 
 import numpy as np
+
+try:
+    HERE = os.path.dirname(
+        os.path.realpath(__file__)
+    )
+except:
+    HERE = os.path.abspath(os.path.dirname(sys.argv[0]))
 
 try:
     import pyqtgraph as pg
@@ -125,6 +133,96 @@ try:
             return strns
 
 
+    class ChannelStats(QWidget):
+        def __init__(self, *args, **kwargs):
+            super(ChannelStats, self).__init__(*args, **kwargs)
+            uic.loadUi(os.path.join(HERE, '..', 'asammdfgui', 'channel_stats.ui'), self)
+
+            self.color = '#000000'
+            self.fmt = 'phys'
+            self.name_template = '<html><head/><body><p><span style=" font-size:11pt; font-weight:600; color:{};">{}</span></p></body></html>'
+            self._name = 'Please select a single channel'
+
+        def set_stats(self, stats):
+            if stats:
+                for name, value in stats.items():
+                    try:
+                        if value.dtype.kind in 'ui':
+                            sign = '-' if value < 0 else ''
+                            value = abs(value)
+                            if self.fmt == 'hex':
+                                value = '{}0x{:X}'.format(sign, value)
+                            elif self.fmt == 'bin':
+                                value = '{}0b{:b}'.format(sign, value)
+                            else:
+                                value = '{}{}'.format(sign, value)
+                        else:
+                            value = '{:.6f}'.format(value)
+                    except:
+                        if isinstance(value, int):
+                            sign = '-' if value < 0 else ''
+                            value = abs(value)
+                            if self.fmt == 'hex':
+                                value = '{}0x{:X}'.format(sign, value)
+                            elif self.fmt == 'bin':
+                                value = '{}0b{:b}'.format(sign, value)
+                            else:
+                                value = '{}{}'.format(sign, value)
+                        elif isinstance(value, float):
+                            value = '{:.6f}'.format(value)
+                        else:
+                            value = value
+
+                    if name == 'unit':
+                        for i in range(1, 10):
+                            label = self.findChild(QLabel, 'unit{}'.format(i))
+                            label.setText(' {}'.format(value))
+                    elif name == 'name':
+                        self._name = value
+                        self.name.setText(
+                            self.name_template.format(
+                                self.color,
+                                self._name,
+                            )
+                        )
+                    elif name == 'color':
+                        self.color = value
+                        self.name.setText(
+                            self.name_template.format(
+                                self.color,
+                                self._name,
+                            )
+                        )
+                    else:
+                        label = self.findChild(QLabel, name)
+                        label.setText(value)
+            else:
+                self.clear()
+
+        def clear(self):
+            self._name = 'Please select a single channel'
+            self.color = '#000000'
+            self.name.setText(
+                self.name_template.format(
+                    self.color,
+                    self._name,
+                )
+            )
+            for group in (
+                    self.cursor_group,
+                    self.range_group,
+                    self.visible_group,
+                    self.overall_group):
+                layout = group.layout()
+                rows = layout.rowCount()
+                for i in range(rows):
+                    label = layout.itemAtPosition(i, 1).widget()
+                    label.setText('')
+                for i in range(rows // 2, rows):
+                    label = layout.itemAtPosition(i, 2).widget()
+                    label.setText('')
+
+
     class Plot(pg.PlotWidget):
         cursor_moved = pyqtSignal()
         cursor_removed = pyqtSignal()
@@ -144,6 +242,8 @@ try:
                 self.curvetype = pg.PlotCurveItem
             self.step_mode = step_mode
             self.info = None
+
+            self.standalone = kwargs.get('standalone', False)
 
             self.singleton = None
             self.region = None
@@ -291,6 +391,7 @@ try:
 
             if len(signals) == 1:
                 self.setSignalEnable(0, 1)
+
 
             self.update_views()
 
@@ -665,10 +766,10 @@ try:
                     self.cursor_move_finished.emit()
 
                 else:
-                    self.cursor_removed.emit()
                     self.plotItem.removeItem(self.cursor1)
                     self.cursor1.setParent(None)
                     self.cursor1 = None
+                    self.cursor_removed.emit()
 
             elif key == Qt.Key_F:
                 x_range, _ = self.viewbox.viewRange()
@@ -846,6 +947,206 @@ try:
             else:
                 super(Plot, self).keyPressEvent(event)
     PYQTGRAPH_AVAILABLE = True
+
+    class StandalonePlot(QWidget):
+
+        def __init__(self, signals, with_dots, step_mode, *args, **kwargs):
+            super(StandalonePlot, self).__init__(*args, **kwargs)
+
+            self.splitter = QSplitter(self)
+            self.splitter.setOrientation(Qt.Horizontal)
+            self.info = None
+
+            self.plot = Plot(signals, with_dots, step_mode, standalone=True)
+            self.splitter.addWidget(self.plot)
+
+            self.plot.range_modified.connect(self.range_modified)
+            self.plot.range_removed.connect(self.range_removed)
+            self.plot.range_modified_finished.connect(self.range_modified_finished)
+            self.plot.cursor_removed.connect(self.cursor_removed)
+            self.plot.cursor_moved.connect(self.cursor_moved)
+            self.plot.cursor_move_finished.connect(self.cursor_move_finished)
+            self.plot.xrange_changed.connect(self.xrange_changed)
+
+            vbox = QVBoxLayout()
+
+            vbox.addWidget(self.splitter)
+
+            self.setLayout(vbox)
+
+            self.show()
+
+        def keyPressEvent(self, event):
+            key = event.key()
+            modifier = event.modifiers()
+
+            if key == Qt.Key_M:
+                if self.info is None:
+                    self.info = ChannelStats()
+                    self.splitter.addWidget(self.info)
+                    stats = self.plot.get_stats(0)
+                    self.info.set_stats(stats)
+                else:
+                    self.info.setParent(None)
+                    self.info.hide()
+                    self.info = None
+            else:
+                super(StandalonePlot, self).keyPressEvent(event)
+
+        def cursor_moved(self):
+            position = self.plot.cursor1.value()
+
+            x = self.plot.timebase
+
+            if x is not None and len(x):
+                dim = len(x)
+                position = self.plot.cursor1.value()
+
+                right = np.searchsorted(x, position, side='right')
+                if right == 0:
+                    next_pos = x[0]
+                elif right == dim:
+                    next_pos = x[-1]
+                else:
+                    if position - x[right - 1] < x[right] - position:
+                        next_pos = x[right - 1]
+                    else:
+                        next_pos = x[right]
+
+                y = []
+
+                _, (hint_min, hint_max) = self.plot.viewbox.viewRange()
+
+                for viewbox, sig, curve in zip(
+                        self.plot.view_boxes,
+                        self.plot.signals,
+                        self.plot.curves):
+                    if curve.isVisible():
+                        index = np.argwhere(
+                            sig.timestamps == next_pos
+                        ).flatten()
+                        if len(index):
+                            _, (y_min, y_max) = viewbox.viewRange()
+
+                            sample = sig.samples[index[0]]
+                            sample = (sample - y_min) / (y_max - y_min) * (
+                                        hint_max - hint_min) + hint_min
+
+                            y.append(sample)
+
+                if self.plot.curve.isVisible():
+                    timestamps = self.plot.curve.xData
+                    samples = self.plot.curve.yData
+                    index = np.argwhere(
+                        timestamps == next_pos
+                    ).flatten()
+                    if len(index):
+                        _, (y_min, y_max) = self.plot.viewbox.viewRange()
+
+                        sample = samples[index[0]]
+                        sample = (sample - y_min) / (y_max - y_min) * (
+                                    hint_max - hint_min) + hint_min
+
+                        y.append(sample)
+
+                self.plot.viewbox.setYRange(hint_min, hint_max, padding=0)
+                self.plot.cursor_hint.setData(
+                    x=[next_pos, ] * len(y),
+                    y=y,
+                )
+                self.plot.cursor_hint.show()
+
+            if self.info:
+                stats = self.plot.get_stats(0)
+                self.info.set_stats(stats)
+
+        def cursor_move_finished(self):
+            x = self.plot.timebase
+
+            if x is not None and len(x):
+                dim = len(x)
+                position = self.plot.cursor1.value()
+
+                right = np.searchsorted(x, position, side='right')
+                if right == 0:
+                    next_pos = x[0]
+                elif right == dim:
+                    next_pos = x[-1]
+                else:
+                    if position - x[right - 1] < x[right] - position:
+                        next_pos = x[right - 1]
+                    else:
+                        next_pos = x[right]
+                self.plot.cursor1.setPos(next_pos)
+
+            self.plot.cursor_hint.setData(
+                x=[],
+                y=[],
+            )
+
+        def range_modified(self):
+            if self.info:
+                stats = self.plot.get_stats(0)
+                self.info.set_stats(stats)
+
+        def xrange_changed(self):
+
+            if self.info:
+                stats = self.plot.get_stats(0)
+                self.info.set_stats(stats)
+
+        def range_modified_finished(self):
+            start, stop = self.plot.region.getRegion()
+
+            if self.plot.timebase is not None and len(self.plot.timebase):
+                timebase = self.plot.timebase
+                dim = len(timebase)
+
+                right = np.searchsorted(
+                    timebase,
+                    start,
+                    side='right',
+                )
+                if right == 0:
+                    next_pos = timebase[0]
+                elif right == dim:
+                    next_pos = timebase[-1]
+                else:
+                    if start - timebase[right - 1] < timebase[right] - start:
+                        next_pos = timebase[right - 1]
+                    else:
+                        next_pos = timebase[right]
+                start = next_pos
+
+                right = np.searchsorted(
+                    timebase,
+                    stop,
+                    side='right',
+                )
+                if right == 0:
+                    next_pos = timebase[0]
+                elif right == dim:
+                    next_pos = timebase[-1]
+                else:
+                    if stop - timebase[right - 1] < timebase[right] - stop:
+                        next_pos = timebase[right - 1]
+                    else:
+                        next_pos = timebase[right]
+                stop = next_pos
+
+                self.plot.region.setRegion(
+                    (start, stop)
+                )
+
+        def range_removed(self):
+            if self.info:
+                stats = self.plot.get_stats(0)
+                self.info.set_stats(stats)
+
+        def cursor_removed(self):
+            if self.info:
+                stats = self.plot.get_stats(0)
+                self.info.set_stats(stats)
 
 except ImportError:
     PYQTGRAPH_AVAILABLE = True

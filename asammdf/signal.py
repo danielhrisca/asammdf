@@ -221,19 +221,20 @@ class Signal(object):
         )
 
     def plot(self):
-        """ plot Signal samples """
+        """ plot Signal samples. Pyqtgraph is used if it is available; in this
+        case see the GUI plot documentation to see the available commands"""
         try:
-            from .plot import Plot, COLORS
+            from .plot import Plot, COLORS, StandalonePlot
             try:
                 from PyQt5.QtWidgets import QApplication
                 from PyQt5.QtGui import QIcon, QPixmap
             except ImportError:
                 from PyQt4.QtGui import QApplication
-                from PyQt5.QtGui import QIcon, QPixmap
+                from PyQt4.QtGui import QIcon, QPixmap
 
             app = QApplication([])
 
-            plot = Plot([self,], True, False)
+            plot = StandalonePlot([self,], True, False)
 
             name = self.name
 
@@ -243,9 +244,9 @@ class Signal(object):
                 comment = fill(comment, 120).replace('\\n', ' ')
 
                 title = '{}\n({})'.format(name, comment)
-                plot.plotItem.setTitle(title, color=COLORS[0])
+                plot.plot.plotItem.setTitle(title, color=COLORS[0])
             else:
-                plot.plotItem.setTitle(name, color=COLORS[0])
+                plot.plot.plotItem.setTitle(name, color=COLORS[0])
 
             plot.show()
             plot.setWindowTitle('{} - asammdf{}'.format(self.name, __version__))
