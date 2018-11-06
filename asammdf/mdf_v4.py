@@ -2328,10 +2328,11 @@ class MDF4(object):
             # can be a DataBlock
             if id_string == block_type:
                 size = block_len - 24
-                info['data_size'].append(size)
-                info['data_block_size'].append(size)
-                info['data_block_addr'].append(address + v4c.COMMON_SIZE)
-                info['data_block_type'] = v4c.DT_BLOCK
+                if size:
+                    info['data_size'].append(size)
+                    info['data_block_size'].append(size)
+                    info['data_block_addr'].append(address + v4c.COMMON_SIZE)
+                    info['data_block_type'] = v4c.DT_BLOCK
             # or a DataZippedBlock
             elif id_string == b'##DZ':
                 stream.seek(address)
@@ -2349,14 +2350,15 @@ class MDF4(object):
                     v4c.FMT_DZ_COMMON,
                     stream.read(v4c.DZ_COMMON_SIZE),
                 )
-                info['data_size'].append(temp['original_size'])
-                info['data_block_size'].append(temp['zip_size'])
-                info['data_block_addr'].append(address + v4c.DZ_COMMON_SIZE)
-                if temp['zip_type'] == v4c.FLAG_DZ_DEFLATE:
-                    info['data_block_type'] = v4c.DZ_BLOCK_DEFLATE
-                else:
-                    info['data_block_type'] = v4c.DZ_BLOCK_TRANSPOSED
-                    info['param'] = temp['param']
+                if temp['original_size']:
+                    info['data_size'].append(temp['original_size'])
+                    info['data_block_size'].append(temp['zip_size'])
+                    info['data_block_addr'].append(address + v4c.DZ_COMMON_SIZE)
+                    if temp['zip_type'] == v4c.FLAG_DZ_DEFLATE:
+                        info['data_block_type'] = v4c.DZ_BLOCK_DEFLATE
+                    else:
+                        info['data_block_type'] = v4c.DZ_BLOCK_TRANSPOSED
+                        info['param'] = temp['param']
 
             # or a DataList
             elif id_string == b'##DL':
@@ -2365,11 +2367,12 @@ class MDF4(object):
                     dl = DataList(address=address, stream=stream)
                     for i in range(dl['data_block_nr']):
                         addr = dl['data_block_addr{}'.format(i)]
-                        info['data_block_addr'].append(addr + v4c.COMMON_SIZE)
                         stream.seek(addr+8)
                         size = unpack('<Q', stream.read(8))[0] - 24
-                        info['data_size'].append(size)
-                        info['data_block_size'].append(size)
+                        if size:
+                            info['data_block_addr'].append(addr + v4c.COMMON_SIZE)
+                            info['data_size'].append(size)
+                            info['data_block_size'].append(size)
                     address = dl['next_dl_addr']
             # or a header list
             elif id_string == b'##HL':
@@ -2384,15 +2387,17 @@ class MDF4(object):
                     dl = DataList(address=address, stream=stream)
                     for i in range(dl['data_block_nr']):
                         addr = dl['data_block_addr{}'.format(i)]
-                        info['data_block_addr'].append(addr + v4c.DZ_COMMON_SIZE)
+
                         stream.seek(addr + 28)
                         param, size, zip_size = unpack(
                             '<I2Q',
                             stream.read(20),
                         )
-                        info['data_size'].append(size)
-                        info['data_block_size'].append(zip_size)
-                        info['param'] = param
+                        if size:
+                            info['data_block_addr'].append(addr + v4c.DZ_COMMON_SIZE)
+                            info['data_size'].append(size)
+                            info['data_block_size'].append(zip_size)
+                            info['param'] = param
 
                     address = dl['next_dl_addr']
 

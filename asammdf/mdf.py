@@ -2579,9 +2579,7 @@ class MDF(object):
             parents, dtypes = self._prepare_record(grp)
             grp['parents'], grp['types'] = parents, dtypes
 
-            empty = True
             for fragment in data:
-                empty = False
                 if dtypes.itemsize:
                     grp['record'] = np.core.records.fromstring(
                         fragment[0],
@@ -2591,20 +2589,10 @@ class MDF(object):
                     grp['record'] = None
                 for index in gps[group]:
                     signal = self.get(group=group, index=index, data=fragment)
-                    signal_parts[(group, index)].append(signal)
-                del grp['record']
-
-            if empty:
-                if dtypes.itemsize:
-                    grp['record'] = np.core.records.fromstring(
-                        b'',
-                        dtype=dtypes,
-                    )
-                else:
-                    grp['record'] = None
-                for index in gps[group]:
-                    signal = self.get(group=group, index=index, data=(b'', 0))
-                    signal_parts[(group, index)] = [signal, ]
+                    if (group, index) not in signal_parts:
+                        signal_parts[(group, index)] = [signal, ]
+                    else:
+                        signal_parts[(group, index)].append(signal)
                 del grp['record']
 
         signals = []
