@@ -275,6 +275,13 @@ try:
                         sig.texts = None
                 sig.enable = True
 
+                sig._stats = {
+                    'range': (0, -1),
+                    'range_stats': {},
+                    'visible': (0, -1),
+                    'visible_stats': {},
+                }
+
             if self.signals:
                 self.all_timebase = self.timebase = reduce(
                     np.union1d,
@@ -718,26 +725,33 @@ try:
                     if self.region:
                         start, stop = self.region.getRegion()
 
-                        stats['selected_start'] = start
-                        stats['selected_stop'] = stop
-                        stats['selected_delta_t'] = stop - start
+                        if sig._stats['range'] != (start, stop):
+                            new_stats = {}
+                            new_stats['selected_start'] = start
+                            new_stats['selected_stop'] = stop
+                            new_stats['selected_delta_t'] = stop - start
 
-                        cut = sig.cut(start, stop)
+                            cut = sig.cut(start, stop)
 
-                        if len(cut):
-                            stats['selected_min'] = np.amin(cut.samples)
-                            stats['selected_max'] = np.amax(cut.samples)
-                            if cut.samples.dtype.kind in 'ui':
-                                stats['selected_delta'] = int(
-                                    float(cut.samples[-1]) - (cut.samples[0])
-                                )
+                            if len(cut):
+                                new_stats['selected_min'] = np.amin(cut.samples)
+                                new_stats['selected_max'] = np.amax(cut.samples)
+                                if cut.samples.dtype.kind in 'ui':
+                                    new_stats['selected_delta'] = int(
+                                        float(cut.samples[-1]) - (cut.samples[0])
+                                    )
+                                else:
+                                    new_stats['selected_delta'] = cut.samples[-1] - cut.samples[0]
+
                             else:
-                                stats['selected_delta'] = cut.samples[-1] - cut.samples[0]
+                                new_stats['selected_min'] = 'n.a.'
+                                new_stats['selected_max'] = 'n.a.'
+                                new_stats['selected_delta'] = 'n.a.'
 
-                        else:
-                            stats['selected_min'] = 'n.a.'
-                            stats['selected_max'] = 'n.a.'
-                            stats['selected_delta'] = 'n.a.'
+                            sig._stats['range'] = (start, stop)
+                            sig._stats['range_stats'] = new_stats
+
+                        stats.update(sig._stats['range_stats'])
 
                     else:
                         stats['selected_start'] = ''
@@ -749,21 +763,28 @@ try:
 
                     (start, stop), _ = self.viewbox.viewRange()
 
-                    stats['visible_start'] = start
-                    stats['visible_stop'] = stop
-                    stats['visible_delta_t'] = stop - start
+                    if sig._stats['visible'] != (start, stop):
+                        new_stats = {}
+                        new_stats['visible_start'] = start
+                        new_stats['visible_stop'] = stop
+                        new_stats['visible_delta_t'] = stop - start
 
-                    cut = sig.cut(start, stop)
+                        cut = sig.cut(start, stop)
 
-                    if len(cut):
-                        stats['visible_min'] = np.amin(cut.samples)
-                        stats['visible_max'] = np.amax(cut.samples)
-                        stats['visible_delta'] = cut.samples[-1] - cut.samples[0]
+                        if len(cut):
+                            new_stats['visible_min'] = np.amin(cut.samples)
+                            new_stats['visible_max'] = np.amax(cut.samples)
+                            new_stats['visible_delta'] = cut.samples[-1] - cut.samples[0]
 
-                    else:
-                        stats['visible_min'] = 'n.a.'
-                        stats['visible_max'] = 'n.a.'
-                        stats['visible_delta'] = 'n.a.'
+                        else:
+                            new_stats['visible_min'] = 'n.a.'
+                            new_stats['visible_max'] = 'n.a.'
+                            new_stats['visible_delta'] = 'n.a.'
+
+                        sig._stats['visible'] = (start, stop)
+                        sig._stats['visible_stats'] = new_stats
+
+                    stats.update(sig._stats['visible_stats'])
 
             else:
                 stats['overall_min'] = 'n.a.'

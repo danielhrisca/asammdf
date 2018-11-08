@@ -175,7 +175,7 @@ class MDF3(object):
         self._file = None
 
         self._read_fragment_size = 0
-        self._write_fragment_size = 8 * 2 ** 20
+        self._write_fragment_size = 4 * 2 ** 20
         self._single_bit_uint_as_bool = False
 
         self._callback = kwargs.get('callback', None)

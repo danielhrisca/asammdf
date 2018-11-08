@@ -228,7 +228,7 @@ class MDF4(object):
         self._file = None
 
         self._read_fragment_size = 0
-        self._write_fragment_size = 8 * 2**20
+        self._write_fragment_size = 4 * 2**20
         self._use_display_names = kwargs.get('use_display_names', False)
         self._single_bit_uint_as_bool = False
 
@@ -2482,13 +2482,14 @@ class MDF4(object):
         Parameters
         ----------
         read_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size is
+            size hint of split data blocks, default 8MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size
         write_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size is
+            size hint of split data blocks, default 4MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
-            the data groups' records size
+            the data groups' records size. Maximum size is 4MB to ensure
+            compatibility with CANape
 
         """
 
@@ -2496,7 +2497,10 @@ class MDF4(object):
             self._read_fragment_size = int(read_fragment_size)
 
         if write_fragment_size:
-            self._write_fragment_size = int(write_fragment_size)
+            self._write_fragment_size = min(
+                int(write_fragment_size),
+                4 * 2**20,
+            )
 
         if use_display_names is not None:
             self._use_display_names = bool(use_display_names)
@@ -6162,29 +6166,93 @@ class MDF4(object):
                         index=j,
                     )
                     if sdata:
-                        if compression and self.version > '4.00':
-                            signal_data = DataZippedBlock(
-                                data=sdata,
-                                zip_type=v4c.FLAG_DZ_DEFLATE,
-                                original_type=b'SD',
-                            )
-                            signal_data.address = address
-                            address += signal_data['block_len']
-                            blocks.append(signal_data)
-                            align = signal_data['block_len'] % 8
-                            if align:
-                                blocks.append(b'\0' * (8 - align))
-                                address += 8 - align
+                        split_size = self._write_fragment_size
+                        if self._write_fragment_size:
+                            chunks = float(len(sdata)) / split_size
+                            chunks = int(ceil(chunks))
                         else:
-                            signal_data = DataBlock(data=sdata, type='SD')
-                            signal_data.address = address
-                            address += signal_data['block_len']
-                            blocks.append(signal_data)
-                            align = signal_data['block_len'] % 8
-                            if align:
-                                blocks.append(b'\0' * (8 - align))
-                                address += 8 - align
-                        gp_sd.append(signal_data)
+                            chunks = 1
+
+                        if chunks == 1:
+                            if compression and self.version > '4.00':
+                                signal_data = DataZippedBlock(
+                                    data=sdata,
+                                    zip_type=v4c.FLAG_DZ_DEFLATE,
+                                    original_type=b'SD',
+                                )
+                                signal_data.address = address
+                                address += signal_data['block_len']
+                                blocks.append(signal_data)
+                                align = signal_data['block_len'] % 8
+                                if align:
+                                    blocks.append(b'\0' * (8 - align))
+                                    address += 8 - align
+                            else:
+                                signal_data = DataBlock(data=sdata, type='SD')
+                                signal_data.address = address
+                                address += signal_data['block_len']
+                                blocks.append(signal_data)
+                                align = signal_data['block_len'] % 8
+                                if align:
+                                    blocks.append(b'\0' * (8 - align))
+                                    address += 8 - align
+                            gp_sd.append(signal_data)
+                        else:
+                            kargs = {
+                                'flags': v4c.FLAG_DL_EQUAL_LENGHT,
+                                'links_nr': chunks + 1,
+                                'data_block_nr': chunks,
+                                'data_block_len': self._write_fragment_size,
+                            }
+                            dl_block = DataList(**kargs)
+
+                            for k in range(chunks):
+
+                                data_ = sdata[k * split_size: (k + 1) * split_size]
+                                if compression and self.version > '4.00':
+                                    zip_type = v4c.FLAG_DZ_DEFLATE
+                                    param = 0
+
+                                    kargs = {
+                                        'data': data_,
+                                        'zip_type': zip_type,
+                                        'param': param,
+                                        'original_type': b'SD',
+                                    }
+                                    block = DataZippedBlock(**kargs)
+                                else:
+                                    block = DataBlock(data=data_, type='SD')
+                                blocks.append(block)
+                                block.address = address
+                                address += block['block_len']
+
+                                align = block['block_len'] % 8
+                                if align:
+                                    blocks.append(b'\0' * (8 - align))
+                                    address += 8 - align
+                                dl_block['data_block_addr{}'.format(k)] = block.address
+
+                            dl_block.address = address
+                            blocks.append(dl_block)
+
+                            address += dl_block['block_len']
+
+                            if compression and self.version > '4.00':
+                                kargs = {
+                                    'flags': v4c.FLAG_DL_EQUAL_LENGHT,
+                                    'zip_type': v4c.FLAG_DZ_DEFLATE,
+                                    'first_dl_addr': dl_block.address,
+                                }
+                                hl_block = HeaderList(**kargs)
+                                hl_block.address = address
+                                address += hl_block['block_len']
+
+                                blocks.append(hl_block)
+
+                                gp_sd.append(hl_block)
+                            else:
+                                gp_sd.append(dl_block)
+
                     else:
                         gp_sd.append(None)
 
@@ -6776,28 +6844,86 @@ class MDF4(object):
                     except IndexError:
                         signal_data = b''
                     if signal_data:
-                        if compression and self.version > '4.00':
-                            signal_data = DataZippedBlock(
-                                data=signal_data,
-                                zip_type=v4c.FLAG_DZ_DEFLATE,
-                                original_type=b'SD',
-                            )
-                            channel['data_block_addr'] = address
-                            address += signal_data['block_len']
-                            write(bytes(signal_data))
-                            align = signal_data['block_len'] % 8
-                            if align % 8:
-                                write(b'\0' * (8 - align))
-                                address += 8 - align
+                        split_size = self._write_fragment_size
+                        if self._write_fragment_size:
+                            chunks = float(len(signal_data)) / split_size
+                            chunks = int(ceil(chunks))
                         else:
-                            signal_data = DataBlock(data=signal_data, type='SD')
+                            chunks = 1
+
+                        if chunks == 1:
+                            if compression and self.version > '4.00':
+                                signal_data = DataZippedBlock(
+                                    data=signal_data,
+                                    zip_type=v4c.FLAG_DZ_DEFLATE,
+                                    original_type=b'SD',
+                                )
+                                channel['data_block_addr'] = address
+                                address += signal_data['block_len']
+                                write(bytes(signal_data))
+                                align = signal_data['block_len'] % 8
+                                if align % 8:
+                                    write(b'\0' * (8 - align))
+                                    address += 8 - align
+                            else:
+                                signal_data = DataBlock(data=signal_data, type='SD')
+                                channel['data_block_addr'] = address
+                                write(bytes(signal_data))
+                                address += signal_data['block_len']
+                                align = signal_data['block_len'] % 8
+                                if align % 8:
+                                    write(b'\0' * (8 - align))
+                                    address += 8 - align
+                        else:
+
+                            kargs = {
+                                'flags': v4c.FLAG_DL_EQUAL_LENGHT,
+                                'links_nr': chunks + 1,
+                                'data_block_nr': chunks,
+                                'data_block_len': split_size,
+                            }
+                            dl_block = DataList(**kargs)
+
+                            for k in range(chunks):
+
+                                data_ = signal_data[k * split_size: (k + 1) * split_size]
+                                if compression and self.version > '4.00':
+                                    zip_type = v4c.FLAG_DZ_DEFLATE
+                                    param = 0
+
+                                    kargs = {
+                                        'data': data_,
+                                        'zip_type': zip_type,
+                                        'param': param,
+                                        'original_type': b'SD',
+                                    }
+                                    block = DataZippedBlock(**kargs)
+                                else:
+                                    block = DataBlock(data=data_, type='SD')
+
+                                address = tell()
+                                dl_block['data_block_addr{}'.format(k)] = address
+                                write(bytes(block))
+
+                                align = block['block_len'] % 8
+                                if align:
+                                    write(b'\0' * (8 - align))
+
+                            address = tell()
+                            write(bytes(dl_block))
+
+                            if compression and self.version != '4.00':
+                                kargs = {
+                                    'flags': v4c.FLAG_DL_EQUAL_LENGHT,
+                                    'zip_type': zip_type,
+                                    'first_dl_addr': address
+                                }
+                                hl_block = HeaderList(**kargs)
+
+                                address = tell()
+                                write(bytes(hl_block))
                             channel['data_block_addr'] = address
-                            write(bytes(signal_data))
-                            address += signal_data['block_len']
-                            align = signal_data['block_len'] % 8
-                            if align % 8:
-                                write(b'\0' * (8 - align))
-                                address += 8 - align
+
                     elif channel['channel_type'] == v4c.CHANNEL_TYPE_SYNC:
                         idx = self._attachments_map[channel['data_block_addr']]
                         channel['data_block_addr'] = self.attachments[idx].address
