@@ -2888,6 +2888,7 @@ class DataBlock(dict):
                 raise MdfException(message)
 
         except KeyError:
+            self.address = 0
             type = kwargs.get('type', 'DT')
             if type not in ('DT', 'SD', 'RD'):
                 type = 'DT'
