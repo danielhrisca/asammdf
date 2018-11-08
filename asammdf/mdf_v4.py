@@ -228,7 +228,7 @@ class MDF4(object):
         self._file = None
 
         self._read_fragment_size = 0
-        self._write_fragment_size = 8 * 2**20
+        self._write_fragment_size = 4 * 2**20
         self._use_display_names = kwargs.get('use_display_names', False)
         self._single_bit_uint_as_bool = False
 
@@ -2482,13 +2482,14 @@ class MDF4(object):
         Parameters
         ----------
         read_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size is
+            size hint of split data blocks, default 8MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size
         write_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size is
+            size hint of split data blocks, default 4MB; if the initial size is
             smaller, then no data list is used. The actual split size depends on
-            the data groups' records size
+            the data groups' records size. Maximum size is 4MB to ensure
+            compatibility with CANape
 
         """
 
@@ -2496,7 +2497,10 @@ class MDF4(object):
             self._read_fragment_size = int(read_fragment_size)
 
         if write_fragment_size:
-            self._write_fragment_size = int(write_fragment_size)
+            self._write_fragment_size = min(
+                int(write_fragment_size),
+                4 * 2**20,
+            )
 
         if use_display_names is not None:
             self._use_display_names = bool(use_display_names)
