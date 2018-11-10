@@ -176,4 +176,4 @@ other optional dependencies
 
 # Benchmarks
 
-http://asammdf.readthedocs.io/en/develoment/benchmarks.html
+http://asammdf.readthedocs.io/en/master/benchmarks.html
