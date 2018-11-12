@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 asammdf utility functions and classes
-'''
+"""
 from __future__ import division, print_function
 
 import logging
@@ -13,109 +13,98 @@ from random import randint
 from struct import Struct
 from warnings import warn
 
-from numpy import (
-    amin,
-    amax,
-    where,
-)
+from numpy import amin, amax, where
 
 import sys
+
 PYVERSION = sys.version_info[0]
 
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
-UINT16 = Struct('<H').unpack
-UINT32 = Struct('<I').unpack
-UINT64 = Struct('<Q').unpack
-logger = logging.getLogger('asammdf')
+UINT16 = Struct("<H").unpack
+UINT32 = Struct("<I").unpack
+UINT64 = Struct("<Q").unpack
+logger = logging.getLogger("asammdf")
 
 __all__ = [
-    'CHANNEL_COUNT',
-    'CONVERT_LOW',
-    'CONVERT_MINIMUM',
-    'MERGE_LOW',
-    'MERGE_MINIMUM',
-    'ChannelsDB',
-    'MdfException',
-    'SignalSource',
-    'get_fmt_v3',
-    'get_fmt_v4',
-    'get_min_max',
-    'get_unique_name',
-    'get_text_v4',
-    'fix_dtype_fields',
-    'fmt_to_datatype_v3',
-    'fmt_to_datatype_v4',
-    'bytes',
-    'matlab_compatible',
-    'extract_cncomment_xml',
-    'validate_memory_argument',
-    'validate_version_argument',
-    'MDF2_VERSIONS',
-    'MDF3_VERSIONS',
-    'MDF4_VERSIONS',
-    'SUPPORTED_VERSIONS',
+    "CHANNEL_COUNT",
+    "CONVERT_LOW",
+    "CONVERT_MINIMUM",
+    "MERGE_LOW",
+    "MERGE_MINIMUM",
+    "ChannelsDB",
+    "MdfException",
+    "SignalSource",
+    "get_fmt_v3",
+    "get_fmt_v4",
+    "get_min_max",
+    "get_unique_name",
+    "get_text_v4",
+    "fix_dtype_fields",
+    "fmt_to_datatype_v3",
+    "fmt_to_datatype_v4",
+    "bytes",
+    "matlab_compatible",
+    "extract_cncomment_xml",
+    "validate_memory_argument",
+    "validate_version_argument",
+    "MDF2_VERSIONS",
+    "MDF3_VERSIONS",
+    "MDF4_VERSIONS",
+    "SUPPORTED_VERSIONS",
 ]
 
-CHANNEL_COUNT = (
-    0,
-    200,
-    2000,
-    10000,
-    20000,
-    400000,
-)
+CHANNEL_COUNT = (0, 200, 2000, 10000, 20000, 400000)
 
 CONVERT_LOW = (
-    10 * 2**20,
-    10 * 2**20,
-    20 * 2**20,
-    30 * 2**20,
-    40 * 2**20,
-    100 * 2**20,
+    10 * 2 ** 20,
+    10 * 2 ** 20,
+    20 * 2 ** 20,
+    30 * 2 ** 20,
+    40 * 2 ** 20,
+    100 * 2 ** 20,
 )
 
 CONVERT_MINIMUM = (
-    10 * 2**20,
-    10 * 2**20,
-    30 * 2**20,
-    30 * 2**20,
-    40 * 2**20,
-    100 * 2**20,
+    10 * 2 ** 20,
+    10 * 2 ** 20,
+    30 * 2 ** 20,
+    30 * 2 ** 20,
+    40 * 2 ** 20,
+    100 * 2 ** 20,
 )
 
 MERGE_LOW = (
-    10 * 2**20,
-    10 * 2**20,
-    20 * 2**20,
-    35 * 2**20,
-    60 * 2**20,
-    100 * 2**20,
+    10 * 2 ** 20,
+    10 * 2 ** 20,
+    20 * 2 ** 20,
+    35 * 2 ** 20,
+    60 * 2 ** 20,
+    100 * 2 ** 20,
 )
 
 MERGE_MINIMUM = (
-    10 * 2**20,
-    10 * 2**20,
-    30 * 2**20,
-    50 * 2**20,
-    60 * 2**20,
-    100 * 2**20,
+    10 * 2 ** 20,
+    10 * 2 ** 20,
+    30 * 2 ** 20,
+    50 * 2 ** 20,
+    60 * 2 ** 20,
+    100 * 2 ** 20,
 )
 
-MDF2_VERSIONS = ('2.00', '2.10', '2.14')
-MDF3_VERSIONS = ('3.00', '3.10', '3.20', '3.30')
-MDF4_VERSIONS = ('4.00', '4.10', '4.11')
+MDF2_VERSIONS = ("2.00", "2.10", "2.14")
+MDF3_VERSIONS = ("3.00", "3.10", "3.20", "3.30")
+MDF4_VERSIONS = ("4.00", "4.10", "4.11")
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
-VALID_MEMORY_ARGUMENT_VALUES = ('full', 'low', 'minimum')
+VALID_MEMORY_ARGUMENT_VALUES = ("full", "low", "minimum")
 
 
-ALLOWED_MATLAB_CHARS = set(string.ascii_letters + string.digits + '_')
+ALLOWED_MATLAB_CHARS = set(string.ascii_letters + string.digits + "_")
 
 
 SignalSource = namedtuple(
-    'SignalSource',
-    ['name', 'path', 'comment', 'source_type', 'bus_type'],
+    "SignalSource", ["name", "path", "comment", "source_type", "bus_type"]
 )
 """ Commons reprezentation for source information
 
@@ -137,6 +126,7 @@ bus_type : int
 
 class MdfException(Exception):
     """MDF Exception class"""
+
     pass
 
 
@@ -151,6 +141,7 @@ if PYVERSION < 3:
                 return obj
             else:
                 raise
+
     # pylint: enable=W0622
 
 
@@ -169,22 +160,22 @@ def extract_cncomment_xml(comment):
 
     """
 
-    comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', '')
+    comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
     try:
         comment = ET.fromstring(comment)
-        match = comment.find('.//TX')
+        match = comment.find(".//TX")
         if match is None:
-            common_properties = comment.find('.//common_properties')
+            common_properties = comment.find(".//common_properties")
             if common_properties is not None:
                 comment = []
                 for e in common_properties:
-                    field = '{}: {}'.format(e.get('name'), e.text)
+                    field = "{}: {}".format(e.get("name"), e.text)
                     comment.append(field)
-                comment = '\n'.join(field)
+                comment = "\n".join(field)
             else:
-                comment = ''
+                comment = ""
         else:
-            comment = match.text or ''
+            comment = match.text or ""
     except ET.ParseError:
         pass
     finally:
@@ -206,14 +197,11 @@ def matlab_compatible(name):
 
     """
 
-    compatible_name = [
-        ch if ch in ALLOWED_MATLAB_CHARS else '_'
-        for ch in name
-    ]
-    compatible_name = ''.join(compatible_name)
+    compatible_name = [ch if ch in ALLOWED_MATLAB_CHARS else "_" for ch in name]
+    compatible_name = "".join(compatible_name)
 
     if compatible_name[0] not in string.ascii_letters:
-        compatible_name = 'M_' + compatible_name
+        compatible_name = "M_" + compatible_name
 
     return compatible_name
 
@@ -236,32 +224,25 @@ def get_text_v3(address, stream):
     """
 
     if address == 0:
-        return ''
+        return ""
 
     stream.seek(address + 2)
     size = UINT16(stream.read(2))[0] - 4
     text_bytes = stream.read(size)
     try:
-        text = (
-            text_bytes
-            .strip(b' \r\t\n\0')
-            .decode('latin-1')
-        )
+        text = text_bytes.strip(b" \r\t\n\0").decode("latin-1")
     except UnicodeDecodeError as err:
         try:
             from chardet import detect
-            encoding = detect(text_bytes)['encoding']
-            text = (
-                text_bytes
-                .strip(b' \r\t\n\0')
-                .decode(encoding)
-            )
+
+            encoding = detect(text_bytes)["encoding"]
+            text = text_bytes.strip(b" \r\t\n\0").decode(encoding)
         except ImportError:
             logger.warning(
                 'Unicode exception occured and "chardet" package is '
                 'not installed. Mdf version 3 expects "latin-1" '
-                'strings and this package may detect if a different'
-                ' encoding was used'
+                "strings and this package may detect if a different"
+                " encoding was used"
             )
             raise err
 
@@ -286,32 +267,25 @@ def get_text_v4(address, stream):
     """
 
     if address == 0:
-        return ''
+        return ""
 
     stream.seek(address + 8)
     size = UINT64(stream.read(8))[0] - 16
     text_bytes = stream.read(size)[8:]
     try:
-        text = (
-            text_bytes
-            .decode('utf-8')
-            .strip(' \r\t\n\0')
-        )
+        text = text_bytes.decode("utf-8").strip(" \r\t\n\0")
     except UnicodeDecodeError as err:
         try:
             from chardet import detect
-            encoding = detect(text_bytes)['encoding']
-            text = (
-                text_bytes
-                .decode(encoding)
-                .strip(' \r\t\n\0')
-            )
+
+            encoding = detect(text_bytes)["encoding"]
+            text = text_bytes.decode(encoding).strip(" \r\t\n\0")
         except ImportError:
             logger.warning(
                 'Unicode exception occured and "chardet" package is '
                 'not installed. Mdf version 4 expects "utf-8" '
-                'strings and this package may detect if a different'
-                ' encoding was used'
+                "strings and this package may detect if a different"
+                " encoding was used"
             )
             raise err
 
@@ -334,14 +308,12 @@ def get_fmt_v3(data_type, size):
         numpy compatible data type format string
 
     """
-    if data_type in {
-            v3c.DATA_TYPE_STRING,
-            v3c.DATA_TYPE_BYTEARRAY}:
+    if data_type in {v3c.DATA_TYPE_STRING, v3c.DATA_TYPE_BYTEARRAY}:
         size = size // 8
         if data_type == v3c.DATA_TYPE_STRING:
-            fmt = 'S{}'.format(size)
+            fmt = "S{}".format(size)
         elif data_type == v3c.DATA_TYPE_BYTEARRAY:
-            fmt = '({},)u1'.format(size)
+            fmt = "({},)u1".format(size)
     else:
         if size <= 8:
             size = 1
@@ -354,33 +326,28 @@ def get_fmt_v3(data_type, size):
         else:
             size = size // 8
 
-        if data_type in {
-                v3c.DATA_TYPE_UNSIGNED_INTEL,
-                v3c.DATA_TYPE_UNSIGNED}:
-            fmt = '<u{}'.format(size)
+        if data_type in {v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED}:
+            fmt = "<u{}".format(size)
 
         elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = '>u{}'.format(size)
+            fmt = ">u{}".format(size)
 
-        elif data_type in {
-                v3c.DATA_TYPE_SIGNED_INTEL,
-                v3c.DATA_TYPE_SIGNED}:
-            fmt = '<i{}'.format(size)
+        elif data_type in {v3c.DATA_TYPE_SIGNED_INTEL, v3c.DATA_TYPE_SIGNED}:
+            fmt = "<i{}".format(size)
 
         elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = '>i{}'.format(size)
+            fmt = ">i{}".format(size)
 
         elif data_type in {
-                v3c.DATA_TYPE_FLOAT,
-                v3c.DATA_TYPE_DOUBLE,
-                v3c.DATA_TYPE_FLOAT_INTEL,
-                v3c.DATA_TYPE_DOUBLE_INTEL}:
-            fmt = '<f{}'.format(size)
+            v3c.DATA_TYPE_FLOAT,
+            v3c.DATA_TYPE_DOUBLE,
+            v3c.DATA_TYPE_FLOAT_INTEL,
+            v3c.DATA_TYPE_DOUBLE_INTEL,
+        }:
+            fmt = "<f{}".format(size)
 
-        elif data_type in {
-                v3c.DATA_TYPE_FLOAT_MOTOROLA,
-                v3c.DATA_TYPE_DOUBLE_MOTOROLA}:
-            fmt = '>f{}'.format(size)
+        elif data_type in {v3c.DATA_TYPE_FLOAT_MOTOROLA, v3c.DATA_TYPE_DOUBLE_MOTOROLA}:
+            fmt = ">f{}".format(size)
 
     return fmt
 
@@ -404,42 +371,44 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
 
     """
     if data_type in {
-            v4c.DATA_TYPE_BYTEARRAY,
-            v4c.DATA_TYPE_STRING_UTF_8,
-            v4c.DATA_TYPE_STRING_LATIN_1,
-            v4c.DATA_TYPE_STRING_UTF_16_BE,
-            v4c.DATA_TYPE_STRING_UTF_16_LE,
-            v4c.DATA_TYPE_CANOPEN_DATE,
-            v4c.DATA_TYPE_CANOPEN_TIME}:
+        v4c.DATA_TYPE_BYTEARRAY,
+        v4c.DATA_TYPE_STRING_UTF_8,
+        v4c.DATA_TYPE_STRING_LATIN_1,
+        v4c.DATA_TYPE_STRING_UTF_16_BE,
+        v4c.DATA_TYPE_STRING_UTF_16_LE,
+        v4c.DATA_TYPE_CANOPEN_DATE,
+        v4c.DATA_TYPE_CANOPEN_TIME,
+    }:
         size = size // 8
 
         if data_type == v4c.DATA_TYPE_BYTEARRAY:
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
-                fmt = '({},)u1'.format(size)
+                fmt = "({},)u1".format(size)
             else:
                 if size == 4:
-                    fmt = '<u4'
+                    fmt = "<u4"
                 elif size == 8:
-                    fmt = '<u8'
+                    fmt = "<u8"
 
         elif data_type in {
-                v4c.DATA_TYPE_STRING_UTF_8,
-                v4c.DATA_TYPE_STRING_LATIN_1,
-                v4c.DATA_TYPE_STRING_UTF_16_BE,
-                v4c.DATA_TYPE_STRING_UTF_16_LE}:
+            v4c.DATA_TYPE_STRING_UTF_8,
+            v4c.DATA_TYPE_STRING_LATIN_1,
+            v4c.DATA_TYPE_STRING_UTF_16_BE,
+            v4c.DATA_TYPE_STRING_UTF_16_LE,
+        }:
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
-                fmt = 'S{}'.format(size)
+                fmt = "S{}".format(size)
             else:
                 if size == 4:
-                    fmt = '<u4'
+                    fmt = "<u4"
                 elif size == 8:
-                    fmt = '<u8'
+                    fmt = "<u8"
 
         elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
-            fmt = 'V7'
+            fmt = "V7"
 
         elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
-            fmt = 'V6'
+            fmt = "V6"
 
     else:
 
@@ -455,27 +424,27 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
             size = size // 8
 
         if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
-            fmt = '<u{}'.format(size)
+            fmt = "<u{}".format(size)
 
         elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = '>u{}'.format(size)
+            fmt = ">u{}".format(size)
 
         elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
-            fmt = '<i{}'.format(size)
+            fmt = "<i{}".format(size)
 
         elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = '>i{}'.format(size)
+            fmt = ">i{}".format(size)
 
         elif data_type == v4c.DATA_TYPE_REAL_INTEL:
-            fmt = '<f{}'.format(size)
+            fmt = "<f{}".format(size)
 
         elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
-            fmt = '>f{}'.format(size)
+            fmt = ">f{}".format(size)
 
     return fmt
 
 
-def fix_dtype_fields(fields, encoding='utf-8'):
+def fix_dtype_fields(fields, encoding="utf-8"):
     """ convert field names to str in case of Python 2"""
     new_types = []
     for pair_ in fields:
@@ -511,23 +480,23 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
     """
     size = fmt.itemsize * 8
 
-    if not array and shape[1:] and fmt.itemsize == 1 and fmt.kind == 'u':
+    if not array and shape[1:] and fmt.itemsize == 1 and fmt.kind == "u":
         data_type = v3c.DATA_TYPE_BYTEARRAY
         for dim in shape[1:]:
             size *= dim
     else:
-        if fmt.kind == 'u':
-            if fmt.byteorder in '=<|':
+        if fmt.kind == "u":
+            if fmt.byteorder in "=<|":
                 data_type = v3c.DATA_TYPE_UNSIGNED
             else:
                 data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
-        elif fmt.kind == 'i':
-            if fmt.byteorder in '=<|':
+        elif fmt.kind == "i":
+            if fmt.byteorder in "=<|":
                 data_type = v3c.DATA_TYPE_SIGNED
             else:
                 data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
-        elif fmt.kind == 'f':
-            if fmt.byteorder in '=<':
+        elif fmt.kind == "f":
+            if fmt.byteorder in "=<":
                 if size == 32:
                     data_type = v3c.DATA_TYPE_FLOAT
                 else:
@@ -537,13 +506,13 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
                     data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
                 else:
                     data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
-        elif fmt.kind in {'S', 'V'}:
+        elif fmt.kind in {"S", "V"}:
             data_type = v3c.DATA_TYPE_STRING
-        elif fmt.kind == 'b':
+        elif fmt.kind == "b":
             data_type = v3c.DATA_TYPE_UNSIGNED
             size = 1
         else:
-            message = 'Unknown type: dtype={}, shape={}'
+            message = "Unknown type: dtype={}, shape={}"
             message = message.format(fmt, shape)
             logger.exception(message)
             raise MdfException(message)
@@ -603,34 +572,34 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
     """
     size = fmt.itemsize * 8
 
-    if not array and shape[1:] and fmt.itemsize == 1 and fmt.kind == 'u':
+    if not array and shape[1:] and fmt.itemsize == 1 and fmt.kind == "u":
         data_type = v4c.DATA_TYPE_BYTEARRAY
         for dim in shape[1:]:
             size *= dim
 
     else:
-        if fmt.kind == 'u':
-            if fmt.byteorder in {'=', '<', '|'}:
+        if fmt.kind == "u":
+            if fmt.byteorder in {"=", "<", "|"}:
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
-        elif fmt.kind == 'i':
-            if fmt.byteorder in {'=', '<', '|'}:
+        elif fmt.kind == "i":
+            if fmt.byteorder in {"=", "<", "|"}:
                 data_type = v4c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
-        elif fmt.kind == 'f':
-            if fmt.byteorder in {'=', '<'}:
+        elif fmt.kind == "f":
+            if fmt.byteorder in {"=", "<"}:
                 data_type = v4c.DATA_TYPE_REAL_INTEL
             else:
                 data_type = v4c.DATA_TYPE_REAL_MOTOROLA
-        elif fmt.kind in {'S', 'V'}:
+        elif fmt.kind in {"S", "V"}:
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
-        elif fmt.kind == 'b':
+        elif fmt.kind == "b":
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             size = 1
         else:
-            message = 'Unknown type: dtype={}, shape={}'
+            message = "Unknown type: dtype={}, shape={}"
             message = message.format(fmt, shape)
             logger.exception(message)
             raise MdfException(message)
@@ -680,7 +649,7 @@ def get_min_max(samples):
     """
 
     if samples.shape[0]:
-        if samples.dtype.kind in {'u', 'i', 'f'}:
+        if samples.dtype.kind in {"u", "i", "f"}:
             min_val, max_val = amin(samples), amax(samples)
         else:
             min_val, max_val = 1, 0
@@ -711,10 +680,14 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
 
     """
 
-    truncated_integers = integer_array & ((1 << bit_length) - 1)  # Zero out the unwanted bits
+    truncated_integers = integer_array & (
+        (1 << bit_length) - 1
+    )  # Zero out the unwanted bits
     return where(
-        truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
-        (2**bit_length - truncated_integers) * -1,  # when negative, do two's complement
+        truncated_integers
+        >> bit_length - 1,  # sign bit as a truth series (True when negative)
+        (2 ** bit_length - truncated_integers)
+        * -1,  # when negative, do two's complement
         truncated_integers,  # when positive, return the truncated int
     )
 
@@ -734,45 +707,47 @@ def debug_channel(mdf, group, channel, dependency, file=None):
         channel dependency object
 
     """
-    print('MDF', '='*76, file=file)
-    print('name:', mdf.name, file=file)
-    print('version:', mdf.version, file=file)
-    print('memory:', mdf.memory, file=file)
-    print('read fragment size:', mdf._read_fragment_size, file=file)
-    print('write fragment size:', mdf._write_fragment_size, file=file)
+    print("MDF", "=" * 76, file=file)
+    print("name:", mdf.name, file=file)
+    print("version:", mdf.version, file=file)
+    print("memory:", mdf.memory, file=file)
+    print("read fragment size:", mdf._read_fragment_size, file=file)
+    print("write fragment size:", mdf._write_fragment_size, file=file)
     print()
 
     parents, dtypes = mdf._prepare_record(group)
-    print('GROUP', '='*74, file=file)
-    print('sorted:', group['sorted'], file=file)
-    print('data location:', group['data_location'], file=file)
-    print('data block type:', group['data_block_type'], file=file)
-    print('param:', group['param'], file=file)
-    print('data size:', group['data_size'], file=file)
-    print('data block size:', group['data_block_size'], file=file)
-    print('data block addr:', group['data_block_addr'], file=file)
-    print('data block:', group['data_block'], file=file)
-    print('record_size:', group['record_size'], file=file)
-    print('dependencies', group['channel_dependencies'], file=file)
-    print('parents:', parents, file=file)
-    print('dtypes:', dtypes, file=file)
+    print("GROUP", "=" * 74, file=file)
+    print("sorted:", group["sorted"], file=file)
+    print("data location:", group["data_location"], file=file)
+    print("data block type:", group["data_block_type"], file=file)
+    print("param:", group["param"], file=file)
+    print("data size:", group["data_size"], file=file)
+    print("data block size:", group["data_block_size"], file=file)
+    print("data block addr:", group["data_block_addr"], file=file)
+    print("data block:", group["data_block"], file=file)
+    print("record_size:", group["record_size"], file=file)
+    print("dependencies", group["channel_dependencies"], file=file)
+    print("parents:", parents, file=file)
+    print("dtypes:", dtypes, file=file)
     print(file=file)
 
-    cg = group['channel_group']
-    print('CHANNEL GROUP', '='*66, file=file)
+    cg = group["channel_group"]
+    print("CHANNEL GROUP", "=" * 66, file=file)
     print(cg, file=file)
     print(file=file)
 
-    print('CHANNEL', '='*72, file=file)
+    print("CHANNEL", "=" * 72, file=file)
     print(channel, file=file)
     print(file=file)
 
-    print('CHANNEL ARRAY', '='*66, file=file)
+    print("CHANNEL ARRAY", "=" * 66, file=file)
     print(dependency, file=file)
     print(file=file)
 
-    print('MASTER CACHE', '='*67, file=file)
-    print([(key, len(val)) for key, val in mdf._master_channel_cache.items()], file=file)
+    print("MASTER CACHE", "=" * 67, file=file)
+    print(
+        [(key, len(val)) for key, val in mdf._master_channel_cache.items()], file=file
+    )
 
 
 def count_channel_groups(stream, version=4):
@@ -843,11 +818,11 @@ def validate_memory_argument(memory):
     if memory not in VALID_MEMORY_ARGUMENT_VALUES:
         message = (
             'The memory argument "{}" is wrong:'
-            ' The available memory options are {};'
+            " The available memory options are {};"
             ' automatically using "full"'
         )
         warn(message.format(memory, VALID_MEMORY_ARGUMENT_VALUES))
-        valid_memory = 'full'
+        valid_memory = "full"
     else:
         valid_memory = memory
     return valid_memory
@@ -872,21 +847,17 @@ def validate_version_argument(version, hint=4):
     """
     if version not in SUPPORTED_VERSIONS:
         if hint == 2:
-            valid_version = '2.14'
+            valid_version = "2.14"
         elif hint == 3:
-            valid_version = '3.30'
+            valid_version = "3.30"
         else:
-            valid_version = '4.10'
+            valid_version = "4.10"
         message = (
             'Unknown mdf version "{}".'
-            ' The available versions are {};'
+            " The available versions are {};"
             ' automatically using version "{}"'
         )
-        message = message.format(
-            version,
-            SUPPORTED_VERSIONS,
-            valid_version,
-        )
+        message = message.format(version, SUPPORTED_VERSIONS, valid_version)
         logger.warning(message)
     else:
         valid_version = version
@@ -894,14 +865,13 @@ def validate_version_argument(version, hint=4):
 
 
 class ChannelsDB(dict):
-
     def __init__(self, version=4):
 
         super(ChannelsDB, self).__init__()
         if version == 4:
-            self.encoding = 'utf-8'
+            self.encoding = "utf-8"
         else:
-            self.encoding = 'latin-1'
+            self.encoding = "latin-1"
 
     def add(self, channel_name, group_index, channel_index):
         """ add name to channels database and check if it contains a source path
@@ -923,18 +893,14 @@ class ChannelsDB(dict):
             entry = (group_index, channel_index)
             if channel_name not in self:
                 self[channel_name] = []
-            self[channel_name].append(
-                entry
-            )
+            self[channel_name].append(entry)
 
-            if '\\' in channel_name:
-                channel_name = channel_name.split('\\')[0]
+            if "\\" in channel_name:
+                channel_name = channel_name.split("\\")[0]
 
                 if channel_name not in self:
                     self[channel_name] = []
-                self[channel_name].append(
-                    entry
-                )
+                self[channel_name].append(entry)
 
 
 def randomized_string(size):
@@ -952,9 +918,9 @@ def randomized_string(size):
 
     """
     if PYVERSION >= 3:
-        return bytes(randint(65, 90) for _ in range(size - 1)) + b'\0'
+        return bytes(randint(65, 90) for _ in range(size - 1)) + b"\0"
     else:
-        return ''.join(chr(randint(65, 90)) for _ in range(size - 1)) + '\0'
+        return "".join(chr(randint(65, 90)) for _ in range(size - 1)) + "\0"
 
 
 def is_file_like(obj):
@@ -986,7 +952,7 @@ def is_file_like(obj):
     False
     """
 
-    if not (hasattr(obj, 'read') and hasattr(obj, 'seek')):
+    if not (hasattr(obj, "read") and hasattr(obj, "seek")):
         return False
 
     if not hasattr(obj, "__iter__"):

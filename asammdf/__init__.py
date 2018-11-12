@@ -9,7 +9,7 @@ class NullHandler(logging.Handler):
         pass
 
 
-logger = logging.getLogger('asammdf')
+logger = logging.getLogger("asammdf")
 logger.setLevel(logging.INFO)
 logger.addFilter(NullHandler())
 
@@ -21,17 +21,4 @@ from .signal import Signal
 from .version import __version__
 
 
-__all__ = [
-    '__version__',
-    'MDF',
-    'MDF2',
-    'MDF3',
-    'MDF4',
-    'Signal',
-    'SUPPORTED_VERSIONS',
-]
-
-
-
-
-
+__all__ = ["__version__", "MDF", "MDF2", "MDF3", "MDF4", "Signal", "SUPPORTED_VERSIONS"]

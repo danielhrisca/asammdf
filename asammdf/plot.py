@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
+
 PYVERSION = sys.version_info[0]
 bin_ = bin
 import logging
@@ -9,9 +10,7 @@ from functools import reduce, partial
 import numpy as np
 
 try:
-    HERE = os.path.dirname(
-        os.path.realpath(__file__)
-    )
+    HERE = os.path.dirname(os.path.realpath(__file__))
 except:
     HERE = os.path.abspath(os.path.dirname(sys.argv[0]))
 
@@ -24,6 +23,7 @@ try:
         from PyQt5.QtCore import *
         from PyQt5 import uic
         from asammdfgui import resource_qt5 as resource_rc
+
         QT = 5
 
     except ImportError:
@@ -31,174 +31,164 @@ try:
         from PyQt4.QtGui import *
         from PyQt4 import uic
         from asammdfgui import resource_qt4 as resource_rc
+
         QT = 4
 
     from .version import __version__ as libversion
 
-    if not hasattr(pg.InfiniteLine, 'addMarker'):
-        logger = logging.getLogger('asammdf')
+    if not hasattr(pg.InfiniteLine, "addMarker"):
+        logger = logging.getLogger("asammdf")
         message = (
-            'Old pyqtgraph package: Please install the latest pyqtgraph from the '
-            'github develop branch\n'
-            'pip install -I --no-deps '
-            'https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip'
+            "Old pyqtgraph package: Please install the latest pyqtgraph from the "
+            "github develop branch\n"
+            "pip install -I --no-deps "
+            "https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
         )
         logger.warning(message)
 
     COLORS = [
-        '#1f77b4',
-        '#aec7e8',
-        '#ff7f0e',
-        '#ffbb78',
-        '#2ca02c',
-        '#98df8a',
-        '#d62728',
-        '#ff9896',
-        '#9467bd',
-        '#c5b0d5',
-        '#8c564b',
-        '#c49c94',
-        '#e377c2',
-        '#f7b6d2',
-        '#7f7f7f',
-        '#c7c7c7',
-        '#bcbd22',
-        '#dbdb8d',
-        '#17becf',
-        '#9edae5',
+        "#1f77b4",
+        "#aec7e8",
+        "#ff7f0e",
+        "#ffbb78",
+        "#2ca02c",
+        "#98df8a",
+        "#d62728",
+        "#ff9896",
+        "#9467bd",
+        "#c5b0d5",
+        "#8c564b",
+        "#c49c94",
+        "#e377c2",
+        "#f7b6d2",
+        "#7f7f7f",
+        "#c7c7c7",
+        "#bcbd22",
+        "#dbdb8d",
+        "#17becf",
+        "#9edae5",
     ]
 
     COLORS = [
-        '#1f77b4',
-        '#ff7f0e',
-        '#2ca02c',
-        '#d62728',
-        '#9467bd',
-        '#8c564b',
-        '#e377c2',
-        '#7f7f7f',
-        '#bcbd22',
-        '#17becf',
+        "#1f77b4",
+        "#ff7f0e",
+        "#2ca02c",
+        "#d62728",
+        "#9467bd",
+        "#8c564b",
+        "#e377c2",
+        "#7f7f7f",
+        "#bcbd22",
+        "#17becf",
     ]
 
-
     class Cursor(pg.InfiniteLine):
-
         def __init__(self, *args, **kwargs):
 
-            super(Cursor, self).__init__(*args, label='{value:.6f}s', labelOpts={'position': 0.04}, **kwargs)
+            super(Cursor, self).__init__(
+                *args, label="{value:.6f}s", labelOpts={"position": 0.04}, **kwargs
+            )
 
             try:
-                self.addMarker('^', 0)
-                self.addMarker('v', 1)
+                self.addMarker("^", 0)
+                self.addMarker("v", 1)
             except:
                 pass
             self.label.show()
 
-
     class FormatedAxis(pg.AxisItem):
-
         def __init__(self, *args, **kwargs):
 
             super(FormatedAxis, self).__init__(*args, **kwargs)
 
-            self.format = 'phys'
+            self.format = "phys"
             self.text_conversion = None
 
         def tickStrings(self, values, scale, spacing):
             strns = []
 
-            if self.format == 'phys':
-                strns = super(FormatedAxis, self).tickStrings(
-                    values, scale, spacing
-                )
+            if self.format == "phys":
+                strns = super(FormatedAxis, self).tickStrings(values, scale, spacing)
                 if self.text_conversion:
                     strns = self.text_conversion.convert(np.array(values))
                     try:
-                        strns = [s.decode('utf-8') for s in strns]
+                        strns = [s.decode("utf-8") for s in strns]
                     except:
-                        strns = [s.decode('latin-1') for s in strns]
+                        strns = [s.decode("latin-1") for s in strns]
 
-            elif self.format == 'hex':
+            elif self.format == "hex":
                 for val in values:
                     val = float(val)
                     if val.is_integer():
                         val = hex(int(val))
                     else:
-                        val = ''
+                        val = ""
                     strns.append(val)
 
-            elif self.format == 'bin':
+            elif self.format == "bin":
                 for val in values:
                     val = float(val)
                     if val.is_integer():
                         val = bin_(int(val))
                     else:
-                        val = ''
+                        val = ""
                     strns.append(val)
 
             return strns
 
-
     class ChannelStats(QWidget):
         def __init__(self, *args, **kwargs):
             super(ChannelStats, self).__init__(*args, **kwargs)
-            uic.loadUi(os.path.join(HERE, '..', 'asammdfgui', 'channel_stats.ui'), self)
+            uic.loadUi(os.path.join(HERE, "..", "asammdfgui", "channel_stats.ui"), self)
 
-            self.color = '#000000'
-            self.fmt = 'phys'
+            self.color = "#000000"
+            self.fmt = "phys"
             self.name_template = '<html><head/><body><p><span style=" font-size:11pt; font-weight:600; color:{};">{}</span></p></body></html>'
-            self._name = 'Please select a single channel'
+            self._name = "Please select a single channel"
 
         def set_stats(self, stats):
             if stats:
                 for name, value in stats.items():
                     try:
-                        if value.dtype.kind in 'ui':
-                            sign = '-' if value < 0 else ''
+                        if value.dtype.kind in "ui":
+                            sign = "-" if value < 0 else ""
                             value = abs(value)
-                            if self.fmt == 'hex':
-                                value = '{}0x{:X}'.format(sign, value)
-                            elif self.fmt == 'bin':
-                                value = '{}0b{:b}'.format(sign, value)
+                            if self.fmt == "hex":
+                                value = "{}0x{:X}".format(sign, value)
+                            elif self.fmt == "bin":
+                                value = "{}0b{:b}".format(sign, value)
                             else:
-                                value = '{}{}'.format(sign, value)
+                                value = "{}{}".format(sign, value)
                         else:
-                            value = '{:.6f}'.format(value)
+                            value = "{:.6f}".format(value)
                     except:
                         if isinstance(value, int):
-                            sign = '-' if value < 0 else ''
+                            sign = "-" if value < 0 else ""
                             value = abs(value)
-                            if self.fmt == 'hex':
-                                value = '{}0x{:X}'.format(sign, value)
-                            elif self.fmt == 'bin':
-                                value = '{}0b{:b}'.format(sign, value)
+                            if self.fmt == "hex":
+                                value = "{}0x{:X}".format(sign, value)
+                            elif self.fmt == "bin":
+                                value = "{}0b{:b}".format(sign, value)
                             else:
-                                value = '{}{}'.format(sign, value)
+                                value = "{}{}".format(sign, value)
                         elif isinstance(value, float):
-                            value = '{:.6f}'.format(value)
+                            value = "{:.6f}".format(value)
                         else:
                             value = value
 
-                    if name == 'unit':
+                    if name == "unit":
                         for i in range(1, 10):
-                            label = self.findChild(QLabel, 'unit{}'.format(i))
-                            label.setText(' {}'.format(value))
-                    elif name == 'name':
+                            label = self.findChild(QLabel, "unit{}".format(i))
+                            label.setText(" {}".format(value))
+                    elif name == "name":
                         self._name = value
                         self.name.setText(
-                            self.name_template.format(
-                                self.color,
-                                self._name,
-                            )
+                            self.name_template.format(self.color, self._name)
                         )
-                    elif name == 'color':
+                    elif name == "color":
                         self.color = value
                         self.name.setText(
-                            self.name_template.format(
-                                self.color,
-                                self._name,
-                            )
+                            self.name_template.format(self.color, self._name)
                         )
                     else:
                         label = self.findChild(QLabel, name)
@@ -207,28 +197,23 @@ try:
                 self.clear()
 
         def clear(self):
-            self._name = 'Please select a single channel'
-            self.color = '#000000'
-            self.name.setText(
-                self.name_template.format(
-                    self.color,
-                    self._name,
-                )
-            )
+            self._name = "Please select a single channel"
+            self.color = "#000000"
+            self.name.setText(self.name_template.format(self.color, self._name))
             for group in (
-                    self.cursor_group,
-                    self.range_group,
-                    self.visible_group,
-                    self.overall_group):
+                self.cursor_group,
+                self.range_group,
+                self.visible_group,
+                self.overall_group,
+            ):
                 layout = group.layout()
                 rows = layout.rowCount()
                 for i in range(rows):
                     label = layout.itemAtPosition(i, 1).widget()
-                    label.setText('')
+                    label.setText("")
                 for i in range(rows // 2, rows):
                     label = layout.itemAtPosition(i, 2).widget()
-                    label.setText('')
-
+                    label.setText("")
 
     class Plot(pg.PlotWidget):
         cursor_moved = pyqtSignal()
@@ -250,7 +235,7 @@ try:
             self.step_mode = step_mode
             self.info = None
 
-            self.standalone = kwargs.get('standalone', False)
+            self.standalone = kwargs.get("standalone", False)
 
             self.singleton = None
             self.region = None
@@ -258,17 +243,17 @@ try:
             self.cursor2 = None
             self.signals = signals
             for sig in self.signals:
-                if sig.samples.dtype.kind == 'f':
+                if sig.samples.dtype.kind == "f":
                     sig.stepmode = False
-                    sig.format = '{:.6f}'
+                    sig.format = "{:.6f}"
                     sig.texts = None
                 else:
                     if self.step_mode:
                         sig.stepmode = True
                     else:
                         sig.stepmode = False
-                    sig.format = 'phys'
-                    if sig.samples.dtype.kind in 'SV':
+                    sig.format = "phys"
+                    if sig.samples.dtype.kind in "SV":
                         sig.texts = sig.samples
                         sig.samples = np.zeros(len(sig.samples))
                     else:
@@ -276,19 +261,15 @@ try:
                 sig.enable = True
 
                 sig._stats = {
-                    'range': (0, -1),
-                    'range_stats': {},
-                    'visible': (0, -1),
-                    'visible_stats': {},
+                    "range": (0, -1),
+                    "range_stats": {},
+                    "visible": (0, -1),
+                    "visible_stats": {},
                 }
 
             if self.signals:
                 self.all_timebase = self.timebase = reduce(
-                    np.union1d,
-                    (
-                        sig.timestamps
-                        for sig in self.signals
-                    ),
+                    np.union1d, (sig.timestamps for sig in self.signals)
                 )
             else:
                 self.all_timebase = self.timebase = None
@@ -296,47 +277,37 @@ try:
             self.showGrid(x=True, y=True)
 
             self.plot_item = self.plotItem
-            self.plot_item.hideAxis('left')
+            self.plot_item.hideAxis("left")
             self.layout = self.plot_item.layout
             self.scene_ = self.plot_item.scene()
             self.viewbox = self.plot_item.vb
             self.viewbox.sigResized.connect(self.update_views)
             self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
-            self.viewbox.enableAutoRange(
-                axis=pg.ViewBox.XYAxes,
-                enable=True,
-            )
+            self.viewbox.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
 
-            self.curve = self.curvetype(
-                [],
-                [],
-            )
+            self.curve = self.curvetype([], [])
 
             axis = self.layout.itemAt(2, 0)
             axis.setParent(None)
-            self.axis = FormatedAxis('left')
+            self.axis = FormatedAxis("left")
             self.layout.removeItem(axis)
             self.layout.addItem(self.axis, 2, 0)
             self.axis.linkToView(axis.linkedView())
-            self.plot_item.axes['left']['item'] = self.axis
-            self.plot_item.hideAxis('left')
+            self.plot_item.axes["left"]["item"] = self.axis
+            self.plot_item.hideAxis("left")
 
-            self.viewbox.addItem(
-                self.curve
-            )
+            self.viewbox.addItem(self.curve)
 
             self.cursor_hint = pg.PlotDataItem(
                 [],
                 [],
-                pen='#000000',
-                symbolBrush='#000000',
-                symbolPen='w',
-                symbol='s',
+                pen="#000000",
+                symbolBrush="#000000",
+                symbolPen="w",
+                symbol="s",
                 symbolSize=8,
             )
-            self.viewbox.addItem(
-                self.cursor_hint
-            )
+            self.viewbox.addItem(self.cursor_hint)
 
             self.view_boxes = []
             self.curves = []
@@ -354,14 +325,11 @@ try:
                     sig.empty = True
 
                 axis = FormatedAxis("right")
-                if sig.conversion and 'text_0' in sig.conversion:
+                if sig.conversion and "text_0" in sig.conversion:
                     axis.text_conversion = sig.conversion
 
                 view_box = pg.ViewBox()
-                view_box.enableAutoRange(
-                    axis=pg.ViewBox.XYAxes,
-                    enable=True,
-                )
+                view_box.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
 
                 axis.linkToView(view_box)
                 axis.setLabel(sig.name, sig.unit, color=color)
@@ -375,10 +343,7 @@ try:
                         to_append = sig.timestamps[-1]
                     else:
                         to_append = 0
-                    t = np.append(
-                        sig.timestamps,
-                        to_append,
-                    )
+                    t = np.append(sig.timestamps, to_append)
                 else:
                     t = sig.timestamps
 
@@ -388,22 +353,17 @@ try:
                     pen=color,
                     symbolBrush=color,
                     symbolPen=color,
-                    symbol='o',
+                    symbol="o",
                     symbolSize=4,
                     stepMode=sig.stepmode,
                     # connect='pairs'
                 )
                 # curve.setDownsampling(ds=100, auto=True, method='peak')
 
-                view_box.addItem(
-                    curve
-                )
+                view_box.addItem(curve)
 
                 view_box.setXLink(self.viewbox)
-                view_box.enableAutoRange(
-                    axis=pg.ViewBox.XYAxes,
-                    enable=True,
-                )
+                view_box.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
                 view_box.sigResized.connect(self.update_views)
 
                 self.view_boxes.append(view_box)
@@ -414,16 +374,9 @@ try:
             if len(signals) == 1:
                 self.setSignalEnable(0, 1)
 
-
             self.update_views()
 
-            self.keyPressEvent(
-                QKeyEvent(
-                    QEvent.KeyPress,
-                    Qt.Key_H,
-                    Qt.NoModifier,
-                )
-            )
+            self.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_H, Qt.NoModifier))
 
         def update_lines(self, with_dots=None, step_mode=None):
             step_mode_changed = False
@@ -446,10 +399,7 @@ try:
                             to_append = sig.timestamps[-1]
                         else:
                             to_append = 0
-                        t = np.append(
-                            sig.timestamps,
-                            to_append,
-                        )
+                        t = np.append(sig.timestamps, to_append)
                     else:
                         t = sig.timestamps
 
@@ -460,7 +410,7 @@ try:
                             pen=color,
                             symbolBrush=color,
                             symbolPen=color,
-                            symbol='o',
+                            symbol="o",
                             symbolSize=4,
                             stepMode=sig.stepmode,
                             # connect='pairs'
@@ -468,10 +418,10 @@ try:
                     except:
                         message = (
                             "Can't show dots due to old pyqtgraph package: "
-                            'Please install the latest pyqtgraph from the '
-                            'github develop branch\n'
-                            'pip install -I --no-deps '
-                            'https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip'
+                            "Please install the latest pyqtgraph from the "
+                            "github develop branch\n"
+                            "pip install -I --no-deps "
+                            "https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
                         )
                         logger.warning(message)
                     self.view_boxes[i].removeItem(self.curves[i])
@@ -493,10 +443,7 @@ try:
                             to_append = sig.timestamps[-1]
                         else:
                             to_append = 0
-                        t = np.append(
-                            sig.timestamps,
-                            to_append,
-                        )
+                        t = np.append(sig.timestamps, to_append)
                     else:
                         t = sig.timestamps
 
@@ -506,7 +453,7 @@ try:
                         pen=color,
                         symbolBrush=color,
                         symbolPen=color,
-                        symbol='o',
+                        symbol="o",
                         symbolSize=4,
                         stepMode=sig.stepmode,
                         # connect='pairs'
@@ -533,9 +480,7 @@ try:
                 self.signals[index].enable = False
 
             selected_items = [
-                index
-                for index, sig in enumerate(self.signals)
-                if sig.enable
+                index for index, sig in enumerate(self.signals) if sig.enable
             ]
 
             if len(selected_items) == 1:
@@ -545,11 +490,10 @@ try:
                     sig = self.signals[row]
                     color = sig.color
 
-                    self.plotItem.showAxis('left')
+                    self.plotItem.showAxis("left")
                     for axis, viewbox, curve in zip(
-                            self.axes,
-                            self.view_boxes,
-                            self.curves):
+                        self.axes, self.view_boxes, self.curves
+                    ):
                         if curve.isVisible():
                             axis.hide()
                             viewbox.setYLink(None)
@@ -561,7 +505,7 @@ try:
                     viewbox.setXLink(self.viewbox)
                     axis = self.axis
 
-                    if sig.conversion and 'text_0' in sig.conversion:
+                    if sig.conversion and "text_0" in sig.conversion:
                         axis.text_conversion = sig.conversion
                     else:
                         axis.text_conversion = None
@@ -576,10 +520,7 @@ try:
                             to_append = sig.timestamps[-1]
                         else:
                             to_append = 0
-                        t = np.append(
-                                sig.timestamps,
-                                to_append,
-                            )
+                        t = np.append(sig.timestamps, to_append)
                     else:
                         t = sig.timestamps
 
@@ -590,7 +531,7 @@ try:
                             pen=color,
                             symbolBrush=color,
                             symbolPen=color,
-                            symbol='o',
+                            symbol="o",
                             symbolSize=4,
                             stepMode=sig.stepmode,
                         )
@@ -601,7 +542,7 @@ try:
                             pen=color,
                             symbolBrush=color,
                             symbolPen=color,
-                            symbol='o',
+                            symbol="o",
                             symbolSize=4,
                             stepMode=sig.stepmode,
                         )
@@ -609,13 +550,13 @@ try:
                     axis.setLabel(sig.name, sig.unit, color=color)
 
                 self.curve.show()
-                self.plotItem.showAxis('left')
+                self.plotItem.showAxis("left")
                 self.showGrid(x=False, y=False)
                 self.showGrid(x=True, y=True)
                 self.timebase = self.curve.xData
 
             else:
-                self.plotItem.hideAxis('left')
+                self.plotItem.hideAxis("left")
                 self.curve.hide()
 
                 if len(selected_items):
@@ -652,187 +593,191 @@ try:
             if size:
 
                 if sig.texts is not None:
-                    stats['overall_min'] = ''
-                    stats['overall_max'] = ''
-                    stats['overall_start'] = sig.timestamps[0]
-                    stats['overall_stop'] = sig.timestamps[-1]
-                    stats['unit'] = ''
-                    stats['color'] = sig.color
-                    stats['name'] = sig.name
+                    stats["overall_min"] = ""
+                    stats["overall_max"] = ""
+                    stats["overall_start"] = sig.timestamps[0]
+                    stats["overall_stop"] = sig.timestamps[-1]
+                    stats["unit"] = ""
+                    stats["color"] = sig.color
+                    stats["name"] = sig.name
 
                     if self.cursor1:
                         position = self.cursor1.value()
-                        stats['cursor_t'] = position
+                        stats["cursor_t"] = position
 
                         if x[0] <= position <= x[-1]:
                             idx = np.searchsorted(x, position)
                             text = sig.texts[idx]
                             try:
-                                text = text.decode('utf-8')
+                                text = text.decode("utf-8")
                             except:
-                                text = text.decode('latin-1')
-                            stats['cursor_value'] = text
+                                text = text.decode("latin-1")
+                            stats["cursor_value"] = text
 
                         else:
-                            stats['cursor_value'] = 'n.a.'
+                            stats["cursor_value"] = "n.a."
 
                     else:
-                        stats['cursor_t'] = ''
-                        stats['cursor_value'] = ''
+                        stats["cursor_t"] = ""
+                        stats["cursor_value"] = ""
 
-                    stats['selected_start'] = ''
-                    stats['selected_stop'] = ''
-                    stats['selected_delta_t'] = ''
-                    stats['selected_min'] = ''
-                    stats['selected_max'] = ''
-                    stats['selected_delta'] = ''
-                    stats['visible_min'] = ''
-                    stats['visible_max'] = ''
-                    stats['visible_delta'] = ''
+                    stats["selected_start"] = ""
+                    stats["selected_stop"] = ""
+                    stats["selected_delta_t"] = ""
+                    stats["selected_min"] = ""
+                    stats["selected_max"] = ""
+                    stats["selected_delta"] = ""
+                    stats["visible_min"] = ""
+                    stats["visible_max"] = ""
+                    stats["visible_delta"] = ""
                 else:
-                    stats['overall_min'] = sig.min
-                    stats['overall_max'] = sig.max
-                    stats['overall_start'] = sig.timestamps[0]
-                    stats['overall_stop'] = sig.timestamps[-1]
-                    stats['unit'] = sig.unit
-                    stats['color'] = sig.color
-                    stats['name'] = sig.name
+                    stats["overall_min"] = sig.min
+                    stats["overall_max"] = sig.max
+                    stats["overall_start"] = sig.timestamps[0]
+                    stats["overall_stop"] = sig.timestamps[-1]
+                    stats["unit"] = sig.unit
+                    stats["color"] = sig.color
+                    stats["name"] = sig.name
 
                     if self.cursor1:
                         position = self.cursor1.value()
-                        stats['cursor_t'] = position
+                        stats["cursor_t"] = position
 
                         if x[0] <= position <= x[-1]:
                             idx = np.searchsorted(x, position)
                             val = sig.samples[idx]
-                            if sig.conversion and 'text_0' in sig.conversion:
-                                vals = np.array([val,])
+                            if sig.conversion and "text_0" in sig.conversion:
+                                vals = np.array([val])
                                 vals = sig.conversion.convert(vals)
                                 try:
-                                    vals = [s.decode('utf-8') for s in vals]
+                                    vals = [s.decode("utf-8") for s in vals]
                                 except:
-                                    vals = [s.decode('latin-1') for s in vals]
-                                val = '{}= {}'.format(val, vals[0])
-                            stats['cursor_value'] = val
+                                    vals = [s.decode("latin-1") for s in vals]
+                                val = "{}= {}".format(val, vals[0])
+                            stats["cursor_value"] = val
 
                         else:
-                            stats['cursor_value'] = 'n.a.'
+                            stats["cursor_value"] = "n.a."
 
                     else:
-                        stats['cursor_t'] = ''
-                        stats['cursor_value'] = ''
+                        stats["cursor_t"] = ""
+                        stats["cursor_value"] = ""
 
                     if self.region:
                         start, stop = self.region.getRegion()
 
-                        if sig._stats['range'] != (start, stop):
+                        if sig._stats["range"] != (start, stop):
                             new_stats = {}
-                            new_stats['selected_start'] = start
-                            new_stats['selected_stop'] = stop
-                            new_stats['selected_delta_t'] = stop - start
+                            new_stats["selected_start"] = start
+                            new_stats["selected_stop"] = stop
+                            new_stats["selected_delta_t"] = stop - start
 
                             cut = sig.cut(start, stop)
 
                             if len(cut):
-                                new_stats['selected_min'] = np.amin(cut.samples)
-                                new_stats['selected_max'] = np.amax(cut.samples)
-                                if cut.samples.dtype.kind in 'ui':
-                                    new_stats['selected_delta'] = int(
+                                new_stats["selected_min"] = np.amin(cut.samples)
+                                new_stats["selected_max"] = np.amax(cut.samples)
+                                if cut.samples.dtype.kind in "ui":
+                                    new_stats["selected_delta"] = int(
                                         float(cut.samples[-1]) - (cut.samples[0])
                                     )
                                 else:
-                                    new_stats['selected_delta'] = cut.samples[-1] - cut.samples[0]
+                                    new_stats["selected_delta"] = (
+                                        cut.samples[-1] - cut.samples[0]
+                                    )
 
                             else:
-                                new_stats['selected_min'] = 'n.a.'
-                                new_stats['selected_max'] = 'n.a.'
-                                new_stats['selected_delta'] = 'n.a.'
+                                new_stats["selected_min"] = "n.a."
+                                new_stats["selected_max"] = "n.a."
+                                new_stats["selected_delta"] = "n.a."
 
-                            sig._stats['range'] = (start, stop)
-                            sig._stats['range_stats'] = new_stats
+                            sig._stats["range"] = (start, stop)
+                            sig._stats["range_stats"] = new_stats
 
-                        stats.update(sig._stats['range_stats'])
+                        stats.update(sig._stats["range_stats"])
 
                     else:
-                        stats['selected_start'] = ''
-                        stats['selected_stop'] = ''
-                        stats['selected_delta_t'] = ''
-                        stats['selected_min'] = ''
-                        stats['selected_max'] = ''
-                        stats['selected_delta'] = ''
+                        stats["selected_start"] = ""
+                        stats["selected_stop"] = ""
+                        stats["selected_delta_t"] = ""
+                        stats["selected_min"] = ""
+                        stats["selected_max"] = ""
+                        stats["selected_delta"] = ""
 
                     (start, stop), _ = self.viewbox.viewRange()
 
-                    if sig._stats['visible'] != (start, stop):
+                    if sig._stats["visible"] != (start, stop):
                         new_stats = {}
-                        new_stats['visible_start'] = start
-                        new_stats['visible_stop'] = stop
-                        new_stats['visible_delta_t'] = stop - start
+                        new_stats["visible_start"] = start
+                        new_stats["visible_stop"] = stop
+                        new_stats["visible_delta_t"] = stop - start
 
                         cut = sig.cut(start, stop)
 
                         if len(cut):
-                            new_stats['visible_min'] = np.amin(cut.samples)
-                            new_stats['visible_max'] = np.amax(cut.samples)
-                            new_stats['visible_delta'] = cut.samples[-1] - cut.samples[0]
+                            new_stats["visible_min"] = np.amin(cut.samples)
+                            new_stats["visible_max"] = np.amax(cut.samples)
+                            new_stats["visible_delta"] = (
+                                cut.samples[-1] - cut.samples[0]
+                            )
 
                         else:
-                            new_stats['visible_min'] = 'n.a.'
-                            new_stats['visible_max'] = 'n.a.'
-                            new_stats['visible_delta'] = 'n.a.'
+                            new_stats["visible_min"] = "n.a."
+                            new_stats["visible_max"] = "n.a."
+                            new_stats["visible_delta"] = "n.a."
 
-                        sig._stats['visible'] = (start, stop)
-                        sig._stats['visible_stats'] = new_stats
+                        sig._stats["visible"] = (start, stop)
+                        sig._stats["visible_stats"] = new_stats
 
-                    stats.update(sig._stats['visible_stats'])
+                    stats.update(sig._stats["visible_stats"])
 
             else:
-                stats['overall_min'] = 'n.a.'
-                stats['overall_max'] = 'n.a.'
-                stats['overall_start'] = 'n.a.'
-                stats['overall_stop'] = 'n.a.'
-                stats['unit'] = sig.unit
-                stats['color'] = sig.color
-                stats['name'] = sig.name
+                stats["overall_min"] = "n.a."
+                stats["overall_max"] = "n.a."
+                stats["overall_start"] = "n.a."
+                stats["overall_stop"] = "n.a."
+                stats["unit"] = sig.unit
+                stats["color"] = sig.color
+                stats["name"] = sig.name
 
                 if self.cursor1:
                     position = self.cursor1.value()
-                    stats['cursor_t'] = position
+                    stats["cursor_t"] = position
 
-                    stats['cursor_value'] = 'n.a.'
+                    stats["cursor_value"] = "n.a."
 
                 else:
-                    stats['cursor_t'] = ''
-                    stats['cursor_value'] = ''
+                    stats["cursor_t"] = ""
+                    stats["cursor_value"] = ""
 
                 if self.region:
                     start, stop = self.region.getRegion()
 
-                    stats['selected_start'] = start
-                    stats['selected_stop'] = stop
-                    stats['selected_delta_t'] = stop - start
+                    stats["selected_start"] = start
+                    stats["selected_stop"] = stop
+                    stats["selected_delta_t"] = stop - start
 
-                    stats['selected_min'] = 'n.a.'
-                    stats['selected_max'] = 'n.a.'
-                    stats['selected_delta'] = 'n.a.'
+                    stats["selected_min"] = "n.a."
+                    stats["selected_max"] = "n.a."
+                    stats["selected_delta"] = "n.a."
 
                 else:
-                    stats['selected_start'] = ''
-                    stats['selected_stop'] = ''
-                    stats['selected_delta_t'] = ''
-                    stats['selected_min'] = ''
-                    stats['selected_max'] = ''
-                    stats['selected_delta'] = ''
+                    stats["selected_start"] = ""
+                    stats["selected_stop"] = ""
+                    stats["selected_delta_t"] = ""
+                    stats["selected_min"] = ""
+                    stats["selected_max"] = ""
+                    stats["selected_delta"] = ""
 
                 (start, stop), _ = self.viewbox.viewRange()
 
-                stats['visible_start'] = start
-                stats['visible_stop'] = stop
-                stats['visible_delta_t'] = stop - start
+                stats["visible_start"] = start
+                stats["visible_stop"] = stop
+                stats["visible_delta_t"] = stop - start
 
-                stats['visible_min'] = 'n.a.'
-                stats['visible_max'] = 'n.a.'
-                stats['visible_delta'] = 'n.a.'
+                stats["visible_min"] = "n.a."
+                stats["visible_max"] = "n.a."
+                stats["visible_delta"] = "n.a."
 
             return stats
 
@@ -843,14 +788,12 @@ try:
             if key == Qt.Key_C:
                 if self.cursor1 is None:
                     start, stop = self.viewbox.viewRange()[0]
-                    self.cursor1 = Cursor(
-                        pos=0,
-                        angle=90,
-                        movable=True,
-                    )
+                    self.cursor1 = Cursor(pos=0, angle=90, movable=True)
                     self.plotItem.addItem(self.cursor1, ignoreBounds=True)
                     self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
-                    self.cursor1.sigPositionChangeFinished.connect(self.cursor_move_finished.emit)
+                    self.cursor1.sigPositionChangeFinished.connect(
+                        self.cursor_move_finished.emit
+                    )
                     self.cursor1.setPos((start + stop) / 2)
                     self.cursor_move_finished.emit()
 
@@ -884,11 +827,7 @@ try:
                 if self.cursor1:
                     pos = self.cursor1.value()
                     x_range = pos - delta / 2, pos + delta / 2
-                self.viewbox.setXRange(
-                    x_range[0] - step,
-                    x_range[1] + step,
-                    padding=0,
-                )
+                self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
 
             elif key == Qt.Key_R:
                 if self.region is None:
@@ -897,9 +836,14 @@ try:
                     self.region.setZValue(-10)
                     self.plotItem.addItem(self.region)
                     self.region.sigRegionChanged.connect(self.range_modified.emit)
-                    self.region.sigRegionChangeFinished.connect(self.range_modified_finished.emit)
+                    self.region.sigRegionChangeFinished.connect(
+                        self.range_modified_finished.emit
+                    )
                     start, stop = self.viewbox.viewRange()[0]
-                    start, stop = start + 0.1*(stop-start), stop - 0.1*(stop-start)
+                    start, stop = (
+                        start + 0.1 * (stop - start),
+                        stop - 0.1 * (stop - start),
+                    )
                     self.region.setRegion((start, stop))
 
                 else:
@@ -944,14 +888,17 @@ try:
 
             elif key == Qt.Key_H and modifier == Qt.ControlModifier:
                 for axis, signal in zip(self.axes, self.signals):
-                    if axis.isVisible() and signal.samples.dtype.kind in 'ui':
-                        axis.format = 'hex'
-                        signal.format = 'hex'
+                    if axis.isVisible() and signal.samples.dtype.kind in "ui":
+                        axis.format = "hex"
+                        signal.format = "hex"
                         axis.hide()
                         axis.show()
-                if self.axis.isVisible() and self.signals[self.singleton].samples.dtype.kind in 'ui':
-                    self.axis.format = 'hex'
-                    self.signals[self.singleton].format = 'hex'
+                if (
+                    self.axis.isVisible()
+                    and self.signals[self.singleton].samples.dtype.kind in "ui"
+                ):
+                    self.axis.format = "hex"
+                    self.signals[self.singleton].format = "hex"
                     self.axis.hide()
                     self.axis.show()
                 if self.cursor1:
@@ -959,14 +906,17 @@ try:
 
             elif key == Qt.Key_B and modifier == Qt.ControlModifier:
                 for axis, signal in zip(self.axes, self.signals):
-                    if axis.isVisible() and signal.samples.dtype.kind in 'ui':
-                        axis.format = 'bin'
-                        signal.format = 'bin'
+                    if axis.isVisible() and signal.samples.dtype.kind in "ui":
+                        axis.format = "bin"
+                        signal.format = "bin"
                         axis.hide()
                         axis.show()
-                if self.axis.isVisible() and self.signals[self.singleton].samples.dtype.kind in 'ui':
-                    self.axis.format = 'bin'
-                    self.signals[self.singleton].format = 'bin'
+                if (
+                    self.axis.isVisible()
+                    and self.signals[self.singleton].samples.dtype.kind in "ui"
+                ):
+                    self.axis.format = "bin"
+                    self.signals[self.singleton].format = "bin"
                     self.axis.hide()
                     self.axis.show()
                 if self.cursor1:
@@ -974,14 +924,17 @@ try:
 
             elif key == Qt.Key_P and modifier == Qt.ControlModifier:
                 for axis, signal in zip(self.axes, self.signals):
-                    if axis.isVisible() and signal.samples.dtype.kind in 'ui':
-                        axis.format = 'phys'
-                        signal.format = 'phys'
+                    if axis.isVisible() and signal.samples.dtype.kind in "ui":
+                        axis.format = "phys"
+                        signal.format = "phys"
                         axis.hide()
                         axis.show()
-                if self.axis.isVisible() and self.signals[self.singleton].samples.dtype.kind in 'ui':
-                    self.axis.format = 'phys'
-                    self.signals[self.singleton].format = 'phys'
+                if (
+                    self.axis.isVisible()
+                    and self.signals[self.singleton].samples.dtype.kind in "ui"
+                ):
+                    self.axis.format = "phys"
+                    self.signals[self.singleton].format = "phys"
                     self.axis.hide()
                     self.axis.show()
                 if self.cursor1:
@@ -997,7 +950,7 @@ try:
                             pos += 1
                         else:
                             pos -= 1
-                        pos = np.clip(pos, 0, dim-1)
+                        pos = np.clip(pos, 0, dim - 1)
                         pos = self.timebase[pos]
                     else:
                         if key == Qt.Key_Right:
@@ -1010,16 +963,12 @@ try:
                     if pos >= right_side:
                         delta = abs(pos - prev_pos)
                         self.viewbox.setXRange(
-                            left_side + delta,
-                            right_side + delta,
-                            padding=0,
+                            left_side + delta, right_side + delta, padding=0
                         )
                     elif pos <= left_side:
                         delta = abs(pos - prev_pos)
                         self.viewbox.setXRange(
-                            left_side - delta,
-                            right_side - delta,
-                            padding=0,
+                            left_side - delta, right_side - delta, padding=0
                         )
                     else:
                         delta = 0
@@ -1035,10 +984,10 @@ try:
 
             else:
                 super(Plot, self).keyPressEvent(event)
+
     PYQTGRAPH_AVAILABLE = True
 
     class StandalonePlot(QWidget):
-
         def __init__(self, signals, with_dots, step_mode, *args, **kwargs):
             super(StandalonePlot, self).__init__(*args, **kwargs)
 
@@ -1064,17 +1013,18 @@ try:
             hbox = QHBoxLayout()
 
             for icon, description in (
-                    (':/cursor.png', 'C - Cursor'),
-                    (':/fit.png', 'F - Fit'),
-                    (':/grid.png', 'G - Grid'),
-                    (':/home.png', 'H - Home'),
-                    (':/zoom-in.png', 'I - Zoom-in'),
-                    (':/zoom-out.png', 'O - Zoom-out'),
-                    (':/info.png', 'M - Statistics'),
-                    (':/range.png', 'R - Range'),
-                    (':/right.png', '← - Move cursor left'),
-                    (':/left.png', '→ - Move cursor right')):
-                label = QLabel('')
+                (":/cursor.png", "C - Cursor"),
+                (":/fit.png", "F - Fit"),
+                (":/grid.png", "G - Grid"),
+                (":/home.png", "H - Home"),
+                (":/zoom-in.png", "I - Zoom-in"),
+                (":/zoom-out.png", "O - Zoom-out"),
+                (":/info.png", "M - Statistics"),
+                (":/range.png", "R - Range"),
+                (":/right.png", "← - Move cursor left"),
+                (":/left.png", "→ - Move cursor right"),
+            ):
+                label = QLabel("")
                 label.setPixmap(QPixmap(icon).scaled(QSize(16, 16)))
 
                 hbox.addWidget(label)
@@ -1084,7 +1034,6 @@ try:
 
             vbox.addLayout(hbox, 0)
             self.setLayout(vbox)
-
 
             icon = QIcon()
             icon.addPixmap(QPixmap(":/info.png"), QIcon.Normal, QIcon.Off)
@@ -1118,7 +1067,7 @@ try:
                 dim = len(x)
                 position = self.plot.cursor1.value()
 
-                right = np.searchsorted(x, position, side='right')
+                right = np.searchsorted(x, position, side="right")
                 if right == 0:
                     next_pos = x[0]
                 elif right == dim:
@@ -1134,42 +1083,36 @@ try:
                 _, (hint_min, hint_max) = self.plot.viewbox.viewRange()
 
                 for viewbox, sig, curve in zip(
-                        self.plot.view_boxes,
-                        self.plot.signals,
-                        self.plot.curves):
+                    self.plot.view_boxes, self.plot.signals, self.plot.curves
+                ):
                     if curve.isVisible():
-                        index = np.argwhere(
-                            sig.timestamps == next_pos
-                        ).flatten()
+                        index = np.argwhere(sig.timestamps == next_pos).flatten()
                         if len(index):
                             _, (y_min, y_max) = viewbox.viewRange()
 
                             sample = sig.samples[index[0]]
                             sample = (sample - y_min) / (y_max - y_min) * (
-                                        hint_max - hint_min) + hint_min
+                                hint_max - hint_min
+                            ) + hint_min
 
                             y.append(sample)
 
                 if self.plot.curve.isVisible():
                     timestamps = self.plot.curve.xData
                     samples = self.plot.curve.yData
-                    index = np.argwhere(
-                        timestamps == next_pos
-                    ).flatten()
+                    index = np.argwhere(timestamps == next_pos).flatten()
                     if len(index):
                         _, (y_min, y_max) = self.plot.viewbox.viewRange()
 
                         sample = samples[index[0]]
                         sample = (sample - y_min) / (y_max - y_min) * (
-                                    hint_max - hint_min) + hint_min
+                            hint_max - hint_min
+                        ) + hint_min
 
                         y.append(sample)
 
                 self.plot.viewbox.setYRange(hint_min, hint_max, padding=0)
-                self.plot.cursor_hint.setData(
-                    x=[next_pos, ] * len(y),
-                    y=y,
-                )
+                self.plot.cursor_hint.setData(x=[next_pos] * len(y), y=y)
                 self.plot.cursor_hint.show()
 
             if self.info:
@@ -1183,7 +1126,7 @@ try:
                 dim = len(x)
                 position = self.plot.cursor1.value()
 
-                right = np.searchsorted(x, position, side='right')
+                right = np.searchsorted(x, position, side="right")
                 if right == 0:
                     next_pos = x[0]
                 elif right == dim:
@@ -1195,10 +1138,7 @@ try:
                         next_pos = x[right]
                 self.plot.cursor1.setPos(next_pos)
 
-            self.plot.cursor_hint.setData(
-                x=[],
-                y=[],
-            )
+            self.plot.cursor_hint.setData(x=[], y=[])
 
         def range_modified(self):
             if self.info:
@@ -1218,11 +1158,7 @@ try:
                 timebase = self.plot.timebase
                 dim = len(timebase)
 
-                right = np.searchsorted(
-                    timebase,
-                    start,
-                    side='right',
-                )
+                right = np.searchsorted(timebase, start, side="right")
                 if right == 0:
                     next_pos = timebase[0]
                 elif right == dim:
@@ -1234,11 +1170,7 @@ try:
                         next_pos = timebase[right]
                 start = next_pos
 
-                right = np.searchsorted(
-                    timebase,
-                    stop,
-                    side='right',
-                )
+                right = np.searchsorted(timebase, stop, side="right")
                 if right == 0:
                     next_pos = timebase[0]
                 elif right == dim:
@@ -1250,9 +1182,7 @@ try:
                         next_pos = timebase[right]
                 stop = next_pos
 
-                self.plot.region.setRegion(
-                    (start, stop)
-                )
+                self.plot.region.setRegion((start, stop))
 
         def range_removed(self):
             if self.info:
@@ -1263,6 +1193,7 @@ try:
             if self.info:
                 stats = self.plot.get_stats(0)
                 self.info.set_stats(stats)
+
 
 except ImportError:
     PYQTGRAPH_AVAILABLE = True

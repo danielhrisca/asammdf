@@ -13,10 +13,11 @@ except ImportError:
 
 
 def main():
-    tests = unittest.TestLoader().discover('.', 'test_*.py')
-    testResult = xmlrunner.XMLTestRunner(output='test-reports').run(tests)
+    tests = unittest.TestLoader().discover(".", "test_*.py")
+    testResult = xmlrunner.XMLTestRunner(output="test-reports").run(tests)
 
     return not testResult.wasSuccessful()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     sys.exit(main())
