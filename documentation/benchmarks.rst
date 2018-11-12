@@ -177,7 +177,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.txt'
+    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.rst'
     topic = 'Open'
     aspect = 'time'
     for_doc = True
@@ -247,7 +247,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.txt'
+    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.rst'
     topic = 'Open'
     aspect = 'ram'
     for_doc = True
@@ -317,7 +317,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.txt'
+    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.rst'
     topic = 'Save'
     aspect = 'time'
     for_doc = True
@@ -388,7 +388,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.txt'
+    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.rst'
     topic = 'Save'
     aspect = 'ram'
     for_doc = True
@@ -458,7 +458,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.txt'
+    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.rst'
     topic = 'Get'
     aspect = 'time'
     for_doc = True
@@ -529,7 +529,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.txt'
+    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.rst'
     topic = 'Get'
     aspect = 'ram'
     for_doc = True
@@ -600,7 +600,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.txt'
+    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.rst'
     topic = 'Convert'
     aspect = 'time'
     for_doc = True
@@ -671,7 +671,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.txt'
+    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.rst'
     topic = 'Convert'
     aspect = 'ram'
     for_doc = True
@@ -742,7 +742,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.txt'
+    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.rst'
     topic = 'Merge'
     aspect = 'time'
     for_doc = True
@@ -813,7 +813,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.txt'
+    res = '../benchmarks/results/x64_asammdf_4.2.1_mdfreader_3.0.rst'
     topic = 'Merge'
     aspect = 'ram'
     for_doc = True
