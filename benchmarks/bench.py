@@ -26,7 +26,7 @@ import asammdf.v4_constants as v4c
 import asammdf.v4_blocks as v4b
 import asammdf.v2_v3_constants as v3c
 import asammdf.v2_v3_blocks as v3b
-from mdfreader import mdf as MDFreader
+from mdfreader import Mdf as MDFreader
 from mdfreader import __version__ as mdfreader_version
 
 
@@ -399,7 +399,7 @@ def merge_v3(output, fmt, memory):
 
 
 def merge_v4(output, fmt, memory):
-    files = [r'test.mf4', ] * 2
+    files = [r'test.mf4', ] * 3
 
     with Timer('Merge 3 files',
                'asammdf {} {} v4'.format(asammdf_version, memory),
@@ -425,9 +425,9 @@ def open_reader3(output, fmt):
 def open_reader3_nodata(output, fmt):
 
     with Timer('Open file',
-               'mdfreader {} noDataLoading mdfv3'.format(mdfreader_version),
+               'mdfreader {} no_data_loading mdfv3'.format(mdfreader_version),
                fmt) as timer:
-        MDFreader(r'test.mdf', noDataLoading=True)
+        MDFreader(r'test.mdf', no_data_loading=True)
     output.send([timer.output, timer.error])
 
 
@@ -452,9 +452,9 @@ def open_reader4(output, fmt):
 def open_reader4_nodata(output, fmt):
 
     with Timer('Open file',
-               'mdfreader {} noDataLoading mdfv4'.format(mdfreader_version),
+               'mdfreader {} no_data_loading mdfv4'.format(mdfreader_version),
                fmt) as timer:
-        MDFreader(r'test.mf4', noDataLoading=True)
+        MDFreader(r'test.mf4', no_data_loading=True)
     output.send([timer.output, timer.error])
 
 
@@ -479,9 +479,9 @@ def save_reader3(output, fmt):
 
 def save_reader3_nodata(output, fmt):
 
-    x = MDFreader(r'test.mdf', noDataLoading=True)
+    x = MDFreader(r'test.mdf', no_data_loading=True)
     with Timer('Save file',
-               'mdfreader {} noDataLoading mdfv3'.format(mdfreader_version),
+               'mdfreader {} no_data_loading mdfv3'.format(mdfreader_version),
                fmt) as timer:
         x.write(r'x.mdf')
     output.send([timer.output, timer.error])
@@ -513,9 +513,9 @@ def save_reader4(output, fmt):
 
 def save_reader4_nodata(output, fmt):
 
-    x = MDFreader(r'test.mf4', noDataLoading=True)
+    x = MDFreader(r'test.mf4', no_data_loading=True)
     with Timer('Save file',
-               'mdfreader {} noDataLoading mdfv4'.format(mdfreader_version),
+               'mdfreader {} no_data_loading mdfv4'.format(mdfreader_version),
                fmt) as timer:
         x.write(r'x.mf4')
     output.send([timer.output, timer.error])
@@ -538,18 +538,18 @@ def get_all_reader3(output, fmt):
                'mdfreader {} mdfv3'.format(mdfreader_version),
                fmt) as timer:
         for s in x:
-            x.getChannelData(s)
+            x.get_channel_data(s)
     output.send([timer.output, timer.error])
 
 
 def get_all_reader3_nodata(output, fmt):
 
-    x = MDFreader(r'test.mdf', noDataLoading=True)
+    x = MDFreader(r'test.mdf', no_data_loading=True)
     with Timer('Get all channels',
                'mdfreader {} nodata mdfv3'.format(mdfreader_version),
                fmt) as timer:
         for s in x:
-            x.getChannelData(s)
+            x.get_channel_data(s)
     output.send([timer.output, timer.error])
 
 
@@ -560,7 +560,7 @@ def get_all_reader3_compression(output, fmt):
                'mdfreader {} compress mdfv3'.format(mdfreader_version),
                fmt) as timer:
         for s in x:
-            x.getChannelData(s)
+            x.get_channel_data(s)
 
         with open('D:\\TMP\\f.txt', 'w') as f:
             f.write('OK')
@@ -574,18 +574,18 @@ def get_all_reader4(output, fmt):
                'mdfreader {} mdfv4'.format(mdfreader_version),
                fmt) as timer:
         for s in x:
-            x.getChannelData(s)
+            x.get_channel_data(s)
     output.send([timer.output, timer.error])
 
 
 def get_all_reader4_nodata(output, fmt):
 
-    x = MDFreader(r'test.mf4', noDataLoading=True)
+    x = MDFreader(r'test.mf4', no_data_loading=True)
     with Timer('Get all channels',
                'mdfreader {} nodata mdfv4'.format(mdfreader_version),
                fmt) as timer:
         for s in x:
-            x.getChannelData(s)
+            x.get_channel_data(s)
     output.send([timer.output, timer.error])
 
 
@@ -596,7 +596,7 @@ def get_all_reader4_compression(output, fmt):
                'mdfreader {} compress mdfv4'.format(mdfreader_version),
                fmt) as timer:
         for s in x:
-            x.getChannelData(s)
+            x.get_channel_data(s)
     output.send([timer.output, timer.error])
 
 
@@ -610,10 +610,10 @@ def merge_reader_v3(output, fmt):
         x1.resample(0.01)
         x2 = MDFreader(files[1])
         x2.resample(0.01)
-        x1.mergeMdf(x2)
+        x1.merge_mdf(x2)
         x2 = MDFreader(files[2])
         x2.resample(0.01)
-        x1.mergeMdf(x2)
+        x1.merge_mdf(x2)
     output.send([timer.output, timer.error])
 
 
@@ -627,10 +627,10 @@ def merge_reader_v3_compress(output, fmt):
         x1.resample(0.01)
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
-        x1.mergeMdf(x2)
+        x1.merge_mdf(x2)
         x2 = MDFreader(files[2])
         x2.resample(0.01)
-        x1.mergeMdf(x2)
+        x1.merge_mdf(x2)
     output.send([timer.output, timer.error])
 
 
@@ -640,19 +640,19 @@ def merge_reader_v3_nodata(output, fmt):
     with Timer('Merge 3 files',
                'mdfreader {} nodata v3'.format(mdfreader_version),
                fmt) as timer:
-        x1 = MDFreader(files[0], noDataLoading=True)
+        x1 = MDFreader(files[0], no_data_loading=True)
         x1.resample(0.01)
-        x2 = MDFreader(files[1], noDataLoading=True)
+        x2 = MDFreader(files[1], no_data_loading=True)
         x2.resample(0.01)
-        x1.mergeMdf(x2)
+        x1.merge_mdf(x2)
         x2 = MDFreader(files[2])
         x2.resample(0.01)
-        x1.mergeMdf(x2)
+        x1.merge_mdf(x2)
     output.send([timer.output, timer.error])
 
 
 def merge_reader_v4(output, fmt):
-    files = [r'test.mf4', ] * 2
+    files = [r'test.mf4', ] * 3
 
     with Timer('Merge 3 files',
                'mdfreader {} v4'.format(mdfreader_version),
@@ -661,7 +661,7 @@ def merge_reader_v4(output, fmt):
         x1.resample(0.01)
         x2 = MDFreader(files[1])
         x2.resample(0.01)
-        x1.mergeMdf(x2)
+        x1.merge_mdf(x2)
 
     output.send([timer.output, timer.error])
 
@@ -676,7 +676,7 @@ def merge_reader_v4_compress(output, fmt):
         x1.resample(0.01)
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
-        x1.mergeMdf(x2)
+        x1.merge_mdf(x2)
 
     output.send([timer.output, timer.error])
 
@@ -686,11 +686,11 @@ def merge_reader_v4_nodata(output, fmt):
     with Timer('Merge 3 files',
                'mdfreader {} nodata v4'.format(mdfreader_version),
                fmt) as timer:
-        x1 = MDFreader(files[0], noDataLoading=True)
+        x1 = MDFreader(files[0], no_data_loading=True)
         x1.resample(0.01)
-        x2 = MDFreader(files[1], noDataLoading=True)
+        x2 = MDFreader(files[1], no_data_loading=True)
         x2.resample(0.01)
-        x1.mergeMdf(x2)
+        x1.merge_mdf(x2)
 
     output.send([timer.output, timer.error])
 
@@ -770,8 +770,8 @@ def main(text_output, fmt):
                    '(lowest possible RAM usage)'))
     output.append(('* compress = mdfreader mdf object created with '
                    'compression=blosc'))
-    output.append(('* noDataLoading = mdfreader mdf object read with '
-                   'noDataLoading=True'))
+    output.append(('* no_data_loading = mdfreader mdf object read with '
+                   'no_data_loading=True'))
     output.append('\nFiles used for benchmark:\n')
     output.append('* mdf version {}'.format(v3_version))
     output.append('    * {} MB file size'.format(v3_size))
@@ -835,12 +835,12 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-         partial(get_all_mdf3, memory='full'),
-         partial(get_all_mdf3, memory='low'),
-         partial(get_all_mdf3, memory='minimum'),
-         get_all_reader3,
-         get_all_reader3_nodata,
-         get_all_reader3_compression,
+        partial(get_all_mdf3, memory='full'),
+        partial(get_all_mdf3, memory='low'),
+        partial(get_all_mdf3, memory='minimum'),
+        get_all_reader3,
+        get_all_reader3_nodata,
+        get_all_reader3_compression,
 
         partial(get_all_mdf4, memory='full'),
         partial(get_all_mdf4, memory='low'),
