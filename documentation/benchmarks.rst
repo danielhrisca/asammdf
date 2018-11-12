@@ -56,8 +56,7 @@ x64 Python results
 
 Benchmark environment
 
-* 3.6.6 (default, Sep 12 2018, 18:26:19) 
-[GCC 8.0.1 20180414 (experimental) [trunk revision 259383]]
+* 3.6.6 (default, Sep 12 2018, 18:26:19) [GCC 8.0.1 20180414 (experimental) [trunk revision 259383]]
 * Linux-4.15.0-38-generic-x86_64-with-Ubuntu-18.04-bionic
 * x86_64
 * 15GB installed RAM
@@ -70,12 +69,13 @@ Notations used in the results
 * compress = mdfreader mdf object created with compression=blosc
 * no_data_loading = mdfreader mdf object read with no_data_loading=True
 
-Files used for benchmark:
+Files used for benchmark
 
 * mdf version 3.10
     * 167 MB file size
     * 183 groups
     * 36424 channels
+
 * mdf version 4.00
     * 183 MB file size
     * 183 groups
