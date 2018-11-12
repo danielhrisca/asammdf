@@ -662,6 +662,9 @@ def merge_reader_v4(output, fmt):
         x2 = MDFreader(files[1])
         x2.resample(0.01)
         x1.merge_mdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.merge_mdf(x2)
 
     output.send([timer.output, timer.error])
 
@@ -677,6 +680,9 @@ def merge_reader_v4_compress(output, fmt):
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.merge_mdf(x2)
+        x2 = MDFreader(files[2], compression='blosc')
+        x2.resample(0.01)
+        x1.merge_mdf(x2)
 
     output.send([timer.output, timer.error])
 
@@ -688,6 +694,9 @@ def merge_reader_v4_nodata(output, fmt):
                fmt) as timer:
         x1 = MDFreader(files[0], no_data_loading=True)
         x1.resample(0.01)
+        x2 = MDFreader(files[1], no_data_loading=True)
+        x2.resample(0.01)
+        x1.merge_mdf(x2)
         x2 = MDFreader(files[1], no_data_loading=True)
         x2.resample(0.01)
         x1.merge_mdf(x2)
