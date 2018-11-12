@@ -45,19 +45,16 @@ SYNC_TYPE_DISTANCE = 3
 SYNC_TYPE_INDEX = 4
 
 CHANNEL_TYPE_TO_DESCRIPTION = {
-    CHANNEL_TYPE_VALUE: 'value',
-    CHANNEL_TYPE_VLSD: 'VLSD',
-    CHANNEL_TYPE_MASTER: 'master',
-    CHANNEL_TYPE_VIRTUAL_MASTER: 'virtual master',
-    CHANNEL_TYPE_SYNC: 'sync',
-    CHANNEL_TYPE_MLSD: 'MLSD',
-    CHANNEL_TYPE_VIRTUAL: 'virtual',
+    CHANNEL_TYPE_VALUE: "value",
+    CHANNEL_TYPE_VLSD: "VLSD",
+    CHANNEL_TYPE_MASTER: "master",
+    CHANNEL_TYPE_VIRTUAL_MASTER: "virtual master",
+    CHANNEL_TYPE_SYNC: "sync",
+    CHANNEL_TYPE_MLSD: "MLSD",
+    CHANNEL_TYPE_VIRTUAL: "virtual",
 }
 
-MASTER_TYPES = {
-    CHANNEL_TYPE_MASTER,
-    CHANNEL_TYPE_VIRTUAL_MASTER,
-}
+MASTER_TYPES = {CHANNEL_TYPE_MASTER, CHANNEL_TYPE_VIRTUAL_MASTER}
 
 CONVERSION_TYPE_NON = 0
 CONVERSION_TYPE_LIN = 1
@@ -71,7 +68,7 @@ CONVERSION_TYPE_RTABX = 8
 CONVERSION_TYPE_TTAB = 9
 CONVERSION_TYPE_TRANS = 10
 
-CONV_RAT_TEXT = '(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)'
+CONV_RAT_TEXT = "(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)"
 
 TABULAR_CONVERSIONS = {
     CONVERSION_TYPE_TABX,
@@ -202,259 +199,240 @@ LOCATION_MEMORY = 2
 DT_BLOCK = 0
 DZ_BLOCK_DEFLATE = 1
 DZ_BLOCK_TRANSPOSED = 2
-FMT_CHANNEL = '<4sI2Q{}Q4B4I2BH6d'
-FMT_CHANNEL_PARAMS = '<4B4I2BH6d'
+FMT_CHANNEL = "<4sI2Q{}Q4B4I2BH6d"
+FMT_CHANNEL_PARAMS = "<4B4I2BH6d"
 
-FMT_TEXT_BLOCK = '<4sIQQ{}s'
-KEYS_TEXT_BLOCK = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'text',
-)
+FMT_TEXT_BLOCK = "<4sIQQ{}s"
+KEYS_TEXT_BLOCK = ("id", "reserved0", "block_len", "links_nr", "text")
 
-FMT_SOURCE_INFORMATION = '<4sI5Q3B5s'
+FMT_SOURCE_INFORMATION = "<4sI5Q3B5s"
 KEYS_SOURCE_INFORMATION = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'name_addr',
-    'path_addr',
-    'comment_addr',
-    'source_type',
-    'bus_type',
-    'flags',
-    'reserved1',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "name_addr",
+    "path_addr",
+    "comment_addr",
+    "source_type",
+    "bus_type",
+    "flags",
+    "reserved1",
 )
 
-FMT_CHANNEL_GROUP = '<4sI10Q2H3I'
+FMT_CHANNEL_GROUP = "<4sI10Q2H3I"
 KEYS_CHANNEL_GROUP = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'next_cg_addr',
-    'first_ch_addr',
-    'acq_name_addr',
-    'acq_source_addr',
-    'first_sample_reduction_addr',
-    'comment_addr',
-    'record_id',
-    'cycles_nr',
-    'flags',
-    'path_separator',
-    'reserved1',
-    'samples_byte_nr',
-    'invalidation_bytes_nr',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "next_cg_addr",
+    "first_ch_addr",
+    "acq_name_addr",
+    "acq_source_addr",
+    "first_sample_reduction_addr",
+    "comment_addr",
+    "record_id",
+    "cycles_nr",
+    "flags",
+    "path_separator",
+    "reserved1",
+    "samples_byte_nr",
+    "invalidation_bytes_nr",
 )
 
-FMT_DATA_BLOCK = '<4sI2Q{}s'
-KEYS_DATA_BLOCK = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'data',
-)
+FMT_DATA_BLOCK = "<4sI2Q{}s"
+KEYS_DATA_BLOCK = ("id", "reserved0", "block_len", "links_nr", "data")
 
-FMT_COMMON = '<4sI2Q'
+FMT_COMMON = "<4sI2Q"
 
-FMT_FILE_HISTORY = '<4sI5Q2HB3s'
+FMT_FILE_HISTORY = "<4sI5Q2HB3s"
 KEYS_FILE_HISTORY = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'next_fh_addr',
-    'comment_addr',
-    'abs_time',
-    'tz_offset',
-    'daylight_save_time',
-    'time_flags',
-    'reserved1',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "next_fh_addr",
+    "comment_addr",
+    "abs_time",
+    "tz_offset",
+    "daylight_save_time",
+    "time_flags",
+    "reserved1",
 )
 
-FMT_DATA_GROUP = '<4sI6QB7s'
+FMT_DATA_GROUP = "<4sI6QB7s"
 KEYS_DATA_GROUP = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'next_dg_addr',
-    'first_cg_addr',
-    'data_block_addr',
-    'comment_addr',
-    'record_id_len',
-    'reserved1',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "next_dg_addr",
+    "first_cg_addr",
+    "data_block_addr",
+    "comment_addr",
+    "record_id_len",
+    "reserved1",
 )
 
-FMT_DATA_LIST = '<4sI2Q{}QB3sIQ'
+FMT_DATA_LIST = "<4sI2Q{}QB3sIQ"
 
-FMT_CONVERSION_NONE = '<4sI6Q2B3H2d'
+FMT_CONVERSION_NONE = "<4sI6Q2B3H2d"
 KEYS_CONVERSION_NONE = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'name_addr',
-    'unit_addr',
-    'comment_addr',
-    'inv_conv_addr',
-    'conversion_type',
-    'precision',
-    'flags',
-    'ref_param_nr',
-    'val_param_nr',
-    'min_phy_value',
-    'max_phy_value',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "name_addr",
+    "unit_addr",
+    "comment_addr",
+    "inv_conv_addr",
+    "conversion_type",
+    "precision",
+    "flags",
+    "ref_param_nr",
+    "val_param_nr",
+    "min_phy_value",
+    "max_phy_value",
 )
-FMT_CONVERSION_NONE_INIT = '<4Q2B3H2d'
+FMT_CONVERSION_NONE_INIT = "<4Q2B3H2d"
 
-FMT_CONVERSION_LINEAR = FMT_CONVERSION_NONE + '2d'
-KEYS_CONVERSION_LINEAR = KEYS_CONVERSION_NONE + ('b', 'a')
-FMT_CONVERSION_LINEAR_INIT = '<4Q2B3H4d'
+FMT_CONVERSION_LINEAR = FMT_CONVERSION_NONE + "2d"
+KEYS_CONVERSION_LINEAR = KEYS_CONVERSION_NONE + ("b", "a")
+FMT_CONVERSION_LINEAR_INIT = "<4Q2B3H4d"
 
-FMT_CONVERSION_ALGEBRAIC = '<4sI7Q2B3H2d'
+FMT_CONVERSION_ALGEBRAIC = "<4sI7Q2B3H2d"
 KEYS_CONVERSION_ALGEBRAIC = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'name_addr',
-    'unit_addr',
-    'comment_addr',
-    'inv_conv_addr',
-    'formula_addr',
-    'conversion_type',
-    'precision',
-    'flags',
-    'ref_param_nr',
-    'val_param_nr',
-    'min_phy_value',
-    'max_phy_value',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "name_addr",
+    "unit_addr",
+    "comment_addr",
+    "inv_conv_addr",
+    "formula_addr",
+    "conversion_type",
+    "precision",
+    "flags",
+    "ref_param_nr",
+    "val_param_nr",
+    "min_phy_value",
+    "max_phy_value",
 )
-FMT_CONVERSION_ALGEBRAIC_INIT = '<5Q2B3H2d'
+FMT_CONVERSION_ALGEBRAIC_INIT = "<5Q2B3H2d"
 
-FMT_CONVERSION_RAT = FMT_CONVERSION_NONE + '6d'
-KEYS_CONVERSION_RAT = KEYS_CONVERSION_NONE + (
-    'P1',
-    'P2',
-    'P3',
-    'P4',
-    'P5',
-    'P6',
-)
+FMT_CONVERSION_RAT = FMT_CONVERSION_NONE + "6d"
+KEYS_CONVERSION_RAT = KEYS_CONVERSION_NONE + ("P1", "P2", "P3", "P4", "P5", "P6")
 
-FMT_CONVERSION_RAT_INIT = '<4Q2B3H8d'
+FMT_CONVERSION_RAT_INIT = "<4Q2B3H8d"
 
-FMT_CONVERSION_RAT_INIT = '<4Q2B3H8d'
+FMT_CONVERSION_RAT_INIT = "<4Q2B3H8d"
 
-FMT_HEADER_BLOCK = '<4sI9Q2H4B2Q'
-FMT_IDENTIFICATION_BLOCK = '<8s8s8s4sH30s2H'
+FMT_HEADER_BLOCK = "<4sI9Q2H4B2Q"
+FMT_IDENTIFICATION_BLOCK = "<8s8s8s4sH30s2H"
 
 KEYS_HEADER_BLOCK = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'first_dg_addr',
-    'file_history_addr',
-    'channel_tree_addr',
-    'first_attachment_addr',
-    'first_event_addr',
-    'comment_addr',
-    'abs_time',
-    'tz_offset',
-    'daylight_save_time',
-    'time_flags',
-    'time_quality',
-    'flags',
-    'reserved1',
-    'start_angle',
-    'start_distance',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "first_dg_addr",
+    "file_history_addr",
+    "channel_tree_addr",
+    "first_attachment_addr",
+    "first_event_addr",
+    "comment_addr",
+    "abs_time",
+    "tz_offset",
+    "daylight_save_time",
+    "time_flags",
+    "time_quality",
+    "flags",
+    "reserved1",
+    "start_angle",
+    "start_distance",
 )
 
 KEYS_IDENTIFICATION_BLOCK = (
-    'file_identification',
-    'version_str',
-    'program_identification',
-    'reserved0',
-    'mdf_version',
-    'reserved1',
-    'unfinalized_standard_flags',
-    'unfinalized_custom_flags',
+    "file_identification",
+    "version_str",
+    "program_identification",
+    "reserved0",
+    "mdf_version",
+    "reserved1",
+    "unfinalized_standard_flags",
+    "unfinalized_custom_flags",
 )
 
-FMT_AT_COMMON = '<4sI6Q2HI16s2Q'
+FMT_AT_COMMON = "<4sI6Q2HI16s2Q"
 KEYS_AT_BLOCK = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'next_at_addr',
-    'file_name_addr',
-    'mime_addr',
-    'comment_addr',
-    'flags',
-    'creator_index',
-    'reserved1',
-    'md5_sum',
-    'original_size',
-    'embedded_size',
-    'embedded_data',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "next_at_addr",
+    "file_name_addr",
+    "mime_addr",
+    "comment_addr",
+    "flags",
+    "creator_index",
+    "reserved1",
+    "md5_sum",
+    "original_size",
+    "embedded_size",
+    "embedded_data",
 )
 
-FMT_DZ_COMMON = '<4sI2Q2s2BI2Q'
+FMT_DZ_COMMON = "<4sI2Q2s2BI2Q"
 KEYS_DZ_BLOCK = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'original_type',
-    'zip_type',
-    'reserved1',
-    'param',
-    'original_size',
-    'zip_size',
-    'data',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "original_type",
+    "zip_type",
+    "reserved1",
+    "param",
+    "original_size",
+    "zip_size",
+    "data",
 )
 
-FMT_HL_BLOCK = '<4sI3QHB5s'
+FMT_HL_BLOCK = "<4sI3QHB5s"
 KEYS_HL_BLOCK = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'first_dl_addr',
-    'flags',
-    'zip_type',
-    'reserved1',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "first_dl_addr",
+    "flags",
+    "zip_type",
+    "reserved1",
 )
 
-FMT_EVENT_PARAMS = '<5B3sI2HQd'
-FMT_EVENT = '<4sI2Q{}Q5B3sI2HQd'
+FMT_EVENT_PARAMS = "<5B3sI2HQd"
+FMT_EVENT = "<4sI2Q{}Q5B3sI2HQd"
 
-FMT_SR_BLOCK = '<4sI5Qd2B6s'
+FMT_SR_BLOCK = "<4sI5Qd2B6s"
 KEYS_SR_BLOCK = (
-    'id',
-    'reserved0',
-    'block_len',
-    'links_nr',
-    'next_sr_addr',
-    'data_block_addr',
-    'cycles_nr',
-    'interval',
-    'sync_type',
-    'flags',
-    'reserved1',
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "next_sr_addr",
+    "data_block_addr",
+    "cycles_nr",
+    "interval",
+    "sync_type",
+    "flags",
+    "reserved1",
 )
 
-ASAM_XML_NAMESPACE = '{http://www.asam.net/mdf/v4}'
+ASAM_XML_NAMESPACE = "{http://www.asam.net/mdf/v4}"
 
-CAN_ID_PATTERN = re.compile(r'((?i)can)(?P<id>\d+)')
-CAN_DATA_FRAME_PATTERN = re.compile(r'((?i)CAN_DataFrame)_(?P<id>\d+)')
+CAN_ID_PATTERN = re.compile(r"((?i)can)(?P<id>\d+)")
+CAN_DATA_FRAME_PATTERN = re.compile(r"((?i)CAN_DataFrame)_(?P<id>\d+)")
 
 CN_COMMENT_TEMPLATE = """<CNcomment>
 <TX>{}</TX>

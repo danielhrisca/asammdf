@@ -13,7 +13,7 @@ from . import v4_blocks as v4b
 
 from .version import __version__
 
-logger = logging.getLogger('asammdf')
+logger = logging.getLogger("asammdf")
 
 
 class Signal(object):
@@ -60,26 +60,30 @@ class Signal(object):
 
     """
 
-    def __init__(self,
-                 samples=None,
-                 timestamps=None,
-                 unit='',
-                 name='',
-                 conversion=None,
-                 comment='',
-                 raw=True,
-                 master_metadata=None,
-                 display_name='',
-                 attachment=(),
-                 source=None,
-                 bit_count=None,
-                 stream_sync=False,
-                 invalidation_bits=None):
+    def __init__(
+        self,
+        samples=None,
+        timestamps=None,
+        unit="",
+        name="",
+        conversion=None,
+        comment="",
+        raw=True,
+        master_metadata=None,
+        display_name="",
+        attachment=(),
+        source=None,
+        bit_count=None,
+        stream_sync=False,
+        invalidation_bits=None,
+    ):
 
-        if samples is None or timestamps is None or name == '':
-            message = ('"samples", "timestamps" and "name" are mandatory '
-                       'for Signal class __init__: samples={}\n'
-                       'timestamps={}\nname={}')
+        if samples is None or timestamps is None or name == "":
+            message = (
+                '"samples", "timestamps" and "name" are mandatory '
+                "for Signal class __init__: samples={}\n"
+                "timestamps={}\nname={}"
+            )
             raise MdfException(message.format(samples, timestamps, name))
         else:
             if isinstance(samples, (list, tuple)):
@@ -87,12 +91,8 @@ class Signal(object):
             if isinstance(timestamps, (list, tuple)):
                 timestamps = np.array(timestamps, dtype=np.float64)
             if not samples.shape[0] == timestamps.shape[0]:
-                message = '{} samples and timestamps length mismatch ({} vs {})'
-                message = message.format(
-                    name,
-                    samples.shape[0],
-                    timestamps.shape[0],
-                )
+                message = "{} samples and timestamps length mismatch ({} vs {})"
+                message = message.format(name, samples.shape[0], timestamps.shape[0])
                 logger.exception(message)
                 raise MdfException(message)
             self.samples = samples
@@ -122,69 +122,57 @@ class Signal(object):
             self.stream_sync = stream_sync
             self.invalidation_bits = invalidation_bits
 
-            if not isinstance(conversion, (v4b.ChannelConversion, v3b.ChannelConversion)):
+            if not isinstance(
+                conversion, (v4b.ChannelConversion, v3b.ChannelConversion)
+            ):
                 if conversion is None:
                     pass
 
-                elif 'a' in conversion:
-                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_LIN
-                    conversion = v4b.ChannelConversion(
-                        **conversion
-                    )
+                elif "a" in conversion:
+                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_LIN
+                    conversion = v4b.ChannelConversion(**conversion)
 
-                elif 'formula' in conversion:
-                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_ALG
-                    conversion = v4b.ChannelConversion(
-                        **conversion
-                    )
+                elif "formula" in conversion:
+                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_ALG
+                    conversion = v4b.ChannelConversion(**conversion)
 
                 elif all(
-                        key in conversion
-                        for key in ['P{}'.format(i) for i in range(1, 7)]):
-                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_RAT
-                    conversion = v4b.ChannelConversion(
-                        **conversion
-                    )
+                    key in conversion for key in ["P{}".format(i) for i in range(1, 7)]
+                ):
+                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_RAT
+                    conversion = v4b.ChannelConversion(**conversion)
 
-                elif 'raw_0' in conversion and 'phys_0' in conversion:
-                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_TAB
+                elif "raw_0" in conversion and "phys_0" in conversion:
+                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_TAB
                     nr = 0
-                    while 'phys_{}'.format(nr) in conversion:
+                    while "phys_{}".format(nr) in conversion:
                         nr += 1
-                    conversion['val_param_nr'] = nr * 2
-                    conversion = v4b.ChannelConversion(
-                        **conversion
-                    )
+                    conversion["val_param_nr"] = nr * 2
+                    conversion = v4b.ChannelConversion(**conversion)
 
-                elif 'upper_0' in conversion and 'phys_0' in conversion:
-                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_RTAB
+                elif "upper_0" in conversion and "phys_0" in conversion:
+                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_RTAB
                     nr = 0
-                    while 'phys_{}'.format(nr) in conversion:
+                    while "phys_{}".format(nr) in conversion:
                         nr += 1
-                    conversion['val_param_nr'] = nr * 3 + 1
-                    conversion = v4b.ChannelConversion(
-                        **conversion
-                    )
+                    conversion["val_param_nr"] = nr * 3 + 1
+                    conversion = v4b.ChannelConversion(**conversion)
 
-                elif 'val_0' in conversion and 'text_0' in conversion:
-                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_TABX
+                elif "val_0" in conversion and "text_0" in conversion:
+                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_TABX
                     nr = 0
-                    while 'text_{}'.format(nr) in conversion:
+                    while "text_{}".format(nr) in conversion:
                         nr += 1
-                    conversion['ref_param_nr'] = nr + 1
-                    conversion = v4b.ChannelConversion(
-                        **conversion
-                    )
+                    conversion["ref_param_nr"] = nr + 1
+                    conversion = v4b.ChannelConversion(**conversion)
 
-                elif 'upper_0' in conversion and 'text_0' in conversion:
-                    conversion['conversion_type'] = v4c.CONVERSION_TYPE_RTABX
+                elif "upper_0" in conversion and "text_0" in conversion:
+                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
                     nr = 0
-                    while 'text_{}'.format(nr) in conversion:
+                    while "text_{}".format(nr) in conversion:
                         nr += 1
-                    conversion['ref_param_nr'] = nr + 1
-                    conversion = v4b.ChannelConversion(
-                        **conversion
-                    )
+                    conversion["ref_param_nr"] = nr + 1
+                    conversion = v4b.ChannelConversion(**conversion)
 
                 else:
                     conversion = v4b.ChannelConversion(
@@ -225,6 +213,7 @@ class Signal(object):
         case see the GUI plot documentation to see the available commands"""
         try:
             from .plot import Plot, COLORS, StandalonePlot
+
             try:
                 from PyQt5.QtWidgets import QApplication
                 from PyQt5.QtGui import QIcon, QPixmap
@@ -234,22 +223,22 @@ class Signal(object):
 
             app = QApplication([])
 
-            plot = StandalonePlot([self,], True, False)
+            plot = StandalonePlot([self], True, False)
 
             name = self.name
 
             if self.comment:
-                comment = self.comment.replace('$', '')
+                comment = self.comment.replace("$", "")
                 comment = extract_cncomment_xml(comment)
-                comment = fill(comment, 120).replace('\\n', ' ')
+                comment = fill(comment, 120).replace("\\n", " ")
 
-                title = '{}\n({})'.format(name, comment)
+                title = "{}\n({})".format(name, comment)
                 plot.plot.plotItem.setTitle(title, color=COLORS[0])
             else:
                 plot.plot.plotItem.setTitle(name, color=COLORS[0])
 
             plot.show()
-            plot.setWindowTitle('{} - asammdf{}'.format(self.name, __version__))
+            plot.setWindowTitle("{} - asammdf{}".format(self.name, __version__))
 
             app.exec_()
             return
@@ -266,42 +255,49 @@ class Signal(object):
         if len(self.samples.shape) <= 1 and self.samples.dtype.names is None:
             fig = plt.figure()
             fig.canvas.set_window_title(self.name)
-            fig.text(0.95, 0.05, 'asammdf {}'.format(__version__),
-                     fontsize=8, color='red',
-                     ha='right', va='top', alpha=0.5)
+            fig.text(
+                0.95,
+                0.05,
+                "asammdf {}".format(__version__),
+                fontsize=8,
+                color="red",
+                ha="right",
+                va="top",
+                alpha=0.5,
+            )
 
             name = self.name
 
             if self.comment:
-                comment = self.comment.replace('$', '')
+                comment = self.comment.replace("$", "")
                 comment = extract_cncomment_xml(comment)
-                comment = fill(comment, 120).replace('\\n', ' ')
+                comment = fill(comment, 120).replace("\\n", " ")
 
-                title = '{}\n({})'.format(name, comment)
+                title = "{}\n({})".format(name, comment)
                 plt.title(title)
             else:
                 plt.title(name)
             try:
                 if not self.master_metadata:
-                    plt.xlabel('Time [s]')
-                    plt.ylabel('[{}]'.format(self.unit))
-                    plt.plot(self.timestamps, self.samples, 'b')
-                    plt.plot(self.timestamps, self.samples, 'b.')
+                    plt.xlabel("Time [s]")
+                    plt.ylabel("[{}]".format(self.unit))
+                    plt.plot(self.timestamps, self.samples, "b")
+                    plt.plot(self.timestamps, self.samples, "b.")
                     plt.grid(True)
                     plt.show()
                 else:
                     master_name, sync_type = self.master_metadata
                     if sync_type in (0, 1):
-                        plt.xlabel('{} [s]'.format(master_name))
+                        plt.xlabel("{} [s]".format(master_name))
                     elif sync_type == 2:
-                        plt.xlabel('{} [deg]'.format(master_name))
+                        plt.xlabel("{} [deg]".format(master_name))
                     elif sync_type == 3:
-                        plt.xlabel('{} [m]'.format(master_name))
+                        plt.xlabel("{} [m]".format(master_name))
                     elif sync_type == 4:
-                        plt.xlabel('{} [index]'.format(master_name))
-                    plt.ylabel('[{}]'.format(self.unit))
-                    plt.plot(self.timestamps, self.samples, 'b')
-                    plt.plot(self.timestamps, self.samples, 'b.')
+                        plt.xlabel("{} [index]".format(master_name))
+                    plt.ylabel("[{}]".format(self.unit))
+                    plt.plot(self.timestamps, self.samples, "b")
+                    plt.plot(self.timestamps, self.samples, "b.")
                     plt.grid(True)
                     plt.show()
             except ValueError:
@@ -323,21 +319,21 @@ class Signal(object):
                     fig.text(
                         0.95,
                         0.05,
-                        'asammdf {}'.format(__version__),
+                        "asammdf {}".format(__version__),
                         fontsize=8,
-                        color='red',
-                        ha='right',
-                        va='top',
+                        color="red",
+                        ha="right",
+                        va="top",
                         alpha=0.5,
                     )
 
                     if self.comment:
-                        comment = self.comment.replace('$', '')
-                        plt.title('{}\n({})'.format(self.name, comment))
+                        comment = self.comment.replace("$", "")
+                        plt.title("{}\n({})".format(self.name, comment))
                     else:
                         plt.title(self.name)
 
-                    ax = fig.add_subplot(111, projection='3d')
+                    ax = fig.add_subplot(111, projection="3d")
 
                     # Grab some test data.
                     X = np.array(range(shape[1]))
@@ -347,31 +343,26 @@ class Signal(object):
                     Z = samples[0]
 
                     # Plot a basic wireframe.
-                    self._plot_axis = ax.plot_wireframe(X, Y, Z,
-                                                        rstride=1, cstride=1)
+                    self._plot_axis = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
 
                     # Place Sliders on Graph
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
 
                     # Create Sliders & Determine Range
-                    sa = Slider(ax_a,
-                                'Time [s]',
-                                self.timestamps[0],
-                                self.timestamps[-1],
-                                valinit=self.timestamps[0])
+                    sa = Slider(
+                        ax_a,
+                        "Time [s]",
+                        self.timestamps[0],
+                        self.timestamps[-1],
+                        valinit=self.timestamps[0],
+                    )
 
                     def update(val):
                         self._plot_axis.remove()
-                        idx = np.searchsorted(self.timestamps,
-                                              sa.val,
-                                              side='right')
-                        Z = samples[idx-1]
+                        idx = np.searchsorted(self.timestamps, sa.val, side="right")
+                        Z = samples[idx - 1]
                         self._plot_axis = ax.plot_wireframe(
-                            X,
-                            Y,
-                            Z,
-                            rstride=1,
-                            cstride=1,
+                            X, Y, Z, rstride=1, cstride=1
                         )
                         fig.canvas.draw_idle()
 
@@ -385,21 +376,21 @@ class Signal(object):
                     fig.text(
                         0.95,
                         0.05,
-                        'asammdf {}'.format(__version__),
+                        "asammdf {}".format(__version__),
                         fontsize=8,
-                        color='red',
-                        ha='right',
-                        va='top',
+                        color="red",
+                        ha="right",
+                        va="top",
                         alpha=0.5,
                     )
 
                     if self.comment:
-                        comment = self.comment.replace('$', '')
-                        plt.title('{}\n({})'.format(self.name, comment))
+                        comment = self.comment.replace("$", "")
+                        plt.title("{}\n({})".format(self.name, comment))
                     else:
                         plt.title(self.name)
 
-                    ax = fig.add_subplot(111, projection='3d')
+                    ax = fig.add_subplot(111, projection="3d")
 
                     samples = self.samples[names[0]]
                     axis1 = self.samples[names[1]]
@@ -411,37 +402,27 @@ class Signal(object):
                     Z = samples[0]
 
                     # Plot a basic wireframe.
-                    self._plot_axis = ax.plot_wireframe(
-                        X,
-                        Y,
-                        Z,
-                        rstride=1,
-                        cstride=1,
-                    )
+                    self._plot_axis = ax.plot_wireframe(X, Y, Z, rstride=1, cstride=1)
 
                     # Place Sliders on Graph
                     ax_a = plt.axes([0.25, 0.1, 0.65, 0.03])
 
                     # Create Sliders & Determine Range
-                    sa = Slider(ax_a,
-                                'Time [s]',
-                                self.timestamps[0],
-                                self.timestamps[-1],
-                                valinit=self.timestamps[0])
+                    sa = Slider(
+                        ax_a,
+                        "Time [s]",
+                        self.timestamps[0],
+                        self.timestamps[-1],
+                        valinit=self.timestamps[0],
+                    )
 
                     def update(val):
                         self._plot_axis.remove()
-                        idx = np.searchsorted(self.timestamps,
-                                              sa.val,
-                                              side='right')
-                        Z = samples[idx-1]
-                        X, Y = np.meshgrid(axis2[idx-1], axis1[idx-1])
+                        idx = np.searchsorted(self.timestamps, sa.val, side="right")
+                        Z = samples[idx - 1]
+                        X, Y = np.meshgrid(axis2[idx - 1], axis1[idx - 1])
                         self._plot_axis = ax.plot_wireframe(
-                            X,
-                            Y,
-                            Z,
-                            rstride=1,
-                            cstride=1,
+                            X, Y, Z, rstride=1, cstride=1
                         )
                         fig.canvas.draw_idle()
 
@@ -509,13 +490,15 @@ class Signal(object):
                 self.source,
                 self.bit_count,
                 self.stream_sync,
-                invalidation_bits=self.invalidation_bits.copy() if self.invalidation_bits is not None else None,
+                invalidation_bits=self.invalidation_bits.copy()
+                if self.invalidation_bits is not None
+                else None,
             )
 
         else:
             if start is None:
                 # cut from begining to stop
-                stop = np.searchsorted(self.timestamps, stop, side='right')
+                stop = np.searchsorted(self.timestamps, stop, side="right")
                 if stop:
                     result = Signal(
                         self.samples[:stop],
@@ -531,7 +514,9 @@ class Signal(object):
                         self.source,
                         self.bit_count,
                         self.stream_sync,
-                        invalidation_bits=self.invalidation_bits[:stop] if self.invalidation_bits is not None else None,
+                        invalidation_bits=self.invalidation_bits[:stop]
+                        if self.invalidation_bits is not None
+                        else None,
                     )
                 else:
                     result = Signal(
@@ -552,7 +537,7 @@ class Signal(object):
 
             elif stop is None:
                 # cut from start to end
-                start = np.searchsorted(self.timestamps, start, side='left')
+                start = np.searchsorted(self.timestamps, start, side="left")
                 result = Signal(
                     self.samples[start:],
                     self.timestamps[start:],
@@ -567,7 +552,9 @@ class Signal(object):
                     self.source,
                     self.bit_count,
                     self.stream_sync,
-                    invalidation_bits=self.invalidation_bits[start:] if self.invalidation_bits is not None else None,
+                    invalidation_bits=self.invalidation_bits[start:]
+                    if self.invalidation_bits is not None
+                    else None,
                 )
 
             else:
@@ -589,21 +576,23 @@ class Signal(object):
                         self.stream_sync,
                     )
                 else:
-                    start_ = np.searchsorted(self.timestamps, start, side='left')
+                    start_ = np.searchsorted(self.timestamps, start, side="left")
                     start_ = max(0, start_)
-                    stop_ = np.searchsorted(self.timestamps, stop, side='right')
+                    stop_ = np.searchsorted(self.timestamps, stop, side="right")
 
                     if start not in self.timestamps and start_ == stop_:
                         start_ -= 1
                     if stop_ == start_:
-                        if (len(self.timestamps)
-                                and stop >= self.timestamps[0]
-                                and start <= self.timestamps[-1]):
+                        if (
+                            len(self.timestamps)
+                            and stop >= self.timestamps[0]
+                            and start <= self.timestamps[-1]
+                        ):
                             # start and stop are found between 2 signal samples
                             # so return the previous sample
                             result = Signal(
-                                self.samples[start_ - 1: start_],
-                                self.timestamps[start_ - 1: start_],
+                                self.samples[start_ - 1 : start_],
+                                self.timestamps[start_ - 1 : start_],
                                 self.unit,
                                 self.name,
                                 self.conversion,
@@ -615,7 +604,11 @@ class Signal(object):
                                 self.source,
                                 self.bit_count,
                                 self.stream_sync,
-                                invalidation_bits=self.invalidation_bits[start_ - 1: start_] if self.invalidation_bits is not None else None,
+                                invalidation_bits=self.invalidation_bits[
+                                    start_ - 1 : start_
+                                ]
+                                if self.invalidation_bits is not None
+                                else None,
                             )
                         else:
                             # signal is empty or start and stop are outside the
@@ -637,8 +630,8 @@ class Signal(object):
                             )
                     else:
                         result = Signal(
-                            self.samples[start_: stop_],
-                            self.timestamps[start_: stop_],
+                            self.samples[start_:stop_],
+                            self.timestamps[start_:stop_],
                             self.unit,
                             self.name,
                             self.conversion,
@@ -650,7 +643,9 @@ class Signal(object):
                             self.source,
                             self.bit_count,
                             self.stream_sync,
-                            invalidation_bits=self.invalidation_bits[start_: stop_] if self.invalidation_bits is not None else None,
+                            invalidation_bits=self.invalidation_bits[start_:stop_]
+                            if self.invalidation_bits is not None
+                            else None,
                         )
         return result
 
@@ -680,14 +675,25 @@ class Signal(object):
             else:
                 timestamps = other.timestamps
 
-            if self.invalidation_bits is not None is None and other.invalidation_bits is None:
+            if (
+                self.invalidation_bits is not None is None
+                and other.invalidation_bits is None
+            ):
                 invalidation_bits = None
-            elif self.invalidation_bits is not None is None and other.invalidation_bits is not None:
+            elif (
+                self.invalidation_bits is not None is None
+                and other.invalidation_bits is not None
+            ):
                 invalidation_bits = other.invalidation_bits
-            elif self.invalidation_bits is not None is not None and other.invalidation_bits is None:
+            elif (
+                self.invalidation_bits is not None is not None
+                and other.invalidation_bits is None
+            ):
                 invalidation_bits = self.invalidation_bits
             else:
-                invalidation_bits = np.append(self.invalidation_bits, other.invalidation_bits)
+                invalidation_bits = np.append(
+                    self.invalidation_bits, other.invalidation_bits
+                )
 
             result = Signal(
                 np.append(self.samples, other.samples),
@@ -737,27 +743,21 @@ class Signal(object):
                 display_name=self.display_name,
                 attachment=self.attachment,
                 stream_sync=self.stream_sync,
-                invalidation_bits=self.invalidation_bits.copy() if self.invalidation_bits is not None else None,
+                invalidation_bits=self.invalidation_bits.copy()
+                if self.invalidation_bits is not None
+                else None,
             )
         else:
-            if self.samples.dtype.kind == 'f':
+            if self.samples.dtype.kind == "f":
                 s = np.interp(new_timestamps, self.timestamps, self.samples)
             else:
-                idx = np.searchsorted(
-                    self.timestamps,
-                    new_timestamps,
-                    side='right',
-                )
+                idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
                 idx -= 1
                 idx = np.clip(idx, 0, idx[-1])
                 s = self.samples[idx]
 
             if self.invalidation_bits is not None is not None:
-                idx = np.searchsorted(
-                    self.timestamps,
-                    new_timestamps,
-                    side='right',
-                )
+                idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
                 idx -= 1
                 idx = np.clip(idx, 0, idx[-1])
                 invalidation_bits = self.invalidation_bits[idx]
@@ -850,7 +850,7 @@ class Signal(object):
         )
 
     def __sub__(self, other):
-        return self.__apply_func(other, '__sub__')
+        return self.__apply_func(other, "__sub__")
 
     def __isub__(self, other):
         return self.__sub__(other)
@@ -859,7 +859,7 @@ class Signal(object):
         return -self.__sub__(other)
 
     def __add__(self, other):
-        return self.__apply_func(other, '__add__')
+        return self.__apply_func(other, "__add__")
 
     def __iadd__(self, other):
         return self.__add__(other)
@@ -868,7 +868,7 @@ class Signal(object):
         return self.__add__(other)
 
     def __mul__(self, other):
-        return self.__apply_func(other, '__mul__')
+        return self.__apply_func(other, "__mul__")
 
     def __imul__(self, other):
         return self.__mul__(other)
@@ -877,28 +877,28 @@ class Signal(object):
         return self.__mul__(other)
 
     def __truediv__(self, other):
-        return self.__apply_func(other, '__truediv__')
+        return self.__apply_func(other, "__truediv__")
 
     def __itruediv__(self, other):
         return self.__truediv__(other)
 
     def __rtruediv__(self, other):
-        return self.__apply_func(other, '__rtruediv__')
+        return self.__apply_func(other, "__rtruediv__")
 
     def __mod__(self, other):
-        return self.__apply_func(other, '__mod__')
+        return self.__apply_func(other, "__mod__")
 
     def __pow__(self, other):
-        return self.__apply_func(other, '__pow__')
+        return self.__apply_func(other, "__pow__")
 
     def __and__(self, other):
-        return self.__apply_func(other, '__and__')
+        return self.__apply_func(other, "__and__")
 
     def __or__(self, other):
-        return self.__apply_func(other, '__or__')
+        return self.__apply_func(other, "__or__")
 
     def __xor__(self, other):
-        return self.__apply_func(other, '__xor__')
+        return self.__apply_func(other, "__xor__")
 
     def __invert__(self):
         s = ~self.samples
@@ -919,40 +919,35 @@ class Signal(object):
         )
 
     def __lshift__(self, other):
-        return self.__apply_func(other, '__lshift__')
+        return self.__apply_func(other, "__lshift__")
 
     def __rshift__(self, other):
-        return self.__apply_func(other, '__rshift__')
+        return self.__apply_func(other, "__rshift__")
 
     def __lt__(self, other):
-        return self.__apply_func(other, '__lt__')
+        return self.__apply_func(other, "__lt__")
 
     def __le__(self, other):
-        return self.__apply_func(other, '__le__')
+        return self.__apply_func(other, "__le__")
 
     def __gt__(self, other):
-        return self.__apply_func(other, '__gt__')
+        return self.__apply_func(other, "__gt__")
 
     def __ge__(self, other):
-        return self.__apply_func(other, '__ge__')
+        return self.__apply_func(other, "__ge__")
 
     def __eq__(self, other):
-        return self.__apply_func(other, '__eq__')
+        return self.__apply_func(other, "__eq__")
 
     def __ne__(self, other):
-        return self.__apply_func(other, '__ne__')
+        return self.__apply_func(other, "__ne__")
 
     def __iter__(self):
-        for item in (
-                self.samples,
-                self.timestamps,
-                self.unit,
-                self.name):
+        for item in (self.samples, self.timestamps, self.unit, self.name):
             yield item
 
     def __reversed__(self):
-        return enumerate(zip(reversed(self.samples),
-                             reversed(self.timestamps)))
+        return enumerate(zip(reversed(self.samples), reversed(self.timestamps)))
 
     def __len__(self):
         return len(self.samples)
@@ -1040,5 +1035,5 @@ class Signal(object):
         )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass
