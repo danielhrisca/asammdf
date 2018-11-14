@@ -1805,42 +1805,10 @@ class MDF(object):
             group_channels = [group["channels"] for group in groups]
             for j, channels in enumerate(zip(*group_channels)):
                 if memory == "minimum":
-                    names = []
-                    for file in files:
-                        if file.version in MDF2_VERSIONS + MDF3_VERSIONS:
-                            grp = file.groups[i]
-                            if grp["data_location"] == 0:
-                                stream = file._file
-                            else:
-                                stream = file._tempfile
-
-                            channel = ChannelV3(
-                                address=grp["channels"][j], stream=stream
-                            )
-
-                            if channel.get("long_name_addr", 0):
-                                name = get_text_v3(channel["long_name_addr"], stream)
-                            else:
-                                name = (
-                                    channel["short_name"]
-                                    .decode("latin-1")
-                                    .strip(" \r\n\t\0")
-                                    .split("\\")[0]
-                                )
-                        else:
-                            grp = file.groups[i]
-                            if grp["data_location"] == 0:
-                                stream = file._file
-                            else:
-                                stream = file._tempfile
-
-                            channel = ChannelV4(
-                                address=grp["channels"][j], stream=stream
-                            )
-                            name = get_text_v4(channel["name_addr"], stream)
-                        name = name.split("\\")[0]
-                        names.append(name)
-                    names = set(names)
+                    names = set(
+                        file.get_channel_name(group=i, index=j)
+                        for file in files
+                    )
                 else:
                     names = set(ch.name for ch in channels)
                 if not len(names) == 1:

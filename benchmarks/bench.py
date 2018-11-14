@@ -791,6 +791,8 @@ def main(text_output, fmt):
     output.append('    * {} groups'.format(v4_groups))
     output.append('    * {} channels\n\n'.format(v4_channels))
 
+    OPEN, SAVE, GET, CONVERT, MERGE = 0, 0, 0, 0, 1
+
     tests = (
          partial(open_mdf3, memory='full'),
          partial(open_mdf3, memory='low'),
@@ -806,7 +808,7 @@ def main(text_output, fmt):
          open_reader4_nodata,
     )
 
-    if tests:
+    if tests and OPEN:
         output.extend(table_header('Open file', fmt))
         for func in tests:
             thr = multiprocessing.Process(target=func, args=(send, fmt))
@@ -832,7 +834,7 @@ def main(text_output, fmt):
          save_reader4_compression,
     )
 
-    if tests:
+    if tests and SAVE:
         output.extend(table_header('Save file', fmt))
         for func in tests:
             thr = multiprocessing.Process(target=func, args=(send, fmt))
@@ -862,7 +864,7 @@ def main(text_output, fmt):
 
     )
 
-    if tests:
+    if tests and GET:
         output.extend(table_header('Get all channels (36424 calls)', fmt))
         for func in tests:
             thr = multiprocessing.Process(target=func, args=(send, fmt))
@@ -882,7 +884,7 @@ def main(text_output, fmt):
          partial(convert_v4_v3, memory='minimum'),
     )
 
-    if tests:
+    if tests and CONVERT:
         output.extend(table_header('Convert file', fmt))
         for func in tests:
             thr = multiprocessing.Process(target=func, args=(send, fmt))
@@ -908,7 +910,7 @@ def main(text_output, fmt):
          merge_reader_v4_compress,
     )
 
-    if tests:
+    if tests and MERGE:
         output.extend(table_header('Merge 3 files', fmt))
         for func in tests:
             thr = multiprocessing.Process(target=func, args=(send, fmt))
