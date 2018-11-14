@@ -6994,14 +6994,13 @@ class MDF4(object):
 
         grp = self.groups[gp_nr]
 
-        if grp["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-
         channel = grp["channels"][ch_nr]
 
         if self.memory == "minimum":
+            if grp["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
+                stream = self._file
+            else:
+                stream = self._tempfile
             stream.seek(channel + 40)
             name = get_text_v4(UINT64(stream.read(8))[0], stream)
         else:

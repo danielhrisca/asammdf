@@ -1952,7 +1952,7 @@ class MDF(object):
 
     @staticmethod
     def stack(files, version="4.10", memory="full", sync=True, **kwargs):
-        """ merge several files and return the merged *MDF* object
+        """ stack several files and return the stacked *MDF* object
 
         Parameters
         ----------
@@ -1967,19 +1967,19 @@ class MDF(object):
 
         Returns
         -------
-        merged : MDF
-            new *MDF* object with merge channels
+        stacked : MDF
+            new *MDF* object with stacked channels
 
         """
         if not files:
-            raise MdfException("No files given for merge")
+            raise MdfException("No files given for stack")
 
         version = validate_version_argument(version)
         memory = validate_memory_argument(memory)
 
         callback = kwargs.get("callback", None)
 
-        merged = MDF(version=version, memory=memory, callback=callback)
+        stacked = MDF(version=version, memory=memory, callback=callback)
 
         files_nr = len(files)
 
@@ -2013,13 +2013,14 @@ class MDF(object):
             oldest = min(timestamps)
             offsets = [(timestamp - oldest).total_seconds() for timestamp in timestamps]
 
-            merged.header.start_time = oldest
+            stacked.header.start_time = oldest
         else:
             offsets = [0 for file in files]
 
-        files = (file if isinstance(file, MDF) else MDF(file, memory) for file in files)
-
-        for idx, (offset, mdf) in enumerate(zip(offsets, files), 1):
+        current_group = 0
+        for offset, mdf in zip(offsets, files):
+            if not isinstance(mdf, MDF):
+                mdf = MDF(mdf, memory)
             for i, group in enumerate(mdf.groups):
                 idx = 0
                 included_channels = mdf._included_channels(i)
@@ -2071,9 +2072,10 @@ class MDF(object):
                             signals.append(sig)
 
                         if signals:
-                            merged.append(signals, common_timebase=True)
+                            stacked.append(signals, common_timebase=True)
                         idx += 1
                     else:
+                        print(idx)
                         master = mdf.get_master(i, fragment)
                         if sync:
                             master = master + offset
@@ -2094,10 +2096,11 @@ class MDF(object):
                                 )
 
                             if signals:
-                                merged.extend(i, signals)
+                                stacked.extend(current_group, signals)
                         idx += 1
 
                     del group["record"]
+                current_group += 1
 
             if callback:
                 callback(idx, files_nr)
@@ -2105,7 +2108,7 @@ class MDF(object):
             if MDF._terminate:
                 return
 
-        return merged
+        return stacked
 
     def iter_channels(self, skip_master=True):
         """ generator that yields a *Signal* for each non-master channel
