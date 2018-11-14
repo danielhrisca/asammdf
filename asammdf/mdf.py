@@ -1835,47 +1835,6 @@ class MDF(object):
             message = "Can't merge files: difference in number of data groups"
             raise MdfException(message)
 
-#        def check_structure(files):
-#            structure, groups_nr = [], 0
-#            for idx, mdf in enumerate(files):
-#                if not isinstance(mdf, MDF):
-#                    mdf = MDF(mdf, memory='minimum', skip_record_preparation=True)
-#
-#                if idx and len(mdf.groups) != groups_nr:
-#                    message = "Can't merge files: difference in number of data groups"
-#                    raise MdfException(message)
-#
-#                for i, group in enumerate(mdf.groups):
-#
-#                    if mdf.memory == 'minimum':
-#                        channels = len(group['channels'])
-#                        names = tuple(
-#                            mdf.get_channel_name(group=i, index=j)
-#                            for j in range(channels)
-#                        )
-#                    else:
-#                        names = tuple(
-#                            ch.name
-#                            for ch in group['channels']
-#                        )
-#
-#                    if idx == 0:
-#                        structure.append(names)
-#                    else:
-#                        if names != structure[i]:
-#                            message = (
-#                                "Can't merge files: different channel number for data groups {}"
-#                            )
-#                            raise MdfException(message.format(i))
-#
-#                if idx == 0:
-#                    groups_nr = len(structure)
-#
-#
-#            del structure
-#
-#            return groups_nr
-
         groups_nr, _ = sizes.pop()
 
         last_timestamps = [
@@ -2218,49 +2177,15 @@ class MDF(object):
                 yield self.get(group=i, index=j)
 
     def iter_groups(self):
-        """ generator that yields channel groups as pandas DataFrames"""
+        """ generator that yields channel groups as pandas DataFrames. If there
+        are multiple occurences for the same channel name inside a channel
+        group, then a counter will be used to make the names unique
+        (<original_name>_<counter>)
+
+        """
 
         for i, group in enumerate(self.groups):
-            master_index = self.masters_db.get(i, -1)
-
-            if master_index >= 0:
-                master_name = self.get_channel_name(i, master_index)
-            else:
-                master_name = "Idx"
-
-            master = []
-
-            names = [
-                self.get_channel_name(i, j)
-                for j, _ in enumerate(group["channels"])
-                if j != master_index
-            ]
-
-            sigs = [[] for j, _ in enumerate(group["channels"]) if j != master_index]
-
-            data = self._load_data(group)
-            for fragment in data:
-
-                master.append(self.get_master(i, data=fragment))
-
-                idx = 0
-                for j, _ in enumerate(group["channels"]):
-                    if j == master_index:
-                        continue
-                    sigs[idx].append(
-                        self.get(group=i, index=j, data=fragment, samples_only=True)[0]
-                    )
-                    idx += 1
-
-            pandas_dict = {master_name: np.concatenate(master)}
-
-            used_names = {master_name}
-            for name, sig in zip(names, sigs):
-                name = get_unique_name(used_names, name)
-                used_names.add(name)
-                pandas_dict[name] = np.concatenate(sig)
-
-            yield DataFrame.from_dict(pandas_dict)
+            yield self.get_group(i)
 
     def resample(self, raster, memory=None, version=None):
         """ resample all channels using the given raster
@@ -2765,6 +2690,66 @@ class MDF(object):
                     mdf.seek(addr)
                     mdf.write(bts)
 
+    def get_group(self, index):
+        """ get channel group as pandas DataFrames. If there are multiple
+        occurences for the same channel name, then a counter will be used to
+        make the names unique (<original_name>_<counter>)
+
+        Parameters
+        ----------
+        index : int
+            channel group index
+
+        Returns
+        -------
+        df : pandas.DataFrame
+
+        """
+
+        group = self.groups[index]
+
+        i = index
+
+        master_index = self.masters_db.get(i, -1)
+
+        if master_index >= 0:
+            master_name = self.get_channel_name(i, master_index)
+        else:
+            master_name = "Idx"
+
+        master = []
+
+        names = [
+            self.get_channel_name(i, j)
+            for j, _ in enumerate(group["channels"])
+            if j != master_index
+        ]
+
+        sigs = [[] for j, _ in enumerate(group["channels"]) if j != master_index]
+
+        data = self._load_data(group)
+        for fragment in data:
+
+            master.append(self.get_master(i, data=fragment))
+
+            idx = 0
+            for j, _ in enumerate(group["channels"]):
+                if j == master_index:
+                    continue
+                sigs[idx].append(
+                    self.get(group=i, index=j, data=fragment, samples_only=True)[0]
+                )
+                idx += 1
+
+        pandas_dict = {master_name: np.concatenate(master)}
+
+        used_names = {master_name}
+        for name, sig in zip(names, sigs):
+            name = get_unique_name(used_names, name)
+            used_names.add(name)
+            pandas_dict[name] = np.concatenate(sig)
+
+        return DataFrame.from_dict(pandas_dict)
 
 if __name__ == "__main__":
     pass
