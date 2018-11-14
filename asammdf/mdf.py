@@ -40,6 +40,7 @@ from .utils import (
     randomized_string,
     is_file_like,
     debug_channel,
+    count_channel_groups,
 )
 from .v2_v3_blocks import Channel as ChannelV3
 from .v2_v3_blocks import HeaderBlock as HeaderV3
@@ -1754,26 +1755,133 @@ class MDF(object):
         if callback:
             callback(0, 100)
 
-        files = [file if isinstance(file, MDF) else MDF(file, memory) for file in files]
-
         if sync:
+            timestamps = []
+            for file in files:
+                if isinstance(file, MDF):
+                    timestamps.append(file.header.start_time)
+                else:
+                    with open(file, "rb") as mdf:
+                        mdf.seek(64)
+                        blk_id = mdf.read(2)
+                        if blk_id == b"HD":
+                            header = HeaderV3
+                        else:
+                            blk_id += mdf.read(2)
+                            if blk_id == b"##HD":
+                                header = HeaderV4
+                            else:
+                                raise MdfException(
+                                    '"{}" is not a valid MDF file'.format(file)
+                                )
 
-            timestamps = [file.header.start_time for file in files]
+                        header = header(address=64, stream=mdf)
+
+                        timestamps.append(header.start_time)
 
             oldest = min(timestamps)
-            offsets = [(timestamp - oldest).total_seconds() for timestamp in timestamps]
+            offsets = [(timestamp - oldest).total_seconds() for timestamp in
+                       timestamps]
 
         else:
-            oldest = files[0].header.start_time
+            file = files[0]
+            if isinstance(file, MDF):
+                oldest = file.header.start_time
+            else:
+                with open(file, "rb") as mdf:
+                    mdf.seek(64)
+                    blk_id = mdf.read(2)
+                    if blk_id == b"HD":
+                        header = HeaderV3
+                    else:
+                        blk_id += mdf.read(2)
+                        if blk_id == b"##HD":
+                            header = HeaderV4
+                        else:
+                            raise MdfException(
+                                '"{}" is not a valid MDF file'.format(file)
+                            )
+
+                    header = header(address=64, stream=mdf)
+
+                    oldest = header.start_time
+
             offsets = [oldest - oldest for _ in files]
 
-        groups_nr = set(len(file.groups) for file in files)
+        sizes = set()
+        for file in files:
+            if isinstance(file, MDF):
+                if file.version < '4.00':
+                    ch_count = sum(
+                        len(group['channels'])
+                        for group in file.groups
+                    )
+                else:
+                    ch_count = sum(
+                        len(group['channels']) - sum(
+                                len(dep)
+                                for dep in group['channel_dependencies']
+                                if dep and not isinstance(dep[0], ChannelArrayBlock)
+                            )
+                        for group in file.groups
+                    )
+                info = len(file.groups), ch_count
+            else:
+                with open(file, "rb") as mdf:
+                    info = count_channel_groups(mdf, include_channels=True)
+            sizes.add(info)
 
-        if not len(groups_nr) == 1:
-            message = "Can't merge files: " "difference in number of data groups"
+        if len(sizes) > 1:
+            message = "Can't merge files: difference in number of data groups"
             raise MdfException(message)
-        else:
-            groups_nr = groups_nr.pop()
+
+#        def check_structure(files):
+#            structure, groups_nr = [], 0
+#            for idx, mdf in enumerate(files):
+#                if not isinstance(mdf, MDF):
+#                    mdf = MDF(mdf, memory='minimum', skip_record_preparation=True)
+#
+#                if idx and len(mdf.groups) != groups_nr:
+#                    message = "Can't merge files: difference in number of data groups"
+#                    raise MdfException(message)
+#
+#                for i, group in enumerate(mdf.groups):
+#
+#                    if mdf.memory == 'minimum':
+#                        channels = len(group['channels'])
+#                        names = tuple(
+#                            mdf.get_channel_name(group=i, index=j)
+#                            for j in range(channels)
+#                        )
+#                    else:
+#                        names = tuple(
+#                            ch.name
+#                            for ch in group['channels']
+#                        )
+#
+#                    if idx == 0:
+#                        structure.append(names)
+#                    else:
+#                        if names != structure[i]:
+#                            message = (
+#                                "Can't merge files: different channel number for data groups {}"
+#                            )
+#                            raise MdfException(message.format(i))
+#
+#                if idx == 0:
+#                    groups_nr = len(structure)
+#
+#
+#            del structure
+#
+#            return groups_nr
+
+        groups_nr, _ = sizes.pop()
+
+        last_timestamps = [
+            None
+            for _ in range(groups_nr)
+        ]
 
         version = validate_version_argument(version)
         memory = validate_memory_argument(memory)
@@ -1782,45 +1890,24 @@ class MDF(object):
 
         merged.header.start_time = oldest
 
-        for i, groups in enumerate(zip(*(file.groups for file in files))):
+        for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
+            if not isinstance(mdf, MDF):
+                mdf = MDF(mdf, memory=memory)
 
-            channels_nr = set(len(group["channels"]) for group in groups)
-            if not len(channels_nr) == 1:
-                message = (
-                    "Can't merge files: " "different channel number for data groups {}"
-                )
-                raise MdfException(message.format(i))
+            for i, group in enumerate(mdf.groups):
+                included_channels = mdf._included_channels(i)
+                channels_nr = len(group["channels"])
 
-            mdf = files[0]
-            included_channels = mdf._included_channels(i)
-            channels_nr = len(groups[0]["channels"])
-
-            if memory == "minimum":
-                y_axis = MERGE_MINIMUM
-            else:
-                y_axis = MERGE_LOW
-
-            read_size = np.interp(channels_nr, CHANNEL_COUNT, y_axis)
-
-            group_channels = [group["channels"] for group in groups]
-            for j, channels in enumerate(zip(*group_channels)):
                 if memory == "minimum":
-                    names = set(
-                        file.get_channel_name(group=i, index=j)
-                        for file in files
-                    )
+                    y_axis = MERGE_MINIMUM
                 else:
-                    names = set(ch.name for ch in channels)
-                if not len(names) == 1:
-                    message = (
-                        "Can't merge files: "
-                        "different channel names for data group {}"
-                    )
-                    raise MdfException(message.format(i))
+                    y_axis = MERGE_LOW
 
-            idx = 0
-            last_timestamp = None
-            for offset, group, mdf in zip(offsets, groups, files):
+                read_size = np.interp(channels_nr, CHANNEL_COUNT, y_axis)
+
+                idx = 0
+                last_timestamp = last_timestamps[i]
+
                 if read_size:
                     mdf.configure(read_fragment_size=int(read_size))
 
@@ -1836,7 +1923,7 @@ class MDF(object):
                         )
                     else:
                         group["record"] = None
-                    if idx == 0:
+                    if mdf_index == 0 and idx == 0:
                         signals = []
                         for j in included_channels:
                             sig = mdf.get(
@@ -1910,14 +1997,15 @@ class MDF(object):
 
                     del group["record"]
 
+                last_timestamps[i] = last_timestamp
+
             if callback:
                 callback(i + 1, groups_nr)
 
             if MDF._terminate:
                 return
 
-        for file in files:
-            merged._transfer_events(file)
+            merged._transfer_events(mdf)
 
         return merged
 
@@ -2075,7 +2163,6 @@ class MDF(object):
                             stacked.append(signals, common_timebase=True)
                         idx += 1
                     else:
-                        print(idx)
                         master = mdf.get_master(i, fragment)
                         if sync:
                             master = master + offset

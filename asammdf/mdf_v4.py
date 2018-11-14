@@ -159,7 +159,9 @@ class MDF4(object):
         search for the display name; XML parsing is quite expensive so setting
         this to *False* can decrease the loading times very much; default
         *False*
-
+    skip_record_preparation : bool
+        keyword only argument: only valid if memory='minimum'; this is used to
+        optimise the concatenate method
 
 
     Attributes
@@ -228,6 +230,7 @@ class MDF4(object):
         self._read_fragment_size = 0
         self._write_fragment_size = 4 * 2 ** 20
         self._use_display_names = kwargs.get("use_display_names", False)
+        self._skip_record_preparation = kwargs.get("skip_record_preparation", False)
         self._single_bit_uint_as_bool = False
 
         # make sure no appended block has the address 0
@@ -310,7 +313,7 @@ class MDF4(object):
         memory = self.memory
         dg_cntr = 0
 
-        cg_count = count_channel_groups(stream, 4)
+        cg_count, _ = count_channel_groups(stream)
         if self._callback:
             self._callback(0, cg_count)
         current_cg_index = 0
@@ -368,7 +371,7 @@ class MDF4(object):
                 grp["signal_data"] = []
                 grp["reduction_blocks"] = []
                 grp["reduction_data_block"] = []
-                if memory == "minimum":
+                if memory == "minimum" and not self._skip_record_preparation:
                     grp["temp_channels"] = []
 
                 # read each channel group sequentially
@@ -481,7 +484,7 @@ class MDF4(object):
                 # starting from the first channel
                 self._read_channels(ch_addr, grp, stream, dg_cntr, ch_cntr, neg_ch_cntr)
 
-                if memory == "minimum":
+                if memory == "minimum" and not self._skip_record_preparation:
                     grp["parents"], grp["types"] = self._prepare_record(grp)
                     del grp["temp_channels"]
 
@@ -917,7 +920,7 @@ class MDF4(object):
 
         memory = self.memory
         channels = grp["channels"]
-        if memory == "minimum":
+        if memory == "minimum" and not self._skip_record_preparation:
             temp_channels = grp["temp_channels"]
 
         composition = []
@@ -932,7 +935,8 @@ class MDF4(object):
                     load_metadata=False,
                     at_map=self._attachments_map,
                 )
-                temp_channels.append(channel)
+                if not self._skip_record_preparation:
+                    temp_channels.append(channel)
                 value = ch_addr
                 name = get_text_v4(address=channel["name_addr"], stream=stream)
 

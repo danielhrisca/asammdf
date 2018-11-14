@@ -127,6 +127,13 @@ class MDF3(object):
     version : string
         mdf file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
         '3.30'); default '3.30'
+    callback : function
+        keyword only argument: function to call to update the progress; the
+        function must accept two arguments (the current progress and maximum
+        progress value)
+    skip_record_preparation : bool
+        keyword only argument: only valid if memory='minimum'; this is used to
+        optimise the concatenate method
 
 
     Attributes
@@ -701,7 +708,7 @@ class MDF3(object):
         stream = self._file
         memory = self.memory
 
-        cg_count = count_channel_groups(stream, 3)
+        cg_count, _ = count_channel_groups(stream)
         if self._callback:
             self._callback(0, cg_count)
         current_cg_index = 0
@@ -753,7 +760,7 @@ class MDF3(object):
                 grp["data_block"] = None
                 grp["trigger"] = trigger
                 grp["channel_dependencies"] = []
-                if memory == "minimum":
+                if memory == "minimum" and not self._skip_record_preparation:
                     grp["temp_channels"] = temp_channels = []
 
                 if record_id_nr:
@@ -809,14 +816,16 @@ class MDF3(object):
                         grp_chs.append(new_ch)
                     else:
                         grp_chs.append(ch_addr)
-                        temp_channels.append(new_ch)
+                        if not self._skip_record_preparation:
+                            temp_channels.append(new_ch)
                     ch_addr = new_ch["next_ch_addr"]
 
                 if memory == "minimum":
                     grp["data_location"] = v23c.LOCATION_ORIGINAL_FILE
-                    grp["parents"], grp["types"] = self._prepare_record(grp)
-                    del grp["temp_channels"]
-                    del temp_channels
+                    if not self._skip_record_preparation:
+                        grp["parents"], grp["types"] = self._prepare_record(grp)
+                        del grp["temp_channels"]
+                        del temp_channels
 
                 cg_addr = grp["channel_group"]["next_cg_addr"]
                 dg_cntr += 1

@@ -750,7 +750,7 @@ def debug_channel(mdf, group, channel, dependency, file=None):
     )
 
 
-def count_channel_groups(stream, version=4):
+def count_channel_groups(stream, include_channels=False):
     """ count all channel groups as fast as possible. This is used to provide
     reliable progress information when loading a file using the GUI
 
@@ -758,8 +758,8 @@ def count_channel_groups(stream, version=4):
     ----------
     stream : file handle
         opened file handle
-    version : int
-        MDF version
+    include_channels : bool
+        also count channels
 
     Returns
     -------
@@ -769,6 +769,21 @@ def count_channel_groups(stream, version=4):
     """
 
     count = 0
+    ch_count = 0
+
+    stream.seek(64)
+    blk_id = stream.read(2)
+    if blk_id == b"HD":
+        version = 3
+    else:
+        blk_id += stream.read(2)
+        if blk_id == b"##HD":
+            version = 4
+        else:
+            raise MdfException(
+                '"{}" is not a valid MDF file'.format(stream.name)
+            )
+
     if version >= 4:
         stream.seek(88, 0)
         dg_addr = UINT64(stream.read(8))[0]
@@ -777,6 +792,13 @@ def count_channel_groups(stream, version=4):
             cg_addr = UINT64(stream.read(8))[0]
             while cg_addr:
                 count += 1
+                if include_channels:
+                    stream.seek(cg_addr + 32)
+                    ch_addr = UINT64(stream.read(8))[0]
+                    while ch_addr:
+                        ch_count += 1
+                        stream.seek(ch_addr + 24)
+                        ch_addr = UINT64(stream.read(8))[0]
                 stream.seek(cg_addr + 24)
                 cg_addr = UINT64(stream.read(8))[0]
 
@@ -791,13 +813,20 @@ def count_channel_groups(stream, version=4):
             cg_addr = UINT32(stream.read(4))[0]
             while cg_addr:
                 count += 1
+                if include_channels:
+                    stream.seek(cg_addr + 12)
+                    ch_addr = UINT32(stream.read(4))[0]
+                    while ch_addr:
+                        ch_count += 1
+                        stream.seek(ch_addr + 4)
+                        ch_addr = UINT32(stream.read(4))[0]
                 stream.seek(cg_addr + 4)
                 cg_addr = UINT32(stream.read(4))[0]
 
             stream.seek(dg_addr + 4)
             dg_addr = UINT32(stream.read(4))[0]
 
-    return count
+    return count, ch_count
 
 
 def validate_memory_argument(memory):
