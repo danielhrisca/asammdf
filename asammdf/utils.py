@@ -814,7 +814,7 @@ def count_channel_groups(stream, include_channels=False):
             while cg_addr:
                 count += 1
                 if include_channels:
-                    stream.seek(cg_addr + 12)
+                    stream.seek(cg_addr + 8)
                     ch_addr = UINT32(stream.read(4))[0]
                     while ch_addr:
                         ch_count += 1

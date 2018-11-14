@@ -3668,6 +3668,7 @@ class MDF3(object):
                     else:
                         cd_addrs.append(0)
 
+                dst_.seek(0, 2)
                 next_ch_addr = 0
                 size = len(gp["channels"])
                 for i in range(size - 1, -1, -1):

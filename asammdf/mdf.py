@@ -1899,6 +1899,8 @@ class MDF(object):
                             if version < "4.00" and sig.samples.dtype.kind == "S":
                                 string_dtypes = [np.dtype("S")]
                                 for tmp_mdf in files:
+                                    if not isinstance(tmp_mdf, MDF):
+                                        tmp_mdf = MDF(tmp_mdf)
                                     strsig = tmp_mdf.get(
                                         group=i,
                                         index=j,

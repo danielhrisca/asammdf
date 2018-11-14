@@ -55,7 +55,7 @@ class TestMDF(unittest.TestCase):
         generate_arrays_test_file()
 
     @classmethod
-    def tearDownClass(cls):
+    def etearDownClass(cls):
         shutil.rmtree("tmpdir_demo", True)
         shutil.rmtree("tmpdir_array", True)
         shutil.rmtree("tmpdir", True)
@@ -601,6 +601,7 @@ class TestMDF(unittest.TestCase):
                                             i, j, vals, target, len(vals), len(target)
                                         )
                                     self.assertTrue(cond)
+
         cleanup_files()
 
     def test_cut_arrays(self):
