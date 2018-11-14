@@ -1900,7 +1900,7 @@ class MDF(object):
                                 string_dtypes = [np.dtype("S")]
                                 for tmp_mdf in files:
                                     if not isinstance(tmp_mdf, MDF):
-                                        tmp_mdf = MDF(tmp_mdf)
+                                        tmp_mdf = MDF(tmp_mdf, memory='low')
                                     strsig = tmp_mdf.get(
                                         group=i,
                                         index=j,
