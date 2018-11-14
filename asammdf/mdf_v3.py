@@ -187,6 +187,7 @@ class MDF3(object):
         self._single_bit_uint_as_bool = False
 
         self._callback = kwargs.get("callback", None)
+        self._skip_record_preparation = kwargs.get("skip_record_preparation", False)
 
         if name:
             if is_file_like(name):

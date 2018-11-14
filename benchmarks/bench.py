@@ -791,7 +791,7 @@ def main(text_output, fmt):
     output.append('    * {} groups'.format(v4_groups))
     output.append('    * {} channels\n\n'.format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE = 0, 0, 0, 0, 1
+    OPEN, SAVE, GET, CONVERT, MERGE = 1, 1, 1, 1, 1
 
     tests = (
          partial(open_mdf3, memory='full'),
