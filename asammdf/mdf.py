@@ -1755,18 +1755,22 @@ class MDF(object):
         if callback:
             callback(0, 100)
 
+        versions = []
         if sync:
             timestamps = []
             for file in files:
                 if isinstance(file, MDF):
                     timestamps.append(file.header.start_time)
+                    versions.append(file.version)
                 else:
                     with open(file, "rb") as mdf:
                         mdf.seek(64)
                         blk_id = mdf.read(2)
                         if blk_id == b"HD":
                             header = HeaderV3
+                            versions.append('3.00')
                         else:
+                            versions.append('4.00')
                             blk_id += mdf.read(2)
                             if blk_id == b"##HD":
                                 header = HeaderV4
@@ -1787,13 +1791,16 @@ class MDF(object):
             file = files[0]
             if isinstance(file, MDF):
                 oldest = file.header.start_time
+                versions.append(file.version)
             else:
                 with open(file, "rb") as mdf:
                     mdf.seek(64)
                     blk_id = mdf.read(2)
                     if blk_id == b"HD":
+                        versions.append('3.00')
                         header = HeaderV3
                     else:
+                        versions.append('4.00')
                         blk_id += mdf.read(2)
                         if blk_id == b"##HD":
                             header = HeaderV4
@@ -1896,7 +1903,7 @@ class MDF(object):
                             if offset:
                                 sig.timestamps = sig.timestamps + offset
 
-                            if version < "4.00" and sig.samples.dtype.kind == "S":
+                            if version < "4.00" and sig.samples.dtype.kind == "S" and any(v >= '4.00' for v in versions):
                                 string_dtypes = [np.dtype("S")]
                                 for tmp_mdf in files:
                                     if not isinstance(tmp_mdf, MDF):
