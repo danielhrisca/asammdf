@@ -17,7 +17,7 @@ long_description = open('README.md', 'rb').read().decode('utf-8')
 with open(path.join('asammdf', 'version.py'), 'r') as f:
     for line in f:
         if line.startswith('__version__'):
-            version = line.split('=')[-1].strip().strip("'")
+            version = line.split('=')[-1].strip().strip('"')
             break
 
 setup(
