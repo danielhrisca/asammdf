@@ -700,6 +700,8 @@ class MDF(object):
         if self._callback:
             self._callback(0, groups_nr)
 
+#        self.configure(read_fragment_size=1024*1024)
+
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
             included_channels = self._included_channels(i)
@@ -720,6 +722,8 @@ class MDF(object):
                 if not len(master):
                     continue
 
+                needs_cutting = True
+
                 # check if this fragement is within the cut interval or
                 # if the cut interval has ended
                 if start is None and stop is None:
@@ -727,6 +731,7 @@ class MDF(object):
                     fragment_stop = None
                     start_index = 0
                     stop_index = len(master)
+                    needs_cutting = False
                 elif start is None:
                     fragment_start = None
                     start_index = 0
@@ -737,6 +742,8 @@ class MDF(object):
                         stop_index = np.searchsorted(
                             master, fragment_stop, side="right"
                         )
+                        if stop_index == len(master):
+                            needs_cutting = False
                 elif stop is None:
                     fragment_stop = None
                     if master[-1] < start:
@@ -747,6 +754,8 @@ class MDF(object):
                             master, fragment_start, side="left"
                         )
                         stop_index = len(master)
+                        if start_index == 0:
+                            needs_cutting = False
                 else:
                     if master[0] > stop:
                         break
@@ -761,6 +770,10 @@ class MDF(object):
                         stop_index = np.searchsorted(
                             master, fragment_stop, side="right"
                         )
+                        if start_index == 0 and stop_index == len(master):
+                            needs_cutting = False
+
+#                print((start, stop), (master[0], master[-1]), needs_cutting, self._read_fragment_size, len(fragment[0]))
 
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
@@ -773,7 +786,9 @@ class MDF(object):
                             data=fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
-                        ).cut(fragment_start, fragment_stop)
+                        )
+                        if needs_cutting:
+                            sig = sig.cut(fragment_start, fragment_stop)
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
@@ -798,7 +813,10 @@ class MDF(object):
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
                 else:
-                    sigs = [(master[start_index:stop_index].copy(), None)]
+                    if needs_cutting:
+                        sigs = [(master[start_index:stop_index].copy(), None)]
+                    else:
+                        sigs = [(master, None)]
 
                     for j in included_channels:
                         sig = self.get(
@@ -809,15 +827,16 @@ class MDF(object):
                             samples_only=True,
                             ignore_invalidation_bits=True,
                         )
-                        if sig[1] is not None:
-                            sig = (
-                                sig[0][start_index:stop_index],
-                                sig[1][start_index:stop_index],
-                            )
-                        else:
-                            sig = sig[0][start_index:stop_index], None
-                        if not sig[0].flags.writeable:
-                            sig = sig[0].copy(), sig[1]
+                        if needs_cutting:
+                            if sig[1] is not None:
+                                sig = (
+                                    sig[0][start_index:stop_index],
+                                    sig[1][start_index:stop_index],
+                                )
+                            else:
+                                sig = sig[0][start_index:stop_index], None
+                            if not sig[0].flags.writeable:
+                                sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
 
                     if sigs:
