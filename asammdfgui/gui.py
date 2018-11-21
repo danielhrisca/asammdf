@@ -969,7 +969,7 @@ class FileWidget(QWidget):
 
         self.empty_channels.insertItems(0, ("zeros", "skip"))
         self.mat_format.insertItems(0, ("4", "5", "7.3"))
-        self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat"))
+        self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat", "parquet"))
         self.export_btn.clicked.connect(self.export)
 
         # self.channels_tree.itemChanged.connect(self.select)
@@ -1762,6 +1762,10 @@ class FileWidget(QWidget):
         start = self.cut_start.value()
         stop = self.cut_stop.value()
         memory = self.memory
+        if self.whence.checkState() == Qt.Checked:
+            whence = 1
+        else:
+            whence = 0
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
@@ -1800,7 +1804,7 @@ class FileWidget(QWidget):
 
             # cut self.mdf
             target = self.mdf.cut
-            kwargs = {"start": start, "stop": stop}
+            kwargs = {"start": start, "stop": stop, "whence": whence}
 
             mdf = run_thread_with_progress(
                 self,
