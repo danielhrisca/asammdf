@@ -1999,6 +1999,9 @@ class FileWidget(QWidget):
         width = sum(self.splitter.sizes())
 
         self.splitter.setSizes((0.2 * width, 0.8 * width))
+        QApplication.processEvents()
+
+        self.plot.update_lines(force=True)
 
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(self.filter_tree)

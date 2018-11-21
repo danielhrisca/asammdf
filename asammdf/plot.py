@@ -225,8 +225,8 @@ try:
         xrange_changed = pyqtSignal()
 
         def __init__(self, signals, with_dots, step_mode, *args, **kwargs):
-
             super(Plot, self).__init__(*args, **kwargs)
+            self.xrange_changed.connect(self.xrange_changed_handle)
             self.with_dots = with_dots
             if self.with_dots:
                 self.curvetype = pg.PlotDataItem
@@ -254,11 +254,13 @@ try:
                         sig.stepmode = False
                     sig.format = "phys"
                     if sig.samples.dtype.kind in "SV":
-                        sig.texts = sig.samples
+                        sig.texts = sig.original_texts = sig.samples
                         sig.samples = np.zeros(len(sig.samples))
                     else:
                         sig.texts = None
                 sig.enable = True
+                sig.original_samples = sig.samples
+                sig.original_timestamps = sig.timestamps
 
                 sig._stats = {
                     "range": (0, -1),
@@ -378,7 +380,9 @@ try:
 
             self.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_H, Qt.NoModifier))
 
-        def update_lines(self, with_dots=None, step_mode=None):
+            self.resizeEvent = self._resizeEvent
+
+        def update_lines(self, with_dots=None, step_mode=None, force=False):
             step_mode_changed = False
             with_dots_changed = False
             if step_mode is not None and step_mode != self.step_mode:
@@ -390,7 +394,7 @@ try:
                 self.curvetype = pg.PlotDataItem if with_dots else pg.PlotCurveItem
                 with_dots_changed = True
 
-            if with_dots_changed or step_mode_changed:
+            if with_dots_changed or step_mode_changed or force:
                 for i, sig in enumerate(self.signals):
                     sig.stepmode = self.step_mode
                     color = sig.color
@@ -587,7 +591,7 @@ try:
         def get_stats(self, index):
             stats = {}
             sig = self.signals[index]
-            x = sig.timestamps
+            x = sig.original_timestamps
             size = len(x)
 
             if size:
@@ -595,8 +599,8 @@ try:
                 if sig.texts is not None:
                     stats["overall_min"] = ""
                     stats["overall_max"] = ""
-                    stats["overall_start"] = sig.timestamps[0]
-                    stats["overall_stop"] = sig.timestamps[-1]
+                    stats["overall_start"] = sig.original_timestamps[0]
+                    stats["overall_stop"] = sig.original_timestamps[-1]
                     stats["unit"] = ""
                     stats["color"] = sig.color
                     stats["name"] = sig.name
@@ -607,7 +611,7 @@ try:
 
                         if x[0] <= position <= x[-1]:
                             idx = np.searchsorted(x, position)
-                            text = sig.texts[idx]
+                            text = sig.original_texts[idx]
                             try:
                                 text = text.decode("utf-8")
                             except:
@@ -633,8 +637,8 @@ try:
                 else:
                     stats["overall_min"] = sig.min
                     stats["overall_max"] = sig.max
-                    stats["overall_start"] = sig.timestamps[0]
-                    stats["overall_stop"] = sig.timestamps[-1]
+                    stats["overall_start"] = sig.original_timestamps[0]
+                    stats["overall_stop"] = sig.original_timestamps[-1]
                     stats["unit"] = sig.unit
                     stats["color"] = sig.color
                     stats["name"] = sig.name
@@ -645,7 +649,7 @@ try:
 
                         if x[0] <= position <= x[-1]:
                             idx = np.searchsorted(x, position)
-                            val = sig.samples[idx]
+                            val = sig.original_samples[idx]
                             if sig.conversion and "text_0" in sig.conversion:
                                 vals = np.array([val])
                                 vals = sig.conversion.convert(vals)
@@ -976,7 +980,9 @@ try:
                     self.cursor1.setValue(pos)
 
             elif key == Qt.Key_H:
-                for viewbox in self.view_boxes:
+                for sig, viewbox in zip(self.signals, self.view_boxes):
+                    if len(sig.original_timestamps):
+                        viewbox.setXRange(sig.original_timestamps[0], sig.original_timestamps[-1])
                     viewbox.autoRange(padding=0)
                 self.viewbox.autoRange(padding=0)
                 if self.cursor1:
@@ -984,6 +990,61 @@ try:
 
             else:
                 super(Plot, self).keyPressEvent(event)
+
+        def xrange_changed_handle(self):
+            (start, stop), _ = self.viewbox.viewRange()
+            width = self.width()
+            for sig in self.signals:
+                dim = len(sig.original_samples)
+                if dim:
+
+                    start_t, stop_t = sig.original_timestamps[0], sig.original_timestamps[-1]
+                    if start > stop_t or stop < start_t:
+                        sig.samples = sig.original_samples[:0]
+                        sig.timestamps = sig.original_timestamps[:0]
+                        if sig.texts is not None:
+                            sig.texts = sig.original_texts[:0]
+                    else:
+                        start_ = max(start, start_t)
+                        stop_ = min(stop, stop_t)
+
+                        visible = int((stop_ - start_) / (stop - start) * width)
+
+                        start_ = np.searchsorted(sig.original_timestamps, start_, side="right")
+                        stop_ = np.searchsorted(sig.original_timestamps, stop_, side="right")
+
+                        if visible:
+                            raster = max((stop_ - start_) // visible, 1)
+                        else:
+                            raster = 1
+                        if raster >= 10:
+                            samples = np.array_split(sig.original_samples[start_:stop_], visible)
+                            max_ = np.array([np.amax(s) for s in samples])
+                            min_ = np.array([np.amin(s) for s in samples])
+                            samples = np.dstack((min_, max_)).ravel()
+                            timestamps = np.array_split(sig.original_timestamps[start_:stop_], visible)
+                            timestamps1 = np.array([s[0] for s in timestamps])
+                            timestamps2 = np.array([s[1] for s in timestamps])
+                            timestamps = np.dstack((timestamps1, timestamps2)).ravel()
+
+                            sig.samples = samples
+                            sig.timestamps = timestamps
+                            if sig.texts is not None:
+                                sig.texts = sig.original_texts[start_:stop_:raster]
+                        else:
+                            start_ = max(0, start_ -2)
+                            stop_ += 2
+
+                            sig.samples = sig.original_samples[start_: stop_]
+                            sig.timestamps = sig.original_timestamps[start_: stop_]
+                            if sig.texts is not None:
+                                sig.texts = sig.original_texts[start_: stop_]
+
+                        self.update_lines(force=True)
+
+        def _resizeEvent(self, ev):
+            self.xrange_changed_handle()
+            super(Plot, self).resizeEvent(ev)
 
     PYQTGRAPH_AVAILABLE = True
 
@@ -1146,7 +1207,6 @@ try:
                 self.info.set_stats(stats)
 
         def xrange_changed(self):
-
             if self.info:
                 stats = self.plot.get_stats(0)
                 self.info.set_stats(stats)
