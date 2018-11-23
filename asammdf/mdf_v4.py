@@ -4398,7 +4398,7 @@ class MDF4(object):
                                 argwhere(~invalidation_bits)
                             ].flatten()
 
-                if raster and len(timestamps):
+                if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
 
                     vals = Signal(vals, timestamps, name="_").interp(t).samples

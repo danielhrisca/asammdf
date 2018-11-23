@@ -2807,8 +2807,7 @@ class MDF3(object):
                 )[0]
                 for ch_nr, dg_nr in dep.referenced_channels
             ]
-            if cycles_nr:
-                shape.insert(0, cycles_nr)
+            shape.insert(0, cycles_nr)
 
             vals = column_stack(arrays).flatten().reshape(tuple(shape))
 
@@ -2823,7 +2822,7 @@ class MDF3(object):
 
             if not samples_only or raster:
                 timestamps = self.get_master(gp_nr, original_data)
-                if raster and len(timestamps):
+                if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
 
                     vals = Signal(vals, timestamps, name="_").interp(t).samples
@@ -2922,7 +2921,7 @@ class MDF3(object):
                 else:
                     timestamps = timestamps[0]
 
-                if raster and len(timestamps):
+                if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
 
                     vals = Signal(vals, timestamps, name="_").interp(t).samples
