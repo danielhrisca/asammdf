@@ -1220,6 +1220,7 @@ address: {}
             if (P1, P4, P5, P6) == (0, 0, 0, 1):
                 if (P2, P3) != (1, 0):
                     if len(values) >= numexpr_favorable_size:
+                        values = values.astype("float64")
                         values = evaluate("values * P2 + P3")
                     else:
                         values = values * P2
@@ -1228,6 +1229,7 @@ address: {}
             elif (P3, P4, P5, P6) == (0, 0, 1, 0):
                 if (P1, P2) != (1, 0):
                     if len(values) >= numexpr_favorable_size:
+                        values = values.astype("float64")
                         values = evaluate("values * P1 + P2")
                     else:
                         values = values * P1

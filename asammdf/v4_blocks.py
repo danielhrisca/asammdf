@@ -2231,6 +2231,7 @@ class ChannelConversion(dict):
             b = self["b"]
             if (a, b) != (1, 0):
                 if len(values) >= 140000:
+                    values = values.astype("float64")
                     values = evaluate("values * a + b")
                 else:
                     values = values * a
@@ -2248,6 +2249,7 @@ class ChannelConversion(dict):
             if (P1, P4, P5, P6) == (0, 0, 0, 1):
                 if (P2, P3) != (1, 0):
                     if len(values) >= numexpr_favorable_size:
+                        values = values.astype("float64")
                         values = evaluate("values * P2 + P3")
                     else:
                         values = values * P2
