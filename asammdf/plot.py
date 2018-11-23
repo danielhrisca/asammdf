@@ -242,6 +242,8 @@ try:
             self.cursor1 = None
             self.cursor2 = None
             self.signals = signals
+
+            self.disabled_keys = set()
             for sig in self.signals:
                 if sig.samples.dtype.kind == "f":
                     sig.stepmode = False
@@ -327,6 +329,7 @@ try:
                     sig.empty = True
 
                 axis = FormatedAxis("right")
+                axis.setPen(color)
                 if sig.conversion and "text_0" in sig.conversion:
                     axis.text_conversion = sig.conversion
 
@@ -441,32 +444,33 @@ try:
 
                 if self.singleton is not None:
                     sig = self.signals[self.singleton]
-                    color = sig.color
-                    if sig.stepmode:
-                        if len(sig.timestamps):
-                            to_append = sig.timestamps[-1]
+                    if sig.enable:
+                        color = sig.color
+                        if sig.stepmode:
+                            if len(sig.timestamps):
+                                to_append = sig.timestamps[-1]
+                            else:
+                                to_append = 0
+                            t = np.append(sig.timestamps, to_append)
                         else:
-                            to_append = 0
-                        t = np.append(sig.timestamps, to_append)
-                    else:
-                        t = sig.timestamps
+                            t = sig.timestamps
 
-                    curve = self.curvetype(
-                        t,
-                        sig.samples,
-                        pen=color,
-                        symbolBrush=color,
-                        symbolPen=color,
-                        symbol="o",
-                        symbolSize=4,
-                        stepMode=sig.stepmode,
-                        # connect='pairs'
-                    )
-                    self.viewbox.removeItem(self.curve)
+                        curve = self.curvetype(
+                            t,
+                            sig.samples,
+                            pen=color,
+                            symbolBrush=color,
+                            symbolPen=color,
+                            symbol="o",
+                            symbolSize=4,
+                            stepMode=sig.stepmode,
+                            # connect='pairs'
+                        )
+                        self.viewbox.removeItem(self.curve)
 
-                    self.curve = curve
+                        self.curve = curve
 
-                    self.viewbox.addItem(curve)
+                        self.viewbox.addItem(curve)
 
         def setColor(self, index, color):
             self.signals[index].color = color
@@ -789,207 +793,218 @@ try:
             key = event.key()
             modifier = event.modifiers()
 
-            if key == Qt.Key_C:
-                if self.cursor1 is None:
-                    start, stop = self.viewbox.viewRange()[0]
-                    self.cursor1 = Cursor(pos=0, angle=90, movable=True)
-                    self.plotItem.addItem(self.cursor1, ignoreBounds=True)
-                    self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
-                    self.cursor1.sigPositionChangeFinished.connect(
-                        self.cursor_move_finished.emit
-                    )
-                    self.cursor1.setPos((start + stop) / 2)
-                    self.cursor_move_finished.emit()
-
-                else:
-                    self.plotItem.removeItem(self.cursor1)
-                    self.cursor1.setParent(None)
-                    self.cursor1 = None
-                    self.cursor_removed.emit()
-
-            elif key == Qt.Key_F:
-                x_range, _ = self.viewbox.viewRange()
-                for viewbox in self.view_boxes:
-                    viewbox.autoRange(padding=0)
-                self.viewbox.autoRange(padding=0)
-                self.viewbox.setXRange(*x_range, padding=0)
-                if self.cursor1:
-                    self.cursor_moved.emit()
-
-            elif key == Qt.Key_G:
-                if self.plotItem.ctrl.xGridCheck.isChecked():
-                    self.showGrid(x=False, y=False)
-                else:
-                    self.showGrid(x=True, y=True)
-
-            elif key in (Qt.Key_I, Qt.Key_O):
-                x_range, _ = self.viewbox.viewRange()
-                delta = x_range[1] - x_range[0]
-                step = delta * 0.05
-                if key == Qt.Key_I:
-                    step = -step
-                if self.cursor1:
-                    pos = self.cursor1.value()
-                    x_range = pos - delta / 2, pos + delta / 2
-                self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
-
-            elif key == Qt.Key_R:
-                if self.region is None:
-
-                    self.region = pg.LinearRegionItem((0, 0))
-                    self.region.setZValue(-10)
-                    self.plotItem.addItem(self.region)
-                    self.region.sigRegionChanged.connect(self.range_modified.emit)
-                    self.region.sigRegionChangeFinished.connect(
-                        self.range_modified_finished.emit
-                    )
-                    start, stop = self.viewbox.viewRange()[0]
-                    start, stop = (
-                        start + 0.1 * (stop - start),
-                        stop - 0.1 * (stop - start),
-                    )
-                    self.region.setRegion((start, stop))
-
-                else:
-                    self.region.setParent(None)
-                    self.region.hide()
-                    self.region = None
-                    self.range_removed.emit()
-
-            elif key == Qt.Key_S:
-                count = len(
-                    [
-                        sig
-                        for (sig, curve) in zip(self.signals, self.curves)
-                        if not sig.empty and curve.isVisible()
-                    ]
-                )
-
-                if count:
-                    position = 0
-                    for i, signal in enumerate(self.signals):
-                        if not signal.empty and self.curves[i].isVisible():
-                            viewbox = self.view_boxes[i]
-                            min_ = signal.min
-                            max_ = signal.max
-                            if min_ == max_:
-                                min_, max_ = min_ - 1, max_ + 1
-
-                            dim = (max_ - min_) * 1.1
-
-                            max_ = min_ + dim * count
-                            min_, max_ = min_ - dim * position, max_ - dim * position
-
-                            viewbox.setYRange(min_, max_, padding=0)
-
-                            position += 1
-                else:
-                    xrange, _ = self.viewbox.viewRange()
-                    self.viewbox.autoRange(padding=0)
-                    self.viewbox.setXRange(*xrange, padding=0)
-                if self.cursor1:
-                    self.cursor_moved.emit()
-
-            elif key == Qt.Key_H and modifier == Qt.ControlModifier:
-                for axis, signal in zip(self.axes, self.signals):
-                    if axis.isVisible() and signal.samples.dtype.kind in "ui":
-                        axis.format = "hex"
-                        signal.format = "hex"
-                        axis.hide()
-                        axis.show()
-                if (
-                    self.axis.isVisible()
-                    and self.signals[self.singleton].samples.dtype.kind in "ui"
-                ):
-                    self.axis.format = "hex"
-                    self.signals[self.singleton].format = "hex"
-                    self.axis.hide()
-                    self.axis.show()
-                if self.cursor1:
-                    self.cursor_moved.emit()
-
-            elif key == Qt.Key_B and modifier == Qt.ControlModifier:
-                for axis, signal in zip(self.axes, self.signals):
-                    if axis.isVisible() and signal.samples.dtype.kind in "ui":
-                        axis.format = "bin"
-                        signal.format = "bin"
-                        axis.hide()
-                        axis.show()
-                if (
-                    self.axis.isVisible()
-                    and self.signals[self.singleton].samples.dtype.kind in "ui"
-                ):
-                    self.axis.format = "bin"
-                    self.signals[self.singleton].format = "bin"
-                    self.axis.hide()
-                    self.axis.show()
-                if self.cursor1:
-                    self.cursor_moved.emit()
-
-            elif key == Qt.Key_P and modifier == Qt.ControlModifier:
-                for axis, signal in zip(self.axes, self.signals):
-                    if axis.isVisible() and signal.samples.dtype.kind in "ui":
-                        axis.format = "phys"
-                        signal.format = "phys"
-                        axis.hide()
-                        axis.show()
-                if (
-                    self.axis.isVisible()
-                    and self.signals[self.singleton].samples.dtype.kind in "ui"
-                ):
-                    self.axis.format = "phys"
-                    self.signals[self.singleton].format = "phys"
-                    self.axis.hide()
-                    self.axis.show()
-                if self.cursor1:
-                    self.cursor_moved.emit()
-
-            elif key in (Qt.Key_Left, Qt.Key_Right):
-                if self.cursor1:
-                    prev_pos = pos = self.cursor1.value()
-                    dim = len(self.timebase)
-                    if dim:
-                        pos = np.searchsorted(self.timebase, pos)
-                        if key == Qt.Key_Right:
-                            pos += 1
-                        else:
-                            pos -= 1
-                        pos = np.clip(pos, 0, dim - 1)
-                        pos = self.timebase[pos]
-                    else:
-                        if key == Qt.Key_Right:
-                            pos += 1
-                        else:
-                            pos -= 1
-
-                    (left_side, right_side), _ = self.viewbox.viewRange()
-
-                    if pos >= right_side:
-                        delta = abs(pos - prev_pos)
-                        self.viewbox.setXRange(
-                            left_side + delta, right_side + delta, padding=0
-                        )
-                    elif pos <= left_side:
-                        delta = abs(pos - prev_pos)
-                        self.viewbox.setXRange(
-                            left_side - delta, right_side - delta, padding=0
-                        )
-                    else:
-                        delta = 0
-
-                    self.cursor1.setValue(pos)
-
-            elif key == Qt.Key_H:
-                for sig, viewbox in zip(self.signals, self.view_boxes):
-                    if len(sig.original_timestamps):
-                        viewbox.setXRange(sig.original_timestamps[0], sig.original_timestamps[-1])
-                    viewbox.autoRange(padding=0)
-                self.viewbox.autoRange(padding=0)
-                if self.cursor1:
-                    self.cursor_moved.emit()
-
-            else:
+            if key in self.disabled_keys:
                 super(Plot, self).keyPressEvent(event)
+            else:
+
+                if key == Qt.Key_C:
+                    if self.cursor1 is None:
+                        start, stop = self.viewbox.viewRange()[0]
+                        self.cursor1 = Cursor(pos=0, angle=90, movable=True)
+                        self.plotItem.addItem(self.cursor1, ignoreBounds=True)
+                        self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
+                        self.cursor1.sigPositionChangeFinished.connect(
+                            self.cursor_move_finished.emit
+                        )
+                        self.cursor1.setPos((start + stop) / 2)
+                        self.cursor_move_finished.emit()
+
+                    else:
+                        self.plotItem.removeItem(self.cursor1)
+                        self.cursor1.setParent(None)
+                        self.cursor1 = None
+                        self.cursor_removed.emit()
+
+                elif key == Qt.Key_F:
+                    x_range, _ = self.viewbox.viewRange()
+                    for viewbox in self.view_boxes:
+                        viewbox.autoRange(padding=0)
+                        viewbox.disableAutoRange()
+                    self.viewbox.autoRange(padding=0)
+                    self.viewbox.setXRange(*x_range, padding=0)
+                    self.viewbox.disableAutoRange()
+                    if self.cursor1:
+                        self.cursor_moved.emit()
+
+                elif key == Qt.Key_G:
+                    if self.plotItem.ctrl.xGridCheck.isChecked():
+                        self.showGrid(x=False, y=False)
+                    else:
+                        self.showGrid(x=True, y=True)
+
+                elif key in (Qt.Key_I, Qt.Key_O):
+                    x_range, _ = self.viewbox.viewRange()
+                    delta = x_range[1] - x_range[0]
+                    step = delta * 0.05
+                    if key == Qt.Key_I:
+                        step = -step
+                    if self.cursor1:
+                        pos = self.cursor1.value()
+                        x_range = pos - delta / 2, pos + delta / 2
+                    self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
+
+                elif key == Qt.Key_R:
+                    if self.region is None:
+
+                        self.region = pg.LinearRegionItem((0, 0))
+                        self.region.setZValue(-10)
+                        self.plotItem.addItem(self.region)
+                        self.region.sigRegionChanged.connect(self.range_modified.emit)
+                        self.region.sigRegionChangeFinished.connect(
+                            self.range_modified_finished.emit
+                        )
+                        start, stop = self.viewbox.viewRange()[0]
+                        start, stop = (
+                            start + 0.1 * (stop - start),
+                            stop - 0.1 * (stop - start),
+                        )
+                        self.region.setRegion((start, stop))
+
+                    else:
+                        self.region.setParent(None)
+                        self.region.hide()
+                        self.region = None
+                        self.range_removed.emit()
+
+                elif key == Qt.Key_S:
+                    count = len(
+                        [
+                            sig
+                            for (sig, curve) in zip(self.signals, self.curves)
+                            if not sig.empty and curve.isVisible()
+                        ]
+                    )
+
+                    if count:
+                        position = 0
+                        for signal, viewbox, curve in zip(
+                                reversed(self.signals),
+                                reversed(self.view_boxes),
+                                reversed(self.curves)):
+                            if not signal.empty and curve.isVisible():
+                                min_ = signal.min
+                                max_ = signal.max
+                                if min_ == max_:
+                                    min_, max_ = min_ - 1, max_ + 1
+
+                                dim = (max_ - min_) * 1.1
+
+                                max_ = min_ + dim * count
+                                min_, max_ = min_ - dim * position, max_ - dim * position
+
+                                viewbox.setYRange(min_, max_, padding=0)
+
+                                position += 1
+                    else:
+                        xrange, _ = self.viewbox.viewRange()
+                        self.viewbox.autoRange(padding=0)
+                        self.viewbox.setXRange(*xrange, padding=0)
+                        self.viewbox.disableAutoRange()
+                    if self.cursor1:
+                        self.cursor_moved.emit()
+
+                elif key == Qt.Key_H and modifier == Qt.ControlModifier:
+                    for axis, signal in zip(self.axes, self.signals):
+                        if axis.isVisible() and signal.samples.dtype.kind in "ui":
+                            axis.format = "hex"
+                            signal.format = "hex"
+                            axis.hide()
+                            axis.show()
+                    if (
+                        self.axis.isVisible()
+                        and self.signals[self.singleton].samples.dtype.kind in "ui"
+                    ):
+                        self.axis.format = "hex"
+                        self.signals[self.singleton].format = "hex"
+                        self.axis.hide()
+                        self.axis.show()
+                    if self.cursor1:
+                        self.cursor_moved.emit()
+
+                elif key == Qt.Key_B and modifier == Qt.ControlModifier:
+                    for axis, signal in zip(self.axes, self.signals):
+                        if axis.isVisible() and signal.samples.dtype.kind in "ui":
+                            axis.format = "bin"
+                            signal.format = "bin"
+                            axis.hide()
+                            axis.show()
+                    if (
+                        self.axis.isVisible()
+                        and self.signals[self.singleton].samples.dtype.kind in "ui"
+                    ):
+                        self.axis.format = "bin"
+                        self.signals[self.singleton].format = "bin"
+                        self.axis.hide()
+                        self.axis.show()
+                    if self.cursor1:
+                        self.cursor_moved.emit()
+
+                elif key == Qt.Key_P and modifier == Qt.ControlModifier:
+                    for axis, signal in zip(self.axes, self.signals):
+                        if axis.isVisible() and signal.samples.dtype.kind in "ui":
+                            axis.format = "phys"
+                            signal.format = "phys"
+                            axis.hide()
+                            axis.show()
+                    if (
+                        self.axis.isVisible()
+                        and self.signals[self.singleton].samples.dtype.kind in "ui"
+                    ):
+                        self.axis.format = "phys"
+                        self.signals[self.singleton].format = "phys"
+                        self.axis.hide()
+                        self.axis.show()
+                    if self.cursor1:
+                        self.cursor_moved.emit()
+
+                elif key in (Qt.Key_Left, Qt.Key_Right):
+                    if self.cursor1:
+                        prev_pos = pos = self.cursor1.value()
+                        dim = len(self.timebase)
+                        if dim:
+                            pos = np.searchsorted(self.timebase, pos)
+                            if key == Qt.Key_Right:
+                                pos += 1
+                            else:
+                                pos -= 1
+                            pos = np.clip(pos, 0, dim - 1)
+                            pos = self.timebase[pos]
+                        else:
+                            if key == Qt.Key_Right:
+                                pos += 1
+                            else:
+                                pos -= 1
+
+                        (left_side, right_side), _ = self.viewbox.viewRange()
+
+                        if pos >= right_side:
+                            delta = abs(pos - prev_pos)
+                            self.viewbox.setXRange(
+                                left_side + delta, right_side + delta, padding=0
+                            )
+                        elif pos <= left_side:
+                            delta = abs(pos - prev_pos)
+                            self.viewbox.setXRange(
+                                left_side - delta, right_side - delta, padding=0
+                            )
+                        else:
+                            delta = 0
+
+                        self.cursor1.setValue(pos)
+
+                elif key == Qt.Key_H:
+                    for sig, viewbox in zip(self.signals, self.view_boxes):
+                        if len(sig.original_timestamps):
+                            viewbox.setXRange(sig.original_timestamps[0], sig.original_timestamps[-1])
+                        viewbox.autoRange(padding=0)
+                        viewbox.disableAutoRange()
+                    self.viewbox.autoRange(padding=0)
+                    self.viewbox.disableAutoRange()
+                    if self.cursor1:
+                        self.cursor_moved.emit()
+
+                else:
+                    super(Plot, self).keyPressEvent(event)
 
         def xrange_changed_handle(self):
             (start, stop), _ = self.viewbox.viewRange()
