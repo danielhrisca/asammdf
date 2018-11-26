@@ -945,6 +945,7 @@ class MDF(object):
               options are *skip* or *zeros*; default is *zeros*
             * `format`: only valid for *mat* export; can be '4', '5' or '7.3',
               default is '5'
+            * `oned_as`: only valid for *mat* export; can be 'row' or 'column'
 
         Returns
         -------
@@ -969,6 +970,7 @@ class MDF(object):
         use_display_names = kargs.get("use_display_names", True)
         empty_channels = kargs.get("empty_channels", "zeros")
         format = kargs.get("format", "5")
+        oned_as = kargs.get("oned_as", "row")
 
         name = filename if filename else self.name
 
@@ -1444,9 +1446,15 @@ class MDF(object):
                     long_field_names=True,
                     format="7.3",
                     delete_unused_variables=False,
+                    oned_as=oned_as,
                 )
             else:
-                savemat(name, mdict, long_field_names=True)
+                savemat(
+                    name,
+                    mdict,
+                    long_field_names=True,
+                    oned_as=oned_as,
+                )
 
         elif fmt in ("pandas", "parquet"):
             if fmt == "pandas":
