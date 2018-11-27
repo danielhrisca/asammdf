@@ -2292,7 +2292,7 @@ class MDF3(object):
         >>> mdf = MDF3('new.mdf')
         >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
-        >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
+        >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
 
         """
         memory = self.memory

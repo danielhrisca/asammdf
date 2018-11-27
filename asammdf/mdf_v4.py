@@ -3698,7 +3698,7 @@ class MDF4(object):
         >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
         >>> # some invaldiation btis
         >>> s1_inv = np.array([0,0,0,1,1], dtype=np.bool)
-        >>> mdf2.extend(0, [(t, None), (s1, s1_inv), (s2, None), (s3, None)])
+        >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
 
         """
         gp = self.groups[index]
