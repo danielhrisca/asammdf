@@ -3667,8 +3667,9 @@ class MDF4(object):
 
     def extend(self, index, signals):
         """
-        Extend a group with new samples. The first signal is the master channel's samples, and the
-        next signals must respect the same order in which they were appended. The samples must have raw
+        Extend a group with new samples. *signals* contains (values, invalidation_bits)
+        pairs for each extended signal. The first pair is the master channel's pair, and the
+        next pairs must respect the same order in which the signals were appended. The samples must have raw
         or physical values according to the *Signals* used for the initial append.
 
         Parameters
@@ -3676,7 +3677,7 @@ class MDF4(object):
         index : int
             group index
         signals : list
-            list on numpy.ndarray objects
+            list on (numpy.ndarray, numpy.ndarray) objects
 
         Examples
         --------
@@ -3693,7 +3694,11 @@ class MDF4(object):
         >>> mdf = MDF3('new.mdf')
         >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
-        >>> mdf2.extend(0, [t, s1, s2, s3])
+        >>> # extend without invalidation bits
+        >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
+        >>> # some invaldiation btis
+        >>> s1_inv = np.array([0,0,0,1,1], dtype=np.bool)
+        >>> mdf2.extend(0, [(t, None), (s1, s1_inv), (s2, None), (s3, None)])
 
         """
         gp = self.groups[index]

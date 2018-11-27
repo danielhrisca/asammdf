@@ -2264,8 +2264,10 @@ class MDF3(object):
 
     def extend(self, index, signals):
         """
-        Extend a group with new samples. The first signal is the master channel's samples, and the
-        next signals must respect the same order in which they were appended. The samples must have raw
+        Extend a group with new samples. *signals* contains (values, invalidation_bits)
+        pairs for each extended signal. Since MDF3 does not support invalidation
+        bits, the second item of each pair must be None. The first pair is the master channel's pair, and the
+        next pairs must respect the same order in which the signals were appended. The samples must have raw
         or physical values according to the *Signals* used for the initial append.
 
         Parameters
@@ -2273,7 +2275,7 @@ class MDF3(object):
         index : int
             group index
         signals : list
-            list on numpy.ndarray objects
+            list of (numpy.ndarray, None) objects
 
         Examples
         --------
@@ -2290,7 +2292,7 @@ class MDF3(object):
         >>> mdf = MDF3('new.mdf')
         >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
-        >>> mdf2.extend(0, [t, s1, s2, s3])
+        >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
 
         """
         memory = self.memory
