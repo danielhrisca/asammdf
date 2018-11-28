@@ -46,7 +46,6 @@ __all__ = [
     "DataList",
     "DataGroup",
     "FileHistory",
-    "SignalDataBlock",
     "SourceInformation",
     "TextBlock",
 ]
