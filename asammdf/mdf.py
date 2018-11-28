@@ -1840,7 +1840,7 @@ class MDF(object):
 
                     oldest = header.start_time
 
-            offsets = [oldest - oldest for _ in files]
+            offsets = [0 for _ in files]
 
         sizes = set()
         for file in files:
@@ -1954,7 +1954,6 @@ class MDF(object):
 
                         if len(signals[0]):
                             last_timestamp = signals[0].timestamps[-1]
-                            delta = last_timestamp / len(signals[0])
 
                         if signals:
                             merged.append(signals, common_timebase=True)
@@ -1966,10 +1965,9 @@ class MDF(object):
                         if len(master):
                             if last_timestamp is None:
                                 last_timestamp = master[-1]
-                                delta = last_timestamp / len(master)
                             else:
                                 if last_timestamp >= master[0]:
-                                    master += last_timestamp + delta - master[0]
+                                    master += last_timestamp
                                 last_timestamp = master[-1]
 
                             signals = [(master, None)]
