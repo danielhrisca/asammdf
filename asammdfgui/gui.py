@@ -969,6 +969,7 @@ class FileWidget(QWidget):
 
         self.empty_channels.insertItems(0, ("zeros", "skip"))
         self.mat_format.insertItems(0, ("4", "5", "7.3"))
+        self.oned_as.insertItems(0, ("row", "column"))
         self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat", "parquet"))
         self.export_btn.clicked.connect(self.export)
 
@@ -1866,6 +1867,7 @@ class FileWidget(QWidget):
         empty_channels = self.empty_channels.currentText()
         mat_format = self.mat_format.currentText()
         raster = self.export_raster.value()
+        oned_as = self.oned_as.currentText()
 
         filters = {
             "csv": "CSV files (*.csv)",
@@ -1897,6 +1899,7 @@ class FileWidget(QWidget):
                     "empty_channels": empty_channels,
                     "format": mat_format,
                     "raster": raster,
+                    "oned_as": oned_as,
                 },
             )
 

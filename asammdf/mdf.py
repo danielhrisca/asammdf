@@ -945,6 +945,7 @@ class MDF(object):
               options are *skip* or *zeros*; default is *zeros*
             * `format`: only valid for *mat* export; can be '4', '5' or '7.3',
               default is '5'
+            * `oned_as`: only valid for *mat* export; can be 'row' or 'column'
 
         Returns
         -------
@@ -969,6 +970,7 @@ class MDF(object):
         use_display_names = kargs.get("use_display_names", True)
         empty_channels = kargs.get("empty_channels", "zeros")
         format = kargs.get("format", "5")
+        oned_as = kargs.get("oned_as", "row")
 
         name = filename if filename else self.name
 
@@ -1444,9 +1446,15 @@ class MDF(object):
                     long_field_names=True,
                     format="7.3",
                     delete_unused_variables=False,
+                    oned_as=oned_as,
                 )
             else:
-                savemat(name, mdict, long_field_names=True)
+                savemat(
+                    name,
+                    mdict,
+                    long_field_names=True,
+                    oned_as=oned_as,
+                )
 
         elif fmt in ("pandas", "parquet"):
             if fmt == "pandas":
@@ -1832,7 +1840,7 @@ class MDF(object):
 
                     oldest = header.start_time
 
-            offsets = [oldest - oldest for _ in files]
+            offsets = [0 for _ in files]
 
         sizes = set()
         for file in files:
@@ -1946,7 +1954,6 @@ class MDF(object):
 
                         if len(signals[0]):
                             last_timestamp = signals[0].timestamps[-1]
-                            delta = last_timestamp / len(signals[0])
 
                         if signals:
                             merged.append(signals, common_timebase=True)
@@ -1958,10 +1965,9 @@ class MDF(object):
                         if len(master):
                             if last_timestamp is None:
                                 last_timestamp = master[-1]
-                                delta = last_timestamp / len(master)
                             else:
                                 if last_timestamp >= master[0]:
-                                    master += last_timestamp + delta - master[0]
+                                    master += last_timestamp
                                 last_timestamp = master[-1]
 
                             signals = [(master, None)]
