@@ -674,20 +674,30 @@ class Signal(object):
                 timestamps = other.timestamps
 
             if (
-                self.invalidation_bits is not None is None
+                self.invalidation_bits is None
                 and other.invalidation_bits is None
             ):
                 invalidation_bits = None
             elif (
-                self.invalidation_bits is not None is None
+                self.invalidation_bits is None
                 and other.invalidation_bits is not None
             ):
-                invalidation_bits = other.invalidation_bits
+                invalidation_bits = np.concatenate(
+                    (
+                        np.zeros(len(self), dtype=bool),
+                        other.invalidation_bits,
+                    )
+                )
             elif (
-                self.invalidation_bits is not None is not None
+                self.invalidation_bits is not None
                 and other.invalidation_bits is None
             ):
-                invalidation_bits = self.invalidation_bits
+                invalidation_bits = np.concatenate(
+                    (
+                        self.invalidation_bits,
+                        np.zeros(len(other), dtype=bool),
+                    )
+                )
             else:
                 invalidation_bits = np.append(
                     self.invalidation_bits, other.invalidation_bits
