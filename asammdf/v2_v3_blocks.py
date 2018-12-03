@@ -129,7 +129,7 @@ class Channel(dict):
             stream = kwargs["stream"]
             self.address = address = kwargs["address"]
             stream.seek(address + 2)
-            size = unpack("<H", stream.read(2))[0]
+            (size, ) = unpack("<H", stream.read(2))
             stream.seek(address)
             block = stream.read(size)
 
@@ -1768,7 +1768,7 @@ class ChannelGroup(dict):
                 self["cycles_nr"],
             ) = unpack(v23c.FMT_CHANNEL_GROUP, block)
             if self["block_len"] == v23c.CG_POST_330_BLOCK_SIZE:
-                self["sample_reduction_addr"] = unpack("<I", stream.read(4))[0]
+                (self["sample_reduction_addr"], ) = unpack("<I", stream.read(4))
                 # sample reduction blocks are not yet used
                 self["sample_reduction_addr"] = 0
             if self["id"] != b"CG":
@@ -2538,7 +2538,7 @@ class TriggerBlock(dict):
             stream = kwargs["stream"]
 
             stream.seek(address + 2)
-            size = unpack("<H", stream.read(2))[0]
+            (size, ) = unpack("<H", stream.read(2))
             stream.seek(address)
             block = stream.read(size)
 

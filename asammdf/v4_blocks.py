@@ -48,6 +48,7 @@ __all__ = [
     "FileHistory",
     "SourceInformation",
     "TextBlock",
+    "SampleReductionBlock",
 ]
 
 
@@ -536,7 +537,7 @@ class Channel(dict):
                 address = self["conversion_addr"]
                 if address:
                     stream.seek(address + 8)
-                    size = unpack("<Q", stream.read(8))[0]
+                    (size,) = unpack("<Q", stream.read(8))
                     stream.seek(address)
                     raw_bytes = stream.read(size)
                     if raw_bytes in cc_map:
@@ -987,7 +988,7 @@ class ChannelArrayBlock(dict):
             if self["flags"] & v4c.FLAG_CA_FIXED_AXIS:
                 for i in range(dims_nr):
                     for j in range(self["dim_size_{}".format(i)]):
-                        value = unpack("<d", stream.read(8))[0]
+                        (value, ) = unpack("<d", stream.read(8))
                         self["axis_{}_value_{}".format(i, j)] = value
 
             if self["id"] != b"##CA":
@@ -1509,7 +1510,7 @@ class ChannelConversion(dict):
 
                 block = stream.read(self["block_len"] - v4c.COMMON_SIZE)
 
-            conv = unpack_from("<B", block, self["links_nr"] * 8)[0]
+            (conv, ) = unpack_from("<B", block, self["links_nr"] * 8)
 
             if conv == v4c.CONVERSION_TYPE_NON:
                 (
@@ -1625,7 +1626,7 @@ class ChannelConversion(dict):
                         self["upper_{}".format(i)],
                         self["phys_{}".format(i)],
                     ) = (values[i * 3], values[3 * i + 1], values[3 * i + 2])
-                self["default"] = unpack("<d", block[-8:])[0]
+                (self["default"], ) = unpack("<d", block[-8:])
 
             elif conv == v4c.CONVERSION_TYPE_TABX:
                 (
@@ -3042,7 +3043,7 @@ class DataList(dict):
                 self["links_nr"],
             ) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
 
-            self["next_dl_addr"] = unpack("<Q", stream.read(8))[0]
+            (self["next_dl_addr"], ) = unpack("<Q", stream.read(8))
 
             links = unpack(
                 "<{}Q".format(self["links_nr"] - 1),
@@ -3611,6 +3612,7 @@ class HeaderBlock(dict):
 
         except KeyError:
 
+            self.address = 0x40
             self["id"] = b"##HD"
             self["reserved0"] = kwargs.get("reserved3", 0)
             self["block_len"] = kwargs.get("block_len", v4c.HEADER_BLOCK_SIZE)

@@ -564,7 +564,7 @@ class MDF4(object):
 
                     i = 0
                     while i < size:
-                        rec_id = unpack(fmt, data[i : i + record_id_nr])[0]
+                        (rec_id, ) = unpack(fmt, data[i : i + record_id_nr])
                         # skip record id
                         i += record_id_nr
                         rec_size = cg_size[rec_id]
@@ -572,7 +572,7 @@ class MDF4(object):
                             rec_data = data[i : i + rec_size]
                             cg_data[rec_id].append(rec_data)
                         else:
-                            rec_size = unpack("<I", data[i : i + 4])[0]
+                            (rec_size, ) = unpack("<I", data[i : i + 4])
                             rec_data = data[i : i + rec_size + 4]
                             cg_data[rec_id].append(rec_data)
                             i += 4
@@ -1594,7 +1594,7 @@ class MDF4(object):
                                 i = 0
                                 size = len(data)
                                 while i < size:
-                                    rec_id = unpack(fmt, data[i : i + record_id_nr])[0]
+                                    (rec_id, ) = unpack(fmt, data[i : i + record_id_nr])
                                     # skip record id
                                     i += record_id_nr
                                     rec_size = cg_size[rec_id]
@@ -1602,7 +1602,7 @@ class MDF4(object):
                                         if rec_id == record_id:
                                             rec_data.append(data[i : i + rec_size])
                                     else:
-                                        rec_size = unpack("<I", data[i : i + 4])[0]
+                                        (rec_size, ) = unpack("<I", data[i : i + 4])
                                         if rec_id == record_id:
                                             rec_data.append(data[i : i + 4 + rec_size])
                                         i += 4
@@ -2366,7 +2366,8 @@ class MDF4(object):
                     for i in range(dl["data_block_nr"]):
                         addr = dl["data_block_addr{}".format(i)]
                         stream.seek(addr + 8)
-                        size = unpack("<Q", stream.read(8))[0] - 24
+                        (size, ) = unpack("<Q", stream.read(8))
+                        size -= 24
                         if size:
                             info["data_block_addr"].append(addr + v4c.COMMON_SIZE)
                             info["data_size"].append(size)
@@ -4891,7 +4892,7 @@ class MDF4(object):
                         values = []
                         for offset in vals:
                             offset = int(offset)
-                            str_size = unpack_from("<I", signal_data, offset)[0]
+                            (str_size, ) = unpack_from("<I", signal_data, offset)
                             values.append(
                                 signal_data[offset + 4 : offset + 4 + str_size]
                             )
