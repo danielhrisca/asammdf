@@ -2513,7 +2513,9 @@ class MDF4(object):
         source_info : str
             source information; default 'Python'
         common_timebase : bool
-            flag to hint that the signals have the same timebase
+            flag to hint that the signals have the same timebase. Only set this
+            if you know for sure that all appended channels share the same
+            time base
         units : dict
             will contain the signal units mapped to the singal names when
             appending a pandas DataFrame
