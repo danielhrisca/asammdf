@@ -1601,7 +1601,7 @@ class MDF4(object):
                                 i = 0
                                 size = len(data)
                                 while i < size:
-                                    (rec_id, ) = unpack(_unpack_stuct, data[i : i + record_id_nr])
+                                    (rec_id, ) = _unpack_stuct(data[i : i + record_id_nr])
                                     # skip record id
                                     i += record_id_nr
                                     rec_size = cg_size[rec_id]
