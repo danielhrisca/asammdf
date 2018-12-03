@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """ MDF v2 and v3 constants """
+import struct
 
 
 # byte order
@@ -151,6 +152,11 @@ HEADER_COMMON_KEYS = (
     "subject",
 )
 
+FMT_COMMON = "<2sH"
+COMMON_SIZE = 4
+COMMON_u = struct.Struct(FMT_COMMON).unpack
+COMMON_uf = struct.Struct(FMT_COMMON).unpack_from
+
 HEADER_POST_320_EXTRA_FMT = "Q2H32s"
 HEADER_POST_320_EXTRA_KEYS = (
     "abs_time",
@@ -160,6 +166,8 @@ HEADER_POST_320_EXTRA_KEYS = (
 )
 
 FMT_CHANNEL_DISPLAYNAME = "<2sH5IH32s128s4H3d2IH"
+CHANNEL_DISPLAYNAME_u = struct.Struct(FMT_CHANNEL_DISPLAYNAME).unpack
+CHANNEL_DISPLAYNAME_uf = struct.Struct(FMT_CHANNEL_DISPLAYNAME).unpack_from
 KEYS_CHANNEL_DISPLAYNAME = (
     "id",
     "block_len",
@@ -184,7 +192,11 @@ KEYS_CHANNEL_DISPLAYNAME = (
 )
 
 FMT_CHANNEL_SHORT = "<2sH5IH32s128s4H3d"
+CHANNEL_SHORT_u = struct.Struct(FMT_CHANNEL_SHORT).unpack
+CHANNEL_SHORT_uf = struct.Struct(FMT_CHANNEL_SHORT).unpack_from
 FMT_CHANNEL_LONGNAME = FMT_CHANNEL_SHORT + "I"
+CHANNEL_LONGNAME_u = struct.Struct(FMT_CHANNEL_LONGNAME).unpack
+CHANNEL_LONGNAME_uf = struct.Struct(FMT_CHANNEL_LONGNAME).unpack_from
 KEYS_CHANNEL_SHORT = (
     "id",
     "block_len",
@@ -245,8 +257,14 @@ KEYS_DATA_GROUP_PRE_320 = (
 )
 
 FMT_SOURCE_COMMON = "<2s2H"
+SOURCE_COMMON_u = struct.Struct(FMT_SOURCE_COMMON).unpack
+SOURCE_COMMON_uf = struct.Struct(FMT_SOURCE_COMMON).unpack_from
 FMT_SOURCE_ECU = "<2s3HI80s32s4s"
+SOURCE_ECU_u = struct.Struct(FMT_SOURCE_ECU).unpack
+SOURCE_ECU_uf = struct.Struct(FMT_SOURCE_ECU).unpack_from
 FMT_SOURCE_EXTRA_ECU = "<HI80s32s4s"
+SOURCE_EXTRA_ECU_u = struct.Struct(FMT_SOURCE_EXTRA_ECU).unpack
+SOURCE_EXTRA_ECU_uf = struct.Struct(FMT_SOURCE_EXTRA_ECU).unpack_from
 KEYS_SOURCE_ECU = (
     "id",
     "block_len",
@@ -259,7 +277,11 @@ KEYS_SOURCE_ECU = (
 )
 
 FMT_SOURCE_VECTOR = "<2s2H2I36s36s42s"
+SOURCE_VECTOR_u = struct.Struct(FMT_SOURCE_VECTOR).unpack
+SOURCE_VECTOR_uf = struct.Struct(FMT_SOURCE_VECTOR).unpack_from
 FMT_SOURCE_EXTRA_VECTOR = "<2I36s36s42s"
+SOURCE_EXTRA_VECTOR_u = struct.Struct(FMT_SOURCE_EXTRA_VECTOR).unpack
+SOURCE_EXTRA_VECTOR_uf = struct.Struct(FMT_SOURCE_EXTRA_VECTOR).unpack_from
 KEYS_SOURCE_VECTOR = (
     "id",
     "block_len",
@@ -275,6 +297,7 @@ KEYS_TEXT_BLOCK = ("id", "block_len", "text")
 
 FMT_CONVERSION_COMMON = FMT_CONVERSION_NONE = "<2s2H2d20s2H"
 FMT_CONVERSION_COMMON_SHORT = "<H2d20s2H"
+CONVERSION_COMMON_SHORT_uf = struct.Struct(FMT_CONVERSION_COMMON_SHORT).unpack_from
 
 KEYS_CONVESION_NONE = (
     "id",

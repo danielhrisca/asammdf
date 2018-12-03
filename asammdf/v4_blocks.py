@@ -18,13 +18,23 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v4_constants as v4c
-from .utils import MdfException, get_text_v4, SignalSource
+from .utils import (
+    MdfException,
+    get_text_v4,
+    SignalSource,
+    UINT8_uf,
+    UINT64_u,
+    FLOAT64_u,
+)
 from .version import __version__
 
 
 PYVERSION = sys.version_info[0]
 SEEK_START = v4c.SEEK_START
 SEEK_END = v4c.SEEK_END
+COMMON_SIZE = v4c.COMMON_SIZE
+COMMON_u = v4c.COMMON_u
+COMMON_uf = v4c.COMMON_uf
 
 if PYVERSION < 3:
     from .utils import bytes
@@ -443,9 +453,9 @@ class Channel(dict):
                 self["reserved0"],
                 self["block_len"],
                 self["links_nr"],
-            ) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
+            ) = COMMON_u(stream.read(COMMON_SIZE))
 
-            block = stream.read(self["block_len"] - v4c.COMMON_SIZE)
+            block = stream.read(self["block_len"] - COMMON_SIZE)
 
             links_nr = self["links_nr"]
 
@@ -537,7 +547,7 @@ class Channel(dict):
                 address = self["conversion_addr"]
                 if address:
                     stream.seek(address + 8)
-                    (size,) = unpack("<Q", stream.read(8))
+                    (size,) = UINT64_u(stream.read(8))
                     stream.seek(address)
                     raw_bytes = stream.read(size)
                     if raw_bytes in cc_map:
@@ -988,7 +998,7 @@ class ChannelArrayBlock(dict):
             if self["flags"] & v4c.FLAG_CA_FIXED_AXIS:
                 for i in range(dims_nr):
                     for j in range(self["dim_size_{}".format(i)]):
-                        (value, ) = unpack("<d", stream.read(8))
+                        (value, ) = FLOAT64_u(stream.read(8))
                         self["axis_{}_value_{}".format(i, j)] = value
 
             if self["id"] != b"##CA":
@@ -1487,9 +1497,9 @@ class ChannelConversion(dict):
                     self["reserved0"],
                     self["block_len"],
                     self["links_nr"],
-                ) = unpack_from(v4c.FMT_COMMON, kwargs["raw_bytes"])
+                ) = COMMON_uf(kwargs["raw_bytes"])
 
-                block = kwargs["raw_bytes"][v4c.COMMON_SIZE :]
+                block = kwargs["raw_bytes"][COMMON_SIZE :]
 
                 stream = kwargs["stream"]
 
@@ -1506,11 +1516,11 @@ class ChannelConversion(dict):
                     self["reserved0"],
                     self["block_len"],
                     self["links_nr"],
-                ) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
+                ) = COMMON_u(stream.read(COMMON_SIZE))
 
-                block = stream.read(self["block_len"] - v4c.COMMON_SIZE)
+                block = stream.read(self["block_len"] - COMMON_SIZE)
 
-            (conv, ) = unpack_from("<B", block, self["links_nr"] * 8)
+            (conv, ) = UINT8_uf(block, self["links_nr"] * 8)
 
             if conv == v4c.CONVERSION_TYPE_NON:
                 (
@@ -1626,7 +1636,7 @@ class ChannelConversion(dict):
                         self["upper_{}".format(i)],
                         self["phys_{}".format(i)],
                     ) = (values[i * 3], values[3 * i + 1], values[3 * i + 2])
-                (self["default"], ) = unpack("<d", block[-8:])
+                (self["default"], ) = FLOAT64_u(block[-8:])
 
             elif conv == v4c.CONVERSION_TYPE_TABX:
                 (
@@ -2701,8 +2711,8 @@ class DataBlock(dict):
                 self["reserved0"],
                 self["block_len"],
                 self["links_nr"],
-            ) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
-            self["data"] = stream.read(self["block_len"] - v4c.COMMON_SIZE)
+            ) = COMMON_u(stream.read(COMMON_SIZE))
+            self["data"] = stream.read(self["block_len"] - COMMON_SIZE)
 
             if self["id"] not in (b"##DT", b"##RD", b"##SD"):
                 message = 'Expected "##DT", "##RD" or "##SD" block @{} but found "{}"'
@@ -2718,7 +2728,7 @@ class DataBlock(dict):
 
             self["id"] = "##{}".format(type).encode("ascii")
             self["reserved0"] = 0
-            self["block_len"] = len(kwargs["data"]) + v4c.COMMON_SIZE
+            self["block_len"] = len(kwargs["data"]) + COMMON_SIZE
             self["links_nr"] = 0
             self["data"] = kwargs["data"]
 
@@ -2726,7 +2736,7 @@ class DataBlock(dict):
             self["data"] = str(self["data"])
 
     def __bytes__(self):
-        fmt = v4c.FMT_DATA_BLOCK.format(self["block_len"] - v4c.COMMON_SIZE)
+        fmt = v4c.FMT_DATA_BLOCK.format(self["block_len"] - COMMON_SIZE)
         result = pack(fmt, *[self[key] for key in v4c.KEYS_DATA_BLOCK])
         return result
 
@@ -3041,9 +3051,9 @@ class DataList(dict):
                 self["reserved0"],
                 self["block_len"],
                 self["links_nr"],
-            ) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
+            ) = COMMON_u(stream.read(COMMON_SIZE))
 
-            (self["next_dl_addr"], ) = unpack("<Q", stream.read(8))
+            (self["next_dl_addr"], ) = UINT64_u(stream.read(8))
 
             links = unpack(
                 "<{}Q".format(self["links_nr"] - 1),
@@ -3184,9 +3194,9 @@ class EventBlock(dict):
                 self["reserved0"],
                 self["block_len"],
                 self["links_nr"],
-            ) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
+            ) = COMMON_u(stream.read(COMMON_SIZE))
 
-            block = stream.read(self["block_len"] - v4c.COMMON_SIZE)
+            block = stream.read(self["block_len"] - COMMON_SIZE)
 
             links_nr = self["links_nr"]
 
@@ -4227,9 +4237,9 @@ class TextBlock(dict):
                 self["reserved0"],
                 self["block_len"],
                 self["links_nr"],
-            ) = unpack(v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE))
+            ) = COMMON_u(stream.read(COMMON_SIZE))
 
-            size = self["block_len"] - v4c.COMMON_SIZE
+            size = self["block_len"] - COMMON_SIZE
 
             self["text"] = text = stream.read(size)
 
@@ -4259,13 +4269,13 @@ class TextBlock(dict):
 
             self["id"] = b"##MD" if kwargs.get("meta", False) else b"##TX"
             self["reserved0"] = 0
-            self["block_len"] = text_length + v4c.COMMON_SIZE
+            self["block_len"] = text_length + COMMON_SIZE
             self["links_nr"] = 0
             self["text"] = text
 
         align = size % 8
         if align:
-            self["block_len"] = size + v4c.COMMON_SIZE + 8 - align
+            self["block_len"] = size + COMMON_SIZE + 8 - align
         else:
             if text:
                 if text[-1] not in (0, b"\0"):
@@ -4274,7 +4284,7 @@ class TextBlock(dict):
                 self["block_len"] += 8
 
     def __bytes__(self):
-        fmt = v4c.FMT_TEXT_BLOCK.format(self["block_len"] - v4c.COMMON_SIZE)
+        fmt = v4c.FMT_TEXT_BLOCK.format(self["block_len"] - COMMON_SIZE)
         result = pack(fmt, *[self[key] for key in v4c.KEYS_TEXT_BLOCK])
         return result
 
@@ -4343,7 +4353,7 @@ class SampleReductionBlock(dict):
 
             self["id"] = b"##DT" if kwargs.get("reduction", False) else b"##RD"
             self["reserved0"] = 0
-            self["block_len"] = len(kwargs["data"]) + v4c.COMMON_SIZE
+            self["block_len"] = len(kwargs["data"]) + COMMON_SIZE
             self["links_nr"] = 0
             self["next_sr_addr"] = 0
             self["data_block_addr"] = kwargs.get("data_block_addr", 0)

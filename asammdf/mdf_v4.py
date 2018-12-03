@@ -52,7 +52,12 @@ from . import v4_constants as v4c
 from .signal import Signal
 from .conversion_utils import conversion_transfer
 from .utils import (
-    UINT64,
+    UINT8_u,
+    UINT16_u,
+    UINT32_u,
+    UINT32_uf,
+    UINT64_u,
+    FLOAT64_u,
     CHANNEL_COUNT,
     CONVERT_LOW,
     CONVERT_MINIMUM,
@@ -97,6 +102,8 @@ from .version import __version__
 
 
 MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
+COMMON_SIZE = v4c.COMMON_SIZE
+COMMON_u = v4c.COMMON_u
 
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:
@@ -551,20 +558,20 @@ class MDF4(object):
                 else:
                     cg_data = defaultdict(list)
                     if record_id_nr == 1:
-                        fmt = "<B"
+                        _unpack_stuct = UINT8_u
                     elif record_id_nr == 2:
-                        fmt = "<H"
+                        _unpack_stuct = UINT16_u
                     elif record_id_nr == 4:
-                        fmt = "<I"
+                        _unpack_stuct = UINT32_u
                     elif record_id_nr == 8:
-                        fmt = "<Q"
+                        _unpack_stuct = UINT64_u
                     else:
                         message = "invalid record id size {}"
                         raise MdfException(message.format(record_id_nr))
 
                     i = 0
                     while i < size:
-                        (rec_id, ) = unpack(fmt, data[i : i + record_id_nr])
+                        (rec_id, ) = _unpack_stuct(data[i : i + record_id_nr])
                         # skip record id
                         i += record_id_nr
                         rec_size = cg_size[rec_id]
@@ -572,7 +579,7 @@ class MDF4(object):
                             rec_data = data[i : i + rec_size]
                             cg_data[rec_id].append(rec_data)
                         else:
-                            (rec_size, ) = unpack("<I", data[i : i + 4])
+                            (rec_size, ) = UINT32_u(data[i : i + 4])
                             rec_data = data[i : i + rec_size + 4]
                             cg_data[rec_id].append(rec_data)
                             i += 4
@@ -1579,13 +1586,13 @@ class MDF4(object):
                                 record_id_nr = data_group["record_id_len"]
 
                                 if record_id_nr == 1:
-                                    fmt = "<B"
+                                    _unpack_stuct = UINT8_u
                                 elif record_id_nr == 2:
-                                    fmt = "<H"
+                                    _unpack_stuct = UINT16_u
                                 elif record_id_nr == 4:
-                                    fmt = "<I"
+                                    _unpack_stuct = UINT32_u
                                 elif record_id_nr == 8:
-                                    fmt = "<Q"
+                                    _unpack_stuct = UINT64_u
                                 else:
                                     message = "invalid record id size {}"
                                     message = message.format(record_id_nr)
@@ -1594,7 +1601,7 @@ class MDF4(object):
                                 i = 0
                                 size = len(data)
                                 while i < size:
-                                    (rec_id, ) = unpack(fmt, data[i : i + record_id_nr])
+                                    (rec_id, ) = unpack(_unpack_stuct, data[i : i + record_id_nr])
                                     # skip record id
                                     i += record_id_nr
                                     rec_size = cg_size[rec_id]
@@ -1602,7 +1609,7 @@ class MDF4(object):
                                         if rec_id == record_id:
                                             rec_data.append(data[i : i + rec_size])
                                     else:
-                                        (rec_size, ) = unpack("<I", data[i : i + 4])
+                                        (rec_size, ) = UINT32_u(data[i : i + 4])
                                         if rec_id == record_id:
                                             rec_data.append(data[i : i + 4 + rec_size])
                                         i += 4
@@ -2321,16 +2328,15 @@ class MDF4(object):
 
         if address:
             stream.seek(address)
-            id_string, _, block_len, __ = unpack(
-                v4c.FMT_COMMON, stream.read(v4c.COMMON_SIZE)
-            )
+            id_string, _, block_len, __ = COMMON_u(stream.read(COMMON_SIZE))
+
             # can be a DataBlock
             if id_string == block_type:
                 size = block_len - 24
                 if size:
                     info["data_size"].append(size)
                     info["data_block_size"].append(size)
-                    info["data_block_addr"].append(address + v4c.COMMON_SIZE)
+                    info["data_block_addr"].append(address + COMMON_SIZE)
                     info["data_block_type"] = v4c.DT_BLOCK
             # or a DataZippedBlock
             elif id_string == b"##DZ":
@@ -2366,10 +2372,10 @@ class MDF4(object):
                     for i in range(dl["data_block_nr"]):
                         addr = dl["data_block_addr{}".format(i)]
                         stream.seek(addr + 8)
-                        (size, ) = unpack("<Q", stream.read(8))
+                        (size, ) = UINT64_u(stream.read(8))
                         size -= 24
                         if size:
-                            info["data_block_addr"].append(addr + v4c.COMMON_SIZE)
+                            info["data_block_addr"].append(addr + COMMON_SIZE)
                             info["data_size"].append(size)
                             info["data_block_size"].append(size)
                     address = dl["next_dl_addr"]
@@ -3902,7 +3908,7 @@ class MDF4(object):
             samples = gp["data_block"]["data"] + samples
             gp["data_block"] = DataBlock(data=samples)
 
-            size = gp["data_block"]["block_len"] - v4c.COMMON_SIZE
+            size = gp["data_block"]["block_len"] - COMMON_SIZE
 
             record_size = gp["channel_group"]["samples_byte_nr"]
             record_size += gp["data_group"]["record_id_len"]
@@ -4892,7 +4898,7 @@ class MDF4(object):
                         values = []
                         for offset in vals:
                             offset = int(offset)
-                            (str_size, ) = unpack_from("<I", signal_data, offset)
+                            (str_size, ) = UINT32_uf(signal_data, offset)
                             values.append(
                                 signal_data[offset + 4 : offset + 4 + str_size]
                             )
@@ -7012,7 +7018,8 @@ class MDF4(object):
             else:
                 stream = self._tempfile
             stream.seek(channel + 40)
-            name = get_text_v4(UINT64(stream.read(8))[0], stream)
+            (addr,) = UINT64_u(stream.read(8))
+            name = get_text_v4(addr, stream)
         else:
             name = channel.name
 

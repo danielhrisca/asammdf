@@ -22,9 +22,17 @@ PYVERSION = sys.version_info[0]
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
-UINT16 = Struct("<H").unpack
-UINT32 = Struct("<I").unpack
-UINT64 = Struct("<Q").unpack
+UINT8_u = Struct("<B").unpack
+UINT16_u = Struct("<H").unpack
+UINT32_u = Struct("<I").unpack
+UINT64_u = Struct("<Q").unpack
+UINT8_uf = Struct("<B").unpack_from
+UINT16_uf = Struct("<H").unpack_from
+UINT32_uf = Struct("<I").unpack_from
+UINT64_uf = Struct("<Q").unpack_from
+FLOAT64_u = Struct("<d").unpack
+FLOAT64_uf = Struct("<d").unpack_from
+
 logger = logging.getLogger("asammdf")
 
 __all__ = [
@@ -227,7 +235,7 @@ def get_text_v3(address, stream):
         return ""
 
     stream.seek(address + 2)
-    size = UINT16(stream.read(2))[0] - 4
+    size = UINT16_u(stream.read(2))[0] - 4
     text_bytes = stream.read(size)
     try:
         text = text_bytes.strip(b" \r\t\n\0").decode("latin-1")
@@ -270,7 +278,7 @@ def get_text_v4(address, stream):
         return ""
 
     stream.seek(address + 8)
-    size = UINT64(stream.read(8))[0] - 16
+    size = UINT64_u(stream.read(8))[0] - 16
     text_bytes = stream.read(size)[8:]
     try:
         text = text_bytes.decode("utf-8").strip(" \r\t\n\0")
@@ -786,45 +794,45 @@ def count_channel_groups(stream, include_channels=False):
 
     if version >= 4:
         stream.seek(88, 0)
-        dg_addr = UINT64(stream.read(8))[0]
+        dg_addr = UINT64_u(stream.read(8))[0]
         while dg_addr:
             stream.seek(dg_addr + 32)
-            cg_addr = UINT64(stream.read(8))[0]
+            cg_addr = UINT64_u(stream.read(8))[0]
             while cg_addr:
                 count += 1
                 if include_channels:
                     stream.seek(cg_addr + 32)
-                    ch_addr = UINT64(stream.read(8))[0]
+                    ch_addr = UINT64_u(stream.read(8))[0]
                     while ch_addr:
                         ch_count += 1
                         stream.seek(ch_addr + 24)
-                        ch_addr = UINT64(stream.read(8))[0]
+                        ch_addr = UINT64_u(stream.read(8))[0]
                 stream.seek(cg_addr + 24)
-                cg_addr = UINT64(stream.read(8))[0]
+                cg_addr = UINT64_u(stream.read(8))[0]
 
             stream.seek(dg_addr + 24)
-            dg_addr = UINT64(stream.read(8))[0]
+            dg_addr = UINT64_u(stream.read(8))[0]
 
     else:
         stream.seek(68, 0)
-        dg_addr = UINT32(stream.read(4))[0]
+        dg_addr = UINT32_u(stream.read(4))[0]
         while dg_addr:
             stream.seek(dg_addr + 8)
-            cg_addr = UINT32(stream.read(4))[0]
+            cg_addr = UINT32_u(stream.read(4))[0]
             while cg_addr:
                 count += 1
                 if include_channels:
                     stream.seek(cg_addr + 8)
-                    ch_addr = UINT32(stream.read(4))[0]
+                    ch_addr = UINT32_u(stream.read(4))[0]
                     while ch_addr:
                         ch_count += 1
                         stream.seek(ch_addr + 4)
-                        ch_addr = UINT32(stream.read(4))[0]
+                        ch_addr = UINT32_u(stream.read(4))[0]
                 stream.seek(cg_addr + 4)
-                cg_addr = UINT32(stream.read(4))[0]
+                cg_addr = UINT32_u(stream.read(4))[0]
 
             stream.seek(dg_addr + 4)
-            dg_addr = UINT32(stream.read(4))[0]
+            dg_addr = UINT32_u(stream.read(4))[0]
 
     return count, ch_count
 

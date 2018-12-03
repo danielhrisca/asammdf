@@ -14,7 +14,13 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v2_v3_constants as v23c
-from .utils import MdfException, get_text_v3, SignalSource
+from .utils import (
+    MdfException,
+    get_text_v3,
+    SignalSource,
+    UINT16_u,
+    UINT32_u,
+)
 from .version import __version__
 
 PYVERSION = sys.version_info[0]
@@ -23,6 +29,20 @@ SEEK_END = v23c.SEEK_END
 
 if PYVERSION < 3:
     from .utils import bytes
+
+CHANNEL_DISPLAYNAME_u = v23c.CHANNEL_DISPLAYNAME_u
+CHANNEL_LONGNAME_u = v23c.CHANNEL_LONGNAME_u
+CHANNEL_SHORT_u = v23c.CHANNEL_SHORT_u
+COMMON_uf = v23c.COMMON_uf
+COMMON_u = v23c.COMMON_u
+CONVERSION_COMMON_SHORT_uf = v23c.CONVERSION_COMMON_SHORT_uf
+SOURCE_COMMON_uf = v23c.SOURCE_COMMON_uf
+SOURCE_EXTRA_ECU_uf = v23c.SOURCE_EXTRA_ECU_uf
+SOURCE_EXTRA_VECTOR_uf = v23c.SOURCE_EXTRA_VECTOR_uf
+SOURCE_COMMON_u = v23c.SOURCE_COMMON_u
+SOURCE_EXTRA_ECU_u = v23c.SOURCE_EXTRA_ECU_u
+SOURCE_EXTRA_VECTOR_u = v23c.SOURCE_EXTRA_VECTOR_u
+
 
 logger = logging.getLogger("asammdf")
 
@@ -129,7 +149,7 @@ class Channel(dict):
             stream = kwargs["stream"]
             self.address = address = kwargs["address"]
             stream.seek(address + 2)
-            (size, ) = unpack("<H", stream.read(2))
+            (size, ) = UINT16_u(stream.read(2))
             stream.seek(address)
             block = stream.read(size)
 
@@ -157,7 +177,7 @@ class Channel(dict):
                     self["long_name_addr"],
                     self["display_name_addr"],
                     self["aditional_byte_offset"],
-                ) = unpack(v23c.FMT_CHANNEL_DISPLAYNAME, block)
+                ) = CHANNEL_DISPLAYNAME_u(block)
 
                 addr = self["long_name_addr"]
                 if addr:
@@ -202,7 +222,7 @@ class Channel(dict):
                     self["max_raw_value"],
                     self["sampling_rate"],
                     self["long_name_addr"],
-                ) = unpack(v23c.FMT_CHANNEL_LONGNAME, block)
+                ) = CHANNEL_LONGNAME_u(block)
 
                 addr = self["long_name_addr"]
                 if addr:
@@ -242,7 +262,7 @@ class Channel(dict):
                     self["min_raw_value"],
                     self["max_raw_value"],
                     self["sampling_rate"],
-                ) = unpack(v23c.FMT_CHANNEL_SHORT, block)
+                ) = CHANNEL_SHORT_u(block)
 
                 self.name = self["short_name"].decode("latin-1").strip(" \t\n\r\0")
 
@@ -625,7 +645,7 @@ class ChannelConversion(dict):
             try:
                 self.address = 0
                 block = kwargs["raw_bytes"]
-                (self["id"], self["block_len"]) = unpack_from("<2sH", block)
+                (self["id"], self["block_len"]) = COMMON_uf(block)
                 size = self["block_len"]
                 block_size = len(block)
                 block = block[4:]
@@ -636,7 +656,7 @@ class ChannelConversion(dict):
                 self.address = address = kwargs["address"]
                 stream.seek(address)
                 block = stream.read(4)
-                (self["id"], self["block_len"]) = unpack("<2sH", block)
+                (self["id"], self["block_len"]) = COMMON_u(block)
 
                 size = self["block_len"]
                 block_size = size
@@ -652,7 +672,7 @@ class ChannelConversion(dict):
                 self["unit"],
                 self["conversion_type"],
                 self["ref_param_nr"],
-            ) = unpack_from(v23c.FMT_CONVERSION_COMMON_SHORT, block)
+            ) = CONVERSION_COMMON_SHORT_uf(block)
 
             self.unit = self["unit"].decode("latin-1").strip(" \t\r\n\0")
 
@@ -1497,9 +1517,7 @@ class ChannelExtension(dict):
             stream = kwargs["stream"]
             try:
 
-                (self["id"], self["block_len"], self["type"]) = unpack_from(
-                    v23c.FMT_SOURCE_COMMON, kwargs["raw_bytes"]
-                )
+                (self["id"], self["block_len"], self["type"]) = SOURCE_COMMON_uf(kwargs["raw_bytes"])
                 if self["type"] == v23c.SOURCE_ECU:
                     (
                         self["module_nr"],
@@ -1507,7 +1525,7 @@ class ChannelExtension(dict):
                         self["description"],
                         self["ECU_identification"],
                         self["reserved0"],
-                    ) = unpack_from(v23c.FMT_SOURCE_EXTRA_ECU, kwargs["raw_bytes"], 6)
+                    ) = SOURCE_EXTRA_ECU_uf(kwargs["raw_bytes"], 6)
                 elif self["type"] == v23c.SOURCE_VECTOR:
                     (
                         self["CAN_id"],
@@ -1515,18 +1533,14 @@ class ChannelExtension(dict):
                         self["message_name"],
                         self["sender_name"],
                         self["reserved0"],
-                    ) = unpack_from(
-                        v23c.FMT_SOURCE_EXTRA_VECTOR, kwargs["raw_bytes"], 6
-                    )
+                    ) = SOURCE_EXTRA_VECTOR_uf(kwargs["raw_bytes"], 6)
 
                 self.address = kwargs.get("address", 0)
             except KeyError:
 
                 self.address = address = kwargs["address"]
                 stream.seek(address)
-                (self["id"], self["block_len"], self["type"]) = unpack(
-                    v23c.FMT_SOURCE_COMMON, stream.read(6)
-                )
+                (self["id"], self["block_len"], self["type"]) = SOURCE_COMMON_u(stream.read(6))
                 block = stream.read(self["block_len"] - 6)
 
                 if self["type"] == v23c.SOURCE_ECU:
@@ -1536,7 +1550,7 @@ class ChannelExtension(dict):
                         self["description"],
                         self["ECU_identification"],
                         self["reserved0"],
-                    ) = unpack(v23c.FMT_SOURCE_EXTRA_ECU, block)
+                    ) = SOURCE_EXTRA_ECU_u(block)
                 elif self["type"] == v23c.SOURCE_VECTOR:
                     (
                         self["CAN_id"],
@@ -1544,7 +1558,7 @@ class ChannelExtension(dict):
                         self["message_name"],
                         self["sender_name"],
                         self["reserved0"],
-                    ) = unpack(v23c.FMT_SOURCE_EXTRA_VECTOR, block)
+                    ) = SOURCE_EXTRA_VECTOR_u(block)
 
             if self["id"] != b"CE":
                 message = 'Expected "CE" block @{} but found "{}"'
@@ -1768,7 +1782,7 @@ class ChannelGroup(dict):
                 self["cycles_nr"],
             ) = unpack(v23c.FMT_CHANNEL_GROUP, block)
             if self["block_len"] == v23c.CG_POST_330_BLOCK_SIZE:
-                (self["sample_reduction_addr"], ) = unpack("<I", stream.read(4))
+                (self["sample_reduction_addr"], ) = UINT32_u(stream.read(4))
                 # sample reduction blocks are not yet used
                 self["sample_reduction_addr"] = 0
             if self["id"] != b"CG":
@@ -2141,7 +2155,7 @@ class HeaderBlock(dict):
 
             if self["id"] != b"HD":
                 message = 'Expected "HD" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = message.format(hex(64), self["id"])
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2337,7 +2351,7 @@ class ProgramBlock(dict):
             self.address = address = kwargs["address"]
             stream.seek(address)
 
-            (self["id"], self["block_len"]) = unpack("<2sH", stream.read(4))
+            (self["id"], self["block_len"]) = COMMON_u(stream.read(4))
             self["data"] = stream.read(self["block_len"] - 4)
 
             if self["id"] != b"PR":
@@ -2459,7 +2473,7 @@ class TextBlock(dict):
             stream = kwargs["stream"]
             self.address = address = kwargs["address"]
             stream.seek(address)
-            (self["id"], self["block_len"]) = unpack("<2sH", stream.read(4))
+            (self["id"], self["block_len"]) = COMMON_u(stream.read(4))
             size = self["block_len"] - 4
             self["text"] = stream.read(size)
 
@@ -2538,7 +2552,7 @@ class TriggerBlock(dict):
             stream = kwargs["stream"]
 
             stream.seek(address + 2)
-            (size, ) = unpack("<H", stream.read(2))
+            (size, ) = UINT16_u(stream.read(2))
             stream.seek(address)
             block = stream.read(size)
 
