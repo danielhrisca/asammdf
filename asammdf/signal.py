@@ -6,10 +6,10 @@ from textwrap import fill
 
 import numpy as np
 
-from .utils import MdfException, extract_cncomment_xml, SignalSource
-from . import v2_v3_blocks as v3b
-from . import v4_constants as v4c
-from . import v4_blocks as v4b
+from .blocks.utils import MdfException, extract_cncomment_xml, SignalSource
+from .blocks import v2_v3_blocks as v3b
+from .blocks import v4_constants as v4c
+from .blocks import v4_blocks as v4b
 
 from .version import __version__
 
@@ -212,7 +212,8 @@ class Signal(object):
         """ plot Signal samples. Pyqtgraph is used if it is available; in this
         case see the GUI plot documentation to see the available commands"""
         try:
-            from .plot import Plot, COLORS, StandalonePlot
+            from .gui.colors import COLORS
+            from .gui.widgets.plot_standalone import StandalonePlot
 
             try:
                 from PyQt5.QtWidgets import QApplication
@@ -244,6 +245,7 @@ class Signal(object):
             return
 
         except:
+            raise
             try:
                 import matplotlib.pyplot as plt
                 from mpl_toolkits.mplot3d import axes3d

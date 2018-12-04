@@ -101,7 +101,7 @@ setup(
     version="3.4.1",
     description="GUI for asammdf",
     options={"build_exe": build_exe_options},
-    executables=[Executable("gui.py", base=base, targetName="asammdf.exe")],
+    executables=[Executable("asammdfgui.py", base=base, targetName="asammdf.exe")],
 )
 
 cwd = os.getcwd()

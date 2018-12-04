@@ -22,70 +22,70 @@ The following classes implement different MDF version4 blocks.
 
 AttachmentBlock Class
 =====================
-.. autoclass:: asammdf.v4_blocks.AttachmentBlock
+.. autoclass:: asammdf.blocks.v4_blocks.AttachmentBlock
     :members:
 
 Channel Class
 =============
-.. autoclass:: asammdf.v4_blocks.Channel
+.. autoclass:: asammdf.blocks.v4_blocks.Channel
     :members:
 
 ChannelConversion Class
 =======================
-.. autoclass:: asammdf.v4_blocks.ChannelConversion
+.. autoclass:: asammdf.blocks.v4_blocks.ChannelConversion
     :members:
 
 ChannelGroup Class
 ==================
-.. autoclass:: asammdf.v4_blocks.ChannelGroup
+.. autoclass:: asammdf.blocks.v4_blocks.ChannelGroup
     :members:
 
 DataGroup Class
 ===============
-.. autoclass:: asammdf.v4_blocks.DataGroup
+.. autoclass:: asammdf.blocks.v4_blocks.DataGroup
     :members:
 
 DataList Class
 ==============
-.. autoclass:: asammdf.v4_blocks.DataList
+.. autoclass:: asammdf.blocks.v4_blocks.DataList
     :members:
 
 DataBlock Class
 ===============
-.. autoclass:: asammdf.v4_blocks.DataBlock
+.. autoclass:: asammdf.blocks.v4_blocks.DataBlock
     :members:
 
 FileIdentificationBlock Class
 =============================
-.. autoclass:: asammdf.v4_blocks.FileIdentificationBlock
+.. autoclass:: asammdf.blocks.v4_blocks.FileIdentificationBlock
     :members:
 
 HeaderBlock Class
 =================
-.. autoclass:: asammdf.v4_blocks.HeaderBlock
+.. autoclass:: asammdf.blocks.v4_blocks.HeaderBlock
     :members:
 
 SourceInformation Class
 =======================
-.. autoclass:: asammdf.v4_blocks.SourceInformation
+.. autoclass:: asammdf.blocks.v4_blocks.SourceInformation
     :members:
 
 FileHistory Class
 =================
-.. autoclass:: asammdf.v4_blocks.FileHistory
+.. autoclass:: asammdf.blocks.v4_blocks.FileHistory
     :members:
 
 TextBlock Class
 ===============
-.. autoclass:: asammdf.v4_blocks.TextBlock
+.. autoclass:: asammdf.blocks.v4_blocks.TextBlock
     :members:
 
 SampleReductionBlock Class
 ==========================
-.. autoclass:: asammdf.v4_blocks.SampleReductionBlock
+.. autoclass:: asammdf.blocks.v4_blocks.SampleReductionBlock
     :members:
 
 EventBlock Class
 ================
-.. autoclass:: asammdf.v4_blocks.EventBlock
+.. autoclass:: asammdf.blocks.v4_blocks.EventBlock
     :members:

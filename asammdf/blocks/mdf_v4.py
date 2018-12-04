@@ -49,7 +49,7 @@ from canmatrix.formats import loads
 from pandas import DataFrame
 
 from . import v4_constants as v4c
-from .signal import Signal
+from ..signal import Signal
 from .conversion_utils import conversion_transfer
 from .utils import (
     UINT8_u,
@@ -98,7 +98,7 @@ from .v4_blocks import (
     SourceInformation,
     TextBlock,
 )
-from .version import __version__
+from ..version import __version__
 
 
 MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)

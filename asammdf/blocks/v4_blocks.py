@@ -26,7 +26,7 @@ from .utils import (
     UINT64_u,
     FLOAT64_u,
 )
-from .version import __version__
+from ..version import __version__
 
 
 PYVERSION = sys.version_info[0]

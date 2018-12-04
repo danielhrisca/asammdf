@@ -15,11 +15,11 @@ from shutil import copy
 import numpy as np
 from pandas import DataFrame
 
-from .mdf_v2 import MDF2
-from .mdf_v3 import MDF3
-from .mdf_v4 import MDF4
+from .blocks.mdf_v2 import MDF2
+from .blocks.mdf_v3 import MDF3
+from .blocks.mdf_v4 import MDF4
 from .signal import Signal
-from .utils import (
+from .blocks.utils import (
     CHANNEL_COUNT,
     MERGE_LOW,
     MERGE_MINIMUM,
@@ -42,19 +42,19 @@ from .utils import (
     debug_channel,
     count_channel_groups,
 )
-from .v2_v3_blocks import Channel as ChannelV3
-from .v2_v3_blocks import HeaderBlock as HeaderV3
-from .v2_v3_blocks import ChannelConversion as ChannelConversionV3
-from .v2_v3_blocks import ChannelExtension
-from .v2_v3_blocks import TextBlock as TextBlockV3
-from .v4_blocks import SourceInformation
-from .v4_blocks import ChannelConversion as ChannelConversionV4
-from .v4_blocks import Channel as ChannelV4
-from .v4_blocks import HeaderBlock as HeaderV4
-from .v4_blocks import TextBlock as TextBlockV4
-from .v4_blocks import ChannelArrayBlock, EventBlock
-from . import v4_constants as v4c
-from . import v2_v3_constants as v23c
+from .blocks.v2_v3_blocks import Channel as ChannelV3
+from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
+from .blocks.v2_v3_blocks import ChannelConversion as ChannelConversionV3
+from .blocks.v2_v3_blocks import ChannelExtension
+from .blocks.v2_v3_blocks import TextBlock as TextBlockV3
+from .blocks.v4_blocks import SourceInformation
+from .blocks.v4_blocks import ChannelConversion as ChannelConversionV4
+from .blocks.v4_blocks import Channel as ChannelV4
+from .blocks.v4_blocks import HeaderBlock as HeaderV4
+from .blocks.v4_blocks import TextBlock as TextBlockV4
+from .blocks.v4_blocks import ChannelArrayBlock, EventBlock
+from .blocks import v4_constants as v4c
+from .blocks import v2_v3_constants as v23c
 
 PYVERSION = sys.version_info[0]
 

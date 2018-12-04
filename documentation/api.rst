@@ -45,7 +45,7 @@ The best practice is to use the MDF as a context manager. This way all resources
 MDF3
 ====
 
-.. autoclass:: asammdf.mdf_v3.MDF3
+.. autoclass:: asammdf.blocks.mdf_v3.MDF3
     :members:
     :noindex:
     
@@ -61,7 +61,7 @@ MDF version 2 & 3 blocks
 MDF4
 ====
 
-.. autoclass:: asammdf.mdf_v4.MDF4
+.. autoclass:: asammdf.blocks.mdf_v4.MDF4
     :members:
     :noindex:
     

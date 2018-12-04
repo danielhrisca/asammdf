@@ -22,8 +22,6 @@
 GUI
 ---
 
-Starting with version `3.4.0` there is a graphical user interface that comes together with *asammdf*.
-
 With the GUI tool you can
 
 * visualize channels

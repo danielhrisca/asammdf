@@ -36,7 +36,7 @@ from numpy import (
 from numpy.core.records import fromarrays, fromstring
 from pandas import DataFrame
 
-from .signal import Signal
+from ..signal import Signal
 from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
 from .utils import (
@@ -70,7 +70,7 @@ from .v2_v3_blocks import (
     TextBlock,
     TriggerBlock,
 )
-from .version import __version__
+from ..version import __version__
 
 PYVERSION = sys.version_info[0]
 if PYVERSION == 2:

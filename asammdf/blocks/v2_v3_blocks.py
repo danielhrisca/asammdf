@@ -21,7 +21,7 @@ from .utils import (
     UINT16_u,
     UINT32_u,
 )
-from .version import __version__
+from ..version import __version__
 
 PYVERSION = sys.version_info[0]
 SEEK_START = v23c.SEEK_START
