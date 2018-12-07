@@ -463,31 +463,31 @@ class TestMDF(unittest.TestCase):
 
                     outfile0 = MDF(input_file, memory=memory)
                     outfile0.configure(read_fragment_size=8000)
-                    outfile0 = outfile0.cut(stop=-1, whence=whence).save(
+                    outfile0 = outfile0.cut(stop=-1, whence=whence, include_ends=False).save(
                         "tmp0", overwrite=True
                     )
 
                     outfile1 = MDF(input_file, memory=memory)
                     outfile1.configure(read_fragment_size=8000)
-                    outfile1 = outfile1.cut(stop=105, whence=whence).save(
+                    outfile1 = outfile1.cut(stop=105, whence=whence, include_ends=False).save(
                         "tmp1", overwrite=True
                     )
 
                     outfile2 = MDF(input_file, memory=memory)
                     outfile2.configure(read_fragment_size=8000)
-                    outfile2 = outfile2.cut(start=105.1, stop=201, whence=whence).save(
+                    outfile2 = outfile2.cut(start=105.1, stop=201, whence=whence, include_ends=False).save(
                         "tmp2", overwrite=True
                     )
 
                     outfile3 = MDF(input_file, memory=memory)
                     outfile3.configure(read_fragment_size=8000)
-                    outfile3 = outfile3.cut(start=201.1, whence=whence).save(
+                    outfile3 = outfile3.cut(start=201.1, whence=whence, include_ends=False).save(
                         "tmp3", overwrite=True
                     )
 
                     outfile4 = MDF(input_file, memory=memory)
                     outfile4.configure(read_fragment_size=8000)
-                    outfile4 = outfile4.cut(start=7000, whence=whence).save(
+                    outfile4 = outfile4.cut(start=7000, whence=whence, include_ends=False).save(
                         "tmp4", overwrite=True
                     )
 
@@ -614,17 +614,17 @@ class TestMDF(unittest.TestCase):
 
                     outfile1 = MDF(input_file, memory=memory)
                     outfile1.configure(read_fragment_size=8000)
-                    outfile1 = outfile1.cut(stop=105.5, whence=whence).save(
+                    outfile1 = outfile1.cut(stop=105.5, whence=whence, include_ends=False).save(
                         "tmp1", overwrite=True
                     )
                     outfile2 = MDF(input_file, memory=memory)
                     outfile2.configure(read_fragment_size=8000)
                     outfile2 = outfile2.cut(
-                        start=105.5, stop=201.5, whence=whence
+                        start=105.5, stop=201.5, whence=whence, include_ends=False
                     ).save("tmp2", overwrite=True)
                     outfile3 = MDF(input_file, memory=memory)
                     outfile3.configure(read_fragment_size=8000)
-                    outfile3 = outfile3.cut(start=201.5, whence=whence).save(
+                    outfile3 = outfile3.cut(start=201.5, whence=whence, include_ends=False).save(
                         "tmp3", overwrite=True
                     )
 
@@ -763,17 +763,17 @@ class TestMDF(unittest.TestCase):
 
                     outfile1 = (
                         MDF(input_file, memory=memory)
-                        .cut(stop=2, whence=whence)
+                        .cut(stop=2, whence=whence, include_ends=False)
                         .save("tmp1", overwrite=True)
                     )
                     outfile2 = (
                         MDF(input_file, memory=memory)
-                        .cut(start=2, stop=6, whence=whence)
+                        .cut(start=2, stop=6, whence=whence, include_ends=False)
                         .save("tmp2", overwrite=True)
                     )
                     outfile3 = (
                         MDF(input_file, memory=memory)
-                        .cut(start=6, whence=whence)
+                        .cut(start=6, whence=whence, include_ends=False)
                         .save("tmp3", overwrite=True)
                     )
 
