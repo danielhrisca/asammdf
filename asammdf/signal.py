@@ -435,7 +435,7 @@ class Signal(object):
             except Exception as err:
                 print(err)
 
-    def cut(self, start=None, stop=None):
+    def cut(self, start=None, stop=None, include_ends=True):
         """
         Cuts the signal according to the *start* and *stop* values, by using
         the insertion indexes in the signal's *time* axis.
@@ -446,6 +446,10 @@ class Signal(object):
             start timestamp for cutting
         stop : float
             stop timestamp for cutting
+        include_ends : bool
+            include the *start* and *stop* timestamps after cutting the signal.
+            If *start* and *stop* are found in the original timestamps, then
+            the new samples will be computed using interpolation. Default *True*
 
         Returns
         -------
@@ -459,10 +463,11 @@ class Signal(object):
         0.98, 10.48
 
         """
+        ends = (start, stop)
         if len(self) == 0:
             result = Signal(
-                np.array([]),
-                np.array([]),
+                np.array([], dtype=self.samples.dtype),
+                np.array([], dtype=self.timestamps.dtype),
                 self.unit,
                 self.name,
                 self.conversion,
@@ -500,11 +505,10 @@ class Signal(object):
         else:
             if start is None:
                 # cut from begining to stop
-                stop = np.searchsorted(self.timestamps, stop, side="right")
-                if stop:
+                if stop < self.timestamps[0]:
                     result = Signal(
-                        self.samples[:stop],
-                        self.timestamps[:stop],
+                        np.array([], dtype=self.samples.dtype),
+                        np.array([], dtype=self.timestamps.dtype),
                         self.unit,
                         self.name,
                         self.conversion,
@@ -516,14 +520,34 @@ class Signal(object):
                         self.source,
                         self.bit_count,
                         self.stream_sync,
-                        invalidation_bits=self.invalidation_bits[:stop]
-                        if self.invalidation_bits is not None
-                        else None,
                     )
+
                 else:
+                    stop = np.searchsorted(self.timestamps, stop, side="right")
+                    if include_ends and ends[-1] not in self.timestamps and ends[-1] < self.timestamps[-1]:
+                        interpolated = self.interp([ends[1]])
+                        samples = np.append(
+                            self.samples[:stop],
+                            interpolated.samples,
+                        )
+                        timestamps = np.append(self.timestamps[:stop], ends[1])
+                        if self.invalidation_bits is not None:
+                            invalidation_bits = np.append(
+                                self.invalidation_bits[:stop],
+                                interpolated.invalidation_bits,
+                            )
+                        else:
+                            invalidation_bits = None
+                    else:
+                        samples = self.samples[:stop].copy()
+                        timestamps = self.timestamps[:stop].copy()
+                        if self.invalidation_bits is not None:
+                            invalidation_bits = self.invalidation_bits[:stop].copy()
+                        else:
+                            invalidation_bits = None
                     result = Signal(
-                        np.array([]),
-                        np.array([]),
+                        samples,
+                        timestamps,
                         self.unit,
                         self.name,
                         self.conversion,
@@ -535,36 +559,74 @@ class Signal(object):
                         self.source,
                         self.bit_count,
                         self.stream_sync,
+                        invalidation_bits=invalidation_bits,
                     )
 
             elif stop is None:
                 # cut from start to end
-                start = np.searchsorted(self.timestamps, start, side="left")
-                result = Signal(
-                    self.samples[start:],
-                    self.timestamps[start:],
-                    self.unit,
-                    self.name,
-                    self.conversion,
-                    self.comment,
-                    self.raw,
-                    self.master_metadata,
-                    self.display_name,
-                    self.attachment,
-                    self.source,
-                    self.bit_count,
-                    self.stream_sync,
-                    invalidation_bits=self.invalidation_bits[start:]
-                    if self.invalidation_bits is not None
-                    else None,
-                )
+                if start > self.timestamps[-1]:
+                    result = Signal(
+                        np.array([], dtype=self.samples.dtype),
+                        np.array([], dtype=self.timestamps.dtype),
+                        self.unit,
+                        self.name,
+                        self.conversion,
+                        self.comment,
+                        self.raw,
+                        self.master_metadata,
+                        self.display_name,
+                        self.attachment,
+                        self.source,
+                        self.bit_count,
+                        self.stream_sync,
+                    )
+
+                else:
+                    start = np.searchsorted(self.timestamps, start, side="left")
+                    if include_ends and ends[0] not in self.timestamps and ends[0] > self.timestamps[0]:
+                        interpolated = self.interp([ends[0]])
+                        samples = np.append(
+                            interpolated.samples,
+                            self.samples[start:],
+                        )
+                        timestamps = np.append(ends[0], self.timestamps[start:])
+                        if self.invalidation_bits is not None:
+                            invalidation_bits = np.append(
+                                interpolated.invalidation_bits,
+                                self.invalidation_bits[start:],
+                            )
+                        else:
+                            invalidation_bits = None
+                    else:
+                        samples = self.samples[start:].copy()
+                        timestamps = self.timestamps[start:].copy()
+                        if self.invalidation_bits is not None:
+                            invalidation_bits = self.invalidation_bits[start:].copy()
+                        else:
+                            invalidation_bits = None
+                    result = Signal(
+                        samples,
+                        timestamps,
+                        self.unit,
+                        self.name,
+                        self.conversion,
+                        self.comment,
+                        self.raw,
+                        self.master_metadata,
+                        self.display_name,
+                        self.attachment,
+                        self.source,
+                        self.bit_count,
+                        self.stream_sync,
+                        invalidation_bits=invalidation_bits,
+                    )
 
             else:
                 # cut between start and stop
-                if start > self.timestamps[-1]:
+                if start > self.timestamps[-1] or stop < self.timestamps[0]:
                     result = Signal(
-                        np.array([]),
-                        np.array([]),
+                        np.array([], dtype=self.samples.dtype),
+                        np.array([], dtype=self.timestamps.dtype),
                         self.unit,
                         self.name,
                         self.conversion,
@@ -578,77 +640,69 @@ class Signal(object):
                         self.stream_sync,
                     )
                 else:
-                    start_ = np.searchsorted(self.timestamps, start, side="left")
-                    start_ = max(0, start_)
-                    stop_ = np.searchsorted(self.timestamps, stop, side="right")
+                    start = np.searchsorted(self.timestamps, start, side="left")
+                    stop = np.searchsorted(self.timestamps, stop, side="right")
 
-                    if start not in self.timestamps and start_ == stop_:
-                        start_ -= 1
-                    if stop_ == start_:
-                        if (
-                            len(self.timestamps)
-                            and stop >= self.timestamps[0]
-                            and start <= self.timestamps[-1]
-                        ):
+                    if start == stop:
+                        interpolated = self.interp([ends[1]])
+                        samples = interpolated.samples,
+                        timestamps = np.array(ends[1], dtype=self.timestamps.dtype)
+                        invalidation_bits = interpolated.invalidation_bits,
+                    else:
+                        samples = self.samples[start:stop].copy()
+                        timestamps = self.timestamps[start:stop].copy()
+                        if self.invalidation_bits:
+                            invalidation_bits = self.invalidation_bits[start:stop].copy()
+                        else:
+                            invalidation_bits = None
+
+                        if include_ends and ends[-1] not in self.timestamps and ends[-1] < self.timestamps[-1]:
+                            interpolated = self.interp([ends[1]])
+                            samples = np.append(
+                                samples,
+                                interpolated.samples,
+                            )
+                            timestamps = np.append(timestamps, ends[1])
+                            if invalidation_bits is not None:
+                                invalidation_bits = np.append(
+                                    invalidation_bits,
+                                    interpolated.invalidation_bits,
+                                )
+
+                        if include_ends and ends[0] not in self.timestamps and ends[0] > self.timestamps[0]:
+                            interpolated = self.interp([ends[0]])
+                            samples = np.append(
+                                interpolated.samples,
+                                samples,
+                            )
+                            timestamps = np.append(ends[0], timestamps)
+
+                            if invalidation_bits is not None:
+                                invalidation_bits = np.append(
+                                    interpolated.invalidation_bits,
+                                    invalidation_bits,
+                                )
+
                             # start and stop are found between 2 signal samples
                             # so return the previous sample
-                            result = Signal(
-                                self.samples[start_ - 1 : start_],
-                                self.timestamps[start_ - 1 : start_],
-                                self.unit,
-                                self.name,
-                                self.conversion,
-                                self.comment,
-                                self.raw,
-                                self.master_metadata,
-                                self.display_name,
-                                self.attachment,
-                                self.source,
-                                self.bit_count,
-                                self.stream_sync,
-                                invalidation_bits=self.invalidation_bits[
-                                    start_ - 1 : start_
-                                ]
-                                if self.invalidation_bits is not None
-                                else None,
-                            )
-                        else:
-                            # signal is empty or start and stop are outside the
-                            # signal time base
-                            result = Signal(
-                                np.array([]),
-                                np.array([]),
-                                self.unit,
-                                self.name,
-                                self.conversion,
-                                self.comment,
-                                self.raw,
-                                self.master_metadata,
-                                self.display_name,
-                                self.attachment,
-                                self.source,
-                                self.bit_count,
-                                self.stream_sync,
-                            )
-                    else:
-                        result = Signal(
-                            self.samples[start_:stop_],
-                            self.timestamps[start_:stop_],
-                            self.unit,
-                            self.name,
-                            self.conversion,
-                            self.comment,
-                            self.raw,
-                            self.master_metadata,
-                            self.display_name,
-                            self.attachment,
-                            self.source,
-                            self.bit_count,
-                            self.stream_sync,
-                            invalidation_bits=self.invalidation_bits[start_:stop_]
-                            if self.invalidation_bits is not None
-                            else None,
-                        )
+
+                    result = Signal(
+                        samples,
+                        timestamps,
+                        self.unit,
+                        self.name,
+                        self.conversion,
+                        self.comment,
+                        self.raw,
+                        self.master_metadata,
+                        self.display_name,
+                        self.attachment,
+                        self.source,
+                        self.bit_count,
+                        self.stream_sync,
+                        invalidation_bits=invalidation_bits,
+                    )
+
         return result
 
     def extend(self, other):
@@ -753,9 +807,7 @@ class Signal(object):
                 display_name=self.display_name,
                 attachment=self.attachment,
                 stream_sync=self.stream_sync,
-                invalidation_bits=self.invalidation_bits.copy()
-                if self.invalidation_bits is not None
-                else None,
+                invalidation_bits=self.invalidation_bits.copy() if self.invalidation_bits is not None else None,
             )
         else:
             if self.samples.dtype.kind == "f":

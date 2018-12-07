@@ -27,9 +27,11 @@ from numpy import (
     concatenate,
     dtype,
     flip,
+    float32,
     float64,
     frombuffer,
     interp,
+    linspace,
     ones,
     packbits,
     roll,
@@ -4739,7 +4741,17 @@ class MDF4(object):
                             ].flatten()
 
                 if raster and len(timestamps) > 1:
-                    t = arange(timestamps[0], timestamps[-1], raster)
+                    num = float(
+                        float32((timestamps[-1] - timestamps[0]) / raster)
+                    )
+                    if num.is_integer():
+                        t = linspace(
+                            timestamps[0],
+                            timestamps[-1],
+                            int(num),
+                        )
+                    else:
+                        t = arange(timestamps[0], timestamps[-1], raster)
 
                     vals = Signal(vals, timestamps, name="_").interp(t).samples
 
@@ -4875,7 +4887,18 @@ class MDF4(object):
                             ].flatten()
 
                 if raster and len(timestamps) > 1:
-                    t = arange(timestamps[0], timestamps[-1], raster)
+
+                    num = float(
+                        float32((timestamps[-1] - timestamps[0]) / raster)
+                    )
+                    if num.is_integer():
+                        t = linspace(
+                            timestamps[0],
+                            timestamps[-1],
+                            int(num),
+                        )
+                    else:
+                        t = arange(timestamps[0], timestamps[-1], raster)
 
                     vals = Signal(vals, timestamps, name="_").interp(t).samples
 
@@ -5273,7 +5296,19 @@ class MDF4(object):
             self._master_channel_cache[(index, offset)] = t
 
         if raster and t.size:
-            timestamps = arange(t[0], t[-1], raster)
+            timestamps = t
+            if len(t) > 1:
+                num = float(
+                    float32((timestamps[-1] - timestamps[0]) / raster)
+                )
+                if int(num) == num:
+                    timestamps = linspace(
+                        t[0],
+                        t[-1],
+                        int(num),
+                    )
+                else:
+                    timestamps = arange(t[0], t[-1], raster)
         else:
             timestamps = t
         return timestamps

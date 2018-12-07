@@ -629,7 +629,7 @@ class MDF(object):
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def cut(self, start=None, stop=None, whence=0, version=None, memory=None):
+    def cut(self, start=None, stop=None, whence=0, version=None, memory=None, include_ends=True):
         """cut *MDF* file. *start* and *stop* limits are absolute values
         or values relative to the first timestamp depending on the *whence*
         argument.
@@ -788,7 +788,7 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                         )
                         if needs_cutting:
-                            sig = sig.cut(fragment_start, fragment_stop)
+                            sig = sig.cut(fragment_start, fragment_stop, include_ends)
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
@@ -1019,11 +1019,20 @@ class MDF(object):
             comments = OrderedDict()
             masters = [self.get_master(i) for i in range(len(self.groups))]
             master = reduce(np.union1d, masters)
-            if raster and len(master):
-                master_ = np.arange(master[0], master[-1], raster, dtype=np.float64)
 
-                if len(master_):
-                    master = master_
+            if raster and len(master):
+                if len(master) > 1:
+                    num = float(
+                        np.float32((master[-1] - master[0]) / raster)
+                    )
+                    if num.is_integer():
+                        master = np.linspace(
+                            master[0],
+                            master[-1],
+                            int(num),
+                        )
+                    else:
+                        master = np.arange(master[0], master[-1], raster, dtype=np.float64)
 
             if time_from_zero and len(master):
                 mdict["time"] = master - master[0]

@@ -75,7 +75,6 @@ build_exe_options = {
         "zict",
     ],
 }
-
 # GUI applications require a different base on Windows (the default is for a
 # console application).
 base = None
@@ -101,7 +100,7 @@ setup(
     version="3.4.1",
     description="GUI for asammdf",
     options={"build_exe": build_exe_options},
-    executables=[Executable("asammdfgui.py", base=base, targetName="asammdf.exe")],
+    executables=[Executable("asammdfgui.py", base=base, targetName="asammdfgui.exe")],
 )
 
 cwd = os.getcwd()
