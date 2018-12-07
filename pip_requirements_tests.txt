@@ -1,4 +1,3 @@
-cantools
 xmlrunner
 coverage
 codacy-coverage
