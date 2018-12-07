@@ -654,6 +654,10 @@ class MDF(object):
         memory : str
             memory option; default *None* and in this case the original file
             memory option is used
+        include_ends : bool
+            include the *start* and *stop* timestamps after cutting the signal.
+            If *start* and *stop* are found in the original timestamps, then
+            the new samples will be computed using interpolation. Default *True*
 
         Returns
         -------
