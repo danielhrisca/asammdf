@@ -1940,7 +1940,7 @@ class MDF(object):
                                 ignore_invalidation_bits=True,
                             )
 
-                            if offset:
+                            if offset > 0:
                                 sig.timestamps = sig.timestamps + offset
 
                             if version < "4.00" and sig.samples.dtype.kind == "S" and any(v >= '4.00' for v in versions):
@@ -1973,14 +1973,16 @@ class MDF(object):
                         idx += 1
                     else:
                         master = mdf.get_master(i, fragment)
-                        if offset:
+                        if offset > 0:
                             master = master + offset
                         if len(master):
                             if last_timestamp is None:
                                 last_timestamp = master[-1]
                             else:
                                 if last_timestamp >= master[0]:
-                                    master += last_timestamp
+                                    delta = master[1] - master[0]
+                                    master -= master[0]
+                                    master += last_timestamp + delta
                                 last_timestamp = master[-1]
 
                             signals = [(master, None)]

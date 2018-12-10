@@ -5169,7 +5169,7 @@ class MDF4(object):
                 timestamps = self._master_channel_cache[(index, offset)]
                 if raster and len(timestamps):
                     timestamps = arange(timestamps[0], timestamps[-1], raster)
-                return timestamps
+                return timestamps.copy()
             except KeyError:
                 pass
         else:
@@ -5177,7 +5177,7 @@ class MDF4(object):
                 timestamps = self._master_channel_cache[index]
                 if raster and len(timestamps):
                     timestamps = arange(timestamps[0], timestamps[-1], raster)
-                return timestamps
+                return timestamps.copy()
             except KeyError:
                 offset = 0
 
@@ -5311,7 +5311,7 @@ class MDF4(object):
                     timestamps = arange(t[0], t[-1], raster)
         else:
             timestamps = t
-        return timestamps
+        return timestamps.copy()
 
     def get_can_signal(
         self, name, database=None, db=None, ignore_invalidation_bits=False
