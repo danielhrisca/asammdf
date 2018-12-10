@@ -1407,9 +1407,10 @@ class MDF4(object):
 
         return data
 
-    def _load_data(self, group, index=None):
+    def _load_data(self, group, index=None, record_offset=0):
         """ get group's data block bytes """
         offset = 0
+        has_yielded = False
         if self.memory == "full":
             if index is None:
                 yield group["data_block"]["data"], offset
@@ -1442,8 +1443,10 @@ class MDF4(object):
                     + channel_group["invalidation_bytes_nr"]
                 )
 
+            record_offset *= samples_size
+
             if not samples_size:
-                yield b"", 0
+                yield b"", offset
             else:
 
                 if not group["sorted"]:
@@ -1493,134 +1496,175 @@ class MDF4(object):
                     if PYVERSION == 2:
                         blocks = iter(blocks)
 
-                    if block_type == v4c.DT_BLOCK and group["sorted"]:
-                        cur_size = 0
-                        data = []
+                    if group["sorted"]:
 
-                        while True:
-                            try:
-                                address, size, block_size = next(blocks)
-                                current_address = address
-                            except StopIteration:
-                                break
-                            stream.seek(address)
+                        if block_type == v4c.DT_BLOCK:
+                            cur_size = 0
+                            data = []
 
-                            while size >= split_size - cur_size:
-                                stream.seek(current_address)
-                                if data:
-                                    data.append(stream.read(split_size - cur_size))
-                                    yield b"".join(data), offset
-                                    current_address += split_size - cur_size
+                            while True:
+                                try:
+                                    address, size, block_size = next(blocks)
+                                    current_address = address
+                                except StopIteration:
+                                    break
+
+                                if offset + size < record_offset + 1:
+                                    offset += size
+                                    continue
+
+                                stream.seek(address)
+
+                                if offset < record_offset:
+                                    delta = record_offset - offset
+                                    stream.read(delta)
+                                    current_address += delta
+                                    size -= delta
+                                    offset = record_offset
+
+                                while size >= split_size - cur_size:
+                                    stream.seek(current_address)
+                                    if data:
+                                        data.append(stream.read(split_size - cur_size))
+                                        yield b"".join(data), offset
+                                        has_yielded = True
+                                        current_address += split_size - cur_size
+                                    else:
+                                        yield stream.read(split_size), offset
+                                        has_yielded = True
+                                        current_address += split_size
+                                    offset += split_size
+
+                                    size -= split_size - cur_size
+                                    data = []
+                                    cur_size = 0
+
+                                if size:
+                                    stream.seek(current_address)
+                                    data.append(stream.read(size))
+                                    cur_size += size
+                            if data:
+                                yield b"".join(data), offset
+                                has_yielded = True
+                        else:
+
+                            extra_bytes = b""
+                            for (address, size, block_size) in blocks:
+                                if offset + size < record_offset + 1:
+                                    offset += size
+                                    continue
+
+                                stream.seek(address)
+                                data = stream.read(block_size)
+
+                                if block_type == v4c.DZ_BLOCK_DEFLATE:
+                                    data = decompress(data)
                                 else:
-                                    yield stream.read(split_size), offset
-                                    current_address += split_size
-                                offset += split_size
+                                    data = decompress(data)
+                                    cols = param
+                                    lines = size // cols
 
-                                size -= split_size - cur_size
-                                data = []
-                                cur_size = 0
+                                    nd = fromstring(data[: lines * cols], dtype=uint8)
+                                    nd = nd.reshape((cols, lines))
+                                    data = nd.T.tostring() + data[lines * cols:]
 
-                            if size:
-                                stream.seek(current_address)
-                                data.append(stream.read(size))
-                                cur_size += size
-                        if data:
-                            yield b"".join(data), offset
+                                if offset < record_offset:
+                                    delta = record_offset - offset
+                                    offset = record_offset
+                                    data = data[delta:]
+
+                                if extra_bytes:
+                                    data = extra_bytes + data
+
+                                dim = len(data)
+                                new_extra_bytes = dim % samples_size
+                                if new_extra_bytes:
+                                    extra_bytes = data[-new_extra_bytes:]
+                                    data = data[:-new_extra_bytes]
+                                    offset_increase = dim - new_extra_bytes
+                                else:
+                                    extra_bytes = b""
+                                    offset_increase = dim
+
+                                yield data, offset
+                                has_yielded = True
+                                offset += offset_increase
+
+                            if extra_bytes:
+                                yield extra_bytes, offset
+                                has_yielded = True
                     else:
-                        extra_bytes = b""
                         for (address, size, block_size) in blocks:
-
                             stream.seek(address)
                             data = stream.read(block_size)
 
                             if block_type == v4c.DZ_BLOCK_DEFLATE:
                                 data = decompress(data)
-
-                                if group["sorted"]:
-
-                                    if extra_bytes:
-                                        data = extra_bytes + data
-
-                                    dim = len(data)
-                                    new_extra_bytes = dim % samples_size
-                                    if new_extra_bytes:
-                                        extra_bytes = data[-new_extra_bytes:]
-                                        data = data[:-new_extra_bytes]
-                                        offset_increase = dim - new_extra_bytes
-                                    else:
-                                        extra_bytes = b""
-                                        offset_increase = dim
-
-                                    yield data, offset
-                                    offset += offset_increase
-
                             elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
                                 data = decompress(data)
                                 cols = param
                                 lines = size // cols
 
-                                nd = fromstring(data[: lines * cols], dtype=uint8)
+                                nd = fromstring(data[: lines * cols],
+                                                dtype=uint8)
                                 nd = nd.reshape((cols, lines))
-                                data = nd.T.tostring() + data[lines * cols :]
+                                data = nd.T.tostring() + data[lines * cols:]
 
-                                if group["sorted"]:
-                                    if extra_bytes:
-                                        data = extra_bytes + data
+                            rec_data = []
 
-                                    dim = len(data)
-                                    new_extra_bytes = dim % samples_size
-                                    if new_extra_bytes:
-                                        extra_bytes = data[-new_extra_bytes:]
-                                        data = data[:-new_extra_bytes]
-                                        offset_increase = dim - new_extra_bytes
-                                    else:
-                                        extra_bytes = b""
-                                        offset_increase = dim
+                            cg_size = group["record_size"]
+                            record_id = channel_group["record_id"]
+                            record_id_nr = data_group["record_id_len"]
 
-                                    yield data, offset
-                                    offset += offset_increase
+                            if record_id_nr == 1:
+                                _unpack_stuct = UINT8_u
+                            elif record_id_nr == 2:
+                                _unpack_stuct = UINT16_u
+                            elif record_id_nr == 4:
+                                _unpack_stuct = UINT32_u
+                            elif record_id_nr == 8:
+                                _unpack_stuct = UINT64_u
+                            else:
+                                message = "invalid record id size {}"
+                                message = message.format(record_id_nr)
+                                raise MdfException(message)
 
-                            if not group["sorted"]:
-                                rec_data = []
-
-                                cg_size = group["record_size"]
-                                record_id = channel_group["record_id"]
-                                record_id_nr = data_group["record_id_len"]
-
-                                if record_id_nr == 1:
-                                    _unpack_stuct = UINT8_u
-                                elif record_id_nr == 2:
-                                    _unpack_stuct = UINT16_u
-                                elif record_id_nr == 4:
-                                    _unpack_stuct = UINT32_u
-                                elif record_id_nr == 8:
-                                    _unpack_stuct = UINT64_u
+                            i = 0
+                            size = len(data)
+                            while i < size:
+                                (rec_id, ) = _unpack_stuct(data[i : i + record_id_nr])
+                                # skip record id
+                                i += record_id_nr
+                                rec_size = cg_size[rec_id]
+                                if rec_size:
+                                    if rec_id == record_id:
+                                        rec_data.append(data[i : i + rec_size])
                                 else:
-                                    message = "invalid record id size {}"
-                                    message = message.format(record_id_nr)
-                                    raise MdfException(message)
+                                    (rec_size, ) = UINT32_u(data[i : i + 4])
+                                    if rec_id == record_id:
+                                        rec_data.append(data[i : i + 4 + rec_size])
+                                    i += 4
+                                i += rec_size
+                            rec_data = b"".join(rec_data)
 
-                                i = 0
-                                size = len(data)
-                                while i < size:
-                                    (rec_id, ) = _unpack_stuct(data[i : i + record_id_nr])
-                                    # skip record id
-                                    i += record_id_nr
-                                    rec_size = cg_size[rec_id]
-                                    if rec_size:
-                                        if rec_id == record_id:
-                                            rec_data.append(data[i : i + rec_size])
-                                    else:
-                                        (rec_size, ) = UINT32_u(data[i : i + 4])
-                                        if rec_id == record_id:
-                                            rec_data.append(data[i : i + 4 + rec_size])
-                                        i += 4
-                                    i += rec_size
-                                rec_data = b"".join(rec_data)
-                                size = len(rec_data)
+                            size = len(rec_data)
+
+                            if size:
+
+                                if offset + size < record_offset + 1:
+                                    offset += size
+                                    continue
+
+                                if offset < record_offset:
+                                    delta = record_offset - offset
+                                    size -= delta
+                                    offset = record_offset
+
                                 yield rec_data, offset
+                                has_yielded = True
                                 offset += size
-
+                    if not has_yielded:
+                        yield b"", 0
                 else:
                     yield b"", offset
 
@@ -4097,6 +4141,7 @@ class MDF4(object):
         ignore_invalidation_bits=False,
         source=None,
         sample_reduction_index=None,
+        record_offset=0,
     ):
         """Gets channel samples.
         Channel can be specified in two ways:
@@ -4139,7 +4184,10 @@ class MDF4(object):
         ignore_invalidation_bits : bool
             option to ignore invalidation bits
         source : str
-            source name
+            source name used to select the channel
+        record_offset : int
+            if *data=None* use this to select the record offset from which the
+            group data should be loaded
 
         Returns
         -------
@@ -4282,7 +4330,7 @@ class MDF4(object):
 
             # get group data
             if data is None:
-                data = self._load_data(grp)
+                data = self._load_data(grp, record_offset=record_offset)
             else:
                 data = (data,)
 
@@ -4371,6 +4419,7 @@ class MDF4(object):
                             raw=raw,
                             data=fragment,
                             ignore_invalidation_bits=ignore_invalidation_bits,
+                            record_offset=record_offset,
                         )[0]
                         channel_values[i].append(vals)
                     if not samples_only or raster:
@@ -4538,6 +4587,7 @@ class MDF4(object):
                                             samples_only=True,
                                             data=fragment,
                                             ignore_invalidation_bits=ignore_invalidation_bits,
+                                            record_offset=record_offset,
                                         )[0]
                                     else:
                                         channel_group = grp["channel_group"]
@@ -4552,6 +4602,7 @@ class MDF4(object):
                                             index=ref_ch_nr,
                                             samples_only=True,
                                             ignore_invalidation_bits=ignore_invalidation_bits,
+                                            record_offset=record_offset,
                                         )[0]
                                         axis_values = ref[start:end].copy()
                                     axis_values = axis_values[axisname]
@@ -4607,6 +4658,7 @@ class MDF4(object):
                                         samples_only=True,
                                         data=fragment,
                                         ignore_invalidation_bits=ignore_invalidation_bits,
+                                        record_offset=record_offset,
                                     )[0]
                                 else:
                                     channel_group = grp["channel_group"]
@@ -4621,6 +4673,7 @@ class MDF4(object):
                                         index=ref_ch_nr,
                                         samples_only=True,
                                         ignore_invalidation_bits=ignore_invalidation_bits,
+                                        record_offset=record_offset,
                                     )[0]
                                     axis_values = ref[start:end].copy()
                                 axis_values = axis_values[axisname]
@@ -5144,7 +5197,7 @@ class MDF4(object):
 
         return res
 
-    def get_master(self, index, data=None, raster=None):
+    def get_master(self, index, data=None, raster=None, record_offset=0):
         """ returns master channel samples for given group
 
         Parameters
@@ -5155,6 +5208,9 @@ class MDF4(object):
             (data block raw bytes, fragment offset); default None
         raster : float
             raster to be used for interpolation; default None
+        record_offset : int
+            if *data=None* use this to select the record offset from which the
+            group data should be loaded
 
         Returns
         -------
@@ -5243,7 +5299,7 @@ class MDF4(object):
 
                 # get data
                 if fragment is None:
-                    data = self._load_data(group)
+                    data = self._load_data(group, record_offset=record_offset)
                 else:
                     data = (fragment,)
                 time_values = []

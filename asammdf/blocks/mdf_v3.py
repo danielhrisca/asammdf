@@ -207,12 +207,13 @@ class MDF3(object):
             self.version = version
             self.header = HeaderBlock(version=self.version)
 
-    def _load_data(self, group):
+    def _load_data(self, group, record_offset=0):
         """ get group's data block bytes"""
-
+        has_yielded = False
         offset = 0
         if self.memory == "full":
             yield group["data_block"]["data"], offset
+            has_yielded = True
         else:
             channel_group = group["channel_group"]
 
@@ -222,11 +223,14 @@ class MDF3(object):
             else:
                 stream = self._tempfile
 
+            record_offset *= channel_group["samples_byte_nr"]
+
             # go to the first data block of the current data group
             if group["sorted"]:
                 samples_size = channel_group["samples_byte_nr"]
                 if not samples_size:
                     yield b"", 0
+                    has_yielded = True
                 else:
                     if self._read_fragment_size:
                         split_size = self._read_fragment_size // samples_size
@@ -261,16 +265,30 @@ class MDF3(object):
                             current_address = address
                         except StopIteration:
                             break
+
+                        if offset + size < record_offset + 1:
+                            offset += size
+                            continue
+
                         stream.seek(address)
+
+                        if offset < record_offset:
+                            delta = record_offset - offset
+                            stream.read(delta)
+                            current_address += delta
+                            size -= delta
+                            offset = record_offset
 
                         while size >= split_size - cur_size:
                             stream.seek(current_address)
                             if data:
                                 data.append(stream.read(split_size - cur_size))
                                 yield b"".join(data), offset
+                                has_yielded = True
                                 current_address += split_size - cur_size
                             else:
                                 yield stream.read(split_size), offset
+                                has_yielded = True
                                 current_address += split_size
                             offset += split_size
 
@@ -286,7 +304,11 @@ class MDF3(object):
 
                     if data:
                         yield b"".join(data), offset
+                        has_yielded = True
                     elif not offset:
+                        yield b"", 0
+                        has_yielded = True
+                    if not has_yielded:
                         yield b"", 0
 
             else:
@@ -325,8 +347,22 @@ class MDF3(object):
                             i += rec_size
                     cg_data = b"".join(cg_data)
                     size = len(cg_data)
-                    yield cg_data, offset
-                    offset += size
+
+                    if size:
+                        if offset + size < record_offset + 1:
+                            offset += size
+                            continue
+
+                        if offset < record_offset:
+                            delta = record_offset - offset
+                            size -= delta
+                            offset = record_offset
+
+                        yield cg_data, offset
+                        has_yielded = True
+                        offset += size
+        if not has_yielded:
+            yield b"", 0
 
     def _prepare_record(self, group):
         """ compute record dtype and parents dict for this group
@@ -2621,6 +2657,7 @@ class MDF3(object):
         raw=False,
         ignore_invalidation_bits=False,
         source=None,
+        record_offset=0,
     ):
         """Gets channel samples.
         Channel can be specified in two ways:
@@ -2663,6 +2700,11 @@ class MDF3(object):
             `False`
         ignore_invalidation_bits : bool
             only defined to have the same API with the MDF v4
+        source : str
+            source name used to select the channel
+        record_offset : int
+            if *data=None* use this to select the record offset from which the
+            group data should be loaded
 
 
         Returns
@@ -2781,7 +2823,7 @@ class MDF3(object):
 
         # get data group record
         if data is None:
-            data = self._load_data(grp)
+            data = self._load_data(grp, record_offset=record_offset)
         else:
             data = (data,)
 
@@ -2810,6 +2852,7 @@ class MDF3(object):
                     samples_only=True,
                     raw=raw,
                     data=original_data,
+                    record_offset=record_offset,
                 )[0]
                 for ch_nr, dg_nr in dep.referenced_channels
             ]
@@ -2827,7 +2870,7 @@ class MDF3(object):
             vals = fromarrays(arrays, dtype=types)
 
             if not samples_only or raster:
-                timestamps = self.get_master(gp_nr, original_data)
+                timestamps = self.get_master(gp_nr, original_data, record_offset=record_offset,)
                 if raster and len(timestamps) > 1:
                     num = float(
                         float32((timestamps[-1] - timestamps[0]) / raster)
@@ -3039,7 +3082,7 @@ class MDF3(object):
 
         return res
 
-    def get_master(self, index, data=None, raster=None):
+    def get_master(self, index, data=None, raster=None, record_offset=0):
         """ returns master channel samples for given group
 
         Parameters
@@ -3050,6 +3093,9 @@ class MDF3(object):
             (data block raw bytes, fragment offset); default None
         raster : float
             raster to be used for interpolation; default None
+        record_offset : int
+            if *data=None* use this to select the record offset from which the
+            group data should be loaded
 
         Returns
         -------
@@ -3115,7 +3161,7 @@ class MDF3(object):
 
                 # get data group record
                 if data is None:
-                    data = self._load_data(group)
+                    data = self._load_data(group, record_offset=record_offset)
                 else:
                     data = (data,)
 
