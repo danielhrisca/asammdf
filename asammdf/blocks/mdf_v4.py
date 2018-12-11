@@ -1425,6 +1425,9 @@ class MDF4(object):
             else:
                 stream = self._tempfile
 
+            read = stream.read
+            seek = stream.seek
+
             if index is None:
                 block_type = group["data_block_type"]
                 param = group["param"]
@@ -1513,24 +1516,21 @@ class MDF4(object):
                                     offset += size
                                     continue
 
-                                stream.seek(address)
-
                                 if offset < record_offset:
                                     delta = record_offset - offset
-                                    stream.read(delta)
                                     current_address += delta
                                     size -= delta
                                     offset = record_offset
 
                                 while size >= split_size - cur_size:
-                                    stream.seek(current_address)
+                                    seek(current_address)
                                     if data:
-                                        data.append(stream.read(split_size - cur_size))
+                                        data.append(read(split_size - cur_size))
                                         yield b"".join(data), offset
                                         has_yielded = True
                                         current_address += split_size - cur_size
                                     else:
-                                        yield stream.read(split_size), offset
+                                        yield read(split_size), offset
                                         has_yielded = True
                                         current_address += split_size
                                     offset += split_size
@@ -1540,8 +1540,8 @@ class MDF4(object):
                                     cur_size = 0
 
                                 if size:
-                                    stream.seek(current_address)
-                                    data.append(stream.read(size))
+                                    seek(current_address)
+                                    data.append(read(size))
                                     cur_size += size
                             if data:
                                 yield b"".join(data), offset
@@ -1554,8 +1554,8 @@ class MDF4(object):
                                     offset += size
                                     continue
 
-                                stream.seek(address)
-                                data = stream.read(block_size)
+                                seek(address)
+                                data = read(block_size)
 
                                 if block_type == v4c.DZ_BLOCK_DEFLATE:
                                     data = decompress(data)
@@ -1595,8 +1595,8 @@ class MDF4(object):
                                 has_yielded = True
                     else:
                         for (address, size, block_size) in blocks:
-                            stream.seek(address)
-                            data = stream.read(block_size)
+                            seek(address)
+                            data = read(block_size)
 
                             if block_type == v4c.DZ_BLOCK_DEFLATE:
                                 data = decompress(data)

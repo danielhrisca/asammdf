@@ -241,32 +241,36 @@ try:
                     else:
                         t = sig.timestamps
 
-                    try:
-                        curve = self.curvetype(
-                            t,
-                            sig.samples,
-                            pen=color,
-                            symbolBrush=color,
-                            symbolPen=color,
-                            symbol="o",
-                            symbolSize=4,
-                            stepMode=sig.stepmode,
-                            # connect='pairs'
-                        )
-                    except:
-                        message = (
-                            "Can't show dots due to old pyqtgraph package: "
-                            "Please install the latest pyqtgraph from the "
-                            "github develop branch\n"
-                            "pip install -I --no-deps "
-                            "https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
-                        )
-                        logger.warning(message)
-                    self.view_boxes[i].removeItem(self.curves[i])
+                    if not force:
+                        try:
+                            curve = self.curvetype(
+                                t,
+                                sig.samples,
+                                pen=color,
+                                symbolBrush=color,
+                                symbolPen=color,
+                                symbol="o",
+                                symbolSize=4,
+                                stepMode=sig.stepmode,
+                                # connect='pairs'
+                            )
+                        except:
+                            message = (
+                                "Can't show dots due to old pyqtgraph package: "
+                                "Please install the latest pyqtgraph from the "
+                                "github develop branch\n"
+                                "pip install -I --no-deps "
+                                "https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
+                            )
+                            logger.warning(message)
+                        self.view_boxes[i].removeItem(self.curves[i])
 
-                    self.curves[i] = curve
+                        self.curves[i] = curve
 
-                    self.view_boxes[i].addItem(curve)
+                        self.view_boxes[i].addItem(curve)
+                    else:
+                        curve = self.curves[i]
+                        curve.updateData(x=t, y=sig.samples)
 
                     if sig.enable and self.singleton is None:
                         curve.show()

@@ -39,6 +39,8 @@ class ChannelDisplay(QWidget):
         self.ranges = {}
         self.unit = unit
 
+        self._transparent = True
+
         self.color_btn.clicked.connect(self.select_color)
         self.display.stateChanged.connect(self.display_changed)
 
@@ -92,10 +94,12 @@ class ChannelDisplay(QWidget):
             for (start, stop), color in self.ranges.items():
                 if start <= value < stop:
                     self.setStyleSheet("background-color: {};".format(color))
+                    self._transparent = False
                     break
             else:
+                self._transparent = True
                 self.setStyleSheet("background-color: transparent;")
-        else:
+        elif not self._transparent:
             self.setStyleSheet("background-color: transparent;")
         template = '<html><head/><body><p><span style=" color:{{}};">{{}}{}</span></p></body></html>'
         if value not in ("", "n.a."):
