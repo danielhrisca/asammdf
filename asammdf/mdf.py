@@ -2346,7 +2346,7 @@ class MDF(object):
             mdf._callback = mdf._mdf._callback = self._callback
         return mdf
 
-    def select(self, channels, dataframe=False):
+    def select(self, channels, dataframe=False, record_offset=0):
         """ retreiv the channels listed in *channels* argument as *Signal*
         objects
 
@@ -2442,7 +2442,7 @@ class MDF(object):
         signal_parts = {}
         for group in gps:
             grp = self.groups[group]
-            data = self._load_data(grp)
+            data = self._load_data(grp, record_offset=record_offset)
             parents, dtypes = self._prepare_record(grp)
             grp["parents"], grp["types"] = parents, dtypes
 
