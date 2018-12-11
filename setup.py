@@ -85,7 +85,6 @@ setup(
     install_requires=['numpy>=1.13.1',
                       'pandas',
                       'numexpr',
-                      'matplotlib',
                       'wheel',
                       'canmatrix',
                      ],

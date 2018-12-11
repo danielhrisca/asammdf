@@ -155,7 +155,6 @@ asammdf uses the following libraries
 
 * numpy : the heart that makes all tick 
 * numexpr : for algebraic and rational channel conversions
-* matplotlib : for Signal plotting
 * wheel : for installation in virtual environments
 * pandas : for DataFrame export
 * canmatrix : to handle CAN bus logging measurements
@@ -173,6 +172,7 @@ other optional dependencies
 * chardet : to detect non-standard unicode encodings
 * PyQt4 or PyQt5 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting
+* matplotlib : as fallback for Signal plotting
 
 # Benchmarks
 
