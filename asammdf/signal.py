@@ -212,7 +212,7 @@ class Signal(object):
         """ plot Signal samples. Pyqtgraph is used if it is available; in this
         case see the GUI plot documentation to see the available commands"""
         try:
-            from .gui.colors import COLORS
+            from .gui.utils import COLORS
             from .gui.widgets.plot_standalone import StandalonePlot
 
             try:

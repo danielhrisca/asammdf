@@ -270,7 +270,7 @@ try:
                         self.view_boxes[i].addItem(curve)
                     else:
                         curve = self.curves[i]
-                        curve.updateData(x=t, y=sig.samples)
+                        curve.setData(x=t, y=sig.samples)
 
                     if sig.enable and self.singleton is None:
                         curve.show()
