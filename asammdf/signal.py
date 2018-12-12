@@ -848,7 +848,15 @@ class Signal(object):
         """
 
         if isinstance(other, Signal):
-            time = np.union1d(self.timestamps, other.timestamps)
+            if len(self) and len(other):
+                start = max(self.timestamps[0], other.timestamps[0])
+                stop = min(self.timestamps[-1], other.timestamps[-1])
+                s1 = self.cut(start, stop)
+                s2 = other.cut(start, stop)
+            else:
+                s1 = self
+                s2 = other
+            time = np.union1d(s1.timestamps, s2.timestamps)
             s = self.interp(time).samples
             o = other.interp(time).samples
             func = getattr(s, func_name)
@@ -928,6 +936,15 @@ class Signal(object):
     def __radd__(self, other):
         return self.__add__(other)
 
+    def __truediv__(self, other):
+        return self.__apply_func(other, "__truediv__")
+
+    def __itruediv__(self, other):
+        return self.__truediv__(other)
+
+    def __rdiv__(self, other):
+        return 1 / self.__truediv__(other)
+
     def __mul__(self, other):
         return self.__apply_func(other, "__mul__")
 
@@ -937,14 +954,14 @@ class Signal(object):
     def __rmul__(self, other):
         return self.__mul__(other)
 
-    def __truediv__(self, other):
-        return self.__apply_func(other, "__truediv__")
+    def __floordiv__(self, other):
+        return self.__apply_func(other, "__floordiv__")
 
-    def __itruediv__(self, other):
+    def __ifloordiv__(self, other):
         return self.__truediv__(other)
 
-    def __rtruediv__(self, other):
-        return self.__apply_func(other, "__rtruediv__")
+    def __rfloordiv__(self, other):
+        return 1 / self.__apply_func(other, "__rfloordiv__")
 
     def __mod__(self, other):
         return self.__apply_func(other, "__mod__")
