@@ -1124,9 +1124,9 @@ class MDF4(object):
                                 )
                                 signed = signal.is_signed
                                 s_type = info_to_datatype_v4(signed, little_endian)
-                                bit_offset = signal.startbit % 8
-                                byte_offset = signal.startbit // 8
-                                bit_count = signal.signalsize
+                                bit_offset = signal.startBit % 8
+                                byte_offset = signal.startBit // 8
+                                bit_count = signal.size
                                 comment = signal.comment or ""
 
                                 if (signal.factor, signal.offset) != (1, 0):
@@ -5568,10 +5568,10 @@ class MDF4(object):
 
         big_endian = False if signal.is_little_endian else True
         signed = signal.is_signed
-        bit_offset = signal.startbit % 8
-        byte_offset = signal.startbit // 8
+        bit_offset = signal.startBit % 8
+        byte_offset = signal.startBit // 8
 
-        bit_count = signal.signalsize
+        bit_count = signal.size
 
         byte_count = bit_offset + bit_count
         if byte_count % 8:

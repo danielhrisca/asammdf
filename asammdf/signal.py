@@ -528,6 +528,7 @@ class Signal(object):
                         samples = np.append(
                             self.samples[:stop],
                             interpolated.samples,
+                            axis=0,
                         )
                         timestamps = np.append(self.timestamps[:stop], ends[1])
                         if self.invalidation_bits is not None:
@@ -587,6 +588,7 @@ class Signal(object):
                         samples = np.append(
                             interpolated.samples,
                             self.samples[start:],
+                            axis=0,
                         )
                         timestamps = np.append(ends[0], self.timestamps[start:])
                         if self.invalidation_bits is not None:
@@ -660,6 +662,7 @@ class Signal(object):
                             samples = np.append(
                                 samples,
                                 interpolated.samples,
+                                axis=0,
                             )
                             timestamps = np.append(timestamps, ends[1])
                             if invalidation_bits is not None:
@@ -673,6 +676,7 @@ class Signal(object):
                             samples = np.append(
                                 interpolated.samples,
                                 samples,
+                                axis=0,
                             )
                             timestamps = np.append(ends[0], timestamps)
 
@@ -722,6 +726,7 @@ class Signal(object):
         else:
             last_stamp = 0
         if len(other):
+            print(len(self), len(other))
             other_first_sample = other.timestamps[0]
             if last_stamp >= other_first_sample:
                 timestamps = other.timestamps + last_stamp
@@ -759,7 +764,7 @@ class Signal(object):
                 )
 
             result = Signal(
-                np.append(self.samples, other.samples),
+                np.append(self.samples, other.samples, axis=0),
                 np.append(self.timestamps, timestamps),
                 self.unit,
                 self.name,
