@@ -1558,9 +1558,9 @@ class MDF4(object):
                                 data = read(block_size)
 
                                 if block_type == v4c.DZ_BLOCK_DEFLATE:
-                                    data = decompress(data)
+                                    data = decompress(data, 0, size)
                                 else:
-                                    data = decompress(data)
+                                    data = decompress(data, 0, size)
                                     cols = param
                                     lines = size // cols
 
@@ -1599,9 +1599,9 @@ class MDF4(object):
                             data = read(block_size)
 
                             if block_type == v4c.DZ_BLOCK_DEFLATE:
-                                data = decompress(data)
+                                data = decompress(data, 0, size)
                             elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                                data = decompress(data)
+                                data = decompress(data, 0, size)
                                 cols = param
                                 lines = size // cols
 

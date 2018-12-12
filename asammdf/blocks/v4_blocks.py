@@ -2843,9 +2843,9 @@ class DataZippedBlock(dict):
 
                 nd = np.fromstring(data[: lines * cols], dtype=np.uint8)
                 nd = nd.reshape((lines, cols))
-                data = nd.T.tostring() + data[lines * cols :]
+                data = nd.T.tostring() + data[lines * cols:]
 
-                data = compress(data)
+                data = compress(data, 1)
 
             self["zip_size"] = len(data)
             self["block_len"] = self["zip_size"] + v4c.DZ_COMMON_SIZE
@@ -2857,7 +2857,7 @@ class DataZippedBlock(dict):
         if item == "data":
             if self.return_unzipped:
                 data = super(DataZippedBlock, self).__getitem__(item)
-                data = decompress(data)
+                data = decompress(data, 0, self["original_size"])
                 if self["zip_type"] == v4c.FLAG_DZ_TRANPOSED_DEFLATE:
                     cols = self["param"]
                     lines = self["original_size"] // cols
