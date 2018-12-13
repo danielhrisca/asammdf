@@ -4803,7 +4803,7 @@ class MDF4(object):
                                 if dtype_.byteorder == ">":
                                     vals = frombuffer(
                                         vals.tostring(),
-                                        dtype=dtype("<u{}".format(size)),
+                                        dtype=dtype(">u{}".format(size)),
                                     )
                                     vals = vals >> bit_offset
                                 else:
