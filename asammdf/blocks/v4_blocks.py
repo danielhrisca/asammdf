@@ -600,7 +600,7 @@ class Channel(dict):
             self["bit_offset"] = kwargs["bit_offset"]
             self["byte_offset"] = kwargs["byte_offset"]
             self["bit_count"] = kwargs["bit_count"]
-            self["flags"] = kwargs.get("flags", 28)
+            self["flags"] = kwargs.get("flags", 0)
             self["pos_invalidation_bit"] = kwargs.get("pos_invalidation_bit", 0)
             self["precision"] = kwargs.get("precision", 3)
             self["reserved1"] = 0
@@ -608,7 +608,7 @@ class Channel(dict):
             self["min_raw_value"] = kwargs.get("min_raw_value", 0)
             self["max_raw_value"] = kwargs.get("max_raw_value", 0)
             self["lower_limit"] = kwargs.get("lower_limit", 0)
-            self["upper_limit"] = kwargs.get("upper_limit", 100)
+            self["upper_limit"] = kwargs.get("upper_limit", 0)
             self["lower_ext_limit"] = kwargs.get("lower_ext_limit", 0)
             self["upper_ext_limit"] = kwargs.get("upper_ext_limit", 0)
 

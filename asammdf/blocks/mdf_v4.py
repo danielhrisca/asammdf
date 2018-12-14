@@ -70,7 +70,6 @@ from .utils import (
     fix_dtype_fields,
     fmt_to_datatype_v4,
     get_fmt_v4,
-    get_min_max,
     get_unique_name,
     get_text_v4,
     debug_channel,
@@ -1921,11 +1920,6 @@ class MDF4(object):
             "byte_offset": offset,
             "bit_offset": 0,
             "data_type": v4c.DATA_TYPE_BYTEARRAY,
-            "min_raw_value": 0,
-            "max_raw_value": 0,
-            "lower_limit": 0,
-            "upper_limit": 0,
-            "flags": 0,
             "precision": 255,
         }
         if attachment_addr:
@@ -2018,23 +2012,14 @@ class MDF4(object):
                 types.append((field_name, samples.dtype, samples.shape[1:]))
 
                 # add channel block
-                min_val, max_val = get_min_max(samples)
                 kargs = {
                     "channel_type": v4c.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
                     "bit_offset": 0,
                     "data_type": s_type,
-                    "min_raw_value": min_val if min_val <= max_val else 0,
-                    "max_raw_value": max_val if min_val <= max_val else 0,
-                    "lower_limit": min_val if min_val <= max_val else 0,
-                    "upper_limit": max_val if min_val <= max_val else 0,
-                    "precision": 255,
                 }
-                if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
-                    kargs["flags"] = v4c.FLAG_CN_PRECISION
-                else:
-                    kargs["flags"] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
+
                 if attachment_addr:
                     kargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
 
@@ -2718,11 +2703,6 @@ class MDF4(object):
                 "byte_offset": 0,
                 "bit_offset": 0,
                 "bit_count": t_size,
-                "min_raw_value": t[0] if cycles_nr else 0,
-                "max_raw_value": t[-1] if cycles_nr else 0,
-                "lower_limit": t[0] if cycles_nr else 0,
-                "upper_limit": t[-1] if cycles_nr else 0,
-                "flags": v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
             }
 
             ch = Channel(**kargs)
@@ -2783,7 +2763,6 @@ class MDF4(object):
                 )
 
                 byte_size = max(s_size // 8, 1)
-                min_val, max_val = get_min_max(signal.samples)
 
                 if signal.samples.dtype.kind == "u" and signal.bit_count <= 4:
                     s_size = signal.bit_count
@@ -2806,17 +2785,8 @@ class MDF4(object):
                     "byte_offset": offset,
                     "bit_offset": 0,
                     "data_type": s_type,
-                    "min_raw_value": min_val if min_val <= max_val else 0,
-                    "max_raw_value": max_val if min_val <= max_val else 0,
-                    "lower_limit": min_val if min_val <= max_val else 0,
-                    "upper_limit": max_val if min_val <= max_val else 0,
                     "data_block_addr": data_block_addr,
                 }
-
-                if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
-                    kargs["flags"] = 0
-                else:
-                    kargs["flags"] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
@@ -2915,11 +2885,6 @@ class MDF4(object):
                     "byte_offset": offset,
                     "bit_offset": 0,
                     "data_type": v4c.DATA_TYPE_STRING_UTF_8,
-                    "min_raw_value": 0,
-                    "max_raw_value": 0,
-                    "lower_limit": 0,
-                    "upper_limit": 0,
-                    "flags": 0,
                     "data_block_addr": data_addr,
                 }
 
@@ -3025,11 +2990,6 @@ class MDF4(object):
                     "byte_offset": offset,
                     "bit_offset": 0,
                     "data_type": s_type,
-                    "min_raw_value": 0,
-                    "max_raw_value": 0,
-                    "lower_limit": 0,
-                    "upper_limit": 0,
-                    "flags": 0,
                 }
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
@@ -3170,11 +3130,6 @@ class MDF4(object):
                     "byte_offset": offset,
                     "bit_offset": 0,
                     "data_type": s_type,
-                    "min_raw_value": 0,
-                    "max_raw_value": 0,
-                    "lower_limit": 0,
-                    "upper_limit": 0,
-                    "flags": 0,
                 }
 
                 if invalidation_bytes_nr:
@@ -3244,7 +3199,6 @@ class MDF4(object):
                     gp_dep.append([dep])
 
                     # add components channel
-                    min_val, max_val = get_min_max(samples)
                     s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
                     byte_size = max(s_size // 8, 1)
                     kargs = {
@@ -3253,11 +3207,6 @@ class MDF4(object):
                         "byte_offset": offset,
                         "bit_offset": 0,
                         "data_type": s_type,
-                        "min_raw_value": min_val if min_val <= max_val else 0,
-                        "max_raw_value": max_val if min_val <= max_val else 0,
-                        "lower_limit": min_val if min_val <= max_val else 0,
-                        "upper_limit": max_val if min_val <= max_val else 0,
-                        "flags": v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
                     }
 
                     if invalidation_bytes_nr:
@@ -3520,7 +3469,6 @@ class MDF4(object):
                 s_type, s_size = fmt_to_datatype_v4(sig.dtype, sig.shape)
 
                 byte_size = max(s_size // 8, 1)
-                min_val, max_val = get_min_max(sig)
 
                 channel_type = v4c.CHANNEL_TYPE_VALUE
                 data_block_addr = 0
@@ -3533,17 +3481,8 @@ class MDF4(object):
                     "byte_offset": offset,
                     "bit_offset": 0,
                     "data_type": s_type,
-                    "min_raw_value": min_val if min_val <= max_val else 0,
-                    "max_raw_value": max_val if min_val <= max_val else 0,
-                    "lower_limit": min_val if min_val <= max_val else 0,
-                    "upper_limit": max_val if min_val <= max_val else 0,
                     "data_block_addr": data_block_addr,
                 }
-
-                if min_val > max_val or s_type == v4c.DATA_TYPE_BYTEARRAY:
-                    kargs["flags"] = 0
-                else:
-                    kargs["flags"] = v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK
 
                 ch = Channel(**kargs)
                 ch.name = name
@@ -3787,35 +3726,6 @@ class MDF4(object):
                     types.append(("", signal.dtype, signal.shape[1:]))
                 else:
                     types.append(("", signal.dtype))
-                min_val, max_val = get_min_max(signal)
-                if self.memory == "minimum":
-                    address = gp["channels"][i]
-                    channel = Channel(
-                        address=address, stream=stream, load_metadata=False
-                    )
-
-                    update = False
-                    if min_val < channel["min_raw_value"]:
-                        channel["min_raw_value"] = min_val
-                        channel["lower_limit"] = min_val
-                        update = True
-                    if max_val > channel["max_raw_value"]:
-                        channel["max_raw_value"] = max_val
-                        channel["upper_limit"] = max_val
-                        update = True
-
-                    if update:
-                        stream.seek(address)
-                        stream.write(bytes(channel))
-
-                else:
-                    channel = gp["channels"][i]
-                    if min_val < channel["min_raw_value"]:
-                        channel["min_raw_value"] = min_val
-                        channel["lower_limit"] = min_val
-                    if max_val > channel["max_raw_value"]:
-                        channel["max_raw_value"] = max_val
-                        channel["upper_limit"] = max_val
 
                 if invalidation_bytes_nr:
                     if invalidation_bits is not None:

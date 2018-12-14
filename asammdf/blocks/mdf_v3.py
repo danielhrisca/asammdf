@@ -52,7 +52,6 @@ from .utils import (
     fix_dtype_fields,
     fmt_to_datatype_v3,
     get_fmt_v3,
-    get_min_max,
     get_unique_name,
     validate_memory_argument,
     validate_version_argument,
@@ -1294,8 +1293,6 @@ class MDF3(object):
             if not israw and not unit:
                 conversion = None
 
-            min_val, max_val = get_min_max(signal.samples)
-
             if sig_type == v23c.SIGNAL_TYPE_SCALAR:
 
                 # source for channel
@@ -1343,8 +1340,6 @@ class MDF3(object):
                 kargs = {
                     "channel_type": v23c.CHANNEL_TYPE_VALUE,
                     "data_type": s_type,
-                    "min_raw_value": min_val if min_val <= max_val else 0,
-                    "max_raw_value": max_val if min_val <= max_val else 0,
                     "start_offset": start_bit_offset,
                     "bit_count": s_size_,
                     "aditional_byte_offset": additional_byte_offset,
@@ -1483,7 +1478,6 @@ class MDF3(object):
                     samples = signal.samples[name]
 
                     # conversions for channel
-                    min_val, max_val = get_min_max(samples)
 
                     kargs = {
                         "conversion_type": v23c.CONVERSION_TYPE_NONE,
@@ -1526,8 +1520,6 @@ class MDF3(object):
                     kargs = {
                         "channel_type": v23c.CHANNEL_TYPE_VALUE,
                         "data_type": s_type,
-                        "min_raw_value": min_val if min_val <= max_val else 0,
-                        "max_raw_value": max_val if min_val <= max_val else 0,
                         "start_offset": start_bit_offset,
                         "bit_count": s_size,
                         "aditional_byte_offset": additional_byte_offset,
@@ -1674,8 +1666,6 @@ class MDF3(object):
                 else:
                     source = ce_block
 
-                min_val, max_val = get_min_max(samples)
-
                 s_type, s_size = fmt_to_datatype_v3(samples.dtype, (), True)
                 # compute additional byte offset for large records size
                 if offset > v23c.MAX_UINT16:
@@ -1688,8 +1678,6 @@ class MDF3(object):
                 kargs = {
                     "channel_type": v23c.CHANNEL_TYPE_VALUE,
                     "data_type": s_type,
-                    "min_raw_value": min_val if min_val <= max_val else 0,
-                    "max_raw_value": max_val if min_val <= max_val else 0,
                     "start_offset": start_bit_offset,
                     "bit_count": s_size,
                     "aditional_byte_offset": additional_byte_offset,
@@ -1726,7 +1714,6 @@ class MDF3(object):
                         description = "{} - axis {}".format(signal.name, name)
                         description = description.encode("latin-1")
 
-                    min_val, max_val = get_min_max(samples)
                     s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
                     shape = samples.shape[1:]
 
@@ -1761,8 +1748,6 @@ class MDF3(object):
                     kargs = {
                         "channel_type": v23c.CHANNEL_TYPE_VALUE,
                         "data_type": s_type,
-                        "min_raw_value": min_val if min_val <= max_val else 0,
-                        "max_raw_value": max_val if min_val <= max_val else 0,
                         "start_offset": start_bit_offset,
                         "bit_count": s_size,
                         "aditional_byte_offset": additional_byte_offset,
@@ -1850,8 +1835,6 @@ class MDF3(object):
                     else:
                         source = ce_block
 
-                    min_val, max_val = get_min_max(samples)
-
                     s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
                     # compute additional byte offset for large records size
                     if offset > v23c.MAX_UINT16:
@@ -1864,8 +1847,6 @@ class MDF3(object):
                     kargs = {
                         "channel_type": v23c.CHANNEL_TYPE_VALUE,
                         "data_type": s_type,
-                        "min_raw_value": min_val if min_val <= max_val else 0,
-                        "max_raw_value": max_val if min_val <= max_val else 0,
                         "start_offset": start_bit_offset,
                         "bit_count": s_size,
                         "aditional_byte_offset": additional_byte_offset,
@@ -1902,7 +1883,6 @@ class MDF3(object):
                             description = "{} - axis {}".format(signal.name, name)
                             description = description.encode("latin-1")
 
-                        min_val, max_val = get_min_max(samples)
                         s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
                         shape = samples.shape[1:]
 
@@ -1938,8 +1918,6 @@ class MDF3(object):
                         kargs = {
                             "channel_type": v23c.CHANNEL_TYPE_VALUE,
                             "data_type": s_type,
-                            "min_raw_value": min_val if min_val <= max_val else 0,
-                            "max_raw_value": max_val if min_val <= max_val else 0,
                             "start_offset": start_bit_offset,
                             "bit_count": s_size,
                             "aditional_byte_offset": additional_byte_offset,
@@ -2160,8 +2138,6 @@ class MDF3(object):
             sig_type = v23c.SIGNAL_TYPE_SCALAR
 
             gp_sig_types.append(sig_type)
-
-            min_val, max_val = get_min_max(sig)
 
             new_source = ce_block
 
