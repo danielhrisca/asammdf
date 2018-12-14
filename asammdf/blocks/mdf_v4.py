@@ -2759,7 +2759,6 @@ class MDF4(object):
             gp_sig_types.append(0)
 
         for signal in signals:
-            print(signal.name)
             sig = signal
             names = sig.samples.dtype.names
             name = signal.name
@@ -3336,8 +3335,6 @@ class MDF4(object):
         gp["sorted"] = True
         gp["types"] = types
         gp["parents"] = parents
-
-        print(len(gp['channels']))
 
         if signals:
             samples = fromarrays(fields, dtype=types)
