@@ -2864,7 +2864,7 @@ class DataZippedBlock(dict):
 
                     nd = np.fromstring(data[: lines * cols], dtype=np.uint8)
                     nd = nd.reshape((cols, lines))
-                    data = nd.T.tostring() + data[lines * cols :]
+                    data = nd.T.tostring() + data[lines * cols:]
             else:
                 data = super(DataZippedBlock, self).__getitem__(item)
             value = data

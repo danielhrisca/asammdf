@@ -726,7 +726,6 @@ class Signal(object):
         else:
             last_stamp = 0
         if len(other):
-            print(len(self), len(other))
             other_first_sample = other.timestamps[0]
             if last_stamp >= other_first_sample:
                 timestamps = other.timestamps + last_stamp

@@ -46,12 +46,10 @@ from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
 from .blocks.v2_v3_blocks import ChannelConversion as ChannelConversionV3
 from .blocks.v2_v3_blocks import ChannelExtension
-from .blocks.v2_v3_blocks import TextBlock as TextBlockV3
 from .blocks.v4_blocks import SourceInformation
 from .blocks.v4_blocks import ChannelConversion as ChannelConversionV4
 from .blocks.v4_blocks import Channel as ChannelV4
 from .blocks.v4_blocks import HeaderBlock as HeaderV4
-from .blocks.v4_blocks import TextBlock as TextBlockV4
 from .blocks.v4_blocks import ChannelArrayBlock, EventBlock
 from .blocks import v4_constants as v4c
 from .blocks import v2_v3_constants as v23c

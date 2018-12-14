@@ -732,7 +732,7 @@ class MDF4(object):
                         sigs = []
                         can_msg = db.frameById(message_id)
 
-                        for transmitter in can_msg.transmitter:
+                        for transmitter in can_msg.transmitters:
                             if transmitter in board_units:
                                 break
                         else:
@@ -766,8 +766,8 @@ class MDF4(object):
                             ).samples
 
                             conversion = ChannelConversion(
-                                a=signal.factor,
-                                b=signal.offset,
+                                a=float(signal.factor),
+                                b=float(signal.offset),
                                 conversion_type=v4c.CONVERSION_TYPE_LIN,
                             )
                             conversion.unit = signal.unit or ""
@@ -1131,8 +1131,8 @@ class MDF4(object):
 
                                 if (signal.factor, signal.offset) != (1, 0):
                                     conversion = ChannelConversion(
-                                        a=signal.factor,
-                                        b=signal.offset,
+                                        a=float(signal.factor),
+                                        b=float(signal.offset),
                                         conversion_type=v4c.CONVERSION_TYPE_LIN,
                                     )
                                     conversion.unit = signal.unit or ""
@@ -1707,6 +1707,7 @@ class MDF4(object):
             neg_index = -1
 
             sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
+            print([ch.name for _, ch in sortedchannels])
             for original_index, new_ch in sortedchannels:
 
                 start_offset = new_ch["byte_offset"]
@@ -1758,6 +1759,7 @@ class MDF4(object):
                                     size = 1
                             else:
                                 size = size >> 3
+
 
                             next_byte_aligned_position = parent_start_offset + size
                             bit_count = size * 8
@@ -1853,6 +1855,8 @@ class MDF4(object):
                 parents = parents_
 
             dtypes = dtype(types)
+
+        print(dtypes)
 
         return parents, dtypes
 
@@ -4888,6 +4892,7 @@ class MDF4(object):
                                         vals &= mask
                                     else:
                                         vals = vals & mask
+
                     else:
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
@@ -5651,13 +5656,12 @@ class MDF4(object):
         if signed:
             vals = as_non_byte_sized_signed_int(vals["vals"], bit_count)
         else:
-
             vals = vals["vals"]
 
         comment = signal.comment or ""
 
         if (signal.factor, signal.offset) != (1, 0):
-            vals = vals * signal.factor + signal.offset
+            vals = vals * float(signal.factor) + float(signal.offset)
 
         if ignore_invalidation_bits:
 
