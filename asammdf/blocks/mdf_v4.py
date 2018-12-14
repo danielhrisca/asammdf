@@ -1707,7 +1707,6 @@ class MDF4(object):
             neg_index = -1
 
             sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
-            print([ch.name for _, ch in sortedchannels])
             for original_index, new_ch in sortedchannels:
 
                 start_offset = new_ch["byte_offset"]
@@ -1855,8 +1854,6 @@ class MDF4(object):
                 parents = parents_
 
             dtypes = dtype(types)
-
-        print(dtypes)
 
         return parents, dtypes
 
