@@ -2932,15 +2932,19 @@ class MDF3(object):
                     if vals_dtype not in "ui" and (bit_offset or not bits == size * 8):
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                     else:
-                        if bit_offset:
-                            dtype_ = vals.dtype
+                        dtype_ = vals.dtype
+                        if dtype_.byteorder == '>':
+                            shift = (size << 3) - bit_offset - bits
+                        else:
+                            shift = bit_offset
+                        if shift:
                             if dtype_.kind == "i":
-                                vals = vals.astype(dtype("<u{}".format(size)))
-                                vals >>= bit_offset
+                                vals = vals.astype(dtype("{}u{}".format(dtype_.byteorder, size)))
+                                vals >>= shift
                             else:
-                                vals = vals >> bit_offset
+                                vals = vals >> shift
 
-                        if not bits == size * 8:
+                        if bits != size << 3:
                             if data_type in v23c.SIGNED_INT:
                                 vals = as_non_byte_sized_signed_int(vals, bits)
                             else:

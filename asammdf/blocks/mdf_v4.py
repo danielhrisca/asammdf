@@ -4857,7 +4857,7 @@ class MDF4(object):
                             pass
                         elif (
                             vals_dtype not in {"u", "i"}
-                            and (bit_offset or not bits == size * 8)
+                            and (bit_offset or bits != size * 8)
                             or (
                                 len(vals.shape) > 1
                                 and data_type != v4c.DATA_TYPE_BYTEARRAY
@@ -4867,23 +4867,19 @@ class MDF4(object):
                                 data_bytes, grp, ch_nr
                             )
                         else:
-                            if bit_offset:
-                                dtype_ = vals.dtype
-                                if dtype_.byteorder == ">":
-                                    vals = frombuffer(
-                                        vals.tostring(),
-                                        dtype=dtype("<u{}".format(size)),
-                                    )
-                                    vals = vals >> bit_offset
+                            dtype_ = vals.dtype
+                            if dtype_.byteorder == '>':
+                                shift = (size << 3) - bit_offset - bits
+                            else:
+                                shift = bit_offset
+                            if shift:
+                                if dtype_.kind == "i":
+                                    vals = vals.astype(dtype("{}u{}".format(dtype_.byteorder, size)))
+                                    vals >>= shift
                                 else:
+                                    vals = vals >> shift
 
-                                    if dtype_.kind == "i":
-                                        vals = vals.astype(dtype("<u{}".format(size)))
-                                        vals >>= bit_offset
-                                    else:
-                                        vals = vals >> bit_offset
-
-                            if not bits == size * 8:
+                            if bits != size << 3:
                                 if data_type in v4c.SIGNED_INT:
                                     vals = as_non_byte_sized_signed_int(vals, bits)
                                 else:
