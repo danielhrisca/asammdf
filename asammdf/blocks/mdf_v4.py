@@ -2759,6 +2759,7 @@ class MDF4(object):
             gp_sig_types.append(0)
 
         for signal in signals:
+            print(signal.name)
             sig = signal
             names = sig.samples.dtype.names
             name = signal.name
@@ -3335,6 +3336,8 @@ class MDF4(object):
         gp["sorted"] = True
         gp["types"] = types
         gp["parents"] = parents
+
+        print(len(gp['channels']))
 
         if signals:
             samples = fromarrays(fields, dtype=types)
@@ -4869,25 +4872,25 @@ class MDF4(object):
                         else:
                             dtype_ = vals.dtype
                             if dtype_.byteorder == '>':
-                                shift = (size << 3) - bit_offset - bits
+                                if bit_offset or bits != size << 3:
+                                    vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                             else:
-                                shift = bit_offset
-                            if shift:
-                                if dtype_.kind == "i":
-                                    vals = vals.astype(dtype("{}u{}".format(dtype_.byteorder, size)))
-                                    vals >>= shift
-                                else:
-                                    vals = vals >> shift
-
-                            if bits != size << 3:
-                                if data_type in v4c.SIGNED_INT:
-                                    vals = as_non_byte_sized_signed_int(vals, bits)
-                                else:
-                                    mask = (1 << bits) - 1
-                                    if vals.flags.writeable:
-                                        vals &= mask
+                                if bit_offset:
+                                    if dtype_.kind == "i":
+                                        vals = vals.astype(dtype("{}u{}".format(dtype_.byteorder, size)))
+                                        vals >>= bit_offset
                                     else:
-                                        vals = vals & mask
+                                        vals = vals >> bit_offset
+
+                                if bits != size << 3:
+                                    if data_type in v4c.SIGNED_INT:
+                                        vals = as_non_byte_sized_signed_int(vals, bits)
+                                    else:
+                                        mask = (1 << bits) - 1
+                                        if vals.flags.writeable:
+                                            vals &= mask
+                                        else:
+                                            vals = vals & mask
 
                     else:
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
@@ -5066,7 +5069,7 @@ class MDF4(object):
                             ("year", "<u1"),
                         ]
                     )
-                    dates = fromstring(vals, types)
+                    dates = frombuffer(vals, types)
 
                     arrays = []
                     arrays.append(dates["ms"])
