@@ -1911,6 +1911,7 @@ class MDF(object):
 
                 idx = 0
                 last_timestamp = last_timestamps[i]
+                first_timestamp = None
 
                 if read_size:
                     mdf.configure(read_fragment_size=int(read_size))
@@ -1965,6 +1966,7 @@ class MDF(object):
 
                         if len(signals[0]):
                             last_timestamp = signals[0].timestamps[-1]
+                            first_timestamp = signals[0].timestamps[0]
 
                         if signals:
                             merged.append(signals, common_timebase=True)
@@ -2004,6 +2006,18 @@ class MDF(object):
                     del group["record"]
 
                 last_timestamps[i] = last_timestamp
+                if first_timestamp is not None:
+                    merged.groups[-1]['channel_group'].comment += (
+                        "{}s to {}s concatenated from channel group {} of \"{}\"\n".format(
+                            first_timestamp, last_timestamp, i, os.path.basename(mdf.name)
+                        )
+                    )
+                else:
+                    merged.groups[-1]['channel_group'].comment += (
+                        "there were no samples in channel group {} of \"{}\"\n".format(
+                            first_timestamp, last_timestamp, i, os.path.basename(mdf.name)
+                        )
+                    )
 
             if callback:
                 callback(i + 1, groups_nr)
@@ -2194,6 +2208,11 @@ class MDF(object):
 
                     del group["record"]
                 current_group += 1
+                stacked.groups[-1]['channel_group'].comment = (
+                    "stacked from channel group {} of \"{}\"".format(
+                        i, os.path.basename(mdf.name)
+                    )
+                )
 
             if callback:
                 callback(idx, files_nr)
