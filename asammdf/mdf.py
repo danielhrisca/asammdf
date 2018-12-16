@@ -2003,7 +2003,7 @@ class MDF(object):
                                 merged.extend(i, signals)
 
                             if idx == 0:
-                                first_timestamp = signals[0].timestamps[0]
+                                first_timestamp = master[0]
                         idx += 1
 
                     del group["record"]
