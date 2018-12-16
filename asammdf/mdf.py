@@ -2001,6 +2001,9 @@ class MDF(object):
 
                             if signals:
                                 merged.extend(i, signals)
+
+                            if idx == 0:
+                                first_timestamp = signals[0].timestamps[0]
                         idx += 1
 
                     del group["record"]
@@ -2008,14 +2011,14 @@ class MDF(object):
                 last_timestamps[i] = last_timestamp
                 if first_timestamp is not None:
                     merged.groups[-1]['channel_group'].comment += (
-                        "{}s to {}s concatenated from channel group {} of \"{}\"\n".format(
+                        "{:.6f}s to {:.6f}s concatenated from channel group {} of \"{}\"\n".format(
                             first_timestamp, last_timestamp, i, os.path.basename(mdf.name)
                         )
                     )
                 else:
                     merged.groups[-1]['channel_group'].comment += (
                         "there were no samples in channel group {} of \"{}\"\n".format(
-                            first_timestamp, last_timestamp, i, os.path.basename(mdf.name)
+                            i, os.path.basename(mdf.name)
                         )
                     )
 

@@ -3296,6 +3296,7 @@ class MDF3(object):
             inf = {}
             info["group {}".format(i)] = inf
             inf["cycles"] = gp["channel_group"]["cycles_nr"]
+            inf["comment"] = gp["channel_group"].comment
             inf["channels count"] = len(gp["channels"])
             for j, channel in enumerate(gp["channels"]):
                 if self.memory == "minimum":
