@@ -2022,7 +2022,7 @@ class MDF(object):
                 last_timestamps[i] = last_timestamp
                 if first_timestamp is not None:
                     merged.groups[-1]['channel_group'].comment += (
-                        "{:.6f}s to {:.6f}s concatenated from channel group {} of \"{}\" with first time stamp at {:.6f}s\n".format(
+                        "{}s to {}s concatenated from channel group {} of \"{}\" with first time stamp at {}s\n".format(
                             first_timestamp, last_timestamp, i, os.path.basename(mdf.name), original_first_timestamp
                         )
                     )
