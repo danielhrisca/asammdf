@@ -3722,8 +3722,9 @@ class MDF4(object):
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
                 fields.append(signal)
-                if signal.shape[1:]:
-                    types.append(("", signal.dtype, signal.shape[1:]))
+                shape = signal.shape[1:]
+                if shape:
+                    types.append(("", signal.dtype, shape))
                 else:
                     types.append(("", signal.dtype))
 
@@ -4413,8 +4414,6 @@ class MDF4(object):
                         else:
                             record = grp["record"]
 
-                        record.setflags(write=False)
-
                         vals = record[parent]
                     else:
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
@@ -4646,11 +4645,10 @@ class MDF4(object):
 
         else:
             # get channel values
-            if channel["channel_type"] in {
+            if channel_type in {
                 v4c.CHANNEL_TYPE_VIRTUAL,
                 v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
             }:
-                data_type = channel["data_type"]
                 ch_dtype = dtype(get_fmt_v4(data_type, 64))
 
                 channel_values = []
@@ -4735,8 +4733,6 @@ class MDF4(object):
                     except KeyError:
                         parent, bit_offset = None, None
 
-                    bits = channel["bit_count"]
-
                     if parent is not None:
                         if "record" not in grp:
                             if dtypes.itemsize:
@@ -4749,24 +4745,23 @@ class MDF4(object):
                         else:
                             record = grp["record"]
 
-                        record.setflags(write=False)
-
                         vals = record[parent]
 
+                        dtype_ = vals.dtype
+                        shape_ = vals.shape
                         size = vals.dtype.itemsize
-                        for dim in vals.shape[1:]:
+                        for dim in shape_[1:]:
                             size *= dim
-                        data_type = channel["data_type"]
 
-                        vals_dtype = vals.dtype.kind
+                        kind_ = dtype_.kind
 
-                        if vals_dtype == "b":
+                        if kind_ == "b":
                             pass
                         elif (
-                            vals_dtype not in {"u", "i"}
-                            and (bit_offset or bits != size * 8)
+                            kind_ not in {"u", "i"}
+                            and (bit_offset or bit_count != size * 8)
                             or (
-                                len(vals.shape) > 1
+                                len(shape_) > 1
                                 and data_type != v4c.DATA_TYPE_BYTEARRAY
                             )
                         ):
@@ -4774,23 +4769,22 @@ class MDF4(object):
                                 data_bytes, grp, ch_nr
                             )
                         else:
-                            dtype_ = vals.dtype
                             if dtype_.byteorder == '>':
-                                if bit_offset or bits != size << 3:
+                                if bit_offset or bit_count != size << 3:
                                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                             else:
                                 if bit_offset:
-                                    if dtype_.kind == "i":
+                                    if kind_ == "i":
                                         vals = vals.astype(dtype("{}u{}".format(dtype_.byteorder, size)))
                                         vals >>= bit_offset
                                     else:
                                         vals = vals >> bit_offset
 
-                                if bits != size << 3:
+                                if bit_count != size << 3:
                                     if data_type in v4c.SIGNED_INT:
-                                        vals = as_non_byte_sized_signed_int(vals, bits)
+                                        vals = as_non_byte_sized_signed_int(vals, bit_count)
                                     else:
-                                        mask = (1 << bits) - 1
+                                        mask = (1 << bit_count) - 1
                                         if vals.flags.writeable:
                                             vals &= mask
                                         else:
@@ -4799,15 +4793,14 @@ class MDF4(object):
                     else:
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
-                    if bits == 1 and self._single_bit_uint_as_bool:
+                    if bit_count == 1 and self._single_bit_uint_as_bool:
                         vals = array(vals, dtype=bool)
                     else:
-                        data_type = channel["data_type"]
                         channel_dtype = array(
-                            [], dtype=get_fmt_v4(data_type, bits, channel_type)
-                        )
-                        if vals.dtype != channel_dtype.dtype:
-                            vals = vals.astype(channel_dtype.dtype)
+                            [], dtype=get_fmt_v4(data_type, bit_count, channel_type)
+                        ).dtype
+                        if vals.dtype != channel_dtype:
+                            vals = vals.astype(channel_dtype)
 
                     if not samples_only or raster:
                         timestamps.append(self.get_master(gp_nr, fragment))
@@ -4815,7 +4808,10 @@ class MDF4(object):
                         invalidation_bits.append(
                             self.get_invalidation_bits(gp_nr, channel, fragment)
                         )
-                    channel_values.append(vals.copy())
+                    if vals.flags.writeable:
+                        channel_values.append(vals)
+                    else:
+                        channel_values.append(vals.copy())
                     count += 1
 
                 if count > 1:
@@ -4873,11 +4869,7 @@ class MDF4(object):
             else:
                 conversion_type = conversion["conversion_type"]
 
-            if conversion_type in {
-                v4c.CONVERSION_TYPE_NON,
-                v4c.CONVERSION_TYPE_TRANS,
-                v4c.CONVERSION_TYPE_TTAB,
-            }:
+            if conversion_type in v4c.CONVERSION_GROUP_1:
 
                 if channel_type == v4c.CHANNEL_TYPE_VLSD:
                     if signal_data:
@@ -5025,21 +5017,11 @@ class MDF4(object):
                 if conversion_type == v4c.CONVERSION_TYPE_TTAB:
                     raw = True
 
-            elif conversion_type in {
-                v4c.CONVERSION_TYPE_LIN,
-                v4c.CONVERSION_TYPE_RAT,
-                v4c.CONVERSION_TYPE_ALG,
-                v4c.CONVERSION_TYPE_TABI,
-                v4c.CONVERSION_TYPE_TAB,
-                v4c.CONVERSION_TYPE_RTAB,
-            }:
+            elif conversion_type in v4c.CONVERSION_GROUP_2:
                 if not raw:
                     vals = conversion.convert(vals)
 
-            elif conversion_type in {
-                v4c.CONVERSION_TYPE_TABX,
-                v4c.CONVERSION_TYPE_RTABX,
-            }:
+            else:
                 raw = True
 
         if samples_only:
@@ -5230,7 +5212,6 @@ class MDF4(object):
                             if memory == "full":
                                 group["record"] = record
 
-                        record.setflags(write=False)
                         t = record[parent]
                     else:
                         t = self._get_not_byte_aligned_data(
