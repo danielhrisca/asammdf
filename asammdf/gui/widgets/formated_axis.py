@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import pyqtgraph as pg
+import numpy as np
+
 
 class FormatedAxis(pg.AxisItem):
     def __init__(self, *args, **kwargs):
@@ -35,7 +37,7 @@ class FormatedAxis(pg.AxisItem):
             for val in values:
                 val = float(val)
                 if val.is_integer():
-                    val = bin_(int(val))
+                    val = bin(int(val))
                 else:
                     val = ""
                 strns.append(val)

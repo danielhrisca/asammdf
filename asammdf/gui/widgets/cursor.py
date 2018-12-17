@@ -15,4 +15,3 @@ class Cursor(pg.InfiniteLine):
         except:
             pass
         self.label.show()
-

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 
 import pyqtgraph as pg
 try:
@@ -17,6 +18,9 @@ except ImportError:
     from ..ui import resource_qt4 as resource_rc
 
     QT = 4
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+
 
 class ChannelStats(QWidget):
     def __init__(self, *args, **kwargs):

@@ -24,7 +24,7 @@ try:
         QT = 5
 
     except ImportError:
-        
+
         from PyQt4.QtCore import *
         from PyQt4.QtGui import *
         from PyQt4 import uic
@@ -34,7 +34,6 @@ try:
 
     from .channel_stats import ChannelStats
     from .plot import Plot
-    from ...version import __version__ as libversion
 
     if not hasattr(pg.InfiniteLine, "addMarker"):
         logger = logging.getLogger("asammdf")

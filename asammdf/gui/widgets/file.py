@@ -25,7 +25,6 @@ except ImportError:
     QT = 4
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
-from ...version import __version__ as libversion
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .channel_display import ChannelDisplay
 from .channel_stats import ChannelStats
