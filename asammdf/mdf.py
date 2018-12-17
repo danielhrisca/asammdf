@@ -1915,6 +1915,7 @@ class MDF(object):
                 idx = 0
                 last_timestamp = last_timestamps[i]
                 first_timestamp = None
+                original_first_timestamp = None
 
                 if read_size:
                     mdf.configure(read_fragment_size=int(read_size))
@@ -1970,20 +1971,27 @@ class MDF(object):
                         if len(signals[0]):
                             last_timestamp = signals[0].timestamps[-1]
                             first_timestamp = signals[0].timestamps[0]
+                            original_first_timestamp = first_timestamp
 
                         if signals:
                             merged.append(signals, common_timebase=True)
                         idx += 1
                     else:
                         master = mdf.get_master(i, fragment)
-                        if offset > 0:
-                            master = master + offset
+
                         if len(master):
+                            if original_first_timestamp is None:
+                                original_first_timestamp = master[0]
+                            if offset > 0:
+                                master = master + offset
                             if last_timestamp is None:
                                 last_timestamp = master[-1]
                             else:
                                 if last_timestamp >= master[0]:
-                                    delta = master[1] - master[0]
+                                    if len(master) >= 2:
+                                        delta = master[1] - master[0]
+                                    else:
+                                        delta = 0.001
                                     master -= master[0]
                                     master += last_timestamp + delta
                                 last_timestamp = master[-1]
@@ -2005,7 +2013,7 @@ class MDF(object):
                             if signals:
                                 merged.extend(i, signals)
 
-                            if idx == 0:
+                            if first_timestamp is None:
                                 first_timestamp = master[0]
                         idx += 1
 
@@ -2014,8 +2022,8 @@ class MDF(object):
                 last_timestamps[i] = last_timestamp
                 if first_timestamp is not None:
                     merged.groups[-1]['channel_group'].comment += (
-                        "{:.6f}s to {:.6f}s concatenated from channel group {} of \"{}\" with offset of {:.6f}s\n".format(
-                            first_timestamp, last_timestamp, i, os.path.basename(mdf.name), offset
+                        "{:.6f}s to {:.6f}s concatenated from channel group {} of \"{}\" with first time stamp at {:.6f}s\n".format(
+                            first_timestamp, last_timestamp, i, os.path.basename(mdf.name), original_first_timestamp
                         )
                     )
                 else:
