@@ -645,10 +645,18 @@ class Signal(object):
                     stop = np.searchsorted(self.timestamps, stop, side="right")
 
                     if start == stop:
-                        interpolated = self.interp([ends[1]])
-                        samples = interpolated.samples,
-                        timestamps = np.array(ends[1], dtype=self.timestamps.dtype)
-                        invalidation_bits = interpolated.invalidation_bits,
+                        if include_ends:
+                            interpolated = self.interp(np.unique(ends))
+                            samples = interpolated.samples
+                            timestamps = np.array(np.unique(ends), dtype=self.timestamps.dtype)
+                            invalidation_bits = interpolated.invalidation_bits
+                        else:
+                            samples = np.array([], dtype=self.samples.dtype)
+                            timestamps = np.array([], dtype=self.timestamps.dtype)
+                            if self.invalidation_bits is not None:
+                                invalidation_bits = np.array([], dtype=bool)
+                            else:
+                                invalidation_bits = None
                     else:
                         samples = self.samples[start:stop].copy()
                         timestamps = self.timestamps[start:stop].copy()
@@ -685,9 +693,6 @@ class Signal(object):
                                     interpolated.invalidation_bits,
                                     invalidation_bits,
                                 )
-
-                            # start and stop are found between 2 signal samples
-                            # so return the previous sample
 
                     result = Signal(
                         samples,
