@@ -1821,9 +1821,12 @@ class MDF(object):
 
                         timestamps.append(header.start_time)
 
-            oldest = min(timestamps)
-            offsets = [(timestamp - oldest).total_seconds() for timestamp in
-                       timestamps]
+            oldest = timestamps[0]
+            offsets = [
+                (timestamp - oldest).total_seconds()
+                for timestamp in timestamps
+            ]
+            offsets = [offset if offset > 0 else 0 for offset in offsets]
 
         else:
             file = files[0]
@@ -2011,8 +2014,8 @@ class MDF(object):
                 last_timestamps[i] = last_timestamp
                 if first_timestamp is not None:
                     merged.groups[-1]['channel_group'].comment += (
-                        "{:.6f}s to {:.6f}s concatenated from channel group {} of \"{}\"\n".format(
-                            first_timestamp, last_timestamp, i, os.path.basename(mdf.name)
+                        "{:.6f}s to {:.6f}s concatenated from channel group {} of \"{}\" with offset of {:.6f}s\n".format(
+                            first_timestamp, last_timestamp, i, os.path.basename(mdf.name), offset
                         )
                     )
                 else:
