@@ -281,7 +281,7 @@ def get_text_v4(address, stream):
     size = UINT64_u(stream.read(8))[0] - 16
     text_bytes = stream.read(size)[8:]
     try:
-        text = text_bytes.decode("utf-8").strip(" \r\t\n\0")
+        text = text_bytes.strip(b" \r\t\n\0").decode("utf-8")
     except UnicodeDecodeError as err:
         try:
             from chardet import detect
