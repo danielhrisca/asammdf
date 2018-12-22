@@ -21,6 +21,23 @@ DATA_TYPE_MIME_STREAM = 12
 DATA_TYPE_CANOPEN_DATE = 13
 DATA_TYPE_CANOPEN_TIME = 14
 
+NON_SCALAR_TYPES = {
+    DATA_TYPE_BYTEARRAY,
+    DATA_TYPE_STRING_UTF_8,
+    DATA_TYPE_STRING_LATIN_1,
+    DATA_TYPE_STRING_UTF_16_BE,
+    DATA_TYPE_STRING_UTF_16_LE,
+    DATA_TYPE_CANOPEN_DATE,
+    DATA_TYPE_CANOPEN_TIME,
+}
+
+STRING_TYPES =  {
+    DATA_TYPE_STRING_UTF_8,
+    DATA_TYPE_STRING_LATIN_1,
+    DATA_TYPE_STRING_UTF_16_BE,
+    DATA_TYPE_STRING_UTF_16_LE,
+}
+
 SIGNAL_TYPE_SCALAR = 0
 SIGNAL_TYPE_STRING = 1
 SIGNAL_TYPE_CANOPEN = 2
@@ -217,6 +234,42 @@ DZ_BLOCK_DEFLATE = 1
 DZ_BLOCK_TRANSPOSED = 2
 FMT_CHANNEL = "<4sI2Q{}Q4B4I2BH6d"
 FMT_CHANNEL_PARAMS = "<4B4I2BH6d"
+
+FMT_SIMPLE_CHANNEL = "<4sI10Q4B4I2BH6d"
+KEYS_SIMPLE_CHANNEL = (
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "next_ch_addr",
+    "component_addr",
+    "name_addr",
+    "source_addr",
+    "conversion_addr",
+    "data_block_addr",
+    "unit_addr",
+    "comment_addr",
+    "channel_type",
+    "sync_type",
+    "data_type",
+    "bit_offset",
+    "byte_offset",
+    "bit_count",
+    "flags",
+    "pos_invalidation_bit",
+    "precision",
+    "reserved1",
+    "attachment_nr",
+    "min_raw_value",
+    "max_raw_value",
+    "lower_limit",
+    "upper_limit",
+    "lower_ext_limit",
+    "upper_ext_limit",
+)
+FMT_SIMPLE_CHANNEL_PARAMS = "<8Q4B4I2BH6d"
+SIMPLE_CHANNEL_PARAMS_u = struct.Struct(FMT_SIMPLE_CHANNEL_PARAMS).unpack
+SIMPLE_CHANNEL_PARAMS_uf = struct.Struct(FMT_SIMPLE_CHANNEL_PARAMS).unpack_from
 
 FMT_TEXT_BLOCK = "<4sIQQ{}s"
 KEYS_TEXT_BLOCK = ("id", "reserved0", "block_len", "links_nr", "text")

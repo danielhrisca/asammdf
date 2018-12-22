@@ -378,15 +378,7 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
         numpy compatible data type format string
 
     """
-    if data_type in {
-        v4c.DATA_TYPE_BYTEARRAY,
-        v4c.DATA_TYPE_STRING_UTF_8,
-        v4c.DATA_TYPE_STRING_LATIN_1,
-        v4c.DATA_TYPE_STRING_UTF_16_BE,
-        v4c.DATA_TYPE_STRING_UTF_16_LE,
-        v4c.DATA_TYPE_CANOPEN_DATE,
-        v4c.DATA_TYPE_CANOPEN_TIME,
-    }:
+    if data_type in v4c.NON_SCALAR_TYPES:
         size = size // 8
 
         if data_type == v4c.DATA_TYPE_BYTEARRAY:
@@ -398,12 +390,7 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
                 elif size == 8:
                     fmt = "<u8"
 
-        elif data_type in {
-            v4c.DATA_TYPE_STRING_UTF_8,
-            v4c.DATA_TYPE_STRING_LATIN_1,
-            v4c.DATA_TYPE_STRING_UTF_16_BE,
-            v4c.DATA_TYPE_STRING_UTF_16_LE,
-        }:
+        elif data_type in v4c.STRING_TYPES:
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
                 fmt = "S{}".format(size)
             else:

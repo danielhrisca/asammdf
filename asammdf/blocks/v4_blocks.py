@@ -454,63 +454,96 @@ class Channel(dict):
                 self["block_len"],
                 self["links_nr"],
             ) = COMMON_u(stream.read(COMMON_SIZE))
+            
+            block_len = self["block_len"]
+            block = stream.read(block_len - COMMON_SIZE)
+            
+            if block_len == v4c.CN_BLOCK_SIZE:
 
-            block = stream.read(self["block_len"] - COMMON_SIZE)
+                (   
+                    self["next_ch_addr"],
+                    self["component_addr"],
+                    self["name_addr"],
+                    self["source_addr"],
+                    self["conversion_addr"],
+                    self["data_block_addr"],
+                    self["unit_addr"],
+                    self["comment_addr"],
+                    self["channel_type"],
+                    self["sync_type"],
+                    self["data_type"],
+                    self["bit_offset"],
+                    self["byte_offset"],
+                    self["bit_count"],
+                    self["flags"],
+                    self["pos_invalidation_bit"],
+                    self["precision"],
+                    self["reserved1"],
+                    self["attachment_nr"],
+                    self["min_raw_value"],
+                    self["max_raw_value"],
+                    self["lower_limit"],
+                    self["upper_limit"],
+                    self["lower_ext_limit"],
+                    self["upper_ext_limit"],
+                ) = v4c.SIMPLE_CHANNEL_PARAMS_u(block)
+                
+            else:
 
-            links_nr = self["links_nr"]
-
-            links = unpack_from("<{}Q".format(links_nr), block)
-            params = unpack_from(v4c.FMT_CHANNEL_PARAMS, block, links_nr * 8)
-
-            (
-                self["next_ch_addr"],
-                self["component_addr"],
-                self["name_addr"],
-                self["source_addr"],
-                self["conversion_addr"],
-                self["data_block_addr"],
-                self["unit_addr"],
-                self["comment_addr"],
-            ) = links[:8]
-
-            at_map = kwargs.get("at_map", {})
-            for i in range(params[10]):
-                self["attachment_{}_addr".format(i)] = links[8 + i]
-                self.attachments.append(at_map.get(links[8 + i], 0))
-
-            if params[6] & v4c.FLAG_CN_DEFAULT_X:
+                links_nr = self["links_nr"]
+    
+                links = unpack_from("<{}Q".format(links_nr), block)
+                params = unpack_from(v4c.FMT_CHANNEL_PARAMS, block, links_nr * 8)
+    
                 (
-                    self["default_X_dg_addr"],
-                    self["default_X_cg_addr"],
-                    self["default_X_ch_addr"],
-                ) = links[-3:]
-
-                # default X not supported yet
+                    self["next_ch_addr"],
+                    self["component_addr"],
+                    self["name_addr"],
+                    self["source_addr"],
+                    self["conversion_addr"],
+                    self["data_block_addr"],
+                    self["unit_addr"],
+                    self["comment_addr"],
+                ) = links[:8]
+    
+                at_map = kwargs.get("at_map", {})
+                for i in range(params[10]):
+                    self["attachment_{}_addr".format(i)] = links[8 + i]
+                    self.attachments.append(at_map.get(links[8 + i], 0))
+    
+                if params[6] & v4c.FLAG_CN_DEFAULT_X:
+                    (
+                        self["default_X_dg_addr"],
+                        self["default_X_cg_addr"],
+                        self["default_X_ch_addr"],
+                    ) = links[-3:]
+    
+                    # default X not supported yet
+                    (
+                        self["default_X_dg_addr"],
+                        self["default_X_cg_addr"],
+                        self["default_X_ch_addr"],
+                    ) = (0, 0, 0)
+    
                 (
-                    self["default_X_dg_addr"],
-                    self["default_X_cg_addr"],
-                    self["default_X_ch_addr"],
-                ) = (0, 0, 0)
-
-            (
-                self["channel_type"],
-                self["sync_type"],
-                self["data_type"],
-                self["bit_offset"],
-                self["byte_offset"],
-                self["bit_count"],
-                self["flags"],
-                self["pos_invalidation_bit"],
-                self["precision"],
-                self["reserved1"],
-                self["attachment_nr"],
-                self["min_raw_value"],
-                self["max_raw_value"],
-                self["lower_limit"],
-                self["upper_limit"],
-                self["lower_ext_limit"],
-                self["upper_ext_limit"],
-            ) = params
+                    self["channel_type"],
+                    self["sync_type"],
+                    self["data_type"],
+                    self["bit_offset"],
+                    self["byte_offset"],
+                    self["bit_count"],
+                    self["flags"],
+                    self["pos_invalidation_bit"],
+                    self["precision"],
+                    self["reserved1"],
+                    self["attachment_nr"],
+                    self["min_raw_value"],
+                    self["max_raw_value"],
+                    self["lower_limit"],
+                    self["upper_limit"],
+                    self["lower_ext_limit"],
+                    self["upper_ext_limit"],
+                ) = params
 
             if self["id"] != b"##CN":
                 message = 'Expected "##CN" block @{} but found "{}"'
@@ -817,44 +850,49 @@ class Channel(dict):
     def __bytes__(self):
 
         fmt = v4c.FMT_CHANNEL.format(self["links_nr"])
+        
+        if self["block_len"] == v4c.CN_BLOCK_SIZE:
+            keys = v4c.KEYS_SIMPLE_CHANNEL
+            fmt = v4c.FMT_SIMPLE_CHANNEL
+        else:
 
-        keys = [
-            "id",
-            "reserved0",
-            "block_len",
-            "links_nr",
-            "next_ch_addr",
-            "component_addr",
-            "name_addr",
-            "source_addr",
-            "conversion_addr",
-            "data_block_addr",
-            "unit_addr",
-            "comment_addr",
-        ]
-        for i in range(self["attachment_nr"]):
-            keys.append("attachment_{}_addr".format(i))
-        if self["flags"] & v4c.FLAG_CN_DEFAULT_X:
-            keys += ["default_X_dg_addr", "default_X_cg_addr", "default_X_ch_addr"]
-        keys += [
-            "channel_type",
-            "sync_type",
-            "data_type",
-            "bit_offset",
-            "byte_offset",
-            "bit_count",
-            "flags",
-            "pos_invalidation_bit",
-            "precision",
-            "reserved1",
-            "attachment_nr",
-            "min_raw_value",
-            "max_raw_value",
-            "lower_limit",
-            "upper_limit",
-            "lower_ext_limit",
-            "upper_ext_limit",
-        ]
+            keys = [
+                "id",
+                "reserved0",
+                "block_len",
+                "links_nr",
+                "next_ch_addr",
+                "component_addr",
+                "name_addr",
+                "source_addr",
+                "conversion_addr",
+                "data_block_addr",
+                "unit_addr",
+                "comment_addr",
+            ]
+            for i in range(self["attachment_nr"]):
+                keys.append("attachment_{}_addr".format(i))
+            if self["flags"] & v4c.FLAG_CN_DEFAULT_X:
+                keys += ["default_X_dg_addr", "default_X_cg_addr", "default_X_ch_addr"]
+            keys += [
+                "channel_type",
+                "sync_type",
+                "data_type",
+                "bit_offset",
+                "byte_offset",
+                "bit_count",
+                "flags",
+                "pos_invalidation_bit",
+                "precision",
+                "reserved1",
+                "attachment_nr",
+                "min_raw_value",
+                "max_raw_value",
+                "lower_limit",
+                "upper_limit",
+                "lower_ext_limit",
+                "upper_ext_limit",
+            ]
         result = pack(fmt, *[self[key] for key in keys])
         return result
 
