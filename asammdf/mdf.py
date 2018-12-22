@@ -560,6 +560,7 @@ class MDF(object):
                             data=fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
+                            copy_master=False,
                         )
                         if version < "4.00" and sig.samples.dtype.kind == "S":
                             strsig = self.get(
@@ -788,6 +789,7 @@ class MDF(object):
                             data=fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
+                            copy_master=False,
                         )
                         if needs_cutting:
                             sig = sig.cut(fragment_start, fragment_stop, include_ends)
@@ -1656,6 +1658,7 @@ class MDF(object):
                             data=fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
+                            copy_master=False,
                         )
                         if self.version < "4.00" and sig.samples.dtype.kind == "S":
                             strsig = self.get(
@@ -1678,7 +1681,7 @@ class MDF(object):
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
                 else:
-                    sigs = [(self.get_master(group_index, data=fragment), None)]
+                    sigs = [(self.get_master(group_index, data=fragment, copy_master=False), None)]
 
                     for j in indexes:
                         sig = self.get(
@@ -1941,10 +1944,8 @@ class MDF(object):
                                 data=fragment,
                                 raw=True,
                                 ignore_invalidation_bits=True,
+                                copy_master=False,
                             )
-
-                            if offset > 0:
-                                sig.timestamps = sig.timestamps + offset
 
                             if version < "4.00" and sig.samples.dtype.kind == "S" and any(v >= '4.00' for v in versions):
                                 string_dtypes = [np.dtype("S")]
@@ -1969,10 +1970,14 @@ class MDF(object):
                             signals.append(sig)
 
                         if len(signals[0]):
+                            if offset > 0:
+                                timestamps = sig[0].timestamps + offset
+                            for sig in signals:
+                                sig.timestamps = timestamps
                             last_timestamp = signals[0].timestamps[-1]
                             first_timestamp = signals[0].timestamps[0]
                             original_first_timestamp = first_timestamp
-
+                            
                         if signals:
                             merged.append(signals, common_timebase=True)
                         idx += 1
@@ -2168,10 +2173,8 @@ class MDF(object):
                                 data=fragment,
                                 raw=True,
                                 ignore_invalidation_bits=True,
+                                copy_master=False,
                             )
-
-                            if sync:
-                                sig.timestamps = sig.timestamps + offset
 
                             if version < "4.00" and sig.samples.dtype.kind == "S":
                                 string_dtypes = [np.dtype("S")]
@@ -2194,6 +2197,10 @@ class MDF(object):
                             signals.append(sig)
 
                         if signals:
+                            if sync:
+                                timestamps = sig[0].timestamps + offset
+                                for sig in signals:
+                                    sig.timestamps = timestamps
                             stacked.append(signals, common_timebase=True)
                         idx += 1
                     else:

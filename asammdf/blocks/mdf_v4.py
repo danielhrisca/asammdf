@@ -2737,12 +2737,15 @@ class MDF4(object):
 
         for signal in signals:
             sig = signal
-            names = sig.samples.dtype.names
+            samples = sig.samples
+            sig_dtype = samples.dtype
+            sig_shape = samples.shape
+            names = sig_dtype.names
             name = signal.name
 
             if names is None:
                 sig_type = v4c.SIGNAL_TYPE_SCALAR
-                if sig.samples.dtype.kind in {"S", "V"}:
+                if sig_dtype.kind in {"S", "V"}:
                     sig_type = v4c.SIGNAL_TYPE_STRING
             else:
                 if names in (canopen_time_fields, canopen_date_fields):
@@ -2759,12 +2762,12 @@ class MDF4(object):
 
                 # compute additional byte offset for large records size
                 s_type, s_size = fmt_to_datatype_v4(
-                    signal.samples.dtype, signal.samples.shape
+                    sig_dtype, sig_shape
                 )
 
                 byte_size = max(s_size // 8, 1)
 
-                if signal.samples.dtype.kind == "u" and signal.bit_count <= 4:
+                if sig_dtype.kind == "u" and signal.bit_count <= 4:
                     s_size = signal.bit_count
 
                 if signal.stream_sync:
@@ -2835,13 +2838,13 @@ class MDF4(object):
                 field_name = get_unique_name(field_names, name)
                 parents[ch_cntr] = field_name, 0
 
-                fields.append(signal.samples)
+                fields.append(samples)
                 if s_type == v4c.DATA_TYPE_BYTEARRAY:
                     types.append(
-                        (field_name, signal.samples.dtype, signal.samples.shape[1:])
+                        (field_name, sig_dtype, sig_shape[1:])
                     )
                 else:
-                    types.append((field_name, signal.samples.dtype))
+                    types.append((field_name, sig_dtype))
                 field_names.add(field_name)
 
                 ch_cntr += 1
@@ -2850,16 +2853,19 @@ class MDF4(object):
                 gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRING:
-                offsets = arange(len(signal), dtype=uint64) * (
+                samples = signal.samples
+                sig_dtype = samples.dtype
+            
+                offsets = arange(len(samples), dtype=uint64) * (
                     signal.samples.itemsize + 4
                 )
 
                 values = [
-                    ones(len(signal), dtype=uint32) * signal.samples.itemsize,
-                    signal.samples,
+                    ones(len(samples), dtype=uint32) * samples.itemsize,
+                    samples,
                 ]
 
-                types_ = [("", uint32), ("", signal.samples.dtype)]
+                types_ = [("o", uint32), ("s", sig_dtype)]
 
                 data = fromarrays(values, dtype=types_).tostring()
 
@@ -4054,6 +4060,7 @@ class MDF4(object):
         source=None,
         sample_reduction_index=None,
         record_offset=0,
+        copy_master=True,
     ):
         """Gets channel samples.
         Channel can be specified in two ways:
@@ -4100,6 +4107,8 @@ class MDF4(object):
         record_offset : int
             if *data=None* use this to select the record offset from which the
             group data should be loaded
+        copy_master : bool
+            make a copy of the timebase for this channel
 
         Returns
         -------
@@ -4335,7 +4344,7 @@ class MDF4(object):
                         )[0]
                         channel_values[i].append(vals)
                     if not samples_only or raster:
-                        timestamps.append(self.get_master(gp_nr, fragment))
+                        timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
                     if channel_invalidation_present:
                         invalidation_bits.append(
                             self.get_invalidation_bits(gp_nr, channel, fragment)
@@ -4598,7 +4607,7 @@ class MDF4(object):
                     vals = fromarrays(arrays, dtype(types))
 
                     if not samples_only or raster:
-                        timestamps.append(self.get_master(gp_nr, fragment))
+                        timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
                     if channel_invalidation_present:
                         invalidation_bits.append(
                             self.get_invalidation_bits(gp_nr, channel, fragment)
@@ -4668,7 +4677,7 @@ class MDF4(object):
                     vals += offset
 
                     if not samples_only or raster:
-                        timestamps.append(self.get_master(gp_nr, fragment))
+                        timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
                     if channel_invalidation_present:
                         invalidation_bits.append(
                             self.get_invalidation_bits(gp_nr, channel, fragment)
@@ -4803,7 +4812,7 @@ class MDF4(object):
                             vals = vals.astype(channel_dtype)
 
                     if not samples_only or raster:
-                        timestamps.append(self.get_master(gp_nr, fragment))
+                        timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
                     if channel_invalidation_present:
                         invalidation_bits.append(
                             self.get_invalidation_bits(gp_nr, channel, fragment)
@@ -5087,7 +5096,7 @@ class MDF4(object):
 
         return res
 
-    def get_master(self, index, data=None, raster=None, record_offset=0):
+    def get_master(self, index, data=None, raster=None, record_offset=0, copy_master=True):
         """ returns master channel samples for given group
 
         Parameters
@@ -5115,7 +5124,12 @@ class MDF4(object):
                 timestamps = self._master_channel_cache[(index, offset)]
                 if raster and len(timestamps):
                     timestamps = arange(timestamps[0], timestamps[-1], raster)
-                return timestamps.copy()
+                    return timestamps
+                else:
+                    if copy_master:
+                        return timestamps.copy()
+                    else:
+                        return timestamps
             except KeyError:
                 pass
         else:
@@ -5123,7 +5137,12 @@ class MDF4(object):
                 timestamps = self._master_channel_cache[index]
                 if raster and len(timestamps):
                     timestamps = arange(timestamps[0], timestamps[-1], raster)
-                return timestamps.copy()
+                    return timestamps
+                else:
+                    if copy_master:
+                        return timestamps.copy()
+                    else:
+                        return timestamps
             except KeyError:
                 offset = 0
 
@@ -5254,9 +5273,13 @@ class MDF4(object):
                     )
                 else:
                     timestamps = arange(t[0], t[-1], raster)
+            return timestamps
         else:
             timestamps = t
-        return timestamps.copy()
+            if copy_master:
+                return timestamps.copy()
+            else:
+                return timestamps
 
     def get_can_signal(
         self, name, database=None, db=None, ignore_invalidation_bits=False

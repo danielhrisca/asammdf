@@ -2634,6 +2634,7 @@ class MDF3(object):
         ignore_invalidation_bits=False,
         source=None,
         record_offset=0,
+        copy_master=True,
     ):
         """Gets channel samples.
         Channel can be specified in two ways:
@@ -2681,6 +2682,8 @@ class MDF3(object):
         record_offset : int
             if *data=None* use this to select the record offset from which the
             group data should be loaded
+        copy_master : bool
+            make a copy of the timebase for this channel
 
 
         Returns
@@ -2846,7 +2849,7 @@ class MDF3(object):
             vals = fromarrays(arrays, dtype=types)
 
             if not samples_only or raster:
-                timestamps = self.get_master(gp_nr, original_data, record_offset=record_offset,)
+                timestamps = self.get_master(gp_nr, original_data, record_offset=record_offset, copy_master=copy_master)
                 if raster and len(timestamps) > 1:
                     num = float(
                         float32((timestamps[-1] - timestamps[0]) / raster)
@@ -2934,7 +2937,7 @@ class MDF3(object):
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
                 if not samples_only or raster:
-                    timestamps.append(self.get_master(gp_nr, fragment))
+                    timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
 
                 if bits == 1 and self._single_bit_uint_as_bool:
                     vals = array(vals, dtype=bool)
@@ -3062,7 +3065,7 @@ class MDF3(object):
 
         return res
 
-    def get_master(self, index, data=None, raster=None, record_offset=0):
+    def get_master(self, index, data=None, raster=None, record_offset=0, copy_master=True):
         """ returns master channel samples for given group
 
         Parameters
@@ -3092,7 +3095,12 @@ class MDF3(object):
                 timestamps = self._master_channel_cache[(index, offset)]
                 if raster and timestamps:
                     timestamps = arange(timestamps[0], timestamps[-1], raster)
-                return timestamps
+                    return timestamps
+                else:
+                    if copy_master:
+                        return timestamps.copy()
+                    else:
+                        return timestamps
             except KeyError:
                 pass
         else:
@@ -3100,7 +3108,12 @@ class MDF3(object):
                 timestamps = self._master_channel_cache[index]
                 if raster and timestamps:
                     timestamps = arange(timestamps[0], timestamps[-1], raster)
-                return timestamps
+                    return timestamps
+                else:
+                    if copy_master:
+                        return timestamps.copy()
+                    else:
+                        return timestamps
             except KeyError:
                 pass
 
@@ -3217,7 +3230,10 @@ class MDF3(object):
                     timestamps = arange(t[0], t[-1], raster)
         else:
             timestamps = t
-        return timestamps
+        if copy_master:
+            return timestamps.copy()
+        else:
+            return timestamps
 
     def iter_get_triggers(self):
         """ generator that yields triggers
