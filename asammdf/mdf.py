@@ -1972,8 +1972,8 @@ class MDF(object):
                         if len(signals[0]):
                             if offset > 0:
                                 timestamps = sig[0].timestamps + offset
-                            for sig in signals:
-                                sig.timestamps = timestamps
+                                for sig in signals:
+                                    sig.timestamps = timestamps
                             last_timestamp = signals[0].timestamps[-1]
                             first_timestamp = signals[0].timestamps[0]
                             original_first_timestamp = first_timestamp
