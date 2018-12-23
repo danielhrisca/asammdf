@@ -68,7 +68,6 @@ _channel_count = arange(0, 20000, 1000, dtype='<u4')
 
 CONVERT_LOW = (
     10 * 2 ** 20,
-    10 * 2 ** 20,
     20 * 2 ** 20,
     30 * 2 ** 20,
     40 * 2 ** 20,
@@ -76,7 +75,6 @@ CONVERT_LOW = (
 CONVERT_LOW = interp(_channel_count, CHANNEL_COUNT, CONVERT_LOW).astype('<u4')
 
 CONVERT_MINIMUM = (
-    10 * 2 ** 20,
     10 * 2 ** 20,
     30 * 2 ** 20,
     30 * 2 ** 20,
@@ -86,7 +84,6 @@ CONVERT_MINIMUM = interp(_channel_count, CHANNEL_COUNT, CONVERT_MINIMUM).astype(
 
 MERGE_LOW = (
     10 * 2 ** 20,
-    10 * 2 ** 20,
     20 * 2 ** 20,
     35 * 2 ** 20,
     60 * 2 ** 20,
@@ -94,7 +91,6 @@ MERGE_LOW = (
 MERGE_LOW = interp(_channel_count, CHANNEL_COUNT, MERGE_LOW).astype('<u4')
 
 MERGE_MINIMUM = (
-    10 * 2 ** 20,
     10 * 2 ** 20,
     30 * 2 ** 20,
     50 * 2 ** 20,
