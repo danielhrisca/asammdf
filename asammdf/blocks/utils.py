@@ -13,7 +13,7 @@ from random import randint
 from struct import Struct
 from warnings import warn
 
-from numpy import amin, amax, where
+from numpy import amin, amax, where, arange, interp
 
 import sys
 
@@ -63,7 +63,8 @@ __all__ = [
     "SUPPORTED_VERSIONS",
 ]
 
-CHANNEL_COUNT = (0, 200, 2000, 10000, 20000, 400000)
+CHANNEL_COUNT = (1000, 2000, 10000, 20000)
+_channel_count = arange(0, 20000, 1000, dtype='<u4')
 
 CONVERT_LOW = (
     10 * 2 ** 20,
@@ -71,8 +72,8 @@ CONVERT_LOW = (
     20 * 2 ** 20,
     30 * 2 ** 20,
     40 * 2 ** 20,
-    100 * 2 ** 20,
 )
+CONVERT_LOW = interp(_channel_count, CHANNEL_COUNT, CONVERT_LOW).astype('<u4')
 
 CONVERT_MINIMUM = (
     10 * 2 ** 20,
@@ -80,8 +81,8 @@ CONVERT_MINIMUM = (
     30 * 2 ** 20,
     30 * 2 ** 20,
     40 * 2 ** 20,
-    100 * 2 ** 20,
 )
+CONVERT_MINIMUM = interp(_channel_count, CHANNEL_COUNT, CONVERT_MINIMUM).astype('<u4')
 
 MERGE_LOW = (
     10 * 2 ** 20,
@@ -89,8 +90,8 @@ MERGE_LOW = (
     20 * 2 ** 20,
     35 * 2 ** 20,
     60 * 2 ** 20,
-    100 * 2 ** 20,
 )
+MERGE_LOW = interp(_channel_count, CHANNEL_COUNT, MERGE_LOW).astype('<u4')
 
 MERGE_MINIMUM = (
     10 * 2 ** 20,
@@ -98,8 +99,10 @@ MERGE_MINIMUM = (
     30 * 2 ** 20,
     50 * 2 ** 20,
     60 * 2 ** 20,
-    100 * 2 ** 20,
 )
+MERGE_MINIMUM = interp(_channel_count, CHANNEL_COUNT, MERGE_MINIMUM).astype('<u4')
+
+CHANNEL_COUNT = _channel_count
 
 MDF2_VERSIONS = ("2.00", "2.10", "2.14")
 MDF3_VERSIONS = ("3.00", "3.10", "3.20", "3.30")

@@ -44,6 +44,7 @@ from numpy import (
     zeros,
     uint32,
     fliplr,
+    searchsorted,
 )
 from numpy.core.defchararray import encode, decode
 from numpy.core.records import fromarrays, fromstring
@@ -1469,9 +1470,11 @@ class MDF4(object):
                             y_axis = CONVERT_MINIMUM
                         else:
                             y_axis = CONVERT_LOW
-                        split_size = interp(channels_nr, CHANNEL_COUNT, y_axis)
-
-                        split_size = int(split_size)
+                            
+                        idx = searchsorted(CHANNEL_COUNT, channels_nr, side='right') - 1
+                        if idx < 0:
+                            idx = 0
+                        split_size = y_axis[idx]
 
                         split_size = split_size // samples_size
                         split_size *= samples_size

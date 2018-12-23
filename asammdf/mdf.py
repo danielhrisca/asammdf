@@ -1908,7 +1908,10 @@ class MDF(object):
                 else:
                     y_axis = MERGE_LOW
 
-                read_size = np.interp(channels_nr, CHANNEL_COUNT, y_axis)
+                idx = np.searchsorted(CHANNEL_COUNT, channels_nr, side='right') - 1
+                if idx < 0:
+                    idx = 0
+                read_size = y_axis[idx]
 
                 idx = 0
                 last_timestamp = last_timestamps[i]
