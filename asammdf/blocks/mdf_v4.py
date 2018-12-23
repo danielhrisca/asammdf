@@ -2745,7 +2745,7 @@ class MDF4(object):
 
             if names is None:
                 sig_type = v4c.SIGNAL_TYPE_SCALAR
-                if sig_dtype.kind in {"S", "V"}:
+                if sig_dtype.kind in "SV":
                     sig_type = v4c.SIGNAL_TYPE_STRING
             else:
                 if names in (canopen_time_fields, canopen_date_fields):
