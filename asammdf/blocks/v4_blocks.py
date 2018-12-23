@@ -447,16 +447,17 @@ class Channel(dict):
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
             stream.seek(address)
+            
+            block = stream.read(v4c.CN_BLOCK_SIZE)
 
             (
                 self["id"],
                 self["reserved0"],
                 self["block_len"],
                 self["links_nr"],
-            ) = COMMON_u(stream.read(COMMON_SIZE))
+            ) = COMMON_uf(block)
             
             block_len = self["block_len"]
-            block = stream.read(block_len - COMMON_SIZE)
             
             if block_len == v4c.CN_BLOCK_SIZE:
 
@@ -486,10 +487,11 @@ class Channel(dict):
                     self["upper_limit"],
                     self["lower_ext_limit"],
                     self["upper_ext_limit"],
-                ) = v4c.SIMPLE_CHANNEL_PARAMS_u(block)
+                ) = v4c.SIMPLE_CHANNEL_PARAMS_uf(block, v4c.COMMON_SIZE)
                 
             else:
 
+                block = block[24:] + stream.read(block_len - v4c.CN_BLOCK_SIZE)
                 links_nr = self["links_nr"]
     
                 links = unpack_from("<{}Q".format(links_nr), block)

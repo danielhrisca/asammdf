@@ -24,8 +24,6 @@ from .blocks.utils import (
     MERGE_LOW,
     MERGE_MINIMUM,
     MdfException,
-    get_text_v3,
-    get_text_v4,
     get_unique_name,
     matlab_compatible,
     validate_memory_argument,
@@ -34,13 +32,11 @@ from .blocks.utils import (
     MDF3_VERSIONS,
     MDF4_VERSIONS,
     SUPPORTED_VERSIONS,
-    UINT16_u,
-    UINT32_u,
-    UINT64_u,
     randomized_string,
     is_file_like,
-    debug_channel,
     count_channel_groups,
+    UINT16_u,
+    UINT64_u,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -424,8 +420,7 @@ class MDF(object):
             included_channels.remove(master_index)
 
         channels = group["channels"]
-        channel_group = group["channel_group"]
-
+        
         if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
             for dep in group["channel_dependencies"]:
                 if dep is None:
@@ -2578,21 +2573,21 @@ class MDF(object):
 
             if mdf.header["comment_addr"]:
                 stream.seek(mdf.header["comment_addr"] + 8)
-                size = UINT64(stream.read(8))[0] - 24
+                size = UINT64_u(stream.read(8))[0] - 24
                 texts[mdf.header["comment_addr"]] = randomized_string(size)
 
             for fh in mdf.file_history:
                 addr = fh["comment_addr"]
                 if addr and addr not in texts:
                     stream.seek(addr + 8)
-                    size = UINT64(stream.read(8))[0] - 24
+                    size = UINT64_u(stream.read(8))[0] - 24
                     texts[addr] = randomized_string(size)
 
             for ev in mdf.events:
                 for addr in (ev["comment_addr"], ev["name_addr"]):
                     if addr and addr not in texts:
                         stream.seek(addr + 8)
-                        size = UINT64(stream.read(8))[0] - 24
+                        size = UINT64_u(stream.read(8))[0] - 24
                         texts[addr] = randomized_string(size)
 
             for gp in mdf.groups:
@@ -2600,7 +2595,7 @@ class MDF(object):
                 addr = gp["data_group"]["comment_addr"]
                 if addr and addr not in texts:
                     stream.seek(addr + 8)
-                    size = UINT64(stream.read(8))[0] - 24
+                    size = UINT64_u(stream.read(8))[0] - 24
                     texts[addr] = randomized_string(size)
 
                 cg = gp["channel_group"]
@@ -2610,7 +2605,7 @@ class MDF(object):
 
                     if addr and addr not in texts:
                         stream.seek(addr + 8)
-                        size = UINT64(stream.read(8))[0] - 24
+                        size = UINT64_u(stream.read(8))[0] - 24
                         texts[addr] = randomized_string(size)
 
                     source = cg["acq_source_addr"]
@@ -2623,7 +2618,7 @@ class MDF(object):
                         ):
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
-                                size = UINT64(stream.read(8))[0] - 24
+                                size = UINT64_u(stream.read(8))[0] - 24
                                 texts[addr] = randomized_string(size)
 
                 for ch in gp["channels"]:
@@ -2633,7 +2628,7 @@ class MDF(object):
                     for addr in (ch["name_addr"], ch["unit_addr"], ch["comment_addr"]):
                         if addr and addr not in texts:
                             stream.seek(addr + 8)
-                            size = UINT64(stream.read(8))[0] - 24
+                            size = UINT64_u(stream.read(8))[0] - 24
                             texts[addr] = randomized_string(size)
 
                     source = ch["source_addr"]
@@ -2646,7 +2641,7 @@ class MDF(object):
                         ):
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
-                                size = UINT64(stream.read(8))[0] - 24
+                                size = UINT64_u(stream.read(8))[0] - 24
                                 texts[addr] = randomized_string(size)
 
                     conv = ch["conversion_addr"]
@@ -2659,13 +2654,13 @@ class MDF(object):
                         ):
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
-                                size = UINT64(stream.read(8))[0] - 24
+                                size = UINT64_u(stream.read(8))[0] - 24
                                 texts[addr] = randomized_string(size)
                         if conv["conversion_type"] == v4c.CONVERSION_TYPE_ALG:
                             addr = conv["formula_addr"]
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
-                                size = UINT64(stream.read(8))[0] - 24
+                                size = UINT64_u(stream.read(8))[0] - 24
                                 texts[addr] = randomized_string(size)
 
                         for key, block in conv.referenced_blocks.items():
@@ -2698,7 +2693,7 @@ class MDF(object):
 
             if mdf.header["comment_addr"]:
                 stream.seek(mdf.header["comment_addr"] + 2)
-                size = UINT16(stream.read(2))[0] - 4
+                size = UINT16_u(stream.read(2))[0] - 4
                 texts[mdf.header["comment_addr"] + 4] = randomized_string(size)
             texts[36 + 0x40] = randomized_string(32)
             texts[68 + 0x40] = randomized_string(32)
@@ -2712,14 +2707,14 @@ class MDF(object):
 
                 if addr and addr not in texts:
                     stream.seek(addr + 2)
-                    size = UINT16(stream.read(2))[0] - 4
+                    size = UINT16_u(stream.read(2))[0] - 4
                     texts[addr + 4] = randomized_string(size)
 
                 if gp["trigger"]:
                     addr = gp["trigger"]["text_addr"]
                     if addr:
                         stream.seek(addr + 2)
-                        size = UINT16(stream.read(2))[0] - 4
+                        size = UINT16_u(stream.read(2))[0] - 4
                         texts[addr + 4] = randomized_string(size)
 
                 for ch in gp["channels"]:
@@ -2730,7 +2725,7 @@ class MDF(object):
                         addr = ch.get(key, 0)
                         if addr and addr not in texts:
                             stream.seek(addr + 2)
-                            size = UINT16(stream.read(2))[0] - 4
+                            size = UINT16_u(stream.read(2))[0] - 4
                             texts[addr + 4] = randomized_string(size)
 
                     texts[ch.address + 26] = randomized_string(32)
@@ -2761,7 +2756,7 @@ class MDF(object):
                                     addr = block.address
                                     if addr and addr not in texts:
                                         stream.seek(addr + 2)
-                                        size = UINT16(stream.read(2))[0] - 4
+                                        size = UINT16_u(stream.read(2))[0] - 4
                                         texts[addr + 4] = randomized_string(size)
             mdf.close()
 
