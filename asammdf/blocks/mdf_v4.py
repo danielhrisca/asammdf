@@ -4240,11 +4240,6 @@ class MDF4(object):
 
             dependency_list = grp["channel_dependencies"][ch_nr]
 
-            if data:
-                cycles_nr = len(data[0]) // grp["channel_group"]["samples_byte_nr"]
-            else:
-                cycles_nr = grp["channel_group"]["cycles_nr"]
-
             # get data group record
             try:
                 parents, dtypes = grp["parents"], grp["types"]
@@ -4264,9 +4259,6 @@ class MDF4(object):
                 == v4c.FLAG_INVALIDATION_BIT_VALID
             )
 
-            # get the channel signal data if available
-            signal_data = self._load_signal_data(group=grp, index=ch_nr)
-
             bit_count = channel["bit_count"]
         else:
             # get data group record
@@ -4275,10 +4267,6 @@ class MDF4(object):
             except KeyError:
                 grp["parents"], grp["types"] = self._prepare_record(grp)
                 parents, dtypes = grp["parents"], grp["types"]
-            if data:
-                cycles_nr = len(data[0]) // grp["channel_group"]["samples_byte_nr"]
-            else:
-                cycles_nr = grp["channel_group"]["cycles_nr"]
 
             parent, bit_offset = parents[ch_nr]
 
@@ -4294,9 +4282,6 @@ class MDF4(object):
                 data = (data,)
 
             bit_count = channel["bit_count"]
-
-            # get the channel signal data if available
-            signal_data = b""
 
         data_type = channel["data_type"]
         channel_type = channel["channel_type"]
@@ -4393,8 +4378,6 @@ class MDF4(object):
                     vals = Signal(vals, timestamps, name="_").interp(t).samples
 
                     timestamps = t
-
-                cycles_nr = len(vals)
 
             else:
                 # channel arrays
@@ -4651,8 +4634,6 @@ class MDF4(object):
 
                     timestamps = t
 
-                cycles_nr = len(vals)
-
             conversion = channel.conversion
 
         else:
@@ -4884,6 +4865,7 @@ class MDF4(object):
             if conversion_type in v4c.CONVERSION_GROUP_1:
 
                 if channel_type == v4c.CHANNEL_TYPE_VLSD:
+                    signal_data = self._load_signal_data(group=grp, index=ch_nr)
                     if signal_data:
                         values = []
                         for offset in vals:
