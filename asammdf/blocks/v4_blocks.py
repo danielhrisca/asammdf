@@ -2871,7 +2871,8 @@ class DataZippedBlock(dict):
     def __setitem__(self, item, value):
         if item == "data" and not self._prevent_data_setitem:
             data = value
-            self["original_size"] = len(data)
+            original_size = len(data)
+            self["original_size"] = original_size
 
             if self["zip_type"] == v4c.FLAG_DZ_DEFLATE:
                 data = compress(data)
@@ -2879,16 +2880,28 @@ class DataZippedBlock(dict):
                 if isinstance(data, bytearray):
                     data = bytes(data)
                 cols = self["param"]
-                lines = self["original_size"] // cols
-
-                nd = np.fromstring(data[: lines * cols], dtype=np.uint8)
-                nd = nd.reshape((lines, cols))
-                data = nd.T.tostring() + data[lines * cols:]
-
+                lines = original_size // cols
+                
+                if lines * cols < original_size:
+                    data = (
+                        np.fromstring(data[: lines * cols], dtype=np.uint8)
+                        .reshape((lines, cols))
+                        .T
+                        .tostring()
+                    ) + data[lines * cols:]
+                    
+                else:
+                    data = (
+                        np.fromstring(data, dtype=np.uint8)
+                        .reshape((lines, cols))
+                        .T
+                        .tostring()
+                    )
                 data = compress(data, 1)
 
-            self["zip_size"] = len(data)
-            self["block_len"] = self["zip_size"] + v4c.DZ_COMMON_SIZE
+            zipped_size = len(data)
+            self["zip_size"] = zipped_size
+            self["block_len"] = zipped_size + v4c.DZ_COMMON_SIZE
             super(DataZippedBlock, self).__setitem__(item, data)
         else:
             super(DataZippedBlock, self).__setitem__(item, value)
@@ -2897,14 +2910,26 @@ class DataZippedBlock(dict):
         if item == "data":
             if self.return_unzipped:
                 data = super(DataZippedBlock, self).__getitem__(item)
-                data = decompress(data, 0, self["original_size"])
+                original_size = self["original_size"]
+                data = decompress(data, 0, original_size)
                 if self["zip_type"] == v4c.FLAG_DZ_TRANPOSED_DEFLATE:
                     cols = self["param"]
-                    lines = self["original_size"] // cols
+                    lines = original_size // cols
 
-                    nd = np.fromstring(data[: lines * cols], dtype=np.uint8)
-                    nd = nd.reshape((cols, lines))
-                    data = nd.T.tostring() + data[lines * cols:]
+                    if lines * cols < original_size:
+                        data = (
+                            np.fromstring(data[: lines * cols], dtype=np.uint8)
+                            .reshape((cols, lines))
+                            .T
+                            .tostring()
+                        ) + data[lines * cols:]
+                    else:
+                        data = (
+                            np.fromstring(data, dtype=np.uint8)
+                            .reshape((cols, lines))
+                            .T
+                            .tostring()
+                        )
             else:
                 data = super(DataZippedBlock, self).__getitem__(item)
             value = data
@@ -4305,11 +4330,11 @@ class TextBlock(dict):
                 except (AttributeError, UnicodeDecodeError):
                     pass
 
-            text_length = size = len(text)
+            size = len(text)
 
             self["id"] = b"##MD" if kwargs.get("meta", False) else b"##TX"
             self["reserved0"] = 0
-            self["block_len"] = text_length + COMMON_SIZE
+            self["block_len"] = size + COMMON_SIZE
             self["links_nr"] = 0
             self["text"] = text
 
