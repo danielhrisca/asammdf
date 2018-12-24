@@ -1058,7 +1058,11 @@ class MDF(object):
                 data = (data, 0)
 
                 for j in included_channels:
-                    sig = self.get(group=i, index=j, data=data).interp(master)
+                    sig = self.get(
+                        group=i, 
+                        index=j, 
+                        data=data, 
+                    ).interp(master)
 
                     if len(sig.samples.shape) > 1:
                         arr = [sig.samples]
@@ -2820,7 +2824,7 @@ class MDF(object):
         data = self._load_data(group)
         for fragment in data:
 
-            master.append(self.get_master(i, data=fragment))
+            master.append(self.get_master(i, data=fragment, copy_master=False))
 
             idx = 0
             for j, _ in enumerate(group["channels"]):
