@@ -4082,10 +4082,6 @@ class SourceInformation(dict):
             self["flags"] = 0
             self["reserved1"] = b"\x00" * 5
 
-            self.name = kwargs.get("name", "")
-            self.path = kwargs.get("path", "")
-            self.comment = kwargs.get("comment", "")
-
     def metadata(self):
         max_len = max(len(key) for key in self)
         template = "{{: <{}}}: {{}}".format(max_len)
