@@ -2490,7 +2490,12 @@ class MDF(object):
                 else:
                     grp["record"] = None
                 for index in gps[group]:
-                    signal = self.get(group=group, index=index, data=fragment)
+                    signal = self.get(
+                        group=group, 
+                        index=index, 
+                        data=fragment,
+                        copy_master=False,
+                    )
                     if (group, index) not in signal_parts:
                         signal_parts[(group, index)] = [signal]
                     else:
