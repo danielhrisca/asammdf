@@ -37,6 +37,7 @@ from .blocks.utils import (
     count_channel_groups,
     UINT16_u,
     UINT64_u,
+    debug_channel,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -2843,7 +2844,11 @@ class MDF(object):
             used_names.add(name)
             pandas_dict[name] = np.concatenate(sig)
 
-        return DataFrame.from_dict(pandas_dict)
+        try:
+            return DataFrame.from_dict(pandas_dict)
+        except:
+            debug_channel(self, group, None, None)
+            raise
 
 if __name__ == "__main__":
     pass
