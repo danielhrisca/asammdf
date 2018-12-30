@@ -951,8 +951,10 @@ class MDF4(object):
 
                 if self._use_display_names:
                     comment = get_text_v4(
-                        address=channel["comment_addr"], stream=stream
-                    ).replace(' xmlns="http://www.asam.net/mdf/v4"', "")
+                        address=channel["comment_addr"],
+                        stream=stream,
+                        sanitize_xml=True,
+                    )
 
                     if comment.startswith("<CNcomment"):
                         try:
@@ -1470,7 +1472,7 @@ class MDF4(object):
                             y_axis = CONVERT_MINIMUM
                         else:
                             y_axis = CONVERT_LOW
-                            
+
                         idx = searchsorted(CHANNEL_COUNT, channels_nr, side='right') - 1
                         if idx < 0:
                             idx = 0
@@ -2858,7 +2860,7 @@ class MDF4(object):
             elif sig_type == v4c.SIGNAL_TYPE_STRING:
                 samples = signal.samples
                 sig_dtype = samples.dtype
-            
+
                 offsets = arange(len(samples), dtype=uint64) * (
                     signal.samples.itemsize + 4
                 )

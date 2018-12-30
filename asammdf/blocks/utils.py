@@ -7,6 +7,7 @@ from __future__ import division, print_function
 import logging
 import string
 import xml.etree.ElementTree as ET
+import re
 
 from collections import namedtuple
 from random import randint
@@ -32,6 +33,8 @@ UINT32_uf = Struct("<I").unpack_from
 UINT64_uf = Struct("<Q").unpack_from
 FLOAT64_u = Struct("<d").unpack
 FLOAT64_uf = Struct("<d").unpack_from
+
+_xmlns_pattern = re.compile(' xmlns="[^"]*"')
 
 logger = logging.getLogger("asammdf")
 
@@ -256,7 +259,7 @@ def get_text_v3(address, stream):
     return text
 
 
-def get_text_v4(address, stream):
+def get_text_v4(address, stream, sanitize_xml=False):
     """ faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
@@ -295,6 +298,9 @@ def get_text_v4(address, stream):
                 " encoding was used"
             )
             raise err
+
+    if sanitize_xml:
+        text = re.sub(_xmlns_pattern, "", text)
 
     return text
 
