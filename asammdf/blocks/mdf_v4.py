@@ -400,9 +400,7 @@ class MDF4(object):
                         grp["CAN_logging"] = True
                         message_name = channel_group.acq_name
 
-                        comment = channel_group.acq_source.comment.replace(
-                            ' xmlns="http://www.asam.net/mdf/v4"', ""
-                        )
+                        comment = channel_group.acq_source.comment
                         comment_xml = ET.fromstring(comment)
                         common_properties = comment_xml.find(".//common_properties")
                         for e in common_properties:
@@ -421,9 +419,7 @@ class MDF4(object):
                             # for now ignore bus logging flag
                             pass
                         else:
-                            comment = channel_group.comment.replace(
-                                ' xmlns="http://www.asam.net/mdf/v4"', ""
-                            )
+                            comment = channel_group.comment
                             if comment:
 
                                 comment_xml = ET.fromstring(comment)
