@@ -2802,7 +2802,7 @@ class MDF4(object):
             if names is None:
                 sig_type = v4c.SIGNAL_TYPE_SCALAR
                 if sig_dtype.kind in "SV":
-                    sig_type = v4c.SIGNAL_TYPE_STRING
+                    sig_type = v4c.SIGNAL_TYPE_STRING, signal.encoding
             else:
                 if names in (canopen_time_fields, canopen_date_fields):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
@@ -2901,102 +2901,6 @@ class MDF4(object):
                     )
                 else:
                     types.append((field_name, sig_dtype))
-                field_names.add(field_name)
-
-                ch_cntr += 1
-
-                # simple channels don't have channel dependencies
-                gp_dep.append(None)
-
-            elif sig_type == v4c.SIGNAL_TYPE_STRING:
-                samples = signal.samples
-                sig_dtype = samples.dtype
-
-                offsets = arange(len(samples), dtype=uint64) * (
-                    signal.samples.itemsize + 4
-                )
-
-                values = [
-                    ones(len(samples), dtype=uint32) * samples.itemsize,
-                    samples,
-                ]
-
-                types_ = [("o", uint32), ("s", sig_dtype)]
-
-                data = fromarrays(values, dtype=types_).tostring()
-
-                if memory == "full":
-                    gp_sdata.append(data)
-                    data_addr = 0
-                else:
-                    if data:
-                        data_addr = tell()
-                        gp_sdata.append([data_addr])
-                        gp_sdata_size.append([len(data)])
-                        write(data)
-                    else:
-                        data_addr = 0
-                        gp_sdata.append([])
-                        gp_sdata_size.append([])
-
-                # compute additional byte offset for large records size
-                byte_size = 8
-                kargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VLSD,
-                    "bit_count": 64,
-                    "byte_offset": offset,
-                    "bit_offset": 0,
-                    "data_type": v4c.DATA_TYPE_STRING_UTF_8,
-                    "data_block_addr": data_addr,
-                }
-
-                if invalidation_bytes_nr:
-                    if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
-
-                ch = Channel(**kargs)
-                ch.name = name
-                ch.unit = signal.unit
-                ch.comment = signal.comment
-                ch.display_name = signal.display_name
-
-                # conversions for channel
-                conversion = conversion_transfer(signal.conversion, version=4)
-                if signal.raw:
-                    ch.conversion = conversion
-
-                # source for channel
-                if signal.source:
-                    source = signal.source
-                    new_source = SourceInformation(
-                        source_type=signal.source.source_type,
-                        bus_type=signal.source.bus_type,
-                    )
-                    new_source.name = source.name
-                    new_source.path = source.path
-                    new_source.comment = source.comment
-
-                    ch.source = new_source
-
-                if memory != "minimum":
-                    gp_channels.append(ch)
-                else:
-                    ch.to_stream(file, defined_texts, cc_map, si_map)
-                    gp_channels.append(ch.address)
-
-                offset += byte_size
-
-                self.channels_db.add(name, dg_cntr, ch_cntr)
-
-                # update the parents as well
-                field_name = get_unique_name(field_names, name)
-                parents[ch_cntr] = field_name, 0
-
-                fields.append(offsets)
-                types.append((field_name, uint64))
                 field_names.add(field_name)
 
                 ch_cntr += 1
@@ -3120,7 +3024,7 @@ class MDF4(object):
                 fields.extend(new_fields)
                 types.extend(new_types)
 
-            else:
+            elif sig_type == v4c.SINGNAL_TYPE_ARRAY:
                 # here we have channel arrays or mdf v3 channel dependencies
                 samples = signal.samples[names[0]]
                 shape = samples.shape[1:]
@@ -3303,6 +3207,115 @@ class MDF4(object):
                     parents[ch_cntr] = field_name, 0
 
                     ch_cntr += 1
+
+            else:
+                _, encoding = sig_type
+                samples = signal.samples
+                sig_dtype = samples.dtype
+
+                if encoding == 'utf-8':
+                    data_type = v4c.DATA_TYPE_STRING_UTF_8
+                elif encoding == 'latin-1':
+                    data_type = v4c.DATA_TYPE_STRING_LATIN_1
+                elif encoding == 'utf-16-be':
+                    data_type = v4c.DATA_TYPE_STRING_UTF_16_BE
+                elif encoding == 'utf-16-le':
+                    data_type = v4c.DATA_TYPE_STRING_UTF_16_LE
+                else:
+                    raise MdfException('wrong encoding "{}" for string signal'.format(encoding))
+
+                offsets = arange(len(samples), dtype=uint64) * (
+                    signal.samples.itemsize + 4
+                )
+
+                values = [
+                    ones(len(samples), dtype=uint32) * samples.itemsize,
+                    samples,
+                ]
+
+                types_ = [("o", uint32), ("s", sig_dtype)]
+
+                data = fromarrays(values, dtype=types_).tostring()
+
+                if memory == "full":
+                    gp_sdata.append(data)
+                    data_addr = 0
+                else:
+                    if data:
+                        data_addr = tell()
+                        gp_sdata.append([data_addr])
+                        gp_sdata_size.append([len(data)])
+                        write(data)
+                    else:
+                        data_addr = 0
+                        gp_sdata.append([])
+                        gp_sdata_size.append([])
+
+                # compute additional byte offset for large records size
+                byte_size = 8
+                kargs = {
+                    "channel_type": v4c.CHANNEL_TYPE_VLSD,
+                    "bit_count": 64,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": data_type,
+                    "data_block_addr": data_addr,
+                }
+
+                if invalidation_bytes_nr:
+                    if signal.invalidation_bits is not None:
+                        inval_bits.append(signal.invalidation_bits)
+                        kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kargs["pos_invalidation_bit"] = inval_cntr
+                        inval_cntr += 1
+
+                ch = Channel(**kargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
+
+                # conversions for channel
+                conversion = conversion_transfer(signal.conversion, version=4)
+                if signal.raw:
+                    ch.conversion = conversion
+
+                # source for channel
+                if signal.source:
+                    source = signal.source
+                    new_source = SourceInformation(
+                        source_type=signal.source.source_type,
+                        bus_type=signal.source.bus_type,
+                    )
+                    new_source.name = source.name
+                    new_source.path = source.path
+                    new_source.comment = source.comment
+
+                    ch.source = new_source
+
+                if memory != "minimum":
+                    gp_channels.append(ch)
+                else:
+                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    gp_channels.append(ch.address)
+
+                offset += byte_size
+
+                self.channels_db.add(name, dg_cntr, ch_cntr)
+
+                # update the parents as well
+                field_name = get_unique_name(field_names, name)
+                parents[ch_cntr] = field_name, 0
+
+                fields.append(offsets)
+                types.append((field_name, uint64))
+                field_names.add(field_name)
+
+                ch_cntr += 1
+
+                # simple channels don't have channel dependencies
+                gp_dep.append(None)
+
 
         if invalidation_bytes_nr:
             invalidation_bytes_nr = len(inval_bits)
@@ -3794,40 +3807,6 @@ class MDF4(object):
                     if invalidation_bits is not None:
                         inval_bits.append(invalidation_bits)
 
-            elif sig_type == v4c.SIGNAL_TYPE_STRING:
-                if self.memory == "full":
-                    data = gp["signal_data"][i]
-                    cur_offset = len(data)
-                else:
-                    cur_offset = sum(gp["signal_data_size"][i])
-
-                offsets = (
-                    arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
-                    + cur_offset
-                )
-                values = [ones(len(signal), dtype=uint32) * signal.itemsize, signal]
-
-                types_ = [("", uint32), ("", signal.dtype)]
-
-                values = fromarrays(values, dtype=types_).tostring()
-
-                if self.memory == "full":
-                    gp["signal_data"][i] = data + values
-                else:
-                    stream.seek(0, 2)
-                    addr = stream.tell()
-                    if values:
-                        stream.write(values)
-                        gp["signal_data"][i].append(addr)
-                        gp["signal_data_size"][i].append(len(values))
-
-                fields.append(offsets)
-                types.append(("", uint64))
-
-                if invalidation_bytes_nr:
-                    if invalidation_bits is not None:
-                        inval_bits.append(invalidation_bits)
-
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 names = signal.dtype.names
 
@@ -3894,6 +3873,41 @@ class MDF4(object):
                     if invalidation_bytes_nr:
                         if invalidation_bits is not None:
                             inval_bits.append(invalidation_bits)
+
+            else:
+                _, encoding = sig_type
+                if self.memory == "full":
+                    data = gp["signal_data"][i]
+                    cur_offset = len(data)
+                else:
+                    cur_offset = sum(gp["signal_data_size"][i])
+
+                offsets = (
+                    arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
+                    + cur_offset
+                )
+                values = [ones(len(signal), dtype=uint32) * signal.itemsize, signal]
+
+                types_ = [("", uint32), ("", signal.dtype)]
+
+                values = fromarrays(values, dtype=types_).tostring()
+
+                if self.memory == "full":
+                    gp["signal_data"][i] = data + values
+                else:
+                    stream.seek(0, 2)
+                    addr = stream.tell()
+                    if values:
+                        stream.write(values)
+                        gp["signal_data"][i].append(addr)
+                        gp["signal_data_size"][i].append(len(values))
+
+                fields.append(offsets)
+                types.append(("", uint64))
+
+                if invalidation_bytes_nr:
+                    if invalidation_bits is not None:
+                        inval_bits.append(invalidation_bits)
 
         if invalidation_bytes_nr:
             invalidation_bytes_nr = len(inval_bits)
@@ -4351,6 +4365,8 @@ class MDF4(object):
         data_type = channel["data_type"]
         channel_type = channel["channel_type"]
         stream_sync = channel_type == v4c.CHANNEL_TYPE_SYNC
+
+        encoding = None
 
         # check if this is a channel array
         if dependency_list:
@@ -4937,11 +4953,14 @@ class MDF4(object):
                     signal_data = self._load_signal_data(group=grp, index=ch_nr)
                     if signal_data:
                         values = []
+
+                        vals = vals.tolist()
+
                         for offset in vals:
-                            offset = int(offset)
                             (str_size, ) = UINT32_uf(signal_data, offset)
+                            offset += 4
                             values.append(
-                                signal_data[offset + 4 : offset + 4 + str_size]
+                                signal_data[offset: offset + str_size]
                             )
 
                         if data_type == v4c.DATA_TYPE_BYTEARRAY:
@@ -4974,13 +4993,6 @@ class MDF4(object):
                             elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
                                 encoding = "latin-1"
 
-                            if encoding != "latin-1":
-
-                                if encoding == "utf-16-le":
-                                    vals = vals.view(uint16).byteswap().view(vals.dtype)
-                                    vals = encode(decode(vals, "utf-16-be"), "latin-1")
-                                else:
-                                    vals = encode(decode(vals, encoding), "latin-1")
                     else:
                         # no VLSD signal data samples
                         vals = array([], dtype=dtype("S"))
@@ -5005,13 +5017,6 @@ class MDF4(object):
 
                     elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
                         encoding = "latin-1"
-
-                    if encoding != "latin-1":
-                        if encoding == "utf-16-le":
-                            vals = vals.view(uint16).byteswap().view(vals.dtype)
-                            vals = encode(decode(vals, "utf-16-be"), "latin-1")
-                        else:
-                            vals = encode(decode(vals, encoding), "latin-1")
 
                 # CANopen date
                 if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
@@ -5143,6 +5148,7 @@ class MDF4(object):
                     bit_count=bit_count,
                     stream_sync=stream_sync,
                     invalidation_bits=invalidation_bits,
+                    encoding=encoding,
                 )
             except:
                 debug_channel(self, grp, channel, dependency_list)
