@@ -1719,9 +1719,9 @@ class MDF4(object):
                                 offset += size
 
                     if not has_yielded:
-                        yield b"", 0
+                        yield b"", 0, _count
                 else:
-                    yield b"", offset
+                    yield b"", offset, _count
 
     def _prepare_record(self, group):
         """ compute record dtype and parents dict fro this group
@@ -5317,7 +5317,7 @@ class MDF4(object):
         if original_data is None:
             self._master_channel_cache[index] = t
         else:
-            data_bytes, offset = original_data
+            data_bytes, offset, _ = original_data
             self._master_channel_cache[(index, offset, _count)] = t
 
         if raster and t.size:

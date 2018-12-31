@@ -207,12 +207,13 @@ class MDF3(object):
             self.version = version
             self.header = HeaderBlock(version=self.version)
 
-    def _load_data(self, group, record_offset=0):
+    def _load_data(self, group, record_offset=0, record_count=None):
         """ get group's data block bytes"""
         has_yielded = False
         offset = 0
+        _count = record_count
         if self.memory == "full":
-            yield group["data_block"]["data"], offset
+            yield group["data_block"]["data"], offset, _count
             has_yielded = True
         else:
             channel_group = group["channel_group"]
@@ -229,7 +230,7 @@ class MDF3(object):
             if group["sorted"]:
                 samples_size = channel_group["samples_byte_nr"]
                 if not samples_size:
-                    yield b"", 0
+                    yield b"", 0, _count
                     has_yielded = True
                 else:
                     if self._read_fragment_size:
@@ -242,7 +243,7 @@ class MDF3(object):
                             y_axis = CONVERT_MINIMUM
                         else:
                             y_axis = CONVERT_LOW
-                            
+
                         idx = searchsorted(CHANNEL_COUNT, channels_nr, side='right') - 1
                         if idx < 0:
                             idx = 0
@@ -285,11 +286,11 @@ class MDF3(object):
                             stream.seek(current_address)
                             if data:
                                 data.append(stream.read(split_size - cur_size))
-                                yield b"".join(data), offset
+                                yield b"".join(data), offset, _count
                                 has_yielded = True
                                 current_address += split_size - cur_size
                             else:
-                                yield stream.read(split_size), offset
+                                yield stream.read(split_size), offset, _count
                                 has_yielded = True
                                 current_address += split_size
                             offset += split_size
@@ -305,13 +306,13 @@ class MDF3(object):
                             offset += size
 
                     if data:
-                        yield b"".join(data), offset
+                        yield b"".join(data), offset, _count
                         has_yielded = True
                     elif not offset:
-                        yield b"", 0
+                        yield b"", 0, _count
                         has_yielded = True
                     if not has_yielded:
-                        yield b"", 0
+                        yield b"", 0, _count
 
             else:
                 record_id = group["channel_group"]["record_id"]
@@ -360,11 +361,11 @@ class MDF3(object):
                             size -= delta
                             offset = record_offset
 
-                        yield cg_data, offset
+                        yield cg_data, offset, _count
                         has_yielded = True
                         offset += size
         if not has_yielded:
-            yield b"", 0
+            yield b"", 0, _count
 
     def _prepare_record(self, group):
         """ compute record dtype and parents dict for this group
@@ -2637,6 +2638,7 @@ class MDF3(object):
         ignore_invalidation_bits=False,
         source=None,
         record_offset=0,
+        record_count=None,
         copy_master=True,
     ):
         """Gets channel samples.
@@ -2805,7 +2807,7 @@ class MDF3(object):
 
         # get data group record
         if data is None:
-            data = self._load_data(grp, record_offset=record_offset)
+            data = self._load_data(grp, record_offset=record_offset, record_count=record_count)
         else:
             data = (data,)
 
@@ -2835,6 +2837,7 @@ class MDF3(object):
                     raw=raw,
                     data=original_data,
                     record_offset=record_offset,
+                    record_count=record_count,
                 )[0]
                 for ch_nr, dg_nr in dep.referenced_channels
             ]
@@ -2852,7 +2855,13 @@ class MDF3(object):
             vals = fromarrays(arrays, dtype=types)
 
             if not samples_only or raster:
-                timestamps = self.get_master(gp_nr, original_data, record_offset=record_offset, copy_master=copy_master)
+                timestamps = self.get_master(
+                    gp_nr,
+                    original_data,
+                    record_offset=record_offset,
+                    record_count=record_count,
+                    copy_master=copy_master,
+                )
                 if raster and len(timestamps) > 1:
                     num = float(
                         float32((timestamps[-1] - timestamps[0]) / raster)
@@ -2876,7 +2885,7 @@ class MDF3(object):
             timestamps = []
             count = 0
             for fragment in data:
-                data_bytes, _ = fragment
+                data_bytes, _offset, _count = fragment
                 try:
                     parents, dtypes = grp["parents"], grp["types"]
                 except KeyError:
@@ -3068,7 +3077,7 @@ class MDF3(object):
 
         return res
 
-    def get_master(self, index, data=None, raster=None, record_offset=0, copy_master=True):
+    def get_master(self, index, data=None, raster=None, record_offset=0, record_count=None, copy_master=True):
         """ returns master channel samples for given group
 
         Parameters
@@ -3093,9 +3102,9 @@ class MDF3(object):
 
         fragment = data
         if fragment:
-            data_bytes, offset = fragment
+            data_bytes, offset, _count = fragment
             try:
-                timestamps = self._master_channel_cache[(index, offset)]
+                timestamps = self._master_channel_cache[(index, offset, _count)]
                 if raster and timestamps:
                     timestamps = arange(timestamps[0], timestamps[-1], raster)
                     return timestamps
@@ -3157,14 +3166,15 @@ class MDF3(object):
 
                 # get data group record
                 if data is None:
-                    data = self._load_data(group, record_offset=record_offset)
+                    data = self._load_data(group, record_offset=record_offset, record_count=record_count)
+                    _count = record_count
                 else:
                     data = (data,)
 
                 time_values = []
                 count = 0
                 for fragment in data:
-                    data_bytes, offset = fragment
+                    data_bytes, offset, _count = fragment
                     parent, _ = parents.get(time_ch_nr, (None, None))
                     if parent is not None:
                         not_found = object()
@@ -3214,8 +3224,8 @@ class MDF3(object):
         if original_data is None:
             self._master_channel_cache[index] = t
         else:
-            data_bytes, offset = original_data
-            self._master_channel_cache[(index, offset)] = t
+            data_bytes, offset, _count = original_data
+            self._master_channel_cache[(index, offset, _count)] = t
 
         if raster:
             timestamps = t
@@ -3480,7 +3490,7 @@ class MDF3(object):
                 dg["record_id_len"] = 0
 
                 # DataBlock
-                for (data_bytes, _) in self._load_data(gp):
+                for (data_bytes, _, __) in self._load_data(gp):
                     if self.memory == "full":
                         data = memoryview(data_bytes)
                         read_size = 4 * 2 ** 20
@@ -3789,7 +3799,7 @@ class MDF3(object):
                 data = self._load_data(gp)
 
                 dat_addr = tell()
-                for (data_bytes, _) in data:
+                for (data_bytes, _, __) in data:
                     write(data_bytes)
 
                 if tell() - dat_addr:
