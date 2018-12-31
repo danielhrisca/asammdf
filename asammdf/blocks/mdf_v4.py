@@ -20,7 +20,6 @@ from zlib import decompress
 
 from numpy import (
     arange,
-    argwhere,
     array,
     array_equal,
     bool,
@@ -32,6 +31,7 @@ from numpy import (
     frombuffer,
     interp,
     linspace,
+    nonzero,
     ones,
     packbits,
     roll,
@@ -743,7 +743,7 @@ class MDF4(object):
                             v4c.BUS_TYPE_CAN,
                         )
 
-                        idx = argwhere(can_ids.samples == message_id).flatten()
+                        idx = nonzero(can_ids.samples == message_id)
                         data = payload[idx]
                         t = can_ids.timestamps[idx].copy()
                         if can_ids.invalidation_bits is not None:
@@ -800,7 +800,7 @@ class MDF4(object):
                             "", "", "", v4c.SOURCE_BUS, v4c.BUS_TYPE_CAN
                         )
 
-                        idx = argwhere(can_ids.samples == message_id).flatten()
+                        idx = nonzero(can_ids.samples == message_id)
                         data = payload[idx]
                         t = can_ids.timestamps[idx]
                         if can_ids.invalidation_bits is not None:
@@ -4364,11 +4364,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
-                        vals = vals[argwhere(~invalidation_bits)].flatten()
+                        vals = vals[nonzero(~invalidation_bits)]
                         if not samples_only or raster:
-                            timestamps = timestamps[
-                                argwhere(~invalidation_bits)
-                            ].flatten()
+                            timestamps = timestamps[nonzero(~invalidation_bits)]
 
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
@@ -4619,11 +4617,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
-                        vals = vals[argwhere(~invalidation_bits)].flatten()
+                        vals = vals[nonzero(~invalidation_bits)]
                         if not samples_only or raster:
-                            timestamps = timestamps[
-                                argwhere(~invalidation_bits)
-                            ].flatten()
+                            timestamps = timestamps[nonzero(~invalidation_bits)]
 
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
@@ -4687,11 +4683,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
-                        vals = vals[argwhere(~invalidation_bits)].flatten()
+                        vals = vals[nonzero(~invalidation_bits)]
                         if not samples_only or raster:
-                            timestamps = timestamps[
-                                argwhere(~invalidation_bits)
-                            ].flatten()
+                            timestamps = timestamps[nonzero(~invalidation_bits)]
 
                 if raster and len(timestamps) > 1:
                     num = float(
@@ -4828,11 +4822,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = []
                     if not ignore_invalidation_bits:
-                        vals = vals[argwhere(~invalidation_bits)].flatten()
+                        vals = vals[nonzero(~invalidation_bits)]
                         if not samples_only or raster:
-                            timestamps = timestamps[
-                                argwhere(~invalidation_bits)
-                            ].flatten()
+                            timestamps = timestamps[nonzero(~invalidation_bits)]
 
                 if raster and len(timestamps) > 1:
 
@@ -5451,7 +5443,7 @@ class MDF4(object):
             ignore_invalidation_bits=ignore_invalidation_bits,
         )[0]
 
-        idx = argwhere(can_ids.samples == message.id).flatten()
+        idx = nonzero(can_ids.samples == message.id)
         data = payload[idx]
         t = can_ids.timestamps[idx].copy()
         if can_ids.invalidation_bits is not None:
@@ -5567,8 +5559,8 @@ class MDF4(object):
         else:
 
             if invalidation_bits is not None:
-                vals = vals[argwhere(~invalidation_bits)].flatten()
-                t = t[argwhere(~invalidation_bits)].flatten()
+                vals = vals[nonzero(~invalidation_bits)]
+                t = t[nonzero(~invalidation_bits)]
 
             return Signal(
                 samples=vals,

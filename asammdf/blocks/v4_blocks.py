@@ -148,7 +148,7 @@ class AttachmentBlock(dict):
 
             self.file_name = get_text_v4(self["file_name_addr"], stream)
             self.mime = get_text_v4(self["mime_addr"], stream)
-            self.comment = get_text_v4(self["comment_addr"], stream)
+            self.comment = get_text_v4(self["comment_addr"], stream, True)
 
         except KeyError:
 
@@ -447,7 +447,7 @@ class Channel(dict):
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
             stream.seek(address)
-            
+
             block = stream.read(v4c.CN_BLOCK_SIZE)
 
             (
@@ -456,12 +456,12 @@ class Channel(dict):
                 self["block_len"],
                 self["links_nr"],
             ) = COMMON_uf(block)
-            
+
             block_len = self["block_len"]
-            
+
             if block_len == v4c.CN_BLOCK_SIZE:
 
-                (   
+                (
                     self["next_ch_addr"],
                     self["component_addr"],
                     self["name_addr"],
@@ -488,15 +488,15 @@ class Channel(dict):
                     self["lower_ext_limit"],
                     self["upper_ext_limit"],
                 ) = v4c.SIMPLE_CHANNEL_PARAMS_uf(block, v4c.COMMON_SIZE)
-                
+
             else:
 
                 block = block[24:] + stream.read(block_len - v4c.CN_BLOCK_SIZE)
                 links_nr = self["links_nr"]
-    
+
                 links = unpack_from("<{}Q".format(links_nr), block)
                 params = unpack_from(v4c.FMT_CHANNEL_PARAMS, block, links_nr * 8)
-    
+
                 (
                     self["next_ch_addr"],
                     self["component_addr"],
@@ -507,26 +507,26 @@ class Channel(dict):
                     self["unit_addr"],
                     self["comment_addr"],
                 ) = links[:8]
-    
+
                 at_map = kwargs.get("at_map", {})
                 for i in range(params[10]):
                     self["attachment_{}_addr".format(i)] = links[8 + i]
                     self.attachments.append(at_map.get(links[8 + i], 0))
-    
+
                 if params[6] & v4c.FLAG_CN_DEFAULT_X:
                     (
                         self["default_X_dg_addr"],
                         self["default_X_cg_addr"],
                         self["default_X_ch_addr"],
                     ) = links[-3:]
-    
+
                     # default X not supported yet
                     (
                         self["default_X_dg_addr"],
                         self["default_X_cg_addr"],
                         self["default_X_ch_addr"],
                     ) = (0, 0, 0)
-    
+
                 (
                     self["channel_type"],
                     self["sync_type"],
@@ -561,8 +561,10 @@ class Channel(dict):
                     self["unit_addr"] = 0
 
                 comment = get_text_v4(
-                    address=self["comment_addr"], stream=stream
-                ).replace(' xmlns="http://www.asam.net/mdf/v4"', "")
+                    address=self["comment_addr"],
+                    stream=stream,
+                    sanitize_xml=True,
+                )
 
                 if kwargs.get("use_display_names", True) and comment.startswith(
                     "<CNcomment"
@@ -852,7 +854,7 @@ class Channel(dict):
     def __bytes__(self):
 
         fmt = v4c.FMT_CHANNEL.format(self["links_nr"])
-        
+
         if self["block_len"] == v4c.CN_BLOCK_SIZE:
             keys = v4c.KEYS_SIMPLE_CHANNEL
             fmt = v4c.FMT_SIMPLE_CHANNEL
@@ -1292,7 +1294,7 @@ class ChannelGroup(dict):
                 raise MdfException(message)
 
             self.acq_name = get_text_v4(self["acq_name_addr"], stream)
-            self.comment = get_text_v4(self["comment_addr"], stream)
+            self.comment = get_text_v4(self["comment_addr"], stream, True)
 
             if self["acq_source_addr"]:
                 self.acq_source = SourceInformation(
@@ -1810,7 +1812,7 @@ class ChannelConversion(dict):
             if "stream" in kwargs:
                 self.name = get_text_v4(self["name_addr"], stream)
                 self.unit = get_text_v4(self["unit_addr"], stream)
-                self.comment = get_text_v4(self["comment_addr"], stream)
+                self.comment = get_text_v4(self["comment_addr"], stream, True)
                 if "formula_addr" in self:
                     self.formula = get_text_v4(self["formula_addr"], stream)
 
@@ -2334,8 +2336,8 @@ class ChannelConversion(dict):
                 idx1 = np.searchsorted(lower, values, side="right") - 1
                 idx2 = np.searchsorted(upper, values, side="right") - 1
 
-            idx_ne = np.argwhere(idx1 != idx2).flatten()
-            idx_eq = np.argwhere(idx1 == idx2).flatten()
+            idx_ne = np.nonzero(idx1 != idx2)
+            idx_eq = np.nonzero(idx1 == idx2)
 
             new_values = np.zeros(len(values), dtype=phys.dtype)
 
@@ -2433,8 +2435,8 @@ class ChannelConversion(dict):
                 idx1 = np.searchsorted(lower, values, side="right") - 1
                 idx2 = np.searchsorted(upper, values, side="right") - 1
 
-            idx_ne = np.argwhere(idx1 != idx2).flatten()
-            idx_eq = np.argwhere(idx1 == idx2).flatten()
+            idx_ne = np.nonzero(idx1 != idx2)
+            idx_eq = np.nonzero(idx1 == idx2)
 
             if PYVERSION < 3:
                 cls = str
@@ -2881,7 +2883,7 @@ class DataZippedBlock(dict):
                     data = bytes(data)
                 cols = self["param"]
                 lines = original_size // cols
-                
+
                 if lines * cols < original_size:
                     data = (
                         np.fromstring(data[: lines * cols], dtype=np.uint8)
@@ -2889,7 +2891,7 @@ class DataZippedBlock(dict):
                         .T
                         .tostring()
                     ) + data[lines * cols:]
-                    
+
                 else:
                     data = (
                         np.fromstring(data, dtype=np.uint8)
@@ -3004,7 +3006,7 @@ class DataGroup(dict):
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(self["comment_addr"], stream)
+            self.comment = get_text_v4(self["comment_addr"], stream, True)
 
         except KeyError:
 
@@ -3305,7 +3307,7 @@ class EventBlock(dict):
                 raise MdfException(message)
 
             self.name = get_text_v4(self["name_addr"], stream)
-            self.comment = get_text_v4(self["comment_addr"], stream)
+            self.comment = get_text_v4(self["comment_addr"], stream, True)
 
         else:
             self.address = 0
@@ -3529,7 +3531,11 @@ class FileHistory(dict):
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(address=self["comment_addr"], stream=stream)
+            self.comment = get_text_v4(
+                address=self["comment_addr"],
+                stream=stream,
+                sanitize_xml=True,
+            )
 
         except KeyError:
             self["id"] = b"##FH"
@@ -3683,7 +3689,11 @@ class HeaderBlock(dict):
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(address=self["comment_addr"], stream=stream)
+            self.comment = get_text_v4(
+                address=self["comment_addr"],
+                stream=stream,
+                sanitize_xml=True,
+            )
 
         except KeyError:
 
@@ -3709,7 +3719,7 @@ class HeaderBlock(dict):
             self["start_distance"] = kwargs.get("start_distance", 0)
 
         if self.comment.startswith("<HDcomment"):
-            comment = self.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
+            comment = self.comment
             if PYVERSION < 3:
                 comment = comment.encode("utf-8")
             comment_xml = ET.fromstring(comment)
@@ -3759,7 +3769,7 @@ class HeaderBlock(dict):
         address += self["block_len"]
 
         if self.comment.startswith("<HDcomment"):
-            comment = self.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
+            comment = self.comment
             comment = ET.fromstring(comment)
             common_properties = comment.find(".//common_properties")
             if common_properties is not None:
@@ -3836,7 +3846,7 @@ class HeaderBlock(dict):
     def to_stream(self, stream):
         address = stream.tell()
         if self.comment.startswith("<HDcomment"):
-            comment = self.comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
+            comment = self.comment
             comment = ET.fromstring(comment)
             common_properties = comment.find(".//common_properties")
             if common_properties is not None:
@@ -4066,7 +4076,11 @@ class SourceInformation(dict):
 
             self.path = get_text_v4(address=self["path_addr"], stream=stream)
 
-            self.comment = get_text_v4(address=self["comment_addr"], stream=stream)
+            self.comment = get_text_v4(
+                address=self["comment_addr"],
+                stream=stream,
+                sanitize_xml=True,
+            )
 
         else:
             self.address = 0
