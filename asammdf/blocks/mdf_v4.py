@@ -1405,15 +1405,16 @@ class MDF4(object):
 
         return data
 
-    def _load_data(self, group, index=None, record_offset=0):
+    def _load_data(self, group, index=None, record_offset=0, record_count=None):
         """ get group's data block bytes """
         offset = 0
         has_yielded = False
+        _count = record_count
         if self.memory == "full":
             if index is None:
-                yield group["data_block"]["data"], offset
+                yield group["data_block"]["data"], offset, _count
             else:
-                yield group["reduction_blocks"][index]["data"], offset
+                yield group["reduction_blocks"][index]["data"], offset, _count
         else:
             data_group = group["data_group"]
             channel_group = group["channel_group"]
@@ -1446,8 +1447,12 @@ class MDF4(object):
 
             record_offset *= samples_size
 
+            finished = False
+            if record_count is not None:
+                record_count *= samples_size
+
             if not samples_size:
-                yield b"", offset
+                yield b"", offset, _count
             else:
 
                 if not group["sorted"]:
@@ -1526,12 +1531,30 @@ class MDF4(object):
                                     seek(current_address)
                                     if data:
                                         data.append(read(split_size - cur_size))
-                                        yield b"".join(data), offset
-                                        has_yielded = True
+                                        data_ = b"".join(data)
+                                        if record_count is not None:
+                                            yield data_[:record_count], offset, _count
+                                            has_yielded = True
+                                            record_count -= len(data_)
+                                            if record_count <= 0:
+                                                finished = True
+                                                break
+                                        else:
+                                            yield data_, offset, _count
+                                            has_yielded = True
                                         current_address += split_size - cur_size
                                     else:
-                                        yield read(split_size), offset
-                                        has_yielded = True
+                                        data_ = read(split_size)
+                                        if record_count is not None:
+                                            yield data_[:record_count], offset, _count
+                                            has_yielded = True
+                                            record_count -= len(data_)
+                                            if record_count <= 0:
+                                                finished = True
+                                                break
+                                        else:
+                                            yield data_, offset, _count
+                                            has_yielded = True
                                         current_address += split_size
                                     offset += split_size
 
@@ -1539,13 +1562,23 @@ class MDF4(object):
                                     data = []
                                     cur_size = 0
 
+                                if finished:
+                                    data = []
+                                    break
+
                                 if size:
                                     seek(current_address)
                                     data.append(read(size))
                                     cur_size += size
                             if data:
-                                yield b"".join(data), offset
-                                has_yielded = True
+                                data_ = b"".join(data)
+                                if record_count is not None:
+                                    yield data_[:record_count], offset, _count
+                                    has_yielded = True
+                                    record_count -= len(data_)
+                                else:
+                                    yield data_, offset, _count
+                                    has_yielded = True
                         else:
 
                             extra_bytes = b""
@@ -1586,13 +1619,26 @@ class MDF4(object):
                                     extra_bytes = b""
                                     offset_increase = dim
 
-                                yield data, offset
-                                has_yielded = True
+                                if record_count is not None:
+                                    yield data[:record_count], offset, _count
+                                    has_yielded = True
+                                    record_count -= len(data)
+                                    if record_count <= 0:
+                                        finished = True
+                                        break
+                                else:
+                                    yield data, offset, _count
+                                    has_yielded = True
                                 offset += offset_increase
 
                             if extra_bytes:
-                                yield extra_bytes, offset
-                                has_yielded = True
+                                if record_count is not None:
+                                    if not finished:
+                                        yield extra_bytes[:record_count], offset, _count
+                                        has_yielded = True
+                                else:
+                                    yield extra_bytes, offset, _count
+                                    has_yielded = True
                     else:
                         for (address, size, block_size) in blocks:
                             seek(address)
@@ -1660,9 +1706,18 @@ class MDF4(object):
                                     size -= delta
                                     offset = record_offset
 
-                                yield rec_data, offset
-                                has_yielded = True
+                                if record_count is not None:
+                                    yield rec_data[:record_count], offset, _count
+                                    has_yielded = True
+                                    record_count -= len(rec_data)
+                                    if record_count <= 0:
+                                        finished = True
+                                        break
+                                else:
+                                    yield rec_data, offset, _count
+                                    has_yielded = True
                                 offset += size
+
                     if not has_yielded:
                         yield b"", 0
                 else:
@@ -2461,9 +2516,9 @@ class MDF4(object):
         dtypes = group["types"]
         invalidation_size = group["channel_group"]["invalidation_bytes_nr"]
 
-        data_bytes, offset = fragment
+        data_bytes, offset, _count = fragment
         try:
-            invalidation = self._invalidation_cache[(group_index, offset)]
+            invalidation = self._invalidation_cache[(group_index, offset, _count)]
         except KeyError:
             not_found = object()
             record = group.get("record", not_found)
@@ -2474,7 +2529,7 @@ class MDF4(object):
                     record = None
 
             invalidation = record["invalidation_bytes"].tostring()
-            self._invalidation_cache[(group_index, offset)] = invalidation
+            self._invalidation_cache[(group_index, offset, _count)] = invalidation
 
         ch_invalidation_pos = channel["pos_invalidation_bit"]
         pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
@@ -4061,6 +4116,7 @@ class MDF4(object):
         source=None,
         sample_reduction_index=None,
         record_offset=0,
+        record_count=None,
         copy_master=True,
     ):
         """Gets channel samples.
@@ -4108,6 +4164,9 @@ class MDF4(object):
         record_offset : int
             if *data=None* use this to select the record offset from which the
             group data should be loaded
+        record_count : int
+            number of records to read; default *None* and in this case all
+            available records are used
         copy_master : bool
             make a copy of the timebase for this channel
 
@@ -4247,7 +4306,11 @@ class MDF4(object):
 
             # get group data
             if data is None:
-                data = self._load_data(grp, record_offset=record_offset)
+                data = self._load_data(
+                    grp,
+                    record_offset=record_offset,
+                    record_count=record_count,
+                )
             else:
                 data = (data,)
 
@@ -4275,7 +4338,11 @@ class MDF4(object):
 
             # get group data
             if data is None:
-                data = self._load_data(grp)
+                data = self._load_data(
+                    grp,
+                    record_offset=record_offset,
+                    record_count=record_count,
+                )
             else:
                 data = (data,)
 
@@ -4327,6 +4394,7 @@ class MDF4(object):
                             data=fragment,
                             ignore_invalidation_bits=ignore_invalidation_bits,
                             record_offset=record_offset,
+                            record_count=record_count,
                         )[0]
                         channel_values[i].append(vals)
                     if not samples_only or raster:
@@ -4377,6 +4445,11 @@ class MDF4(object):
 
             else:
                 # channel arrays
+                channel_group = grp["channel_group"]
+                samples_size = (
+                    channel_group["samples_byte_nr"]
+                    + channel_group["invalidation_bytes_nr"]
+                )
 
                 channel_values = []
                 timestamps = []
@@ -4384,7 +4457,9 @@ class MDF4(object):
                 count = 0
                 for fragment in data:
 
-                    data_bytes, offset = fragment
+                    data_bytes, offset, _count = fragment
+
+                    cycles = len(data_bytes) // samples_size
 
                     arrays = []
                     types = []
@@ -4489,6 +4564,7 @@ class MDF4(object):
                                             data=fragment,
                                             ignore_invalidation_bits=ignore_invalidation_bits,
                                             record_offset=record_offset,
+                                            record_count=cycles,
                                         )[0]
                                     else:
                                         channel_group = grp["channel_group"]
@@ -4504,6 +4580,7 @@ class MDF4(object):
                                             samples_only=True,
                                             ignore_invalidation_bits=ignore_invalidation_bits,
                                             record_offset=record_offset,
+                                            record_count=cycles,
                                         )[0]
                                         axis_values = ref[start:end].copy()
                                     axis_values = axis_values[axisname]
@@ -4560,6 +4637,7 @@ class MDF4(object):
                                         data=fragment,
                                         ignore_invalidation_bits=ignore_invalidation_bits,
                                         record_offset=record_offset,
+                                        record_count=cycles,
                                     )[0]
                                 else:
                                     channel_group = grp["channel_group"]
@@ -4575,6 +4653,7 @@ class MDF4(object):
                                         samples_only=True,
                                         ignore_invalidation_bits=ignore_invalidation_bits,
                                         record_offset=record_offset,
+                                        record_count=cycles,
                                     )[0]
                                     axis_values = ref[start:end].copy()
                                 axis_values = axis_values[axisname]
@@ -4648,7 +4727,7 @@ class MDF4(object):
 
                 count = 0
                 for fragment in data:
-                    data_bytes, offset = fragment
+                    data_bytes, offset, _count = fragment
                     offset = offset // record_size
 
                     vals = arange(len(data_bytes) // record_size, dtype=ch_dtype)
@@ -4712,7 +4791,7 @@ class MDF4(object):
                 count = 0
                 for fragment in data:
 
-                    data_bytes, offset = fragment
+                    data_bytes, offset, _count = fragment
                     try:
                         parent, bit_offset = parents[ch_nr]
                     except KeyError:
@@ -5071,7 +5150,7 @@ class MDF4(object):
 
         return res
 
-    def get_master(self, index, data=None, raster=None, record_offset=0, copy_master=True):
+    def get_master(self, index, data=None, raster=None, record_offset=0, record_count=None, copy_master=True):
         """ returns master channel samples for given group
 
         Parameters
@@ -5085,6 +5164,11 @@ class MDF4(object):
         record_offset : int
             if *data=None* use this to select the record offset from which the
             group data should be loaded
+        record_count : int
+            number of records to read; default *None* and in this case all
+            available records are used
+        copy_master : bool
+            return a copy of the cached master
 
         Returns
         -------
@@ -5094,9 +5178,9 @@ class MDF4(object):
         """
         fragment = data
         if fragment:
-            data_bytes, offset = fragment
+            data_bytes, offset, _count = fragment
             try:
-                timestamps = self._master_channel_cache[(index, offset)]
+                timestamps = self._master_channel_cache[(index, offset, _count)]
                 if raster and len(timestamps):
                     timestamps = arange(timestamps[0], timestamps[-1], raster)
                     return timestamps
@@ -5139,6 +5223,8 @@ class MDF4(object):
 
         if original_data:
             cycles_nr = len(data_bytes) // record_size
+        else:
+            _count = record_count
 
         if time_ch_nr is None:
             if record_size:
@@ -5183,13 +5269,13 @@ class MDF4(object):
 
                 # get data
                 if fragment is None:
-                    data = self._load_data(group, record_offset=record_offset)
+                    data = self._load_data(group, record_offset=record_offset, record_count=record_count)
                 else:
                     data = (fragment,)
                 time_values = []
 
                 for fragment in data:
-                    data_bytes, offset = fragment
+                    data_bytes, offset, _count = fragment
                     try:
                         parent, _ = parents[time_ch_nr]
                     except KeyError:
@@ -5232,7 +5318,7 @@ class MDF4(object):
             self._master_channel_cache[index] = t
         else:
             data_bytes, offset = original_data
-            self._master_channel_cache[(index, offset)] = t
+            self._master_channel_cache[(index, offset, _count)] = t
 
         if raster and t.size:
             timestamps = t

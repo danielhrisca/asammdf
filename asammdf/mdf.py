@@ -421,7 +421,7 @@ class MDF(object):
             included_channels.remove(master_index)
 
         channels = group["channels"]
-        
+
         if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
             for dep in group["channel_dependencies"]:
                 if dep is None:
@@ -855,7 +855,7 @@ class MDF(object):
 
                 fragment = next(self._load_data(group))
 
-                fragment = (fragment[0], -1)
+                fragment = (fragment[0], -1, None)
 
                 for j in included_channels:
                     sig = self.get(
@@ -1056,13 +1056,13 @@ class MDF(object):
                     data = b"".join(str(d[0]) for d in data)
                 else:
                     data = b"".join(d[0] for d in data)
-                data = (data, 0)
+                data = (data, 0, None)
 
                 for j in included_channels:
                     sig = self.get(
-                        group=i, 
-                        index=j, 
-                        data=data, 
+                        group=i,
+                        index=j,
+                        data=data,
                     ).interp(master)
 
                     if len(sig.samples.shape) > 1:
@@ -1153,7 +1153,7 @@ class MDF(object):
                             data = b"".join(str(d[0]) for d in data)
                         else:
                             data = b"".join(d[0] for d in data)
-                        data = (data, 0)
+                        data = (data, 0, None)
 
                         for j, _ in enumerate(grp["channels"]):
                             sig = self.get(group=i, index=j, data=data)
@@ -1211,7 +1211,7 @@ class MDF(object):
                         data = b"".join(str(d[0]) for d in data)
                     else:
                         data = b"".join(d[0] for d in data)
-                    data = (data, 0)
+                    data = (data, 0, None)
 
                     master_index = self.masters_db.get(i, None)
                     if master_index is not None:
@@ -1310,7 +1310,7 @@ class MDF(object):
                         data = b"".join(str(d[0]) for d in data)
                     else:
                         data = b"".join(d[0] for d in data)
-                    data = (data, 0)
+                    data = (data, 0, None)
 
                     group_name = "DataGroup_{}".format(i + 1)
                     group_csv_name = "{}_{}.csv".format(name, group_name)
@@ -1416,7 +1416,7 @@ class MDF(object):
                         data = b"".join(str(d[0]) for d in data)
                     else:
                         data = b"".join(d[0] for d in data)
-                    data = (data, 0)
+                    data = (data, 0, None)
 
                     for j in included_channels:
                         sig = self.get(group=i, index=j, data=data)
@@ -1980,7 +1980,7 @@ class MDF(object):
                             last_timestamp = signals[0].timestamps[-1]
                             first_timestamp = signals[0].timestamps[0]
                             original_first_timestamp = first_timestamp
-                            
+
                         if signals:
                             merged.append(signals, common_timebase=True)
                         idx += 1
@@ -2496,8 +2496,8 @@ class MDF(object):
                     grp["record"] = None
                 for index in gps[group]:
                     signal = self.get(
-                        group=group, 
-                        index=index, 
+                        group=group,
+                        index=index,
                         data=fragment,
                         copy_master=False,
                     )
