@@ -539,7 +539,7 @@ class MDF(object):
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
                 if version < "4.00":
-                    encodings = []
+                    encodings = [None, ]
 
                 if dtypes.itemsize:
                     group["record"] = np.core.records.fromstring(
@@ -739,6 +739,7 @@ class MDF(object):
 
             idx = 0
             for fragment in data:
+                encodings = [None, ]
                 if dtypes.itemsize:
                     group["record"] = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
@@ -817,6 +818,7 @@ class MDF(object):
                         )
                         if needs_cutting:
                             sig = sig.cut(fragment_start, fragment_stop, include_ends)
+
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
@@ -1668,7 +1670,7 @@ class MDF(object):
 
             for idx, fragment in enumerate(data):
                 if version < "4.00":
-                    encodings = []
+                    encodings = [None, ]
 
                 if dtypes.itemsize:
                     group["record"] = np.core.records.fromstring(
@@ -1944,6 +1946,7 @@ class MDF(object):
         ]
 
         version = validate_version_argument(version)
+
         memory = validate_memory_argument(memory)
 
         merged = MDF(version=version, memory=memory, callback=callback)
@@ -1982,15 +1985,16 @@ class MDF(object):
                 data = mdf._load_data(group)
 
                 for fragment in data:
-                    if version < "4.00":
-                        encodings = []
+
                     if dtypes.itemsize:
                         group["record"] = np.core.records.fromstring(
                             fragment[0], dtype=dtypes
                         )
                     else:
                         group["record"] = None
+
                     if mdf_index == 0 and idx == 0:
+                        encodings = [None, ]
                         signals = []
                         for j in included_channels:
                             sig = mdf.get(
@@ -2022,7 +2026,6 @@ class MDF(object):
                                             sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
                                 else:
                                     encodings.append(None)
-
 
                             if not sig.samples.flags.writeable:
                                 sig.samples = sig.samples.copy()
@@ -2064,13 +2067,13 @@ class MDF(object):
 
                             for j in included_channels:
                                 sig = mdf.get(
-                                        group=i,
-                                        index=j,
-                                        data=fragment,
-                                        raw=True,
-                                        samples_only=True,
-                                        ignore_invalidation_bits=True,
-                                    )
+                                    group=i,
+                                    index=j,
+                                    data=fragment,
+                                    raw=True,
+                                    samples_only=True,
+                                    ignore_invalidation_bits=True,
+                                )
 
                                 signals.append(sig)
 
@@ -2231,7 +2234,7 @@ class MDF(object):
 
                 for fragment in data:
                     if version < "4.00":
-                        encodings = []
+                        encodings = [None, ]
                     if dtypes.itemsize:
                         group["record"] = np.core.records.fromstring(
                             fragment[0], dtype=dtypes
@@ -2414,7 +2417,7 @@ class MDF(object):
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
                 if version < "4.00":
-                    encodings = []
+                    encodings = [None, ]
                 if idx == 0:
                     sigs = []
                     for j in included_channels:

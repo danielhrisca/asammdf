@@ -11270,9 +11270,10 @@ def generate_test_file(version="4.10"):
 
     # string
     sigs = []
+    encoding = 'latin-1' if version < '4.00' else 'utf-8'
     for i in range(channels_count):
         sig = [
-            "Channel {} sample {}".format(i, j).encode("latin-1") for j in range(cycles)
+            "Channel {} sample {}".format(i, j).encode(encoding) for j in range(cycles)
         ]
         sig = Signal(
             np.array(sig),
@@ -11281,7 +11282,7 @@ def generate_test_file(version="4.10"):
             unit="unit_{}".format(i),
             comment="String channel {}".format(i),
             raw=True,
-            encoding='latin-1',
+            encoding=encoding,
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)

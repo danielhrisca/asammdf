@@ -3209,6 +3209,7 @@ class MDF4(object):
                     ch_cntr += 1
 
             else:
+
                 encoding = signal.encoding
                 samples = signal.samples
                 sig_dtype = samples.dtype
@@ -4992,9 +4993,28 @@ class MDF4(object):
                             elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
                                 encoding = "latin-1"
 
+                            else:
+                                raise MdfException('wrong data type "{}" for vlsd channel'.format(data_type))
+
                     else:
                         # no VLSD signal data samples
                         vals = array([], dtype=dtype("S"))
+                        if data_type != v4c.DATA_TYPE_BYTEARRAY:
+
+                            if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                                encoding = "utf-16-be"
+
+                            elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                                encoding = "utf-16-le"
+
+                            elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                                encoding = "utf-8"
+
+                            elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                                encoding = "latin-1"
+
+                            else:
+                                raise MdfException('wrong data type "{}" for vlsd channel'.format(data_type))
 
                 elif channel_type in {
                     v4c.CHANNEL_TYPE_VALUE,
@@ -5016,6 +5036,9 @@ class MDF4(object):
 
                     elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
                         encoding = "latin-1"
+
+                    else:
+                        raise MdfException('wrong data type "{}" for string channel'.format(data_type))
 
                 # CANopen date
                 if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
