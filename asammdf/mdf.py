@@ -13,6 +13,7 @@ from struct import unpack
 from shutil import copy
 
 import numpy as np
+from numpy.core.defchararray import encode, decode
 from pandas import DataFrame
 
 from .blocks.mdf_v2 import MDF2
@@ -537,6 +538,8 @@ class MDF(object):
 
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
+                if version < "4.00":
+                    encodings = []
 
                 if dtypes.itemsize:
                     group["record"] = np.core.records.fromstring(
@@ -558,15 +561,26 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                             copy_master=False,
                         )
-                        if version < "4.00" and sig.samples.dtype.kind == "S":
-                            strsig = self.get(
-                                group=i,
-                                index=j,
-                                samples_only=True,
-                                ignore_invalidation_bits=True,
-                            )[0]
-                            sig.samples = sig.samples.astype(strsig.dtype)
-                            del strsig
+                        if version < "4.00":
+                            if sig.samples.dtype.kind == "S":
+                                encodings.append(sig.encoding)
+                                strsig = self.get(
+                                    group=i,
+                                    index=j,
+                                    samples_only=True,
+                                    ignore_invalidation_bits=True,
+                                )[0]
+                                sig.samples = sig.samples.astype(strsig.dtype)
+                                del strsig
+                                if sig.encoding != "latin-1":
+
+                                    if sig.encoding == "utf-16-le":
+                                        sig.samples = sig.samples.view(np.uint16).byteswap().view(sig.samples.dtype)
+                                        sig.samples = encode(decode(sig.samples, "utf-16-be"), "latin-1")
+                                    else:
+                                        sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
+                            else:
+                                encodings.append(None)
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
@@ -606,6 +620,20 @@ class MDF(object):
                             samples_only=True,
                             ignore_invalidation_bits=True,
                         )
+
+                        if version > "4.00":
+                            encoding = encodings[j]
+                            samples = sig[0]
+                            if encoding:
+                                if encoding != "latin-1":
+
+                                    if encoding == "utf-16-le":
+                                        samples = samples.view(np.uint16).byteswap().view(samples.dtype)
+                                        samples = encode(decode(samples, "utf-16-be"), "latin-1")
+                                    else:
+                                        samples = encode(decode(samples, encoding), "latin-1")
+                                    sig.samples = samples
+
                         if not sig[0].flags.writeable:
                             sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
@@ -1639,6 +1667,8 @@ class MDF(object):
             group["parents"], group["types"] = parents, dtypes
 
             for idx, fragment in enumerate(data):
+                if version < "4.00":
+                    encodings = []
 
                 if dtypes.itemsize:
                     group["record"] = np.core.records.fromstring(
@@ -1660,15 +1690,26 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                             copy_master=False,
                         )
-                        if self.version < "4.00" and sig.samples.dtype.kind == "S":
-                            strsig = self.get(
-                                group=group_index,
-                                index=j,
-                                samples_only=True,
-                                ignore_invalidation_bits=True,
-                            )[0]
-                            sig.samples = sig.samples.astype(strsig.dtype)
-                            del strsig
+                        if version < "4.00":
+                            if sig.samples.dtype.kind == "S":
+                                encodings.append(sig.encoding)
+                                strsig = self.get(
+                                    group=group_index,
+                                    index=j,
+                                    samples_only=True,
+                                    ignore_invalidation_bits=True,
+                                )[0]
+                                sig.samples = sig.samples.astype(strsig.dtype)
+                                del strsig
+                                if sig.encoding != "latin-1":
+
+                                    if sig.encoding == "utf-16-le":
+                                        sig.samples = sig.samples.view(np.uint16).byteswap().view(sig.samples.dtype)
+                                        sig.samples = encode(decode(sig.samples, "utf-16-be"), "latin-1")
+                                    else:
+                                        sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
+                            else:
+                                encodings.append(None)
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
@@ -1692,9 +1733,18 @@ class MDF(object):
                             raw=True,
                             ignore_invalidation_bits=True,
                         )
-                        if not sig[0].flags.writeable:
-                            sig = sig[0].copy(), sig[1]
-                        sigs.append(sig)
+                        if version < "4.00":
+                            encoding = encodings[j]
+                            samples = sig[0]
+                            if encoding:
+                                if encoding != "latin-1":
+
+                                    if encoding == "utf-16-le":
+                                        samples = samples.view(np.uint16).byteswap().view(samples.dtype)
+                                        samples = encode(decode(samples, "utf-16-be"), "latin-1")
+                                    else:
+                                        samples = encode(decode(samples, encoding), "latin-1")
+                                    sig.samples = samples
 
                     if sigs:
                         mdf.extend(new_index, sigs)
@@ -1932,6 +1982,8 @@ class MDF(object):
                 data = mdf._load_data(group)
 
                 for fragment in data:
+                    if version < "4.00":
+                        encodings = []
                     if dtypes.itemsize:
                         group["record"] = np.core.records.fromstring(
                             fragment[0], dtype=dtypes
@@ -1950,23 +2002,27 @@ class MDF(object):
                                 copy_master=False,
                             )
 
-                            if version < "4.00" and sig.samples.dtype.kind == "S" and any(v >= '4.00' for v in versions):
-                                string_dtypes = [np.dtype("S")]
-                                for tmp_mdf in files:
-                                    if not isinstance(tmp_mdf, MDF):
-                                        tmp_mdf = MDF(tmp_mdf, memory='low')
-                                    strsig = tmp_mdf.get(
+                            if version < "4.00":
+                                if sig.samples.dtype.kind == "S":
+                                    encodings.append(sig.encoding)
+                                    strsig = mdf.get(
                                         group=i,
                                         index=j,
                                         samples_only=True,
                                         ignore_invalidation_bits=True,
                                     )[0]
-                                    string_dtypes.append(strsig.dtype)
+                                    sig.samples = sig.samples.astype(strsig.dtype)
                                     del strsig
+                                    if sig.encoding != "latin-1":
 
-                                sig.samples = sig.samples.astype(max(string_dtypes))
+                                        if sig.encoding == "utf-16-le":
+                                            sig.samples = sig.samples.view(np.uint16).byteswap().view(sig.samples.dtype)
+                                            sig.samples = encode(decode(sig.samples, "utf-16-be"), "latin-1")
+                                        else:
+                                            sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
+                                else:
+                                    encodings.append(None)
 
-                                del string_dtypes
 
                             if not sig.samples.flags.writeable:
                                 sig.samples = sig.samples.copy()
@@ -2007,8 +2063,7 @@ class MDF(object):
                             signals = [(master, None)]
 
                             for j in included_channels:
-                                signals.append(
-                                    mdf.get(
+                                sig = mdf.get(
                                         group=i,
                                         index=j,
                                         data=fragment,
@@ -2016,7 +2071,21 @@ class MDF(object):
                                         samples_only=True,
                                         ignore_invalidation_bits=True,
                                     )
-                                )
+
+                                signals.append(sig)
+
+                                if version < '4.00':
+                                    encoding = encodings[j]
+                                    samples = sig[0]
+                                    if encoding:
+                                        if encoding != "latin-1":
+
+                                            if encoding == "utf-16-le":
+                                                samples = samples.view(np.uint16).byteswap().view(samples.dtype)
+                                                samples = encode(decode(samples, "utf-16-be"), "latin-1")
+                                            else:
+                                                samples = encode(decode(samples, encoding), "latin-1")
+                                            sig.samples = samples
 
                             if signals:
                                 merged.extend(i, signals)
@@ -2161,6 +2230,8 @@ class MDF(object):
                 data = mdf._load_data(group)
 
                 for fragment in data:
+                    if version < "4.00":
+                        encodings = []
                     if dtypes.itemsize:
                         group["record"] = np.core.records.fromstring(
                             fragment[0], dtype=dtypes
@@ -2179,21 +2250,26 @@ class MDF(object):
                                 copy_master=False,
                             )
 
-                            if version < "4.00" and sig.samples.dtype.kind == "S":
-                                string_dtypes = [np.dtype("S")]
+                            if version < "4.00":
+                                if sig.samples.dtype.kind == "S":
+                                    encodings.append(sig.encoding)
+                                    strsig = self.get(
+                                        group=i,
+                                        index=j,
+                                        samples_only=True,
+                                        ignore_invalidation_bits=True,
+                                    )[0]
+                                    sig.samples = sig.samples.astype(strsig.dtype)
+                                    del strsig
+                                    if sig.encoding != "latin-1":
 
-                                strsig = mdf.get(
-                                    group=i,
-                                    index=j,
-                                    samples_only=True,
-                                    ignore_invalidation_bits=True,
-                                )[0]
-                                string_dtypes.append(strsig.dtype)
-                                del strsig
-
-                                sig.samples = sig.samples.astype(max(string_dtypes))
-
-                                del string_dtypes
+                                        if sig.encoding == "utf-16-le":
+                                            sig.samples = sig.samples.view(np.uint16).byteswap().view(sig.samples.dtype)
+                                            sig.samples = encode(decode(sig.samples, "utf-16-be"), "latin-1")
+                                        else:
+                                            sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
+                                else:
+                                    encodings.append(None)
 
                             if not sig.samples.flags.writeable:
                                 sig.samples = sig.samples.copy()
@@ -2215,8 +2291,7 @@ class MDF(object):
                             signals = [(master, None)]
 
                             for j in included_channels:
-                                signals.append(
-                                    mdf.get(
+                                sig = mdf.get(
                                         group=i,
                                         index=j,
                                         data=fragment,
@@ -2224,7 +2299,20 @@ class MDF(object):
                                         samples_only=True,
                                         ignore_invalidation_bits=True,
                                     )
-                                )
+                                signals.append(sig)
+
+                                if version < "4.00":
+                                    encoding = encodings[j]
+                                    samples = sig[0]
+                                    if encoding:
+                                        if encoding != "latin-1":
+
+                                            if encoding == "utf-16-le":
+                                                samples = samples.view(np.uint16).byteswap().view(samples.dtype)
+                                                samples = encode(decode(samples, "utf-16-be"), "latin-1")
+                                            else:
+                                                samples = encode(decode(samples, encoding), "latin-1")
+                                            sig.samples = samples
 
                             if signals:
                                 stacked.extend(current_group, signals)
@@ -2325,6 +2413,8 @@ class MDF(object):
 
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
+                if version < "4.00":
+                    encodings = []
                 if idx == 0:
                     sigs = []
                     for j in included_channels:
@@ -2336,15 +2426,27 @@ class MDF(object):
                             raster=raster,
                             ignore_invalidation_bits=True,
                         )
-                        if self.version < "4.00" and sig.samples.dtype.kind == "S":
-                            strsig = self.get(
-                                group=i,
-                                index=j,
-                                samples_only=True,
-                                ignore_invalidation_bits=True,
-                            )[0]
-                            sig.samples = sig.samples.astype(strsig.dtype)
-                            del strsig
+                        if version < "4.00":
+                            if sig.samples.dtype.kind == "S":
+                                encodings.append(sig.encoding)
+                                strsig = self.get(
+                                    group=i,
+                                    index=j,
+                                    samples_only=True,
+                                    ignore_invalidation_bits=True,
+                                )[0]
+                                sig.samples = sig.samples.astype(strsig.dtype)
+                                del strsig
+                                if sig.encoding != "latin-1":
+
+                                    if sig.encoding == "utf-16-le":
+                                        sig.samples = sig.samples.view(np.uint16).byteswap().view(sig.samples.dtype)
+                                        sig.samples = encode(decode(sig.samples, "utf-16-be"), "latin-1")
+                                    else:
+                                        sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
+                            else:
+                                encodings.append(None)
+
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
@@ -2369,6 +2471,20 @@ class MDF(object):
                             raster=raster,
                             ignore_invalidation_bits=True,
                         )
+
+                        if version < "4.00":
+                            encoding = encodings[j]
+                            samples = sig[0]
+                            if encoding:
+                                if encoding != "latin-1":
+
+                                    if encoding == "utf-16-le":
+                                        samples = samples.view(np.uint16).byteswap().view(samples.dtype)
+                                        samples = encode(decode(samples, "utf-16-be"), "latin-1")
+                                    else:
+                                        samples = encode(decode(samples, encoding), "latin-1")
+                                    sig.samples = samples
+
                         if not sig[0].flags.writeable:
                             sig = sig[0].copy(), sig[1]
                         sigs.append(sig)

@@ -11281,6 +11281,7 @@ def generate_test_file(version="4.10"):
             unit="unit_{}".format(i),
             comment="String channel {}".format(i),
             raw=True,
+            encoding='utf-8',
         )
         sigs.append(sig)
     mdf.append(sigs, common_timebase=True)

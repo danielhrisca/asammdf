@@ -2805,6 +2805,8 @@ class MDF3(object):
         dep = grp["channel_dependencies"][ch_nr]
         cycles_nr = grp["channel_group"]["cycles_nr"]
 
+        encoding=None
+
         # get data group record
         if data is None:
             data = self._load_data(grp, record_offset=record_offset, record_count=record_count)
@@ -2998,7 +3000,8 @@ class MDF3(object):
                 conversion_type = conversion["conversion_type"]
 
             if conversion_type == v23c.CONVERSION_TYPE_NONE:
-                pass
+                if vals.dtype.kind == 'S':
+                    encoding = 'latin-1'
 
             elif conversion_type in (
                 v23c.CONVERSION_TYPE_LINEAR,
@@ -3073,6 +3076,7 @@ class MDF3(object):
                 display_name=display_name,
                 source=source,
                 bit_count=bit_count,
+                encoding=encoding,
             )
 
         return res
