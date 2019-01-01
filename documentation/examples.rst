@@ -252,6 +252,7 @@ MF4 demo file generator
         t,
         name='Channel_string',
         comment='String channel',
+        encoding='latin-1',
     )
     sigs.append(sig)
 
@@ -512,5 +513,6 @@ MF4 demo file generator
     mdf.append(sigs, 'arrays', common_timebase=True)
 
     mdf.save('demo.mf4', overwrite=True)
+
 
 

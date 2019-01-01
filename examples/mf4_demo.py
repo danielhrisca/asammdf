@@ -78,6 +78,7 @@ sig = Signal(
     t,
     name='Channel_string',
     comment='String channel',
+    encoding='latin-1',
 )
 sigs.append(sig)
 
