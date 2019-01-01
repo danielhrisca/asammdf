@@ -531,6 +531,7 @@ class MDF(object):
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
+            encodings = [None, ]
             included_channels = self._included_channels(i)
 
             parents, dtypes = self._prepare_record(group)
@@ -538,9 +539,6 @@ class MDF(object):
 
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
-                if version < "4.00":
-                    encodings = [None, ]
-
                 if dtypes.itemsize:
                     group["record"] = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
@@ -621,7 +619,7 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                         )
 
-                        if version > "4.00":
+                        if version < "4.00":
                             encoding = encodings[j]
                             samples = sig[0]
                             if encoding:
@@ -1662,6 +1660,9 @@ class MDF(object):
 
         # append filtered channels to new MDF
         for new_index, (group_index, indexes) in enumerate(gps.items()):
+            if version < "4.00":
+                encodings = [None, ]
+
             group = self.groups[group_index]
 
             data = self._load_data(group)
@@ -1669,8 +1670,6 @@ class MDF(object):
             group["parents"], group["types"] = parents, dtypes
 
             for idx, fragment in enumerate(data):
-                if version < "4.00":
-                    encodings = [None, ]
 
                 if dtypes.itemsize:
                     group["record"] = np.core.records.fromstring(
@@ -2225,6 +2224,8 @@ class MDF(object):
                 mdf = MDF(mdf, memory)
             for i, group in enumerate(mdf.groups):
                 idx = 0
+                if version < "4.00":
+                    encodings = [None, ]
                 included_channels = mdf._included_channels(i)
 
                 parents, dtypes = mdf._prepare_record(group)
@@ -2233,8 +2234,7 @@ class MDF(object):
                 data = mdf._load_data(group)
 
                 for fragment in data:
-                    if version < "4.00":
-                        encodings = [None, ]
+
                     if dtypes.itemsize:
                         group["record"] = np.core.records.fromstring(
                             fragment[0], dtype=dtypes
@@ -2411,13 +2411,13 @@ class MDF(object):
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
-
+            if version < "4.00":
+                encodings = [None, ]
             included_channels = self._included_channels(i)
 
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
-                if version < "4.00":
-                    encodings = [None, ]
+
                 if idx == 0:
                     sigs = []
                     for j in included_channels:
