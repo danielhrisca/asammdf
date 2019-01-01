@@ -2802,7 +2802,7 @@ class MDF4(object):
             if names is None:
                 sig_type = v4c.SIGNAL_TYPE_SCALAR
                 if sig_dtype.kind in "SV":
-                    sig_type = v4c.SIGNAL_TYPE_STRING, signal.encoding
+                    sig_type = v4c.SIGNAL_TYPE_STRING
             else:
                 if names in (canopen_time_fields, canopen_date_fields):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
@@ -3024,7 +3024,7 @@ class MDF4(object):
                 fields.extend(new_fields)
                 types.extend(new_types)
 
-            elif sig_type == v4c.SINGNAL_TYPE_ARRAY:
+            elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 # here we have channel arrays or mdf v3 channel dependencies
                 samples = signal.samples[names[0]]
                 shape = samples.shape[1:]
@@ -3209,7 +3209,7 @@ class MDF4(object):
                     ch_cntr += 1
 
             else:
-                _, encoding = sig_type
+                encoding = signal.encoding
                 samples = signal.samples
                 sig_dtype = samples.dtype
 
@@ -3875,7 +3875,6 @@ class MDF4(object):
                             inval_bits.append(invalidation_bits)
 
             else:
-                _, encoding = sig_type
                 if self.memory == "full":
                     data = gp["signal_data"][i]
                     cur_offset = len(data)
