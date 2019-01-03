@@ -441,6 +441,7 @@ class Channel(dict):
         self.name = self.unit = self.comment = self.display_name = ""
         self.conversion = self.source = None
         self.attachments = []
+        self.dtype_fmt = None
 
         if "stream" in kwargs:
 
@@ -860,7 +861,7 @@ class Channel(dict):
             fmt = v4c.FMT_SIMPLE_CHANNEL
         else:
 
-            keys = [
+            keys = (
                 "id",
                 "reserved0",
                 "block_len",
@@ -873,12 +874,19 @@ class Channel(dict):
                 "data_block_addr",
                 "unit_addr",
                 "comment_addr",
-            ]
-            for i in range(self["attachment_nr"]):
-                keys.append("attachment_{}_addr".format(i))
+            )
+            if self["attachment_nr"]:
+                keys += tuple(
+                    "attachment_{}_addr".format(i)
+                    for i in range(self["attachment_nr"])
+                )
             if self["flags"] & v4c.FLAG_CN_DEFAULT_X:
-                keys += ["default_X_dg_addr", "default_X_cg_addr", "default_X_ch_addr"]
-            keys += [
+                keys += (
+                    "default_X_dg_addr",
+                    "default_X_cg_addr",
+                    "default_X_ch_addr",
+                )
+            keys += (
                 "channel_type",
                 "sync_type",
                 "data_type",
@@ -896,7 +904,7 @@ class Channel(dict):
                 "upper_limit",
                 "lower_ext_limit",
                 "upper_ext_limit",
-            ]
+            )
         result = pack(fmt, *[self[key] for key in keys])
         return result
 
@@ -2267,7 +2275,7 @@ class ChannelConversion(dict):
             self.address = cc_map[bts]
         else:
             cc_map[bts] = address
-            stream.write(bytes(self))
+            stream.write(bts)
             self.address = address
             address += self["block_len"]
 

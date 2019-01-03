@@ -71,7 +71,7 @@ from .utils import (
     fix_dtype_fields,
     fmt_to_datatype_v4,
     get_fmt_v4,
-    get_unique_name,
+    UniqueDB,
     get_text_v4,
     debug_channel,
     extract_cncomment_xml,
@@ -229,7 +229,9 @@ class MDF4(object):
         self._master_channel_metadata = {}
         self._invalidation_cache = {}
         self._si_map = {}
+        self._file_si_map = {}
         self._cc_map = {}
+        self._file_cc_map = {}
         self._cg_map = {}
         self._dbc_cache = {}
 
@@ -1757,7 +1759,7 @@ class MDF4(object):
             current_parent = ""
             parent_start_offset = 0
             parents = {}
-            group_channels = set()
+            group_channels = UniqueDB()
 
             neg_index = -1
 
@@ -1776,14 +1778,10 @@ class MDF4(object):
                     name = new_ch.name
 
                 # handle multiple occurance of same channel name
-                name = get_unique_name(group_channels, name)
-                group_channels.add(name)
+                name = group_channels.get_unique_name(name)
 
                 if start_offset >= next_byte_aligned_position:
-                    if ch_type not in {
-                        v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
-                        v4c.CHANNEL_TYPE_VIRTUAL,
-                    }:
+                    if ch_type not in v4c.VIRTUAL_TYPES:
                         if not dependency_list:
                             parent_start_offset = start_offset
 
@@ -1794,15 +1792,7 @@ class MDF4(object):
 
                             # adjust size to 1, 2, 4 or 8 bytes
                             size = bit_offset + bit_count
-                            if data_type not in {
-                                v4c.DATA_TYPE_BYTEARRAY,
-                                v4c.DATA_TYPE_STRING_UTF_8,
-                                v4c.DATA_TYPE_STRING_LATIN_1,
-                                v4c.DATA_TYPE_STRING_UTF_16_BE,
-                                v4c.DATA_TYPE_STRING_UTF_16_LE,
-                                v4c.DATA_TYPE_CANOPEN_TIME,
-                                v4c.DATA_TYPE_CANOPEN_DATE,
-                            }:
+                            if data_type not in v4c.NON_SCALAR_TYPES:
                                 if size > 32:
                                     size = 8
                                 elif size > 16:
@@ -1814,13 +1804,14 @@ class MDF4(object):
                             else:
                                 size = size >> 3
 
-
                             next_byte_aligned_position = parent_start_offset + size
                             bit_count = size * 8
                             if next_byte_aligned_position <= record_size:
+                                if not new_ch.dtype_fmt:
+                                    new_ch.dtype_fmt = get_fmt_v4(data_type, bit_count, ch_type)
                                 dtype_pair = (
                                     name,
-                                    get_fmt_v4(data_type, bit_count, ch_type),
+                                    new_ch.dtype_fmt,
                                 )
                                 types.append(dtype_pair)
                                 parents[original_index] = name, bit_offset
@@ -1853,9 +1844,11 @@ class MDF4(object):
                                 for d in shape:
                                     dim *= d
 
+                                if not new_ch.dtype_fmt:
+                                    new_ch.dtype_fmt = get_fmt_v4(data_type, bit_count)
                                 dtype_pair = (
                                     name,
-                                    get_fmt_v4(data_type, bit_count),
+                                    new_ch.dtype_fmt,
                                     shape,
                                 )
                                 types.append(dtype_pair)
@@ -1922,12 +1915,15 @@ class MDF4(object):
         ch_cntr,
         parents,
         defined_texts,
-        cc_map,
-        si_map,
         invalidation_bytes_nr,
         inval_bits,
         inval_cntr,
     ):
+
+        si_map = self._si_map
+        file_si_map = self._file_si_map
+        cc_map = self._cc_map
+        file_cc_map = self._file_cc_map
 
         fields = []
         types = []
@@ -1958,8 +1954,7 @@ class MDF4(object):
         name = signal.name
         names = signal.samples.dtype.names
 
-        field_name = get_unique_name(field_names, name)
-        field_names.add(field_name)
+        field_name = field_names.get_unique_name(name)
 
         # first we add the structure channel
 
@@ -1995,22 +1990,28 @@ class MDF4(object):
         ch.display_name = signal.display_name
 
         # source for channel
-        if signal.source:
-            source = signal.source
-            new_source = SourceInformation(
-                source_type=signal.source.source_type, bus_type=signal.source.bus_type
-            )
-            new_source.name = source.name
-            new_source.path = source.path
-            new_source.comment = source.comment
+        source = signal.source
+        if source:
+            if source in si_map:
+                ch.source = si_map[source]
+            else:
+                new_source = SourceInformation(
+                    source_type=source.source_type,
+                    bus_type=source.bus_type,
+                )
+                new_source.name = source.name
+                new_source.path = source.path
+                new_source.comment = source.comment
 
-            ch.source = new_source
+                si_map[source] = new_source
+
+                ch.source = new_source
 
         if memory != "minimum":
             gp_channels.append(ch)
             struct_self = ch_cntr, dg_cntr
         else:
-            ch.to_stream(file, defined_texts, cc_map, si_map)
+            ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
             gp_channels.append(ch.address)
             struct_self = ch_cntr, dg_cntr
 
@@ -2041,8 +2042,7 @@ class MDF4(object):
         # then we add the fields
 
         for name in names:
-            field_name = get_unique_name(field_names, name)
-            field_names.add(field_name)
+            field_name = field_names.get_unique_name(name)
 
             samples = signal.samples[name]
             fld_names = samples.dtype.names
@@ -2093,7 +2093,7 @@ class MDF4(object):
                     gp_channels.append(ch)
                     dep_list.append((ch_cntr, dg_cntr))
                 else:
-                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                     gp_channels.append(ch.address)
                     dep_list.append((ch_cntr, dg_cntr))
 
@@ -2137,8 +2137,6 @@ class MDF4(object):
                     ch_cntr,
                     parents,
                     defined_texts,
-                    cc_map,
-                    si_map,
                     invalidation_bytes_nr,
                     inval_bits,
                     inval_cntr,
@@ -2261,7 +2259,9 @@ class MDF4(object):
 
         vals = vals.tostring()
 
-        fmt = get_fmt_v4(channel["data_type"], bit_count)
+        if not channel.dtype_fmt:
+            channel.dtype_fmt = get_fmt_v4(channel["data_type"], bit_count)
+        fmt = channel.dtype_fmt
         if size <= byte_count:
             if channel["data_type"] in big_endian_types:
                 types = [("", "a{}".format(byte_count - size)), ("vals", fmt)]
@@ -2325,9 +2325,14 @@ class MDF4(object):
             else:
                 gp_nr, ch_nr = group, index
                 if ch_nr >= 0:
-                    if gp_nr > len(self.groups) - 1:
+                    try:
+                        grp = self.groups[gp_nr]
+                    except IndexError:
                         raise MdfException("Group index out of range")
-                    if index > len(self.groups[gp_nr]["channels"]) - 1:
+
+                    try:
+                        grp["channels"][ch_nr]
+                    except IndexError:
                         raise MdfException("Channel index out of range")
         else:
             if name not in self.channels_db:
@@ -2713,11 +2718,13 @@ class MDF4(object):
         parents = {}
         ch_cntr = 0
         offset = 0
-        field_names = set()
+        field_names = UniqueDB()
 
         defined_texts = {}
-        si_map = {}
-        cc_map = {}
+        si_map = self._si_map
+        file_si_map = self._file_si_map
+        cc_map = self._cc_map
+        file_cc_map = self._file_cc_map
 
         # setup all blocks related to the time master channel
 
@@ -2767,8 +2774,9 @@ class MDF4(object):
             ch.name = time_name
             ch.source = source_block
             name = time_name
+
             if memory == "minimum":
-                ch.to_stream(file, defined_texts, cc_map, si_map)
+                ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                 gp_channels.append(ch.address)
             else:
                 gp_channels.append(ch)
@@ -2785,7 +2793,7 @@ class MDF4(object):
 
             fields.append(t)
             types.append((name, t.dtype))
-            field_names.add(name)
+            field_names.get_unique_name(name)
 
             offset += t_size // 8
             ch_cntr += 1
@@ -2867,22 +2875,27 @@ class MDF4(object):
                     ch.conversion = conversion
 
                 # source for channel
-                if signal.source:
-                    source = signal.source
-                    new_source = SourceInformation(
-                        source_type=signal.source.source_type,
-                        bus_type=signal.source.bus_type,
-                    )
-                    new_source.name = source.name
-                    new_source.path = source.path
-                    new_source.comment = source.comment
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(
+                            source_type=source.source_type,
+                            bus_type=source.bus_type,
+                        )
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
 
-                    ch.source = new_source
+                        si_map[source] = new_source
+
+                        ch.source = new_source
 
                 if memory != "minimum":
                     gp_channels.append(ch)
                 else:
-                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                     gp_channels.append(ch.address)
 
                 offset += byte_size
@@ -2892,7 +2905,7 @@ class MDF4(object):
                 self.channels_db.add(name, dg_cntr, ch_cntr)
 
                 # update the parents as well
-                field_name = get_unique_name(field_names, name)
+                field_name = field_names.get_unique_name(name)
                 parents[ch_cntr] = field_name, 0
 
                 fields.append(samples)
@@ -2902,7 +2915,6 @@ class MDF4(object):
                     )
                 else:
                     types.append((field_name, sig_dtype))
-                field_names.add(field_name)
 
                 ch_cntr += 1
 
@@ -2911,8 +2923,7 @@ class MDF4(object):
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
 
-                field_name = get_unique_name(field_names, name)
-                field_names.add(field_name)
+                field_name = field_names.get_unique_name(name)
 
                 if names == canopen_time_fields:
 
@@ -2972,22 +2983,27 @@ class MDF4(object):
                 ch.display_name = signal.display_name
 
                 # source for channel
-                if signal.source:
-                    source = signal.source
-                    new_source = SourceInformation(
-                        source_type=signal.source.source_type,
-                        bus_type=signal.source.bus_type,
-                    )
-                    new_source.name = source.name
-                    new_source.path = source.path
-                    new_source.comment = source.comment
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(
+                            source_type=source.source_type,
+                            bus_type=source.bus_type,
+                        )
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
 
-                    ch.source = new_source
+                        si_map[source] = new_source
+
+                        ch.source = new_source
 
                 if memory != "minimum":
                     gp_channels.append(ch)
                 else:
-                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                     gp_channels.append(ch.address)
 
                 offset += byte_size
@@ -3016,8 +3032,6 @@ class MDF4(object):
                     ch_cntr,
                     parents,
                     defined_texts,
-                    cc_map,
-                    si_map,
                     invalidation_bytes_nr,
                     inval_bits,
                     inval_cntr,
@@ -3080,8 +3094,7 @@ class MDF4(object):
                     parent_dep = ChannelArrayBlock(**kargs)
                     gp_dep.append([parent_dep])
 
-                field_name = get_unique_name(field_names, name)
-                field_names.add(field_name)
+                field_name = field_names.get_unique_name(name)
 
                 fields.append(samples)
                 dtype_pair = field_name, samples.dtype, shape
@@ -3113,22 +3126,27 @@ class MDF4(object):
                 ch.display_name = signal.display_name
 
                 # source for channel
-                if signal.source:
-                    source = signal.source
-                    new_source = SourceInformation(
-                        source_type=signal.source.source_type,
-                        bus_type=signal.source.bus_type,
-                    )
-                    new_source.name = source.name
-                    new_source.path = source.path
-                    new_source.comment = source.comment
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(
+                            source_type=source.source_type,
+                            bus_type=source.bus_type,
+                        )
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
 
-                    ch.source = new_source
+                        si_map[source] = new_source
+
+                        ch.source = new_source
 
                 if memory != "minimum":
                     gp_channels.append(ch)
                 else:
-                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                     gp_channels.append(ch.address)
 
                 size = s_size >> 3
@@ -3146,8 +3164,7 @@ class MDF4(object):
                 ch_cntr += 1
 
                 for name in names[1:]:
-                    field_name = get_unique_name(field_names, name)
-                    field_names.add(field_name)
+                    field_name = field_names.get_unique_name(name)
 
                     samples = signal.samples[name]
                     shape = samples.shape[1:]
@@ -3192,7 +3209,7 @@ class MDF4(object):
                     if memory != "minimum":
                         gp_channels.append(ch)
                     else:
-                        ch.to_stream(file, defined_texts, cc_map, si_map)
+                        ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                         gp_channels.append(ch.address)
 
                     parent_dep.referenced_channels.append((ch_cntr, dg_cntr))
@@ -3283,22 +3300,27 @@ class MDF4(object):
                     ch.conversion = conversion
 
                 # source for channel
-                if signal.source:
-                    source = signal.source
-                    new_source = SourceInformation(
-                        source_type=signal.source.source_type,
-                        bus_type=signal.source.bus_type,
-                    )
-                    new_source.name = source.name
-                    new_source.path = source.path
-                    new_source.comment = source.comment
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(
+                            source_type=source.source_type,
+                            bus_type=source.bus_type,
+                        )
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
 
-                    ch.source = new_source
+                        si_map[source] = new_source
+
+                        ch.source = new_source
 
                 if memory != "minimum":
                     gp_channels.append(ch)
                 else:
-                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                     gp_channels.append(ch.address)
 
                 offset += byte_size
@@ -3306,12 +3328,11 @@ class MDF4(object):
                 self.channels_db.add(name, dg_cntr, ch_cntr)
 
                 # update the parents as well
-                field_name = get_unique_name(field_names, name)
+                field_name = field_names.get_unique_name(name)
                 parents[ch_cntr] = field_name, 0
 
                 fields.append(offsets)
                 types.append((field_name, uint64))
-                field_names.add(field_name)
 
                 ch_cntr += 1
 
@@ -3461,11 +3482,13 @@ class MDF4(object):
         parents = {}
         ch_cntr = 0
         offset = 0
-        field_names = set()
+        field_names = UniqueDB()
 
         defined_texts = {}
-        si_map = {}
-        cc_map = {}
+        si_map = self._si_map
+        file_si_map = self._file_si_map
+        cc_map = self._cc_map
+        file_cc_map = self._file_cc_map
 
         # setup all blocks related to the time master channel
 
@@ -3502,7 +3525,7 @@ class MDF4(object):
             ch.source = source_block
             name = time_name
             if memory == "minimum":
-                ch.to_stream(file, defined_texts, cc_map, si_map)
+                ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                 gp_channels.append(ch.address)
             else:
                 gp_channels.append(ch)
@@ -3519,7 +3542,7 @@ class MDF4(object):
 
             fields.append(t)
             types.append((name, t.dtype))
-            field_names.add(name)
+            field_names.get_unique_name(name)
 
             offset += t_size // 8
             ch_cntr += 1
@@ -3568,7 +3591,7 @@ class MDF4(object):
                 if memory != "minimum":
                     gp_channels.append(ch)
                 else:
-                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                     gp_channels.append(ch.address)
 
                 offset += byte_size
@@ -3578,7 +3601,7 @@ class MDF4(object):
                 self.channels_db.add(name, dg_cntr, ch_cntr)
 
                 # update the parents as well
-                field_name = get_unique_name(field_names, name)
+                field_name = field_names.get_unique_name(name)
                 parents[ch_cntr] = field_name, 0
 
                 fields.append(sig)
@@ -3586,7 +3609,6 @@ class MDF4(object):
                     types.append((field_name, sig.dtype, sig.shape[1:]))
                 else:
                     types.append((field_name, sig.dtype))
-                field_names.add(field_name)
 
                 ch_cntr += 1
 
@@ -3639,7 +3661,7 @@ class MDF4(object):
                 if memory != "minimum":
                     gp_channels.append(ch)
                 else:
-                    ch.to_stream(file, defined_texts, cc_map, si_map)
+                    ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                     gp_channels.append(ch.address)
 
                 offset += byte_size
@@ -3647,12 +3669,11 @@ class MDF4(object):
                 self.channels_db.add(name, dg_cntr, ch_cntr)
 
                 # update the parents as well
-                field_name = get_unique_name(field_names, name)
+                field_name = field_names.field_names.get_unique_name(name)
                 parents[ch_cntr] = field_name, 0
 
                 fields.append(offsets)
                 types.append((field_name, uint64))
-                field_names.add(field_name)
 
                 ch_cntr += 1
 
@@ -3799,9 +3820,8 @@ class MDF4(object):
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
                 fields.append(signal)
-                shape = signal.shape[1:]
-                if shape:
-                    types.append(("", signal.dtype, shape))
+                if len(signal.shape) > 1:
+                    types.append(("", signal.dtype, signal.shape[1:]))
                 else:
                     types.append(("", signal.dtype))
 
@@ -4732,7 +4752,9 @@ class MDF4(object):
                 v4c.CHANNEL_TYPE_VIRTUAL,
                 v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
             }:
-                ch_dtype = dtype(get_fmt_v4(data_type, 64))
+                if not channel.dtype_fmt:
+                    channel.dtype_fmt = get_fmt_v4(data_type, 64)
+                ch_dtype = dtype(channel.dtype_fmt)
 
                 channel_values = []
                 timestamps = []
@@ -4877,8 +4899,10 @@ class MDF4(object):
                     if bit_count == 1 and self._single_bit_uint_as_bool:
                         vals = array(vals, dtype=bool)
                     else:
+                        if not channel.dtype_fmt:
+                            channel.dtype_fmt = get_fmt_v4(data_type, bit_count, channel_type)
                         channel_dtype = array(
-                            [], dtype=get_fmt_v4(data_type, bit_count, channel_type)
+                            [], dtype=channel.dtype_fmt
                         ).dtype
                         if vals.dtype != channel_dtype:
                             vals = vals.astype(channel_dtype)
@@ -6510,8 +6534,8 @@ class MDF4(object):
 
         with open(destination, "wb+") as dst_:
             defined_texts = {}
-            cc_map = {}
-            si_map = {}
+            file_cc_map = {}
+            file_si_map = {}
 
             groups_nr = len(self.groups)
 
@@ -6865,7 +6889,7 @@ class MDF4(object):
                         key = "attachment_{}_addr".format(att_idx)
                         channel[key] = self.attachments[idx].address
 
-                    address = channel.to_stream(dst_, defined_texts, cc_map, si_map)
+                    address = channel.to_stream(dst_, defined_texts, file_cc_map, file_si_map)
                     ch_addrs.append(channel.address)
                     next_ch_addr[level] = channel.address
 
@@ -6903,7 +6927,7 @@ class MDF4(object):
                 for block in blocks:
                     write(bytes(block))
 
-                gp["channel_group"].to_stream(dst_, defined_texts, si_map)
+                gp["channel_group"].to_stream(dst_, defined_texts, file_si_map)
                 gp["data_group"]["first_cg_addr"] = gp["channel_group"].address
 
                 if self._callback:

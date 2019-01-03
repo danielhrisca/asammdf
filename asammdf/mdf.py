@@ -25,7 +25,6 @@ from .blocks.utils import (
     MERGE_LOW,
     MERGE_MINIMUM,
     MdfException,
-    get_unique_name,
     matlab_compatible,
     validate_memory_argument,
     validate_version_argument,
@@ -39,6 +38,7 @@ from .blocks.utils import (
     UINT16_u,
     UINT64_u,
     debug_channel,
+    UniqueDB,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -500,7 +500,7 @@ class MDF(object):
         for signal in self.iter_channels():
             yield signal
 
-    def convert(self, version, memory="full"):
+    def convert(self, version, memory=None):
         """convert *MDF* to other version
 
         Parameters
@@ -518,7 +518,10 @@ class MDF(object):
 
         """
         version = validate_version_argument(version)
-        memory = validate_memory_argument(memory)
+        if memory is None:
+            memory = self.memory
+        else:
+            memory = validate_memory_argument(memory)
 
         out = MDF(version=version, memory=memory)
 
@@ -607,7 +610,7 @@ class MDF(object):
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
                 else:
-                    sigs = [(self.get_master(i, data=fragment), None)]
+                    sigs = [(self.get_master(i, data=fragment, copy_master=False), None)]
 
                     for j in included_channels:
                         sig = self.get(
@@ -1070,7 +1073,8 @@ class MDF(object):
             units["time"] = "s"
             comments["time"] = ""
 
-            used_names = {"time"}
+            used_names = UniqueDB()
+            used_names.get_unique_name("time")
 
             for i, grp in enumerate(self.groups):
                 if self._terminate:
@@ -1103,13 +1107,7 @@ class MDF(object):
                     else:
                         channel_name = sig.name
 
-                    if channel_name in used_names:
-                        channel_name = "{}_{}".format(channel_name, i)
-
-                        channel_name = get_unique_name(used_names, channel_name)
-                        used_names.add(channel_name)
-                    else:
-                        used_names.add(channel_name)
+                    channel_name = used_names.get_unique_name(channel_name)
 
                     if len(sig):
                         mdict[channel_name] = sig.samples
@@ -1426,7 +1424,7 @@ class MDF(object):
 
                 master_name_template = "DataGroup_{}_{}_master"
                 channel_name_template = "DataGroup_{}_{}"
-                used_names = set()
+                used_names = UniqueDB()
 
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
@@ -1458,8 +1456,7 @@ class MDF(object):
                             channel_name = channel_name_template.format(i, channel_name)
 
                         channel_name = matlab_compatible(channel_name)
-                        channel_name = get_unique_name(used_names, channel_name)
-                        used_names.add(channel_name)
+                        channel_name = used_names.get_unique_name(channel_name)
 
                         if sig.samples.dtype.names:
                             sig.samples.dtype.names = [
@@ -1469,12 +1466,11 @@ class MDF(object):
 
                         mdict[channel_name] = sig.samples
             else:
-                used_names = set()
+                used_names = UniqueDB()
                 new_mdict = {}
                 for channel_name, samples in mdict.items():
                     channel_name = matlab_compatible(channel_name)
-                    channel_name = get_unique_name(used_names, channel_name)
-                    used_names.add(channel_name)
+                    channel_name = used_names.get_unique_name(channel_name)
 
                     new_mdict[channel_name] = samples
                 mdict = new_mdict
@@ -2957,10 +2953,10 @@ class MDF(object):
 
         pandas_dict = {master_name: np.concatenate(master)}
 
-        used_names = {master_name}
+        used_names = UniqueDB()
+        used_names.get_unique_name(master_name)
         for name, sig in zip(names, sigs):
-            name = get_unique_name(used_names, name)
-            used_names.add(name)
+            name = used_names.get_unique_name(name)
             pandas_dict[name] = np.concatenate(sig)
 
         try:

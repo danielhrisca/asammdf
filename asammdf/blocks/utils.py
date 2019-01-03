@@ -45,12 +45,12 @@ __all__ = [
     "MERGE_LOW",
     "MERGE_MINIMUM",
     "ChannelsDB",
+    "UniqueDB",
     "MdfException",
     "SignalSource",
     "get_fmt_v3",
     "get_fmt_v4",
     "get_min_max",
-    "get_unique_name",
     "get_text_v4",
     "fix_dtype_fields",
     "fmt_to_datatype_v3",
@@ -607,31 +607,6 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
     return data_type, size
 
 
-def get_unique_name(used_names, name):
-    """ returns a list of unique names
-
-    Parameters
-    ----------
-    used_names : set
-        set of already taken names
-    name : str
-        name to be made unique
-
-    Returns
-    -------
-    unique_name : str
-        new unique name
-
-    """
-    i = 0
-    unique_name = name
-    while unique_name in used_names:
-        unique_name = "{}_{}".format(name, i)
-        i += 1
-
-    return unique_name
-
-
 def get_min_max(samples):
     """ return min and max values for samples. If the samples are
     string return min>max
@@ -988,3 +963,32 @@ def is_file_like(obj):
         return False
 
     return True
+
+
+class UniqueDB(object):
+
+    def __init__(self):
+        self._db = {}
+
+    def get_unique_name(self, name):
+        """ returns an available unique name
+
+        Parameters
+        ----------
+        name : str
+            name to be made unique
+
+        Returns
+        -------
+        unique_name : str
+            new unique name
+
+        """
+
+        if name not in self._db:
+            self._db[name] = 0
+            return name
+        else:
+            index = self._db[name]
+            self._db[name] += 1
+            return "{}_{}".format(name, index)

@@ -53,7 +53,7 @@ from .utils import (
     fix_dtype_fields,
     fmt_to_datatype_v3,
     get_fmt_v3,
-    get_unique_name,
+    UniqueDB,
     validate_memory_argument,
     validate_version_argument,
     count_channel_groups,
@@ -397,7 +397,7 @@ class MDF3(object):
             current_parent = ""
             parent_start_offset = 0
             parents = {}
-            group_channels = set()
+            group_channels = UniqueDB()
 
             if memory != "minimum":
                 channels = grp["channels"]
@@ -437,8 +437,7 @@ class MDF3(object):
                 name = new_ch.name
 
                 # handle multiple occurance of same channel name
-                name = get_unique_name(group_channels, name)
-                group_channels.add(name)
+                name = group_channels.get_unique_name(name)
 
                 if start_offset >= next_byte_aligned_position:
                     parent_start_offset = (start_offset // 8) * 8
@@ -1209,7 +1208,7 @@ class MDF3(object):
         parents = {}
         ch_cntr = 0
         offset = 0
-        field_names = set()
+        field_names = UniqueDB()
 
         if signals:
             master_metadata = signals[0].master_metadata
@@ -1266,7 +1265,6 @@ class MDF3(object):
 
             fields.append(timestamps)
             types.append((name, timestamps.dtype))
-            field_names.add(name)
 
             offset += t_size
             ch_cntr += 1
@@ -1372,7 +1370,7 @@ class MDF3(object):
                 self.channels_db.add(display_name, dg_cntr, ch_cntr)
 
                 # update the parents as well
-                field_name = get_unique_name(field_names, name)
+                field_name = field_names.get_unique_name(name)
                 parents[ch_cntr] = field_name, 0
 
                 if signal.samples.dtype.kind == "S":
@@ -1385,7 +1383,6 @@ class MDF3(object):
                     types.append(
                         (field_name, signal.samples.dtype, signal.samples.shape[1:])
                     )
-                field_names.add(field_name)
 
                 ch_cntr += 1
 
@@ -1408,7 +1405,7 @@ class MDF3(object):
                 new_parents = {}
                 new_ch_cntr = 0
                 new_offset = 0
-                new_field_names = set()
+                new_field_names = UniqueDB()
 
                 # conversion for time channel
                 kargs = {
@@ -1550,12 +1547,11 @@ class MDF3(object):
                     self.channels_db.add(name, new_dg_cntr, new_ch_cntr)
 
                     # update the parents as well
-                    field_name = get_unique_name(new_field_names, name)
+                    field_name = new_field_names.get_unique_name(name)
                     new_parents[new_ch_cntr] = field_name, 0
 
                     new_fields.append(samples)
                     new_types.append((field_name, samples.dtype))
-                    new_field_names.add(field_name)
 
                     new_ch_cntr += 1
 
@@ -1781,12 +1777,11 @@ class MDF3(object):
                     self.channels_db.add(name, dg_cntr, ch_cntr)
 
                     # update the parents as well
-                    field_name = get_unique_name(field_names, name)
+                    field_name = field_names.get_unique_name(name)
                     parents[ch_cntr] = field_name, 0
 
                     fields.append(samples)
                     types.append((field_name, samples.dtype, shape))
-                    field_names.add(field_name)
 
                     gp_dep.append(None)
 
@@ -1951,12 +1946,11 @@ class MDF3(object):
                         self.channels_db.add(name, dg_cntr, ch_cntr)
 
                         # update the parents as well
-                        field_name = get_unique_name(field_names, name)
+                        field_name = field_names.get_unique_name(name)
                         parents[ch_cntr] = field_name, 0
 
                         fields.append(samples)
                         types.append((field_name, samples.dtype, shape))
-                        field_names.add(field_name)
 
                         gp_dep.append(None)
 
@@ -2080,7 +2074,7 @@ class MDF3(object):
         parents = {}
         ch_cntr = 0
         offset = 0
-        field_names = set()
+        field_names = UniqueDB()
 
         if df.shape[0]:
             # conversion for time channel
@@ -2200,7 +2194,7 @@ class MDF3(object):
             self.channels_db.add(name, dg_cntr, ch_cntr)
 
             # update the parents as well
-            field_name = get_unique_name(field_names, name)
+            field_name = field_names.get_unique_name(name)
             parents[ch_cntr] = field_name, 0
 
             if sig.dtype.kind == "S":
@@ -2208,7 +2202,6 @@ class MDF3(object):
 
             fields.append(sig)
             types.append((field_name, sig.dtype))
-            field_names.add(field_name)
 
             ch_cntr += 1
 
