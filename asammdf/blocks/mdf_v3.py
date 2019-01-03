@@ -1084,7 +1084,8 @@ class MDF3(object):
         ----------
         signals : list | Signal | pandas.DataFrame
             list of *Signal* objects, or a single *Signal* object, or a pandas
-            *DataFrame* object
+            *DataFrame* object. All bytes columns in the pandas *DataFrame*
+            must be *latin-1* encoded
         acquisition_info : str
             acquisition information; default 'Python'
         common_timebase : bool
