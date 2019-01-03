@@ -1243,7 +1243,10 @@ address: {}
                     if P2:
                         values += P2
             else:
-                values = evaluate(v23c.RAT_CONV_TEXT)
+                try:
+                    values = evaluate(v23c.RAT_CONV_TEXT)
+                except TypeError:
+                    values = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
 
         elif conversion_type == v23c.CONVERSION_TYPE_POLY:
             # pylint: disable=unused-variable,C0103
@@ -1260,9 +1263,16 @@ address: {}
             coefs = (P2, P3, P5, P6)
             if coefs == (0, 0, 0, 0):
                 if P1 != P4:
-                    values = evaluate(v23c.POLY_CONV_SHORT_TEXT)
+                    try:
+                        values = evaluate(v23c.POLY_CONV_SHORT_TEXT)
+                    except TypeError:
+                        values = P4 * X / P1
             else:
-                values = evaluate(v23c.POLY_CONV_LONG_TEXT)
+
+                try:
+                    values = evaluate(v23c.POLY_CONV_LONG_TEXT)
+                except TypeError:
+                    values = (P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)
 
         elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
             # pylint: disable=unused-variable,C0103

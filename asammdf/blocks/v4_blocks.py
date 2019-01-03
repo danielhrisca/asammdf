@@ -2312,7 +2312,10 @@ class ChannelConversion(dict):
                     if P2:
                         values += P2
             else:
-                values = evaluate(v4c.CONV_RAT_TEXT)
+                try:
+                    values = evaluate(v4c.CONV_RAT_TEXT)
+                except TypeError:
+                    values = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
 
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
             X = values

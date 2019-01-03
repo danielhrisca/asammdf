@@ -342,9 +342,20 @@ def get_all_mdf4(output, fmt, memory):
     with Timer('Get all channels',
                'asammdf {} {} mdfv4'.format(asammdf_version, memory),
                fmt) as timer:
+        t = perf_counter()
+        counter = 0
+        to_break = False
         for i, gp in enumerate(x.groups):
+            if to_break:
+                break
             for j in range(len(gp['channels'])):
+                t2 = perf_counter()
+                if t2 - t > 180:
+                    timer.message += ' {}/s'.format(counter/t2-t)
+                    to_break = True
+                    break
                 x.get(group=i, index=j, samples_only=True)
+                counter += 1
     output.send([timer.output, timer.error])
 
 
@@ -399,9 +410,9 @@ def merge_v3(output, fmt, memory):
 
 
 def merge_v4(output, fmt, memory):
-    files = [r'test.mf4', ] * 3
+    files = [r'test.mf4', ] * 2
 
-    with Timer('Merge 3 files',
+    with Timer('Merge 2 files',
                'asammdf {} {} v4'.format(asammdf_version, memory),
                fmt) as timer:
         MDF.merge(files, memory=memory, outversion='4.10')
@@ -573,8 +584,17 @@ def get_all_reader4(output, fmt):
     with Timer('Get all channels',
                'mdfreader {} mdfv4'.format(mdfreader_version),
                fmt) as timer:
+        t = perf_counter()
+        counter = 0
+        to_break = False
         for s in x:
+            t2 = perf_counter()
+            if t2 - t > 180:
+                timer.message += ' {}/s'.format(counter/t2-t)
+                to_break = True
+                break
             x.get_channel_data(s)
+            counter += 1
     output.send([timer.output, timer.error])
 
 
@@ -584,8 +604,17 @@ def get_all_reader4_nodata(output, fmt):
     with Timer('Get all channels',
                'mdfreader {} nodata mdfv4'.format(mdfreader_version),
                fmt) as timer:
+        t = perf_counter()
+        counter = 0
+        to_break = False
         for s in x:
+            t2 = perf_counter()
+            if t2 - t > 180:
+                timer.message += ' {}/s'.format(counter/t2-t)
+                to_break = True
+                break
             x.get_channel_data(s)
+            counter += 1
     output.send([timer.output, timer.error])
 
 
@@ -595,8 +624,17 @@ def get_all_reader4_compression(output, fmt):
     with Timer('Get all channels',
                'mdfreader {} compress mdfv4'.format(mdfreader_version),
                fmt) as timer:
+        t = perf_counter()
+        counter = 0
+        to_break = False
         for s in x:
+            t2 = perf_counter()
+            if t2 - t > 180:
+                timer.message += ' {}/s'.format(counter/t2-t)
+                to_break = True
+                break
             x.get_channel_data(s)
+            counter += 1
     output.send([timer.output, timer.error])
 
 
@@ -652,17 +690,14 @@ def merge_reader_v3_nodata(output, fmt):
 
 
 def merge_reader_v4(output, fmt):
-    files = [r'test.mf4', ] * 3
+    files = [r'test.mf4', ] * 2
 
-    with Timer('Merge 3 files',
+    with Timer('Merge 2 files',
                'mdfreader {} v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0])
         x1.resample(0.01)
         x2 = MDFreader(files[1])
-        x2.resample(0.01)
-        x1.merge_mdf(x2)
-        x2 = MDFreader(files[2])
         x2.resample(0.01)
         x1.merge_mdf(x2)
 
@@ -671,8 +706,8 @@ def merge_reader_v4(output, fmt):
 
 def merge_reader_v4_compress(output, fmt):
 
-    files = [r'test.mf4', ] * 3
-    with Timer('Merge 3 files',
+    files = [r'test.mf4', ] * 2
+    with Timer('Merge 2 files',
                'mdfreader {} compress v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], compression='blosc')
@@ -680,23 +715,17 @@ def merge_reader_v4_compress(output, fmt):
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.merge_mdf(x2)
-        x2 = MDFreader(files[2], compression='blosc')
-        x2.resample(0.01)
-        x1.merge_mdf(x2)
 
     output.send([timer.output, timer.error])
 
 def merge_reader_v4_nodata(output, fmt):
 
-    files = [r'test.mf4', ] * 3
-    with Timer('Merge 3 files',
+    files = [r'test.mf4', ] * 2
+    with Timer('Merge 2 files',
                'mdfreader {} nodata v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], no_data_loading=True)
         x1.resample(0.01)
-        x2 = MDFreader(files[1], no_data_loading=True)
-        x2.resample(0.01)
-        x1.merge_mdf(x2)
         x2 = MDFreader(files[1], no_data_loading=True)
         x2.resample(0.01)
         x1.merge_mdf(x2)
@@ -845,35 +874,7 @@ def main(text_output, fmt):
             errors.append(err)
         output.extend(table_end(fmt))
 
-    tests = (
-        partial(get_all_mdf3, memory='full'),
-        partial(get_all_mdf3, memory='low'),
-        partial(get_all_mdf3, memory='minimum'),
-        get_all_reader3,
-        get_all_reader3_nodata,
-        get_all_reader3_compression,
 
-        partial(get_all_mdf4, memory='full'),
-        partial(get_all_mdf4, memory='low'),
-        partial(get_all_mdf4, memory='minimum'),
-
-        get_all_reader4,
-        get_all_reader4_compression,
-        get_all_reader4_nodata,
-
-
-    )
-
-    if tests and GET:
-        output.extend(table_header('Get all channels (36424 calls)', fmt))
-        for func in tests:
-            thr = multiprocessing.Process(target=func, args=(send, fmt))
-            thr.start()
-            thr.join()
-            result, err = listen.recv()
-            output.append(result)
-            errors.append(err)
-        output.extend(table_end(fmt))
 
     tests = (
          partial(convert_v3_v4, memory='full'),
@@ -912,6 +913,36 @@ def main(text_output, fmt):
 
     if tests and MERGE:
         output.extend(table_header('Merge 3 files', fmt))
+        for func in tests:
+            thr = multiprocessing.Process(target=func, args=(send, fmt))
+            thr.start()
+            thr.join()
+            result, err = listen.recv()
+            output.append(result)
+            errors.append(err)
+        output.extend(table_end(fmt))
+
+        tests = (
+        partial(get_all_mdf3, memory='full'),
+        partial(get_all_mdf3, memory='low'),
+        partial(get_all_mdf3, memory='minimum'),
+        get_all_reader3,
+        get_all_reader3_nodata,
+        get_all_reader3_compression,
+
+        partial(get_all_mdf4, memory='full'),
+        partial(get_all_mdf4, memory='low'),
+        partial(get_all_mdf4, memory='minimum'),
+
+        get_all_reader4,
+        # get_all_reader4_compression,
+        get_all_reader4_nodata,
+
+
+    )
+
+    if tests and GET:
+        output.extend(table_header('Get all channels (36424 calls)', fmt))
         for func in tests:
             thr = multiprocessing.Process(target=func, args=(send, fmt))
             thr.start()
