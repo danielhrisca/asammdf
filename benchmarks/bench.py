@@ -350,8 +350,8 @@ def get_all_mdf4(output, fmt, memory):
                 break
             for j in range(len(gp['channels'])):
                 t2 = perf_counter()
-                if t2 - t > 180:
-                    timer.message += ' {}/s'.format(counter/t2-t)
+                if t2 - t > 60:
+                    timer.message += ' {}/s'.format(counter/(t2-t))
                     to_break = True
                     break
                 x.get(group=i, index=j, samples_only=True)
@@ -589,8 +589,8 @@ def get_all_reader4(output, fmt):
         to_break = False
         for s in x:
             t2 = perf_counter()
-            if t2 - t > 180:
-                timer.message += ' {}/s'.format(counter/t2-t)
+            if t2 - t > 60:
+                timer.message += ' {}/s'.format(counter/(t2-t))
                 to_break = True
                 break
             x.get_channel_data(s)
@@ -609,8 +609,8 @@ def get_all_reader4_nodata(output, fmt):
         to_break = False
         for s in x:
             t2 = perf_counter()
-            if t2 - t > 180:
-                timer.message += ' {}/s'.format(counter/t2-t)
+            if t2 - t > 60:
+                timer.message += ' {}/s'.format(counter/(t2-t))
                 to_break = True
                 break
             x.get_channel_data(s)
@@ -629,8 +629,8 @@ def get_all_reader4_compression(output, fmt):
         to_break = False
         for s in x:
             t2 = perf_counter()
-            if t2 - t > 180:
-                timer.message += ' {}/s'.format(counter/t2-t)
+            if t2 - t > 60:
+                timer.message += ' {}/s'.format(counter/(t2-t))
                 to_break = True
                 break
             x.get_channel_data(s)
@@ -808,7 +808,7 @@ def main(text_output, fmt):
                    '(lowest possible RAM usage)'))
     output.append(('* compress = mdfreader mdf object created with '
                    'compression=blosc'))
-    output.append(('* no_data_loading = mdfreader mdf object read with '
+    output.append(('* nodata = mdfreader mdf object read with '
                    'no_data_loading=True'))
     output.append('\nFiles used for benchmark:\n')
     output.append('* mdf version {}'.format(v3_version))
@@ -897,18 +897,18 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-         partial(merge_v3, memory='full'),
-         partial(merge_v3, memory='low'),
-         partial(merge_v3, memory='minimum'),
-         merge_reader_v3,
-         merge_reader_v3_compress,
-         merge_reader_v3_nodata,
+          partial(merge_v3, memory='full'),
+          partial(merge_v3, memory='low'),
+          partial(merge_v3, memory='minimum'),
+          merge_reader_v3,
+          merge_reader_v3_compress,
+          merge_reader_v3_nodata,
          partial(merge_v4, memory='full'),
          partial(merge_v4, memory='low'),
          partial(merge_v4, memory='minimum'),
-         merge_reader_v4,
-         merge_reader_v4_nodata,
-         merge_reader_v4_compress,
+          merge_reader_v4,
+          merge_reader_v4_nodata,
+          merge_reader_v4_compress,
     )
 
     if tests and MERGE:
@@ -922,7 +922,7 @@ def main(text_output, fmt):
             errors.append(err)
         output.extend(table_end(fmt))
 
-        tests = (
+    tests = (
         partial(get_all_mdf3, memory='full'),
         partial(get_all_mdf3, memory='low'),
         partial(get_all_mdf3, memory='minimum'),
@@ -935,7 +935,7 @@ def main(text_output, fmt):
         partial(get_all_mdf4, memory='minimum'),
 
         get_all_reader4,
-        # get_all_reader4_compression,
+        get_all_reader4_compression,
         get_all_reader4_nodata,
 
 
