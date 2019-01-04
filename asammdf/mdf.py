@@ -802,8 +802,6 @@ class MDF(object):
                         if start_index == 0 and stop_index == len(master):
                             needs_cutting = False
 
-#                print((start, stop), (master[0], master[-1]), needs_cutting, self._read_fragment_size, len(fragment[0]))
-
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
                 if idx == 0:
