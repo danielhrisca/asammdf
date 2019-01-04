@@ -432,7 +432,6 @@ class MDF(object):
                         included_channels.add(ch_nr)
         else:
             if group.get("CAN_logging", False):
-                print([ch.name for ch in group['channels']])
                 where = (
                     self.whereis("CAN_DataFrame")
                     + self.whereis("CAN_ErrorFrame")
@@ -953,9 +952,8 @@ class MDF(object):
 
             * `mat` : Matlab .mat version 4, 5 or 7.3 export. If
               *single_time_base==False* the channels will be renamed in the mat
-              file to 'DataGroup_<cntr>_<channel name>'. The channel group
-              master will be renamed to
-              'DataGroup_<cntr>_<channel name>_master'
+              file to 'D<cntr>_<channel name>'. The channel group
+              master will be renamed to 'DM<cntr>_<channel name>'
               ( *<cntr>* is the data group index starting from 0)
 
             * `pandas` : export all channels as a single pandas DataFrame
@@ -1425,8 +1423,8 @@ class MDF(object):
             if not single_time_base:
                 mdict = {}
 
-                master_name_template = "DataGroup_{}_{}_master"
-                channel_name_template = "DataGroup_{}_{}"
+                master_name_template = "DGM{}_{}"
+                channel_name_template = "DG{}_{}"
                 used_names = UniqueDB()
 
                 for i, grp in enumerate(self.groups):

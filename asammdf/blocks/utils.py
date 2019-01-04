@@ -207,13 +207,18 @@ def matlab_compatible(name):
 
     """
 
-    compatible_name = [ch if ch in ALLOWED_MATLAB_CHARS else "_" for ch in name]
+    compatible_name = [
+        ch if ch in ALLOWED_MATLAB_CHARS else "_"
+        for ch in name
+    ]
     compatible_name = "".join(compatible_name)
 
     if compatible_name[0] not in string.ascii_letters:
         compatible_name = "M_" + compatible_name
 
-    return compatible_name
+    # max variable name is 63 and 3 chars are reserved
+    # for get_unique_name in case of multiple channel name occurence
+    return compatible_name[:60]
 
 
 def get_text_v3(address, stream):
