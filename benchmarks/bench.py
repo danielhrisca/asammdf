@@ -410,9 +410,9 @@ def merge_v3(output, fmt, memory):
 
 
 def merge_v4(output, fmt, memory):
-    files = [r'test.mf4', ] * 2
+    files = [r'test.mf4', ] * 3
 
-    with Timer('Merge 2 files',
+    with Timer('Merge 3 files',
                'asammdf {} {} v4'.format(asammdf_version, memory),
                fmt) as timer:
         MDF.merge(files, memory=memory, outversion='4.10')
@@ -690,14 +690,17 @@ def merge_reader_v3_nodata(output, fmt):
 
 
 def merge_reader_v4(output, fmt):
-    files = [r'test.mf4', ] * 2
+    files = [r'test.mf4', ] * 3
 
-    with Timer('Merge 2 files',
+    with Timer('Merge 3 files',
                'mdfreader {} v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0])
         x1.resample(0.01)
         x2 = MDFreader(files[1])
+        x2.resample(0.01)
+        x1.merge_mdf(x2)
+        x2 = MDFreader(files[2])
         x2.resample(0.01)
         x1.merge_mdf(x2)
 
@@ -706,8 +709,8 @@ def merge_reader_v4(output, fmt):
 
 def merge_reader_v4_compress(output, fmt):
 
-    files = [r'test.mf4', ] * 2
-    with Timer('Merge 2 files',
+    files = [r'test.mf4', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} compress v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], compression='blosc')
@@ -715,18 +718,24 @@ def merge_reader_v4_compress(output, fmt):
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.merge_mdf(x2)
+        x2 = MDFreader(files[2])
+        x2.resample(0.01)
+        x1.merge_mdf(x2)
 
     output.send([timer.output, timer.error])
 
 def merge_reader_v4_nodata(output, fmt):
 
-    files = [r'test.mf4', ] * 2
-    with Timer('Merge 2 files',
+    files = [r'test.mf4', ] * 3
+    with Timer('Merge 3 files',
                'mdfreader {} nodata v4'.format(mdfreader_version),
                fmt) as timer:
         x1 = MDFreader(files[0], no_data_loading=True)
         x1.resample(0.01)
         x2 = MDFreader(files[1], no_data_loading=True)
+        x2.resample(0.01)
+        x1.merge_mdf(x2)
+        x2 = MDFreader(files[2])
         x2.resample(0.01)
         x1.merge_mdf(x2)
 
