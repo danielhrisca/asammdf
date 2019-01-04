@@ -432,12 +432,17 @@ class MDF(object):
                         included_channels.add(ch_nr)
         else:
             if group.get("CAN_logging", False):
-                where = self.whereis("CAN_DataFrame")
+                print([ch.name for ch in group['channels']])
+                where = (
+                    self.whereis("CAN_DataFrame")
+                    + self.whereis("CAN_ErrorFrame")
+                    + self.whereis("CAN_RemoteFrame")
+                )
                 for dg_cntr, ch_cntr in where:
                     if dg_cntr == index:
                         break
                 else:
-                    raise MdfException("CAN_DataFrame not found in group " + str(index))
+                    raise MdfException("CAN_DataFrame or CAN_ErrorFrame not found in group " + str(index))
                 channel = channels[ch_cntr]
                 if group["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
                     stream = self._file
