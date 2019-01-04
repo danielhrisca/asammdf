@@ -1021,7 +1021,7 @@ class MDF4(object):
                         grp.get("CAN_id", None) is not None
                         and grp.get("message_id", None) is not None
                     ):
-                        addr = channel["attachment_0_addr"]
+                        addr = channel.get("attachment_0_addr", 0)
                         if addr:
                             attachment_addr = self._attachments_map[addr]
                             if attachment_addr not in self._dbc_cache:
