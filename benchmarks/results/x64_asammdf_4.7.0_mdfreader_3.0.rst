@@ -65,6 +65,24 @@ mdfreader 3.0 compress mdfv4                            4352      478
 
 
 ================================================== ========= ========
+Get all channels (36424 calls)                     Time [ms] RAM [MB]
+================================================== ========= ========
+asammdf 4.7.0 full mdfv3                             1662      345
+asammdf 4.7.0 low mdfv3                              7073      197
+asammdf 4.7.0 minimum mdfv3                          8624       86
+mdfreader 3.0 mdfv3                                       88      430
+mdfreader 3.0 nodata mdfv3                             11710      212
+mdfreader 3.0 compress mdfv3                             199      296
+asammdf 4.7.0 full mdfv4                             1462      313
+asammdf 4.7.0 low mdfv4                              7866      153
+asammdf 4.7.0 minimum mdfv4                          9462       88
+mdfreader 3.0 mdfv4                                      101      456
+mdfreader 3.0 compress mdfv4                             222      329
+mdfreader 3.0 nodata mdfv4                             16240      221
+================================================== ========= ========
+
+
+================================================== ========= ========
 Convert file                                       Time [ms] RAM [MB]
 ================================================== ========= ========
 asammdf 4.7.0 full v3 to v4                          4312      645
@@ -94,19 +112,4 @@ mdfreader 3.0 compress v4                              29627     1344
 ================================================== ========= ========
 
 
-================================================== ========= ========
-Get all channels (36424 calls)                     Time [ms] RAM [MB]
-================================================== ========= ========
-asammdf 4.7.0 full mdfv3                             1662      345
-asammdf 4.7.0 low mdfv3                              7073      197
-asammdf 4.7.0 minimum mdfv3                          8624       86
-mdfreader 3.0 mdfv3                                       88      430
-mdfreader 3.0 nodata mdfv3                             11710      212
-mdfreader 3.0 compress mdfv3                             199      296
-asammdf 4.7.0 full mdfv4                             1462      313
-asammdf 4.7.0 low mdfv4                              7866      153
-asammdf 4.7.0 minimum mdfv4                          9462       88
-mdfreader 3.0 mdfv4                                      101      456
-mdfreader 3.0 compress mdfv4                             222      329
-mdfreader 3.0 nodata mdfv4                             16240      221
-================================================== ========= ========
+
