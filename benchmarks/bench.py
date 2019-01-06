@@ -883,7 +883,35 @@ def main(text_output, fmt):
             errors.append(err)
         output.extend(table_end(fmt))
 
+    tests = (
+        partial(get_all_mdf3, memory='full'),
+        partial(get_all_mdf3, memory='low'),
+        partial(get_all_mdf3, memory='minimum'),
+        get_all_reader3,
+        get_all_reader3_nodata,
+        get_all_reader3_compression,
 
+        partial(get_all_mdf4, memory='full'),
+        partial(get_all_mdf4, memory='low'),
+        partial(get_all_mdf4, memory='minimum'),
+
+        get_all_reader4,
+        get_all_reader4_compression,
+        get_all_reader4_nodata,
+
+
+    )
+
+    if tests and GET:
+        output.extend(table_header('Get all channels (36424 calls)', fmt))
+        for func in tests:
+            thr = multiprocessing.Process(target=func, args=(send, fmt))
+            thr.start()
+            thr.join()
+            result, err = listen.recv()
+            output.append(result)
+            errors.append(err)
+        output.extend(table_end(fmt))
 
     tests = (
          partial(convert_v3_v4, memory='full'),
@@ -931,35 +959,7 @@ def main(text_output, fmt):
             errors.append(err)
         output.extend(table_end(fmt))
 
-    tests = (
-        partial(get_all_mdf3, memory='full'),
-        partial(get_all_mdf3, memory='low'),
-        partial(get_all_mdf3, memory='minimum'),
-        get_all_reader3,
-        get_all_reader3_nodata,
-        get_all_reader3_compression,
 
-        partial(get_all_mdf4, memory='full'),
-        partial(get_all_mdf4, memory='low'),
-        partial(get_all_mdf4, memory='minimum'),
-
-        get_all_reader4,
-        get_all_reader4_compression,
-        get_all_reader4_nodata,
-
-
-    )
-
-    if tests and GET:
-        output.extend(table_header('Get all channels (36424 calls)', fmt))
-        for func in tests:
-            thr = multiprocessing.Process(target=func, args=(send, fmt))
-            thr.start()
-            thr.join()
-            result, err = listen.recv()
-            output.append(result)
-            errors.append(err)
-        output.extend(table_end(fmt))
 
     errors = [err for err in errors if err]
     if errors:

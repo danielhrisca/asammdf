@@ -2027,7 +2027,7 @@ class MDF(object):
                                 sig.samples = sig.samples.copy()
                             signals.append(sig)
 
-                        if len(signals[0]):
+                        if signals and len(signals[0]):
                             if offset > 0:
                                 timestamps = sig[0].timestamps + offset
                                 for sig in signals:
