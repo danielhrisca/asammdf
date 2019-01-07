@@ -45,6 +45,7 @@ from numpy import (
     uint32,
     fliplr,
     searchsorted,
+    full,
 )
 from numpy.core.defchararray import encode, decode
 from numpy.core.records import fromarrays, fromstring
@@ -2909,12 +2910,7 @@ class MDF4(object):
                 parents[ch_cntr] = field_name, 0
 
                 fields.append(samples)
-                if s_type == v4c.DATA_TYPE_BYTEARRAY:
-                    types.append(
-                        (field_name, sig_dtype, sig_shape[1:])
-                    )
-                else:
-                    types.append((field_name, sig_dtype))
+                types.append((field_name, sig_dtype, sig_shape[1:]))
 
                 ch_cntr += 1
 
@@ -3248,23 +3244,24 @@ class MDF4(object):
                 )
 
                 values = [
-                    ones(len(samples), dtype=uint32) * samples.itemsize,
+                    full(len(samples), samples.itemsize, dtype=uint32),
                     samples,
                 ]
 
                 types_ = [("o", uint32), ("s", sig_dtype)]
 
-                data = fromarrays(values, dtype=types_).tostring()
+                data = fromarrays(values, dtype=types_)
 
                 if memory == "full":
-                    gp_sdata.append(data)
+                    gp_sdata.append(data.tostring())
                     data_addr = 0
                 else:
-                    if data:
+                    data_size = len(data) * data.itemsize
+                    if data_size:
                         data_addr = tell()
                         gp_sdata.append([data_addr])
-                        gp_sdata_size.append([len(data)])
-                        write(data)
+                        gp_sdata_size.append([data_size])
+                        data.tofile(file)
                     else:
                         data_addr = 0
                         gp_sdata.append([])
@@ -3388,59 +3385,37 @@ class MDF4(object):
         signals = None
         del signals
 
-        try:
-            block = samples.tostring()
+        if memory == "full":
+            gp["data_location"] = v4c.LOCATION_MEMORY
+            gp["data_block"] = DataBlock(data=samples.tostring())
 
-            if memory == "full":
-                gp["data_location"] = v4c.LOCATION_MEMORY
-                gp["data_block"] = DataBlock(data=block)
+            gp["data_block_type"] = v4c.DT_BLOCK
+            gp["param"] = 0
+            gp["data_size"] = []
+            gp["data_block_size"] = []
+            gp["data_block_addr"] = []
 
+        else:
+            block_size = len(samples) * samples.itemsize
+            if block_size:
+                data_address = self._tempfile.tell()
+                gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
+                samples.tofile(self._tempfile)
+                gp["data_block_type"] = v4c.DT_BLOCK
+                gp["param"] = 0
+                gp["data_size"] = [block_size]
+                gp["data_block_size"] = [block_size]
+                gp["data_block_addr"] = [data_address]
+                gp["data_block"] = [data_address]
+            else:
+                gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
+                gp["data_block"] = []
                 gp["data_block_type"] = v4c.DT_BLOCK
                 gp["param"] = 0
                 gp["data_size"] = []
                 gp["data_block_size"] = []
                 gp["data_block_addr"] = []
 
-            else:
-                if block:
-                    data_address = self._tempfile.tell()
-                    gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-                    size = len(block)
-                    self._tempfile.write(block)
-                    gp["data_block_type"] = v4c.DT_BLOCK
-                    gp["param"] = 0
-                    gp["data_size"] = [size]
-                    gp["data_block_size"] = [size]
-                    gp["data_block_addr"] = [data_address]
-                    gp["data_block"] = [data_address]
-                else:
-                    gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-                    gp["data_block"] = []
-                    gp["data_block_type"] = v4c.DT_BLOCK
-                    gp["param"] = 0
-                    gp["data_size"] = []
-                    gp["data_block_size"] = []
-                    gp["data_block_addr"] = []
-
-        except MemoryError:
-            if memory == "full":
-                raise
-            else:
-                size = 0
-                gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-
-                data_address = self._tempfile.tell()
-                gp["data_group"]["data_block_addr"] = data_address
-                for sample in samples:
-                    size += self._tempfile.write(sample.tostring())
-                gp["data_block_type"] = v4c.DT_BLOCK
-                gp["param"] = 0
-                gp["data_size"] = [size]
-                gp["data_block_size"] = [size]
-                if size:
-                    gp["data_block_addr"] = [data_address]
-                else:
-                    gp["data_block_addr"] = [0]
 
     def _append_dataframe(self, df, source_info="", units=None):
         """
@@ -3605,10 +3580,7 @@ class MDF4(object):
                 parents[ch_cntr] = field_name, 0
 
                 fields.append(sig)
-                if s_type == v4c.DATA_TYPE_BYTEARRAY:
-                    types.append((field_name, sig.dtype, sig.shape[1:]))
-                else:
-                    types.append((field_name, sig.dtype))
+                types.append((field_name, sig.dtype, sig.shape[1:]))
 
                 ch_cntr += 1
 
@@ -3618,21 +3590,23 @@ class MDF4(object):
             elif sig_type == v4c.SIGNAL_TYPE_STRING:
                 offsets = arange(len(sig), dtype=uint64) * (sig.itemsize + 4)
 
-                values = [ones(len(signal), dtype=uint32) * sig.itemsize, sig]
+                values = [full(len(signal), sig.itemsize, dtype=uint32), sig]
 
                 types_ = [("", uint32), ("", sig.dtype)]
 
-                data = fromarrays(values, dtype=types_).tostring()
+                data = fromarrays(values, dtype=types_)
 
                 if memory == "full":
+                    data = data.tostring()
                     gp_sdata.append(data)
                     data_addr = 0
                 else:
-                    if data:
+                    data_size = len(data) * data.itemsize
+                    if data_size:
                         data_addr = tell()
                         gp_sdata.append([data_addr])
-                        gp_sdata_size.append([len(data)])
-                        write(data)
+                        gp_sdata_size.append([data_size])
+                        data.tofile(file)
                     else:
                         data_addr = 0
                         gp_sdata.append([])
@@ -3704,59 +3678,36 @@ class MDF4(object):
         else:
             samples = array([])
 
-        try:
-            block = samples.tostring()
+        if memory == "full":
+            gp["data_location"] = v4c.LOCATION_MEMORY
+            gp["data_block"] = DataBlock(data=samples.tostring())
 
-            if memory == "full":
-                gp["data_location"] = v4c.LOCATION_MEMORY
-                gp["data_block"] = DataBlock(data=block)
+            gp["data_block_type"] = v4c.DT_BLOCK
+            gp["param"] = 0
+            gp["data_size"] = []
+            gp["data_block_size"] = []
+            gp["data_block_addr"] = []
 
+        else:
+            block_size = len(samples) * samples.itemsize
+            if block_size:
+                data_address = self._tempfile.tell()
+                gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
+                samples.tofile(self._tempfile)
+                gp["data_block_type"] = v4c.DT_BLOCK
+                gp["param"] = 0
+                gp["data_size"] = [block_size]
+                gp["data_block_size"] = [block_size]
+                gp["data_block_addr"] = [data_address]
+                gp["data_block"] = [data_address]
+            else:
+                gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
+                gp["data_block"] = []
                 gp["data_block_type"] = v4c.DT_BLOCK
                 gp["param"] = 0
                 gp["data_size"] = []
                 gp["data_block_size"] = []
                 gp["data_block_addr"] = []
-
-            else:
-                if block:
-                    data_address = self._tempfile.tell()
-                    gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-                    size = len(block)
-                    self._tempfile.write(block)
-                    gp["data_block_type"] = v4c.DT_BLOCK
-                    gp["param"] = 0
-                    gp["data_size"] = [size]
-                    gp["data_block_size"] = [size]
-                    gp["data_block_addr"] = [data_address]
-                    gp["data_block"] = [data_address]
-                else:
-                    gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-                    gp["data_block"] = []
-                    gp["data_block_type"] = v4c.DT_BLOCK
-                    gp["param"] = 0
-                    gp["data_size"] = []
-                    gp["data_block_size"] = []
-                    gp["data_block_addr"] = []
-
-        except MemoryError:
-            if memory == "full":
-                raise
-            else:
-                size = 0
-                gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-
-                data_address = self._tempfile.tell()
-                gp["data_group"]["data_block_addr"] = data_address
-                for sample in samples:
-                    size += self._tempfile.write(sample.tostring())
-                gp["data_block_type"] = v4c.DT_BLOCK
-                gp["param"] = 0
-                gp["data_size"] = [size]
-                gp["data_block_size"] = [size]
-                if size:
-                    gp["data_block_addr"] = [data_address]
-                else:
-                    gp["data_block_addr"] = [0]
 
     def extend(self, index, signals):
         """
@@ -3799,10 +3750,7 @@ class MDF4(object):
             message = '"append" requires a non-empty list of Signal objects'
             raise MdfException(message)
 
-        if gp["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
+        stream = self._tempfile
 
         canopen_time_fields = ("ms", "days")
 
@@ -3820,14 +3768,10 @@ class MDF4(object):
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
                 fields.append(signal)
-                if len(signal.shape) > 1:
-                    types.append(("", signal.dtype, signal.shape[1:]))
-                else:
-                    types.append(("", signal.dtype))
+                types.append(("", signal.dtype, signal.shape[1:]))
 
-                if invalidation_bytes_nr:
-                    if invalidation_bits is not None:
-                        inval_bits.append(invalidation_bits)
+                if invalidation_bytes_nr and invalidation_bits is not None:
+                    inval_bits.append(invalidation_bits)
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 names = signal.dtype.names
@@ -3848,16 +3792,14 @@ class MDF4(object):
                     fields.append(frombuffer(vals, dtype="V7"))
                     types.append(("", "V7"))
 
-                if invalidation_bytes_nr:
-                    if invalidation_bits is not None:
-                        inval_bits.append(invalidation_bits)
+                if invalidation_bytes_nr and invalidation_bits is not None:
+                    inval_bits.append(invalidation_bits)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 names = signal.dtype.names
 
-                if invalidation_bytes_nr:
-                    if invalidation_bits is not None:
-                        inval_bits.append(invalidation_bits)
+                if invalidation_bytes_nr and invalidation_bits is not None:
+                    inval_bits.append(invalidation_bits)
 
                 for name in names:
                     samples = signal[name]
@@ -3865,9 +3807,8 @@ class MDF4(object):
                     fields.append(samples)
                     types.append(("", samples.dtype))
 
-                    if invalidation_bytes_nr:
-                        if invalidation_bits is not None:
-                            inval_bits.append(invalidation_bits)
+                    if invalidation_bytes_nr and invalidation_bits is not None:
+                        inval_bits.append(invalidation_bits)
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names
@@ -3879,11 +3820,8 @@ class MDF4(object):
                 fields.append(samples)
                 types.append(("", samples.dtype, shape))
 
-                if invalidation_bytes_nr:
-                    if invalidation_bits is not None:
-                        inval_bits.insert(0, invalidation_bits)
-                    else:
-                        inval_bits.insert(0, zeros(len(signal), dtype=bool))
+                if invalidation_bytes_nr and invalidation_bits is not None:
+                    inval_bits.append(invalidation_bits)
 
                 for name in names[1:]:
 
@@ -3892,9 +3830,8 @@ class MDF4(object):
                     fields.append(samples)
                     types.append(("", samples.dtype, shape))
 
-                    if invalidation_bytes_nr:
-                        if invalidation_bits is not None:
-                            inval_bits.append(invalidation_bits)
+                    if invalidation_bytes_nr and invalidation_bits is not None:
+                        inval_bits.append(invalidation_bits)
 
             else:
                 if self.memory == "full":
@@ -3907,28 +3844,29 @@ class MDF4(object):
                     arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
                     + cur_offset
                 )
-                values = [ones(len(signal), dtype=uint32) * signal.itemsize, signal]
+                values = [full(len(signal), signal.itemsize, dtype=uint32), signal]
 
                 types_ = [("", uint32), ("", signal.dtype)]
 
-                values = fromarrays(values, dtype=types_).tostring()
+                values = fromarrays(values, dtype=types_)
 
                 if self.memory == "full":
+                    values = values.tostring()
                     gp["signal_data"][i] = data + values
                 else:
                     stream.seek(0, 2)
                     addr = stream.tell()
-                    if values:
-                        stream.write(values)
+                    block_size = len(values) * values.itemsize
+                    if block_size:
+                        values.tofile(stream)
                         gp["signal_data"][i].append(addr)
-                        gp["signal_data_size"][i].append(len(values))
+                        gp["signal_data_size"][i].append(block_size)
 
                 fields.append(offsets)
                 types.append(("", uint64))
 
-                if invalidation_bytes_nr:
-                    if invalidation_bits is not None:
-                        inval_bits.append(invalidation_bits)
+                if invalidation_bytes_nr and invalidation_bits is not None:
+                    inval_bits.append(invalidation_bits)
 
         if invalidation_bytes_nr:
             invalidation_bytes_nr = len(inval_bits)
@@ -3957,11 +3895,12 @@ class MDF4(object):
             types = fix_dtype_fields(types, "utf-8")
         types = dtype(types)
 
-        samples = fromarrays(fields, dtype=types).tostring()
+        samples = fromarrays(fields, dtype=types)
         del fields
         del types
 
         if self.memory == "full":
+            samples = samples.tostring()
             samples = gp["data_block"]["data"] + samples
             gp["data_block"] = DataBlock(data=samples)
 
@@ -3978,10 +3917,11 @@ class MDF4(object):
         else:
             stream.seek(0, 2)
             addr = stream.tell()
-            size = len(samples)
+            size = len(samples) * samples.itemsize
+
             if size:
                 gp["data_block"].append(addr)
-                stream.write(samples)
+                samples.tofile(stream)
 
                 record_size = gp["channel_group"]["samples_byte_nr"]
                 record_size += gp["data_group"]["record_id_len"]
