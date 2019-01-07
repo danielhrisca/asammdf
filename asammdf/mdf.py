@@ -542,6 +542,10 @@ class MDF(object):
         for i, group in enumerate(self.groups):
             encodings = [None, ]
             included_channels = self._included_channels(i)
+            if included_channels:
+                cg_nr += 1
+            else:
+                continue
 
             parents, dtypes = self._prepare_record(group)
             group["parents"], group["types"] = parents, dtypes
@@ -610,7 +614,6 @@ class MDF(object):
                                 new_channel_group.acq_source = (
                                     old_channel_group.acq_source
                                 )
-                        cg_nr += 1
                     else:
                         break
 
@@ -740,6 +743,10 @@ class MDF(object):
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
             included_channels = self._included_channels(i)
+            if included_channels:
+                cg_nr += 1
+            else:
+                continue
 
             data = self._load_data(group)
             parents, dtypes = self._prepare_record(group)
@@ -747,7 +754,6 @@ class MDF(object):
 
             idx = 0
             for fragment in data:
-                encodings = [None, ]
                 if dtypes.itemsize:
                     group["record"] = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
@@ -843,7 +849,6 @@ class MDF(object):
                             "Cut from {} to {}".format(start_, stop_),
                             common_timebase=True,
                         )
-                        cg_nr += 1
                     else:
                         break
 
@@ -1661,8 +1666,6 @@ class MDF(object):
         if self._callback:
             self._callback(0, groups_nr)
 
-        cg_nr = -1
-
         # append filtered channels to new MDF
         for new_index, (group_index, indexes) in enumerate(gps.items()):
             if version < "4.00":
@@ -1724,7 +1727,6 @@ class MDF(object):
 
                     if sigs:
                         mdf.append(sigs, source_info, common_timebase=True)
-                        cg_nr += 1
                     else:
                         break
 
@@ -1756,12 +1758,12 @@ class MDF(object):
                                     sig.samples = samples
 
                     if sigs:
-                        mdf.extend(cg_nr, sigs)
+                        mdf.extend(new_index, sigs)
 
                 del group["record"]
 
             if self._callback:
-                self._callback(cg_nr + 1, groups_nr)
+                self._callback(new_index + 1, groups_nr)
 
             if self._terminate:
                 return
@@ -1968,6 +1970,10 @@ class MDF(object):
 
             for i, group in enumerate(mdf.groups):
                 included_channels = mdf._included_channels(i)
+                if included_channels:
+                    cg_nr += 1
+                else:
+                    continue
                 channels_nr = len(group["channels"])
 
                 if memory == "minimum":
@@ -2051,7 +2057,6 @@ class MDF(object):
 
                         if signals:
                             merged.append(signals, common_timebase=True)
-                            cg_nr += 1
                         else:
                             break
                         idx += 1
@@ -2231,7 +2236,7 @@ class MDF(object):
         else:
             offsets = [0 for file in files]
 
-        current_group = -1
+        cg_nr = -1
         for offset, mdf in zip(offsets, files):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf, memory)
@@ -2241,6 +2246,10 @@ class MDF(object):
                 if version < "4.00":
                     encodings = [None, ]
                 included_channels = mdf._included_channels(i)
+                if included_channels:
+                    cg_nr += 1
+                else:
+                    continue
 
                 parents, dtypes = mdf._prepare_record(group)
                 group["parents"], group["types"] = parents, dtypes
@@ -2298,7 +2307,6 @@ class MDF(object):
                                 for sig in signals:
                                     sig.timestamps = timestamps
                             stacked.append(signals, common_timebase=True)
-                            current_group += 1
                         idx += 1
                     else:
                         master = mdf.get_master(i, fragment)
@@ -2333,7 +2341,7 @@ class MDF(object):
                                             sig.samples = samples
 
                             if signals:
-                                stacked.extend(current_group, signals)
+                                stacked.extend(cg_nr, signals)
                         idx += 1
 
                     del group["record"]
@@ -2425,11 +2433,15 @@ class MDF(object):
             self._callback(0, groups_nr)
 
         # walk through all groups and get all channels
-        current_group = -1
+        cg_nr = -1
         for i, group in enumerate(self.groups):
             if version < "4.00":
                 encodings = [None, ]
             included_channels = self._included_channels(i)
+            if included_channels:
+                cg_nr += 1
+            else:
+                continue
 
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
@@ -2476,7 +2488,6 @@ class MDF(object):
                             "Resampled to {}s".format(raster),
                             common_timebase=True,
                         )
-                        current_group += 1
                     else:
                         break
 
@@ -2512,10 +2523,10 @@ class MDF(object):
                         sigs.append(sig)
 
                     if sigs:
-                        mdf.extend(current_group, sigs)
+                        mdf.extend(cg_nr, sigs)
 
             if self._callback:
-                self._callback(current_group + 1, groups_nr)
+                self._callback(cg_nr + 1, groups_nr)
 
             if self._terminate:
                 return
