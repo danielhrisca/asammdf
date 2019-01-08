@@ -2279,7 +2279,7 @@ class MDF(object):
                             if version < "4.00":
                                 if sig.samples.dtype.kind == "S":
                                     encodings.append(sig.encoding)
-                                    strsig = self.get(
+                                    strsig = mdf.get(
                                         group=i,
                                         index=j,
                                         samples_only=True,
@@ -2303,7 +2303,7 @@ class MDF(object):
 
                         if signals:
                             if sync:
-                                timestamps = sig[0].timestamps + offset
+                                timestamps = signals[0].timestamps + offset
                                 for sig in signals:
                                     sig.timestamps = timestamps
                             stacked.append(signals, common_timebase=True)
