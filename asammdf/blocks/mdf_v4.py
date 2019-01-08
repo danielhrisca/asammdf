@@ -14,9 +14,17 @@ from functools import reduce
 from hashlib import md5
 from itertools import chain
 from math import ceil
-from struct import unpack, unpack_from
+from struct import unpack
 from tempfile import TemporaryFile
 from zlib import decompress
+
+try:
+    from blosc import compress as blosc_compress
+    BLOSC = True
+except ImportError:
+    BLOSC = False
+BLOSC = False
+
 
 from numpy import (
     arange,
@@ -47,7 +55,7 @@ from numpy import (
     searchsorted,
     full,
 )
-from numpy.core.defchararray import encode, decode
+
 from numpy.core.records import fromarrays, fromstring
 from canmatrix.formats import loads
 from pandas import DataFrame
@@ -239,7 +247,7 @@ class MDF4(object):
         self._tempfile = TemporaryFile()
         self._file = None
 
-        self._read_fragment_size = 0
+        self._read_fragment_size = 0 * 2 ** 20
         self._write_fragment_size = 4 * 2 ** 20
         self._use_display_names = kwargs.get("use_display_names", False)
         self._skip_record_preparation = kwargs.get("skip_record_preparation", False)
@@ -3396,21 +3404,29 @@ class MDF4(object):
             gp["data_block_addr"] = []
 
         else:
-            block_size = len(samples) * samples.itemsize
-            if block_size:
+            size = len(samples) * samples.itemsize
+            if size:
                 data_address = self._tempfile.tell()
                 gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-                samples.tofile(self._tempfile)
-                gp["data_block_type"] = v4c.DT_BLOCK
+                if BLOSC:
+                    samples = blosc_compress(samples.tobytes())
+                    self._tempfile.write(samples)
+                    dim = len(samples)
+                    block_type = v4c.DT_BLOCK
+                else:
+                    samples.tofile(self._tempfile)
+                    dim = size
+                    block_type = v4c.BLOSC_BLOCK
+                gp["data_block_type"] = block_type
                 gp["param"] = 0
-                gp["data_size"] = [block_size]
-                gp["data_block_size"] = [block_size]
+                gp["data_size"] = [size]
+                gp["data_block_size"] = [dim]
                 gp["data_block_addr"] = [data_address]
                 gp["data_block"] = [data_address]
             else:
                 gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
                 gp["data_block"] = []
-                gp["data_block_type"] = v4c.DT_BLOCK
+                gp["data_block_type"] = v4c.BLOSC_BLOCK if BLOSC else v4c.DT_BLOCK
                 gp["param"] = 0
                 gp["data_size"] = []
                 gp["data_block_size"] = []
@@ -3689,21 +3705,29 @@ class MDF4(object):
             gp["data_block_addr"] = []
 
         else:
-            block_size = len(samples) * samples.itemsize
-            if block_size:
+            size = len(samples) * samples.itemsize
+            if size:
                 data_address = self._tempfile.tell()
                 gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-                samples.tofile(self._tempfile)
-                gp["data_block_type"] = v4c.DT_BLOCK
+                if BLOSC:
+                    samples = blosc_compress(samples.tobytes())
+                    self._tempfile.write(samples)
+                    dim = len(samples)
+                    block_type = v4c.DT_BLOCK
+                else:
+                    samples.tofile(self._tempfile)
+                    dim = size
+                    block_type = v4c.BLOSC_BLOCK
+                gp["data_block_type"] = block_type
                 gp["param"] = 0
-                gp["data_size"] = [block_size]
-                gp["data_block_size"] = [block_size]
+                gp["data_size"] = [size]
+                gp["data_block_size"] = [dim]
                 gp["data_block_addr"] = [data_address]
                 gp["data_block"] = [data_address]
             else:
                 gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
                 gp["data_block"] = []
-                gp["data_block_type"] = v4c.DT_BLOCK
+                gp["data_block_type"] = v4c.BLOSC_BLOCK if BLOSC else v4c.DT_BLOCK
                 gp["param"] = 0
                 gp["data_size"] = []
                 gp["data_block_size"] = []
@@ -3896,6 +3920,7 @@ class MDF4(object):
         types = dtype(types)
 
         samples = fromarrays(fields, dtype=types)
+
         del fields
         del types
 
@@ -3921,7 +3946,13 @@ class MDF4(object):
 
             if size:
                 gp["data_block"].append(addr)
-                samples.tofile(stream)
+                if BLOSC:
+                    samples = blosc_compress(samples.tobytes())
+                    stream.write(samples)
+                    dim = len(samples)
+                else:
+                    samples.tofile(stream)
+                    dim = size
 
                 record_size = gp["channel_group"]["samples_byte_nr"]
                 record_size += gp["data_group"]["record_id_len"]
@@ -3931,7 +3962,7 @@ class MDF4(object):
 
                 gp["data_block_addr"].append(addr)
                 gp["data_size"].append(size)
-                gp["data_block_size"].append(size)
+                gp["data_block_size"].append(dim)
 
         del samples
 
@@ -4778,10 +4809,7 @@ class MDF4(object):
 
                     if parent is not None:
                         if "record" not in grp:
-                            if dtypes.itemsize:
-                                record = fromstring(data_bytes, dtype=dtypes)
-                            else:
-                                record = None
+                            record = fromstring(data_bytes, dtype=dtypes)
 
                             if memory == "full":
                                 grp["record"] = record
@@ -4841,9 +4869,7 @@ class MDF4(object):
                     else:
                         if not channel.dtype_fmt:
                             channel.dtype_fmt = get_fmt_v4(data_type, bit_count, channel_type)
-                        channel_dtype = array(
-                            [], dtype=channel.dtype_fmt
-                        ).dtype
+                        channel_dtype = dtype(channel.dtype_fmt.split(')')[-1])
                         if vals.dtype != channel_dtype:
                             vals = vals.astype(channel_dtype)
 
