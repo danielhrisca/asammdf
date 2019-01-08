@@ -3412,11 +3412,11 @@ class MDF4(object):
                     samples = blosc_compress(samples.tobytes())
                     self._tempfile.write(samples)
                     dim = len(samples)
-                    block_type = v4c.DT_BLOCK
+                    block_type = v4c.BLOSC_BLOCK
                 else:
                     samples.tofile(self._tempfile)
                     dim = size
-                    block_type = v4c.BLOSC_BLOCK
+                    block_type = v4c.DT_BLOCK
                 gp["data_block_type"] = block_type
                 gp["param"] = 0
                 gp["data_size"] = [size]
@@ -3713,11 +3713,11 @@ class MDF4(object):
                     samples = blosc_compress(samples.tobytes())
                     self._tempfile.write(samples)
                     dim = len(samples)
-                    block_type = v4c.DT_BLOCK
+                    block_type = v4c.BLOSC_BLOCK
                 else:
                     samples.tofile(self._tempfile)
                     dim = size
-                    block_type = v4c.BLOSC_BLOCK
+                    block_type = v4c.DT_BLOCK
                 gp["data_block_type"] = block_type
                 gp["param"] = 0
                 gp["data_size"] = [size]
