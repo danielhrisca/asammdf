@@ -89,6 +89,7 @@ from .utils import (
     count_channel_groups,
     info_to_datatype_v4,
     is_file_like,
+    sanitize_xml,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -433,7 +434,7 @@ class MDF4(object):
                             comment = channel_group.comment
                             if comment:
 
-                                comment_xml = ET.fromstring(comment)
+                                comment_xml = ET.fromstring(sanitize_xml(comment))
                                 can_msg_type = comment_xml.find(".//TX").text
                                 if can_msg_type is not None:
                                     can_msg_type = can_msg_type.strip(" \t\r\n")
@@ -939,6 +940,8 @@ class MDF4(object):
         if memory == "minimum" and not self._skip_record_preparation:
             temp_channels = grp["temp_channels"]
 
+        dependencies = grp["channel_dependencies"]
+
         composition = []
         while ch_addr:
             # read channel block and create channel object
@@ -960,12 +963,11 @@ class MDF4(object):
                     comment = get_text_v4(
                         address=channel["comment_addr"],
                         stream=stream,
-                        sanitize_xml=True,
                     )
 
                     if comment.startswith("<CNcomment"):
                         try:
-                            display_name = ET.fromstring(comment).find(
+                            display_name = ET.fromstring(sanitize_xml(comment)).find(
                                 ".//names/display"
                             )
                             if display_name is not None:
@@ -990,14 +992,15 @@ class MDF4(object):
                 display_name = channel.display_name
                 name = channel.name
 
-            self._ch_map[ch_addr] = (ch_cntr, dg_cntr)
+            entry = (dg_cntr, ch_cntr)
+            self._ch_map[ch_addr] = entry
 
             channels.append(value)
             if channel_composition:
-                composition.append((ch_cntr, dg_cntr))
+                composition.append(entry)
 
-            self.channels_db.add(display_name, dg_cntr, ch_cntr)
-            self.channels_db.add(name, dg_cntr, ch_cntr)
+            self.channels_db.add(display_name, entry)
+            self.channels_db.add(name, entry)
 
             # signal data
             address = channel["data_block_addr"]
@@ -1008,15 +1011,17 @@ class MDF4(object):
 
             ch_cntr += 1
 
-            if channel["component_addr"]:
+            component_addr = channel["component_addr"]
+
+            if component_addr:
                 # check if it is a CABLOCK or CNBLOCK
-                stream.seek(channel["component_addr"])
+                stream.seek(component_addr)
                 blk_id = stream.read(4)
                 if blk_id == b"##CN":
                     index = ch_cntr - 1
-                    grp["channel_dependencies"].append(None)
+                    dependencies.append(None)
                     ch_cntr, neg_ch_cntr, ret_composition = self._read_channels(
-                        channel["component_addr"],
+                        component_addr,
                         grp,
                         stream,
                         dg_cntr,
@@ -1024,7 +1029,7 @@ class MDF4(object):
                         neg_ch_cntr,
                         True,
                     )
-                    grp["channel_dependencies"][index] = ret_composition
+                    dependencies[index] = ret_composition
 
                     if (
                         grp.get("CAN_id", None) is not None
@@ -1174,23 +1179,24 @@ class MDF4(object):
 
                                 logging_channels.append(log_channel)
 
-                                self.channels_db.add(name_, dg_cntr, neg_ch_cntr)
+                                entry = dg_cntr, neg_ch_cntr
+                                self.channels_db.add(name_, entry)
 
                                 name_ = "{}.{}".format(message_name, signal_name)
-                                self.channels_db.add(name_, dg_cntr, neg_ch_cntr)
+                                self.channels_db.add(name_, entry)
 
                                 name_ = "CAN{}.{}.{}".format(
                                     can_id, message_name, signal_name
                                 )
-                                self.channels_db.add(name_, dg_cntr, neg_ch_cntr)
+                                self.channels_db.add(name_, entry)
 
                                 name_ = "{}.{}".format(can_msg_name, signal_name)
-                                self.channels_db.add(name_, dg_cntr, neg_ch_cntr)
+                                self.channels_db.add(name_, entry)
 
                                 name_ = "CAN{}.{}.{}".format(
                                     can_id, can_msg_name, signal_name
                                 )
-                                self.channels_db.add(name_, dg_cntr, neg_ch_cntr)
+                                self.channels_db.add(name_, entry)
 
                                 neg_ch_cntr -= 1
 
@@ -1202,7 +1208,7 @@ class MDF4(object):
                     # only channel arrays with storage=CN_TEMPLATE are
                     # supported so far
                     ca_block = ChannelArrayBlock(
-                        address=channel["component_addr"], stream=stream
+                        address=component_addr, stream=stream
                     )
                     if ca_block["storage"] != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
                         logger.warning("Only CN template arrays are supported")
@@ -1212,10 +1218,10 @@ class MDF4(object):
                             address=ca_block["composition_addr"], stream=stream
                         )
                         ca_list.append(ca_block)
-                    grp["channel_dependencies"].append(ca_list)
+                    dependencies.append(ca_list)
 
             else:
-                grp["channel_dependencies"].append(None)
+                dependencies.append(None)
 
             # go to next channel of the current channel group
             ch_addr = channel["next_ch_addr"]
@@ -1985,12 +1991,11 @@ class MDF4(object):
         if attachment_addr:
             kargs["attachment_0_addr"] = attachment_addr
             kargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
-        if invalidation_bytes_nr:
-            if signal.invalidation_bits is not None:
-                inval_bits.append(signal.invalidation_bits)
-                kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                kargs["pos_invalidation_bit"] = inval_cntr
-                inval_cntr += 1
+        if invalidation_bytes_nr and signal.invalidation_bits is not None:
+            inval_bits.append(signal.invalidation_bits)
+            kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+            kargs["pos_invalidation_bit"] = inval_cntr
+            inval_cntr += 1
 
         ch = Channel(**kargs)
         ch.name = name
@@ -2016,32 +2021,21 @@ class MDF4(object):
 
                 ch.source = new_source
 
+        entry = dg_cntr, ch_cntr
         if memory != "minimum":
             gp_channels.append(ch)
-            struct_self = ch_cntr, dg_cntr
+            struct_self = entry
         else:
             ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
             gp_channels.append(ch.address)
-            struct_self = ch_cntr, dg_cntr
+            struct_self = entry
 
         gp_sdata.append(None)
         gp_sdata_size.append(0)
-        if name not in self.channels_db:
-            self.channels_db[name] = []
-        self.channels_db[name].append((dg_cntr, ch_cntr))
+        self.channels_db.add(name, entry)
 
         # update the parents as well
         parents[ch_cntr] = name, 0
-
-        # check if the source is included in the channel name
-        name = name.split("\\")
-        if len(name) > 1:
-            name = name[0]
-            if name in self.channels_db:
-                self.channels_db[name].append((dg_cntr, ch_cntr))
-            else:
-                self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
 
         ch_cntr += 1
 
@@ -2098,34 +2092,23 @@ class MDF4(object):
                 ch = Channel(**kargs)
                 ch.name = name
 
+                entry = (dg_cntr, ch_cntr)
                 if memory != "minimum":
                     gp_channels.append(ch)
-                    dep_list.append((ch_cntr, dg_cntr))
+                    dep_list.append(entry)
                 else:
                     ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                     gp_channels.append(ch.address)
-                    dep_list.append((ch_cntr, dg_cntr))
+                    dep_list.append(entry)
 
                 offset += byte_size
 
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
-                if name not in self.channels_db:
-                    self.channels_db[name] = []
-                self.channels_db[name].append((dg_cntr, ch_cntr))
+                self.channels_db.add(name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
-
-                # check if the source is included in the channel name
-                name = name.split("\\")
-                if len(name) > 1:
-                    name = name[0]
-                    if name in self.channels_db:
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
-                    else:
-                        self.channels_db[name] = []
-                        self.channels_db[name].append((dg_cntr, ch_cntr))
 
                 ch_cntr += 1
                 gp_dep.append(None)
@@ -2443,6 +2426,7 @@ class MDF4(object):
             # or a DataZippedBlock
             elif id_string == b"##DZ":
                 stream.seek(address)
+
                 temp = {}
                 (
                     temp["id"],
@@ -2456,6 +2440,7 @@ class MDF4(object):
                     temp["original_size"],
                     temp["zip_size"],
                 ) = unpack(v4c.FMT_DZ_COMMON, stream.read(v4c.DZ_COMMON_SIZE))
+
                 if temp["original_size"]:
                     info["data_size"].append(temp["original_size"])
                     info["data_block_size"].append(temp["zip_size"])
@@ -2475,7 +2460,7 @@ class MDF4(object):
                         addr = dl["data_block_addr{}".format(i)]
                         stream.seek(addr + 8)
                         (size, ) = UINT64_u(stream.read(8))
-                        size -= 24
+                        size -= COMMON_SIZE
                         if size:
                             info["data_block_addr"].append(addr + COMMON_SIZE)
                             info["data_size"].append(size)
@@ -2792,7 +2777,7 @@ class MDF4(object):
 
             gp_sdata.append(None)
             gp_sdata_size.append(0)
-            self.channels_db.add(name, dg_cntr, ch_cntr)
+            self.channels_db.add(name, (dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
             # data group record parents
             parents[ch_cntr] = name, 0
@@ -2865,12 +2850,11 @@ class MDF4(object):
                     "data_block_addr": data_block_addr,
                 }
 
-                if invalidation_bytes_nr:
-                    if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                if invalidation_bytes_nr and signal.invalidation_bits is not None:
+                    inval_bits.append(signal.invalidation_bits)
+                    kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kargs["pos_invalidation_bit"] = inval_cntr
+                    inval_cntr += 1
 
                 ch = Channel(**kargs)
                 ch.name = name
@@ -2911,7 +2895,7 @@ class MDF4(object):
 
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
-                self.channels_db.add(name, dg_cntr, ch_cntr)
+                self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
@@ -2973,12 +2957,11 @@ class MDF4(object):
                     "bit_offset": 0,
                     "data_type": s_type,
                 }
-                if invalidation_bytes_nr:
-                    if signal.invalidation_bits is not None:
-                        inval_bits.append(signal.invalidation_bits)
-                        kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kargs["pos_invalidation_bit"] = inval_cntr
-                        inval_cntr += 1
+                if invalidation_bytes_nr and signal.invalidation_bits is not None:
+                    inval_bits.append(signal.invalidation_bits)
+                    kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kargs["pos_invalidation_bit"] = inval_cntr
+                    inval_cntr += 1
 
                 ch = Channel(**kargs)
                 ch.name = name
@@ -3012,7 +2995,7 @@ class MDF4(object):
 
                 offset += byte_size
 
-                self.channels_db.add(name, dg_cntr, ch_cntr)
+                self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
@@ -3160,7 +3143,7 @@ class MDF4(object):
 
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
-                self.channels_db.add(name, dg_cntr, ch_cntr)
+                self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
@@ -3216,14 +3199,15 @@ class MDF4(object):
                         ch.to_stream(file, defined_texts, file_cc_map, file_si_map)
                         gp_channels.append(ch.address)
 
-                    parent_dep.referenced_channels.append((ch_cntr, dg_cntr))
+                    entry = dg_cntr, ch_cntr
+                    parent_dep.referenced_channels.append(entry)
                     for dim in shape:
                         byte_size *= dim
                     offset += byte_size
 
                     gp_sdata.append(None)
                     gp_sdata_size.append(0)
-                    self.channels_db.add(name, dg_cntr, ch_cntr)
+                    self.channels_db.add(name, entry)
 
                     # update the parents as well
                     parents[ch_cntr] = field_name, 0
@@ -3330,7 +3314,7 @@ class MDF4(object):
 
                 offset += byte_size
 
-                self.channels_db.add(name, dg_cntr, ch_cntr)
+                self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
@@ -3523,7 +3507,7 @@ class MDF4(object):
 
             gp_sdata.append(None)
             gp_sdata_size.append(0)
-            self.channels_db.add(name, dg_cntr, ch_cntr)
+            self.channels_db.add(name, (dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
             # data group record parents
             parents[ch_cntr] = name, 0
@@ -3589,7 +3573,7 @@ class MDF4(object):
 
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
-                self.channels_db.add(name, dg_cntr, ch_cntr)
+                self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
@@ -3656,7 +3640,7 @@ class MDF4(object):
 
                 offset += byte_size
 
-                self.channels_db.add(name, dg_cntr, ch_cntr)
+                self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 # update the parents as well
                 field_name = field_names.field_names.get_unique_name(name)
@@ -4372,7 +4356,7 @@ class MDF4(object):
                 if memory == "minimum":
                     names = []
 
-                    for ch_nr, _ in dependency_list:
+                    for _, ch_nr in dependency_list:
                         address = grp["channels"][ch_nr]
                         channel_ = Channel(
                             address=address, stream=stream, load_metadata=False
@@ -4384,7 +4368,7 @@ class MDF4(object):
                         names.append(name_)
                 else:
                     names = [
-                        grp["channels"][ch_nr].name for ch_nr, _ in dependency_list
+                        grp["channels"][ch_nr].name for _, ch_nr in dependency_list
                     ]
 
                 channel_values = [[] for _ in dependency_list]
@@ -4393,7 +4377,7 @@ class MDF4(object):
 
                 count = 0
                 for fragment in data:
-                    for i, (ch_nr, dg_nr) in enumerate(dependency_list):
+                    for i, (dg_nr, ch_nr) in enumerate(dependency_list):
                         vals = self.get(
                             group=dg_nr,
                             index=ch_nr,
@@ -4538,7 +4522,7 @@ class MDF4(object):
                             else:
                                 for i in range(dims_nr):
                                     try:
-                                        ref_ch_nr, ref_dg_nr = ca_block.referenced_channels[
+                                        ref_dg_nr, ref_ch_nr = ca_block.referenced_channels[
                                             i
                                         ]
                                     except:
@@ -4618,7 +4602,7 @@ class MDF4(object):
                                 types.append(("axis_{}".format(i), axis.dtype, shape))
                         else:
                             for i in range(dims_nr):
-                                ref_ch_nr, ref_dg_nr = ca_block.referenced_channels[i]
+                                ref_dg_nr, ref_ch_nr = ca_block.referenced_channels[i]
                                 if memory == "minimum":
                                     address = self.groups[ref_dg_nr]["channels"][
                                         ref_ch_nr
@@ -6199,7 +6183,7 @@ class MDF4(object):
                     if gp["channel_dependencies"][j]:
                         dep = gp["channel_dependencies"][j][0]
                         if isinstance(dep, tuple):
-                            index = dep[0]
+                            index = dep[1]
                             addr_ = gp["channels"][index].address
                         else:
                             addr_ = dep.address
@@ -6221,17 +6205,17 @@ class MDF4(object):
                 while j >= 0:
                     dep_list = gp["channel_dependencies"][j]
                     if dep_list and all(isinstance(dep, tuple) for dep in dep_list):
-                        index = dep_list[0][0]
+                        index = dep_list[0][1]
                         gp["channels"][j]["component_addr"] = gp["channels"][
                             index
                         ].address
-                        index = dep_list[-1][0]
+                        index = dep_list[-1][1]
                         gp["channels"][j]["next_ch_addr"] = gp["channels"][index][
                             "next_ch_addr"
                         ]
                         gp["channels"][index]["next_ch_addr"] = 0
 
-                        for ch_nr, _ in dep_list:
+                        for _, ch_nr in dep_list:
                             gp["channels"][ch_nr]["source_addr"] = 0
                     j -= 1
 
@@ -6285,7 +6269,7 @@ class MDF4(object):
                                 if dep["ca_type"] != v4c.CA_TYPE_LOOKUP:
                                     dep.referenced_channels = []
                                     continue
-                                for i, (ch_nr, gp_nr) in enumerate(
+                                for i, (gp_nr, ch_nr) in enumerate(
                                     dep.referenced_channels
                                 ):
                                     grp = self.groups[gp_nr]
@@ -6307,7 +6291,7 @@ class MDF4(object):
                 for event in self.events:
                     for i, ref in enumerate(event.scopes):
                         try:
-                            ch_cntr, dg_cntr = ref
+                            dg_cntr, ch_cntr = ref
                             event["scope_{}_addr".format(i)] = self.groups[dg_cntr][
                                 "channels"
                             ][ch_cntr].address
@@ -6410,17 +6394,17 @@ class MDF4(object):
             os.remove(self.name)
             os.rename(destination, self.name)
 
-            self.groups = []
+            self.groups.clear()
             self.header = None
             self.identification = None
-            self.file_history = []
-            self.channels_db = {}
-            self.masters_db = {}
-            self.attachments = []
+            self.file_history.clear()
+            self.channels_db.clear()
+            self.masters_db.clear()
+            self.attachments.clear()
             self.file_comment = None
 
-            self._ch_map = {}
-            self._master_channel_cache = {}
+            self._ch_map.clear()
+            self._master_channel_cache.clear()
 
             self._tempfile = TemporaryFile()
             self._file = open(self.name, "rb")
@@ -6715,7 +6699,7 @@ class MDF4(object):
 
                             temp_deps.append([])
                             level = structs[j]
-                            for (ch_c, _) in dep_list:
+                            for (_, ch_c) in dep_list:
                                 structs[ch_c] = level + 1
 
                                 temp_deps[-1].append(0)
@@ -6932,7 +6916,7 @@ class MDF4(object):
                 for event in self.events:
                     for i, ref in enumerate(event.scopes):
                         try:
-                            ch_cntr, dg_cntr = ref
+                            dg_cntr, ch_cntr = ref
                             event["scope_{}_addr".format(i)] = self.groups[dg_cntr][
                                 "channels"
                             ][ch_cntr].address
@@ -7032,7 +7016,7 @@ class MDF4(object):
                                 if dep["ca_type"] != v4c.CA_TYPE_LOOKUP:
                                     dep.referenced_channels = []
                                     continue
-                                for i, (ch_nr, gp_nr) in enumerate(
+                                for i, (gp_nr, ch_nr) in enumerate(
                                     dep.referenced_channels
                                 ):
                                     grp = self.groups[gp_nr]
@@ -7058,17 +7042,17 @@ class MDF4(object):
             os.remove(self.name)
             os.rename(destination, self.name)
 
-            self.groups = []
+            self.groups.clear()
             self.header = None
             self.identification = None
-            self.file_history = []
-            self.channels_db = {}
-            self.masters_db = {}
-            self.attachments = []
+            self.file_history.clear()
+            self.channels_db.clear()
+            self.masters_db.clear()
+            self.attachments.clear()
             self.file_comment = None
 
-            self._ch_map = {}
-            self._master_channel_cache = {}
+            self._ch_map.clear()
+            self._master_channel_cache.clear()
 
             self._tempfile = TemporaryFile()
             self._file = open(self.name, "rb")

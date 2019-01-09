@@ -25,6 +25,7 @@ from .utils import (
     UINT8_uf,
     UINT64_u,
     FLOAT64_u,
+    sanitize_xml,
 )
 from ..version import __version__
 
@@ -148,7 +149,7 @@ class AttachmentBlock(dict):
 
             self.file_name = get_text_v4(self["file_name_addr"], stream)
             self.mime = get_text_v4(self["mime_addr"], stream)
-            self.comment = get_text_v4(self["comment_addr"], stream, True)
+            self.comment = get_text_v4(self["comment_addr"], stream)
 
         except KeyError:
 
@@ -564,14 +565,13 @@ class Channel(dict):
                 comment = get_text_v4(
                     address=self["comment_addr"],
                     stream=stream,
-                    sanitize_xml=True,
                 )
 
                 if kwargs.get("use_display_names", True) and comment.startswith(
                     "<CNcomment"
                 ):
                     try:
-                        display_name = ET.fromstring(comment).find(".//names/display")
+                        display_name = ET.fromstring(sanitize_xml(comment)).find(".//names/display")
                         if display_name is not None:
                             self.display_name = display_name.text
                     except UnicodeEncodeError:
@@ -1302,7 +1302,7 @@ class ChannelGroup(dict):
                 raise MdfException(message)
 
             self.acq_name = get_text_v4(self["acq_name_addr"], stream)
-            self.comment = get_text_v4(self["comment_addr"], stream, True)
+            self.comment = get_text_v4(self["comment_addr"], stream)
 
             if self["acq_source_addr"]:
                 self.acq_source = SourceInformation(
@@ -1820,7 +1820,7 @@ class ChannelConversion(dict):
             if "stream" in kwargs:
                 self.name = get_text_v4(self["name_addr"], stream)
                 self.unit = get_text_v4(self["unit_addr"], stream)
-                self.comment = get_text_v4(self["comment_addr"], stream, True)
+                self.comment = get_text_v4(self["comment_addr"], stream)
                 if "formula_addr" in self:
                     self.formula = get_text_v4(self["formula_addr"], stream)
 
@@ -3017,7 +3017,7 @@ class DataGroup(dict):
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(self["comment_addr"], stream, True)
+            self.comment = get_text_v4(self["comment_addr"], stream)
 
         except KeyError:
 
@@ -3318,7 +3318,7 @@ class EventBlock(dict):
                 raise MdfException(message)
 
             self.name = get_text_v4(self["name_addr"], stream)
-            self.comment = get_text_v4(self["comment_addr"], stream, True)
+            self.comment = get_text_v4(self["comment_addr"], stream)
 
         else:
             self.address = 0
@@ -3545,7 +3545,6 @@ class FileHistory(dict):
             self.comment = get_text_v4(
                 address=self["comment_addr"],
                 stream=stream,
-                sanitize_xml=True,
             )
 
         except KeyError:
@@ -3703,7 +3702,6 @@ class HeaderBlock(dict):
             self.comment = get_text_v4(
                 address=self["comment_addr"],
                 stream=stream,
-                sanitize_xml=True,
             )
 
         except KeyError:
@@ -4090,7 +4088,6 @@ class SourceInformation(dict):
             self.comment = get_text_v4(
                 address=self["comment_addr"],
                 stream=stream,
-                sanitize_xml=True,
             )
 
         else:

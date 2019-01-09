@@ -173,7 +173,7 @@ class MDF(object):
                     event_valid = True
                     for i, ref in enumerate(new_event.scopes):
                         try:
-                            ch_cntr, dg_cntr = ref
+                            dg_cntr, ch_cntr = ref
                             try:
                                 (self.groups[dg_cntr]["channels"][ch_cntr])
                             except:
@@ -255,7 +255,7 @@ class MDF(object):
                         for i, ref in enumerate(scopes):
                             event_valid = True
                             try:
-                                ch_cntr, dg_cntr = ref
+                                dg_cntr, ch_cntr = ref
                                 try:
                                     (self.groups[dg_cntr])
                                 except:
@@ -347,7 +347,7 @@ class MDF(object):
             for dep in group["channel_dependencies"]:
                 if dep is None:
                     continue
-                for ch_nr, gp_nr in dep.referenced_channels:
+                for gp_nr, ch_nr  in dep.referenced_channels:
                     if gp_nr == index:
                         excluded_channels.add(ch_nr)
         else:
@@ -388,7 +388,7 @@ class MDF(object):
                         excluded_channels.add(channels.index(channel))
                 else:
                     for dep in dependencies:
-                        for ch_nr, gp_nr in dep.referenced_channels:
+                        for gp_nr, ch_nr in dep.referenced_channels:
                             if gp_nr == index:
                                 excluded_channels.add(ch_nr)
 
@@ -427,7 +427,7 @@ class MDF(object):
             for dep in group["channel_dependencies"]:
                 if dep is None:
                     continue
-                for ch_nr, gp_nr in dep.referenced_channels:
+                for gp_nr, ch_nr in dep.referenced_channels:
                     if gp_nr == index:
                         included_channels.add(ch_nr)
         else:
@@ -482,7 +482,7 @@ class MDF(object):
                             pass
                 else:
                     for dep in dependencies:
-                        for ch_nr, gp_nr in dep.referenced_channels:
+                        for gp_nr, ch_nr in dep.referenced_channels:
                             if gp_nr == index:
                                 try:
                                     included_channels.remove(ch_nr)
@@ -496,8 +496,8 @@ class MDF(object):
         return channel in self.channels_db
 
     def __iter__(self):
-        """ terate over all the channels found in the file; master channels are
-        skipped from iteration
+        """ iterate over all the channels found in the file; master channels
+        are skipped from iteration
 
         """
 
@@ -1614,14 +1614,16 @@ class MDF(object):
                 else:
                     group, index = self._validate_channel_selection(*item)
                     if group not in gps:
-                        gps[group] = set()
-                    gps[group].add(index)
+                        gps[group] = {index}
+                    else:
+                        gps[group].add(index)
             else:
                 name = item
                 group, index = self._validate_channel_selection(name)
                 if group not in gps:
-                    gps[group] = set()
-                gps[group].add(index)
+                    gps[group] = {index}
+                else:
+                    gps[group].add(index)
 
         # see if there are exluded channels in the filter list
         for group_index, indexes in gps.items():
@@ -1631,7 +1633,7 @@ class MDF(object):
                 if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                     dep = grp["channel_dependencies"][index]
                     if dep:
-                        for ch_nr, gp_nr in dep.referenced_channels:
+                        for gp_nr, ch_nr in dep.referenced_channels:
                             if gp_nr == group:
                                 included_channels.remove(ch_nr)
                 else:
@@ -1646,7 +1648,7 @@ class MDF(object):
                             included_channels.add(channels.index(channel))
                     else:
                         for dep in dependencies:
-                            for ch_nr, gp_nr in dep.referenced_channels:
+                            for gp_nr, ch_nr in dep.referenced_channels:
                                 if gp_nr == group:
                                     included_channels.remove(ch_nr)
 
@@ -2619,15 +2621,17 @@ class MDF(object):
                     group, index = self._validate_channel_selection(*item)
                     indexes.append((group, index))
                     if group not in gps:
-                        gps[group] = set()
-                    gps[group].add(index)
+                        gps[group] = {index}
+                    else:
+                        gps[group].add(index)
             else:
                 name = item
                 group, index = self._validate_channel_selection(name)
                 indexes.append((group, index))
                 if group not in gps:
-                    gps[group] = set()
-                gps[group].add(index)
+                    gps[group] = {index}
+                else:
+                    gps[group].add(index)
 
         signal_parts = {}
         for group in gps:
@@ -2969,7 +2973,11 @@ class MDF(object):
             if j != master_index
         ]
 
-        sigs = [[] for j, _ in enumerate(group["channels"]) if j != master_index]
+        sigs = [
+            []
+            for j, _ in enumerate(group["channels"])
+            if j != master_index
+        ]
 
         data = self._load_data(group)
         for fragment in data:

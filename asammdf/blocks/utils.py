@@ -264,7 +264,7 @@ def get_text_v3(address, stream):
     return text
 
 
-def get_text_v4(address, stream, sanitize_xml=False):
+def get_text_v4(address, stream):
     """ faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
@@ -304,10 +304,11 @@ def get_text_v4(address, stream, sanitize_xml=False):
             )
             raise err
 
-    if sanitize_xml:
-        text = re.sub(_xmlns_pattern, "", text)
-
     return text
+
+
+def sanitize_xml(text):
+    return re.sub(_xmlns_pattern, "", text)
 
 
 def get_fmt_v3(data_type, size):
@@ -885,34 +886,33 @@ class ChannelsDB(dict):
         else:
             self.encoding = "latin-1"
 
-    def add(self, channel_name, group_index, channel_index):
+    def add(self, channel_name, entry):
         """ add name to channels database and check if it contains a source path
 
         Parameters
         ----------
         channel_name : str
             name that needs to be added to the database
-        group_index : int
-            data group index
-        channel_index : int
-            channel index
+        entry : tuple
+            (group index, channel index) pair
 
         """
         if PYVERSION == 2:
             if isinstance(channel_name, unicode):
                 channel_name = channel_name.encode(self.encoding)
         if channel_name:
-            entry = (group_index, channel_index)
             if channel_name not in self:
-                self[channel_name] = []
-            self[channel_name].append(entry)
+                self[channel_name] = [entry, ]
+            else:
+                self[channel_name].append(entry)
 
             if "\\" in channel_name:
                 channel_name = channel_name.split("\\")[0]
 
                 if channel_name not in self:
-                    self[channel_name] = []
-                self[channel_name].append(entry)
+                    self[channel_name] = [entry, ]
+                else:
+                    self[channel_name].append(entry)
 
 
 def randomized_string(size):
@@ -998,5 +998,5 @@ class UniqueDB(object):
             return name
         else:
             index = self._db[name]
-            self._db[name] += 1
+            self._db[name] = index + 1
             return "{}_{}".format(name, index)

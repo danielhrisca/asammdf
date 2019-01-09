@@ -843,10 +843,11 @@ class MDF3(object):
                         grp["channel_dependencies"].append(None)
 
                     # update channel map
-                    ch_map[ch_addr] = (ch_cntr, dg_cntr)
+                    entry = dg_cntr, ch_cntr
+                    ch_map[ch_addr] = entry
 
                     for name in (new_ch.name, new_ch.display_name):
-                        self.channels_db.add(name, dg_cntr, ch_cntr)
+                        self.channels_db.add(name, entry)
 
                     if new_ch["channel_type"] == v23c.CHANNEL_TYPE_MASTER:
                         self.masters_db[dg_cntr] = ch_cntr
@@ -1255,7 +1256,7 @@ class MDF3(object):
                 channel.to_stream(file, defined_texts, cc_map, si_map)
                 gp_channels.append(channel.address)
 
-            self.channels_db.add(name, dg_cntr, ch_cntr)
+            self.channels_db.add(name, (dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
             # data group record parents
             parents[ch_cntr] = name, 0
@@ -1366,8 +1367,9 @@ class MDF3(object):
 
                 offset += s_size
 
-                self.channels_db.add(name, dg_cntr, ch_cntr)
-                self.channels_db.add(display_name, dg_cntr, ch_cntr)
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                self.channels_db.add(display_name, entry)
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
@@ -1442,7 +1444,7 @@ class MDF3(object):
                     channel.to_stream(file, defined_texts, cc_map, si_map)
                     gp_channels.append(channel.address)
 
-                self.channels_db.add(name, new_dg_cntr, new_ch_cntr)
+                self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
 
                 self.masters_db[new_dg_cntr] = 0
                 # data group record parents
@@ -1484,8 +1486,8 @@ class MDF3(object):
                     kargs = {
                         "conversion_type": v23c.CONVERSION_TYPE_NONE,
                         "unit": signal.unit.encode("latin-1"),
-                        "min_phy_value": min_val if min_val <= max_val else 0,
-                        "max_phy_value": max_val if min_val <= max_val else 0,
+                        "min_phy_value": 0,
+                        "max_phy_value": 0,
                     }
                     conversion = ChannelConversion(**kargs)
 
@@ -1544,7 +1546,7 @@ class MDF3(object):
                         new_gp_channels.append(channel.address)
                     new_offset += s_size
 
-                    self.channels_db.add(name, new_dg_cntr, new_ch_cntr)
+                    self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
 
                     # update the parents as well
                     field_name = new_field_names.get_unique_name(name)
@@ -1699,7 +1701,7 @@ class MDF3(object):
                     channel.to_stream(file, defined_texts, cc_map, si_map)
                     gp_channels.append(channel.address)
 
-                self.channels_db.add(name, dg_cntr, ch_cntr)
+                self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 ch_cntr += 1
 
@@ -1708,7 +1710,7 @@ class MDF3(object):
                 ):
 
                     if i < sd_nr:
-                        dep_pair = ch_cntr, dg_cntr
+                        dep_pair = dg_cntr, ch_cntr
                         parent_dep.referenced_channels.append(dep_pair)
                         description = b"\0"
                     else:
@@ -1774,7 +1776,7 @@ class MDF3(object):
                         size *= dim
                     offset += size
 
-                    self.channels_db.add(name, dg_cntr, ch_cntr)
+                    self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                     # update the parents as well
                     field_name = field_names.get_unique_name(name)
@@ -1867,7 +1869,7 @@ class MDF3(object):
                         channel.to_stream(file, defined_texts, cc_map, si_map)
                         gp_channels.append(channel.address)
 
-                    self.channels_db.add(name, dg_cntr, ch_cntr)
+                    self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                     ch_cntr += 1
 
@@ -1876,7 +1878,7 @@ class MDF3(object):
                     ):
 
                         if i < sd_nr:
-                            dep_pair = ch_cntr, dg_cntr
+                            dep_pair = dg_cntr, ch_cntr
                             parent_dep.referenced_channels.append(dep_pair)
                             description = b"\0"
                         else:
@@ -1943,7 +1945,7 @@ class MDF3(object):
                             size *= dim
                         offset += size
 
-                        self.channels_db.add(name, dg_cntr, ch_cntr)
+                        self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                         # update the parents as well
                         field_name = field_names.get_unique_name(name)
@@ -2112,7 +2114,7 @@ class MDF3(object):
                 channel.to_stream(file, defined_texts, cc_map, si_map)
                 gp_channels.append(channel.address)
 
-            self.channels_db.add(name, dg_cntr, ch_cntr)
+            self.channels_db.add(name, (dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
             # data group record parents
             parents[ch_cntr] = name, 0
@@ -2153,8 +2155,8 @@ class MDF3(object):
             kargs = {
                 "channel_type": v23c.CHANNEL_TYPE_VALUE,
                 "data_type": s_type,
-                "min_raw_value": min_val if min_val <= max_val else 0,
-                "max_raw_value": max_val if min_val <= max_val else 0,
+                "min_raw_value": 0,
+                "max_raw_value": 0,
                 "start_offset": start_bit_offset,
                 "bit_count": s_size,
                 "aditional_byte_offset": additional_byte_offset,
@@ -2177,8 +2179,8 @@ class MDF3(object):
                 kargs = {
                     "conversion_type": v23c.CONVERSION_TYPE_NONE,
                     "unit": unit,
-                    "min_phy_value": min_val if min_val <= max_val else 0,
-                    "max_phy_value": max_val if min_val <= max_val else 0,
+                    "min_phy_value": 0,
+                    "max_phy_value": 0,
                 }
                 conversion = ChannelConversion(**kargs)
                 conversion.unit = unit
@@ -2191,7 +2193,7 @@ class MDF3(object):
 
             offset += s_size
 
-            self.channels_db.add(name, dg_cntr, ch_cntr)
+            self.channels_db.add(name, (dg_cntr, ch_cntr))
 
             # update the parents as well
             field_name = field_names.get_unique_name(name)
@@ -2835,7 +2837,7 @@ class MDF3(object):
                     record_offset=record_offset,
                     record_count=record_count,
                 )[0]
-                for ch_nr, dg_nr in dep.referenced_channels
+                for dg_nr, ch_nr in dep.referenced_channels
             ]
             shape.insert(0, cycles_nr)
 
@@ -3581,7 +3583,7 @@ class MDF3(object):
                         continue
 
                     for i, pair_ in enumerate(dep.referenced_channels):
-                        ch_nr, dg_nr = pair_
+                        dg_nr, ch_nr = pair_
                         grp = self.groups[dg_nr]
                         ch = grp["channels"][ch_nr]
                         dep["ch_{}".format(i)] = ch.address
@@ -3635,13 +3637,13 @@ class MDF3(object):
             os.remove(self.name)
             os.rename(destination, self.name)
 
-            self.groups = []
+            self.groups.clear()
             self.header = None
             self.identification = None
-            self.channels_db = {}
-            self.masters_db = {}
+            self.channels_db.clear()
+            self.masters_db.clear()
 
-            self._master_channel_cache = {}
+            self._master_channel_cache.clear()
 
             self._tempfile = TemporaryFile()
             self._file = open(self.name, "rb")
@@ -3854,7 +3856,7 @@ class MDF3(object):
                         continue
 
                     for i, pair_ in enumerate(dep.referenced_channels):
-                        _, dg_nr = pair_
+                        dg_nr, _ = pair_
                         grp = self.groups[dg_nr]
                         dep["ch_{}".format(i)] = grp["temp_channels"][i]
                         dep["cg_{}".format(i)] = grp["channel_group"].address
@@ -3873,13 +3875,13 @@ class MDF3(object):
             os.remove(self.name)
             os.rename(destination, self.name)
 
-            self.groups = []
+            self.groups.clear()
             self.header = None
             self.identification = None
-            self.channels_db = {}
-            self.masters_db = {}
+            self.channels_db.clear()
+            self.masters_db.clear()
 
-            self._master_channel_cache = {}
+            self._master_channel_cache.clear()
 
             self._tempfile = TemporaryFile()
             self._file = open(self.name, "rb")
