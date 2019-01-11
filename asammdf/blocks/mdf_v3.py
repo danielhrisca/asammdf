@@ -74,12 +74,6 @@ from .v2_v3_blocks import (
 )
 from ..version import __version__
 
-PYVERSION = sys.version_info[0]
-if PYVERSION == 2:
-    # pylint: disable=W0622
-    from .utils import bytes
-
-    # pylint: enable=W0622
 
 logger = logging.getLogger("asammdf")
 
@@ -256,8 +250,6 @@ class MDF3(object):
                         split_size = samples_size
 
                     blocks = zip(group["data_block_addr"], group["data_block_size"])
-                    if PYVERSION == 2:
-                        blocks = iter(blocks)
 
                     cur_size = 0
                     data = []
@@ -316,8 +308,6 @@ class MDF3(object):
 
             else:
                 record_id = group["channel_group"]["record_id"]
-                if PYVERSION == 2:
-                    record_id = chr(record_id)
                 cg_size = group["record_size"]
                 if group["data_group"]["record_id_len"] <= 2:
                     record_id_nr = group["data_group"]["record_id_len"]
@@ -326,8 +316,6 @@ class MDF3(object):
                 cg_data = []
 
                 blocks = zip(group["data_block_addr"], group["data_block_size"])
-                if PYVERSION == 2:
-                    blocks = iter(blocks)
 
                 for address, size in blocks:
 
@@ -499,16 +487,6 @@ class MDF3(object):
             if gap:
                 dtype_pair = ("", "a{}".format(gap))
                 types.append(dtype_pair)
-
-            if PYVERSION == 2:
-                types = fix_dtype_fields(types, "latin-1")
-                parents_ = {}
-                for key, (name, offset) in parents.items():
-                    if isinstance(name, unicode):
-                        parents_[key] = name.encode("latin-1"), offset
-                    else:
-                        parents_[key] = name, offset
-                parents = parents_
 
             dtypes = dtype(types)
 
@@ -890,8 +868,6 @@ class MDF3(object):
 
             for grp in new_groups:
                 record_id = grp["channel_group"]["record_id"]
-                if PYVERSION == 2:
-                    record_id = chr(record_id)
                 cycles_nr = grp["channel_group"]["cycles_nr"]
                 record_size = grp["channel_group"]["samples_byte_nr"]
 
@@ -936,8 +912,6 @@ class MDF3(object):
                     for grp in new_groups:
                         grp["data_location"] = v23c.LOCATION_MEMORY
                         record_id = grp["channel_group"]["record_id"]
-                        if PYVERSION == 2:
-                            record_id = chr(record_id)
                         data = cg_data[record_id]
                         data = b"".join(data)
                         grp["channel_group"]["record_id"] = 1
@@ -1578,8 +1552,6 @@ class MDF3(object):
                 new_gp["data_group"] = DataGroup(block_len=block_len)
 
                 # data block
-                if PYVERSION == 2:
-                    new_types = fix_dtype_fields(new_types)
                 new_types = dtype(new_types)
 
                 new_gp["types"] = new_types
@@ -1980,8 +1952,6 @@ class MDF3(object):
         gp["data_group"] = DataGroup(block_len=block_len)
 
         # data block
-        if PYVERSION == 2:
-            types = fix_dtype_fields(types, "latin-1")
         types = dtype(types)
 
         gp["types"] = types
@@ -2232,8 +2202,6 @@ class MDF3(object):
         gp["data_group"] = DataGroup(block_len=block_len)
 
         # data block
-        if PYVERSION == 2:
-            types = fix_dtype_fields(types, "latin-1")
         types = dtype(types)
 
         gp["types"] = types
@@ -2387,8 +2355,6 @@ class MDF3(object):
                     new_types.append(("", signal.dtype))
 
                 # data block
-                if PYVERSION == 2:
-                    new_types = fix_dtype_fields(new_types)
                 new_types = dtype(new_types)
 
                 samples = fromarrays(new_fields, dtype=new_types)
@@ -2444,8 +2410,6 @@ class MDF3(object):
         gp["size"] += extended_size
 
         # data block
-        if PYVERSION == 2:
-            types = fix_dtype_fields(types, "latin-1")
         types = dtype(types)
 
         samples = fromarrays(fields, dtype=types)
@@ -2845,9 +2809,6 @@ class MDF3(object):
 
             arrays = [vals]
             types = [(channel.name, vals.dtype, record_shape)]
-
-            if PYVERSION == 2:
-                types = fix_dtype_fields(types, "latin-1")
 
             types = dtype(types)
             vals = fromarrays(arrays, dtype=types)

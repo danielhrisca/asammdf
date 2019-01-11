@@ -30,7 +30,6 @@ from .utils import (
 from ..version import __version__
 
 
-PYVERSION = sys.version_info[0]
 SEEK_START = v4c.SEEK_START
 SEEK_END = v4c.SEEK_END
 COMMON_SIZE = v4c.COMMON_SIZE
@@ -40,9 +39,6 @@ COMMON_uf = v4c.COMMON_uf
 CN_BLOCK_SIZE = v4c.CN_BLOCK_SIZE
 SIMPLE_CHANNEL_PARAMS_uf = v4c.SIMPLE_CHANNEL_PARAMS_uf
 
-
-if PYVERSION < 3:
-    from .utils import bytes
 
 logger = logging.getLogger("asammdf")
 
@@ -949,9 +945,7 @@ comment: {}
             elif isinstance(val, float):
                 lines.append(template.format(key, round(val, 6)))
             else:
-                if (PYVERSION < 3 and isinstance(val, str)) or (
-                    PYVERSION >= 3 and isinstance(val, bytes)
-                ):
+                if isinstance(val, bytes):
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
@@ -2394,10 +2388,7 @@ class ChannelConversion(dict):
             except TypeError:
                 default = b""
 
-            if PYVERSION < 3:
-                cls = str
-            else:
-                cls = bytes
+            cls = bytes
 
             phys.insert(0, default)
             raw_vals = np.insert(raw_vals, 0, raw_vals[0] - 1)
@@ -2462,10 +2453,7 @@ class ChannelConversion(dict):
             idx_ne = np.nonzero(idx1 != idx2)
             idx_eq = np.nonzero(idx1 == idx2)
 
-            if PYVERSION < 3:
-                cls = str
-            else:
-                cls = bytes
+            cls = bytes
 
             if all(isinstance(val, cls) for val in all_values):
                 phys = np.array(phys)
@@ -2568,9 +2556,7 @@ formula: {}
             elif isinstance(val, float):
                 lines.append(template.format(key, round(val, 6)))
             else:
-                if (PYVERSION < 3 and isinstance(val, str)) or (
-                    PYVERSION >= 3 and isinstance(val, bytes)
-                ):
+                if isinstance(val, bytes):
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
@@ -2799,9 +2785,6 @@ class DataBlock(dict):
             self["block_len"] = len(kwargs["data"]) + COMMON_SIZE
             self["links_nr"] = 0
             self["data"] = kwargs["data"]
-
-        if PYVERSION < 3 and isinstance(self["data"], bytearray):
-            self["data"] = str(self["data"])
 
     def __bytes__(self):
         fmt = v4c.FMT_DATA_BLOCK.format(self["block_len"] - COMMON_SIZE)
@@ -3163,8 +3146,6 @@ class DataList(dict):
                 self["data_block_addr{}".format(i)] = addr
 
             self["flags"] = stream.read(1)[0]
-            if PYVERSION == 2:
-                self["flags"] = ord(self["flags"])
             if self["flags"] & v4c.FLAG_DL_EQUAL_LENGHT:
                 (
                     self["reserved1"],
@@ -3755,8 +3736,6 @@ class HeaderBlock(dict):
 
         if self.comment.startswith("<HDcomment"):
             comment = self.comment
-            if PYVERSION < 3:
-                comment = comment.encode("utf-8")
             comment_xml = ET.fromstring(comment)
             common_properties = comment_xml.find(".//common_properties")
             if common_properties is not None:
@@ -4141,9 +4120,7 @@ comment: {}
             elif isinstance(val, float):
                 lines.append(template.format(key, round(val, 6)))
             else:
-                if (PYVERSION < 3 and isinstance(val, str)) or (
-                    PYVERSION >= 3 and isinstance(val, bytes)
-                ):
+                if isinstance(val, bytes):
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
@@ -4354,16 +4331,10 @@ class TextBlock(dict):
             self.address = 0
             text = kwargs["text"]
 
-            if PYVERSION == 3:
-                try:
-                    text = text.encode("utf-8")
-                except AttributeError:
-                    pass
-            else:
-                try:
-                    text = text.encode("utf-8")
-                except (AttributeError, UnicodeDecodeError):
-                    pass
+            try:
+                text = text.encode("utf-8")
+            except (AttributeError, UnicodeDecodeError):
+                pass
 
             size = len(text)
 

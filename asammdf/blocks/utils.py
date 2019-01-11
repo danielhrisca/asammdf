@@ -2,7 +2,6 @@
 """
 asammdf utility functions and classes
 """
-from __future__ import division, print_function
 
 import logging
 import string
@@ -17,8 +16,6 @@ from warnings import warn
 from numpy import amin, amax, where, arange, interp
 
 import sys
-
-PYVERSION = sys.version_info[0]
 
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
@@ -139,21 +136,6 @@ class MdfException(Exception):
     """MDF Exception class"""
 
     pass
-
-
-if PYVERSION < 3:
-    # pylint: disable=W0622
-    def bytes(obj):
-        """ Python 2 compatibility function """
-        try:
-            return obj.__bytes__()
-        except AttributeError:
-            if isinstance(obj, str):
-                return obj
-            else:
-                raise
-
-    # pylint: enable=W0622
 
 
 def extract_cncomment_xml(comment):
@@ -447,23 +429,6 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
 
         elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
             fmt = ">f{}".format(size)
-
-    return fmt
-
-
-def fix_dtype_fields(fields, encoding="utf-8"):
-    """ convert field names to str in case of Python 2"""
-    new_types = []
-    for pair_ in fields:
-        if not isinstance(pair_[0], unicode):
-            new_types.append(pair_)
-        else:
-            new_pair = [pair_[0].encode(encoding)]
-            for item in pair_[1:]:
-                new_pair.append(item)
-            new_types.append(tuple(new_pair))
-
-    return new_types
 
 
 def fmt_to_datatype_v3(fmt, shape, array=False):
@@ -898,9 +863,6 @@ class ChannelsDB(dict):
             (group index, channel index) pair
 
         """
-        if PYVERSION == 2:
-            if isinstance(channel_name, unicode):
-                channel_name = channel_name.encode(self.encoding)
         if channel_name:
             if channel_name not in self:
                 self[channel_name] = [entry, ]
@@ -930,10 +892,7 @@ def randomized_string(size):
         randomized string
 
     """
-    if PYVERSION >= 3:
-        return bytes(randint(65, 90) for _ in range(size - 1)) + b"\0"
-    else:
-        return "".join(chr(randint(65, 90)) for _ in range(size - 1)) + "\0"
+    return "".join(chr(randint(65, 90)) for _ in range(size - 1)) + "\0"
 
 
 def is_file_like(obj):

@@ -117,12 +117,6 @@ MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
 COMMON_SIZE = v4c.COMMON_SIZE
 COMMON_u = v4c.COMMON_u
 
-PYVERSION = sys.version_info[0]
-if PYVERSION == 2:
-    # pylint: disable=W0622
-    from .utils import bytes
-
-    # pylint: enable=W0622
 
 logger = logging.getLogger("asammdf")
 
@@ -1518,8 +1512,6 @@ class MDF4(object):
                     )
 
                 if addr:
-                    if PYVERSION == 2:
-                        blocks = iter(blocks)
 
                     if group["sorted"]:
 
@@ -1906,15 +1898,6 @@ class MDF4(object):
 
             dtype_pair = "invalidation_bytes", "<u1", (invalidation_bytes_nr,)
             types.append(dtype_pair)
-            if PYVERSION == 2:
-                types = fix_dtype_fields(types, "utf-8")
-                parents_ = {}
-                for key, (name, offset) in parents.items():
-                    if isinstance(name, unicode):
-                        parents_[key] = name.encode("utf-8"), offset
-                    else:
-                        parents_[key] = name, offset
-                parents = parents_
 
             dtypes = dtype(types)
 
@@ -3361,8 +3344,6 @@ class MDF4(object):
         gp["data_group"] = DataGroup()
 
         # data block
-        if PYVERSION == 2:
-            types = fix_dtype_fields(types, "utf-8")
         types = dtype(types)
 
         gp["sorted"] = True
@@ -3665,8 +3646,6 @@ class MDF4(object):
         gp["data_group"] = DataGroup()
 
         # data block
-        if PYVERSION == 2:
-            types = fix_dtype_fields(types, "utf-8")
         types = dtype(types)
 
         gp["sorted"] = True
@@ -3899,8 +3878,6 @@ class MDF4(object):
             types.append(("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:]))
 
         # data block
-        if PYVERSION == 2:
-            types = fix_dtype_fields(types, "utf-8")
         types = dtype(types)
 
         samples = fromarrays(fields, dtype=types)
@@ -4406,8 +4383,6 @@ class MDF4(object):
                     (name_, arr.dtype, arr.shape[1:])
                     for name_, arr in zip(names, arrays)
                 ]
-                if PYVERSION == 2:
-                    types = fix_dtype_fields(types, "utf-8")
                 types = dtype(types)
 
                 vals = fromarrays(arrays, dtype=types)
@@ -4653,9 +4628,6 @@ class MDF4(object):
                                 arrays.append(axis_values)
                                 dtype_pair = axisname, axis_values.dtype, shape
                                 types.append(dtype_pair)
-
-                    if PYVERSION == 2:
-                        types = fix_dtype_fields(types, "utf-8")
 
                     vals = fromarrays(arrays, dtype(types))
 
@@ -4940,10 +4912,7 @@ class MDF4(object):
 
                         if data_type == v4c.DATA_TYPE_BYTEARRAY:
 
-                            if PYVERSION >= 3:
-                                values = [list(val) for val in values]
-                            else:
-                                values = [[ord(byte) for byte in val] for val in values]
+                            values = [[ord(byte) for byte in val] for val in values]
 
                             dim = max(len(arr) for arr in values) if values else 0
 
@@ -5873,10 +5842,7 @@ class MDF4(object):
                     chunks = 1
 
                 if chunks == 1:
-                    if PYVERSION == 3:
-                        data = b"".join(d[0] for d in data)
-                    else:
-                        data = b"".join(str(d[0]) for d in data)
+                    data = b"".join(str(d[0]) for d in data)
                     if compression and self.version > "4.00":
                         if compression == 1:
                             param = 0

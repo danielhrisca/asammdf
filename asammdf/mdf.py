@@ -53,13 +53,8 @@ from .blocks.v4_blocks import ChannelArrayBlock, EventBlock
 from .blocks import v4_constants as v4c
 from .blocks import v2_v3_constants as v23c
 
-PYVERSION = sys.version_info[0]
 
 logger = logging.getLogger("asammdf")
-
-
-if sys.version_info[0] < 3 or sys.version_info[1] < 6:
-    warn("Minimum Python version warning: asammdf 5.0 will only support Python >= 3.6")
 
 
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
@@ -1101,10 +1096,7 @@ class MDF(object):
 
                 data = self._load_data(grp)
 
-                if PYVERSION == 2:
-                    data = b"".join(str(d[0]) for d in data)
-                else:
-                    data = b"".join(d[0] for d in data)
+                data = b"".join(d[0] for d in data)
                 data = (data, 0, None)
 
                 for j in included_channels:

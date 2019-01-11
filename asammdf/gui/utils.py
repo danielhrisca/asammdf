@@ -22,7 +22,6 @@ except ImportError:
 
 from ..mdf import MDF, MDF2, MDF3, MDF4
 
-PYVERSION = sys.version_info[0]
 
 COLORS = [
     "#1f77b4",
@@ -139,15 +138,7 @@ class WorkerThread(Thread):
         self.error = ""
 
     def run(self):
-        if PYVERSION < 3:
-            try:
-                self.output = self._Thread__target(
-                    *self._Thread__args, **self._Thread__kwargs
-                )
-            except Exception as err:
-                self.error = err
-        else:
-            try:
-                self.output = self._target(*self._args, **self._kwargs)
-            except Exception as err:
-                self.error = err
+        try:
+            self.output = self._target(*self._args, **self._kwargs)
+        except Exception as err:
+            self.error = err

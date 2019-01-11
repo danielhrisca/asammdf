@@ -23,12 +23,10 @@ from .utils import (
 )
 from ..version import __version__
 
-PYVERSION = sys.version_info[0]
+
 SEEK_START = v23c.SEEK_START
 SEEK_END = v23c.SEEK_END
 
-if PYVERSION < 3:
-    from .utils import bytes
 
 CHANNEL_DISPLAYNAME_u = v23c.CHANNEL_DISPLAYNAME_u
 CHANNEL_LONGNAME_u = v23c.CHANNEL_LONGNAME_u
@@ -485,9 +483,7 @@ comment: {}
             elif isinstance(val, float):
                 lines.append(template.format(key, round(val, 6)))
             else:
-                if (PYVERSION < 3 and isinstance(val, str)) or (
-                    PYVERSION >= 3 and isinstance(val, bytes)
-                ):
+                if isinstance(val, bytes):
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
@@ -1065,9 +1061,7 @@ address: {}
             elif isinstance(val, float):
                 lines.append(template.format(key, round(val, 6)))
             else:
-                if (PYVERSION < 3 and isinstance(val, str)) or (
-                    PYVERSION >= 3 and isinstance(val, bytes)
-                ):
+                if isinstance(val, bytes):
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
@@ -1683,9 +1677,7 @@ address: {}
             elif isinstance(val, float):
                 lines.append(template.format(key, round(val, 6)))
             else:
-                if (PYVERSION < 3 and isinstance(val, str)) or (
-                    PYVERSION >= 3 and isinstance(val, bytes)
-                ):
+                if isinstance(val, bytes):
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
@@ -2497,16 +2489,10 @@ class TextBlock(dict):
             self.address = 0
             text = kwargs["text"]
 
-            if PYVERSION == 3:
-                try:
-                    text = text.encode("utf-8")
-                except AttributeError:
-                    pass
-            else:
-                try:
-                    text = text.encode("utf-8")
-                except (AttributeError, UnicodeDecodeError):
-                    pass
+            try:
+                text = text.encode("utf-8")
+            except (AttributeError, UnicodeDecodeError):
+                pass
 
             self["id"] = b"TX"
             self["block_len"] = len(text) + 4 + 1
