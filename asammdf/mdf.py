@@ -11,6 +11,7 @@ from copy import deepcopy
 from functools import reduce
 from struct import unpack
 from shutil import copy
+from warnings import warn
 
 import numpy as np
 from numpy.core.defchararray import encode, decode
@@ -55,6 +56,10 @@ from .blocks import v2_v3_constants as v23c
 PYVERSION = sys.version_info[0]
 
 logger = logging.getLogger("asammdf")
+
+
+if sys.version_info[0] < 3 or sys.version_info[1] < 6:
+    warn("Minimum Python version warning: asammdf 5.0 will only support Python >= 3.6")
 
 
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
@@ -2829,14 +2834,15 @@ class MDF(object):
                                 size = UINT64_u(stream.read(8))[0] - 24
                                 texts[addr] = randomized_string(size)
 
-                        for key, block in conv.referenced_blocks.items():
-                            if block:
-                                if block["id"] == b"##TX":
-                                    addr = block.address
-                                    if addr not in texts:
-                                        stream.seek(addr + 8)
-                                        size = block["block_len"] - 24
-                                        texts[addr] = randomized_string(size)
+                        if conv.referenced_blocks:
+                            for key, block in conv.referenced_blocks.items():
+                                if block:
+                                    if block["id"] == b"##TX":
+                                        addr = block.address
+                                        if addr not in texts:
+                                            stream.seek(addr + 8)
+                                            size = block["block_len"] - 24
+                                            texts[addr] = randomized_string(size)
             mdf.close()
 
             if name.lower().endswith(".mf4"):
@@ -2916,14 +2922,15 @@ class MDF(object):
                         if conv["conversion_type"] == v23c.CONVERSION_TYPE_FORMULA:
                             texts[conv + 36] = randomized_string(conv["block_len"] - 36)
 
-                        for key, block in conv.referenced_blocks.items():
-                            if block:
-                                if block["id"] == b"TX":
-                                    addr = block.address
-                                    if addr and addr not in texts:
-                                        stream.seek(addr + 2)
-                                        size = UINT16_u(stream.read(2))[0] - 4
-                                        texts[addr + 4] = randomized_string(size)
+                        if conv.referenced_blocks:
+                            for key, block in conv.referenced_blocks.items():
+                                if block:
+                                    if block["id"] == b"TX":
+                                        addr = block.address
+                                        if addr and addr not in texts:
+                                            stream.seek(addr + 2)
+                                            size = UINT16_u(stream.read(2))[0] - 4
+                                            texts[addr + 4] = randomized_string(size)
             mdf.close()
 
             if name.lower().endswith(".mdf"):

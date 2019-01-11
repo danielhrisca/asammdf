@@ -1067,7 +1067,7 @@ class MDF4(object):
                                         grp["CAN_database"] = True
                                     except UnicodeDecodeError:
                                         try:
-                                            from chardet import detect
+                                            from cchardet import detect
 
                                             encoding = detect(attachment)["encoding"]
                                             attachment_string = attachment.decode(
@@ -1083,7 +1083,7 @@ class MDF4(object):
                                         except ImportError:
                                             message = (
                                                 "Unicode exception occured while processing the database "
-                                                'attachment "{}" and "chardet" package is '
+                                                'attachment "{}" and "cChardet" package is '
                                                 'not installed. Mdf version 4 expects "utf-8" '
                                                 "strings and this package may detect if a different"
                                                 " encoding was used"
@@ -4093,6 +4093,7 @@ class MDF4(object):
             logger.warning(message)
             return b"", file_path
 
+    @profile
     def get(
         self,
         name=None,
@@ -5422,7 +5423,7 @@ class MDF4(object):
                         )["db"]
                     except UnicodeDecodeError:
                         try:
-                            from chardet import detect
+                            from cchardet import detect
 
                             encoding = detect(db_string)["encoding"]
                             db_string = db_string.decode(encoding)
@@ -5435,7 +5436,7 @@ class MDF4(object):
                         except ImportError:
                             message = (
                                 "Unicode exception occured while processing the database "
-                                'attachment "{}" and "chardet" package is '
+                                'attachment "{}" and "cChardet" package is '
                                 'not installed. Mdf version 4 expects "utf-8" '
                                 "strings and this package may detect if a different"
                                 " encoding was used"
@@ -6055,9 +6056,10 @@ class MDF4(object):
                         idx = self._attachments_map[channel["data_block_addr"]]
                         channel["data_block_addr"] = self.attachments[idx].address
 
-                    for j, idx in enumerate(channel.attachments):
-                        key = "attachment_{}_addr".format(j)
-                        channel[key] = self.attachments[idx].address
+                    if channel.attachments:
+                        for j, idx in enumerate(channel.attachments):
+                            key = "attachment_{}_addr".format(j)
+                            channel[key] = self.attachments[idx].address
 
                     address = channel.to_blocks(
                         address, blocks, defined_texts, cc_map, si_map
@@ -6835,9 +6837,10 @@ class MDF4(object):
 
                     del signal_data
 
-                    for att_idx, idx in enumerate(channel.attachments):
-                        key = "attachment_{}_addr".format(att_idx)
-                        channel[key] = self.attachments[idx].address
+                    if channel.attachments:
+                        for att_idx, idx in enumerate(channel.attachments):
+                            key = "attachment_{}_addr".format(att_idx)
+                            channel[key] = self.attachments[idx].address
 
                     address = channel.to_stream(dst_, defined_texts, file_cc_map, file_si_map)
                     ch_addrs.append(channel.address)

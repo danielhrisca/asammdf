@@ -122,7 +122,7 @@ http://asammdf.readthedocs.io/en/master
 # Contributing & Support
 Please have a look over the [contributing guidelines](CONTRIBUTING.md)
 
-If you enjoy this library please consider making a donation to the 
+If you enjoy this library please consider making a donation to the
 [numpy project](https://www.flipcause.com/secure/cause_pdetails/MzUwMQ==).
 
 ## Contributors
@@ -153,7 +153,7 @@ conda install -c conda-forge asammdf
 # Dependencies
 asammdf uses the following libraries
 
-* numpy : the heart that makes all tick 
+* numpy : the heart that makes all tick
 * numexpr : for algebraic and rational channel conversions
 * wheel : for installation in virtual environments
 * pandas : for DataFrame export
@@ -169,7 +169,7 @@ optional dependencies needed for exports
 
 other optional dependencies
 
-* chardet : to detect non-standard unicode encodings
+* cChardet : to detect non-standard unicode encodings
 * PyQt4 or PyQt5 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting
 * matplotlib : as fallback for Signal plotting

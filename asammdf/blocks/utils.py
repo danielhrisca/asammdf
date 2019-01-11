@@ -33,6 +33,7 @@ UINT32_uf = Struct("<I").unpack_from
 UINT64_uf = Struct("<Q").unpack_from
 FLOAT64_u = Struct("<d").unpack
 FLOAT64_uf = Struct("<d").unpack_from
+TWO_UINT64_u = Struct("<2Q").unpack
 
 _xmlns_pattern = re.compile(' xmlns="[^"]*"')
 
@@ -248,13 +249,13 @@ def get_text_v3(address, stream):
         text = text_bytes.strip(b" \r\t\n\0").decode("latin-1")
     except UnicodeDecodeError as err:
         try:
-            from chardet import detect
+            from cchardet import detect
 
             encoding = detect(text_bytes)["encoding"]
             text = text_bytes.strip(b" \r\t\n\0").decode(encoding)
         except ImportError:
             logger.warning(
-                'Unicode exception occured and "chardet" package is '
+                'Unicode exception occured and "cChardet" package is '
                 'not installed. Mdf version 3 expects "latin-1" '
                 "strings and this package may detect if a different"
                 " encoding was used"
@@ -285,19 +286,19 @@ def get_text_v4(address, stream):
         return ""
 
     stream.seek(address + 8)
-    size = UINT64_u(stream.read(8))[0] - 16
-    text_bytes = stream.read(size)[8:]
+    size, _ = TWO_UINT64_u(stream.read(16))
+    text_bytes = stream.read(size - 24)
     try:
         text = text_bytes.strip(b" \r\t\n\0").decode("utf-8")
     except UnicodeDecodeError as err:
         try:
-            from chardet import detect
+            from cchardet import detect
 
             encoding = detect(text_bytes)["encoding"]
             text = text_bytes.decode(encoding).strip(" \r\t\n\0")
         except ImportError:
             logger.warning(
-                'Unicode exception occured and "chardet" package is '
+                'Unicode exception occured and "cChardet" package is '
                 'not installed. Mdf version 4 expects "utf-8" '
                 "strings and this package may detect if a different"
                 " encoding was used"

@@ -3,15 +3,7 @@
 
 import logging
 
-
-class NullHandler(logging.Handler):
-    def emit(self, record):
-        pass
-
-
-logger = logging.getLogger("asammdf")
-logger.setLevel(logging.INFO)
-logger.addFilter(NullHandler())
+logging.getLogger('asammdf').addHandler(logging.NullHandler())
 
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
