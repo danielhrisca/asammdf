@@ -23,11 +23,9 @@ from .blocks.mdf_v4 import MDF4
 from .signal import Signal
 from .blocks.utils import (
     CHANNEL_COUNT,
-    MERGE_LOW,
-    MERGE_MINIMUM,
+    MERGE,
     MdfException,
     matlab_compatible,
-    validate_memory_argument,
     validate_version_argument,
     MDF2_VERSIONS,
     MDF3_VERSIONS,
@@ -70,13 +68,6 @@ class MDF(object):
     name : string | BytesIO
         mdf file name (if provided it must be a real file name) or
         file-like object
-    memory : str
-        memory option; default `full`:
-
-        * if *full* the data group binary data block will be loaded in RAM
-        * if *low* the channel data is read from disk on request, and the
-          metadata is loaded into RAM
-        * if *minimum* only minimal data is loaded into RAM
 
     version : string
         mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
@@ -95,9 +86,8 @@ class MDF(object):
 
     _terminate = False
 
-    def __init__(self, name=None, memory="full", version="4.10", **kwargs):
+    def __init__(self, name=None, version="4.10", **kwargs):
         if name:
-            memory = validate_memory_argument(memory)
             if is_file_like(name):
                 file_stream = name
             else:
@@ -117,11 +107,11 @@ class MDF(object):
                 version = str(version)
                 version = "{}.{}".format(version[0], version[1:])
             if version in MDF3_VERSIONS:
-                self._mdf = MDF3(name, memory, **kwargs)
+                self._mdf = MDF3(name, **kwargs)
             elif version in MDF4_VERSIONS:
-                self._mdf = MDF4(name, memory, **kwargs)
+                self._mdf = MDF4(name, **kwargs)
             elif version in MDF2_VERSIONS:
-                self._mdf = MDF2(name, memory, **kwargs)
+                self._mdf = MDF2(name, **kwargs)
             else:
                 message = (
                     '"{}" is not a supported MDF file; ' '"{}" file version was found'
@@ -130,13 +120,12 @@ class MDF(object):
 
         else:
             version = validate_version_argument(version)
-            memory = validate_memory_argument(memory)
             if version in MDF2_VERSIONS:
-                self._mdf = MDF3(version=version, memory=memory, **kwargs)
+                self._mdf = MDF3(version=version, **kwargs)
             elif version in MDF3_VERSIONS:
-                self._mdf = MDF3(version=version, memory=memory, **kwargs)
+                self._mdf = MDF3(version=version, **kwargs)
             elif version in MDF4_VERSIONS:
-                self._mdf = MDF4(version=version, memory=memory, **kwargs)
+                self._mdf = MDF4(version=version, **kwargs)
             else:
                 message = (
                     '"{}" is not a supported MDF file version; '
@@ -364,19 +353,11 @@ class MDF(object):
                     stream = self._file
                 else:
                     stream = self._tempfile
-                if self.memory == "minimum":
-                    channel = ChannelV4(
-                        address=channel, stream=stream, load_metadata=False
-                    )
                 frame_bytes = range(
                     channel["byte_offset"],
                     channel["byte_offset"] + channel["bit_count"] // 8,
                 )
                 for i, channel in enumerate(channels):
-                    if self.memory == "minimum":
-                        channel = ChannelV4(
-                            address=channel, stream=stream, load_metadata=False
-                        )
                     if channel["byte_offset"] in frame_bytes:
                         excluded_channels.add(i)
 
@@ -447,19 +428,11 @@ class MDF(object):
                     stream = self._file
                 else:
                     stream = self._tempfile
-                if self.memory == "minimum":
-                    channel = ChannelV4(
-                        address=channel, stream=stream, load_metadata=False
-                    )
                 frame_bytes = range(
                     channel["byte_offset"],
                     channel["byte_offset"] + channel["bit_count"] // 8,
                 )
                 for i, channel in enumerate(channels):
-                    if self.memory == "minimum":
-                        channel = ChannelV4(
-                            address=channel, stream=stream, load_metadata=False
-                        )
                     if channel["byte_offset"] in frame_bytes:
                         included_channels.remove(i)
 
@@ -504,7 +477,7 @@ class MDF(object):
         for signal in self.iter_channels():
             yield signal
 
-    def convert(self, version, memory=None):
+    def convert(self, version):
         """convert *MDF* to other version
 
         Parameters
@@ -512,8 +485,6 @@ class MDF(object):
         version : str
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default '4.10'
-        memory : str
-            memory option; default *full*
 
         Returns
         -------
@@ -522,12 +493,8 @@ class MDF(object):
 
         """
         version = validate_version_argument(version)
-        if memory is None:
-            memory = self.memory
-        else:
-            memory = validate_memory_argument(memory)
 
-        out = MDF(version=version, memory=memory)
+        out = MDF(version=version)
 
         out.header.start_time = self.header.start_time
 
@@ -663,7 +630,7 @@ class MDF(object):
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def cut(self, start=None, stop=None, whence=0, version=None, memory=None, include_ends=True):
+    def cut(self, start=None, stop=None, whence=0, version=None, include_ends=True):
         """cut *MDF* file. *start* and *stop* limits are absolute values
         or values relative to the first timestamp depending on the *whence*
         argument.
@@ -685,9 +652,6 @@ class MDF(object):
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
             case the original file version is used
-        memory : str
-            memory option; default *None* and in this case the original file
-            memory option is used
         include_ends : bool
             include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are found in the original timestamps, then
@@ -699,17 +663,13 @@ class MDF(object):
             new MDF object
 
         """
-        if memory is None:
-            memory = self.memory
-        else:
-            memory = validate_memory_argument(memory)
 
         if version is None:
             version = self.version
         else:
             version = validate_version_argument(version)
 
-        out = MDF(version=version, memory=memory)
+        out = MDF(version=version)
 
         out.header.start_time = self.header.start_time
 
@@ -1184,10 +1144,7 @@ class MDF(object):
 
                         data = self._load_data(grp)
 
-                        if PYVERSION == 2:
-                            data = b"".join(str(d[0]) for d in data)
-                        else:
-                            data = b"".join(d[0] for d in data)
+                        data = b"".join(d[0] for d in data)
                         data = (data, 0, None)
 
                         for j, _ in enumerate(grp["channels"]):
@@ -1242,10 +1199,7 @@ class MDF(object):
 
                     data = self._load_data(grp)
 
-                    if PYVERSION == 2:
-                        data = b"".join(str(d[0]) for d in data)
-                    else:
-                        data = b"".join(d[0] for d in data)
+                    data = b"".join(d[0] for d in data)
                     data = (data, 0, None)
 
                     master_index = self.masters_db.get(i, None)
@@ -1341,10 +1295,7 @@ class MDF(object):
                     logger.info(message)
                     data = self._load_data(grp)
 
-                    if PYVERSION == 2:
-                        data = b"".join(str(d[0]) for d in data)
-                    else:
-                        data = b"".join(d[0] for d in data)
+                    data = b"".join(d[0] for d in data)
                     data = (data, 0, None)
 
                     group_name = "DataGroup_{}".format(i + 1)
@@ -1447,10 +1398,7 @@ class MDF(object):
                         included_channels.add(master_index)
                     data = self._load_data(grp)
 
-                    if PYVERSION == 2:
-                        data = b"".join(str(d[0]) for d in data)
-                    else:
-                        data = b"".join(d[0] for d in data)
+                    data = b"".join(d[0] for d in data)
                     data = (data, 0, None)
 
                     for j in included_channels:
@@ -1518,7 +1466,7 @@ class MDF(object):
             message.format(fmt)
             logger.warning(message)
 
-    def filter(self, channels, memory=None, version=None):
+    def filter(self, channels, version=None):
         """ return new *MDF* object that contains only the channels listed in
         *channels* argument
 
@@ -1536,9 +1484,6 @@ class MDF(object):
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
             case the original file version is used
-        memory : str
-            memory option; default *None* and in this case the original file
-            memory option is used
 
         Returns
         -------
@@ -1586,11 +1531,6 @@ class MDF(object):
                 comment="">
 
         """
-
-        if memory is None:
-            memory = self.memory
-        else:
-            memory = validate_memory_argument(memory)
 
         if version is None:
             version = self.version
@@ -1651,7 +1591,7 @@ class MDF(object):
 
             gps[group_index] = included_channels
 
-        mdf = MDF(version=version, memory=memory)
+        mdf = MDF(version=version)
 
         mdf.header.start_time = self.header.start_time
 
@@ -1823,7 +1763,7 @@ class MDF(object):
             )
 
     @staticmethod
-    def concatenate(files, version="4.10", memory="full", sync=True, **kwargs):
+    def concatenate(files, version="4.10", sync=True, **kwargs):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -1834,8 +1774,6 @@ class MDF(object):
             list of *MDF* file names or *MDF* instances
         version : str
             merged file version
-        memory : str
-            memory option; default *full*
         sync : bool
             sync the files based on the start of measurement, default *True*
 
@@ -1955,15 +1893,13 @@ class MDF(object):
 
         version = validate_version_argument(version)
 
-        memory = validate_memory_argument(memory)
-
-        merged = MDF(version=version, memory=memory, callback=callback)
+        merged = MDF(version=version, callback=callback)
 
         merged.header.start_time = oldest
 
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
-                mdf = MDF(mdf, memory=memory)
+                mdf = MDF(mdf)
 
             cg_nr = -1
 
@@ -1975,10 +1911,7 @@ class MDF(object):
                     continue
                 channels_nr = len(group["channels"])
 
-                if memory == "minimum":
-                    y_axis = MERGE_MINIMUM
-                else:
-                    y_axis = MERGE_LOW
+                y_axis = MERGE
 
                 idx = np.searchsorted(CHANNEL_COUNT, channels_nr, side='right') - 1
                 if idx < 0:
@@ -2140,7 +2073,7 @@ class MDF(object):
         return merged
 
     @staticmethod
-    def merge(files, version="4.10", memory="full", sync=True, **kwargs):
+    def merge(files, version="4.10", sync=True, **kwargs):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -2151,8 +2084,6 @@ class MDF(object):
             list of *MDF* file names or *MDF* instances
         version : str
             merged file version
-        memory : str
-            memory option; default *full*
         sync : bool
             sync the files based on the start of measurement, default *True*
 
@@ -2166,10 +2097,10 @@ class MDF(object):
         MdfException : if there are inconsistencies between the files
 
         """
-        return MDF.concatenate(files, version, memory, sync, **kwargs)
+        return MDF.concatenate(files, version, sync, **kwargs)
 
     @staticmethod
-    def stack(files, version="4.10", memory="full", sync=True, **kwargs):
+    def stack(files, version="4.10", sync=True, **kwargs):
         """ stack several files and return the stacked *MDF* object
 
         Parameters
@@ -2178,8 +2109,6 @@ class MDF(object):
             list of *MDF* file names or *MDF* instances
         version : str
             merged file version
-        memory : str
-            memory option; default *full*
         sync : bool
             sync the files based on the start of measurement, default *True*
 
@@ -2193,11 +2122,10 @@ class MDF(object):
             raise MdfException("No files given for stack")
 
         version = validate_version_argument(version)
-        memory = validate_memory_argument(memory)
 
         callback = kwargs.get("callback", None)
 
-        stacked = MDF(version=version, memory=memory, callback=callback)
+        stacked = MDF(version=version, callback=callback)
 
         files_nr = len(files)
 
@@ -2238,7 +2166,7 @@ class MDF(object):
         cg_nr = -1
         for offset, mdf in zip(offsets, files):
             if not isinstance(mdf, MDF):
-                mdf = MDF(mdf, memory)
+                mdf = MDF(mdf)
 
             for i, group in enumerate(mdf.groups):
                 idx = 0
@@ -2390,7 +2318,7 @@ class MDF(object):
         for i, group in enumerate(self.groups):
             yield self.get_group(i)
 
-    def resample(self, raster, memory=None, version=None):
+    def resample(self, raster, version=None):
         """ resample all channels using the given raster
 
         Parameters
@@ -2401,9 +2329,6 @@ class MDF(object):
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
             case the original file version is used
-        memory : str
-            memory option; default *None* and in this case the original file
-            memory option is used
 
         Returns
         -------
@@ -2412,17 +2337,12 @@ class MDF(object):
 
         """
 
-        if memory is None:
-            memory = self.memory
-        else:
-            memory = validate_memory_argument(memory)
-
         if version is None:
             version = self.version
         else:
             version = validate_version_argument(version)
 
-        mdf = MDF(version=version, memory=memory)
+        mdf = MDF(version=version)
 
         mdf.header.start_time = self.header.start_time
 
@@ -2712,20 +2632,17 @@ class MDF(object):
             return tuple()
 
     @staticmethod
-    def scramble(name, memory="low"):
+    def scramble(name):
         """ scramble text blocks and keep original file structure
 
         Parameters
         ----------
         name : str
             file name
-        memory : str
-            memory option; default *'low'*
 
         """
 
-        memory = validate_memory_argument(memory)
-        mdf = MDF(name, memory=memory)
+        mdf = MDF(name)
         texts = {}
 
         if mdf.version >= "4.00":
@@ -2882,8 +2799,6 @@ class MDF(object):
                         texts[addr + 4] = randomized_string(size)
 
                 for ch in gp["channels"]:
-                    if mdf.memory == "minimum":
-                        ch = Channel(address=ch, stream=stream, load_metadata=False)
 
                     for key in ("long_name_addr", "display_name_addr", "comment_addr"):
                         addr = ch.get(key, 0)

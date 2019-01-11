@@ -11,8 +11,6 @@ import asammdf.blocks.v2_v3_blocks as v3b
 
 SUPPORTED_VERSIONS = SUPPORTED_VERSIONS[1:]
 
-MEMORY = ("minimum", "low", "full")
-
 cycles = 500
 channels_count = 20
 array_channels_count = 20

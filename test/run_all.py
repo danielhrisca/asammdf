@@ -6,10 +6,7 @@ Main test function to execute all tests found in the current directory
 import sys
 import xmlrunner
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
 
 def main():

@@ -4,7 +4,6 @@ import unittest
 
 import numpy as np
 
-from utils import MEMORY
 from asammdf import MDF, MDF4, Signal
 
 CHANNEL_LEN = 100000
@@ -35,18 +34,16 @@ class TestMDF4(unittest.TestCase):
             unit="unit2",
         )
 
-        for memory in MEMORY:
+        with MDF(version="4.00") as mdf:
+            mdf.append([sig_int, sig_float], common_timebase=True)
+            outfile = mdf.save("tmp", overwrite=True)
 
-            with MDF(version="4.00", memory=memory) as mdf:
-                mdf.append([sig_int, sig_float], common_timebase=True)
-                outfile = mdf.save("tmp", overwrite=True)
+        with MDF(outfile) as mdf:
+            ret_sig_int = mdf.get(sig_int.name)
+            ret_sig_float = mdf.get(sig_float.name)
 
-            with MDF(outfile, memory=memory) as mdf:
-                ret_sig_int = mdf.get(sig_int.name)
-                ret_sig_float = mdf.get(sig_float.name)
-
-            self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
-            self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
+        self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
+        self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
     def test_read_mdf4_10(self):
 
@@ -69,17 +66,16 @@ class TestMDF4(unittest.TestCase):
             unit="unit2",
         )
 
-        for memory in MEMORY:
-            with MDF(version="4.10", memory=memory) as mdf:
-                mdf.append([sig_int, sig_float], common_timebase=True)
-                outfile = mdf.save("tmp", overwrite=True)
+        with MDF(version="4.10") as mdf:
+            mdf.append([sig_int, sig_float], common_timebase=True)
+            outfile = mdf.save("tmp", overwrite=True)
 
-            with MDF(outfile, memory=memory) as mdf:
-                ret_sig_int = mdf.get(sig_int.name)
-                ret_sig_float = mdf.get(sig_float.name)
+        with MDF(outfile) as mdf:
+            ret_sig_int = mdf.get(sig_int.name)
+            ret_sig_float = mdf.get(sig_float.name)
 
-            self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
-            self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
+        self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
+        self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
 
 if __name__ == "__main__":

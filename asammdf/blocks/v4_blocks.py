@@ -2,7 +2,6 @@
 """
 classes that implement the blocks for MDF version 4
 """
-from __future__ import division, print_function
 
 import logging
 import xml.etree.ElementTree as ET
@@ -276,66 +275,6 @@ class AttachmentBlock(dict):
         align = address % 8
         if align % 8:
             blocks.append(b"\0" * (8 - align))
-            address += 8 - align
-
-        return address
-
-    def to_stream(self, stream, defined_texts):
-        address = stream.tell()
-
-        key = "file_name_addr"
-        text = self.file_name
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        key = "mime_addr"
-        text = self.mime
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        key = "comment_addr"
-        text = self.comment
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                meta = text.startswith("<ATcomment")
-                tx_block = TextBlock(text=text, meta=meta)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        stream.write(bytes(self))
-        self.address = address
-        address += self["block_len"]
-
-        align = address % 8
-        if align % 8:
-            stream.write(b"\0" * (8 - align))
             address += 8 - align
 
         return address
@@ -750,105 +689,6 @@ class Channel(dict):
             self["source_addr"] = 0
 
         blocks.append(self)
-        self.address = address
-        address += self["block_len"]
-
-        return address
-
-    def to_stream(self, stream, defined_texts, cc_map, si_map):
-        address = stream.tell()
-        key = "name_addr"
-        text = self.name
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        key = "unit_addr"
-        text = self.unit
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        key = "comment_addr"
-        comment = self.comment
-        display_name = self.display_name
-
-        if display_name and not text:
-            text = v4c.CN_COMMENT_TEMPLATE.format(comment, display_name)
-        elif display_name and comment:
-            if not comment.startswith("<CNcomment"):
-                text = v4c.CN_COMMENT_TEMPLATE.format(comment, display_name)
-            else:
-                if display_name not in comment:
-                    try:
-                        CNcomment = ET.fromstring(comment)
-                        display_name_element = CNcomment.find(".//names/display")
-                        if display_name is not None:
-                            display_name_element.text = display_name
-                        else:
-
-                            display = ET.Element("display")
-                            display.text = display_name
-                            names = ET.Element("names")
-                            names.append(display)
-                            CNcomment.append(names)
-
-                        text = ET.tostring(CNcomment).decode("utf-8")
-
-                    except UnicodeEncodeError:
-                        text = comment
-                else:
-                    text = comment
-        else:
-            text = comment
-
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                meta = text.startswith("<CNcomment")
-                tx_block = TextBlock(text=text, meta=meta)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        conversion = self.conversion
-        if conversion:
-            address = conversion.to_stream(stream, defined_texts, cc_map)
-            self["conversion_addr"] = conversion.address
-        else:
-            self["conversion_addr"] = 0
-
-        source = self.source
-        if source:
-            address = source.to_stream(stream, defined_texts, si_map)
-            self["source_addr"] = source.address
-        else:
-            self["source_addr"] = 0
-
-        stream.write(bytes(self))
         self.address = address
         address += self["block_len"]
 
@@ -1374,53 +1214,6 @@ class ChannelGroup(dict):
             self["acq_source_addr"] = 0
 
         blocks.append(self)
-        self.address = address
-        address += self["block_len"]
-
-        return address
-
-    def to_stream(self, stream, defined_texts, si_map):
-        address = stream.tell()
-
-        key = "acq_name_addr"
-        text = self.acq_name
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        key = "comment_addr"
-        text = self.comment
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                meta = text.startswith("<CGcomment")
-                tx_block = TextBlock(text=text, meta=meta)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        source = self.acq_source
-        if source:
-            address = source.to_stream(stream, defined_texts, si_map)
-            self["acq_source_addr"] = source.address
-        else:
-            self["acq_source_addr"] = 0
-
-        stream.write(bytes(self))
         self.address = address
         address += self["block_len"]
 
@@ -2190,100 +1983,6 @@ class ChannelConversion(dict):
             blocks.append(bts)
             self.address = address
             cc_map[bts] = address
-            address += self["block_len"]
-
-        return address
-
-    def to_stream(self, stream, defined_texts, cc_map):
-        address = stream.tell()
-
-        key = "name_addr"
-        text = self.name
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        key = "unit_addr"
-        text = self.unit
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        if "formula_addr" in self:
-            key = "formula_addr"
-            text = self.formula
-            if text:
-                if text in defined_texts:
-                    self[key] = defined_texts[text]
-                else:
-                    tx_block = TextBlock(text=text)
-                    self[key] = address
-                    defined_texts[text] = address
-                    tx_block.address = address
-                    address += tx_block["block_len"]
-                    stream.write(bytes(tx_block))
-            else:
-                self[key] = 0
-
-        key = "comment_addr"
-        text = self.comment
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                meta = text.startswith("<CCcomment")
-                tx_block = TextBlock(text=text, meta=meta)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        if self.referenced_blocks:
-            for key, block in self.referenced_blocks.items():
-                if block:
-                    if block["id"] == b"##TX":
-                        text = block["text"]
-                        if text in defined_texts:
-                            self[key] = defined_texts[text]
-                        else:
-                            defined_texts[text] = address
-                            self[key] = address
-                            address += block["block_len"]
-                            stream.write(bytes(block))
-                    else:
-                        address = block.to_stream(stream, defined_texts, cc_map)
-                        self[key] = block.address
-                else:
-                    self[key] = 0
-
-        bts = bytes(self)
-        if bts in cc_map:
-            self.address = cc_map[bts]
-        else:
-            cc_map[bts] = address
-            stream.write(bts)
-            self.address = address
             address += self["block_len"]
 
         return address
@@ -3058,31 +2757,6 @@ class DataGroup(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts):
-        address = stream.tell()
-
-        key = "comment_addr"
-        text = self.comment
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                meta = text.startswith("<DGcomment")
-                tx_block = TextBlock(text=text, meta=meta)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        stream.write(bytes(self))
-        self.address = address
-        address += self["block_len"]
-
-        return address
-
     def __bytes__(self):
         result = pack(v4c.FMT_DATA_GROUP, *[self[key] for key in v4c.KEYS_DATA_GROUP])
         return result
@@ -3590,31 +3264,6 @@ class FileHistory(dict):
 
         return address
 
-    def to_stream(self, stream, defined_texts):
-        address = stream.tell()
-
-        key = "comment_addr"
-        text = self.comment
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                meta = text.startswith("<FHcomment")
-                tx_block = TextBlock(text=text, meta=meta)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        stream.write(bytes(self))
-        self.address = address
-        address += self["block_len"]
-
-        return address
-
     def __bytes__(self):
         result = pack(
             v4c.FMT_FILE_HISTORY, *[self[key] for key in v4c.KEYS_FILE_HISTORY]
@@ -3854,85 +3503,6 @@ class HeaderBlock(dict):
         tx_block.address = address
         address += tx_block["block_len"]
         blocks.append(tx_block)
-
-        return address
-
-    def to_stream(self, stream):
-        address = stream.tell()
-        if self.comment.startswith("<HDcomment"):
-            comment = self.comment
-            comment = ET.fromstring(comment)
-            common_properties = comment.find(".//common_properties")
-            if common_properties is not None:
-                for e in common_properties:
-                    name = e.get("name")
-                    if name == "author":
-                        e.text = self.author
-                        break
-                else:
-                    ET.SubElement(
-                        common_properties, "e", name="author"
-                    ).text = self.author
-
-                for e in common_properties:
-                    name = e.get("name")
-                    if name == "department":
-                        e.text = self.department
-                        break
-                else:
-                    ET.SubElement(
-                        common_properties, "e", name="department"
-                    ).text = self.department
-
-                for e in common_properties:
-                    name = e.get("name")
-                    if name == "project":
-                        e.text = self.project
-                        break
-                else:
-                    ET.SubElement(
-                        common_properties, "e", name="project"
-                    ).text = self.project
-
-                for e in common_properties:
-                    name = e.get("name")
-                    if name == "subject":
-                        e.text = self.subject
-                        break
-                else:
-                    ET.SubElement(
-                        common_properties, "e", name="subject"
-                    ).text = self.subject
-
-            else:
-                common_properties = ET.SubElement(comment, "common_properties")
-                ET.SubElement(common_properties, "e", name="author").text = self.author
-                ET.SubElement(
-                    common_properties, "e", name="department"
-                ).text = self.department
-                ET.SubElement(
-                    common_properties, "e", name="project"
-                ).text = self.project
-                ET.SubElement(
-                    common_properties, "e", name="subject"
-                ).text = self.subject
-
-            comment = b"\n".join(ET.tostring(comment, encoding="utf8").splitlines()[1:])
-
-        else:
-            comment = v4c.HD_COMMENT_TEMPLATE.format(
-                self.comment, self.author, self.department, self.project, self.subject
-            )
-
-        self["comment_addr"] = address + self["block_len"]
-
-        self.address = address
-        address += self["block_len"]
-        stream.write(bytes(self))
-
-        tx_block = TextBlock(text=comment, meta=True)
-        address += tx_block["block_len"]
-        stream.write(bytes(tx_block))
 
         return address
 
@@ -4186,66 +3756,6 @@ comment: {}
         else:
             blocks.append(bts)
             si_map[bts] = address
-            self.address = address
-            address += self["block_len"]
-
-        return address
-
-    def to_stream(self, stream, defined_texts, si_map):
-        address = stream.tell()
-
-        key = "name_addr"
-        text = self.name
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        key = "path_addr"
-        text = self.path
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                tx_block = TextBlock(text=text)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        key = "comment_addr"
-        text = self.comment
-        if text:
-            if text in defined_texts:
-                self[key] = defined_texts[text]
-            else:
-                meta = text.startswith("<SIcomment")
-                tx_block = TextBlock(text=text, meta=meta)
-                self[key] = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block["block_len"]
-                stream.write(bytes(tx_block))
-        else:
-            self[key] = 0
-
-        bts = bytes(self)
-        if bts in si_map:
-            self.address = si_map[bts]
-        else:
-            si_map[bts] = address
-            stream.write(bts)
             self.address = address
             address += self["block_len"]
 

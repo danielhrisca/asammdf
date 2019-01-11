@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """ ASAM MDF version 3 file format module """
 
-from __future__ import division, print_function
-
 import logging
 import os
 import sys
@@ -44,8 +42,7 @@ from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
 from .utils import (
     CHANNEL_COUNT,
-    CONVERT_LOW,
-    CONVERT_MINIMUM,
+    CONVERT,
     ChannelsDB,
     MdfException,
     SignalSource,
@@ -53,7 +50,6 @@ from .utils import (
     fmt_to_datatype_v3,
     get_fmt_v3,
     UniqueDB,
-    validate_memory_argument,
     validate_version_argument,
     count_channel_groups,
     is_file_like,
@@ -86,19 +82,16 @@ class MDF3(object):
 
     * ``data_group`` - DataGroup object
     * ``channel_group`` - ChannelGroup object
-    * ``channels`` - list of Channel objects (when *memory* is *full* or *low*)
-      or addresses (when *memory* is *minimum*) with the same order as found in
+    * ``channels`` - list of Channel objects with the same order as found in
       the mdf file
     * ``channel_dependencies`` - list of *ChannelArrayBlock* in case of channel
-      arrays; list of Channel objects (when *memory* is *full* or *low*) or
-      addresses (when *memory* is *minimum*) in case of structure channel
+      arrays; list of Channel objects in case of structure channel
       composition
-    * ``data_block`` - DataBlock object when *memory* is *full* else address of
+    * ``data_block`` - address of
       data block
     * ``data_location``- integer code for data location (original file,
       temporary file or memory)
-    * ``data_block_addr`` - list of raw samples starting addresses, for *low*
-      and *minimum* memory options
+    * ``data_block_addr`` - list of raw samples starting addresses
     * ``data_block_type`` - list of codes for data block type
     * ``data_block_size`` - list of raw samples block size
     * ``sorted`` - sorted indicator flag
@@ -111,13 +104,6 @@ class MDF3(object):
     name : string
         mdf file name (if provided it must be a real file name) or
         file-like object
-    memory : str
-        memory optimization option; default `full`
-
-        * if *full* the data group binary data block will be memorised in RAM
-        * if *low* the channel data is read from disk on request, and the
-          metadata is memorized into RAM
-        * if *minimum* only minimal data is memorized into RAM
 
     version : string
         mdf file version ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20' or
@@ -126,9 +112,6 @@ class MDF3(object):
         keyword only argument: function to call to update the progress; the
         function must accept two arguments (the current progress and maximum
         progress value)
-    skip_record_preparation : bool
-        keyword only argument: only valid if memory='minimum'; this is used to
-        optimise the concatenate method
 
 
     Attributes
@@ -158,13 +141,12 @@ class MDF3(object):
 
     _terminate = False
 
-    def __init__(self, name=None, memory="full", version="3.30", **kwargs):
+    def __init__(self, name=None, version="3.30", **kwargs):
         memory = validate_memory_argument(memory)
         self.groups = []
         self.header = None
         self.identification = None
         self.name = name
-        self.memory = memory
         self.channels_db = ChannelsDB(version=3)
         self.masters_db = {}
         self.version = version
@@ -172,7 +154,6 @@ class MDF3(object):
         self._master_channel_cache = {}
         self._master_channel_metadata = {}
 
-        # used for appending to MDF created with memory=False
         self._tempfile = TemporaryFile()
         self._tempfile.write(b"\0")
         self._file = None
@@ -182,7 +163,6 @@ class MDF3(object):
         self._single_bit_uint_as_bool = False
 
         self._callback = kwargs.get("callback", None)
-        self._skip_record_preparation = kwargs.get("skip_record_preparation", False)
 
         if name:
             if is_file_like(name):
@@ -205,152 +185,145 @@ class MDF3(object):
         has_yielded = False
         offset = 0
         _count = record_count
-        if self.memory == "full":
-            yield group["data_block"]["data"], offset, _count
-            has_yielded = True
-        else:
-            channel_group = group["channel_group"]
+        channel_group = group["channel_group"]
 
-            if group["data_location"] == v23c.LOCATION_ORIGINAL_FILE:
-                # go to the first data block of the current data group
-                stream = self._file
-            else:
-                stream = self._tempfile
-
-            record_offset *= channel_group["samples_byte_nr"]
-
+        if group["data_location"] == v23c.LOCATION_ORIGINAL_FILE:
             # go to the first data block of the current data group
-            if group["sorted"]:
-                samples_size = channel_group["samples_byte_nr"]
-                if not samples_size:
-                    yield b"", 0, _count
-                    has_yielded = True
-                else:
-                    if self._read_fragment_size:
-                        split_size = self._read_fragment_size // samples_size
-                        split_size *= samples_size
-                    else:
-                        channels_nr = len(group["channels"])
+            stream = self._file
+        else:
+            stream = self._tempfile
 
-                        if self.memory == "minimum":
-                            y_axis = CONVERT_MINIMUM
-                        else:
-                            y_axis = CONVERT_LOW
+        record_offset *= channel_group["samples_byte_nr"]
 
-                        idx = searchsorted(CHANNEL_COUNT, channels_nr, side='right') - 1
-                        if idx < 0:
-                            idx = 0
-                        split_size = y_axis[idx]
-
-                        split_size = split_size // samples_size
-                        split_size *= samples_size
-
-                    if split_size == 0:
-                        split_size = samples_size
-
-                    blocks = zip(group["data_block_addr"], group["data_block_size"])
-
-                    cur_size = 0
-                    data = []
-
-                    while True:
-                        try:
-                            address, size = next(blocks)
-                            current_address = address
-                        except StopIteration:
-                            break
-
-                        if offset + size < record_offset + 1:
-                            offset += size
-                            continue
-
-                        stream.seek(address)
-
-                        if offset < record_offset:
-                            delta = record_offset - offset
-                            stream.read(delta)
-                            current_address += delta
-                            size -= delta
-                            offset = record_offset
-
-                        while size >= split_size - cur_size:
-                            stream.seek(current_address)
-                            if data:
-                                data.append(stream.read(split_size - cur_size))
-                                yield b"".join(data), offset, _count
-                                has_yielded = True
-                                current_address += split_size - cur_size
-                            else:
-                                yield stream.read(split_size), offset, _count
-                                has_yielded = True
-                                current_address += split_size
-                            offset += split_size
-
-                            size -= split_size - cur_size
-                            data = []
-                            cur_size = 0
-
-                        if size:
-                            stream.seek(current_address)
-                            data.append(stream.read(size))
-                            cur_size += size
-                            offset += size
-
-                    if data:
-                        yield b"".join(data), offset, _count
-                        has_yielded = True
-                    elif not offset:
-                        yield b"", 0, _count
-                        has_yielded = True
-                    if not has_yielded:
-                        yield b"", 0, _count
-
+        # go to the first data block of the current data group
+        if group["sorted"]:
+            samples_size = channel_group["samples_byte_nr"]
+            if not samples_size:
+                yield b"", 0, _count
+                has_yielded = True
             else:
-                record_id = group["channel_group"]["record_id"]
-                cg_size = group["record_size"]
-                if group["data_group"]["record_id_len"] <= 2:
-                    record_id_nr = group["data_group"]["record_id_len"]
+                if self._read_fragment_size:
+                    split_size = self._read_fragment_size // samples_size
+                    split_size *= samples_size
                 else:
-                    record_id_nr = 0
-                cg_data = []
+                    channels_nr = len(group["channels"])
+
+                    y_axis = CONVERT
+
+                    idx = searchsorted(CHANNEL_COUNT, channels_nr, side='right') - 1
+                    if idx < 0:
+                        idx = 0
+                    split_size = y_axis[idx]
+
+                    split_size = split_size // samples_size
+                    split_size *= samples_size
+
+                if split_size == 0:
+                    split_size = samples_size
 
                 blocks = zip(group["data_block_addr"], group["data_block_size"])
 
-                for address, size in blocks:
+                cur_size = 0
+                data = []
+
+                while True:
+                    try:
+                        address, size = next(blocks)
+                        current_address = address
+                    except StopIteration:
+                        break
+
+                    if offset + size < record_offset + 1:
+                        offset += size
+                        continue
 
                     stream.seek(address)
-                    data = stream.read(size)
 
-                    i = 0
-                    while i < size:
-                        rec_id = data[i]
-                        # skip record id
-                        i += 1
-                        rec_size = cg_size[rec_id]
-                        if rec_id == record_id:
-                            rec_data = data[i : i + rec_size]
-                            cg_data.append(rec_data)
-                        # consider the second record ID if it exists
-                        if record_id_nr == 2:
-                            i += rec_size + 1
+                    if offset < record_offset:
+                        delta = record_offset - offset
+                        stream.read(delta)
+                        current_address += delta
+                        size -= delta
+                        offset = record_offset
+
+                    while size >= split_size - cur_size:
+                        stream.seek(current_address)
+                        if data:
+                            data.append(stream.read(split_size - cur_size))
+                            yield b"".join(data), offset, _count
+                            has_yielded = True
+                            current_address += split_size - cur_size
                         else:
-                            i += rec_size
-                    cg_data = b"".join(cg_data)
-                    size = len(cg_data)
+                            yield stream.read(split_size), offset, _count
+                            has_yielded = True
+                            current_address += split_size
+                        offset += split_size
+
+                        size -= split_size - cur_size
+                        data = []
+                        cur_size = 0
 
                     if size:
-                        if offset + size < record_offset + 1:
-                            offset += size
-                            continue
-
-                        if offset < record_offset:
-                            delta = record_offset - offset
-                            size -= delta
-                            offset = record_offset
-
-                        yield cg_data, offset, _count
-                        has_yielded = True
+                        stream.seek(current_address)
+                        data.append(stream.read(size))
+                        cur_size += size
                         offset += size
+
+                if data:
+                    yield b"".join(data), offset, _count
+                    has_yielded = True
+                elif not offset:
+                    yield b"", 0, _count
+                    has_yielded = True
+                if not has_yielded:
+                    yield b"", 0, _count
+
+        else:
+            record_id = group["channel_group"]["record_id"]
+            cg_size = group["record_size"]
+            if group["data_group"]["record_id_len"] <= 2:
+                record_id_nr = group["data_group"]["record_id_len"]
+            else:
+                record_id_nr = 0
+            cg_data = []
+
+            blocks = zip(group["data_block_addr"], group["data_block_size"])
+
+            for address, size in blocks:
+
+                stream.seek(address)
+                data = stream.read(size)
+
+                i = 0
+                while i < size:
+                    rec_id = data[i]
+                    # skip record id
+                    i += 1
+                    rec_size = cg_size[rec_id]
+                    if rec_id == record_id:
+                        rec_data = data[i : i + rec_size]
+                        cg_data.append(rec_data)
+                    # consider the second record ID if it exists
+                    if record_id_nr == 2:
+                        i += rec_size + 1
+                    else:
+                        i += rec_size
+                cg_data = b"".join(cg_data)
+                size = len(cg_data)
+
+                if size:
+                    if offset + size < record_offset + 1:
+                        offset += size
+                        continue
+
+                    if offset < record_offset:
+                        delta = record_offset - offset
+                        size -= delta
+                        offset = record_offset
+
+                    yield cg_data, offset, _count
+                    has_yielded = True
+                    offset += size
         if not has_yielded:
             yield b"", 0, _count
 
@@ -372,7 +345,6 @@ class MDF3(object):
         try:
             parents, dtypes = group["parents"], group["types"]
         except KeyError:
-            memory = self.memory
             if group["data_location"] == v23c.LOCATION_ORIGINAL_FILE:
                 stream = self._file
             else:
@@ -386,10 +358,7 @@ class MDF3(object):
             parents = {}
             group_channels = UniqueDB()
 
-            if memory != "minimum":
-                channels = grp["channels"]
-            else:
-                channels = grp["temp_channels"]
+            channels = grp["temp_channels"]
 
             # the channels are first sorted ascending (see __lt__ method of Channel
             # class): a channel with lower start offset is smaller, when two
@@ -502,16 +471,7 @@ class MDF3(object):
 
         record_size = group["channel_group"]["samples_byte_nr"]
 
-        if self.memory != "minimum":
-            channel = group["channels"][ch_nr]
-        else:
-            if group["data_location"] == v23c.LOCATION_ORIGINAL_FILE:
-                stream = self._file
-            else:
-                stream = (self._tempfile,)
-            channel = Channel(
-                address=group["channels"][ch_nr], stream=stream, load_metadata=False
-            )
+        channel = group["channels"][ch_nr]
 
         bit_offset = channel["start_offset"] % 8
         byte_offset = channel["start_offset"] // 8
@@ -701,30 +661,15 @@ class MDF3(object):
 
     def _get_source_name(self, group, index):
         grp = self.groups[group]
-        if self.memory == "minimum":
-            if grp["data_location"] == v23c.LOCATION_ORIGINAL_FILE:
-                stream = self._file
-            else:
-                stream = self._tempfile
 
-            if index >= 0:
-                channel = Channel(address=grp["channels"][index], stream=stream)
-                if channel.source:
-                    name = channel.source.name
-                else:
-                    name = ""
-            else:
-                name = ""
+        if grp["channels"][index].source:
+            name = grp["channels"][index].source.name
         else:
-            if grp["channels"][index].source:
-                name = grp["channels"][index].source.name
-            else:
-                name = ""
+            name = ""
         return name
 
     def _read(self):
         stream = self._file
-        memory = self.memory
 
         cg_count, _ = count_channel_groups(stream)
         if self._callback:
@@ -778,8 +723,6 @@ class MDF3(object):
                 grp["data_block"] = None
                 grp["trigger"] = trigger
                 grp["channel_dependencies"] = []
-                if memory == "minimum" and not self._skip_record_preparation:
-                    grp["temp_channels"] = temp_channels = []
 
                 if record_id_nr:
                     grp["sorted"] = False
@@ -805,9 +748,8 @@ class MDF3(object):
 
                 while ch_addr:
                     # read channel block and create channel object
-                    load_metadata = memory != "minimum"
                     new_ch = Channel(
-                        address=ch_addr, stream=stream, load_metadata=load_metadata
+                        address=ch_addr, stream=stream, load_metadata=True
                     )
 
                     # check if it has channel dependencies
@@ -831,20 +773,8 @@ class MDF3(object):
                     # go to next channel of the current channel group
 
                     ch_cntr += 1
-                    if memory != "minimum":
-                        grp_chs.append(new_ch)
-                    else:
-                        grp_chs.append(ch_addr)
-                        if not self._skip_record_preparation:
-                            temp_channels.append(new_ch)
+                    grp_chs.append(new_ch)
                     ch_addr = new_ch["next_ch_addr"]
-
-                if memory == "minimum":
-                    grp["data_location"] = v23c.LOCATION_ORIGINAL_FILE
-                    if not self._skip_record_preparation:
-                        grp["parents"], grp["types"] = self._prepare_record(grp)
-                        del grp["temp_channels"]
-                        del temp_channels
 
                 cg_addr = grp["channel_group"]["next_cg_addr"]
                 dg_cntr += 1
@@ -878,49 +808,11 @@ class MDF3(object):
                 grp["record_size"] = cg_size
                 grp["size"] = total_size
 
-            if memory == "full":
-                # read data block of the current data group
-                dat_addr = data_group["data_block_addr"]
-                if dat_addr:
-                    seek(dat_addr)
-                    data = read(total_size)
-                else:
-                    data = b""
-                if record_id_nr == 0:
-                    grp = new_groups[0]
-                    grp["data_location"] = v23c.LOCATION_MEMORY
-                    grp["data_block"] = DataBlock(data=data)
-
-                else:
-                    # agregate data for each record ID in the cg_data dict
-                    cg_data = defaultdict(list)
-                    i = 0
-                    size = len(data)
-                    while i < size:
-                        rec_id = data[i]
-                        # skip record id
-                        i += 1
-                        rec_size = cg_size[rec_id]
-                        rec_data = data[i : i + rec_size]
-                        cg_data[rec_id].append(rec_data)
-                        # possibly skip 2nd record id
-                        if record_id_nr == 2:
-                            i += rec_size + 1
-                        else:
-                            i += rec_size
-                    for grp in new_groups:
-                        grp["data_location"] = v23c.LOCATION_MEMORY
-                        record_id = grp["channel_group"]["record_id"]
-                        data = cg_data[record_id]
-                        data = b"".join(data)
-                        grp["channel_group"]["record_id"] = 1
-                        grp["data_block"] = DataBlock(data=data)
-            else:
-                for grp in new_groups:
-                    grp["data_location"] = v23c.LOCATION_ORIGINAL_FILE
-                    grp["data_group"]["data_block_addr"] = data_group["data_block_addr"]
-                    grp["data_block_addr"] = [data_group["data_block_addr"]]
-                    grp["data_block_size"] = [total_size]
+            for grp in new_groups:
+                grp["data_location"] = v23c.LOCATION_ORIGINAL_FILE
+                grp["data_group"]["data_block_addr"] = data_group["data_block_addr"]
+                grp["data_block_addr"] = [data_group["data_block_addr"]]
+                grp["data_block_size"] = [total_size]
 
             self.groups.extend(new_groups)
 
@@ -1139,7 +1031,6 @@ class MDF3(object):
         else:
             channel_size = v23c.CN_SHORT_BLOCK_SIZE
 
-        memory = self.memory
         file = self._tempfile
         write = file.write
         tell = file.tell
@@ -1223,11 +1114,7 @@ class MDF3(object):
             channel.conversion = conversion
             channel.source = source
 
-            if memory != "minimum":
-                gp_channels.append(channel)
-            else:
-                channel.to_stream(file, defined_texts, cc_map, si_map)
-                gp_channels.append(channel.address)
+            gp_channels.append(channel)
 
             self.channels_db.add(name, (dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
@@ -1332,11 +1219,7 @@ class MDF3(object):
                 channel.comment = signal.comment
                 channel.source = new_source
                 channel.conversion = conversion
-                if memory != "minimum":
-                    gp_channels.append(channel)
-                else:
-                    channel.to_stream(file, defined_texts, cc_map, si_map)
-                    gp_channels.append(channel.address)
+                gp_channels.append(channel)
 
                 offset += s_size
 
@@ -1411,11 +1294,7 @@ class MDF3(object):
                 channel.name = name = time_name
                 channel.source = source
                 channel.conversion = conversion
-                if memory != "minimum":
-                    gp_channels.append(channel)
-                else:
-                    channel.to_stream(file, defined_texts, cc_map, si_map)
-                    gp_channels.append(channel.address)
+                gp_channels.append(channel)
 
                 self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
 
@@ -1512,11 +1391,7 @@ class MDF3(object):
                     channel.source = source
                     channel.conversion = conversion
 
-                    if memory != "minimum":
-                        new_gp_channels.append(channel)
-                    else:
-                        channel.to_stream(file, defined_texts, cc_map, si_map)
-                        new_gp_channels.append(channel.address)
+                    new_gp_channels.append(channel)
                     new_offset += s_size
 
                     self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
@@ -1561,28 +1436,20 @@ class MDF3(object):
                 try:
                     block = samples.tostring()
 
-                    if memory == "full":
-                        new_gp["data_location"] = v23c.LOCATION_MEMORY
-                        kargs = {"data": block}
-                        new_gp["data_block"] = DataBlock(**kargs)
-                    else:
-                        new_gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
-                        if cycles_nr:
-                            data_address = tell()
-                            new_gp["data_group"]["data_block_addr"] = data_address
-                            self._tempfile.write(block)
-                        else:
-                            new_gp["data_group"]["data_block_addr"] = 0
-                except MemoryError:
-                    if memory == "full":
-                        raise
-                    else:
-                        new_gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
-
+                    new_gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
+                    if cycles_nr:
                         data_address = tell()
                         new_gp["data_group"]["data_block_addr"] = data_address
-                        for sample in samples:
-                            self._tempfile.write(sample.tostring())
+                        self._tempfile.write(block)
+                    else:
+                        new_gp["data_group"]["data_block_addr"] = 0
+                except MemoryError:
+                    new_gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
+
+                    data_address = tell()
+                    new_gp["data_group"]["data_block_addr"] = data_address
+                    for sample in samples:
+                        self._tempfile.write(sample.tostring())
 
                 # data group trigger
                 new_gp["trigger"] = None
@@ -1666,11 +1533,7 @@ class MDF3(object):
                 channel.comment = signal.comment
                 channel.display_name = signal.display_name
 
-                if memory != "minimum":
-                    gp_channels.append(channel)
-                else:
-                    channel.to_stream(file, defined_texts, cc_map, si_map)
-                    gp_channels.append(channel.address)
+                gp_channels.append(channel)
 
                 self.channels_db.add(name, (dg_cntr, ch_cntr))
 
@@ -1736,11 +1599,7 @@ class MDF3(object):
                     channel = Channel(**kargs)
                     channel.name = name
                     channel.source = source
-                    if memory != "minimum":
-                        gp_channels.append(channel)
-                    else:
-                        channel.to_stream(file, defined_texts, cc_map, si_map)
-                        gp_channels.append(channel.address)
+                    gp_channels.append(channel)
 
                     size = s_size
                     for dim in shape:
@@ -1834,11 +1693,7 @@ class MDF3(object):
                     channel.name = name
                     channel.comment = signal.comment
                     channel.source = source
-                    if memory != "minimum":
-                        gp_channels.append(channel)
-                    else:
-                        channel.to_stream(file, defined_texts, cc_map, si_map)
-                        gp_channels.append(channel.address)
+                    gp_channels.append(channel)
 
                     self.channels_db.add(name, (dg_cntr, ch_cntr))
 
@@ -1905,11 +1760,7 @@ class MDF3(object):
                         channel = Channel(**kargs)
                         channel.name = name
                         channel.source = source
-                        if memory != "minimum":
-                            gp_channels.append(channel)
-                        else:
-                            channel.to_stream(file, defined_texts, cc_map, si_map)
-                            gp_channels.append(channel.address)
+                        gp_channels.append(channel)
 
                         size = s_size
                         for dim in shape:
@@ -1964,22 +1815,17 @@ class MDF3(object):
 
         block = samples.tostring()
 
-        if memory == "full":
-            gp["data_location"] = v23c.LOCATION_MEMORY
-            kargs = {"data": block}
-            gp["data_block"] = DataBlock(**kargs)
+        gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
+        if cycles_nr:
+            data_address = tell()
+            gp["data_group"]["data_block_addr"] = data_address
+            gp["data_block_addr"] = [data_address]
+            gp["data_block_size"] = [len(block)]
+            self._tempfile.write(block)
         else:
-            gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
-            if cycles_nr:
-                data_address = tell()
-                gp["data_group"]["data_block_addr"] = data_address
-                gp["data_block_addr"] = [data_address]
-                gp["data_block_size"] = [len(block)]
-                self._tempfile.write(block)
-            else:
-                gp["data_group"]["data_block_addr"] = 0
-                gp["data_block_addr"] = [0]
-                gp["data_block_size"] = [0]
+            gp["data_group"]["data_block_addr"] = 0
+            gp["data_block_addr"] = [0]
+            gp["data_block_size"] = [0]
 
         # data group trigger
         gp["trigger"] = None
@@ -2014,7 +1860,6 @@ class MDF3(object):
         else:
             channel_size = v23c.CN_SHORT_BLOCK_SIZE
 
-        memory = self.memory
         file = self._tempfile
         write = file.write
         tell = file.tell
@@ -2077,11 +1922,7 @@ class MDF3(object):
             channel.conversion = conversion
             channel.source = source
 
-            if memory != "minimum":
-                gp_channels.append(channel)
-            else:
-                channel.to_stream(file, defined_texts, cc_map, si_map)
-                gp_channels.append(channel.address)
+            gp_channels.append(channel)
 
             self.channels_db.add(name, (dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
@@ -2154,11 +1995,7 @@ class MDF3(object):
                 conversion = ChannelConversion(**kargs)
                 conversion.unit = unit
 
-            if memory != "minimum":
-                gp_channels.append(channel)
-            else:
-                channel.to_stream(file, defined_texts, cc_map, si_map)
-                gp_channels.append(channel.address)
+            gp_channels.append(channel)
 
             offset += s_size
 
@@ -2214,22 +2051,17 @@ class MDF3(object):
 
         block = samples.tostring()
 
-        if memory == "full":
-            gp["data_location"] = v23c.LOCATION_MEMORY
-            kargs = {"data": block}
-            gp["data_block"] = DataBlock(**kargs)
+        gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
+        if cycles_nr:
+            data_address = tell()
+            gp["data_group"]["data_block_addr"] = data_address
+            gp["data_block_addr"] = [data_address]
+            gp["data_block_size"] = [len(block)]
+            self._tempfile.write(block)
         else:
-            gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
-            if cycles_nr:
-                data_address = tell()
-                gp["data_group"]["data_block_addr"] = data_address
-                gp["data_block_addr"] = [data_address]
-                gp["data_block_size"] = [len(block)]
-                self._tempfile.write(block)
-            else:
-                gp["data_group"]["data_block_addr"] = 0
-                gp["data_block_addr"] = [0]
-                gp["data_block_size"] = [0]
+            gp["data_group"]["data_block_addr"] = 0
+            gp["data_block_addr"] = [0]
+            gp["data_block_size"] = [0]
 
         # data group trigger
         gp["trigger"] = None
@@ -2278,7 +2110,6 @@ class MDF3(object):
         >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
 
         """
-        memory = self.memory
         new_group_offset = 0
         gp = self.groups[index]
         if not signals:
@@ -2363,17 +2194,12 @@ class MDF3(object):
                 extended_size = cycles_nr * record_size
                 new_gp["size"] += extended_size
 
-                if memory == "full":
-                    if samples:
-                        data = new_gp["data_block"]["data"] + samples
-                        new_gp["data_block"] = DataBlock(data=data)
-                else:
-                    if samples:
-                        stream.seek(0, 2)
-                        data_address = stream.tell()
-                        new_gp["data_block_addr"].append(data_address)
-                        new_gp["data_block_size"].append(extended_size)
-                        stream.write(samples)
+                if samples:
+                    stream.seek(0, 2)
+                    data_address = stream.tell()
+                    new_gp["data_block_addr"].append(data_address)
+                    new_gp["data_block_size"].append(extended_size)
+                    stream.write(samples)
 
             else:
 
@@ -2414,19 +2240,13 @@ class MDF3(object):
         samples = fromarrays(fields, dtype=types)
         samples = samples.tostring()
 
-        if memory == "full":
-            if samples:
-                data = gp["data_block"]["data"] + samples
-                gp["data_block"] = DataBlock(data=data)
-                gp["channel_group"]["cycles_nr"] += cycles_nr
-        else:
-            if cycles_nr:
-                stream.seek(0, 2)
-                data_address = stream.tell()
-                gp["data_block_addr"].append(data_address)
-                gp["data_block_size"].append(extended_size)
-                stream.write(samples)
-                gp["channel_group"]["cycles_nr"] += cycles_nr
+        if cycles_nr:
+            stream.seek(0, 2)
+            data_address = stream.tell()
+            gp["data_block_addr"].append(data_address)
+            gp["data_block_size"].append(extended_size)
+            stream.write(samples)
+            gp["channel_group"]["cycles_nr"] += cycles_nr
 
     def get_channel_name(self, group, index):
         """Gets channel name.
@@ -2452,12 +2272,7 @@ class MDF3(object):
         else:
             stream = self._tempfile
 
-        if self.memory == "minimum":
-            channel = Channel(
-                address=grp["channels"][ch_nr], stream=stream, load_metadata=False
-            )
-        else:
-            channel = grp["channels"][ch_nr]
+        channel = grp["channels"][ch_nr]
 
         return channel.name
 
@@ -2472,9 +2287,6 @@ class MDF3(object):
             stream = self._tempfile
 
         channel = grp["channels"][ch_nr]
-        if self.memory == "minimum":
-            channel = Channel(address=channel, stream=stream)
-
         channel = deepcopy(channel)
 
         return channel
@@ -2523,10 +2335,7 @@ class MDF3(object):
         else:
             stream = self._tempfile
 
-        if self.memory == "minimum":
-            channel = Channel(address=grp["channels"][ch_nr], stream=stream)
-        else:
-            channel = grp["channels"][ch_nr]
+        channel = grp["channels"][ch_nr]
 
         if channel.conversion:
             unit = channel.conversion.unit
@@ -2578,10 +2387,7 @@ class MDF3(object):
         else:
             stream = self._tempfile
 
-        if self.memory == "minimum":
-            channel = Channel(address=grp["channels"][ch_nr], stream=stream)
-        else:
-            channel = grp["channels"][ch_nr]
+        channel = grp["channels"][ch_nr]
 
         return channel.comment
 
@@ -2742,7 +2548,6 @@ class MDF3(object):
 
         original_data = data
 
-        memory = self.memory
         grp = self.groups[gp_nr]
 
         if grp["data_location"] == v23c.LOCATION_ORIGINAL_FILE:
@@ -2751,9 +2556,6 @@ class MDF3(object):
             stream = self._tempfile
 
         channel = grp["channels"][ch_nr]
-
-        if memory == "minimum":
-            channel = Channel(address=grp["channels"][ch_nr], stream=stream)
 
         conversion = channel.conversion
         name = channel.name
@@ -2863,9 +2665,6 @@ class MDF3(object):
                             record = fromstring(data_bytes, dtype=dtypes)
                         else:
                             record = None
-
-                        if memory == "full":
-                            grp["record"] = record
                     else:
                         record = grp["record"]
 
@@ -3095,7 +2894,6 @@ class MDF3(object):
             stream = self._file
         else:
             stream = self._tempfile
-        memory = self.memory
 
         time_ch_nr = self.masters_db.get(index, None)
         cycles_nr = group["channel_group"]["cycles_nr"]
@@ -3105,8 +2903,6 @@ class MDF3(object):
             metadata = ("time", 1)
         else:
             time_ch = group["channels"][time_ch_nr]
-            if memory == "minimum":
-                time_ch = Channel(address=group["channels"][time_ch_nr], stream=stream)
 
             metadata = (time_ch.name, 1)
 
@@ -3144,9 +2940,6 @@ class MDF3(object):
                                 record = fromstring(data_bytes, dtype=dtypes)
                             else:
                                 record = None
-
-                            if memory == "full":
-                                group["record"] = record
                         record.setflags(write=False)
                         t = record[parent]
                     else:
@@ -3264,8 +3057,6 @@ class MDF3(object):
             inf["comment"] = gp["channel_group"].comment
             inf["channels count"] = len(gp["channels"])
             for j, channel in enumerate(gp["channels"]):
-                if self.memory == "minimum":
-                    channel = Channel(address=channel, stream=stream)
                 name = channel.name
 
                 if channel["channel_type"] == v23c.CHANNEL_TYPE_MASTER:
@@ -3310,10 +3101,7 @@ class MDF3(object):
         if destination_dir and not os.path.exists(destination_dir):
             os.makedirs(destination_dir)
 
-        if self.memory == "minimum":
-            output_file = self._save_without_metadata(dst, overwrite, compression)
-        else:
-            output_file = self._save_with_metadata(dst, overwrite, compression)
+        output_file = self._save_with_metadata(dst, overwrite, compression)
 
         if self._callback:
             self._callback(100, 100)
@@ -3400,7 +3188,7 @@ class MDF3(object):
         # the reference to the data group object and the original link to the
         # data block in the soource MDF file.
 
-        if self.memory == "low" and dst == self.name:
+        if dst == self.name:
             destination = dst + ".temp"
         else:
             destination = dst
@@ -3451,14 +3239,7 @@ class MDF3(object):
 
                 # DataBlock
                 for (data_bytes, _, __) in self._load_data(gp):
-                    if self.memory == "full":
-                        data = memoryview(data_bytes)
-                        read_size = 4 * 2 ** 20
-                        count = int(ceil(len(data_bytes) / read_size))
-                        for j in range(count):
-                            write(data[j * read_size : (j + 1) * read_size])
-                    else:
-                        write(data_bytes)
+                    write(data_bytes)
 
                 if gp["size"]:
                     gp["data_group"]["data_block_addr"] = address
@@ -3591,244 +3372,6 @@ class MDF3(object):
             seek(0)
             write(bytes(self.identification))
             write(bytes(self.header))
-
-        if self.memory == "low" and dst == self.name:
-            self.close()
-            os.remove(self.name)
-            os.rename(destination, self.name)
-
-            self.groups.clear()
-            self.header = None
-            self.identification = None
-            self.channels_db.clear()
-            self.masters_db.clear()
-
-            self._master_channel_cache.clear()
-
-            self._tempfile = TemporaryFile()
-            self._file = open(self.name, "rb")
-            self._read()
-        return dst
-
-    def _save_without_metadata(self, dst, overwrite, compression):
-        """Save MDF to *dst*. If *dst* is not provided the the destination file
-        name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '_<cntr>',
-        were '<cntr>' is the first counter that produces a new file name (that
-        does not already exist in the filesystem).
-
-        Parameters
-        ----------
-        dst : str
-            destination file name, Default ''
-        overwrite : bool
-            overwrite flag, default *False*
-        compression : int
-            does nothing for mdf version3; introduced here to share the same
-            API as mdf version 4 files
-
-        """
-        # pylint: disable=unused-argument
-
-        if not self.header.comment:
-            self.header.comment = """<FHcomment>
-<TX>created</TX>
-<tool_id>asammdf</tool_id>
-<tool_vendor> </tool_vendor>
-<tool_version>{}</tool_version>
-</FHcomment>""".format(
-                __version__
-            )
-        else:
-            text = "{}\n{}: updated by asammdf {}"
-            old_history = self.header.comment
-            timestamp = time.asctime().encode("latin-1")
-
-            text = text.format(old_history, timestamp, __version__)
-            self.header.comment = text
-
-        if self.name is None and dst == "":
-            message = (
-                "Must specify a destination file name " "for MDF created from scratch"
-            )
-            raise MdfException(message)
-
-        defined_texts, cc_map, si_map = {}, {}, {}
-
-        dst = dst if dst else self.name
-        if not dst.endswith(("mdf", "MDF")):
-            dst = dst + ".mdf"
-        if overwrite is False:
-            if os.path.isfile(dst):
-                cntr = 0
-                while True:
-                    name = os.path.splitext(dst)[0] + "_{}.mdf".format(cntr)
-                    if not os.path.isfile(name):
-                        break
-                    else:
-                        cntr += 1
-                message = (
-                    'Destination file "{}" already exists '
-                    'and "overwrite" is False. Saving MDF file as "{}"'
-                )
-                message = message.format(dst, name)
-                logger.warning(message)
-                dst = name
-
-        if dst == self.name:
-            destination = dst + ".temp"
-        else:
-            destination = dst
-
-        with open(destination, "wb+") as dst_:
-
-            groups_nr = len(self.groups)
-
-            write = dst_.write
-            tell = dst_.tell
-            seek = dst_.seek
-            # list of all blocks
-            blocks = []
-
-            address = 0
-
-            write(bytes(self.identification))
-
-            self.header.to_stream(dst_, defined_texts, si_map)
-
-            # DataGroup
-            # put them first in the block list so they will be written first to
-            # disk this way, in case of memory=False, we can safely
-            # restore he original data block address
-
-            data_address = []
-
-            for idx, gp in enumerate(self.groups):
-                gp["temp_channels"] = ch_addrs = []
-                gp["temp_channel_dependencies"] = cd_addrs = []
-
-                if gp["data_location"] == v23c.LOCATION_ORIGINAL_FILE:
-                    stream = self._file
-                else:
-                    stream = self._tempfile
-
-                # Channel Dependency
-                for dep in gp["channel_dependencies"]:
-                    if dep:
-                        address = tell()
-                        cd_addrs.append(address)
-                        write(bytes(dep))
-                    else:
-                        cd_addrs.append(0)
-
-                dst_.seek(0, 2)
-                next_ch_addr = 0
-                size = len(gp["channels"])
-                for i in range(size - 1, -1, -1):
-                    channel = gp["channels"][i]
-                    channel = Channel(address=channel, stream=stream)
-                    channel["next_ch_addr"] = next_ch_addr
-                    channel["ch_depend_addr"] = cd_addrs[i]
-
-                    address = channel.to_stream(dst_, defined_texts, cc_map, si_map)
-                    ch_addrs.append(channel.address)
-                    next_ch_addr = channel.address
-
-                address = tell()
-
-                ch_addrs.reverse()
-                # ChannelGroup
-                cg = gp["channel_group"]
-                cg.address = address
-
-                cg["next_cg_addr"] = 0
-                if ch_addrs:
-                    cg["first_ch_addr"] = ch_addrs[0]
-                else:
-                    cg["first_ch_addr"] = 0
-
-                address = cg.to_stream(dst_, defined_texts, si_map)
-
-                # TriggerBLock
-                trigger = gp["trigger"]
-                if trigger:
-
-                    address = trigger.to_stream(dst_)
-
-                # DataBlock
-                data = self._load_data(gp)
-
-                dat_addr = tell()
-                for (data_bytes, _, __) in data:
-                    write(data_bytes)
-
-                if tell() - dat_addr:
-                    data_address.append(dat_addr)
-                else:
-                    data_address.append(0)
-
-                if self._callback:
-                    self._callback(int(100 * (idx + 1) / groups_nr), 100)
-
-                if self._terminate:
-                    dst_.close()
-                    self.close()
-                    return
-
-            orig_addr = [gp["data_group"]["data_block_addr"] for gp in self.groups]
-            address = tell()
-            gp_rec_ids = []
-            for i, gp in enumerate(self.groups):
-                dg = gp["data_group"]
-                gp_rec_ids.append(dg["record_id_len"])
-                dg["record_id_len"] = 0
-                dg["data_block_addr"] = data_address[i]
-                dg.address = address
-                address += dg["block_len"]
-                gp["data_group"]["first_cg_addr"] = gp["channel_group"].address
-                if gp["trigger"]:
-                    gp["data_group"]["trigger_addr"] = gp["trigger"].address
-                else:
-                    gp["data_group"]["trigger_addr"] = 0
-
-            if self.groups:
-                for i, gp in enumerate(self.groups[:-1]):
-                    addr = self.groups[i + 1]["data_group"].address
-                    gp["data_group"]["next_dg_addr"] = addr
-                self.groups[-1]["data_group"]["next_dg_addr"] = 0
-
-            for i, gp in enumerate(self.groups):
-                write(bytes(gp["data_group"]))
-                gp["data_block_addr"] = orig_addr[i]
-
-            for gp, rec_id in zip(self.groups, gp_rec_ids):
-                gp["data_group"]["record_id_len"] = rec_id
-
-            if self.groups:
-                address = self.groups[0]["data_group"].address
-                self.header["first_dg_addr"] = address
-                self.header["dg_nr"] = len(self.groups)
-
-            # update referenced channels addresses in the channel dependecies
-            for gp in self.groups:
-                for dep in gp["channel_dependencies"]:
-                    if not dep:
-                        continue
-
-                    for i, pair_ in enumerate(dep.referenced_channels):
-                        dg_nr, _ = pair_
-                        grp = self.groups[dg_nr]
-                        dep["ch_{}".format(i)] = grp["temp_channels"][i]
-                        dep["cg_{}".format(i)] = grp["channel_group"].address
-                        dep["dg_{}".format(i)] = grp["data_group"].address
-                    seek(dep.address)
-                    write(bytes(dep))
-
-            seek(v23c.ID_BLOCK_SIZE)
-            self.header.to_stream(dst_, defined_texts, si_map)
-
-            for gp in self.groups:
-                del gp["temp_channels"]
 
         if dst == self.name:
             self.close()

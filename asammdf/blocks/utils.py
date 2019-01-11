@@ -15,8 +15,6 @@ from warnings import warn
 
 from numpy import amin, amax, where, arange, interp
 
-import sys
-
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
@@ -50,13 +48,10 @@ __all__ = [
     "get_fmt_v4",
     "get_min_max",
     "get_text_v4",
-    "fix_dtype_fields",
     "fmt_to_datatype_v3",
     "fmt_to_datatype_v4",
-    "bytes",
     "matlab_compatible",
     "extract_cncomment_xml",
-    "validate_memory_argument",
     "validate_version_argument",
     "MDF2_VERSIONS",
     "MDF3_VERSIONS",
@@ -67,37 +62,21 @@ __all__ = [
 CHANNEL_COUNT = (1000, 2000, 10000, 20000)
 _channel_count = arange(0, 20000, 1000, dtype='<u4')
 
-CONVERT_LOW = (
+CONVERT = (
     10 * 2 ** 20,
     20 * 2 ** 20,
     30 * 2 ** 20,
     40 * 2 ** 20,
 )
-CONVERT_LOW = interp(_channel_count, CHANNEL_COUNT, CONVERT_LOW).astype('<u4')
+CONVERT = interp(_channel_count, CHANNEL_COUNT, CONVERT_LOW).astype('<u4')
 
-CONVERT_MINIMUM = (
-    10 * 2 ** 20,
-    30 * 2 ** 20,
-    30 * 2 ** 20,
-    40 * 2 ** 20,
-)
-CONVERT_MINIMUM = interp(_channel_count, CHANNEL_COUNT, CONVERT_MINIMUM).astype('<u4')
-
-MERGE_LOW = (
+MERGE = (
     10 * 2 ** 20,
     20 * 2 ** 20,
     35 * 2 ** 20,
     60 * 2 ** 20,
 )
-MERGE_LOW = interp(_channel_count, CHANNEL_COUNT, MERGE_LOW).astype('<u4')
-
-MERGE_MINIMUM = (
-    10 * 2 ** 20,
-    30 * 2 ** 20,
-    50 * 2 ** 20,
-    60 * 2 ** 20,
-)
-MERGE_MINIMUM = interp(_channel_count, CHANNEL_COUNT, MERGE_MINIMUM).astype('<u4')
+MERGE = interp(_channel_count, CHANNEL_COUNT, MERGE_LOW).astype('<u4')
 
 CHANNEL_COUNT = _channel_count
 
@@ -105,7 +84,6 @@ MDF2_VERSIONS = ("2.00", "2.10", "2.14")
 MDF3_VERSIONS = ("3.00", "3.10", "3.20", "3.30")
 MDF4_VERSIONS = ("4.00", "4.10", "4.11")
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
-VALID_MEMORY_ARGUMENT_VALUES = ("full", "low", "minimum")
 
 
 ALLOWED_MATLAB_CHARS = set(string.ascii_letters + string.digits + "_")
@@ -779,34 +757,6 @@ def count_channel_groups(stream, include_channels=False):
             dg_addr = UINT32_u(stream.read(4))[0]
 
     return count, ch_count
-
-
-def validate_memory_argument(memory):
-    """ validate the version argument against the supported MDF versions. The
-    default version used depends on the hint MDF major revision
-
-    Parameters
-    ----------
-    memory : memory
-        requested memory argument
-
-    Returns
-    -------
-    valid_memory : str
-        valid memory
-
-    """
-    if memory not in VALID_MEMORY_ARGUMENT_VALUES:
-        message = (
-            'The memory argument "{}" is wrong:'
-            " The available memory options are {};"
-            ' automatically using "full"'
-        )
-        warn(message.format(memory, VALID_MEMORY_ARGUMENT_VALUES))
-        valid_memory = "full"
-    else:
-        valid_memory = memory
-    return valid_memory
 
 
 def validate_version_argument(version, hint=4):
