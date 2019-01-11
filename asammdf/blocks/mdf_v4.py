@@ -2990,15 +2990,9 @@ class MDF4(object):
         if size:
             data_address = self._tempfile.tell()
             gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-            if BLOSC:
-                samples = blosc_compress(samples.tobytes())
-                self._tempfile.write(samples)
-                dim = len(samples)
-                block_type = v4c.BLOSC_BLOCK
-            else:
-                samples.tofile(self._tempfile)
-                dim = size
-                block_type = v4c.DT_BLOCK
+            samples.tofile(self._tempfile)
+            dim = size
+            block_type = v4c.DT_BLOCK
             gp["data_block_type"] = block_type
             gp["param"] = 0
             gp["data_size"] = [size]
@@ -3008,7 +3002,7 @@ class MDF4(object):
         else:
             gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
             gp["data_block"] = []
-            gp["data_block_type"] = v4c.BLOSC_BLOCK if BLOSC else v4c.DT_BLOCK
+            gp["data_block_type"] = v4c.DT_BLOCK
             gp["param"] = 0
             gp["data_size"] = []
             gp["data_block_size"] = []
@@ -3259,15 +3253,10 @@ class MDF4(object):
         if size:
             data_address = self._tempfile.tell()
             gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-            if BLOSC:
-                samples = blosc_compress(samples.tobytes())
-                self._tempfile.write(samples)
-                dim = len(samples)
-                block_type = v4c.BLOSC_BLOCK
-            else:
-                samples.tofile(self._tempfile)
-                dim = size
-                block_type = v4c.DT_BLOCK
+ 
+            samples.tofile(self._tempfile)
+            dim = size
+            block_type = v4c.DT_BLOCK
             gp["data_block_type"] = block_type
             gp["param"] = 0
             gp["data_size"] = [size]
@@ -3277,7 +3266,7 @@ class MDF4(object):
         else:
             gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
             gp["data_block"] = []
-            gp["data_block_type"] = v4c.BLOSC_BLOCK if BLOSC else v4c.DT_BLOCK
+            gp["data_block_type"] = v4c.DT_BLOCK
             gp["param"] = 0
             gp["data_size"] = []
             gp["data_block_size"] = []
@@ -3470,13 +3459,8 @@ class MDF4(object):
 
         if size:
             gp["data_block"].append(addr)
-            if BLOSC:
-                samples = blosc_compress(samples.tobytes())
-                stream.write(samples)
-                dim = len(samples)
-            else:
-                samples.tofile(stream)
-                dim = size
+            samples.tofile(stream)
+            dim = size
 
             record_size = gp["channel_group"]["samples_byte_nr"]
             record_size += gp["data_group"]["record_id_len"]

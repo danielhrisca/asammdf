@@ -295,7 +295,7 @@ class TestMDF(unittest.TestCase):
                 with MDF(input_file) as mdf:
                     mdf.configure(read_fragment_size=8000)
                     outfile = mdf.convert(out).save(
-                        "tmp_convert_{}_{}".format(out), overwrite=True
+                        "tmp_convert_{}".format(out), overwrite=True
                     )
 
                 equal = True

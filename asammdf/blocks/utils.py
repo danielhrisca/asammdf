@@ -11,7 +11,6 @@ import re
 from collections import namedtuple
 from random import randint
 from struct import Struct
-from warnings import warn
 
 from numpy import amin, amax, where, arange, interp
 
@@ -36,10 +35,8 @@ logger = logging.getLogger("asammdf")
 
 __all__ = [
     "CHANNEL_COUNT",
-    "CONVERT_LOW",
-    "CONVERT_MINIMUM",
-    "MERGE_LOW",
-    "MERGE_MINIMUM",
+    "CONVERT",
+    "MERGE",
     "ChannelsDB",
     "UniqueDB",
     "MdfException",
@@ -68,7 +65,7 @@ CONVERT = (
     30 * 2 ** 20,
     40 * 2 ** 20,
 )
-CONVERT = interp(_channel_count, CHANNEL_COUNT, CONVERT_LOW).astype('<u4')
+CONVERT = interp(_channel_count, CHANNEL_COUNT, CONVERT).astype('<u4')
 
 MERGE = (
     10 * 2 ** 20,
@@ -76,7 +73,7 @@ MERGE = (
     35 * 2 ** 20,
     60 * 2 ** 20,
 )
-MERGE = interp(_channel_count, CHANNEL_COUNT, MERGE_LOW).astype('<u4')
+MERGE = interp(_channel_count, CHANNEL_COUNT, MERGE).astype('<u4')
 
 CHANNEL_COUNT = _channel_count
 

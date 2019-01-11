@@ -142,7 +142,6 @@ class MDF3(object):
     _terminate = False
 
     def __init__(self, name=None, version="3.30", **kwargs):
-        memory = validate_memory_argument(memory)
         self.groups = []
         self.header = None
         self.identification = None
@@ -358,8 +357,6 @@ class MDF3(object):
             parents = {}
             group_channels = UniqueDB()
 
-            channels = grp["temp_channels"]
-
             # the channels are first sorted ascending (see __lt__ method of Channel
             # class): a channel with lower start offset is smaller, when two
             # channels havethe same start offset the one with higer bit size is
@@ -374,7 +371,7 @@ class MDF3(object):
             # size is adjusted to the first higher standard integer size (eq. uint
             # of 28bits will be adjusted to 32bits)
 
-            sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
+            sortedchannels = sorted(enumerate(grp['channels']), key=lambda i: i[1])
             for original_index, new_ch in sortedchannels:
                 # skip channels with channel dependencies from the numpy record
                 if new_ch["ch_depend_addr"]:
