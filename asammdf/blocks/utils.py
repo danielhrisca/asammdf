@@ -43,7 +43,6 @@ __all__ = [
     "SignalSource",
     "get_fmt_v3",
     "get_fmt_v4",
-    "get_min_max",
     "get_text_v4",
     "fmt_to_datatype_v3",
     "fmt_to_datatype_v4",
@@ -137,7 +136,7 @@ def extract_cncomment_xml(comment):
             if common_properties is not None:
                 comment = []
                 for e in common_properties:
-                    field = "{}: {}".format(e.get("name"), e.text)
+                    field = f'{e.get("name")}: {e.text}'
                     comment.append(field)
                 comment = "\n".join(field)
             else:
@@ -288,9 +287,9 @@ def get_fmt_v3(data_type, size):
     if data_type in {v3c.DATA_TYPE_STRING, v3c.DATA_TYPE_BYTEARRAY}:
         size = size // 8
         if data_type == v3c.DATA_TYPE_STRING:
-            fmt = "S{}".format(size)
+            fmt = f"S{size}"
         elif data_type == v3c.DATA_TYPE_BYTEARRAY:
-            fmt = "({},)u1".format(size)
+            fmt = f"({size},)u1"
     else:
         if size <= 8:
             size = 1
@@ -303,17 +302,17 @@ def get_fmt_v3(data_type, size):
         else:
             size = size // 8
 
-        if data_type in {v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED}:
-            fmt = "<u{}".format(size)
+        if data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED):
+            fmt = f"<u{size}".format()
 
         elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = ">u{}".format(size)
+            fmt = f">u{size}"
 
-        elif data_type in {v3c.DATA_TYPE_SIGNED_INTEL, v3c.DATA_TYPE_SIGNED}:
-            fmt = "<i{}".format(size)
+        elif data_type in (v3c.DATA_TYPE_SIGNED_INTEL, v3c.DATA_TYPE_SIGNED):
+            fmt = f"<i{size}"
 
         elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = ">i{}".format(size)
+            fmt = f">i{size}"
 
         elif data_type in {
             v3c.DATA_TYPE_FLOAT,
@@ -321,10 +320,10 @@ def get_fmt_v3(data_type, size):
             v3c.DATA_TYPE_FLOAT_INTEL,
             v3c.DATA_TYPE_DOUBLE_INTEL,
         }:
-            fmt = "<f{}".format(size)
+            fmt = f"<f{size}"
 
-        elif data_type in {v3c.DATA_TYPE_FLOAT_MOTOROLA, v3c.DATA_TYPE_DOUBLE_MOTOROLA}:
-            fmt = ">f{}".format(size)
+        elif data_type in (v3c.DATA_TYPE_FLOAT_MOTOROLA, v3c.DATA_TYPE_DOUBLE_MOTOROLA):
+            fmt = f">f{size}"
 
     return fmt
 
@@ -352,7 +351,7 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
 
         if data_type == v4c.DATA_TYPE_BYTEARRAY:
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
-                fmt = "({},)u1".format(size)
+                fmt = f"({size},)u1"
             else:
                 if size == 4:
                     fmt = "<u4"
@@ -361,7 +360,7 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
 
         elif data_type in v4c.STRING_TYPES:
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
-                fmt = "S{}".format(size)
+                fmt = f"S{size}"
             else:
                 if size == 4:
                     fmt = "<u4"
@@ -388,22 +387,22 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
             size = size // 8
 
         if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
-            fmt = "<u{}".format(size)
+            fmt = f"<u{size}"
 
         elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = ">u{}".format(size)
+            fmt = f">u{size}"
 
         elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
-            fmt = "<i{}".format(size)
+            fmt = f"<i{size}"
 
         elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = ">i{}".format(size)
+            fmt = f">i{size}"
 
         elif data_type == v4c.DATA_TYPE_REAL_INTEL:
-            fmt = "<f{}".format(size)
+            fmt = f"<f{size}"
 
         elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
-            fmt = ">f{}".format(size)
+            fmt = f">f{size}"
 
     return fmt
 
@@ -455,14 +454,13 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
                     data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
                 else:
                     data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
-        elif fmt.kind in {"S", "V"}:
+        elif fmt.kind in "SV":
             data_type = v3c.DATA_TYPE_STRING
         elif fmt.kind == "b":
             data_type = v3c.DATA_TYPE_UNSIGNED
             size = 1
         else:
-            message = "Unknown type: dtype={}, shape={}"
-            message = message.format(fmt, shape)
+            message = f"Unknown type: dtype={fmt}, shape={shape}"
             logger.exception(message)
             raise MdfException(message)
 
@@ -528,58 +526,31 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
 
     else:
         if fmt.kind == "u":
-            if fmt.byteorder in {"=", "<", "|"}:
+            if fmt.byteorder in "=<|":
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
         elif fmt.kind == "i":
-            if fmt.byteorder in {"=", "<", "|"}:
+            if fmt.byteorder in "=<|":
                 data_type = v4c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
         elif fmt.kind == "f":
-            if fmt.byteorder in {"=", "<"}:
+            if fmt.byteorder in "=<":
                 data_type = v4c.DATA_TYPE_REAL_INTEL
             else:
                 data_type = v4c.DATA_TYPE_REAL_MOTOROLA
-        elif fmt.kind in {"S", "V"}:
+        elif fmt.kind in "SV":
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
         elif fmt.kind == "b":
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             size = 1
         else:
-            message = "Unknown type: dtype={}, shape={}"
-            message = message.format(fmt, shape)
+            message = f"Unknown type: dtype={fmt}, shape={shape}"
             logger.exception(message)
             raise MdfException(message)
 
     return data_type, size
-
-
-def get_min_max(samples):
-    """ return min and max values for samples. If the samples are
-    string return min>max
-
-    Parameters
-    ----------
-    samples : numpy.ndarray
-        signal samples
-
-    Returns
-    -------
-    min_val, max_val : float, float
-        samples min and max values
-
-    """
-
-    if samples.shape[0]:
-        if samples.dtype.kind in {"u", "i", "f"}:
-            min_val, max_val = amin(samples), amax(samples)
-        else:
-            min_val, max_val = 1, 0
-    else:
-        min_val, max_val = 0, 0
-    return min_val, max_val
 
 
 def as_non_byte_sized_signed_int(integer_array, bit_length):
@@ -707,9 +678,7 @@ def count_channel_groups(stream, include_channels=False):
         if blk_id == b"##HD":
             version = 4
         else:
-            raise MdfException(
-                '"{}" is not a valid MDF file'.format(stream.name)
-            )
+            raise MdfException(f'"{stream.name}" is not a valid MDF file')
 
     if version >= 4:
         stream.seek(88, 0)
@@ -802,7 +771,8 @@ class ChannelsDB(dict):
             self.encoding = "latin-1"
 
     def add(self, channel_name, entry):
-        """ add name to channels database and check if it contains a source path
+        """ add name to channels database and check if it contains a source
+        path
 
         Parameters
         ----------
@@ -908,4 +878,4 @@ class UniqueDB(object):
         else:
             index = self._db[name]
             self._db[name] = index + 1
-            return "{}_{}".format(name, index)
+            return f"{name}_{index}"

@@ -126,7 +126,7 @@ class Timer():
 def generate_test_files(version='4.10'):
     cycles = 3000
     channels_count = 2000
-    mdf = MDF(version=version, memory='minimum')
+    mdf = MDF(version=version)
 
     if version <= '3.30':
         filename = r'test.mdf'
@@ -286,49 +286,49 @@ def generate_test_files(version='4.10'):
     mdf.save(filename, overwrite=True)
 
 
-def open_mdf3(output, fmt, memory):
+def open_mdf3(output, fmt):
 
     with Timer('Open file',
-               'asammdf {} {} mdfv3'.format(asammdf_version, memory),
+               f'asammdf {asammdf_version} mdfv3',
                fmt) as timer:
-        MDF(r'test.mdf', memory=memory)
+        MDF(r'test.mdf')
     output.send([timer.output, timer.error])
 
 
-def open_mdf4(output, fmt, memory):
+def open_mdf4(output, fmt):
 
     with Timer('Open file',
-               'asammdf {} {} mdfv4'.format(asammdf_version, memory),
+               f'asammdf {asammdf_version} mdfv4',
                fmt) as timer:
-        MDF(r'test.mf4', memory=memory)
+        MDF(r'test.mf4')
     output.send([timer.output, timer.error])
 
 
-def save_mdf3(output, fmt, memory):
+def save_mdf3(output, fmt):
 
-    x = MDF(r'test.mdf', memory=memory)
+    x = MDF(r'test.mdf')
     with Timer('Save file',
-               'asammdf {} {} mdfv3'.format(asammdf_version, memory),
+               f'asammdf {asammdf_version} mdfv3',
                fmt) as timer:
         x.save(r'x.mdf', overwrite=True)
     output.send([timer.output, timer.error])
 
 
-def save_mdf4(output, fmt, memory):
+def save_mdf4(output, fmt):
 
-    x = MDF(r'test.mf4', memory=memory)
+    x = MDF(r'test.mf4')
     with Timer('Save file',
-               'asammdf {} {} mdfv4'.format(asammdf_version, memory),
+               f'asammdf {asammdf_version} mdfv4',
                fmt) as timer:
         x.save(r'x.mf4', overwrite=True)
     output.send([timer.output, timer.error])
 
 
-def get_all_mdf3(output, fmt, memory):
+def get_all_mdf3(output, fmt):
 
-    x = MDF(r'test.mdf', memory=memory,)
+    x = MDF(r'test.mdf')
     with Timer('Get all channels',
-               'asammdf {} {} mdfv3'.format(asammdf_version, memory),
+               f'asammdf {asammdf_version} mdfv3',
                fmt) as timer:
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
@@ -336,11 +336,11 @@ def get_all_mdf3(output, fmt, memory):
     output.send([timer.output, timer.error])
 
 
-def get_all_mdf4(output, fmt, memory):
+def get_all_mdf4(output, fmt):
 
-    x = MDF(r'test.mf4', memory=memory,)
+    x = MDF(r'test.mf4')
     with Timer('Get all channels',
-               'asammdf {} {} mdfv4'.format(asammdf_version, memory),
+               f'asammdf {asammdf_version} mdfv4',
                fmt) as timer:
         t = perf_counter()
         counter = 0
@@ -359,11 +359,11 @@ def get_all_mdf4(output, fmt, memory):
     output.send([timer.output, timer.error])
 
 
-def get_all_iter_mdf4(output, fmt, memory):
+def get_all_iter_mdf4(output, fmt):
 
-    x = MDF(r'test.mf4', memory=memory,)
+    x = MDF(r'test.mf4')
     with Timer('Get all channels',
-               'asammdf {} {} mdfv4'.format(asammdf_version, memory),
+               f'asammdf {asammdf_version} mdfv4',
                fmt) as timer:
         for i, gp in enumerate(x.groups):
             for j in range(len(gp['channels'])):
@@ -372,50 +372,44 @@ def get_all_iter_mdf4(output, fmt, memory):
     output.send([timer.output, timer.error])
 
 
-def convert_v3_v4(output, fmt, memory):
+def convert_v3_v4(output, fmt):
 
-    with MDF(r'test.mdf', memory=memory,) as x:
+    with MDF(r'test.mdf') as x:
         with Timer('Convert file',
-                   'asammdf {} {} v3 to v4'.format(
-                         asammdf_version,
-                         memory,
-                    ),
+                   f'asammdf {asammdf_version} v3 to v4',
                    fmt) as timer:
-            x.convert('4.10', memory=memory)
+            x.convert('4.10')
     output.send([timer.output, timer.error])
 
 
-def convert_v4_v3(output, fmt, memory):
+def convert_v4_v3(output, fmt):
 
-    with MDF(r'test.mf4', memory=memory) as x:
+    with MDF(r'test.mf4') as x:
         with Timer('Convert file',
-                   'asammdf {} {} v4 to v3'.format(
-                         asammdf_version,
-                         memory,
-                    ),
+                   f'asammdf {asammdf_version} v4 to v3',
                    fmt) as timer:
-            y = x.convert('4.10', memory=memory)
+            y = x.convert('4.10')
             y.close()
     output.send([timer.output, timer.error])
 
 
-def merge_v3(output, fmt, memory):
+def merge_v3(output, fmt):
 
     files = [r'test.mdf', ] * 3
     with Timer('Merge 3 files',
-               'asammdf {} {} v3'.format(asammdf_version, memory),
+               f'asammdf {asammdf_version} v3',
                fmt) as timer:
-        MDF.merge(files, memory=memory, outversion='3.30')
+        MDF.merge(files, outversion='3.30')
     output.send([timer.output, timer.error])
 
 
-def merge_v4(output, fmt, memory):
+def merge_v4(output, fmt):
     files = [r'test.mf4', ] * 3
 
     with Timer('Merge 3 files',
-               'asammdf {} {} v4'.format(asammdf_version, memory),
+               f'asammdf {asammdf_version} v4',
                fmt) as timer:
-        MDF.merge(files, memory=memory, outversion='4.10')
+        MDF.merge(files, outversion='4.10')
     output.send([timer.output, timer.error])
 
 
@@ -805,16 +799,6 @@ def main(text_output, fmt):
     output.append('* {}'.format(platform.processor()))
     output.append('* {}GB installed RAM\n'.format(installed_ram))
     output.append('Notations used in the results\n')
-    output.append(('* full =  asammdf MDF object created with '
-                   'memory=full '
-                   '(everything loaded into RAM)'))
-    output.append(('* low =  asammdf MDF object created with '
-                   'memory=low '
-                   '(raw channel data not loaded into RAM, '
-                   'but metadata loaded to RAM)'))
-    output.append(('* minimum =  asammdf MDF object created with '
-                   'memory=full '
-                   '(lowest possible RAM usage)'))
     output.append(('* compress = mdfreader mdf object created with '
                    'compression=blosc'))
     output.append(('* nodata = mdfreader mdf object read with '
@@ -832,15 +816,11 @@ def main(text_output, fmt):
     OPEN, SAVE, GET, CONVERT, MERGE = 1, 1, 1, 1, 1
 
     tests = (
-         partial(open_mdf3, memory='full'),
-         partial(open_mdf3, memory='low'),
-         partial(open_mdf3, memory='minimum'),
+         open_mdf3,
          open_reader3,
          open_reader3_compression,
          open_reader3_nodata,
-         partial(open_mdf4, memory='full'),
-         partial(open_mdf4, memory='low'),
-         partial(open_mdf4, memory='minimum'),
+         open_mdf4,
          open_reader4,
          open_reader4_compression,
          open_reader4_nodata,
@@ -858,15 +838,11 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-         partial(save_mdf3, memory='full'),
-         partial(save_mdf3, memory='low'),
-         partial(save_mdf3, memory='minimum'),
+         save_mdf3,
          save_reader3,
          save_reader3_nodata,
          save_reader3_compression,
-         partial(save_mdf4, memory='full'),
-         partial(save_mdf4, memory='low'),
-         partial(save_mdf4, memory='minimum'),
+         save_mdf4,
          save_reader4,
          save_reader4_nodata,
          save_reader4_compression,
@@ -884,16 +860,12 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        partial(get_all_mdf3, memory='full'),
-        partial(get_all_mdf3, memory='low'),
-        partial(get_all_mdf3, memory='minimum'),
+        get_all_mdf3,
         get_all_reader3,
         get_all_reader3_nodata,
         get_all_reader3_compression,
 
-        partial(get_all_mdf4, memory='full'),
-        partial(get_all_mdf4, memory='low'),
-        partial(get_all_mdf4, memory='minimum'),
+        get_all_mdf4,
 
         get_all_reader4,
         get_all_reader4_compression,
@@ -914,12 +886,8 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-         partial(convert_v3_v4, memory='full'),
-         partial(convert_v3_v4, memory='low'),
-         partial(convert_v3_v4, memory='minimum'),
-         partial(convert_v4_v3, memory='full'),
-         partial(convert_v4_v3, memory='low'),
-         partial(convert_v4_v3, memory='minimum'),
+         convert_v3_v4,
+         convert_v4_v3,
     )
 
     if tests and CONVERT:
@@ -934,15 +902,11 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-          partial(merge_v3, memory='full'),
-          partial(merge_v3, memory='low'),
-          partial(merge_v3, memory='minimum'),
+          merge_v3,
           merge_reader_v3,
           merge_reader_v3_compress,
           merge_reader_v3_nodata,
-         partial(merge_v4, memory='full'),
-         partial(merge_v4, memory='low'),
-         partial(merge_v4, memory='minimum'),
+         merge_v4,
           merge_reader_v4,
           merge_reader_v4_nodata,
           merge_reader_v4_compress,
