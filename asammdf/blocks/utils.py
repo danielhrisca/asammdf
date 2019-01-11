@@ -430,6 +430,8 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
         elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
             fmt = ">f{}".format(size)
 
+    return fmt
+
 
 def fmt_to_datatype_v3(fmt, shape, array=False):
     """convert numpy dtype format string to mdf versions 2 and 3

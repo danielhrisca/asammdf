@@ -50,7 +50,6 @@ from .utils import (
     MdfException,
     SignalSource,
     as_non_byte_sized_signed_int,
-    fix_dtype_fields,
     fmt_to_datatype_v3,
     get_fmt_v3,
     UniqueDB,

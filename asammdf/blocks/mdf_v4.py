@@ -77,7 +77,6 @@ from .utils import (
     MdfException,
     SignalSource,
     as_non_byte_sized_signed_int,
-    fix_dtype_fields,
     fmt_to_datatype_v4,
     get_fmt_v4,
     UniqueDB,
@@ -5842,7 +5841,7 @@ class MDF4(object):
                     chunks = 1
 
                 if chunks == 1:
-                    data = b"".join(str(d[0]) for d in data)
+                    data = b"".join(d[0] for d in data)
                     if compression and self.version > "4.00":
                         if compression == 1:
                             param = 0
