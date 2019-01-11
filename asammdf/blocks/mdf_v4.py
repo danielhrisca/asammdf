@@ -4093,7 +4093,6 @@ class MDF4(object):
             logger.warning(message)
             return b"", file_path
 
-    @profile
     def get(
         self,
         name=None,
