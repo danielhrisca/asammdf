@@ -1,16 +1,28 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import unittest
+import tempfile, os
 
 import numpy as np
 
-from utils import MEMORY, cleanup_files
+from utils import MEMORY
 from asammdf import MDF, MDF2, MDF3, Signal
 
 CHANNEL_LEN = 10000
 
 
 class TestMDF23(unittest.TestCase):
+
+    tempdir = None
+
+    @classmethod
+    def setUpClass(cls):
+        TestMDF23.tempdir = tempfile.TemporaryDirectory()
+
+    @classmethod
+    def tearDownClass(cls):
+        TestMDF23.tempdir.cleanup()
+
     def test_measurement(self):
         self.assertTrue(MDF2)
         self.assertTrue(MDF3)
@@ -41,7 +53,7 @@ class TestMDF23(unittest.TestCase):
 
             with MDF(version="2.00", memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
-                outfile = mdf.save("tmp", overwrite=True)
+                outfile = mdf.save(os.path.join(TestMDF23.tempdir.name, "tmp"), overwrite=True)
 
             with MDF(outfile, memory=memory) as mdf:
                 ret_sig_int = mdf.get(sig_int.name)
@@ -49,8 +61,7 @@ class TestMDF23(unittest.TestCase):
 
             self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
-        
-        cleanup_files()
+
 
     def test_read_mdf2_14(self):
 
@@ -77,7 +88,7 @@ class TestMDF23(unittest.TestCase):
             print(memory)
             with MDF(version="2.14", memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
-                outfile = mdf.save("tmp", overwrite=True)
+                outfile = mdf.save(os.path.join(TestMDF23.tempdir.name, "tmp"), overwrite=True)
 
             with MDF(outfile, memory=memory) as mdf:
                 ret_sig_int = mdf.get(sig_int.name)
@@ -85,8 +96,7 @@ class TestMDF23(unittest.TestCase):
 
             self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
-        
-        cleanup_files()
+
 
     def test_read_mdf3_00(self):
 
@@ -114,7 +124,7 @@ class TestMDF23(unittest.TestCase):
 
             with MDF(version="3.00", memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
-                outfile = mdf.save("tmp", overwrite=True)
+                outfile = mdf.save(os.path.join(TestMDF23.tempdir.name, "tmp"), overwrite=True)
 
             with MDF(outfile, memory=memory) as mdf:
                 ret_sig_int = mdf.get(sig_int.name)
@@ -122,8 +132,7 @@ class TestMDF23(unittest.TestCase):
 
             self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
-        
-        cleanup_files()
+
 
     def test_read_mdf3_10(self):
 
@@ -149,7 +158,7 @@ class TestMDF23(unittest.TestCase):
         for memory in MEMORY:
             with MDF(version="3.10", memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
-                outfile = mdf.save("tmp", overwrite=True)
+                outfile = mdf.save(os.path.join(TestMDF23.tempdir.name, "tmp"), overwrite=True)
 
             print(memory)
 
@@ -159,8 +168,7 @@ class TestMDF23(unittest.TestCase):
 
             self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
-        
-        cleanup_files()
+
 
 if __name__ == "__main__":
     unittest.main()

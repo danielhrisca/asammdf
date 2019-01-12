@@ -22,7 +22,6 @@ from utils import (
     channels_count,
     generate_test_file,
     generate_arrays_test_file,
-    cleanup_files,
 )
 from asammdf import MDF, SUPPORTED_VERSIONS
 
@@ -35,6 +34,7 @@ class TestMDF(unittest.TestCase):
 
     tempdir_demo = None
     tempdir_array = None
+    tempdir_general = None
     tempdir = None
 
     def test_measurement(self):
@@ -51,12 +51,13 @@ class TestMDF(unittest.TestCase):
             urllib.urlretrieve(url, "test.zip")
 
         TestMDF.tempdir_demo = tempfile.TemporaryDirectory()
-        TestMDF.tempdir = tempfile.TemporaryDirectory()
+        TestMDF.tempdir_general = tempfile.TemporaryDirectory()
+        TestMDF.tempdir= tempfile.TemporaryDirectory()
         TestMDF.tempdir_array = tempfile.TemporaryDirectory()
 
         ZipFile(r"test.zip").extractall(TestMDF.tempdir_demo.name)
         for version in ("3.30", "4.10"):
-            generate_test_file(TestMDF.tempdir.name, version)
+            generate_test_file(TestMDF.tempdir_general.name, version)
 
         generate_arrays_test_file(TestMDF.tempdir_array.name)
 
@@ -66,13 +67,12 @@ class TestMDF(unittest.TestCase):
         TestMDF.tempdir.cleanup()
         TestMDF.tempdir_array.cleanup()
         os.remove("test.zip")
-        cleanup_files()
 
     def test_read(self):
         print("MDF read big files")
-        for mdfname in os.listdir(TestMDF.tempdir.name):
+        for mdfname in os.listdir(TestMDF.tempdir_general.name):
             for memory in MEMORY:
-                input_file = os.path.join(TestMDF.tempdir.name, mdfname)
+                input_file = os.path.join(TestMDF.tempdir_general.name, mdfname)
                 print(input_file, memory)
 
                 equal = True
@@ -152,7 +152,6 @@ class TestMDF(unittest.TestCase):
                                 self.assertTrue(cond)
                 self.assertTrue(equal)
 
-        cleanup_files()
 
     def test_read_arrays(self):
         print("MDF read big array files")
@@ -253,7 +252,6 @@ class TestMDF(unittest.TestCase):
                                     1 / 0
 
                 self.assertTrue(equal)
-        cleanup_files()
 
     def test_read_demo(self):
 
@@ -291,7 +289,6 @@ class TestMDF(unittest.TestCase):
                                 ret = False
 
             self.assertTrue(ret)
-        cleanup_files()
 
     def test_convert(self):
         print("MDF convert big files tests")
@@ -299,17 +296,15 @@ class TestMDF(unittest.TestCase):
         t = np.arange(cycles, dtype=np.float64)
 
         for out in ("3.30",):
-            for mdfname in os.listdir(TestMDF.tempdir.name):
+            for mdfname in os.listdir(TestMDF.tempdir_general.name):
                 for memory in MEMORY:
-                    input_file = os.path.join(TestMDF.tempdir.name, mdfname)
+                    input_file = os.path.join(TestMDF.tempdir_general.name, mdfname)
                     print(input_file, memory, out)
                     if "4.00" in input_file or "4.10" in input_file:
                         continue
                     with MDF(input_file, memory=memory) as mdf:
                         mdf.configure(read_fragment_size=8000)
-                        outfile = mdf.convert(out, memory=memory).save(
-                            "tmp_convert_{}_{}".format(out, memory), overwrite=True
-                        )
+                        outfile = mdf.convert(out, memory=memory).save(os.path.join(TestMDF.tempdir.name, "tmp_convert_{}_{}".format(out, memory)), overwrite=True)
 
                     equal = True
 
@@ -416,7 +411,6 @@ class TestMDF(unittest.TestCase):
                                     self.assertTrue(cond)
 
                     self.assertTrue(equal)
-        cleanup_files()
 
     def test_convert_demo(self):
         print("MDF convert tests")
@@ -431,7 +425,7 @@ class TestMDF(unittest.TestCase):
                     print(input_file, memory, out)
                     with MDF(input_file, memory=memory) as mdf:
                         outfile = mdf.convert(out, memory=memory).save(
-                            "tmp", overwrite=True
+                            os.path.join(TestMDF.tempdir_demo.name, "tmp"), overwrite=True
                         )
 
                     equal = True
@@ -454,54 +448,53 @@ class TestMDF(unittest.TestCase):
                                 1 / 0
 
                     self.assertTrue(equal)
-        cleanup_files()
 
     def test_cut(self):
         print("MDF cut big files tests")
 
         t = np.arange(cycles, dtype=np.float64)
 
-        for mdfname in os.listdir(TestMDF.tempdir.name):
+        for mdfname in os.listdir(TestMDF.tempdir_general.name):
             for memory in MEMORY:
-                input_file = os.path.join(TestMDF.tempdir.name, mdfname)
+                input_file = os.path.join(TestMDF.tempdir_general.name, mdfname)
                 for whence in (0, 1):
                     print(input_file, memory)
 
                     outfile0 = MDF(input_file, memory=memory)
                     outfile0.configure(read_fragment_size=8000)
                     outfile0 = outfile0.cut(stop=-1, whence=whence, include_ends=False).save(
-                        "tmp0", overwrite=True
+                        os.path.join(TestMDF.tempdir.name, "tmp0"), overwrite=True
                     )
 
                     outfile1 = MDF(input_file, memory=memory)
                     outfile1.configure(read_fragment_size=8000)
                     outfile1 = outfile1.cut(stop=105, whence=whence, include_ends=False).save(
-                        "tmp1", overwrite=True
+                        os.path.join(TestMDF.tempdir.name, "tmp1"), overwrite=True
                     )
 
                     outfile2 = MDF(input_file, memory=memory)
                     outfile2.configure(read_fragment_size=8000)
                     outfile2 = outfile2.cut(start=105.1, stop=201, whence=whence, include_ends=False).save(
-                        "tmp2", overwrite=True
+                        os.path.join(TestMDF.tempdir.name, "tmp2"), overwrite=True
                     )
 
                     outfile3 = MDF(input_file, memory=memory)
                     outfile3.configure(read_fragment_size=8000)
                     outfile3 = outfile3.cut(start=201.1, whence=whence, include_ends=False).save(
-                        "tmp3", overwrite=True
+                        os.path.join(TestMDF.tempdir.name, "tmp3"), overwrite=True
                     )
 
                     outfile4 = MDF(input_file, memory=memory)
                     outfile4.configure(read_fragment_size=8000)
                     outfile4 = outfile4.cut(start=7000, whence=whence, include_ends=False).save(
-                        "tmp4", overwrite=True
+                        os.path.join(TestMDF.tempdir.name, "tmp4"), overwrite=True
                     )
 
                     outfile = MDF.concatenate(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
                         version=MDF(input_file, memory="minimum").version,
                         memory=memory,
-                    ).save("tmp_cut", overwrite=True)
+                    ).save(os.path.join(TestMDF.tempdir.name, "tmp_cut"), overwrite=True)
 
                     with MDF(outfile) as mdf:
 
@@ -608,8 +601,6 @@ class TestMDF(unittest.TestCase):
                                         )
                                     self.assertTrue(cond)
 
-        cleanup_files()
-
     def test_cut_arrays(self):
         print("MDF cut big array files")
         for mdfname in os.listdir(TestMDF.tempdir_array.name):
@@ -621,24 +612,24 @@ class TestMDF(unittest.TestCase):
                     outfile1 = MDF(input_file, memory=memory)
                     outfile1.configure(read_fragment_size=8000)
                     outfile1 = outfile1.cut(stop=105.5, whence=whence, include_ends=False).save(
-                        "tmp1", overwrite=True
+                        os.path.join(TestMDF.tempdir.name, "tmp1"), overwrite=True
                     )
                     outfile2 = MDF(input_file, memory=memory)
                     outfile2.configure(read_fragment_size=8000)
                     outfile2 = outfile2.cut(
                         start=105.5, stop=201.5, whence=whence, include_ends=False
-                    ).save("tmp2", overwrite=True)
+                    ).save(os.path.join(TestMDF.tempdir.name, "tmp2"), overwrite=True)
                     outfile3 = MDF(input_file, memory=memory)
                     outfile3.configure(read_fragment_size=8000)
                     outfile3 = outfile3.cut(start=201.5, whence=whence, include_ends=False).save(
-                        "tmp3", overwrite=True
+                        os.path.join(TestMDF.tempdir.name, "tmp3"), overwrite=True
                     )
 
                     outfile = MDF.concatenate(
                         [outfile1, outfile2, outfile3],
                         MDF(input_file, memory="minimum").version,
                         memory=memory,
-                    ).save("tmp_cut", overwrite=True)
+                    ).save(os.path.join(TestMDF.tempdir.name, "tmp_cut"), overwrite=True)
 
                     equal = True
 
@@ -751,7 +742,6 @@ class TestMDF(unittest.TestCase):
                                         1 / 0
 
                 self.assertTrue(equal)
-        cleanup_files()
 
     def test_cut_demo(self):
         print("MDF cut absolute tests")
@@ -770,24 +760,24 @@ class TestMDF(unittest.TestCase):
                     outfile1 = (
                         MDF(input_file, memory=memory)
                         .cut(stop=2, whence=whence, include_ends=False)
-                        .save("tmp1", overwrite=True)
+                        .save(os.path.join(TestMDF.tempdir.name, "tmp1"), overwrite=True)
                     )
                     outfile2 = (
                         MDF(input_file, memory=memory)
                         .cut(start=2, stop=6, whence=whence, include_ends=False)
-                        .save("tmp2", overwrite=True)
+                        .save(os.path.join(TestMDF.tempdir.name, "tmp2"), overwrite=True)
                     )
                     outfile3 = (
                         MDF(input_file, memory=memory)
                         .cut(start=6, whence=whence, include_ends=False)
-                        .save("tmp3", overwrite=True)
+                        .save(os.path.join(TestMDF.tempdir.name, "tmp3"), overwrite=True)
                     )
 
                     outfile = MDF.concatenate(
                         [outfile1, outfile2, outfile3],
                         vedrsion=MDF(input_file, memory="minimum").version,
                         memory=memory,
-                    ).save("tmp", overwrite=True)
+                    ).save(os.path.join(TestMDF.tempdir.name, "tmp"), overwrite=True)
 
                     print("OUT", outfile)
 
@@ -811,7 +801,6 @@ class TestMDF(unittest.TestCase):
                                     equal = False
 
                     self.assertTrue(equal)
-        cleanup_files()
 
     def test_filter(self):
         print("MDF filter tests")
@@ -856,7 +845,6 @@ class TestMDF(unittest.TestCase):
                             equal = False
 
                 self.assertTrue(equal)
-        cleanup_files()
 
     def test_select(self):
         print("MDF select tests")
@@ -897,7 +885,6 @@ class TestMDF(unittest.TestCase):
                             equal = False
 
                 self.assertTrue(equal)
-        cleanup_files()
 
 
 if __name__ == "__main__":

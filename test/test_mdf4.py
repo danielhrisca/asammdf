@@ -1,16 +1,29 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import unittest
+import tempfile
+import os
 
 import numpy as np
 
-from utils import MEMORY, cleanup_files
+from utils import MEMORY
 from asammdf import MDF, MDF4, Signal
 
 CHANNEL_LEN = 100000
 
 
 class TestMDF4(unittest.TestCase):
+
+    tempdir = None
+
+    @classmethod
+    def setUpClass(cls):
+        TestMDF4.tempdir = tempfile.TemporaryDirectory()
+
+    @classmethod
+    def tearDownClass(cls):
+        TestMDF4.tempdir.cleanup()
+
     def test_measurement(self):
         self.assertTrue(MDF4)
 
@@ -39,7 +52,7 @@ class TestMDF4(unittest.TestCase):
 
             with MDF(version="4.00", memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
-                outfile = mdf.save("tmp", overwrite=True)
+                outfile = mdf.save(os.path.join(TestMDF4.tempdir.name, "tmp"), overwrite=True)
 
             with MDF(outfile, memory=memory) as mdf:
                 ret_sig_int = mdf.get(sig_int.name)
@@ -47,8 +60,6 @@ class TestMDF4(unittest.TestCase):
 
             self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
-        
-        cleanup_files()
 
     def test_read_mdf4_10(self):
 
@@ -74,7 +85,7 @@ class TestMDF4(unittest.TestCase):
         for memory in MEMORY:
             with MDF(version="4.10", memory=memory) as mdf:
                 mdf.append([sig_int, sig_float], common_timebase=True)
-                outfile = mdf.save("tmp", overwrite=True)
+                outfile = mdf.save(os.path.join(TestMDF4.tempdir.name, "tmp"), overwrite=True)
 
             with MDF(outfile, memory=memory) as mdf:
                 ret_sig_int = mdf.get(sig_int.name)
@@ -82,8 +93,6 @@ class TestMDF4(unittest.TestCase):
 
             self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
-        
-        cleanup_files()
 
 if __name__ == "__main__":
     unittest.main()
