@@ -93,7 +93,7 @@ class Signal(object):
                 samples = np.array(samples)
             if isinstance(timestamps, (list, tuple)):
                 timestamps = np.array(timestamps, dtype=np.float64)
-            if not samples.shape[0] == timestamps.shape[0]:
+            if samples.shape[0] != timestamps.shape[0]:
                 message = "{} samples and timestamps length mismatch ({} vs {})"
                 message = message.format(name, samples.shape[0], timestamps.shape[0])
                 logger.exception(message)

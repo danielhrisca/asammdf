@@ -1439,7 +1439,6 @@ class MDF4(object):
         except KeyError:
 
             grp = group
-            stream = self._file
             channel_group = grp["channel_group"]
             channels = grp["channels"]
 
@@ -5160,7 +5159,7 @@ class MDF4(object):
         """
         if self.name is None and dst == "":
             message = (
-                "Must specify a destination file name " "for MDF created from scratch"
+                "Must specify a destination file name for MDF created from scratch"
             )
             raise MdfException(message)
 
