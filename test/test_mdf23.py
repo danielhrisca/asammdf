@@ -4,7 +4,7 @@ import unittest
 
 import numpy as np
 
-from utils import MEMORY
+from utils import MEMORY, cleanup_files
 from asammdf import MDF, MDF2, MDF3, Signal
 
 CHANNEL_LEN = 10000
@@ -49,6 +49,8 @@ class TestMDF23(unittest.TestCase):
 
             self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
+        
+        cleanup_files()
 
     def test_read_mdf2_14(self):
 
@@ -83,6 +85,8 @@ class TestMDF23(unittest.TestCase):
 
             self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
+        
+        cleanup_files()
 
     def test_read_mdf3_00(self):
 
@@ -118,6 +122,8 @@ class TestMDF23(unittest.TestCase):
 
             self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
+        
+        cleanup_files()
 
     def test_read_mdf3_10(self):
 
@@ -153,7 +159,8 @@ class TestMDF23(unittest.TestCase):
 
             self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
             self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
-
+        
+        cleanup_files()
 
 if __name__ == "__main__":
     unittest.main()

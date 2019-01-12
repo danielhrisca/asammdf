@@ -9,6 +9,7 @@ import urllib
 import numexpr
 from itertools import product
 from zipfile import ZipFile
+import tempfile
 
 
 import numpy as np
@@ -31,6 +32,11 @@ CHANNEL_LEN = 100000
 
 
 class TestMDF(unittest.TestCase):
+
+    tempdir_demo = None
+    tempdir_array = None
+    tempdir = None
+
     def test_measurement(self):
         self.assertTrue(MDF)
 
@@ -43,30 +49,30 @@ class TestMDF(unittest.TestCase):
             urllib.request.urlretrieve(url, "test.zip")
         else:
             urllib.urlretrieve(url, "test.zip")
-        ZipFile(r"test.zip").extractall("tmpdir_demo")
 
-        if not os.path.exists("tmpdir"):
-            os.mkdir("tmpdir")
-        if not os.path.exists("tmpdir_array"):
-            os.mkdir("tmpdir_array")
+        TestMDF.tempdir_demo = tempfile.TemporaryDirectory()
+        TestMDF.tempdir = tempfile.TemporaryDirectory()
+        TestMDF.tempdir_array = tempfile.TemporaryDirectory()
+
+        ZipFile(r"test.zip").extractall(TestMDF.tempdir_demo.name)
         for version in ("3.30", "4.10"):
-            generate_test_file(version)
+            generate_test_file(TestMDF.tempdir.name, version)
 
-        generate_arrays_test_file()
+        generate_arrays_test_file(TestMDF.tempdir_array.name)
 
     @classmethod
-    def etearDownClass(cls):
-        shutil.rmtree("tmpdir_demo", True)
-        shutil.rmtree("tmpdir_array", True)
-        shutil.rmtree("tmpdir", True)
+    def tearDownClass(cls):
+        TestMDF.tempdir_demo.cleanup()
+        TestMDF.tempdir.cleanup()
+        TestMDF.tempdir_array.cleanup()
         os.remove("test.zip")
         cleanup_files()
 
     def test_read(self):
         print("MDF read big files")
-        for mdfname in os.listdir("tmpdir"):
+        for mdfname in os.listdir(TestMDF.tempdir.name):
             for memory in MEMORY:
-                input_file = os.path.join("tmpdir", mdfname)
+                input_file = os.path.join(TestMDF.tempdir.name, mdfname)
                 print(input_file, memory)
 
                 equal = True
@@ -150,9 +156,9 @@ class TestMDF(unittest.TestCase):
 
     def test_read_arrays(self):
         print("MDF read big array files")
-        for mdfname in os.listdir("tmpdir_array"):
+        for mdfname in os.listdir(TestMDF.tempdir_array.name):
             for memory in MEMORY:
-                input_file = os.path.join("tmpdir_array", mdfname)
+                input_file = os.path.join(TestMDF.tempdir_array.name, mdfname)
                 print(input_file, memory)
 
                 equal = True
@@ -256,10 +262,10 @@ class TestMDF(unittest.TestCase):
         ret = True
 
         for enable in (True, False):
-            for mdf in os.listdir("tmpdir_demo"):
+            for mdf in os.listdir(TestMDF.tempdir_demo.name):
                 for memory in MEMORY:
                     with MDF(
-                        os.path.join("tmpdir_demo", mdf), memory=memory
+                        os.path.join(TestMDF.tempdir_demo.name, mdf), memory=memory
                     ) as input_file:
                         if input_file.version == "2.00":
                             continue
@@ -293,9 +299,9 @@ class TestMDF(unittest.TestCase):
         t = np.arange(cycles, dtype=np.float64)
 
         for out in ("3.30",):
-            for mdfname in os.listdir("tmpdir"):
+            for mdfname in os.listdir(TestMDF.tempdir.name):
                 for memory in MEMORY:
-                    input_file = os.path.join("tmpdir", mdfname)
+                    input_file = os.path.join(TestMDF.tempdir.name, mdfname)
                     print(input_file, memory, out)
                     if "4.00" in input_file or "4.10" in input_file:
                         continue
@@ -416,9 +422,9 @@ class TestMDF(unittest.TestCase):
         print("MDF convert tests")
 
         for out in SUPPORTED_VERSIONS:
-            for mdfname in os.listdir("tmpdir_demo"):
+            for mdfname in os.listdir(TestMDF.tempdir_demo.name):
                 for memory in MEMORY:
-                    input_file = os.path.join("tmpdir_demo", mdfname)
+                    input_file = os.path.join(TestMDF.tempdir_demo.name, mdfname)
                     print(input_file)
                     if MDF(input_file).version == "2.00":
                         continue
@@ -455,9 +461,9 @@ class TestMDF(unittest.TestCase):
 
         t = np.arange(cycles, dtype=np.float64)
 
-        for mdfname in os.listdir("tmpdir"):
+        for mdfname in os.listdir(TestMDF.tempdir.name):
             for memory in MEMORY:
-                input_file = os.path.join("tmpdir", mdfname)
+                input_file = os.path.join(TestMDF.tempdir.name, mdfname)
                 for whence in (0, 1):
                     print(input_file, memory)
 
@@ -606,10 +612,10 @@ class TestMDF(unittest.TestCase):
 
     def test_cut_arrays(self):
         print("MDF cut big array files")
-        for mdfname in os.listdir("tmpdir_array"):
+        for mdfname in os.listdir(TestMDF.tempdir_array.name):
             for memory in MEMORY:
                 for whence in (0, 1):
-                    input_file = os.path.join("tmpdir_array", mdfname)
+                    input_file = os.path.join(TestMDF.tempdir_array.name, mdfname)
                     print(input_file, memory, whence)
 
                     outfile1 = MDF(input_file, memory=memory)
@@ -752,9 +758,9 @@ class TestMDF(unittest.TestCase):
 
         cntr = 0
 
-        for mdfname in os.listdir("tmpdir_demo"):
+        for mdfname in os.listdir(TestMDF.tempdir_demo.name):
             for memory in MEMORY:
-                input_file = os.path.join("tmpdir_demo", mdfname)
+                input_file = os.path.join(TestMDF.tempdir_demo.name, mdfname)
 
                 if "2.00" in input_file:
                     continue
@@ -810,9 +816,9 @@ class TestMDF(unittest.TestCase):
     def test_filter(self):
         print("MDF filter tests")
 
-        for mdfname in os.listdir("tmpdir_demo"):
+        for mdfname in os.listdir(TestMDF.tempdir_demo.name):
             for memory in MEMORY:
-                input_file = os.path.join("tmpdir_demo", mdfname)
+                input_file = os.path.join(TestMDF.tempdir_demo.name, mdfname)
 
                 if MDF(input_file, memory=memory).version <= "2.00":
                     # if MDF(input_file, memory=memory).version < '4.00':
@@ -855,9 +861,9 @@ class TestMDF(unittest.TestCase):
     def test_select(self):
         print("MDF select tests")
 
-        for mdfname in os.listdir("tmpdir_demo"):
+        for mdfname in os.listdir(TestMDF.tempdir_demo.name):
             for memory in MEMORY:
-                input_file = os.path.join("tmpdir_demo", mdfname)
+                input_file = os.path.join(TestMDF.tempdir_demo.name, mdfname)
 
                 if MDF(input_file).version == "2.00":
                     continue

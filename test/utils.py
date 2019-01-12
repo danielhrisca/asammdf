@@ -11169,13 +11169,13 @@ def get_test_data(filename=""):
     return os.path.dirname(__file__) + "/data/" + filename
 
 
-def generate_test_file(version="4.10"):
+def generate_test_file(tmpdir, version="4.10"):
     mdf = MDF(version=version, memory="minimum")
 
     if version <= "3.30":
-        filename = r"tmpdir/big_test_{}.mdf".format(version)
+        filename = os.path.join(tmpdir, "big_test_{}.mdf".format(version))
     else:
-        filename = r"tmpdir/big_test_{}.mf4".format(version)
+        filename = os.path.join(tmpdir, "big_test_{}.mf4".format(version))
 
     if os.path.exists(filename):
         return filename
@@ -11338,10 +11338,10 @@ def generate_test_file(version="4.10"):
     mdf.save(filename, overwrite=True)
 
 
-def generate_arrays_test_file():
+def generate_arrays_test_file(tmpdir):
     version = "4.10"
     mdf = MDF(version=version, memory="minimum")
-    filename = r"tmpdir_array/arrays_test_{}.mf4".format(version)
+    filename = os.path.join(tmpdir, "arrays_test_{}.mf4".format(version))
 
     if os.path.exists(filename):
         return filename
@@ -11442,6 +11442,6 @@ def cleanup_files():
 
 
 if __name__ == "__main__":
-    generate_test_file("3.30")
-    generate_test_file("4.10")
-    generate_arrays_test_file()
+    generate_test_file("./", "3.30")
+    generate_test_file("./", "4.10")
+    generate_arrays_test_file("./")
