@@ -65,6 +65,7 @@ class TestMDF(unittest.TestCase):
     def tearDownClass(cls):
         TestMDF.tempdir_demo.cleanup()
         TestMDF.tempdir.cleanup()
+        TestMDF.tempdir_general.cleanup()
         TestMDF.tempdir_array.cleanup()
         os.remove("test.zip")
 
