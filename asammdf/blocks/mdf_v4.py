@@ -2251,8 +2251,8 @@ class MDF4(object):
 
         vals = vals.tostring()
 
-        if not channel.dtype_fmt:
-            channel.dtype_fmt = get_fmt_v4(channel["data_type"], bit_count)
+        channel.dtype_fmt = get_fmt_v4(channel["data_type"], bit_count)
+
         fmt = channel.dtype_fmt
         if size <= byte_count:
             if channel["data_type"] in big_endian_types:
