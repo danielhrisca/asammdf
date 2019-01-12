@@ -84,10 +84,10 @@ class Signal(object):
         if samples is None or timestamps is None or name == "":
             message = (
                 '"samples", "timestamps" and "name" are mandatory '
-                "for Signal class __init__: samples={}\n"
-                "timestamps={}\nname={}"
+                "for Signal class __init__: samples={samples}\n"
+                "timestamps={timestamps}\nname={name}"
             )
-            raise MdfException(message.format(samples, timestamps, name))
+            raise MdfException(message)
         else:
             if isinstance(samples, (list, tuple)):
                 samples = np.array(samples)
@@ -141,7 +141,7 @@ class Signal(object):
                     conversion = v4b.ChannelConversion(**conversion)
 
                 elif all(
-                    key in conversion for key in ["P{}".format(i) for i in range(1, 7)]
+                    key in conversion for key in [f"P{i}" for i in range(1, 7)]
                 ):
                     conversion["conversion_type"] = v4c.CONVERSION_TYPE_RAT
                     conversion = v4b.ChannelConversion(**conversion)
@@ -149,7 +149,7 @@ class Signal(object):
                 elif "raw_0" in conversion and "phys_0" in conversion:
                     conversion["conversion_type"] = v4c.CONVERSION_TYPE_TAB
                     nr = 0
-                    while "phys_{}".format(nr) in conversion:
+                    while f"phys_{nr}" in conversion:
                         nr += 1
                     conversion["val_param_nr"] = nr * 2
                     conversion = v4b.ChannelConversion(**conversion)
@@ -157,7 +157,7 @@ class Signal(object):
                 elif "upper_0" in conversion and "phys_0" in conversion:
                     conversion["conversion_type"] = v4c.CONVERSION_TYPE_RTAB
                     nr = 0
-                    while "phys_{}".format(nr) in conversion:
+                    while f"phys_{nr}" in conversion:
                         nr += 1
                     conversion["val_param_nr"] = nr * 3 + 1
                     conversion = v4b.ChannelConversion(**conversion)
@@ -165,7 +165,7 @@ class Signal(object):
                 elif "val_0" in conversion and "text_0" in conversion:
                     conversion["conversion_type"] = v4c.CONVERSION_TYPE_TABX
                     nr = 0
-                    while "text_{}".format(nr) in conversion:
+                    while f"text_{nr}" in conversion:
                         nr += 1
                     conversion["ref_param_nr"] = nr + 1
                     conversion = v4b.ChannelConversion(**conversion)
@@ -173,7 +173,7 @@ class Signal(object):
                 elif "upper_0" in conversion and "text_0" in conversion:
                     conversion["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
                     nr = 0
-                    while "text_{}".format(nr) in conversion:
+                    while f"text_{nr}" in conversion:
                         nr += 1
                     conversion["ref_param_nr"] = nr + 1
                     conversion = v4b.ChannelConversion(**conversion)
@@ -186,31 +186,18 @@ class Signal(object):
             self.conversion = conversion
 
     def __repr__(self):
-        string = """<Signal {}:
-\tsamples={}
-\ttimestamps={}
-\tunit="{}"
-\tconversion={}
-\tsource={}
-\tcomment="{}"
-\tmastermeta="{}"
-\traw={}
-\tdisplay_name={}
-\tattachment={}>
+        return f"""<Signal {self.name}:
+\tsamples={self.samples}
+\ttimestamps={self.timestamps}
+\tunit="{self.unit}"
+\tconversion={self.conversion}
+\tsource={self.source}
+\tcomment="{self.comment}"
+\tmastermeta="{self.master_metadata}"
+\traw={self.raw}
+\tdisplay_name={self.display_name}
+\tattachment={self.attachment}>
 """
-        return string.format(
-            self.name,
-            self.samples,
-            self.timestamps,
-            self.unit,
-            self.conversion,
-            self.source,
-            self.comment,
-            self.master_metadata,
-            self.raw,
-            self.display_name,
-            self.attachment,
-        )
 
     def plot(self):
         """ plot Signal samples. Pyqtgraph is used if it is available; in this
@@ -237,13 +224,13 @@ class Signal(object):
                 comment = extract_cncomment_xml(comment)
                 comment = fill(comment, 120).replace("\\n", " ")
 
-                title = "{}\n({})".format(name, comment)
+                title = f"{name}\n({comment})"
                 plot.plot.plotItem.setTitle(title, color=COLORS[0])
             else:
                 plot.plot.plotItem.setTitle(name, color=COLORS[0])
 
             plot.show()
-            plot.setWindowTitle("{} - asammdf{}".format(self.name, __version__))
+            plot.setWindowTitle(f"{self.name} - asammdf{__version__}")
 
             app.exec_()
             return
@@ -263,7 +250,7 @@ class Signal(object):
             fig.text(
                 0.95,
                 0.05,
-                "asammdf {}".format(__version__),
+                f"asammdf {__version__}",
                 fontsize=8,
                 color="red",
                 ha="right",
@@ -278,14 +265,14 @@ class Signal(object):
                 comment = extract_cncomment_xml(comment)
                 comment = fill(comment, 120).replace("\\n", " ")
 
-                title = "{}\n({})".format(name, comment)
+                title = f"{name}\n({comment})"
                 plt.title(title)
             else:
                 plt.title(name)
             try:
                 if not self.master_metadata:
                     plt.xlabel("Time [s]")
-                    plt.ylabel("[{}]".format(self.unit))
+                    plt.ylabel(f"[{self.unit}]")
                     plt.plot(self.timestamps, self.samples, "b")
                     plt.plot(self.timestamps, self.samples, "b.")
                     plt.grid(True)
@@ -293,14 +280,14 @@ class Signal(object):
                 else:
                     master_name, sync_type = self.master_metadata
                     if sync_type in (0, 1):
-                        plt.xlabel("{} [s]".format(master_name))
+                        plt.xlabel(f"{master_name} [s]")
                     elif sync_type == 2:
-                        plt.xlabel("{} [deg]".format(master_name))
+                        plt.xlabel(f"{master_name} [deg]")
                     elif sync_type == 3:
-                        plt.xlabel("{} [m]".format(master_name))
+                        plt.xlabel(f"{master_name} [m]")
                     elif sync_type == 4:
-                        plt.xlabel("{} [index]".format(master_name))
-                    plt.ylabel("[{}]".format(self.unit))
+                        plt.xlabel(f"{master_name} [index]")
+                    plt.ylabel(f"[{self.unit}]")
                     plt.plot(self.timestamps, self.samples, "b")
                     plt.plot(self.timestamps, self.samples, "b.")
                     plt.grid(True)
@@ -324,7 +311,7 @@ class Signal(object):
                     fig.text(
                         0.95,
                         0.05,
-                        "asammdf {}".format(__version__),
+                        f"asammdf {__version__}",
                         fontsize=8,
                         color="red",
                         ha="right",
@@ -334,7 +321,7 @@ class Signal(object):
 
                     if self.comment:
                         comment = self.comment.replace("$", "")
-                        plt.title("{}\n({})".format(self.name, comment))
+                        plt.title(f"{self.name}\n({comment})")
                     else:
                         plt.title(self.name)
 
@@ -381,7 +368,7 @@ class Signal(object):
                     fig.text(
                         0.95,
                         0.05,
-                        "asammdf {}".format(__version__),
+                        f"asammdf {__version__}",
                         fontsize=8,
                         color="red",
                         ha="right",
@@ -391,7 +378,7 @@ class Signal(object):
 
                     if self.comment:
                         comment = self.comment.replace("$", "")
-                        plt.title("{}\n({})".format(self.name, comment))
+                        plt.title(f"{self.name}\n({comment})")
                     else:
                         plt.title(self.name)
 

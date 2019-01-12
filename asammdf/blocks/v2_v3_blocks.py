@@ -278,7 +278,7 @@ class Channel(dict):
                         self.comment = get_text_v3(address=addr, stream=stream)
 
             if self["id"] != b"CN":
-                message = ff'Expected "CN" block @{hex(address)} but found "{self["id"]}"'
+                message = f'Expected "CN" block @{hex(address)} but found "{self["id"]}"'
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -736,7 +736,7 @@ class ChannelConversion(dict):
 
             if self["id"] != b"CC":
                 message = f'Expected "CC" block @{hex(address)} but found "{self["id"]}"'
-                
+
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1302,7 +1302,7 @@ class ChannelDependency(dict):
 
             if self["id"] != b"CD":
                 message = f'Expected "CD" block @{hex(address)} but found "{self["id"]}"'
-                
+
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1444,7 +1444,7 @@ class ChannelExtension(dict):
 
             if self["id"] != b"CE":
                 message = f'Expected "CE" block @{hex(address)} but found "{self["id"]}"'
-                
+
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1646,7 +1646,7 @@ class ChannelGroup(dict):
                 self["sample_reduction_addr"] = 0
             if self["id"] != b"CG":
                 message = f'Expected "CG" block @{hex(address)} but found "{self["id"]}"'
-                
+
                 raise MdfException(message.format(self["id"]))
             if self["comment_addr"]:
                 self.comment = get_text_v3(address=self["comment_addr"], stream=stream)
@@ -1794,7 +1794,7 @@ class DataGroup(dict):
 
             if self["id"] != b"DG":
                 message = f'Expected "DG" block @{hex(address)} but found "{self["id"]}"'
-                
+
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2150,7 +2150,7 @@ class ProgramBlock(dict):
 
             if self["id"] != b"PR":
                 message = f'Expected "PR" block @{hex(address)} but found "{self["id"]}"'
-                
+
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2212,7 +2212,7 @@ class SampleReduction(dict):
 
             if self["id"] != b"SR":
                 message = f'Expected "SR" block @{hex(address)} but found "{self["id"]}"'
-                
+
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2273,7 +2273,7 @@ class TextBlock(dict):
 
             if self["id"] != b"TX":
                 message = f'Expected "TX" block @{hex(address)} but found "{self["id"]}"'
-                
+
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2366,7 +2366,7 @@ class TriggerBlock(dict):
 
             if self["id"] != b"TR":
                 message = f'Expected "TR" block @{hex(address)} but found "{self["id"]}"'
-                
+
                 logger.exception(message)
                 raise MdfException(message)
 

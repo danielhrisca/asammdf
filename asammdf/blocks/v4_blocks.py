@@ -3659,20 +3659,16 @@ class SourceInformation(dict):
 
     def metadata(self):
         max_len = max(len(key) for key in self)
-        template = "{{: <{}}}: {{}}".format(max_len)
+        template = "{{: <{max_len}}}: {{}}"
 
         metadata = []
-        lines = """
-name: {}
-path: {}
-address: {}
-comment: {}
+        lines = f"""
+name: {self.name}
+path: {self.path}
+address: {hex(self.address)}
+comment: {self.comment}
 
-""".format(
-            self.name, self.path, hex(self.address), self.comment
-        ).split(
-            "\n"
-        )
+""".split("\n")
         for key, val in self.items():
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))

@@ -2055,7 +2055,6 @@ class MDF(object):
                             f"concatenated from channel group {i} of \"{os.path.basename(mdf.name)}\""
                             f"with first time stamp at {original_first_timestamp}s\n"
                         )
-                    )
                 else:
                     merged.groups[-1]['channel_group'].comment += (
                         f"there were no samples in channel group {i} of \"{os.path.basename(mdf.name)}\"\n"

@@ -250,25 +250,25 @@ class MDF4(object):
                 f"Unfinalised file {self.name}:"
                 "Update of cycle counters for CG/CA blocks required"
             )
-            
+
             logger.warning(message)
         elif flags & 1 << 1:
             message = (
                 f"Unfinalised file {self.name}:" "Update of cycle counters for SR blocks required"
             )
-            
+
             logger.warning(message)
         elif flags & 1 << 2:
             message = (
                 f"Unfinalised file {self.name}:" "Update of length for last DT block required"
             )
-            
+
             logger.warning(message)
         elif flags & 1 << 3:
             message = (
                 f"Unfinalised file {self.name}:" "Update of length for last RD block required"
             )
-            
+
             logger.warning(message)
         elif flags & 1 << 4:
             message = (
@@ -276,7 +276,7 @@ class MDF4(object):
                 "Update of last DL block in each chained list"
                 "of DL blocks required"
             )
-            
+
             logger.warning(message)
         elif flags & 1 << 5:
             message = (
@@ -284,7 +284,7 @@ class MDF4(object):
                 "Update of cg_data_bytes and cg_inval_bytes "
                 "in VLSD CG block required"
             )
-            
+
             logger.warning(message)
         elif flags & 1 << 6:
             message = (
@@ -292,7 +292,7 @@ class MDF4(object):
                 "Update of offset values for VLSD channel required "
                 "in case a VLSD CG block is used"
             )
-            
+
             logger.warning(message)
 
     def _read(self):
@@ -2010,12 +2010,7 @@ class MDF4(object):
         return gp_nr, ch_nr
 
     def _get_source_name(self, group, index):
-        grp = self.groups[group]
-        if grp["channels"][index].source:
-            name = grp["channels"][index].source.name
-        else:
-            name = ""
-        return name
+        return self.groups[group]["channels"][index].source.name or ""
 
     def _get_data_blocks_info(self, address, stream, block_type=b"##DT"):
         info = {
@@ -5889,11 +5884,6 @@ class MDF4(object):
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         grp = self.groups[gp_nr]
-
-        if grp["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
 
         channel = grp["channels"][ch_nr]
 
