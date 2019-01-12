@@ -278,8 +278,7 @@ class Channel(dict):
                         self.comment = get_text_v3(address=addr, stream=stream)
 
             if self["id"] != b"CN":
-                message = 'Expected "CN" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = ff'Expected "CN" block @{hex(address)} but found "{self["id"]}"'
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -460,9 +459,7 @@ comment: {}
         return result
 
     def __repr__(self):
-        return "Channel (name: {}, display name: {}, comment: {}, address: {}, fields: {})".format(
-            self.name, self.display_name, self.comment, hex(self.address), dict(self)
-        )
+        return f"Channel (name: {self.name}, display name: {self.display_name,}, comment: {self.comment}, address: {hex(self.address)}, fields: {dict(self)})"
 
 
 class ChannelConversion(dict):
@@ -630,10 +627,10 @@ class ChannelConversion(dict):
 
                 else:
                     values = unpack_from(
-                        "<{}d".format(2 * nr), block, v23c.CC_COMMON_SHORT_SIZE
+                        f"<{2*nr}d", block, v23c.CC_COMMON_SHORT_SIZE
                     )
                     for i in range(nr):
-                        (self["raw_{}".format(i)], self["phys_{}".format(i)]) = (
+                        (self[f"raw_{i}"], self[f"phys_{i}"]) = (
                             values[i * 2],
                             values[2 * i + 1],
                         )
@@ -682,7 +679,7 @@ class ChannelConversion(dict):
                     )
 
                     for i in range(nr):
-                        (self["param_val_{}".format(i)], self["text_{}".format(i)]) = (
+                        (self[f"param_val_{i}"], self[f"text_{i}"]) = (
                             values[i * 2],
                             values[2 * i + 1],
                         )
@@ -724,22 +721,22 @@ class ChannelConversion(dict):
                     )
                     for i in range(nr):
                         (
-                            self["lower_{}".format(i)],
-                            self["upper_{}".format(i)],
-                            self["text_{}".format(i)],
+                            self[f"lower_{i}"],
+                            self[f"upper_{i}"],
+                            self[f"text_{i}"],
                         ) = (values[i * 3], values[3 * i + 1], values[3 * i + 2])
                         if values[3 * i + 2]:
                             block = TextBlock(address=values[3 * i + 2], stream=stream)
-                            self.referenced_blocks["text_{}".format(i)] = block
+                            self.referenced_blocks[f"text_{i}"] = block
 
                         else:
-                            self.referenced_blocks["text_{}".format(i)] = TextBlock(
+                            self.referenced_blocks[f"text_{i}"] = TextBlock(
                                 text=""
                             )
 
             if self["id"] != b"CC":
-                message = 'Expected "CC" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = f'Expected "CC" block @{hex(address)} but found "{self["id"]}"'
+                
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -838,8 +835,8 @@ class ChannelConversion(dict):
                 self["conversion_type"] = kwargs["conversion_type"]
                 self["ref_param_nr"] = nr
                 for i in range(nr):
-                    self["raw_{}".format(i)] = kwargs["raw_{}".format(i)]
-                    self["phys_{}".format(i)] = kwargs["phys_{}".format(i)]
+                    self[f"raw_{i}"] = kwargs[f"raw_{i}"]
+                    self[f"phys_{i}"] = kwargs[f"phys_{i}"]
 
             elif kwargs["conversion_type"] == v23c.CONVERSION_TYPE_TABX:
                 nr = kwargs["ref_param_nr"]
@@ -852,8 +849,8 @@ class ChannelConversion(dict):
                 self["ref_param_nr"] = nr
 
                 for i in range(nr):
-                    self["param_val_{}".format(i)] = kwargs["param_val_{}".format(i)]
-                    self["text_{}".format(i)] = kwargs["text_{}".format(i)]
+                    self[f"param_val_{i}"] = kwargs[f"param_val_{i}"]
+                    self[f"text_{i}"] = kwargs[f"text_{i}"]
 
             elif kwargs["conversion_type"] == v23c.CONVERSION_TYPE_RTABX:
                 nr = kwargs["ref_param_nr"]
@@ -875,14 +872,13 @@ class ChannelConversion(dict):
                     self.referenced_blocks[key] = None
 
                 for i in range(nr - 1):
-                    self["lower_{}".format(i)] = kwargs["lower_{}".format(i)]
-                    self["upper_{}".format(i)] = kwargs["upper_{}".format(i)]
-                    key = "text_{}".format(i)
+                    self[f"lower_{i}"] = kwargs[f"lower_{i}"]
+                    self[f"upper_{i}"] = kwargs[f"upper_{i}"]
+                    key = f"text_{i}"
                     self[key] = 0
                     self.referenced_blocks[key] = TextBlock(text=kwargs[key])
             else:
-                message = 'Conversion type "{}" not implemented'
-                message = message.format(kwargs["conversion_type"])
+                message = f'Conversion type "{kwargs["conversion_type"]}" not implemented'
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -927,7 +923,7 @@ class ChannelConversion(dict):
 
     def metadata(self, indent=""):
         max_len = max(len(key) for key in self)
-        template = "{{: <{}}}: {{}}".format(max_len)
+        template = "{{: <{max_len}}}: {{}}"
 
         metadata = []
         lines = """
@@ -989,9 +985,9 @@ address: {}
         elif conversion_type in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
             nr = self["ref_param_nr"]
 
-            raw_vals = [self["raw_{}".format(i)] for i in range(nr)]
+            raw_vals = [self[f"raw_{i}"] for i in range(nr)]
             raw_vals = np.array(raw_vals)
-            phys = [self["phys_{}".format(i)] for i in range(nr)]
+            phys = [self[f"phys_{i}"] for i in range(nr)]
             phys = np.array(phys)
 
             if conversion_type == v23c.CONVERSION_TYPE_TABI:
@@ -1003,9 +999,9 @@ address: {}
 
         elif conversion_type == v23c.CONVERSION_TYPE_TABX:
             nr = self["ref_param_nr"]
-            raw_vals = [self["param_val_{}".format(i)] for i in range(nr)]
+            raw_vals = [self[f"param_val_{i}"] for i in range(nr)]
             raw_vals = np.array(raw_vals)
-            phys = [self["text_{}".format(i)] for i in range(nr)]
+            phys = [self[f"text_{i}"] for i in range(nr)]
             phys = np.array(phys)
 
             indexes = np.searchsorted(raw_vals, values)
@@ -1017,7 +1013,7 @@ address: {}
 
             phys = []
             for i in range(nr):
-                value = self.referenced_blocks["text_{}".format(i)]
+                value = self.referenced_blocks[f"text_{i}"]
                 if value:
                     value = value["text"]
                 else:
@@ -1038,8 +1034,8 @@ address: {}
             else:
                 partial_conversion = False
 
-            lower = np.array([self["lower_{}".format(i)] for i in range(nr)])
-            upper = np.array([self["upper_{}".format(i)] for i in range(nr)])
+            lower = np.array([self[f"lower_{i}"] for i in range(nr)])
+            upper = np.array([self[f"upper_{i}"] for i in range(nr)])
 
             if values.dtype.kind == "f":
                 idx1 = np.searchsorted(lower, values, side="right") - 1
@@ -1094,8 +1090,7 @@ address: {}
             elif P1 == 0:
                 values = func((P3 / (values - P7) - P6) / P4) / P5
             else:
-                message = "wrong conversion {}"
-                message = message.format(conversion_type)
+                message = f"wrong conversion {conversion_type}"
                 raise ValueError(message)
 
         elif conversion_type == v23c.CONVERSION_TYPE_RAT:
@@ -1175,14 +1170,14 @@ address: {}
         elif conv == v23c.CONVERSION_TYPE_LINEAR:
             fmt = v23c.FMT_CONVERSION_LINEAR
             if not self["block_len"] == v23c.CC_LIN_BLOCK_SIZE:
-                fmt += "{}s".format(self["block_len"] - v23c.CC_LIN_BLOCK_SIZE)
+                fmt += f'{self["block_len"] - v23c.CC_LIN_BLOCK_SIZE}s'
         elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
             fmt = v23c.FMT_CONVERSION_POLY_RAT
         elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
             fmt = v23c.FMT_CONVERSION_EXPO_LOGH
         elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
             nr = self["ref_param_nr"]
-            fmt = v23c.FMT_CONVERSION_COMMON + "{}d".format(nr * 2)
+            fmt = v23c.FMT_CONVERSION_COMMON + f"{2*nr}d"
         elif conv == v23c.CONVERSION_TYPE_RTABX:
             nr = self["ref_param_nr"]
             fmt = v23c.FMT_CONVERSION_COMMON + "2dI" * nr
@@ -1206,22 +1201,22 @@ address: {}
             nr = self["ref_param_nr"]
             keys = list(v23c.KEYS_CONVESION_NONE)
             for i in range(nr):
-                keys.append("raw_{}".format(i))
-                keys.append("phys_{}".format(i))
+                keys.append(f"raw_{i}")
+                keys.append(f"phys_{i}")
         elif conv == v23c.CONVERSION_TYPE_RTABX:
             nr = self["ref_param_nr"]
             keys = list(v23c.KEYS_CONVESION_NONE)
             keys += ["default_lower", "default_upper", "default_addr"]
             for i in range(nr - 1):
-                keys.append("lower_{}".format(i))
-                keys.append("upper_{}".format(i))
-                keys.append("text_{}".format(i))
+                keys.append(f"lower_{i}")
+                keys.append(f"upper_{i}")
+                keys.append(f"text_{i}")
         elif conv == v23c.CONVERSION_TYPE_TABX:
             nr = self["ref_param_nr"]
             keys = list(v23c.KEYS_CONVESION_NONE)
             for i in range(nr):
-                keys.append("param_val_{}".format(i))
-                keys.append("text_{}".format(i))
+                keys.append(f"param_val_{i}")
+                keys.append(f"text_{i}")
 
         if self["block_len"] > v23c.MAX_UINT16:
             self["block_len"] = v23c.MAX_UINT16
@@ -1293,21 +1288,21 @@ class ChannelDependency(dict):
             links = unpack("<{}I".format(3 * self["sd_nr"]), stream.read(links_size))
 
             for i in range(self["sd_nr"]):
-                self["dg_{}".format(i)] = links[3 * i]
-                self["cg_{}".format(i)] = links[3 * i + 1]
-                self["ch_{}".format(i)] = links[3 * i + 2]
+                self[f"dg_{i}"] = links[3 * i]
+                self[f"cg_{i}"] = links[3 * i + 1]
+                self[f"ch_{i}"] = links[3 * i + 2]
 
             optional_dims_nr = (self["block_len"] - 8 - links_size) // 2
             if optional_dims_nr:
                 dims = unpack(
-                    "<{}H".format(optional_dims_nr), stream.read(optional_dims_nr * 2)
+                    f"<{optional_dims_nr}H", stream.read(optional_dims_nr * 2)
                 )
                 for i, dim in enumerate(dims):
-                    self["dim_{}".format(i)] = dim
+                    self[f"dim_{i}"] = dim
 
             if self["id"] != b"CD":
-                message = 'Expected "CD" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = f'Expected "CD" block @{hex(address)} but found "{self["id"]}"'
+                
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1318,13 +1313,13 @@ class ChannelDependency(dict):
             self["dependency_type"] = 1
             self["sd_nr"] = sd_nr
             for i in range(sd_nr):
-                self["dg_{}".format(i)] = 0
-                self["cg_{}".format(i)] = 0
-                self["ch_{}".format(i)] = 0
+                self[f"dg_{i}"] = 0
+                self[f"cg_{i}"] = 0
+                self[f"ch_{i}"] = 0
             i = 0
             while True:
                 try:
-                    self["dim_{}".format(i)] = kwargs["dim_{}".format(i)]
+                    self[f"dim_{i}"] = kwargs[f"dim_{i}"]
                     i += 1
                 except KeyError:
                     break
@@ -1336,12 +1331,12 @@ class ChannelDependency(dict):
         fmt = "<2s3H{}I".format(self["sd_nr"] * 3)
         keys = ("id", "block_len", "dependency_type", "sd_nr")
         for i in range(self["sd_nr"]):
-            keys += ("dg_{}".format(i), "cg_{}".format(i), "ch_{}".format(i))
+            keys += (f"dg_{i}", f"cg_{i}", f"ch_{i}")
         links_size = 3 * 4 * self["sd_nr"]
         option_dims_nr = (self["block_len"] - 8 - links_size) // 2
         if option_dims_nr:
-            fmt += "{}H".format(option_dims_nr)
-            keys += tuple("dim_{}".format(i) for i in range(option_dims_nr))
+            fmt += f"{option_dims_nr}H"
+            keys += tuple(f"dim_{i}" for i in range(option_dims_nr))
         result = pack(fmt, *[self[key] for key in keys])
         return result
 
@@ -1448,8 +1443,8 @@ class ChannelExtension(dict):
                     ) = SOURCE_EXTRA_VECTOR_u(block)
 
             if self["id"] != b"CE":
-                message = 'Expected "CE" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = f'Expected "CE" block @{hex(address)} but found "{self["id"]}"'
+                
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1650,8 +1645,8 @@ class ChannelGroup(dict):
                 # sample reduction blocks are not yet used
                 self["sample_reduction_addr"] = 0
             if self["id"] != b"CG":
-                message = 'Expected "CG" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = f'Expected "CG" block @{hex(address)} but found "{self["id"]}"'
+                
                 raise MdfException(message.format(self["id"]))
             if self["comment_addr"]:
                 self.comment = get_text_v3(address=self["comment_addr"], stream=stream)
@@ -1798,8 +1793,8 @@ class DataGroup(dict):
                 self["reserved0"] = stream.read(4)
 
             if self["id"] != b"DG":
-                message = 'Expected "DG" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = f'Expected "DG" block @{hex(address)} but found "{self["id"]}"'
+                
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1994,7 +1989,7 @@ class HeaderBlock(dict):
                 )
 
             if self["id"] != b"HD":
-                message = 'Expected "HD" block @{} but found "{}"'
+                message = f'Expected "HD" block @{hex(address)} but found "{self["id"]}"'
                 message = message.format(hex(64), self["id"])
                 logger.exception(message)
                 raise MdfException(message)
@@ -2154,8 +2149,8 @@ class ProgramBlock(dict):
             self["data"] = stream.read(self["block_len"] - 4)
 
             if self["id"] != b"PR":
-                message = 'Expected "PR" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = f'Expected "PR" block @{hex(address)} but found "{self["id"]}"'
+                
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2216,8 +2211,8 @@ class SampleReduction(dict):
             ) = unpack(v23c.FMT_SAMPLE_REDUCTION_BLOCK, stream.read(v23c.SR_BLOCK_SIZE))
 
             if self["id"] != b"SR":
-                message = 'Expected "SR" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = f'Expected "SR" block @{hex(address)} but found "{self["id"]}"'
+                
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2277,8 +2272,8 @@ class TextBlock(dict):
             self["text"] = stream.read(size)
 
             if self["id"] != b"TX":
-                message = 'Expected "TX" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = f'Expected "TX" block @{hex(address)} but found "{self["id"]}"'
+                
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -2370,8 +2365,8 @@ class TriggerBlock(dict):
                 self.comment = get_text_v3(address=self["text_addr"], stream=stream)
 
             if self["id"] != b"TR":
-                message = 'Expected "TR" block @{} but found "{}"'
-                message = message.format(hex(address), self["id"])
+                message = f'Expected "TR" block @{hex(address)} but found "{self["id"]}"'
+                
                 logger.exception(message)
                 raise MdfException(message)
 

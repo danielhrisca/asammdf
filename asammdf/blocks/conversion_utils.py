@@ -80,13 +80,13 @@ def conversion_transfer(conversion, version=3):
                     }
 
                     for i in range(nr):
-                        l_ = conversion["lower_{}".format(i)]
-                        u_ = conversion["upper_{}".format(i)]
-                        p_ = conversion["phys_{}".format(i)]
-                        kargs["raw_{}".format(2 * i)] = l_
-                        kargs["raw_{}".format(2 * i + 1)] = u_ - 0.000001
-                        kargs["phys_{}".format(2 * i)] = p_
-                        kargs["phys_{}".format(2 * i + 1)] = p_
+                        l_ = conversion[f"lower_{i}"]
+                        u_ = conversion[f"upper_{i}"]
+                        p_ = conversion[f"phys_{i}"]
+                        kargs[f"raw_{i}"] = l_
+                        kargs[f"raw_{i}"] = u_ - 0.000001
+                        kargs[f"phys_{i}"] = p_
+                        kargs[f"phys_{i}"] = p_
 
                     conversion = v3b.ChannelConversion(unit=unit, **kargs)
 
@@ -98,10 +98,8 @@ def conversion_transfer(conversion, version=3):
                         "conversion_type": v3c.CONVERSION_TYPE_TABX,
                     }
                     for i in range(nr):
-                        kargs["param_val_{}".format(i)] = conversion["val_{}".format(i)]
-                        kargs["text_{}".format(i)] = conversion.referenced_blocks[
-                            "text_{}".format(i)
-                        ]["text"]
+                        kargs[f"param_val_{i}"] = conversion[f"val_{i}"]
+                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]["text"]
 
                     conversion = v3b.ChannelConversion(**kargs)
 
@@ -113,11 +111,9 @@ def conversion_transfer(conversion, version=3):
                         "conversion_type": v3c.CONVERSION_TYPE_RTABX,
                     }
                     for i in range(nr):
-                        kargs["lower_{}".format(i)] = conversion["lower_{}".format(i)]
-                        kargs["upper_{}".format(i)] = conversion["upper_{}".format(i)]
-                        kargs["text_{}".format(i)] = conversion.referenced_blocks[
-                            "text_{}".format(i)
-                        ]["text"]
+                        kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
+                        kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
+                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]["text"]
 
                     new_conversion = v3b.ChannelConversion(**kargs)
 
@@ -176,8 +172,8 @@ def conversion_transfer(conversion, version=3):
                     "conversion_type": v4c.CONVERSION_TYPE_TABX,
                 }
                 for i in range(nr):
-                    kargs["val_{}".format(i)] = conversion["param_val_{}".format(i)]
-                    kargs["text_{}".format(i)] = conversion["text_{}".format(i)]
+                    kargs[f"val_{i}"] = conversion[f"param_val_{i}"]
+                    kargs[f"text_{i}"] = conversion[f"text_{i}"]
 
                 new_conversion = v4b.ChannelConversion(**kargs)
 
@@ -195,11 +191,9 @@ def conversion_transfer(conversion, version=3):
                     ],
                 }
                 for i in range(nr):
-                    kargs["lower_{}".format(i)] = conversion["lower_{}".format(i)]
-                    kargs["upper_{}".format(i)] = conversion["upper_{}".format(i)]
-                    kargs["text_{}".format(i)] = conversion.referenced_blocks[
-                        "text_{}".format(i)
-                    ]["text"]
+                    kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
+                    kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
+                    kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]["text"]
 
                 conversion = v4b.ChannelConversion(**kargs)
 

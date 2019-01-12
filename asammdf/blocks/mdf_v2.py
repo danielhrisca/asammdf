@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """ ASAM MDF version 2 file format module """
 
-from __future__ import division, print_function
-
 from .mdf_v3 import MDF3
 from .utils import validate_version_argument
 

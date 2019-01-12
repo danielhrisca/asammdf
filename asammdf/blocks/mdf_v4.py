@@ -247,52 +247,52 @@ class MDF4(object):
         flags = self.identification["unfinalized_standard_flags"]
         if flags & 1:
             message = (
-                "Unfinalised file {}:"
+                f"Unfinalised file {self.name}:"
                 "Update of cycle counters for CG/CA blocks required"
             )
-            message = message.format(self.name)
+            
             logger.warning(message)
         elif flags & 1 << 1:
             message = (
-                "Unfinalised file {}:" "Update of cycle counters for SR blocks required"
+                f"Unfinalised file {self.name}:" "Update of cycle counters for SR blocks required"
             )
-            message = message.format(self.name)
+            
             logger.warning(message)
         elif flags & 1 << 2:
             message = (
-                "Unfinalised file {}:" "Update of length for last DT block required"
+                f"Unfinalised file {self.name}:" "Update of length for last DT block required"
             )
-            message = message.format(self.name)
+            
             logger.warning(message)
         elif flags & 1 << 3:
             message = (
-                "Unfinalised file {}:" "Update of length for last RD block required"
+                f"Unfinalised file {self.name}:" "Update of length for last RD block required"
             )
-            message = message.format(self.name)
+            
             logger.warning(message)
         elif flags & 1 << 4:
             message = (
-                "Unfinalised file {}:"
+                f"Unfinalised file {self.name}:"
                 "Update of last DL block in each chained list"
                 "of DL blocks required"
             )
-            message = message.format(self.name)
+            
             logger.warning(message)
         elif flags & 1 << 5:
             message = (
-                "Unfinalised file {}:"
+                f"Unfinalised file {self.name}:"
                 "Update of cg_data_bytes and cg_inval_bytes "
                 "in VLSD CG block required"
             )
-            message = message.format(self.name)
+            
             logger.warning(message)
         elif flags & 1 << 6:
             message = (
-                "Unfinalised file {}:"
+                f"Unfinalised file {self.name}:"
                 "Update of offset values for VLSD channel required "
                 "in case a VLSD CG block is used"
             )
-            message = message.format(self.name)
+            
             logger.warning(message)
 
     def _read(self):
@@ -778,7 +778,7 @@ class MDF4(object):
         composition = []
         while ch_addr:
             # read channel block and create channel object
-            
+
             channel = Channel(
                 address=ch_addr,
                 stream=stream,
@@ -880,11 +880,11 @@ class MDF4(object):
                                         except ImportError:
                                             message = (
                                                 "Unicode exception occured while processing the database "
-                                                'attachment "{}" and "cChardet" package is '
+                                                f'attachment "{at_name}" and "cChardet" package is '
                                                 'not installed. Mdf version 4 expects "utf-8" '
                                                 "strings and this package may detect if a different"
                                                 " encoding was used"
-                                            ).format(at_name)
+                                            )
                                             logger.warning(message)
                                             grp["CAN_database"] = False
                             else:
@@ -1890,8 +1890,7 @@ class MDF4(object):
 
         vals = vals.tostring()
 
-        if not channel.dtype_fmt:
-            channel.dtype_fmt = get_fmt_v4(channel["data_type"], bit_count)
+        channel.dtype_fmt = get_fmt_v4(channel["data_type"], bit_count)
         fmt = channel.dtype_fmt
         if size <= byte_count:
             if channel["data_type"] in big_endian_types:
@@ -2960,7 +2959,7 @@ class MDF4(object):
 
         signals = None
         del signals
-        
+
         size = len(samples) * samples.itemsize
         if size:
             data_address = self._tempfile.tell()
@@ -3228,7 +3227,7 @@ class MDF4(object):
         if size:
             data_address = self._tempfile.tell()
             gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
- 
+
             samples.tofile(self._tempfile)
             dim = size
             block_type = v4c.DT_BLOCK
@@ -3570,12 +3569,9 @@ class MDF4(object):
                         return data, file_path
                     else:
                         message = (
-                            'ATBLOCK md5sum="{}" '
-                            "and external attachment data ({}) "
-                            'md5sum="{}"'
-                        )
-                        message = message.format(
-                            attachment["md5_sum"], file_path, md5_sum
+                            f'ATBLOCK md5sum="{attachment["md5_sum"]}" '
+                            f"and external attachment data ({file_path}) "
+                            f'md5sum="{md5_sum}"'
                         )
                         logger.warning(message)
                 else:
@@ -4053,7 +4049,7 @@ class MDF4(object):
                         else:
                             for i in range(dims_nr):
                                 ref_dg_nr, ref_ch_nr = ca_block.referenced_channels[i]
-  
+
                                 axisname = self.groups[ref_dg_nr]["channels"][
                                     ref_ch_nr
                                 ].name
@@ -4819,9 +4815,7 @@ class MDF4(object):
         if db is None:
 
             if not database.lower().endswith(("dbc", "arxml")):
-                message = 'Expected .dbc or .arxml file as CAN channel attachment but got "{}"'.format(
-                    database
-                )
+                message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{database}"'
                 logger.exception(message)
                 raise MdfException(message)
             else:
@@ -4853,11 +4847,11 @@ class MDF4(object):
                         except ImportError:
                             message = (
                                 "Unicode exception occured while processing the database "
-                                'attachment "{}" and "cChardet" package is '
+                                f'attachment "{database}" and "cChardet" package is '
                                 'not installed. Mdf version 4 expects "utf-8" '
                                 "strings and this package may detect if a different"
                                 " encoding was used"
-                            ).format(database)
+                            )
                             logger.warning(message)
 
         name_ = name.split(".")
@@ -4868,12 +4862,10 @@ class MDF4(object):
             can_id = v4c.CAN_ID_PATTERN.search(can_id_str)
             if can_id is None:
                 raise MdfException(
-                    'CAN id "{}" of signal name "{}" is not recognised by this library'.format(
-                        can_id_str, name
-                    )
+                    f'CAN id "{can_id_str}" of signal name "{name}" is not recognised by this library'
                 )
             else:
-                can_id = "CAN{}".format(can_id.group("id"))
+                can_id = f'CAN{an_id.group("id")}'
 
             message_id = v4c.CAN_DATA_FRAME_PATTERN.search(message_id_str)
             if message_id is None:
@@ -4907,9 +4899,7 @@ class MDF4(object):
                 break
         else:
             raise MdfException(
-                'Signal "{}" not found in message "{}" of "{}"'.format(
-                    signal, message.name, database
-                )
+                f'Signal "{signal}" not found in message "{message.name}" of "{database}"'
             )
 
         if can_id is None:
@@ -4919,9 +4909,7 @@ class MDF4(object):
                     break
             else:
                 raise MdfException(
-                    'Message "{}" (ID={}) not found in the measurement'.format(
-                        message.name, hex(message.id)
-                    )
+                    f'Message "{message.name}" (ID={hex(message.id)}) not found in the measurement'
                 )
         else:
             if can_id in self.can_logging_db:
@@ -4929,13 +4917,11 @@ class MDF4(object):
                     index = self.can_logging_db[can_id][message.id]
                 else:
                     raise MdfException(
-                        'Message "{}" (ID={}) not found in the measurement'.format(
-                            message.name, hex(message.id)
-                        )
+                        f'Message "{message.name}" (ID={hex(message.id)}) not found in the measurement'
                     )
             else:
                 raise MdfException(
-                    'No logging from "{}" was found in the measurement'.format(can_id)
+                    f'No logging from "{can_id}" was found in the measurement'
                 )
 
         can_ids = self.get(
@@ -4974,9 +4960,9 @@ class MDF4(object):
             byte_count //= 8
 
         types = [
-            ("", "a{}".format(byte_offset)),
-            ("vals", "({},)u1".format(byte_count)),
-            ("", "a{}".format(record_size - byte_count - byte_offset)),
+            ("", f"a{byte_offset}"),
+            ("vals", f"({byte_count},)u1"),
+            ("", f"a{record_size - byte_count - byte_offset}"),
         ]
 
         vals = fromstring(data.tostring(), dtype=dtype(types))
@@ -5034,9 +5020,9 @@ class MDF4(object):
         fmt = "{}u{}".format(">" if big_endian else "<", size)
         if size <= byte_count:
             if big_endian:
-                types = [("", "a{}".format(byte_count - size)), ("vals", fmt)]
+                types = [("", f"a{byte_count - size}"), ("vals", fmt)]
             else:
-                types = [("vals", fmt), ("", "a{}".format(byte_count - size))]
+                types = [("vals", fmt), ("", f"a{byte_count - size}")]
         else:
             types = [("vals", fmt)]
 
@@ -5098,7 +5084,7 @@ class MDF4(object):
             elif gp["data_location"] == v4c.LOCATION_TEMPORARY_FILE:
                 stream = self._tempfile
             inf = {}
-            info["group {}".format(i)] = inf
+            info[f"group {i}"] = inf
             inf["cycles"] = gp["channel_group"]["cycles_nr"]
             inf["comment"] = gp["channel_group"].comment
             inf["channels count"] = len(gp["channels"])
@@ -5106,7 +5092,7 @@ class MDF4(object):
                 name = channel.name
 
                 ch_type = v4c.CHANNEL_TYPE_TO_DESCRIPTION[channel["channel_type"]]
-                inf["channel {}".format(j)] = 'name="{}" type={}'.format(name, ch_type)
+                inf[f"channel {i}"] = f'name="{name}" type={ch_type}'
 
         return info
 
@@ -5190,16 +5176,15 @@ class MDF4(object):
             if os.path.isfile(dst):
                 cntr = 0
                 while True:
-                    name = os.path.splitext(dst)[0] + "_{}.mf4".format(cntr)
+                    name = os.path.splitext(dst)[0] + f"_{cntr}.mf4"
                     if not os.path.isfile(name):
                         break
                     else:
                         cntr += 1
                 message = (
-                    'Destination file "{}" already exists '
-                    'and "overwrite" is False. Saving MDF file as "{}"'
+                    f'Destination file "{dst}" already exists '
+                    f'and "overwrite" is False. Saving MDF file as "{name}"'
                 )
-                message = message.format(dst, name)
                 logger.warning(message)
                 dst = name
 
@@ -5209,14 +5194,12 @@ class MDF4(object):
             comment = "updated"
 
         fh = FileHistory()
-        fh.comment = """<FHcomment>
-<TX>{}</TX>
+        fh.comment = f"""<FHcomment>
+<TX>{comment}</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor>asammdf</tool_vendor>
-<tool_version>{}</tool_version>
-</FHcomment>""".format(
-            comment, __version__
-        )
+<tool_version>{__version__}</tool_version>
+</FHcomment>"""
 
         self.file_history.append(fh)
 

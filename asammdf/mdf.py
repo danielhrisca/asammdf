@@ -94,18 +94,18 @@ class MDF(object):
                 if os.path.isfile(name):
                     file_stream = open(name, "rb")
                 else:
-                    raise MdfException('File "{}" does not exist'.format(name))
+                    raise MdfException(f'File "{name}" does not exist')
             file_stream.seek(0)
             magic_header = file_stream.read(3)
             if magic_header != b"MDF":
-                raise MdfException('"{}" is not a valid ASAM MDF file'.format(name))
+                raise MdfException(f'"{name}" is not a valid ASAM MDF file')
             file_stream.seek(8)
             version = file_stream.read(4).decode("ascii").strip(" \0")
             if not version:
                 file_stream.read(16)
                 version = unpack("<H", file_stream.read(2))[0]
                 version = str(version)
-                version = "{}.{}".format(version[0], version[1:])
+                version = f"{version[0]}.{version[1:]}"
             if version in MDF3_VERSIONS:
                 self._mdf = MDF3(name, **kwargs)
             elif version in MDF4_VERSIONS:
@@ -114,9 +114,9 @@ class MDF(object):
                 self._mdf = MDF2(name, **kwargs)
             else:
                 message = (
-                    '"{}" is not a supported MDF file; ' '"{}" file version was found'
+                    f'"{name}" is not a supported MDF file; "{version}" file version was found'
                 )
-                raise MdfException(message.format(name, version))
+                raise MdfException(message)
 
         else:
             version = validate_version_argument(version)
@@ -128,10 +128,10 @@ class MDF(object):
                 self._mdf = MDF4(version=version, **kwargs)
             else:
                 message = (
-                    '"{}" is not a supported MDF file version; '
-                    "Supported versions are {}"
+                    f'"{version}" is not a supported MDF file version; '
+                    f"Supported versions are {SUPPORTED_VERSIONS}"
                 )
-                raise MdfException(message.format(version, SUPPORTED_VERSIONS))
+                raise MdfException(message)
 
         # link underlying _mdf attributes and methods to the new MDF object
         for attr in set(dir(self._mdf)) - set(dir(self)):
@@ -175,7 +175,7 @@ class MDF(object):
                                 event_valid = False
                     # ignore attachments for now
                     for i in range(new_event["attachment_nr"]):
-                        key = "attachment_{}_addr".format(i)
+                        key = f"attachment_{i}_addr"
                         event[key] = 0
                     if event_valid:
                         self.events.append(new_event)
@@ -562,12 +562,12 @@ class MDF(object):
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
-                    source_info = "Converted from {} to {}"
+                    source_info = f"Converted from {self.version} to {version}"
 
                     if sigs:
                         out.append(
                             sigs,
-                            source_info.format(self.version, version),
+                            source_info,
                             common_timebase=True,
                         )
                         new_group = out.groups[-1]
@@ -797,16 +797,16 @@ class MDF(object):
 
                     if sigs:
                         if start:
-                            start_ = "{}s".format(start)
+                            start_ = f"{start}s"
                         else:
                             start_ = "start of measurement"
                         if stop:
-                            stop_ = "{}s".format(stop)
+                            stop_ = f"{stop}s"
                         else:
                             stop_ = "end of measurement"
                         out.append(
                             sigs,
-                            "Cut from {} to {}".format(start_, stop_),
+                            f"Cut from {start_} to {stop_}",
                             common_timebase=True,
                         )
                     else:
@@ -874,16 +874,16 @@ class MDF(object):
                     sigs.append(sig)
 
                 if start:
-                    start_ = "{}s".format(start)
+                    start_ = f"{start}s"
                 else:
                     start_ = "start of measurement"
                 if stop:
-                    stop_ = "{}s".format(stop)
+                    stop_ = f"{stop}s"
                 else:
                     stop_ = "end of measurement"
                 out.append(
                     sigs,
-                    "Cut from {} to {}".format(start_, stop_),
+                    f"Cut from {start_} to {stop_}",
                     common_timebase=True,
                 )
 
@@ -1137,7 +1137,7 @@ class MDF(object):
                     for i, grp in enumerate(self.groups):
                         if self._terminate:
                             return
-                        group_name = r"/" + "DataGroup_{}".format(i + 1)
+                        group_name = r"/" + f"DataGroup_{i+1}"
                         group = hdf.create_group(group_name)
 
                         master_index = self.masters_db.get(i, -1)
@@ -1165,7 +1165,7 @@ class MDF(object):
             if single_time_base:
                 if not name.endswith(".xlsx"):
                     name += ".xlsx"
-                message = 'Writing excel export to file "{}"'.format(name)
+                message = f'Writing excel export to file "{name}"'
                 logger.info(message)
 
                 workbook = xlsxwriter.Workbook(name)
@@ -1175,7 +1175,7 @@ class MDF(object):
                     if self._terminate:
                         return
                     samples = mdict[channel_name]
-                    sig_description = "{} [{}]".format(channel_name, channel_unit)
+                    sig_description = f"{channel_name} [{channel_unit}]"
                     sheet.write(0, col, sig_description)
                     try:
                         sheet.write_column(1, col, samples.astype(str))
@@ -1194,7 +1194,7 @@ class MDF(object):
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
                         return
-                    message = "Exporting group {} of {}".format(i + 1, count)
+                    message = f"Exporting group {i+1} of {count}"
                     logger.info(message)
 
                     data = self._load_data(grp)
@@ -1220,15 +1220,15 @@ class MDF(object):
                     if time_from_zero:
                         master.samples -= master.samples[0]
 
-                    group_name = "DataGroup_{}".format(i + 1)
-                    wb_name = "{}_{}.xlsx".format(name, group_name)
+                    group_name = f"DataGroup_{i+1}"
+                    wb_name = f"{name}_{group_name}.xlsx"
                     workbook = xlsxwriter.Workbook(wb_name)
 
                     sheet = workbook.add_worksheet(group_name)
 
                     if master is not None:
 
-                        sig_description = "{} [{}]".format(master.name, master.unit)
+                        sig_description = f"{master.name} [{master.unit}]"
                         sheet.write(0, 0, sig_description)
                         sheet.write_column(1, 0, master.samples.astype(str))
 
@@ -1247,7 +1247,7 @@ class MDF(object):
                         if raster_ is not None:
                             sig = sig.interp(raster_)
 
-                        sig_description = "{} [{}]".format(sig.name, sig.unit)
+                        sig_description = f"{sig.name} [{sig.unit}]"
                         sheet.write(0, col + offset, sig_description)
 
                         try:
@@ -1263,13 +1263,13 @@ class MDF(object):
             if single_time_base:
                 if not name.endswith(".csv"):
                     name += ".csv"
-                message = 'Writing csv export to file "{}"'.format(name)
+                message = f'Writing csv export to file "{name}"'
                 logger.info(message)
                 with open(name, "w", newline="") as csvfile:
                     writer = csv.writer(csvfile)
 
                     names_row = [
-                        "{} [{}]".format(channel_name, channel_unit)
+                        f"{channel_name} [{channel_unit}]"
                         for (channel_name, channel_unit) in units.items()
                     ]
                     writer.writerow(names_row)
@@ -1291,15 +1291,15 @@ class MDF(object):
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
                         return
-                    message = "Exporting group {} of {}".format(i + 1, count)
+                    message = f"Exporting group {i+1} of {count}"
                     logger.info(message)
                     data = self._load_data(grp)
 
                     data = b"".join(d[0] for d in data)
                     data = (data, 0, None)
 
-                    group_name = "DataGroup_{}".format(i + 1)
-                    group_csv_name = "{}_{}.csv".format(name, group_name)
+                    group_name = f"DataGroup_{i+1}"
+                    group_csv_name = f"{name}_{group_name}.csv"
                     with open(group_csv_name, "w") as csvfile:
                         writer = csv.writer(csvfile)
 
@@ -1365,7 +1365,7 @@ class MDF(object):
                             names_row = []
                             vals = []
                         names_row += [
-                            "{} [{}]".format(ch.name, ch.unit) for ch in channels
+                            f"{ch.name} [{ch.unit}]" for ch in channels
                         ]
                         writer.writerow(names_row)
 
@@ -1662,7 +1662,7 @@ class MDF(object):
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
 
-                    source_info = "Signals filtered from <{}>".format(origin)
+                    source_info = f"Signals filtered from <{origin}>"
 
                     if sigs:
                         mdf.append(sigs, source_info, common_timebase=True)
@@ -1815,7 +1815,7 @@ class MDF(object):
                                 header = HeaderV4
                             else:
                                 raise MdfException(
-                                    '"{}" is not a valid MDF file'.format(file)
+                                    f'"{file}" is not a valid MDF file'
                                 )
 
                         header = header(address=64, stream=mdf)
@@ -1848,7 +1848,7 @@ class MDF(object):
                             header = HeaderV4
                         else:
                             raise MdfException(
-                                '"{}" is not a valid MDF file'.format(file)
+                                f'"{file}" is not a valid MDF file'
                             )
 
                     header = header(address=64, stream=mdf)
@@ -2051,15 +2051,14 @@ class MDF(object):
                 last_timestamps[i] = last_timestamp
                 if first_timestamp is not None:
                     merged.groups[-1]['channel_group'].comment += (
-                        "{}s to {}s concatenated from channel group {} of \"{}\" with first time stamp at {}s\n".format(
-                            first_timestamp, last_timestamp, i, os.path.basename(mdf.name), original_first_timestamp
+                            f"{first_timestamp}s to {last_timestamp}s "
+                            f"concatenated from channel group {i} of \"{os.path.basename(mdf.name)}\""
+                            f"with first time stamp at {original_first_timestamp}s\n"
                         )
                     )
                 else:
                     merged.groups[-1]['channel_group'].comment += (
-                        "there were no samples in channel group {} of \"{}\"\n".format(
-                            i, os.path.basename(mdf.name)
-                        )
+                        f"there were no samples in channel group {i} of \"{os.path.basename(mdf.name)}\"\n"
                     )
 
             if callback:
@@ -2149,7 +2148,7 @@ class MDF(object):
                                 header = HeaderV4
                             else:
                                 raise MdfException(
-                                    '"{}" is not a valid MDF file'.format(file)
+                                    f'"{file}" is not a valid MDF file'
                                 )
 
                         header = header(address=64, stream=mdf)
@@ -2274,9 +2273,7 @@ class MDF(object):
                     del group["record"]
 
                 stacked.groups[-1]['channel_group'].comment = (
-                    "stacked from channel group {} of \"{}\"".format(
-                        i, os.path.basename(mdf.name)
-                    )
+                    f"stacked from channel group {i} of \"{os.path.basename(mdf.name)}\""
                 )
 
             if callback:
@@ -2404,7 +2401,7 @@ class MDF(object):
                     if sigs:
                         mdf.append(
                             sigs,
-                            "Resampled to {}s".format(raster),
+                            f"Resampled to {raster}s",
                             common_timebase=True,
                         )
                     else:
