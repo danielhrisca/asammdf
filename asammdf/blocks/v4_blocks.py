@@ -375,15 +375,12 @@ class Channel(dict):
 
     """
 
-    __slots__ = 'name', 'unit', 'comment', 'display_name', 'conversion', 'source', 'attachments', 'address', 'dtype_fmt'
+    __slots__ = (
+                'name', 'unit', 'comment', 'display_name', 'conversion',
+                'source', 'attachments', 'address', 'dtype_fmt')
 
     def __init__(self, **kwargs):
         super().__init__()
-
-        self.name = self.unit = self.comment = self.display_name = ""
-        self.conversion = self.source = None
-        self.attachments = None
-        self.dtype_fmt = None
 
         if "stream" in kwargs:
 
@@ -497,59 +494,63 @@ class Channel(dict):
                 logger.exception(message)
                 raise MdfException(message)
 
-            if kwargs.get("load_metadata", True):
+            self.name = get_text_v4(self["name_addr"], stream)
+            self.unit = get_text_v4(self["unit_addr"], stream)
 
-                self.name = get_text_v4(self["name_addr"], stream)
-                self.unit = get_text_v4(self["unit_addr"], stream)
+            self.comment = get_text_v4(
+                address=self["comment_addr"],
+                stream=stream,
+            )
 
-                self.comment = comment = get_text_v4(
-                    address=self["comment_addr"],
-                    stream=stream,
-                )
+            if kwargs.get("use_display_names", True):
+                try:
+                    display_name = ET.fromstring(sanitize_xml(self.comment)).find(".//names/display")
+                    if display_name is not None:
+                        self.display_name = display_name.text
+                except:
+                    self.display_name = ""
+            else:
+                self.display_name = ""
 
-                if kwargs.get("use_display_names", True) and comment.startswith(
-                    "<CNcomment"
-                ):
-                    try:
-                        display_name = ET.fromstring(sanitize_xml(comment)).find(".//names/display")
-                        if display_name is not None:
-                            self.display_name = display_name.text
-                    except UnicodeEncodeError:
-                        pass
+            si_map = kwargs.get("si_map", {})
+            cc_map = kwargs.get("cc_map", {})
 
-                si_map = kwargs.get("si_map", {})
-                cc_map = kwargs.get("cc_map", {})
+            address = self["conversion_addr"]
+            if address:
+                stream.seek(address + 8)
+                (size,) = UINT64_u(stream.read(8))
+                stream.seek(address)
+                raw_bytes = stream.read(size)
+                if raw_bytes in cc_map:
+                    conv = cc_map[raw_bytes]
+                else:
+                    conv = ChannelConversion(
+                       raw_bytes=raw_bytes, stream=stream, address=address
+                    )
+                    cc_map[raw_bytes] = conv
+                self.conversion = conv
+            else:
+                self.conversion = None
 
-                address = self["conversion_addr"]
-                if address:
-                    stream.seek(address + 8)
-                    (size,) = UINT64_u(stream.read(8))
-                    stream.seek(address)
-                    raw_bytes = stream.read(size)
-                    if raw_bytes in cc_map:
-                        conv = cc_map[raw_bytes]
-                    else:
-                        conv = ChannelConversion(
-                            raw_bytes=raw_bytes, stream=stream, address=address
-                        )
-                        cc_map[raw_bytes] = conv
-                    self.conversion = conv
-
-                address = self["source_addr"]
-                if address:
-                    stream.seek(address)
-                    raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
-                    if raw_bytes in si_map:
-                        source = si_map[raw_bytes]
-                    else:
-                        source = SourceInformation(
-                            raw_bytes=raw_bytes, stream=stream, address=address
-                        )
-                        si_map[raw_bytes] = source
-                    self.source = source
-
+            address = self["source_addr"]
+            if address:
+                stream.seek(address)
+                raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                if raw_bytes in si_map:
+                    source = si_map[raw_bytes]
+                else:
+                    source = SourceInformation(
+                        raw_bytes=raw_bytes, stream=stream, address=address
+                    )
+                    si_map[raw_bytes] = source
+                self.source = source
+            else:
+                self.source = None
+            self.dtype_fmt = self.attachments = None
         else:
             self.address = 0
+            self.name = self.comment = self.display_name = self.unit = ""
+            self.conversion = self.source = self.attachments = self.dtype_fmt = None
 
             self["id"] = b"##CN"
             self["reserved0"] = 0
@@ -838,7 +839,7 @@ class ChannelArrayBlock(dict):
             ) = unpack("<4sI2Q", stream.read(24))
 
             nr = self["links_nr"]
-            links = unpack("<{}Q".format(nr), stream.read(8 * nr))
+            links = unpack(f"<{nr}Q", stream.read(8 * nr))
             self["composition_addr"] = links[0]
 
             values = unpack("<2BHIiI", stream.read(16))
@@ -850,17 +851,17 @@ class ChannelArrayBlock(dict):
             # lookup table with fixed axis
             elif nr == dims_nr + 1:
                 for i in range(dims_nr):
-                    self["axis_conversion_{}".format(i)] = links[i + 1]
+                    self[f"axis_conversion_{i}"] = links[i + 1]
 
             # lookup table with CN template
             elif nr == 4 * dims_nr + 1:
                 for i in range(dims_nr):
-                    self["axis_conversion_{}".format(i)] = links[i + 1]
+                    self[f"axis_conversion_{i}"] = links[i + 1]
                 links = links[dims_nr + 1 :]
                 for i in range(dims_nr):
-                    self["scale_axis_{}_dg_addr".format(i)] = links[3 * i]
-                    self["scale_axis_{}_cg_addr".format(i)] = links[3 * i + 1]
-                    self["scale_axis_{}_ch_addr".format(i)] = links[3 * i + 2]
+                    self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
+                    self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
+                    self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
 
             (
                 self["ca_type"],
@@ -871,15 +872,15 @@ class ChannelArrayBlock(dict):
                 self["invalidation_bit_base"],
             ) = values
 
-            dim_sizes = unpack("<{}Q".format(dims_nr), stream.read(8 * dims_nr))
+            dim_sizes = unpack(f"<{dims_nr}Q", stream.read(8 * dims_nr))
             for i, size in enumerate(dim_sizes):
-                self["dim_size_{}".format(i)] = size
+                self[f"dim_size_{i}"] = size
 
             if self["flags"] & v4c.FLAG_CA_FIXED_AXIS:
                 for i in range(dims_nr):
-                    for j in range(self["dim_size_{}".format(i)]):
+                    for j in range(self[f"dim_size_{i}"]):
                         (value, ) = FLOAT64_u(stream.read(8))
-                        self["axis_{}_value_{}".format(i, j)] = value
+                        self[f"axis_{i}_value_{j}"] = value
 
             if self["id"] != b"##CA":
                 message = f'Expected "##CA" block @{hex(address)} but found "{self["id"]}"'
@@ -905,7 +906,7 @@ class ChannelArrayBlock(dict):
                 self["byte_offset_base"] = kwargs.get("byte_offset_base", 1)
                 self["invalidation_bit_base"] = kwargs.get("invalidation_bit_base", 0)
                 for i in range(dims_nr):
-                    self["dim_size_{}".format(i)] = kwargs["dim_size_{}".format(i)]
+                    self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]
             elif ca_type == v4c.CA_TYPE_SCALE_AXIS:
                 self["block_len"] = 56
                 self["links_nr"] = 1
@@ -920,13 +921,13 @@ class ChannelArrayBlock(dict):
             elif ca_type == v4c.CA_TYPE_LOOKUP:
                 flags = kwargs["flags"]
                 dims_nr = kwargs["dims"]
-                values = sum(kwargs["dim_size_{}".format(i)] for i in range(dims_nr))
+                values = sum(kwargs[f"dim_size_{i}"] for i in range(dims_nr))
                 if flags & v4c.FLAG_CA_FIXED_AXIS:
                     self["block_len"] = 48 + dims_nr * 16 + values * 8
                     self["links_nr"] = 1 + dims_nr
                     self["composition_addr"] = 0
                     for i in range(dims_nr):
-                        self["axis_conversion_{}".format(i)] = 0
+                        self[f"axis_conversion_{i}"] = 0
                     self["ca_type"] = v4c.CA_TYPE_LOOKUP
                     self["storage"] = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
                     self["dims"] = dims_nr
@@ -936,22 +937,20 @@ class ChannelArrayBlock(dict):
                         "invalidation_bit_base", 0
                     )
                     for i in range(dims_nr):
-                        self["dim_size_{}".format(i)] = kwargs["dim_size_{}".format(i)]
+                        self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]
                     for i in range(dims_nr):
-                        for j in range(self["dim_size_{}".format(i)]):
-                            self["axis_{}_value_{}".format(i, j)] = kwargs.get(
-                                "axis_{}_value_{}".format(i, j), j
-                            )
+                        for j in range(self[f"dim_size_{i}"]):
+                            self[f"axis_{i}_value_{j}"] = kwargs.get(f"axis_{i}_value_{j}", j)
                 else:
                     self["block_len"] = 48 + dims_nr * 5 * 8
                     self["links_nr"] = 1 + dims_nr * 4
                     self["composition_addr"] = 0
                     for i in range(dims_nr):
-                        self["axis_conversion_{}".format(i)] = 0
+                        self[f"axis_conversion_{i}"] = 0
                     for i in range(dims_nr):
-                        self["scale_axis_{}_dg_addr".format(i)] = 0
-                        self["scale_axis_{}_cg_addr".format(i)] = 0
-                        self["scale_axis_{}_ch_addr".format(i)] = 0
+                        self[f"scale_axis_{i}_dg_addr"] = 0
+                        self[f"scale_axis_{i}_cg_addr"] = 0
+                        self[f"scale_axis_{i}_ch_addr"] = 0
                     self["ca_type"] = v4c.CA_TYPE_LOOKUP
                     self["storage"] = v4c.CA_STORAGE_TYPE_CN_TEMPLATE
                     self["dims"] = dims_nr
@@ -961,7 +960,7 @@ class ChannelArrayBlock(dict):
                         "invalidation_bit_base", 0
                     )
                     for i in range(dims_nr):
-                        self["dim_size_{}".format(i)] = kwargs["dim_size_{}".format(i)]
+                        self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]
 
     def __repr__(self):
         return "<ChannelArrayBlock (referenced channels: {}, address: {}, fields: {})>".format(
@@ -987,8 +986,8 @@ class ChannelArrayBlock(dict):
                 "byte_offset_base",
                 "invalidation_bit_base",
             )
-            keys += tuple("dim_size_{}".format(i) for i in range(dims_nr))
-            fmt = "<4sI3Q2BHIiI{}Q".format(dims_nr)
+            keys += tuple(f"dim_size_{i}" for i in range(dims_nr))
+            fmt = f"<4sI3Q2BHIiI{dims_nr}Q"
         elif ca_type == v4c.CA_TYPE_SCALE_AXIS:
             keys = (
                 "id",
@@ -1008,9 +1007,9 @@ class ChannelArrayBlock(dict):
             fmt = "<4sI3Q2BHIiIQ"
         elif ca_type == v4c.CA_TYPE_LOOKUP:
             if flags & v4c.FLAG_CA_FIXED_AXIS:
-                nr = sum(self["dim_size_{}".format(i)] for i in range(dims_nr))
+                nr = sum(self[f"dim_size_{i}"] for i in range(dims_nr))
                 keys = ("id", "reserved0", "block_len", "links_nr", "composition_addr")
-                keys += tuple("axis_conversion_{}".format(i) for i in range(dims_nr))
+                keys += tuple(f"axis_conversion_{i}" for i in range(dims_nr))
                 keys += (
                     "ca_type",
                     "storage",
@@ -1019,22 +1018,22 @@ class ChannelArrayBlock(dict):
                     "byte_offset_base",
                     "invalidation_bit_base",
                 )
-                keys += tuple("dim_size_{}".format(i) for i in range(dims_nr))
+                keys += tuple(f"dim_size_{i}" for i in range(dims_nr))
                 keys += tuple(
-                    "axis_{}_value_{}".format(i, j)
+                    f"axis_{i}_value_{j}"
                     for i in range(dims_nr)
-                    for j in range(self["dim_size_{}".format(i)])
+                    for j in range(self[f"dim_size_{i}"])
                 )
                 fmt = "<4sI{}Q2BHIiI{}Q{}d"
                 fmt = fmt.format(self["links_nr"] + 2, dims_nr, nr)
             else:
                 keys = ("id", "reserved0", "block_len", "links_nr", "composition_addr")
-                keys += tuple("axis_conversion_{}".format(i) for i in range(dims_nr))
+                keys += tuple(f"axis_conversion_{i}" for i in range(dims_nr))
                 for i in range(dims_nr):
                     keys += (
-                        "scale_axis_{}_dg_addr".format(i),
-                        "scale_axis_{}_cg_addr".format(i),
-                        "scale_axis_{}_ch_addr".format(i),
+                        f"scale_axis_{i}_dg_addr",
+                        f"scale_axis_{i}_cg_addr",
+                        f"scale_axis_{i}_ch_addr",
                     )
                 keys += (
                     "ca_type",
@@ -1044,7 +1043,7 @@ class ChannelArrayBlock(dict):
                     "byte_offset_base",
                     "invalidation_bit_base",
                 )
-                keys += tuple("dim_size_{}".format(i) for i in range(dims_nr))
+                keys += tuple(f"dim_size_{i}" for i in range(dims_nr))
                 fmt = "<4sI{}Q2BHIiI{}Q".format(self["links_nr"] + 2, dims_nr)
 
         result = pack(fmt, *[self[key] for key in keys])
@@ -1370,7 +1369,7 @@ class ChannelConversion(dict):
                     self["val_param_nr"],
                     self["min_phy_value"],
                     self["max_phy_value"],
-                ) = unpack(v4c.FMT_CONVERSION_NONE_INIT, block)
+                ) = v4c.CONVERSION_NONE_INIT_u(block)
 
             elif conv == v4c.CONVERSION_TYPE_LIN:
                 (
@@ -1387,7 +1386,7 @@ class ChannelConversion(dict):
                     self["max_phy_value"],
                     self["b"],
                     self["a"],
-                ) = unpack(v4c.FMT_CONVERSION_LINEAR_INIT, block)
+                ) = v4c.CONVERSION_LINEAR_INIT_u(block)
 
             elif conv == v4c.CONVERSION_TYPE_RAT:
                 (
@@ -2944,7 +2943,7 @@ class EventBlock(dict):
 
             links_nr = self["links_nr"]
 
-            links = unpack_from("<{}Q".format(links_nr), block)
+            links = unpack_from(f"<{links_nr}Q", block)
             params = unpack_from(v4c.FMT_EVENT_PARAMS, block, links_nr * 8)
 
             (
@@ -2957,11 +2956,11 @@ class EventBlock(dict):
 
             scope_nr = params[6]
             for i in range(scope_nr):
-                self["scope_{}_addr".format(i)] = links[5 + i]
+                self[f"scope_{i}_addr"] = links[5 + i]
 
             attachment_nr = params[7]
             for i in range(attachment_nr):
-                self["attachment_{}_addr".format(i)] = links[5 + scope_nr + i]
+                self[f"attachment_{i}_addr"] = links[5 + scope_nr + i]
 
             (
                 self["event_type"],
@@ -2990,7 +2989,7 @@ class EventBlock(dict):
             self.address = 0
 
             scopes = 0
-            while "scope_{}_addr".format(scopes) in kwargs:
+            while f"scope_{scopes}_addr" in kwargs:
                 scopes += 1
 
             self["id"] = b"##EV"
@@ -3004,7 +3003,7 @@ class EventBlock(dict):
             self["comment_addr"] = kwargs.get("comment_addr", 0)
 
             for i in range(scopes):
-                self["scope_{}_addr".format(i)] = kwargs["scope_{}_addr".format(i)]
+                self[f"scope_{i}_addr"] = kwargs[f"scope_{i}_addr"]
 
             self["event_type"] = kwargs.get("event_type", v4c.EVENT_TYPE_TRIGGER)
             self["sync_type"] = kwargs.get("sync_type", v4c.EVENT_SYNC_TYPE_S)
@@ -3019,9 +3018,9 @@ class EventBlock(dict):
             self["sync_factor"] = kwargs.get("sync_factor", 1.0)
 
     def update_references(self, ch_map, cg_map):
-        self.scopes[:] = []
+        self.scopes.clear()
         for i in range(self["scope_nr"]):
-            addr = self["scope_{}_addr".format(i)]
+            addr = self[f"scope_{i}_addr"]
             if addr in ch_map:
                 self.scopes.append(ch_map[addr])
             elif addr in cg_map:
@@ -3051,10 +3050,14 @@ class EventBlock(dict):
             "comment_addr",
         )
 
-        keys += tuple("scope_{}_addr".format(i) for i in range(self["scope_nr"]))
+        keys += tuple(
+            f"scope_{i}_addr"
+            for i in range(self["scope_nr"])
+        )
 
         keys += tuple(
-            "attachment_{}_addr".format(i) for i in range(self["attachment_nr"])
+            f"attachment_{i}_addr"
+            for i in range(self["attachment_nr"])
         )
 
         keys += (

@@ -737,6 +737,8 @@ class MDF4(object):
         event_index = 0
         while addr:
             event = EventBlock(address=addr, stream=stream)
+            print(self.name)
+            print(event)
             event.update_references(self._ch_map, self._cg_map)
             self.events.append(event)
             ev_map[addr] = event_index
