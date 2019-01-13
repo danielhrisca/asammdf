@@ -114,7 +114,7 @@ class AttachmentBlock(dict):
     __slots__ = 'address', 'file_name', 'mime', 'comment'
 
     def __init__(self, **kwargs):
-        super(AttachmentBlock, self).__init__()
+        super().__init__()
 
         self.file_name = self.mime = self.comment = ""
 
@@ -378,7 +378,7 @@ class Channel(dict):
     __slots__ = 'name', 'unit', 'comment', 'display_name', 'conversion', 'source', 'attachments', 'address', 'dtype_fmt'
 
     def __init__(self, **kwargs):
-        super(Channel, self).__init__()
+        super().__init__()
 
         self.name = self.unit = self.comment = self.display_name = ""
         self.conversion = self.source = None
@@ -821,7 +821,7 @@ class ChannelArrayBlock(dict):
     __slots__ = 'address', 'referenced_channels'
 
     def __init__(self, **kwargs):
-        super(ChannelArrayBlock, self).__init__()
+        super().__init__()
 
         self.referenced_channels = []
 
@@ -1097,7 +1097,7 @@ class ChannelGroup(dict):
     __slots__ = 'address', 'acq_name', 'acq_source', 'comment', 'name'
 
     def __init__(self, **kwargs):
-        super(ChannelGroup, self).__init__()
+        super().__init__()
 
         self.acq_name = self.comment = ""
         self.acq_source = None
@@ -1322,7 +1322,7 @@ class ChannelConversion(dict):
     __slots__ = 'name', 'unit', 'comment', 'formula', 'referenced_blocks', 'address'
 
     def __init__(self, **kwargs):
-        super(ChannelConversion, self).__init__()
+        super().__init__()
 
         self.name = self.unit = self.comment = self.formula = ""
         self.referenced_blocks = None
@@ -2441,7 +2441,7 @@ class DataBlock(dict):
     __slots__ = 'address',
 
     def __init__(self, **kwargs):
-        super(DataBlock, self).__init__()
+        super().__init__()
 
         try:
             self.address = address = kwargs["address"]
@@ -2515,7 +2515,7 @@ class DataZippedBlock(dict):
     __slots__ = 'address',
 
     def __init__(self, **kwargs):
-        super(DataZippedBlock, self).__init__()
+        super().__init__()
 
         self._prevent_data_setitem = True
         try:
@@ -2603,14 +2603,14 @@ class DataZippedBlock(dict):
             zipped_size = len(data)
             self["zip_size"] = zipped_size
             self["block_len"] = zipped_size + v4c.DZ_COMMON_SIZE
-            super(DataZippedBlock, self).__setitem__(item, data)
+            super().__setitem__(item, data)
         else:
-            super(DataZippedBlock, self).__setitem__(item, value)
+            super().__setitem__(item, value)
 
     def __getitem__(self, item):
         if item == "data":
             if self.return_unzipped:
-                data = super(DataZippedBlock, self).__getitem__(item)
+                data = super().__getitem__(item)
                 original_size = self["original_size"]
                 data = decompress(data, 0, original_size)
                 if self["zip_type"] == v4c.FLAG_DZ_TRANPOSED_DEFLATE:
@@ -2632,10 +2632,10 @@ class DataZippedBlock(dict):
                             .tostring()
                         )
             else:
-                data = super(DataZippedBlock, self).__getitem__(item)
+                data = super().__getitem__(item)
             value = data
         else:
-            value = super(DataZippedBlock, self).__getitem__(item)
+            value = super().__getitem__(item)
         return value
 
     def __bytes__(self):
@@ -2679,7 +2679,7 @@ class DataGroup(dict):
     __slots__ = 'address', 'comment'
 
     def __init__(self, **kwargs):
-        super(DataGroup, self).__init__()
+        super().__init__()
 
         self.comment = ""
 
@@ -2784,7 +2784,7 @@ class DataList(dict):
     __slots__ = 'address',
 
     def __init__(self, **kwargs):
-        super(DataList, self).__init__()
+        super().__init__()
 
         try:
             self.address = address = kwargs["address"]
@@ -2920,7 +2920,7 @@ class EventBlock(dict):
     __slots__ = 'address', 'comment', 'name', 'parent', 'range_start', 'scopes'
 
     def __init__(self, **kwargs):
-        super(EventBlock, self).__init__()
+        super().__init__()
 
         self.name = self.comment = ""
         self.scopes = []
@@ -3080,7 +3080,7 @@ class EventBlock(dict):
             self.comment,
             hex(self.address),
             self.scopes,
-            super(EventBlock, self).__str__(),
+            super().__str__(),
         )
 
 
@@ -3109,7 +3109,7 @@ class FileIdentificationBlock(dict):
 
     def __init__(self, **kwargs):
 
-        super(FileIdentificationBlock, self).__init__()
+        super().__init__()
 
         self.address = 0
 
@@ -3183,7 +3183,7 @@ class FileHistory(dict):
     __slots__ = 'address',  'comment'
 
     def __init__(self, **kwargs):
-        super(FileHistory, self).__init__()
+        super().__init__()
 
         self.comment = ""
 
@@ -3305,7 +3305,7 @@ class HeaderBlock(dict):
     """
 
     def __init__(self, **kwargs):
-        super(HeaderBlock, self).__init__()
+        super().__init__()
 
         self.comment = ""
 
@@ -3527,7 +3527,7 @@ class HeaderList(dict):
     __slots__ = 'address',
 
     def __init__(self, **kwargs):
-        super(HeaderList, self).__init__()
+        super().__init__()
 
         try:
             self.address = address = kwargs["address"]
@@ -3602,7 +3602,7 @@ class SourceInformation(dict):
     __slots__ = 'address', 'comment', 'name', 'path'
 
     def __init__(self, **kwargs):
-        super(SourceInformation, self).__init__()
+        super().__init__()
 
         self.name = self.path = self.comment = ""
 
@@ -3797,7 +3797,7 @@ class TextBlock(dict):
     __slots__ = 'address',
 
     def __init__(self, **kwargs):
-        super(TextBlock, self).__init__()
+        super().__init__()
 
         if "stream" in kwargs:
             stream = kwargs["stream"]
@@ -3887,7 +3887,7 @@ class SampleReductionBlock(dict):
     """
 
     def __init__(self, **kwargs):
-        super(SampleReductionBlock, self).__init__()
+        super().__init__()
 
         try:
             self.address = address = kwargs["address"]

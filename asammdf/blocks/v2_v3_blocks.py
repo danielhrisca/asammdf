@@ -137,7 +137,7 @@ class Channel(dict):
     """
 
     def __init__(self, **kwargs):
-        super(Channel, self).__init__()
+        super().__init__()
 
         self.name = self.display_name = self.comment = ""
         self.conversion = self.source = None
@@ -551,7 +551,7 @@ class ChannelConversion(dict):
     """
 
     def __init__(self, **kwargs):
-        super(ChannelConversion, self).__init__()
+        super().__init__()
 
         self.unit = self.formula = ""
 
@@ -1227,7 +1227,7 @@ address: {}
         return "ChannelConversion (referneced blocks: {}, address: {}, fields: {})".format(
             self.referenced_blocks,
             hex(self.address),
-            super(ChannelConversion, self).__str__(),
+            super().__str__(),
         )
 
 
@@ -1268,7 +1268,7 @@ class ChannelDependency(dict):
     """
 
     def __init__(self, **kwargs):
-        super(ChannelDependency, self).__init__()
+        super().__init__()
 
         self.referenced_channels = []
 
@@ -1391,7 +1391,7 @@ class ChannelExtension(dict):
     """
 
     def __init__(self, **kwargs):
-        super(ChannelExtension, self).__init__()
+        super().__init__()
 
         self.name = self.path = self.comment = ""
 
@@ -1565,7 +1565,7 @@ address: {}
             self.path,
             self.comment,
             hex(self.address),
-            super(ChannelExtension, self).__str__(),
+            super().__str__(),
         )
 
 
@@ -1619,7 +1619,7 @@ class ChannelGroup(dict):
     """
 
     def __init__(self, **kwargs):
-        super(ChannelGroup, self).__init__()
+        super().__init__()
         self.comment = ""
 
         try:
@@ -1720,7 +1720,7 @@ class DataBlock(dict):
     """
 
     def __init__(self, **kwargs):
-        super(DataBlock, self).__init__()
+        super().__init__()
 
         try:
             stream = kwargs["stream"]
@@ -1770,7 +1770,7 @@ class DataGroup(dict):
     """
 
     def __init__(self, **kwargs):
-        super(DataGroup, self).__init__()
+        super().__init__()
 
         try:
             stream = kwargs["stream"]
@@ -1854,7 +1854,7 @@ class FileIdentificationBlock(dict):
     """
 
     def __init__(self, **kwargs):
-        super(FileIdentificationBlock, self).__init__()
+        super().__init__()
 
         self.address = 0
         try:
@@ -1952,7 +1952,7 @@ class HeaderBlock(dict):
     """
 
     def __init__(self, **kwargs):
-        super(HeaderBlock, self).__init__()
+        super().__init__()
 
         self.address = 64
         self.program = None
@@ -2138,7 +2138,7 @@ class ProgramBlock(dict):
     """
 
     def __init__(self, **kwargs):
-        super(ProgramBlock, self).__init__()
+        super().__init__()
 
         try:
             stream = kwargs["stream"]
@@ -2194,7 +2194,7 @@ class SampleReduction(dict):
     """
 
     def __init__(self, **kwargs):
-        super(SampleReduction, self).__init__()
+        super().__init__()
 
         try:
             stream = kwargs["stream"]
@@ -2261,7 +2261,7 @@ class TextBlock(dict):
     """
 
     def __init__(self, **kwargs):
-        super(TextBlock, self).__init__()
+        super().__init__()
         try:
 
             stream = kwargs["stream"]
@@ -2331,7 +2331,7 @@ class TriggerBlock(dict):
     """
 
     def __init__(self, **kwargs):
-        super(TriggerBlock, self).__init__()
+        super().__init__()
 
         self.comment = ""
 
