@@ -2071,33 +2071,6 @@ class MDF(object):
         return merged
 
     @staticmethod
-    def merge(files, version="4.10", sync=True, **kwargs):
-        """ concatenates several files. The files
-        must have the same internal structure (same number of groups, and same
-        channels in each group)
-
-        Parameters
-        ----------
-        files : list | tuple
-            list of *MDF* file names or *MDF* instances
-        version : str
-            merged file version
-        sync : bool
-            sync the files based on the start of measurement, default *True*
-
-        Returns
-        -------
-        concatenate : MDF
-            new *MDF* object with concatenated channels
-
-        Raises
-        ------
-        MdfException : if there are inconsistencies between the files
-
-        """
-        return MDF.concatenate(files, version, sync, **kwargs)
-
-    @staticmethod
     def stack(files, version="4.10", sync=True, **kwargs):
         """ stack several files and return the stacked *MDF* object
 

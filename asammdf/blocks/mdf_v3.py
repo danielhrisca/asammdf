@@ -827,6 +827,7 @@ class MDF3(object):
 
     def configure(
         self,
+        *,
         read_fragment_size=None,
         write_fragment_size=None,
         use_display_names=None,

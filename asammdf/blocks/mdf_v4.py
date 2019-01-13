@@ -1649,6 +1649,7 @@ class MDF4(object):
             "bit_offset": 0,
             "data_type": v4c.DATA_TYPE_BYTEARRAY,
             "precision": 255,
+            "flags": 0,
         }
         if attachment_addr:
             kargs["attachment_0_addr"] = attachment_addr
@@ -1734,6 +1735,7 @@ class MDF4(object):
                     "byte_offset": offset,
                     "bit_offset": 0,
                     "data_type": s_type,
+                    "flags": 0,
                 }
 
                 if attachment_addr:
@@ -2163,6 +2165,7 @@ class MDF4(object):
 
     def configure(
         self,
+        *,
         read_fragment_size=None,
         write_fragment_size=None,
         use_display_names=None,
@@ -2455,6 +2458,7 @@ class MDF4(object):
                     "bit_offset": 0,
                     "data_type": s_type,
                     "data_block_addr": data_block_addr,
+                    "flags": 0,
                 }
 
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
@@ -2559,6 +2563,7 @@ class MDF4(object):
                     "byte_offset": offset,
                     "bit_offset": 0,
                     "data_type": s_type,
+                    "flags": 0,
                 }
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
@@ -2692,6 +2697,7 @@ class MDF4(object):
                     "byte_offset": offset,
                     "bit_offset": 0,
                     "data_type": s_type,
+                    "flags": 0,
                 }
 
                 if invalidation_bytes_nr:
@@ -2769,6 +2775,7 @@ class MDF4(object):
                         "byte_offset": offset,
                         "bit_offset": 0,
                         "data_type": s_type,
+                        "flags": 0,
                     }
 
                     if invalidation_bytes_nr:
@@ -2851,6 +2858,7 @@ class MDF4(object):
                     "bit_offset": 0,
                     "data_type": data_type,
                     "data_block_addr": data_addr,
+                    "flags": 0,
                 }
 
                 if invalidation_bytes_nr:
