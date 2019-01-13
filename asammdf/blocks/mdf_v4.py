@@ -737,8 +737,6 @@ class MDF4(object):
         event_index = 0
         while addr:
             event = EventBlock(address=addr, stream=stream)
-            print(self.name)
-            print(event)
             event.update_references(self._ch_map, self._cg_map)
             self.events.append(event)
             ev_map[addr] = event_index
@@ -5651,7 +5649,7 @@ class MDF4(object):
                             event[f"scope_{i}_addr"] = self.groups[dg_cntr]["channels"][ch_cntr].address
                         except TypeError:
                             dg_cntr = ref
-                            event["scope_{i}_addr"] = self.groups[dg_cntr]["channel_group"].address
+                            event[f"scope_{i}_addr"] = self.groups[dg_cntr]["channel_group"].address
                     for i in range(event["attachment_nr"]):
                         key = f"attachment_{i}_addr"
                         addr = event[key]
