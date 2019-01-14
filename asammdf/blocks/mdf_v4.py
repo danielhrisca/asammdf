@@ -5,7 +5,6 @@ ASAM MDF version 4 file format module
 import logging
 import xml.etree.ElementTree as ET
 import os
-import sys
 from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
@@ -220,6 +219,7 @@ class MDF4(object):
         self._write_fragment_size = 4 * 2 ** 20
         self._use_display_names = kwargs.get("use_display_names", False)
         self._single_bit_uint_as_bool = False
+        self._integer_interpolation = 0
 
         # make sure no appended block has the address 0
         self._tempfile.write(b"\0")
@@ -2174,9 +2174,9 @@ class MDF4(object):
         write_fragment_size=None,
         use_display_names=None,
         single_bit_uint_as_bool=None,
+        integer_interpolation=None,
     ):
-        """ configure read and write fragment size for chuncked
-        data access
+        """ configure MDF parameters
 
         Parameters
         ----------
@@ -2189,6 +2189,15 @@ class MDF4(object):
             smaller, then no data list is used. The actual split size depends on
             the data groups' records size. Maximum size is 4MB to ensure
             compatibility with CANape
+        use_display_names : bool
+            search for display name in the Channel XML comment
+        single_bit_uint_as_bool : bool
+            return single bit channels are np.bool arrays
+        integer_interpolation : int
+            interpolation mode for integer channels:
+
+                * 0 - repeat previous sample
+                * 1 - use linear interpolation
 
         """
 
@@ -2203,6 +2212,9 @@ class MDF4(object):
 
         if single_bit_uint_as_bool is not None:
             self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
+
+        if integer_interpolation in (0, 1):
+            self._integer_interpolation = int(integer_interpolation)
 
     def append(self, signals, source_info="Python", common_timebase=False, units=None):
         """
@@ -2261,6 +2273,8 @@ class MDF4(object):
             self._append_dataframe(signals, source_info, units=units)
             return
 
+        interp_mode = self._integer_interpolation
+
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
         if signals:
@@ -2276,7 +2290,7 @@ class MDF4(object):
                 if different:
                     times = [s.timestamps for s in signals]
                     t = reduce(union1d, times).flatten().astype(float64)
-                    signals = [s.interp(t) for s in signals]
+                    signals = [s.interp(t, mode=interp_mode) for s in signals]
                     times = None
                 else:
                     t = t_
@@ -3540,8 +3554,8 @@ class MDF4(object):
 
         Returns
         -------
-        data : bytes | str
-            attachment data
+        data : (bytes, pathlib.Path)
+            tuple of attachment data and path
 
         """
         if address is None and index is None:
@@ -3551,10 +3565,10 @@ class MDF4(object):
             index = self._attachments_map[address]
         attachment = self.attachments[index]
 
-        current_path = os.getcwd()
-        file_path = attachment.file_name or "embedded"
+        current_path = Path.cwd()
+        file_path = Path(attachment.file_name or "embedded")
         try:
-            os.chdir(os.path.dirname(os.path.abspath(self.name)))
+            os.chdir(self.name.resolve().parent)
 
             flags = attachment["flags"]
 
@@ -3764,6 +3778,8 @@ class MDF4(object):
         else:
             stream = self._tempfile
 
+        interp_mode = self._integer_interpolation
+
         if ch_nr >= 0:
 
             # get the channel object
@@ -3899,7 +3915,7 @@ class MDF4(object):
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = Signal(vals, timestamps, name="_").interp(t, mode=interp_mode).samples
 
                     timestamps = t
 
@@ -4134,7 +4150,7 @@ class MDF4(object):
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = Signal(vals, timestamps, name="_").interp(t, mode=interp_mode).samples
 
                     timestamps = t
 
@@ -4212,7 +4228,7 @@ class MDF4(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = Signal(vals, timestamps, name="_").interp(t, mode=interp_mode).samples
 
                     timestamps = t
 
@@ -4347,7 +4363,7 @@ class MDF4(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = Signal(vals, timestamps, name="_").interp(t, mode=interp_mode).samples
 
                     timestamps = t
 

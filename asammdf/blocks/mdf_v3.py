@@ -160,6 +160,7 @@ class MDF3(object):
         self._read_fragment_size = 0
         self._write_fragment_size = 4 * 2 ** 20
         self._single_bit_uint_as_bool = False
+        self._integer_interpolation = 0
 
         self._callback = kwargs.get("callback", None)
 
@@ -834,20 +835,30 @@ class MDF3(object):
         write_fragment_size=None,
         use_display_names=None,
         single_bit_uint_as_bool=None,
+        integer_interpolation=None,
     ):
-        """ configure read and write fragment size for chuncked
-        data access
+        """ configure MDF parameters
 
         Parameters
         ----------
         read_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size
-            is smaller, then no data list is used. The actual split size
-            depends on the data groups' records size
+            size hint of split data blocks, default 8MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size
         write_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size
-            is smaller, then no data list is used. The actual split size
-            depends on the data groups' records size
+            size hint of split data blocks, default 4MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size. Maximum size is 4MB to ensure
+            compatibility with CANape
+        use_display_names : bool
+            search for display name in the Channel XML comment
+        single_bit_uint_as_bool : bool
+            return single bit channels are np.bool arrays
+        integer_interpolation : int
+            interpolation mode for integer channels:
+
+                * 0 - repeat previous sample
+                * 1 - use linear interpolation
 
         """
 
@@ -855,10 +866,16 @@ class MDF3(object):
             self._read_fragment_size = int(read_fragment_size)
 
         if write_fragment_size:
-            self._write_fragment_size = int(write_fragment_size)
+            self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
+
+        if use_display_names is not None:
+            self._use_display_names = bool(use_display_names)
 
         if single_bit_uint_as_bool is not None:
             self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
+
+        if integer_interpolation in (0, 1):
+            self._integer_interpolation = int(integer_interpolation)
 
     def add_trigger(self, group, timestamp, pre_time=0, post_time=0, comment=""):
         """ add trigger to data group
@@ -996,6 +1013,7 @@ class MDF3(object):
             return
 
         version = self.version
+        interp_mode = self._integer_interpolation
 
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
@@ -1012,7 +1030,7 @@ class MDF3(object):
                 if different:
                     times = [s.timestamps for s in signals]
                     timestamps = reduce(union1d, times).flatten().astype(float64)
-                    signals = [s.interp(timestamps) for s in signals]
+                    signals = [s.interp(timestamps, mode=interp_mode) for s in signals]
                     times = None
         else:
             timestamps = array([])
@@ -2635,7 +2653,7 @@ class MDF3(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = Signal(vals, timestamps, name="_").interp(t, mode=self._integer_interpolation).samples
 
                     timestamps = t
 
@@ -2745,7 +2763,7 @@ class MDF3(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = Signal(vals, timestamps, name="_").interp(t, mode=self._integer_interpolation).samples
 
                     timestamps = t
 

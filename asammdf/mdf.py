@@ -701,6 +701,8 @@ class MDF(object):
 
         cg_nr = -1
 
+        interp_mode = self._integer_interpolation
+
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
             included_channels = self._included_channels(i)
@@ -795,7 +797,7 @@ class MDF(object):
                             copy_master=False,
                         )
                         if needs_cutting:
-                            sig = sig.interp(cut_timebase)
+                            sig = sig.interp(cut_timebase, mode=interp_mode)
 
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
@@ -843,7 +845,7 @@ class MDF(object):
                                 master,
                                 name='_',
                                 invalidation_bits=sig[1],
-                            ).interp(cut_timebase)
+                            ).interp(cut_timebase, mode=interp_mode)
                             sig = (
                                 _sig.samples,
                                 _sig.invalidation_bits
@@ -1073,7 +1075,7 @@ class MDF(object):
                         group=i,
                         index=j,
                         data=data,
-                    ).interp(master)
+                    ).interp(master, self._integer_interpolation)
 
                     if len(sig.samples.shape) > 1:
                         arr = [sig.samples]
@@ -1252,7 +1254,7 @@ class MDF(object):
 
                         sig = self.get(group=i, index=col, data=data)
                         if raster_ is not None:
-                            sig = sig.interp(raster_)
+                            sig = sig.interp(raster_, self._integer_interpolation)
 
                         sig_description = f"{sig.name} [{sig.unit}]"
                         sheet.write(0, col + offset, sig_description)
@@ -1339,7 +1341,7 @@ class MDF(object):
                             if raster_ is not None:
                                 channels = [
                                     self.get(group=i, index=j, data=data).interp(
-                                        raster_
+                                        raster_, self._integer_interpolation
                                     )
                                     for j in range(ch_nr)
                                     if j != master_index
@@ -2566,7 +2568,10 @@ class MDF(object):
         if dataframe:
             times = [s.timestamps for s in signals]
             t = reduce(np.union1d, times).flatten().astype(np.float64)
-            signals = [s.interp(t) for s in signals]
+            signals = [
+                s.interp(t, mode=self._integer_interpolation)
+                for s in signals
+            ]
 
             pandas_dict = {"time": t}
             for sig in signals:
