@@ -11,7 +11,7 @@ from copy import deepcopy
 from functools import reduce
 from struct import unpack
 from shutil import copy
-from warnings import warn
+from pathlib import Path
 
 import numpy as np
 from numpy.core.defchararray import encode, decode
@@ -91,7 +91,8 @@ class MDF(object):
             if is_file_like(name):
                 file_stream = name
             else:
-                if os.path.isfile(name):
+                name = Path(name)
+                if name.is_file():
                     file_stream = open(name, "rb")
                 else:
                     raise MdfException(f'File "{name}" does not exist')
@@ -939,7 +940,7 @@ class MDF(object):
 
             * `parquet` : export to Apache parquet format
 
-        filename : string
+        filename : string | pathlib.Path
             export file name
 
         **kwargs
@@ -983,7 +984,7 @@ class MDF(object):
         format = kargs.get("format", "5")
         oned_as = kargs.get("oned_as", "row")
 
-        name = filename if filename else self.name
+        name = Path(filename) if filename else self.name
 
         if fmt == "parquet":
             try:
@@ -1099,13 +1100,12 @@ class MDF(object):
                             comments[channel_name] = sig.comment
 
         if fmt == "hdf5":
-            if not name.endswith(".hdf"):
-                name += ".hdf"
+            name = name.with_suffix(".hdf")
 
             if single_time_base:
                 with HDF5(name, "w") as hdf:
                     # header information
-                    group = hdf.create_group(os.path.basename(name))
+                    group = hdf.create_group(name.parent)
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
@@ -1132,7 +1132,7 @@ class MDF(object):
             else:
                 with HDF5(name, "w") as hdf:
                     # header information
-                    group = hdf.create_group(os.path.basename(name))
+                    group = hdf.create_group(name.parent)
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
@@ -1171,8 +1171,7 @@ class MDF(object):
         elif fmt == "excel":
 
             if single_time_base:
-                if not name.endswith(".xlsx"):
-                    name += ".xlsx"
+                name = name.with_suffix(".xlsx")
                 message = f'Writing excel export to file "{name}"'
                 logger.info(message)
 
@@ -1194,8 +1193,8 @@ class MDF(object):
                 workbook.close()
 
             else:
-                while name.endswith(".xlsx"):
-                    name = name[:-5]
+                while name.suffix == '.xlsx':
+                    name = name.stem
 
                 count = len(self.groups)
 
@@ -1229,7 +1228,7 @@ class MDF(object):
                         master.samples -= master.samples[0]
 
                     group_name = f"DataGroup_{i+1}"
-                    wb_name = f"{name}_{group_name}.xlsx"
+                    wb_name = Path(f"{name.stem}_{group_name}.xlsx")
                     workbook = xlsxwriter.Workbook(wb_name)
 
                     sheet = workbook.add_worksheet(group_name)
@@ -1269,8 +1268,7 @@ class MDF(object):
         elif fmt == "csv":
 
             if single_time_base:
-                if not name.endswith(".csv"):
-                    name += ".csv"
+                name = name.with_suffix(".csv")
                 message = f'Writing csv export to file "{name}"'
                 logger.info(message)
                 with open(name, "w", newline="") as csvfile:
@@ -1292,8 +1290,7 @@ class MDF(object):
 
             else:
 
-                while name.endswith(".csv"):
-                    name = name[:-4]
+                name = name.with_suffix(".csv")
 
                 count = len(self.groups)
                 for i, grp in enumerate(self.groups):
@@ -1307,7 +1304,7 @@ class MDF(object):
                     data = (data, 0, None)
 
                     group_name = f"DataGroup_{i+1}"
-                    group_csv_name = f"{name}_{group_name}.csv"
+                    group_csv_name = Path(f"{name.stem}_{group_name}.csv")
                     with open(group_csv_name, "w") as csvfile:
                         writer = csv.writer(csvfile)
 
@@ -1384,8 +1381,7 @@ class MDF(object):
 
         elif fmt == "mat":
 
-            if not name.endswith(".mat"):
-                name = name + ".mat"
+            name = name.with_suffix(".mat")
 
             if not single_time_base:
                 mdict = {}
@@ -1462,8 +1458,7 @@ class MDF(object):
             if fmt == "pandas":
                 return DataFrame.from_dict(mdict)
             else:
-                if not name.endswith(".parquet"):
-                    name = name + ".parquet"
+                name = name.with_suffix(".parquet")
                 write_parquet(name, DataFrame.from_dict(mdict))
 
         else:
@@ -1604,7 +1599,7 @@ class MDF(object):
         mdf.header.start_time = self.header.start_time
 
         if self.name:
-            origin = os.path.basename(self.name)
+            origin = self.name.parent
         else:
             origin = "New MDF"
 
@@ -2060,12 +2055,12 @@ class MDF(object):
                 if first_timestamp is not None:
                     merged.groups[-1]['channel_group'].comment += (
                             f"{first_timestamp}s to {last_timestamp}s "
-                            f"concatenated from channel group {i} of \"{os.path.basename(mdf.name)}\""
+                            f"concatenated from channel group {i} of \"{mdf.name.parent}\""
                             f"with first time stamp at {original_first_timestamp}s\n"
                         )
                 else:
                     merged.groups[-1]['channel_group'].comment += (
-                        f"there were no samples in channel group {i} of \"{os.path.basename(mdf.name)}\"\n"
+                        f"there were no samples in channel group {i} of \"{mdf.name.parent}\"\n"
                     )
 
             if callback:
@@ -2253,7 +2248,7 @@ class MDF(object):
                     del group["record"]
 
                 stacked.groups[-1]['channel_group'].comment = (
-                    f"stacked from channel group {i} of \"{os.path.basename(mdf.name)}\""
+                    f"stacked from channel group {i} of \"{mdf.name.parent}\""
                 )
 
             if callback:

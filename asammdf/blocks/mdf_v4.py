@@ -15,6 +15,7 @@ from math import ceil
 from struct import unpack
 from tempfile import TemporaryFile
 from zlib import decompress
+from pathlib import Path
 
 from numpy import (
     arange,
@@ -192,7 +193,6 @@ class MDF4(object):
         self.header = None
         self.identification = None
         self.file_history = []
-        self.name = name
         self.channels_db = ChannelsDB()
         self.can_logging_db = {}
         self.masters_db = {}
@@ -229,9 +229,10 @@ class MDF4(object):
         if name:
             if is_file_like(name):
                 self._file = name
-                self.name = "From_FileLike.mf4"
+                self.name = Path("From_FileLike.mf4")
                 self._from_filelike = True
             else:
+                self.name = Path(name)
                 self._file = open(self.name, "rb")
                 self._from_filelike = False
             self._read()
@@ -242,6 +243,7 @@ class MDF4(object):
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
+            self.name = Path("new.mf4")
 
     def _check_finalised(self):
         flags = self.identification["unfinalized_standard_flags"]
@@ -254,19 +256,19 @@ class MDF4(object):
             logger.warning(message)
         elif flags & 1 << 1:
             message = (
-                f"Unfinalised file {self.name}:" "Update of cycle counters for SR blocks required"
+                f"Unfinalised file {self.name}: Update of cycle counters for SR blocks required"
             )
 
             logger.warning(message)
         elif flags & 1 << 2:
             message = (
-                f"Unfinalised file {self.name}:" "Update of length for last DT block required"
+                f"Unfinalised file {self.name}: Update of length for last DT block required"
             )
 
             logger.warning(message)
         elif flags & 1 << 3:
             message = (
-                f"Unfinalised file {self.name}:" "Update of length for last RD block required"
+                f"Unfinalised file {self.name}: Update of length for last RD block required"
             )
 
             logger.warning(message)
@@ -5099,10 +5101,9 @@ class MDF4(object):
 
         return info
 
-    def save(self, dst="", overwrite=False, compression=0):
-        """Save MDF to *dst*. If *dst* is not provided the the destination file
-        name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '_<cntr>', were
+    def save(self, dst, overwrite=False, compression=0):
+        """Save MDF to *dst*. If overwrite is *True* then the destination file
+        is overwritten, otherwise the file name is appened with '.<cntr>', were
         '<cntr>' is the first conter that produces a new file name
         (that does not already exist in the filesystem)
 
@@ -5122,65 +5123,21 @@ class MDF4(object):
 
         Returns
         -------
-        output_file : str
-            output file name
+        output_file : pathlib.Path
+            path to saved file
 
         """
+        dst = Path(dst).with_suffix('.mf4')
 
-        if self.name is None and dst == "":
-            message = (
-                "Must specify a destination file name " "for MDF created from scratch"
-            )
-            raise MdfException(message)
+        destination_dir = dst.parent
+        destination_dir.mkdir(parents=True, exist_ok=True)
 
-        destination_dir = os.path.dirname(dst)
-        if destination_dir and not os.path.exists(destination_dir):
-            os.makedirs(destination_dir)
-
-        output_file = self._save_with_metadata(dst, overwrite, compression)
-
-        if self._callback:
-            self._callback(100, 100)
-
-        return output_file
-
-    def _save_with_metadata(self, dst, overwrite, compression):
-        """Save MDF to *dst*. If *dst* is not provided the the destination file
-        name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '_<cntr>', were
-        '<cntr>' is the first conter that produces a new file name
-        (that does not already exist in the filesystem)
-
-        Parameters
-        ----------
-        dst : str
-            destination file name, Default ''
-        overwrite : bool
-            overwrite flag, default *False*
-        compression : int
-            use compressed data blocks, default 0; valid since version 4.10
-
-            * 0 - no compression
-            * 1 - deflate (slower, but produces smaller files)
-            * 2 - transposition + deflate (slowest, but produces
-              the smallest files)
-
-        """
-        if self.name is None and dst == "":
-            message = (
-                "Must specify a destination file name for MDF created from scratch"
-            )
-            raise MdfException(message)
-
-        dst = dst if dst else self.name
-        if not dst.endswith(("mf4", "MF4")):
-            dst = dst + ".mf4"
         if overwrite is False:
-            if os.path.isfile(dst):
+            if dst.is_file():
                 cntr = 0
                 while True:
-                    name = os.path.splitext(dst)[0] + f"_{cntr}.mf4"
-                    if not os.path.isfile(name):
+                    name = dst.with_suffix(f".{cntr}.mf4")
+                    if not name.exists():
                         break
                     else:
                         cntr += 1
@@ -5207,7 +5164,7 @@ class MDF4(object):
         self.file_history.append(fh)
 
         if dst == self.name:
-            destination = dst + ".temp"
+            destination = dst.with_suffix(".savetemp")
         else:
             destination = dst
 
@@ -5742,8 +5699,8 @@ class MDF4(object):
 
         if dst == self.name:
             self.close()
-            os.remove(self.name)
-            os.rename(destination, self.name)
+            Path.unlink(self.name)
+            Path.rename(destination, self.name)
 
             self.groups.clear()
             self.header = None
@@ -5760,6 +5717,9 @@ class MDF4(object):
             self._tempfile = TemporaryFile()
             self._file = open(self.name, "rb")
             self._read()
+
+        if self._callback:
+            self._callback(100, 100)
 
         return dst
 
