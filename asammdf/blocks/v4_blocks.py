@@ -496,11 +496,7 @@ class Channel(dict):
 
             self.name = get_text_v4(self["name_addr"], stream)
             self.unit = get_text_v4(self["unit_addr"], stream)
-
-            self.comment = get_text_v4(
-                address=self["comment_addr"],
-                stream=stream,
-            )
+            self.comment = get_text_v4(self["comment_addr"], stream)
 
             if kwargs.get("use_display_names", True):
                 try:
@@ -1604,6 +1600,8 @@ class ChannelConversion(dict):
             self.name = get_text_v4(self["name_addr"], stream)
             self.unit = get_text_v4(self["unit_addr"], stream)
             self.comment = get_text_v4(self["comment_addr"], stream)
+            self.formula = ""
+            self.referenced_blocks = None
 
             conv_type = conv
 
@@ -1664,6 +1662,9 @@ class ChannelConversion(dict):
                     refs["default_addr"] = None
 
         else:
+
+            self.name = self.unit = self.comment = self.formula = ""
+            self.referenced_blocks = None
 
             self.address = 0
             self["id"] = b"##CC"

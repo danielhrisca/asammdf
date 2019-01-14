@@ -3606,7 +3606,10 @@ class MDF4(object):
         record_count=None,
         copy_master=True,
     ):
-        """Gets channel samples.
+        """Gets channel samples. The raw data group samples are not loaded to
+        memory so it is advised to use ``filter`` or ``select`` instead of
+        performing several ``get`` calls.
+
         Channel can be specified in two ways:
 
         * using the first positional argument *name*
