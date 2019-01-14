@@ -821,19 +821,23 @@ class Signal(object):
         else:
             if self.samples.dtype.kind == "f":
                 s = np.interp(new_timestamps, self.timestamps, self.samples)
+                if self.invalidation_bits is not None:
+                    idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
+                    idx -= 1
+                    idx = np.clip(idx, 0, idx[-1])
+                    invalidation_bits = self.invalidation_bits[idx]
+                else:
+                    invalidation_bits = None
             else:
                 idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
                 idx -= 1
                 idx = np.clip(idx, 0, idx[-1])
                 s = self.samples[idx]
 
-            if self.invalidation_bits is not None is not None:
-                idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
-                idx -= 1
-                idx = np.clip(idx, 0, idx[-1])
-                invalidation_bits = self.invalidation_bits[idx]
-            else:
-                invalidation_bits = None
+                if self.invalidation_bits is not None:
+                    invalidation_bits = self.invalidation_bits[idx]
+                else:
+                    invalidation_bits = None
 
             return Signal(
                 s,

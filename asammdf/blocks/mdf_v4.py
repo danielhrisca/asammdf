@@ -948,7 +948,7 @@ class MDF4(object):
                                 else:
                                     conversion = None
 
-                                kargs = {
+                                kwargs = {
                                     "channel_type": v4c.CHANNEL_TYPE_VALUE,
                                     "data_type": s_type,
                                     "sync_type": payload["sync_type"],
@@ -965,7 +965,7 @@ class MDF4(object):
                                     ],
                                 }
 
-                                log_channel = Channel(**kargs)
+                                log_channel = Channel(**kwargs)
                                 log_channel.name = name_
                                 log_channel.comment = comment
                                 log_channel.source = deepcopy(channel.source)
@@ -1642,7 +1642,7 @@ class MDF4(object):
             attachment_addr = 0
 
         # add channel block
-        kargs = {
+        kwargs = {
             "channel_type": v4c.CHANNEL_TYPE_VALUE,
             "bit_count": signal.samples.dtype.itemsize * 8,
             "byte_offset": offset,
@@ -1652,15 +1652,15 @@ class MDF4(object):
             "flags": 0,
         }
         if attachment_addr:
-            kargs["attachment_0_addr"] = attachment_addr
-            kargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
+            kwargs["attachment_0_addr"] = attachment_addr
+            kwargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
         if invalidation_bytes_nr and signal.invalidation_bits is not None:
             inval_bits.append(signal.invalidation_bits)
-            kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-            kargs["pos_invalidation_bit"] = inval_cntr
+            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+            kwargs["pos_invalidation_bit"] = inval_cntr
             inval_cntr += 1
 
-        ch = Channel(**kargs)
+        ch = Channel(**kwargs)
         ch.name = name
         ch.unit = signal.unit
         ch.comment = signal.comment
@@ -1691,6 +1691,7 @@ class MDF4(object):
         gp_sdata.append(None)
         gp_sdata_size.append(0)
         self.channels_db.add(name, entry)
+        self.channels_db.add(ch.display_name, entry)
 
         # update the parents as well
         parents[ch_cntr] = name, 0
@@ -1729,7 +1730,7 @@ class MDF4(object):
                 types.append((field_name, samples.dtype, samples.shape[1:]))
 
                 # add channel block
-                kargs = {
+                kwargs = {
                     "channel_type": v4c.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
@@ -1739,16 +1740,16 @@ class MDF4(object):
                 }
 
                 if attachment_addr:
-                    kargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
+                    kwargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kargs["pos_invalidation_bit"] = inval_cntr
+                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
-                ch = Channel(**kargs)
+                ch = Channel(**kwargs)
                 ch.name = name
 
                 entry = (dg_cntr, ch_cntr)
@@ -1760,6 +1761,7 @@ class MDF4(object):
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
                 self.channels_db.add(name, entry)
+                self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
@@ -2304,8 +2306,8 @@ class MDF4(object):
         gp["logging_channels"] = []
 
         # channel group
-        kargs = {"cycles_nr": 0, "samples_byte_nr": 0}
-        gp["channel_group"] = ChannelGroup(**kargs)
+        kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
+        gp["channel_group"] = ChannelGroup(**kwargs)
         gp["channel_group"].name = source_info
 
         if any(sig.invalidation_bits is not None for sig in signals):
@@ -2331,14 +2333,11 @@ class MDF4(object):
 
         defined_texts = {}
         si_map = self._si_map
-        file_si_map = self._file_si_map
         cc_map = self._cc_map
-        file_cc_map = self._file_cc_map
 
         # setup all blocks related to the time master channel
 
         file = self._tempfile
-        write = file.write
         tell = file.tell
         seek = file.seek
 
@@ -2368,7 +2367,7 @@ class MDF4(object):
         if signals:
             # time channel
             t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
-            kargs = {
+            kwargs = {
                 "channel_type": v4c.CHANNEL_TYPE_MASTER,
                 "data_type": t_type,
                 "sync_type": sync_type,
@@ -2377,7 +2376,7 @@ class MDF4(object):
                 "bit_count": t_size,
             }
 
-            ch = Channel(**kargs)
+            ch = Channel(**kwargs)
             ch.unit = time_unit
             ch.name = time_name
             ch.source = source_block
@@ -2450,7 +2449,7 @@ class MDF4(object):
                     data_block_addr = 0
                     sync_type = v4c.SYNC_TYPE_NONE
 
-                kargs = {
+                kwargs = {
                     "channel_type": channel_type,
                     "sync_type": sync_type,
                     "bit_count": s_size,
@@ -2463,20 +2462,19 @@ class MDF4(object):
 
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
-                    kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                    kargs["pos_invalidation_bit"] = inval_cntr
+                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["pos_invalidation_bit"] = inval_cntr
                     inval_cntr += 1
 
-                ch = Channel(**kargs)
+                ch = Channel(**kwargs)
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
                 ch.display_name = signal.display_name
 
                 # conversions for channel
-                conversion = conversion_transfer(signal.conversion, version=4)
                 if signal.raw:
-                    ch.conversion = conversion
+                    ch.conversion = conversion_transfer(signal.conversion, version=4)
 
                 # source for channel
                 source = signal.source
@@ -2502,7 +2500,9 @@ class MDF4(object):
 
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
-                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
@@ -2557,7 +2557,7 @@ class MDF4(object):
                 gp_dep.append(None)
 
                 # add channel block
-                kargs = {
+                kwargs = {
                     "channel_type": v4c.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
@@ -2567,11 +2567,11 @@ class MDF4(object):
                 }
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
-                    kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                    kargs["pos_invalidation_bit"] = inval_cntr
+                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["pos_invalidation_bit"] = inval_cntr
                     inval_cntr += 1
 
-                ch = Channel(**kargs)
+                ch = Channel(**kwargs)
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
@@ -2599,7 +2599,9 @@ class MDF4(object):
 
                 offset += byte_size
 
-                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
@@ -2637,48 +2639,48 @@ class MDF4(object):
                     names_nr = len(names)
 
                     if names_nr == 0:
-                        kargs = {
+                        kwargs = {
                             "dims": dims_nr,
                             "ca_type": v4c.CA_TYPE_LOOKUP,
                             "flags": v4c.FLAG_CA_FIXED_AXIS,
                             "byte_offset_base": samples.dtype.itemsize,
                         }
                         for i in range(dims_nr):
-                            kargs[f"dim_size_{i}"] = shape[i]
+                            kwargs[f"dim_size_{i}"] = shape[i]
 
                     elif len(names) == 1:
-                        kargs = {
+                        kwargs = {
                             "dims": dims_nr,
                             "ca_type": v4c.CA_TYPE_ARRAY,
                             "flags": 0,
                             "byte_offset_base": samples.dtype.itemsize,
                         }
                         for i in range(dims_nr):
-                            kargs[f"dim_size_{i}"] = shape[i]
+                            kwargs[f"dim_size_{i}"] = shape[i]
 
                     else:
-                        kargs = {
+                        kwargs = {
                             "dims": dims_nr,
                             "ca_type": v4c.CA_TYPE_LOOKUP,
                             "flags": v4c.FLAG_CA_AXIS,
                             "byte_offset_base": samples.dtype.itemsize,
                         }
                         for i in range(dims_nr):
-                            kargs[f"dim_size_{i}"] = shape[i]
+                            kwargs[f"dim_size_{i}"] = shape[i]
 
-                    parent_dep = ChannelArrayBlock(**kargs)
+                    parent_dep = ChannelArrayBlock(**kwargs)
                     gp_dep.append([parent_dep])
 
                 else:
                     # add channel dependency block for composed parent channel
-                    kargs = {
+                    kwargs = {
                         "dims": 1,
                         "ca_type": v4c.CA_TYPE_SCALE_AXIS,
                         "flags": 0,
                         "byte_offset_base": samples.dtype.itemsize,
                         "dim_size_0": shape[0],
                     }
-                    parent_dep = ChannelArrayBlock(**kargs)
+                    parent_dep = ChannelArrayBlock(**kwargs)
                     gp_dep.append([parent_dep])
 
                 field_name = field_names.get_unique_name(name)
@@ -2691,7 +2693,7 @@ class MDF4(object):
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
 
                 # add channel block
-                kargs = {
+                kwargs = {
                     "channel_type": v4c.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
@@ -2703,11 +2705,11 @@ class MDF4(object):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kargs["pos_invalidation_bit"] = inval_cntr
+                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
-                ch = Channel(**kargs)
+                ch = Channel(**kwargs)
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
@@ -2740,7 +2742,9 @@ class MDF4(object):
 
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
-                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
@@ -2756,20 +2760,20 @@ class MDF4(object):
                     types.append((field_name, samples.dtype, shape))
 
                     # add channel dependency block
-                    kargs = {
+                    kwargs = {
                         "dims": 1,
                         "ca_type": v4c.CA_TYPE_SCALE_AXIS,
                         "flags": 0,
                         "byte_offset_base": samples.dtype.itemsize,
                         "dim_size_0": shape[0],
                     }
-                    dep = ChannelArrayBlock(**kargs)
+                    dep = ChannelArrayBlock(**kwargs)
                     gp_dep.append([dep])
 
                     # add components channel
                     s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
                     byte_size = max(s_size // 8, 1)
-                    kargs = {
+                    kwargs = {
                         "channel_type": v4c.CHANNEL_TYPE_VALUE,
                         "bit_count": s_size,
                         "byte_offset": offset,
@@ -2781,11 +2785,11 @@ class MDF4(object):
                     if invalidation_bytes_nr:
                         if signal.invalidation_bits is not None:
                             inval_bits.append(signal.invalidation_bits)
-                            kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                            kargs["pos_invalidation_bit"] = inval_cntr
+                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs["pos_invalidation_bit"] = inval_cntr
                             inval_cntr += 1
 
-                    ch = Channel(**kargs)
+                    ch = Channel(**kwargs)
                     ch.name = name
                     ch.unit = signal.unit
                     ch.comment = signal.comment
@@ -2802,6 +2806,7 @@ class MDF4(object):
                     gp_sdata.append(None)
                     gp_sdata_size.append(0)
                     self.channels_db.add(name, entry)
+                    self.channels_db.add(ch.display_name, entry)
 
                     # update the parents as well
                     parents[ch_cntr] = field_name, 0
@@ -2851,7 +2856,7 @@ class MDF4(object):
 
                 # compute additional byte offset for large records size
                 byte_size = 8
-                kargs = {
+                kwargs = {
                     "channel_type": v4c.CHANNEL_TYPE_VLSD,
                     "bit_count": 64,
                     "byte_offset": offset,
@@ -2864,11 +2869,11 @@ class MDF4(object):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
-                        kargs["pos_invalidation_bit"] = inval_cntr
+                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
-                ch = Channel(**kargs)
+                ch = Channel(**kwargs)
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
@@ -2901,7 +2906,9 @@ class MDF4(object):
 
                 offset += byte_size
 
-                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
@@ -3009,8 +3016,8 @@ class MDF4(object):
         gp["logging_channels"] = []
 
         # channel group
-        kargs = {"cycles_nr": 0, "samples_byte_nr": 0}
-        gp["channel_group"] = ChannelGroup(**kargs)
+        kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
+        gp["channel_group"] = ChannelGroup(**kwargs)
         gp["channel_group"].acq_name = source_info
 
         invalidation_bytes_nr = 0
@@ -3047,7 +3054,7 @@ class MDF4(object):
         if df.shape[0]:
             # time channel
             t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
-            kargs = {
+            kwargs = {
                 "channel_type": v4c.CHANNEL_TYPE_MASTER,
                 "data_type": t_type,
                 "sync_type": sync_type,
@@ -3060,7 +3067,7 @@ class MDF4(object):
                 "upper_limit": t[-1] if cycles_nr else 0,
                 "flags": v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
             }
-            ch = Channel(**kargs)
+            ch = Channel(**kwargs)
             ch.unit = time_unit
             ch.name = time_name
             ch.source = source_block
@@ -3111,7 +3118,7 @@ class MDF4(object):
                 data_block_addr = 0
                 sync_type = v4c.SYNC_TYPE_NONE
 
-                kargs = {
+                kwargs = {
                     "channel_type": channel_type,
                     "sync_type": sync_type,
                     "bit_count": s_size,
@@ -3121,7 +3128,7 @@ class MDF4(object):
                     "data_block_addr": data_block_addr,
                 }
 
-                ch = Channel(**kargs)
+                ch = Channel(**kwargs)
                 ch.name = name
                 ch.unit = units.get(name, "")
 
@@ -3167,7 +3174,7 @@ class MDF4(object):
 
                 # compute additional byte offset for large records size
                 byte_size = 8
-                kargs = {
+                kwargs = {
                     "channel_type": v4c.CHANNEL_TYPE_VLSD,
                     "bit_count": 64,
                     "byte_offset": offset,
@@ -3181,7 +3188,7 @@ class MDF4(object):
                     "data_block_addr": data_addr,
                 }
 
-                ch = Channel(**kargs)
+                ch = Channel(**kwargs)
                 ch.name = name
                 ch.unit = units.get(name, "")
 
@@ -3420,9 +3427,6 @@ class MDF4(object):
 
             fields.append(inval_bits)
             types.append(("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:]))
-
-        # data block
-        types = dtype(types)
 
         samples = fromarrays(fields, dtype=types)
 
@@ -4371,14 +4375,11 @@ class MDF4(object):
 
                         if data_type == v4c.DATA_TYPE_BYTEARRAY:
 
-                            values = [[ord(byte) for byte in val] for val in values]
-
-                            dim = max(len(arr) for arr in values) if values else 0
-
-                            for lst in values:
-                                lst.extend([0] * (dim - len(lst)))
-
-                            vals = array(values, dtype=uint8)
+                            vals = array(values)
+                            vals = frombuffer(
+                                vals.tobytes(),
+                                dtype=f'({vals.itemsize},)u1',
+                            )
 
                         else:
 
@@ -5276,8 +5277,8 @@ class MDF4(object):
                                 gp["channel_group"]["samples_byte_nr"]
                                 + gp["channel_group"]["invalidation_bytes_nr"]
                             )
-                        kargs = {"data": data, "zip_type": zip_type, "param": param}
-                        data_block = DataZippedBlock(**kargs)
+                        kwargs = {"data": data, "zip_type": zip_type, "param": param}
+                        data_block = DataZippedBlock(**kwargs)
                     else:
                         data_block = DataBlock(data=data)
                     write(bytes(data_block))
@@ -5291,16 +5292,16 @@ class MDF4(object):
                     else:
                         gp["data_group"]["data_block_addr"] = 0
                 else:
-                    kargs = {"flags": v4c.FLAG_DL_EQUAL_LENGHT, "zip_type": zip_type}
-                    hl_block = HeaderList(**kargs)
+                    kwargs = {"flags": v4c.FLAG_DL_EQUAL_LENGHT, "zip_type": zip_type}
+                    hl_block = HeaderList(**kwargs)
 
-                    kargs = {
+                    kwargs = {
                         "flags": v4c.FLAG_DL_EQUAL_LENGHT,
                         "links_nr": chunks + 1,
                         "data_block_nr": chunks,
                         "data_block_len": split_size,
                     }
-                    dl_block = DataList(**kargs)
+                    dl_block = DataList(**kwargs)
 
                     cur_data = b""
 
@@ -5327,12 +5328,12 @@ class MDF4(object):
                                     gp["channel_group"]["samples_byte_nr"]
                                     + gp["channel_group"]["invalidation_bytes_nr"]
                                 )
-                            kargs = {
+                            kwargs = {
                                 "data": data_,
                                 "zip_type": zip_type,
                                 "param": param,
                             }
-                            block = DataZippedBlock(**kargs)
+                            block = DataZippedBlock(**kwargs)
                         else:
                             block = DataBlock(data=data_)
                         address = tell()
@@ -5459,13 +5460,13 @@ class MDF4(object):
                                     address += 8 - align
                             gp_sd.append(signal_data)
                         else:
-                            kargs = {
+                            kwargs = {
                                 "flags": v4c.FLAG_DL_EQUAL_LENGHT,
                                 "links_nr": chunks + 1,
                                 "data_block_nr": chunks,
                                 "data_block_len": self._write_fragment_size,
                             }
-                            dl_block = DataList(**kargs)
+                            dl_block = DataList(**kwargs)
 
                             for k in range(chunks):
 
@@ -5474,13 +5475,13 @@ class MDF4(object):
                                     zip_type = v4c.FLAG_DZ_DEFLATE
                                     param = 0
 
-                                    kargs = {
+                                    kwargs = {
                                         "data": data_,
                                         "zip_type": zip_type,
                                         "param": param,
                                         "original_type": b"SD",
                                     }
-                                    block = DataZippedBlock(**kargs)
+                                    block = DataZippedBlock(**kwargs)
                                 else:
                                     block = DataBlock(data=data_, type="SD")
                                 blocks.append(block)
@@ -5499,12 +5500,12 @@ class MDF4(object):
                             address += dl_block["block_len"]
 
                             if compression and self.version > "4.00":
-                                kargs = {
+                                kwargs = {
                                     "flags": v4c.FLAG_DL_EQUAL_LENGHT,
                                     "zip_type": v4c.FLAG_DZ_DEFLATE,
                                     "first_dl_addr": dl_block.address,
                                 }
-                                hl_block = HeaderList(**kargs)
+                                hl_block = HeaderList(**kwargs)
                                 hl_block.address = address
                                 address += hl_block["block_len"]
 

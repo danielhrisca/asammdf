@@ -775,6 +775,11 @@ class MDF(object):
                         if start_index == 0 and stop_index == len(master):
                             needs_cutting = False
 
+                if needs_cutting:
+                    cut_timebase = Signal(master, master, name="_").cut(
+                        fragment_start, fragment_stop, include_ends
+                    ).timestamps
+
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
                 if idx == 0:
@@ -789,7 +794,7 @@ class MDF(object):
                             copy_master=False,
                         )
                         if needs_cutting:
-                            sig = sig.cut(fragment_start, fragment_stop, include_ends)
+                            sig = sig.interp(cut_timebase)
 
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
@@ -818,7 +823,7 @@ class MDF(object):
                 # samples records to the data block
                 else:
                     if needs_cutting:
-                        sigs = [(master[start_index:stop_index].copy(), None)]
+                        sigs = [(cut_timebase, None)]
                     else:
                         sigs = [(master, None)]
 
@@ -832,15 +837,18 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                         )
                         if needs_cutting:
-                            if sig[1] is not None:
-                                sig = (
-                                    sig[0][start_index:stop_index],
-                                    sig[1][start_index:stop_index],
-                                )
-                            else:
-                                sig = sig[0][start_index:stop_index], None
-                            if not sig[0].flags.writeable:
-                                sig = sig[0].copy(), sig[1]
+                            _sig = Signal(
+                                sig[0],
+                                master,
+                                name='_',
+                                invalidation_bits=sig[1],
+                            ).interp(cut_timebase)
+                            sig = (
+                                _sig.samples,
+                                _sig.invalidation_bits
+                            )
+
+                            del _sig
                         sigs.append(sig)
 
                     if sigs:
