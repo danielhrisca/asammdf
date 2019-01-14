@@ -11,7 +11,7 @@ from copy import deepcopy
 from functools import reduce
 from struct import unpack
 from shutil import copy
-from warnings import warn
+from pathlib import Path
 
 import numpy as np
 from numpy.core.defchararray import encode, decode
@@ -91,7 +91,8 @@ class MDF(object):
             if is_file_like(name):
                 file_stream = name
             else:
-                if os.path.isfile(name):
+                name = Path(name)
+                if name.is_file():
                     file_stream = open(name, "rb")
                 else:
                     raise MdfException(f'File "{name}" does not exist')
@@ -700,6 +701,8 @@ class MDF(object):
 
         cg_nr = -1
 
+        interp_mode = self._integer_interpolation
+
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
             included_channels = self._included_channels(i)
@@ -775,6 +778,11 @@ class MDF(object):
                         if start_index == 0 and stop_index == len(master):
                             needs_cutting = False
 
+                if needs_cutting:
+                    cut_timebase = Signal(master, master, name="_").cut(
+                        fragment_start, fragment_stop, include_ends
+                    ).timestamps
+
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
                 if idx == 0:
@@ -789,7 +797,7 @@ class MDF(object):
                             copy_master=False,
                         )
                         if needs_cutting:
-                            sig = sig.cut(fragment_start, fragment_stop, include_ends)
+                            sig = sig.interp(cut_timebase, mode=interp_mode)
 
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
@@ -818,7 +826,7 @@ class MDF(object):
                 # samples records to the data block
                 else:
                     if needs_cutting:
-                        sigs = [(master[start_index:stop_index].copy(), None)]
+                        sigs = [(cut_timebase, None)]
                     else:
                         sigs = [(master, None)]
 
@@ -832,15 +840,18 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                         )
                         if needs_cutting:
-                            if sig[1] is not None:
-                                sig = (
-                                    sig[0][start_index:stop_index],
-                                    sig[1][start_index:stop_index],
-                                )
-                            else:
-                                sig = sig[0][start_index:stop_index], None
-                            if not sig[0].flags.writeable:
-                                sig = sig[0].copy(), sig[1]
+                            _sig = Signal(
+                                sig[0],
+                                master,
+                                name='_',
+                                invalidation_bits=sig[1],
+                            ).interp(cut_timebase, mode=interp_mode)
+                            sig = (
+                                _sig.samples,
+                                _sig.invalidation_bits
+                            )
+
+                            del _sig
                         sigs.append(sig)
 
                     if sigs:
@@ -931,7 +942,7 @@ class MDF(object):
 
             * `parquet` : export to Apache parquet format
 
-        filename : string
+        filename : string | pathlib.Path
             export file name
 
         **kwargs
@@ -975,7 +986,7 @@ class MDF(object):
         format = kargs.get("format", "5")
         oned_as = kargs.get("oned_as", "row")
 
-        name = filename if filename else self.name
+        name = Path(filename) if filename else self.name
 
         if fmt == "parquet":
             try:
@@ -1064,7 +1075,7 @@ class MDF(object):
                         group=i,
                         index=j,
                         data=data,
-                    ).interp(master)
+                    ).interp(master, self._integer_interpolation)
 
                     if len(sig.samples.shape) > 1:
                         arr = [sig.samples]
@@ -1091,13 +1102,12 @@ class MDF(object):
                             comments[channel_name] = sig.comment
 
         if fmt == "hdf5":
-            if not name.endswith(".hdf"):
-                name += ".hdf"
+            name = name.with_suffix(".hdf")
 
             if single_time_base:
                 with HDF5(name, "w") as hdf:
                     # header information
-                    group = hdf.create_group(os.path.basename(name))
+                    group = hdf.create_group(name.parent)
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
@@ -1124,7 +1134,7 @@ class MDF(object):
             else:
                 with HDF5(name, "w") as hdf:
                     # header information
-                    group = hdf.create_group(os.path.basename(name))
+                    group = hdf.create_group(name.parent)
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
@@ -1163,8 +1173,7 @@ class MDF(object):
         elif fmt == "excel":
 
             if single_time_base:
-                if not name.endswith(".xlsx"):
-                    name += ".xlsx"
+                name = name.with_suffix(".xlsx")
                 message = f'Writing excel export to file "{name}"'
                 logger.info(message)
 
@@ -1186,8 +1195,8 @@ class MDF(object):
                 workbook.close()
 
             else:
-                while name.endswith(".xlsx"):
-                    name = name[:-5]
+                while name.suffix == '.xlsx':
+                    name = name.stem
 
                 count = len(self.groups)
 
@@ -1221,7 +1230,7 @@ class MDF(object):
                         master.samples -= master.samples[0]
 
                     group_name = f"DataGroup_{i+1}"
-                    wb_name = f"{name}_{group_name}.xlsx"
+                    wb_name = Path(f"{name.stem}_{group_name}.xlsx")
                     workbook = xlsxwriter.Workbook(wb_name)
 
                     sheet = workbook.add_worksheet(group_name)
@@ -1245,7 +1254,7 @@ class MDF(object):
 
                         sig = self.get(group=i, index=col, data=data)
                         if raster_ is not None:
-                            sig = sig.interp(raster_)
+                            sig = sig.interp(raster_, self._integer_interpolation)
 
                         sig_description = f"{sig.name} [{sig.unit}]"
                         sheet.write(0, col + offset, sig_description)
@@ -1261,8 +1270,7 @@ class MDF(object):
         elif fmt == "csv":
 
             if single_time_base:
-                if not name.endswith(".csv"):
-                    name += ".csv"
+                name = name.with_suffix(".csv")
                 message = f'Writing csv export to file "{name}"'
                 logger.info(message)
                 with open(name, "w", newline="") as csvfile:
@@ -1284,8 +1292,7 @@ class MDF(object):
 
             else:
 
-                while name.endswith(".csv"):
-                    name = name[:-4]
+                name = name.with_suffix(".csv")
 
                 count = len(self.groups)
                 for i, grp in enumerate(self.groups):
@@ -1299,7 +1306,7 @@ class MDF(object):
                     data = (data, 0, None)
 
                     group_name = f"DataGroup_{i+1}"
-                    group_csv_name = f"{name}_{group_name}.csv"
+                    group_csv_name = Path(f"{name.stem}_{group_name}.csv")
                     with open(group_csv_name, "w") as csvfile:
                         writer = csv.writer(csvfile)
 
@@ -1334,7 +1341,7 @@ class MDF(object):
                             if raster_ is not None:
                                 channels = [
                                     self.get(group=i, index=j, data=data).interp(
-                                        raster_
+                                        raster_, self._integer_interpolation
                                     )
                                     for j in range(ch_nr)
                                     if j != master_index
@@ -1376,8 +1383,7 @@ class MDF(object):
 
         elif fmt == "mat":
 
-            if not name.endswith(".mat"):
-                name = name + ".mat"
+            name = name.with_suffix(".mat")
 
             if not single_time_base:
                 mdict = {}
@@ -1454,8 +1460,7 @@ class MDF(object):
             if fmt == "pandas":
                 return DataFrame.from_dict(mdict)
             else:
-                if not name.endswith(".parquet"):
-                    name = name + ".parquet"
+                name = name.with_suffix(".parquet")
                 write_parquet(name, DataFrame.from_dict(mdict))
 
         else:
@@ -1596,7 +1601,7 @@ class MDF(object):
         mdf.header.start_time = self.header.start_time
 
         if self.name:
-            origin = os.path.basename(self.name)
+            origin = self.name.parent
         else:
             origin = "New MDF"
 
@@ -2052,12 +2057,12 @@ class MDF(object):
                 if first_timestamp is not None:
                     merged.groups[-1]['channel_group'].comment += (
                             f"{first_timestamp}s to {last_timestamp}s "
-                            f"concatenated from channel group {i} of \"{os.path.basename(mdf.name)}\""
+                            f"concatenated from channel group {i} of \"{mdf.name.parent}\""
                             f"with first time stamp at {original_first_timestamp}s\n"
                         )
                 else:
                     merged.groups[-1]['channel_group'].comment += (
-                        f"there were no samples in channel group {i} of \"{os.path.basename(mdf.name)}\"\n"
+                        f"there were no samples in channel group {i} of \"{mdf.name.parent}\"\n"
                     )
 
             if callback:
@@ -2245,7 +2250,7 @@ class MDF(object):
                     del group["record"]
 
                 stacked.groups[-1]['channel_group'].comment = (
-                    f"stacked from channel group {i} of \"{os.path.basename(mdf.name)}\""
+                    f"stacked from channel group {i} of \"{mdf.name.parent}\""
                 )
 
             if callback:
@@ -2563,7 +2568,10 @@ class MDF(object):
         if dataframe:
             times = [s.timestamps for s in signals]
             t = reduce(np.union1d, times).flatten().astype(np.float64)
-            signals = [s.interp(t) for s in signals]
+            signals = [
+                s.interp(t, mode=self._integer_interpolation)
+                for s in signals
+            ]
 
             pandas_dict = {"time": t}
             for sig in signals:

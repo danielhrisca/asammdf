@@ -12,6 +12,7 @@ from functools import reduce
 from itertools import product
 from math import ceil
 from tempfile import TemporaryFile
+from pathlib import Path
 
 from numpy import (
     arange,
@@ -101,7 +102,7 @@ class MDF3(object):
 
     Parameters
     ----------
-    name : string
+    name : string | pathlib.Path
         mdf file name (if provided it must be a real file name) or
         file-like object
 
@@ -145,7 +146,6 @@ class MDF3(object):
         self.groups = []
         self.header = None
         self.identification = None
-        self.name = name
         self.channels_db = ChannelsDB(version=3)
         self.masters_db = {}
         self.version = version
@@ -160,15 +160,17 @@ class MDF3(object):
         self._read_fragment_size = 0
         self._write_fragment_size = 4 * 2 ** 20
         self._single_bit_uint_as_bool = False
+        self._integer_interpolation = 0
 
         self._callback = kwargs.get("callback", None)
 
         if name:
             if is_file_like(name):
                 self._file = name
-                self.name = "From_FileLike.mf4"
+                self.name = Path("From_FileLike.mf4")
                 self._from_filelike = True
             else:
+                self.name = Path(name)
                 self._file = open(self.name, "rb")
                 self._from_filelike = False
             self._read()
@@ -178,6 +180,7 @@ class MDF3(object):
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
             self.header = HeaderBlock(version=self.version)
+            self.name = Path("new.mf4")
 
     def _load_data(self, group, record_offset=0, record_count=None):
         """ get group's data block bytes"""
@@ -832,20 +835,30 @@ class MDF3(object):
         write_fragment_size=None,
         use_display_names=None,
         single_bit_uint_as_bool=None,
+        integer_interpolation=None,
     ):
-        """ configure read and write fragment size for chuncked
-        data access
+        """ configure MDF parameters
 
         Parameters
         ----------
         read_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size
-            is smaller, then no data list is used. The actual split size
-            depends on the data groups' records size
+            size hint of split data blocks, default 8MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size
         write_fragment_size : int
-            size hint of splitted data blocks, default 8MB; if the initial size
-            is smaller, then no data list is used. The actual split size
-            depends on the data groups' records size
+            size hint of split data blocks, default 4MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size. Maximum size is 4MB to ensure
+            compatibility with CANape
+        use_display_names : bool
+            search for display name in the Channel XML comment
+        single_bit_uint_as_bool : bool
+            return single bit channels are np.bool arrays
+        integer_interpolation : int
+            interpolation mode for integer channels:
+
+                * 0 - repeat previous sample
+                * 1 - use linear interpolation
 
         """
 
@@ -853,10 +866,16 @@ class MDF3(object):
             self._read_fragment_size = int(read_fragment_size)
 
         if write_fragment_size:
-            self._write_fragment_size = int(write_fragment_size)
+            self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
+
+        if use_display_names is not None:
+            self._use_display_names = bool(use_display_names)
 
         if single_bit_uint_as_bool is not None:
             self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
+
+        if integer_interpolation in (0, 1):
+            self._integer_interpolation = int(integer_interpolation)
 
     def add_trigger(self, group, timestamp, pre_time=0, post_time=0, comment=""):
         """ add trigger to data group
@@ -994,6 +1013,7 @@ class MDF3(object):
             return
 
         version = self.version
+        interp_mode = self._integer_interpolation
 
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
@@ -1010,7 +1030,7 @@ class MDF3(object):
                 if different:
                     times = [s.timestamps for s in signals]
                     timestamps = reduce(union1d, times).flatten().astype(float64)
-                    signals = [s.interp(timestamps) for s in signals]
+                    signals = [s.interp(timestamps, mode=interp_mode) for s in signals]
                     times = None
         else:
             timestamps = array([])
@@ -2633,7 +2653,7 @@ class MDF3(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = Signal(vals, timestamps, name="_").interp(t, mode=self._integer_interpolation).samples
 
                     timestamps = t
 
@@ -2743,7 +2763,7 @@ class MDF3(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = Signal(vals, timestamps, name="_").interp(t, mode=self._integer_interpolation).samples
 
                     timestamps = t
 
@@ -3065,17 +3085,16 @@ class MDF3(object):
 
         return info
 
-    def save(self, dst="", overwrite=False, compression=0):
-        """Save MDF to *dst*. If *dst* is not provided the the destination file
-        name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '_<cntr>',
+    def save(self, dst, overwrite=False, compression=0):
+        """Save MDF to *dst*. If overwrite is *True* then the destination file
+        is overwritten, otherwise the file name is appended with '.<cntr>',
         were '<cntr>' is the first counter that produces a new file name (that
         does not already exist in the filesystem).
 
         Parameters
         ----------
-        dst : str
-            destination file name, Default ''
+        dst : str | pathlib.Path
+            destination file name
         overwrite : bool
             overwrite flag, default *False*
         compression : int
@@ -3089,42 +3108,26 @@ class MDF3(object):
 
         """
 
-        if self.name is None and dst == "":
-            message = (
-                "Must specify a destination file name " "for MDF created from scratch"
-            )
-            raise MdfException(message)
+        dst = Path(dst).with_suffix('.mdf')
 
-        destination_dir = os.path.dirname(dst)
-        if destination_dir and not os.path.exists(destination_dir):
-            os.makedirs(destination_dir)
+        destination_dir = dst.parent
+        destination_dir.mkdir(parents=True, exist_ok=True)
 
-        output_file = self._save_with_metadata(dst, overwrite, compression)
-
-        if self._callback:
-            self._callback(100, 100)
-
-        return output_file
-
-    def _save_with_metadata(self, dst, overwrite, compression):
-        """Save MDF to *dst*. If *dst* is not provided the the destination file
-        name is the MDF name. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appended with '_<cntr>',
-        were '<cntr>' is the first counter that produces a new file name (that
-        does not already exist in the filesystem).
-
-        Parameters
-        ----------
-        dst : str
-            destination file name, Default ''
-        overwrite : bool
-            overwrite flag, default *False*
-        compression : int
-            does nothing for mdf version3; introduced here to share the same
-            API as mdf version 4 files
-
-        """
-        # pylint: disable=unused-argument
+        if overwrite is False:
+            if dst.is_file():
+                cntr = 0
+                while True:
+                    name = dst.with_suffix(f".{cntr}.mdf")
+                    if not name.exists():
+                        break
+                    else:
+                        cntr += 1
+                message = (
+                    f'Destination file "{dst}" already exists '
+                    f'and "overwrite" is False. Saving MDF file as "{name}"'
+                )
+                logger.warning(message)
+                dst = name
 
         if not self.header.comment:
             self.header.comment = """<FHcomment>
@@ -3143,51 +3146,10 @@ class MDF3(object):
             text = text.format(old_history, timestamp, __version__)
             self.header.comment = text
 
-        if self.name is None and dst == "":
-            message = (
-                "Must specify a destination file name " "for MDF created from scratch"
-            )
-            raise MdfException(message)
-
         defined_texts, cc_map, si_map = {}, {}, {}
 
-        dst = dst if dst else self.name
-        if not dst.endswith(("mdf", "MDF")):
-            dst = dst + ".mdf"
-        if overwrite is False:
-            if os.path.isfile(dst):
-                cntr = 0
-                while True:
-                    name = os.path.splitext(dst)[0] + "_{}.mdf".format(cntr)
-                    if not os.path.isfile(name):
-                        break
-                    else:
-                        cntr += 1
-                message = (
-                    'Destination file "{}" already exists '
-                    'and "overwrite" is False. Saving MDF file as "{}"'
-                )
-                message = message.format(dst, name)
-                logger.warning(message)
-                dst = name
-
-        # all MDF blocks are appended to the blocks list in the order in which
-        # they will be written to disk. While creating this list, all the
-        # relevant block links are updated so that once all blocks have been
-        # added to the list they can be written using the bytes protocol.
-        # DataGroup blocks are written first after the identification and
-        # header blocks. When memory='low' we need to restore the
-        # original data block addresses within the data group block. This is
-        # needed to allow further work with the object after the save method
-        # call (eq. new calls to get method). Since the data group blocks are
-        # written first, it is safe to restor the original links when the data
-        # blocks are written. For memory=False the blocks list will
-        # contain a tuple instead of a DataBlock instance; the tuple will have
-        # the reference to the data group object and the original link to the
-        # data block in the soource MDF file.
-
         if dst == self.name:
-            destination = dst + ".temp"
+            destination = dst.with_suffix(".savetemp")
         else:
             destination = dst
 
@@ -3373,8 +3335,8 @@ class MDF3(object):
 
         if dst == self.name:
             self.close()
-            os.remove(self.name)
-            os.rename(destination, self.name)
+            Path.unlink(self.name)
+            Path.rename(destination, self.name)
 
             self.groups.clear()
             self.header = None
@@ -3387,6 +3349,10 @@ class MDF3(object):
             self._tempfile = TemporaryFile()
             self._file = open(self.name, "rb")
             self._read()
+
+        if self._callback:
+            self._callback(100, 100)
+
         return dst
 
 

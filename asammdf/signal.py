@@ -788,13 +788,18 @@ class Signal(object):
 
         return result
 
-    def interp(self, new_timestamps):
+    def interp(self, new_timestamps, mode=0):
         """ returns a new *Signal* interpolated using the *new_timestamps*
 
         Parameters
         ----------
         new_timestamps : np.array
             timestamps used for interpolation
+        mode : int
+            interpolation mode for integer signals; default 0
+
+                * 0 - repeat previous samples
+                * 1 - linear interpolation
 
         Returns
         -------
@@ -819,21 +824,60 @@ class Signal(object):
                 encoding=self.encoding,
             )
         else:
-            if self.samples.dtype.kind == "f":
+            kind = self.samples.dtype.kind
+            if len(self.samples.shape) > 1:
+                idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
+                idx -= 1
+                idx = np.clip(idx, 0, idx[-1])
+                s = self.samples[idx]
+
+                if self.invalidation_bits is not None:
+                    invalidation_bits = self.invalidation_bits[idx]
+                else:
+                    invalidation_bits = None
+            else:
+
+            kind = self.samples.dtype.kind
+            if kind == 'f':
                 s = np.interp(new_timestamps, self.timestamps, self.samples)
+
+                if self.invalidation_bits is not None:
+                    idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
+                    idx -= 1
+                    idx = np.clip(idx, 0, idx[-1])
+                    invalidation_bits = self.invalidation_bits[idx]
+                else:
+                    invalidation_bits = None
+            elif kind in "ui":
+                if mode == 1:
+                    s = np.interp(new_timestamps, self.timestamps, self.samples).astype(self.samples.dtype)
+                    if self.invalidation_bits is not None:
+                        idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
+                        idx -= 1
+                        idx = np.clip(idx, 0, idx[-1])
+                        invalidation_bits = self.invalidation_bits[idx]
+                    else:
+                        invalidation_bits = None
+                else:
+                    idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
+                    idx -= 1
+                    idx = np.clip(idx, 0, idx[-1])
+                    s = self.samples[idx]
+
+                    if self.invalidation_bits is not None:
+                        invalidation_bits = self.invalidation_bits[idx]
+                    else:
+                        invalidation_bits = None
             else:
                 idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
                 idx -= 1
                 idx = np.clip(idx, 0, idx[-1])
                 s = self.samples[idx]
 
-            if self.invalidation_bits is not None is not None:
-                idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
-                idx -= 1
-                idx = np.clip(idx, 0, idx[-1])
-                invalidation_bits = self.invalidation_bits[idx]
-            else:
-                invalidation_bits = None
+                if self.invalidation_bits is not None:
+                    invalidation_bits = self.invalidation_bits[idx]
+                else:
+                    invalidation_bits = None
 
             return Signal(
                 s,

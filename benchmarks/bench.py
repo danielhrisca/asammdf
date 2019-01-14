@@ -371,7 +371,6 @@ def get_all_iter_mdf4(output, fmt):
                     z = k
     output.send([timer.output, timer.error])
 
-
 def convert_v3_v4(output, fmt):
 
     with MDF(r'test.mdf') as x:
@@ -399,7 +398,7 @@ def merge_v3(output, fmt):
     with Timer('Merge 3 files',
                f'asammdf {asammdf_version} v3',
                fmt) as timer:
-        MDF.merge(files, outversion='3.30')
+        MDF.concatenate(files, outversion='3.30')
     output.send([timer.output, timer.error])
 
 
@@ -409,7 +408,7 @@ def merge_v4(output, fmt):
     with Timer('Merge 3 files',
                f'asammdf {asammdf_version} v4',
                fmt) as timer:
-        MDF.merge(files, outversion='4.10')
+        MDF.concatenate(files, outversion='4.10')
     output.send([timer.output, timer.error])
 
 
@@ -740,6 +739,135 @@ def merge_reader_v4_nodata(output, fmt):
 #
 
 
+def filter_asam(output, fmt):
+    with Timer('Filter file',
+               f'asammdf {asammdf_version} mdfv4',
+               fmt) as timer:
+        x = MDF(r'test.mf4').filter([f'Channel_{i}_{j}5' for i in range(10) for j in range(1, 20)])
+        t = perf_counter()
+        counter = 0
+        to_break = False
+        for i, gp in enumerate(x.groups):
+            if to_break:
+                break
+            for j in range(len(gp['channels'])):
+                t2 = perf_counter()
+                if t2 - t > 60:
+                    timer.message += ' {}/s'.format(counter/(t2-t))
+                    to_break = True
+                    break
+                x.get(group=i, index=j, samples_only=True)
+                counter += 1
+    output.send([timer.output, timer.error])
+
+
+def filter_reader4(output, fmt):
+
+    with Timer('Filter file',
+               'mdfreader {} mdfv4'.format(mdfreader_version),
+               fmt) as timer:
+        x = MDFreader(r'test.mf4', channel_list=[f'Channel_{i}_{j}5' for i in range(10) for j in range(1, 20)])
+        t = perf_counter()
+        counter = 0
+        to_break = False
+        for s in x:
+            t2 = perf_counter()
+            if t2 - t > 60:
+                timer.message += ' {}/s'.format(counter/(t2-t))
+                to_break = True
+                break
+            x.get_channel_data(s)
+            counter += 1
+    output.send([timer.output, timer.error])
+
+def filter_reader4_compression(output, fmt):
+
+    with Timer('Filter file',
+               'mdfreader {} compression mdfv4'.format(mdfreader_version),
+               fmt) as timer:
+        x = MDFreader(r'test.mf4', compression='blosc', channel_list=[f'Channel_{i}_{j}5' for i in range(10) for j in range(1, 20)])
+        t = perf_counter()
+        counter = 0
+        to_break = False
+        for s in x:
+            t2 = perf_counter()
+            if t2 - t > 60:
+                timer.message += ' {}/s'.format(counter/(t2-t))
+                to_break = True
+                break
+            x.get_channel_data(s)
+            counter += 1
+    output.send([timer.output, timer.error])
+
+def filter_reader4_nodata(output, fmt):
+
+    with Timer('Filter file',
+               'mdfreader {} nodata mdfv4'.format(mdfreader_version),
+               fmt) as timer:
+        x = MDFreader(r'test.mf4', no_data_loading=True, channel_list=[f'Channel_{i}_{j}5' for i in range(10) for j in range(1, 20)])
+        t = perf_counter()
+        counter = 0
+        to_break = False
+        for s in x:
+            t2 = perf_counter()
+            if t2 - t > 60:
+                timer.message += ' {}/s'.format(counter/(t2-t))
+                to_break = True
+                break
+            x.get_channel_data(s)
+            counter += 1
+    output.send([timer.output, timer.error])
+
+
+def cut_asam(output, fmt):
+    x = MDF(r'test.mf4')
+    t = x.get_master(0)
+    start, stop = 0.2 * (t[-1] - t[0]) + t[0], 0.8 * (t[-1] - t[0]) + t[0]
+    with Timer('Cut file',
+               f'asammdf {asammdf_version} mdfv4',
+               fmt) as timer:
+        x = x.cut(start=start, stop=stop)
+
+    output.send([timer.output, timer.error])
+
+
+def cut_reader4(output, fmt):
+
+    x = MDFreader(r'test.mf4')
+    t = x.get_channel_data(list(x.masterChannelList)[0])
+    begin, end = 0.2 * (t[-1] - t[0]) + t[0], 0.8 * (t[-1] - t[0]) + t[0]
+    with Timer('Cut file',
+               'mdfreader {} mdfv4'.format(mdfreader_version),
+               fmt) as timer:
+
+        x.cut(begin=begin, end=end)
+    output.send([timer.output, timer.error])
+
+def cut_reader4_compression(output, fmt):
+
+    x = MDFreader(r'test.mf4', compression='blosc')
+    t = x.get_channel_data(list(x.masterChannelList)[0])
+    begin, end = 0.2 * (t[-1] - t[0]) + t[0], 0.8 * (t[-1] - t[0]) + t[0]
+    with Timer('Cut file',
+               'mdfreader {} compression mdfv4'.format(mdfreader_version),
+               fmt) as timer:
+
+        x.cut(begin=begin, end=end)
+    output.send([timer.output, timer.error])
+
+def cut_reader4_nodata(output, fmt):
+
+    x = MDFreader(r'test.mf4', no_data_loading=True)
+    t = x.get_channel_data(list(x.masterChannelList)[0])
+    begin, end = 0.2 * (t[-1] - t[0]) + t[0], 0.8 * (t[-1] - t[0]) + t[0]
+    with Timer('Cut file',
+               'mdfreader {} nodata mdfv4'.format(mdfreader_version),
+               fmt) as timer:
+
+        x.cut(begin=begin, end=end)
+    output.send([timer.output, timer.error])
+
+
 def table_header(topic, fmt='rst'):
     output = []
     if fmt == 'rst':
@@ -813,7 +941,7 @@ def main(text_output, fmt):
     output.append('    * {} groups'.format(v4_groups))
     output.append('    * {} channels\n\n'.format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE = 1, 1, 1, 1, 1
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 0, 0, 0, 0, 0, 0, 1
 
     tests = (
          open_mdf3,
@@ -839,13 +967,13 @@ def main(text_output, fmt):
 
     tests = (
          save_mdf3,
-         save_reader3,
-         save_reader3_nodata,
-         save_reader3_compression,
+#         save_reader3,
+#         save_reader3_nodata,
+#         save_reader3_compression,
          save_mdf4,
-         save_reader4,
-         save_reader4_nodata,
-         save_reader4_compression,
+#         save_reader4,
+#         save_reader4_nodata,
+#         save_reader4_compression,
     )
 
     if tests and SAVE:
@@ -922,6 +1050,44 @@ def main(text_output, fmt):
             output.append(result)
             errors.append(err)
         output.extend(table_end(fmt))
+
+    tests = (
+          filter_asam,
+          filter_reader4,
+          filter_reader4_compression,
+          filter_reader4_nodata,
+    )
+
+    if tests and FILTER:
+        output.extend(table_header('Filter 200 channels', fmt))
+        for func in tests:
+            thr = multiprocessing.Process(target=func, args=(send, fmt))
+            thr.start()
+            thr.join()
+            result, err = listen.recv()
+            output.append(result)
+            errors.append(err)
+        output.extend(table_end(fmt))
+
+
+    tests = (
+          cut_asam,
+          cut_reader4,
+          cut_reader4_compression,
+          cut_reader4_nodata,
+    )
+
+    if tests and CUT:
+        output.extend(table_header('Cut file from 20% to 80%', fmt))
+        for func in tests:
+            thr = multiprocessing.Process(target=func, args=(send, fmt))
+            thr.start()
+            thr.join()
+            result, err = listen.recv()
+            output.append(result)
+            errors.append(err)
+        output.extend(table_end(fmt))
+
 
 
 
