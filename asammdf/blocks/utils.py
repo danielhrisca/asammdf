@@ -909,17 +909,15 @@ def cut_video_stream(stream, start, end, fmt):
 
         in_file.write_bytes(stream)
 
-        ret = subprocess.run(["ffmpeg", "-ss", f"{start}", "-i", f"{in_file}", "-to", f"{end}", "-c", "copy", f"{out_file}"], capture_output=True)
-
-        print(ret)
-
-        if ret.returncode:
+        try:
+            ret = subprocess.run(["ffmpeg", "-ss", f"{start}", "-i", f"{in_file}", "-to", f"{end}", "-c", "copy", f"{out_file}"], capture_output=True)
+        except FileNotFoundError:
             result = stream
         else:
-            result = out_file.read_bytes()
-
-    with open(r'E:\v.avi', 'wb') as f:
-        f.write(result)
+            if ret.returncode:
+                result = stream
+            else:
+                result = out_file.read_bytes()
 
     return result
 
@@ -929,7 +927,9 @@ def get_video_stream_duration(stream):
         in_file = Path(tmp) / 'in'
         in_file.write_bytes(stream)
 
-        result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", f"{in_file}"], capture_output=True)
-
-        print(result)
-    return float(result.stdout)
+        try:
+            result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", f"{in_file}"], capture_output=True)
+            result = float(result.stdout)
+        except FileNotFoundError:
+            result = None
+    return result
