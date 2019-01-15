@@ -9,6 +9,7 @@ import urllib
 import numexpr
 from itertools import product
 from zipfile import ZipFile
+import tempfile
 
 
 import numpy as np
@@ -30,6 +31,12 @@ CHANNEL_LEN = 100000
 
 
 class TestMDF(unittest.TestCase):
+
+    tempdir_demo = None
+    tempdir_array = None
+    tempdir_general = None
+    tempdir = None
+
     def test_measurement(self):
         self.assertTrue(MDF)
 
@@ -42,24 +49,25 @@ class TestMDF(unittest.TestCase):
             urllib.request.urlretrieve(url, "test.zip")
         else:
             urllib.urlretrieve(url, "test.zip")
-        ZipFile(r"test.zip").extractall("tmpdir_demo")
 
-        if not os.path.exists("tmpdir"):
-            os.mkdir("tmpdir")
-        if not os.path.exists("tmpdir_array"):
-            os.mkdir("tmpdir_array")
+        TestMDF.tempdir_demo = tempfile.TemporaryDirectory()
+        TestMDF.tempdir_general = tempfile.TemporaryDirectory()
+        TestMDF.tempdir= tempfile.TemporaryDirectory()
+        TestMDF.tempdir_array = tempfile.TemporaryDirectory()
+
+        ZipFile(r"test.zip").extractall(TestMDF.tempdir_demo.name)
         for version in ("3.30", "4.10"):
-            generate_test_file(version)
+            generate_test_file(TestMDF.tempdir_general.name, version)
 
-        generate_arrays_test_file()
+        generate_arrays_test_file(TestMDF.tempdir_array.name)
 
     @classmethod
     def tearDownClass(cls):
-        shutil.rmtree("tmpdir_demo", True)
-        shutil.rmtree("tmpdir_array", True)
-        shutil.rmtree("tmpdir", True)
+        TestMDF.tempdir_demo.cleanup()
+        TestMDF.tempdir.cleanup()
+        TestMDF.tempdir_general.cleanup()
+        TestMDF.tempdir_array.cleanup()
         os.remove("test.zip")
-        cleanup_files()
 
     def test_read(self):
         print("MDF read big files")
