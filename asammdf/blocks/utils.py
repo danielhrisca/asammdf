@@ -7,10 +7,14 @@ import logging
 import string
 import xml.etree.ElementTree as ET
 import re
+import subprocess
+import os
 
 from collections import namedtuple
 from random import randint
 from struct import Struct
+from tempfile import TemporaryDirectory
+from pathlib import Path
 
 from numpy import amin, amax, where, arange, interp
 
@@ -879,3 +883,53 @@ class UniqueDB(object):
             index = self._db[name]
             self._db[name] = index + 1
             return f"{name}_{index}"
+
+
+def cut_video_stream(stream, start, end, fmt):
+    """ cut video stream from `start` to `end` time
+
+    Parameters
+    ----------
+    stream : bytes
+        video file content
+    start : float
+        start time
+    end : float
+        end time
+
+    Returns
+    -------
+    result : bytes
+        content of cut video
+
+    """
+    with TemporaryDirectory() as tmp:
+        in_file = Path(tmp) / f'in{fmt}'
+        out_file = Path(tmp) / f'out{fmt}'
+
+        in_file.write_bytes(stream)
+
+        ret = subprocess.run(["ffmpeg", "-ss", f"{start}", "-i", f"{in_file}", "-to", f"{end}", "-c", "copy", f"{out_file}"], capture_output=True)
+
+        print(ret)
+
+        if ret.returncode:
+            result = stream
+        else:
+            result = out_file.read_bytes()
+
+    with open(r'E:\v.avi', 'wb') as f:
+        f.write(result)
+
+    return result
+
+
+def get_video_stream_duration(stream):
+    with TemporaryDirectory() as tmp:
+        in_file = Path(tmp) / 'in'
+        in_file.write_bytes(stream)
+
+        result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", f"{in_file}"], capture_output=True)
+
+        print(result)
+    return float(result.stdout)

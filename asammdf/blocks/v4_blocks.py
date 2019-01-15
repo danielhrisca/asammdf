@@ -12,6 +12,7 @@ from hashlib import md5
 from struct import pack, unpack, unpack_from
 from textwrap import wrap
 from zlib import compress, decompress
+from pathlib import Path
 
 import numpy as np
 from numexpr import evaluate
@@ -93,7 +94,7 @@ class AttachmentBlock(dict):
     ----------
     address : int
         attachment address
-    file_name : str
+    file_name : pathlib.Path
         attachment file name
     mime : str
         mime type
@@ -106,6 +107,11 @@ class AttachmentBlock(dict):
         block address; to be used for objects created from file
     stream : handle
         file handle; to be used for objects created from file
+    embedded : bool
+        attachment is embedded
+    compression : bool
+        attachment is compresseed
+
     for dynamically created objects :
         see the key-value pairs
 
@@ -153,52 +159,44 @@ class AttachmentBlock(dict):
 
         except KeyError:
 
+            self.file_name = Path(kwargs.get("file_name", None) or "bin.bin")
+
             data = kwargs["data"]
-            size = len(data)
+            original_size = embedded_size = len(data)
             compression = kwargs.get("compression", False)
+            embedded = kwargs.get("embedded", False)
 
-            md5_worker = md5()
-            md5_worker.update(data)
+            flags = v4c.FLAG_AT_MD5_VALID
+            if embedded:
+                flags |= v4c.FLAG_AT_EMBEDDED
+                if compression:
+                    flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
+                    data = compress(data)
+                    embedded_size = len(data)
 
-            if compression:
-                data = compress(data)
-                original_size = size
-                size = len(data)
-                self["id"] = b"##AT"
-                self["reserved0"] = 0
-                self["block_len"] = v4c.AT_COMMON_SIZE + size
-                self["links_nr"] = 4
-                self["next_at_addr"] = 0
-                self["file_name_addr"] = 0
-                self["mime_addr"] = 0
-                self["comment_addr"] = 0
-                self["flags"] = (
-                    v4c.FLAG_AT_EMBEDDED
-                    | v4c.FLAG_AT_MD5_VALID
-                    | v4c.FLAG_AT_COMPRESSED_EMBEDDED
-                )
-                self["creator_index"] = 0
-                self["reserved1"] = 0
-                self["md5_sum"] = md5_worker.digest()
-                self["original_size"] = original_size
-                self["embedded_size"] = size
-                self["embedded_data"] = data
             else:
-                self["id"] = b"##AT"
-                self["reserved0"] = 0
-                self["block_len"] = v4c.AT_COMMON_SIZE + size
-                self["links_nr"] = 4
-                self["next_at_addr"] = 0
-                self["file_name_addr"] = 0
-                self["mime_addr"] = 0
-                self["comment_addr"] = 0
-                self["flags"] = v4c.FLAG_AT_EMBEDDED | v4c.FLAG_AT_MD5_VALID
-                self["creator_index"] = 0
-                self["reserved1"] = 0
-                self["md5_sum"] = md5_worker.digest()
-                self["original_size"] = size
-                self["embedded_size"] = size
-                self["embedded_data"] = data
+                self.file_name = Path(self.file_name.name)
+                self.file_name.write_bytes(data)
+                embedded_size = 0
+                data = b''
+
+            md5_sum = md5(data).digest()
+
+            self["id"] = b"##AT"
+            self["reserved0"] = 0
+            self["block_len"] = v4c.AT_COMMON_SIZE + embedded_size
+            self["links_nr"] = 4
+            self["next_at_addr"] = 0
+            self["file_name_addr"] = 0
+            self["mime_addr"] = 0
+            self["comment_addr"] = 0
+            self["flags"] = flags
+            self["creator_index"] = 0
+            self["reserved1"] = 0
+            self["md5_sum"] = md5_sum
+            self["original_size"] = original_size
+            self["embedded_size"] = embedded_size
+            self["embedded_data"] = data
 
     def extract(self):
         if self["flags"] & v4c.FLAG_AT_EMBEDDED:
@@ -215,7 +213,6 @@ class AttachmentBlock(dict):
                 else:
                     message = f'ATBLOCK md5sum={self["md5_sum"]} and embedded data md5sum={md5_sum}'
                     logger.warning(message)
-
         else:
             logger.warning("external attachments not supported")
 
@@ -226,7 +223,7 @@ class AttachmentBlock(dict):
             if text in defined_texts:
                 self[key] = defined_texts[text]
             else:
-                tx_block = TextBlock(text=text)
+                tx_block = TextBlock(text=str(text))
                 self[key] = address
                 defined_texts[text] = address
                 tx_block.address = address
@@ -278,7 +275,7 @@ class AttachmentBlock(dict):
         return address
 
     def __bytes__(self):
-        fmt =  f'{v4c.FMT_AT_COMMON}{self["embedded_size"]}s'
+        fmt = f'{v4c.FMT_AT_COMMON}{self["embedded_size"]}s'
         result = pack(fmt, *[self[key] for key in v4c.KEYS_AT_BLOCK])
         return result
 

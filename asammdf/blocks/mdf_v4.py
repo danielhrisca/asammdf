@@ -2457,7 +2457,7 @@ class MDF4(object):
                 if signal.stream_sync:
                     channel_type = v4c.CHANNEL_TYPE_SYNC
                     at_data, at_name = signal.attachment
-                    attachment_addr = self.attach(at_data, at_name, mime="video/avi")
+                    attachment_addr = self.attach(at_data, at_name, mime="video/avi", embedded=False)
                     data_block_addr = attachment_addr
                     sync_type = v4c.SYNC_TYPE_TIME
                 else:
@@ -3477,6 +3477,7 @@ class MDF4(object):
         comment=None,
         compression=True,
         mime=r"application/octet-stream",
+        embedded=True,
     ):
         """ attach embedded attachment as application/octet-stream
 
@@ -3492,6 +3493,8 @@ class MDF4(object):
             use compression for embedded attachment data
         mime : str
             mime type string
+        embedded : bool
+            attachment is embedded in the file
 
         Returns
         -------
@@ -3515,14 +3518,20 @@ class MDF4(object):
 
             self.file_history.append(fh)
 
-            at_block = AttachmentBlock(data=data, compression=compression)
+            file_name = file_name or "bin.bin"
+
+            at_block = AttachmentBlock(
+                data=data,
+                compression=compression,
+                embedded=embedded,
+                file_name=file_name,
+            )
             at_block["creator_index"] = creator_index
             index = v4c.MAX_UINT64 - 1
             while index in self.attachments:
                 index -= 1
             self.attachments.append(at_block)
 
-            at_block.file_name = file_name if file_name else "bin.bin"
             at_block.mime = mime
             at_block.comment = comment
 
@@ -3581,6 +3590,7 @@ class MDF4(object):
                 # for external attachments read the file and return the content
                 if flags & v4c.FLAG_AT_MD5_VALID:
                     data = open(file_path, "rb").read()
+                    file_path = Path(f"FROM_{file_path}")
                     md5_worker = md5()
                     md5_worker.update(data)
                     md5_sum = md5_worker.digest()
@@ -3602,6 +3612,7 @@ class MDF4(object):
                     else:
                         mode = "rb"
                     with open(file_path, mode) as f:
+                        file_path = Path(f"FROM_{file_path}")
                         data = f.read()
                     return data, file_path
         except Exception as err:

@@ -38,6 +38,8 @@ from .blocks.utils import (
     UINT64_u,
     debug_channel,
     UniqueDB,
+    cut_video_stream,
+    get_video_stream_duration,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -798,6 +800,27 @@ class MDF(object):
                         )
                         if needs_cutting:
                             sig = sig.interp(cut_timebase, mode=interp_mode)
+
+                        # if sig.stream_sync and False:
+                        #     attachment, _name = sig.attachment
+                        #     duration = get_video_stream_duration(attachment)
+                        #     if start is None:
+                        #         start_t = 0
+                        #     else:
+                        #         start_t = start
+                        #
+                        #     if stop is None:
+                        #         end_t = duration
+                        #     else:
+                        #         end_t = stop
+                        #
+                        #     attachment = cut_video_stream(
+                        #         attachment,
+                        #         start_t,
+                        #         end_t,
+                        #         Path(_name).suffix,
+                        #     )
+                        #     sig.attachment = attachment, _name
 
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
