@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import unittest
+import tempfile
+import os
 
 import numpy as np
 
@@ -10,6 +12,17 @@ CHANNEL_LEN = 100000
 
 
 class TestMDF4(unittest.TestCase):
+
+    tempdir = None
+
+    @classmethod
+    def setUpClass(cls):
+        TestMDF4.tempdir = tempfile.TemporaryDirectory()
+
+    @classmethod
+    def tearDownClass(cls):
+        TestMDF4.tempdir.cleanup()
+
     def test_measurement(self):
         self.assertTrue(MDF4)
 
@@ -36,7 +49,7 @@ class TestMDF4(unittest.TestCase):
 
         with MDF(version="4.00") as mdf:
             mdf.append([sig_int, sig_float], common_timebase=True)
-            outfile = mdf.save("tmp", overwrite=True)
+            outfile = mdf.save(os.path.join(TestMDF4.tempdir.name, "tmp"), overwrite=True)
 
         with MDF(outfile) as mdf:
             ret_sig_int = mdf.get(sig_int.name)
@@ -68,7 +81,7 @@ class TestMDF4(unittest.TestCase):
 
         with MDF(version="4.10") as mdf:
             mdf.append([sig_int, sig_float], common_timebase=True)
-            outfile = mdf.save("tmp", overwrite=True)
+            outfile = mdf.save(os.path.join(TestMDF4.tempdir.name, "tmp"), overwrite=True)
 
         with MDF(outfile) as mdf:
             ret_sig_int = mdf.get(sig_int.name)
