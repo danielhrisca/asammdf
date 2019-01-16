@@ -162,7 +162,7 @@ try:
                 if sig.conversion and "text_0" in sig.conversion:
                     axis.text_conversion = sig.conversion
 
-                view_box = pg.ViewBox()
+                view_box = pg.ViewBox(enambleMenu=False)
 
                 axis.linkToView(view_box)
                 axis.labelText = sig.name
