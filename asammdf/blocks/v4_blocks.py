@@ -2499,6 +2499,8 @@ class DataZippedBlock(dict):
     ----------
     address : int
         data zipped block address
+    return_unzipped : bool
+        decompress data when accessing the 'data' key
 
     Parameters
     ----------
@@ -2509,7 +2511,7 @@ class DataZippedBlock(dict):
 
     """
 
-    __slots__ = 'address',
+    __slots__ = 'address', '_prevent_data_setitem', 'return_unzipped'
 
     def __init__(self, **kwargs):
         super().__init__()
