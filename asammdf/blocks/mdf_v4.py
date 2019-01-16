@@ -4005,7 +4005,7 @@ class MDF4(object):
             at_block = AttachmentBlock(data=data, compression=compression)
             at_block["creator_index"] = creator_index
             index = v4c.MAX_UINT64 - 1
-            while index in self.attachments:
+            while index in self._attachments_map:
                 index -= 1
             self.attachments.append(at_block)
 
