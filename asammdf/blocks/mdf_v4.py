@@ -1116,7 +1116,7 @@ class MDF4(object):
 
         return data
 
-    def _load_data(self, group, index=None, record_offset=0, record_count=None):
+    def _load_data(self, group, record_offset=0, record_count=None):
         """ get group's data block bytes """
         offset = 0
         has_yielded = False
@@ -1132,23 +1132,13 @@ class MDF4(object):
         read = stream.read
         seek = stream.seek
 
-        if index is None:
-            block_type = group["data_block_type"]
-            param = group["param"]
-        else:
-            block_type = group["reduction_data_block"][index]["data_block_type"]
-            param = group["reduction_data_block"][index]["param"]
+        block_type = group["data_block_type"]
+        param = group["param"]
 
-        if index is None:
-            samples_size = (
-                channel_group["samples_byte_nr"]
-                + channel_group["invalidation_bytes_nr"]
-            )
-        else:
-            samples_size = (
-                channel_group["samples_byte_nr"] * 3
-                + channel_group["invalidation_bytes_nr"]
-            )
+        samples_size = (
+            channel_group["samples_byte_nr"]
+            + channel_group["invalidation_bytes_nr"]
+        )
 
         record_offset *= samples_size
 
@@ -1160,14 +1150,7 @@ class MDF4(object):
             yield b"", offset, _count
         else:
 
-            if not group["sorted"]:
-                cg_size = group["record_size"]
-                record_id = channel_group["record_id"]
-                if data_group["record_id_len"] <= 2:
-                    record_id_nr = data_group["record_id_len"]
-                else:
-                    record_id_nr = 0
-            else:
+            if group["sorted"]:
                 if self._read_fragment_size:
                     split_size = self._read_fragment_size // samples_size
                     split_size *= samples_size
@@ -1187,20 +1170,12 @@ class MDF4(object):
                 if split_size == 0:
                     split_size = samples_size
 
-            if index is None:
-                addr = group["data_block_addr"]
-                blocks = zip(
-                    group["data_block_addr"],
-                    group["data_size"],
-                    group["data_block_size"],
-                )
-            else:
-                addr = group["reduction_data_block"][index]["data_block_addr"]
-                blocks = zip(
-                    group["reduction_data_block"][index]["data_block_addr"],
-                    group["reduction_data_block"][index]["data_size"],
-                    group["reduction_data_block"][index]["data_block_size"],
-                )
+            addr = group["data_block_addr"]
+            blocks = zip(
+                group["data_block_addr"],
+                group["data_size"],
+                group["data_block_size"],
+            )
 
             if addr:
 
@@ -1410,7 +1385,6 @@ class MDF4(object):
                                 has_yielded = True
                                 record_count -= len(rec_data)
                                 if record_count <= 0:
-                                    finished = True
                                     break
                             else:
                                 yield rec_data, offset, _count
@@ -3528,7 +3502,7 @@ class MDF4(object):
             )
             at_block["creator_index"] = creator_index
             index = v4c.MAX_UINT64 - 1
-            while index in self.attachments:
+            while index in self._attachments_map:
                 index -= 1
             self.attachments.append(at_block)
 
@@ -3632,7 +3606,6 @@ class MDF4(object):
         raw=False,
         ignore_invalidation_bits=False,
         source=None,
-        sample_reduction_index=None,
         record_offset=0,
         record_count=None,
         copy_master=True,
