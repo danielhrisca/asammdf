@@ -117,9 +117,7 @@ try:
             self.layout = self.plot_item.layout
             self.scene_ = self.plot_item.scene()
             self.viewbox = self.plot_item.vb
-            self.viewbox.sigResized.connect(self.update_views)
             self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
-            self.viewbox.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
 
             self.curve = self.curvetype([], [])
 
@@ -160,16 +158,16 @@ try:
                 else:
                     sig.empty = True
 
-                axis = FormatedAxis("right")
-                axis.setPen(color)
+                axis = FormatedAxis("right", pen=color)
                 if sig.conversion and "text_0" in sig.conversion:
                     axis.text_conversion = sig.conversion
 
                 view_box = pg.ViewBox()
-                view_box.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
 
                 axis.linkToView(view_box)
-                axis.setLabel(sig.name, sig.unit, color=color)
+                axis.labelText = sig.name
+                axis.labelUnits = sig.unit
+                axis.labelStyle = {'color': color}
 
                 self.layout.addItem(axis, 2, i + 2)
 
@@ -198,7 +196,7 @@ try:
                 view_box.addItem(curve)
 
                 view_box.setXLink(self.viewbox)
-                view_box.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
+#                view_box.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
                 # view_box.sigResized.connect(self.update_views)
 
                 self.view_boxes.append(view_box)
@@ -209,8 +207,11 @@ try:
             if len(signals) == 1:
                 self.setSignalEnable(0, 1)
 
-            self.update_views()
 
+#            self.update_views()
+            self.viewbox.sigResized.connect(self.update_views)
+
+#            self.viewbox.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
             self.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_H, Qt.NoModifier))
 
             self.resizeEvent = self._resizeEvent
@@ -420,14 +421,9 @@ try:
                 self.cursor_move_finished.emit()
 
         def update_views(self):
-            # for i, view_box in enumerate(self.view_boxes):
-            #     view_box.sigResized.disconnect()
-            self.viewbox.linkedViewChanged(self.viewbox, self.viewbox.XAxis)
             geometry = self.viewbox.sceneBoundingRect()
             for i, view_box in enumerate(self.view_boxes):
                 view_box.setGeometry(geometry)
-                # view_box.sigResized.connect(self.update_views)
-                # view_box.linkedViewChanged(self.viewbox, view_box.XAxis)
 
         def get_stats(self, index):
             stats = {}

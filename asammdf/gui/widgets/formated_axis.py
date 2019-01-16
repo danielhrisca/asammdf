@@ -43,3 +43,47 @@ class FormatedAxis(pg.AxisItem):
                 strns.append(val)
 
         return strns
+
+    def setLabel(self, text=None, units=None, unitPrefix=None, **args):
+        """Set the text displayed adjacent to the axis.
+
+        ==============  =============================================================
+        **Arguments:**
+        text            The text (excluding units) to display on the label for this
+                        axis.
+        units           The units for this axis. Units should generally be given
+                        without any scaling prefix (eg, 'V' instead of 'mV'). The
+                        scaling prefix will be automatically prepended based on the
+                        range of data displayed.
+        **args          All extra keyword arguments become CSS style options for
+                        the <span> tag which will surround the axis label and units.
+        ==============  =============================================================
+
+        The final text generated for the label will look like::
+
+            <span style="...options...">{text} (prefix{units})</span>
+
+        Each extra keyword argument will become a CSS option in the above template.
+        For example, you can set the font size and color of the label::
+
+            labelStyle = {'color': '#FFF', 'font-size': '14pt'}
+            axis.setLabel('label text', units='V', **labelStyle)
+
+        """
+        show_label = False
+        if text is not None:
+            self.labelText = text
+            show_label = True
+        if units is not None:
+            self.labelUnits = units
+            show_label = True
+        if show_label:
+            self.showLabel()
+        if unitPrefix is not None:
+            self.labelUnitPrefix = unitPrefix
+        if len(args) > 0:
+            self.labelStyle = args
+        self.label.setHtml(self.labelString())
+        self._adjustSize()
+        self.picture = None
+        self.update()

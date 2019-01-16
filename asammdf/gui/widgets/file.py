@@ -1374,7 +1374,6 @@ class FileWidget(QWidget):
             it.setName(name)
             it.setValue("")
             it.setColor(sig.color)
-            item.setSizeHint(it.sizeHint())
             self.channel_selection.addItem(item)
             self.channel_selection.setItemWidget(item, it)
 

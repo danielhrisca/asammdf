@@ -21,14 +21,18 @@ except ImportError:
 HERE = os.path.dirname(os.path.realpath(__file__))
 
 
-class ChannelDisplay(QWidget):
+uifile_1 = os.path.join(HERE, "..", "ui", "channel_display_widget.ui")
+form_1, base_1 = uic.loadUiType(uifile_1)
+
+
+class ChannelDisplay(base_1, form_1):
 
     color_changed = pyqtSignal(int, str)
     enable_changed = pyqtSignal(int, int)
 
     def __init__(self, index, unit="", *args, **kwargs):
-        super(ChannelDisplay, self).__init__(*args, **kwargs)
-        uic.loadUi(os.path.join(HERE, "..", "ui", "channel_display_widget.ui"), self)
+        super(base_1, self).__init__(*args, **kwargs)
+        self.setupUi(self)
 
         self.color = "#ff0000"
         self._value_prefix = ""
