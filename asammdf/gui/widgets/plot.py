@@ -162,7 +162,7 @@ try:
                 if sig.conversion and "text_0" in sig.conversion:
                     axis.text_conversion = sig.conversion
 
-                view_box = pg.ViewBox(enambleMenu=False)
+                view_box = pg.ViewBox(enableMenu=False)
 
                 axis.linkToView(view_box)
                 axis.labelText = sig.name
@@ -649,13 +649,21 @@ try:
                         self.cursor_removed.emit()
 
                 elif key == Qt.Key_F:
-                    x_range, _ = self.viewbox.viewRange()
-                    for viewbox in self.view_boxes:
-                        viewbox.autoRange(padding=0)
-                        viewbox.disableAutoRange()
-                    self.viewbox.autoRange(padding=0)
-                    self.viewbox.setXRange(*x_range, padding=0)
-                    self.viewbox.disableAutoRange()
+                    for viewbox, signal in zip(self.view_boxes, self.signals):
+                        if len(signal.samples):
+                            viewbox.setYRange(
+                                np.amin(signal.samples),
+                                np.amax(signal.samples),
+                                padding=0,
+                            )
+
+                    # x_range, _ = self.viewbox.viewRange()
+                    # for viewbox in self.view_boxes:
+                    #     viewbox.autoRange(padding=0)
+                    #     viewbox.disableAutoRange()
+                    # self.viewbox.autoRange(padding=0)
+                    # self.viewbox.setXRange(*x_range, padding=0)
+                    # self.viewbox.disableAutoRange()
                     if self.cursor1:
                         self.cursor_moved.emit()
 
