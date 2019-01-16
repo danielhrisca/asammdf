@@ -56,6 +56,7 @@ try:
         xrange_changed = pyqtSignal()
 
         def __init__(self, signals, with_dots, step_mode, *args, **kwargs):
+            print(len(signals))
             super(Plot, self).__init__(*args, **kwargs)
             self.xrange_changed.connect(self.xrange_changed_handle)
             self.with_dots = with_dots
@@ -192,15 +193,13 @@ try:
                     symbol="o",
                     symbolSize=4,
                     stepMode=sig.stepmode,
-                    # connect='pairs'
                 )
-                # curve.setDownsampling(ds=100, auto=True, method='peak')
 
                 view_box.addItem(curve)
 
                 view_box.setXLink(self.viewbox)
                 view_box.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
-                view_box.sigResized.connect(self.update_views)
+                # view_box.sigResized.connect(self.update_views)
 
                 self.view_boxes.append(view_box)
                 self.curves.append(curve)
@@ -421,11 +420,14 @@ try:
                 self.cursor_move_finished.emit()
 
         def update_views(self):
+            # for i, view_box in enumerate(self.view_boxes):
+            #     view_box.sigResized.disconnect()
             self.viewbox.linkedViewChanged(self.viewbox, self.viewbox.XAxis)
-            for view_box in self.view_boxes:
-                if view_box.isVisible():
-                    view_box.setGeometry(self.viewbox.sceneBoundingRect())
-                    view_box.linkedViewChanged(self.viewbox, view_box.XAxis)
+            geometry = self.viewbox.sceneBoundingRect()
+            for i, view_box in enumerate(self.view_boxes):
+                view_box.setGeometry(geometry)
+                # view_box.sigResized.connect(self.update_views)
+                # view_box.linkedViewChanged(self.viewbox, view_box.XAxis)
 
         def get_stats(self, index):
             stats = {}
@@ -828,15 +830,31 @@ try:
                         self.cursor1.setValue(pos)
 
                 elif key == Qt.Key_H:
-                    for sig, viewbox in zip(self.signals, self.view_boxes):
-                        if len(sig.original_timestamps):
-                            viewbox.setXRange(sig.original_timestamps[0], sig.original_timestamps[-1])
-                        viewbox.autoRange(padding=0)
-                        viewbox.disableAutoRange()
-                    self.viewbox.autoRange(padding=0)
-                    self.viewbox.disableAutoRange()
-                    if self.cursor1:
-                        self.cursor_moved.emit()
+                    start_ts = [
+                        sig.original_timestamps[0]
+                        for sig in self.signals
+                        if len(sig.original_timestamps)
+                    ]
+
+                    stop_ts = [
+                        sig.original_timestamps[-1]
+                        for sig in self.signals
+                        if len(sig.original_timestamps)
+                    ]
+
+                    if start_ts:
+                        start_t, stop_t = min(start_ts), max(stop_ts)
+
+#                        for sig, viewbox in zip(self.signals, self.view_boxes):
+#                            if len(sig.original_timestamps):
+#                                viewbox.setXRange(sig.original_timestamps[0], sig.original_timestamps[-1])
+#                            viewbox.autoRange(padding=0)
+#                            viewbox.disableAutoRange()
+                        self.viewbox.setXRange(start_t, stop_t)
+                        self.viewbox.autoRange(padding=0)
+                        self.viewbox.disableAutoRange()
+                        if self.cursor1:
+                            self.cursor_moved.emit()
 
                 else:
                     super(Plot, self).keyPressEvent(event)
@@ -890,7 +908,7 @@ try:
                             if sig.texts is not None:
                                 sig.texts = sig.original_texts[start_: stop_]
 
-                        self.update_lines(force=True)
+            self.update_lines(force=True)
 
         def _resizeEvent(self, ev):
             self.xrange_changed_handle()
