@@ -651,19 +651,9 @@ try:
                 elif key == Qt.Key_F:
                     for viewbox, signal in zip(self.view_boxes, self.signals):
                         if len(signal.samples):
-                            viewbox.setYRange(
-                                np.amin(signal.samples),
-                                np.amax(signal.samples),
-                                padding=0,
-                            )
+                            min_, max_ = np.amin(signal.samples), np.amax(signal.samples)
+                            viewbox.setYRange(min_, max_, padding=0)
 
-                    # x_range, _ = self.viewbox.viewRange()
-                    # for viewbox in self.view_boxes:
-                    #     viewbox.autoRange(padding=0)
-                    #     viewbox.disableAutoRange()
-                    # self.viewbox.autoRange(padding=0)
-                    # self.viewbox.setXRange(*x_range, padding=0)
-                    # self.viewbox.disableAutoRange()
                     if self.cursor1:
                         self.cursor_moved.emit()
 
@@ -849,11 +839,6 @@ try:
                     if start_ts:
                         start_t, stop_t = min(start_ts), max(stop_ts)
 
-#                        for sig, viewbox in zip(self.signals, self.view_boxes):
-#                            if len(sig.original_timestamps):
-#                                viewbox.setXRange(sig.original_timestamps[0], sig.original_timestamps[-1])
-#                            viewbox.autoRange(padding=0)
-#                            viewbox.disableAutoRange()
                         self.viewbox.setXRange(start_t, stop_t)
                         self.viewbox.autoRange(padding=0)
                         self.viewbox.disableAutoRange()
