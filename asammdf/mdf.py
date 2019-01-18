@@ -1763,6 +1763,7 @@ class MDF(object):
                                     else:
                                         samples = encode(decode(samples, encoding), "latin-1")
                                     sig.samples = samples
+                        sigs.append(sig)
 
                     if sigs:
                         mdf.extend(new_index, sigs)
