@@ -66,23 +66,6 @@ class MainWindow(QMainWindow):
         menu = QMenu("Settings", self.menubar)
         self.menubar.addMenu(menu)
 
-        # memory option menu
-        memory_option = QActionGroup(self)
-
-        for option in ("full", "low", "minimum"):
-
-            action = QAction(option, menu)
-            action.setCheckable(True)
-            memory_option.addAction(action)
-            action.triggered.connect(partial(self.set_memory_option, option))
-
-            if option == "minimum":
-                action.setChecked(True)
-
-        submenu = QMenu("Memory", self.menubar)
-        submenu.addActions(memory_option.actions())
-        menu.addMenu(submenu)
-
         # graph option menu
         memory_option = QActionGroup(self)
 
@@ -110,7 +93,7 @@ class MainWindow(QMainWindow):
             memory_option.addAction(action)
             action.triggered.connect(partial(self.set_step_mode, option))
 
-            if option == "Step mode":
+            if option == "Direct connect mode":
                 action.setChecked(True)
 
         submenu = QMenu("Integer line style", self.menubar)
@@ -263,7 +246,6 @@ class MainWindow(QMainWindow):
         open_group.addAction(action)
         menu.addActions(open_group.actions())
 
-        self.memory = "minimum"
         self.match = "Match start"
         self.with_dots = False
         self.step_mode = True
@@ -286,9 +268,6 @@ class MainWindow(QMainWindow):
         if widget and widget.plot:
             widget.plot.keyPressEvent(event)
             widget.keyPressEvent(event)
-
-    def set_memory_option(self, option):
-        self.memory = option
 
     def set_with_dots(self, option):
         self.with_dots = True if option == "With dots" else False
@@ -338,8 +317,6 @@ class MainWindow(QMainWindow):
 
         sync = self.sync.checkState() == Qt.Checked
 
-        memory = self.memory
-
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
         else:
@@ -380,7 +357,6 @@ class MainWindow(QMainWindow):
             kwargs = {
                 "files": files,
                 "outversion": version,
-                "memory": memory,
                 "callback": self.update_progress,
                 "sync": sync,
             }
@@ -467,7 +443,7 @@ class MainWindow(QMainWindow):
 
             try:
                 widget = FileWidget(
-                    file_name, self.memory, self.step_mode, self.with_dots, self
+                    file_name, self.step_mode, self.with_dots, self
                 )
                 widget.search_field.set_search_option(self.match)
                 widget.filter_field.set_search_option(self.match)

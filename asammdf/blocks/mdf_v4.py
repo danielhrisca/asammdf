@@ -1603,6 +1603,7 @@ class MDF4(object):
         gp_sdata_size = gp["signal_data_size"]
         gp_channels = gp["channels"]
         gp_dep = gp["channel_dependencies"]
+        gp_sig_types = gp["signal_types"]
 
         name = signal.name
         names = signal.samples.dtype.names
@@ -2960,6 +2961,7 @@ class MDF4(object):
         del signals
 
         size = len(samples) * samples.itemsize
+
         if size:
             data_address = self._tempfile.tell()
             gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
@@ -3295,7 +3297,6 @@ class MDF4(object):
         inval_bits = []
 
         invalidation_bytes_nr = gp["channel_group"]["invalidation_bytes_nr"]
-
         for i, ((signal, invalidation_bits), sig_type) in enumerate(
             zip(signals, gp["signal_types"])
         ):
@@ -3332,19 +3333,12 @@ class MDF4(object):
                     inval_bits.append(invalidation_bits)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
-                names = signal.dtype.names
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     inval_bits.append(invalidation_bits)
 
-                for name in names:
-                    samples = signal[name]
-
-                    fields.append(samples)
-                    types.append(("", samples.dtype))
-
-                    if invalidation_bytes_nr and invalidation_bits is not None:
-                        inval_bits.append(invalidation_bits)
+                fields.append(signal)
+                types.append(("", signal.dtype))
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names

@@ -1594,6 +1594,11 @@ class MDF(object):
         for group_index, indexes in gps.items():
             grp = self.groups[group_index]
             included_channels = set(indexes)
+            master_index = self.masters_db.get(group_index, None)
+            if master_index is not None:
+                to_exclude = {master_index, }
+            else:
+                to_exclude = set()
             for index in indexes:
                 if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                     dep = grp["channel_dependencies"][index]
@@ -1609,15 +1614,15 @@ class MDF(object):
                         not isinstance(dep, ChannelArrayBlock) for dep in dependencies
                     ):
                         channels = grp["channels"]
-                        for channel in dependencies:
-                            included_channels.add(channels.index(channel))
+                        for _, channel in dependencies:
+                            to_exclude.add(channel)
                     else:
                         for dep in dependencies:
                             for gp_nr, ch_nr in dep.referenced_channels:
                                 if gp_nr == group:
-                                    included_channels.remove(ch_nr)
+                                    to_exclude.add(ch_nr)
 
-            gps[group_index] = included_channels
+            gps[group_index] = sorted(included_channels - to_exclude)
 
         mdf = MDF(version=version)
 
@@ -1723,6 +1728,8 @@ class MDF(object):
                                     else:
                                         samples = encode(decode(samples, encoding), "latin-1")
                                     sig.samples = samples
+
+                        sigs.append(sig)
 
                     if sigs:
                         mdf.extend(new_index, sigs)

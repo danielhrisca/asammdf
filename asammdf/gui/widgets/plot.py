@@ -164,7 +164,7 @@ try:
 
                 view_box = pg.ViewBox(enableMenu=False)
 
-                axis.linkToView(view_box)
+#                axis.linkToView(view_box)
                 axis.labelText = sig.name
                 axis.labelUnits = sig.unit
                 axis.labelStyle = {'color': color}

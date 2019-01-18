@@ -42,7 +42,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 
 
 class FileWidget(QWidget):
-    def __init__(self, file_name, memory, step_mode, with_dots, *args, **kwargs):
+    def __init__(self, file_name, step_mode, with_dots, *args, **kwargs):
         super(FileWidget, self).__init__(*args, **kwargs)
         uic.loadUi(os.path.join(HERE, "..", "ui", "file_widget.ui"), self)
 
@@ -51,7 +51,6 @@ class FileWidget(QWidget):
         self.file_name = file_name
         self.progress = None
         self.mdf = None
-        self.memory = memory
         self.info = None
         self.info_index = None
         self.step_mode = step_mode
@@ -109,7 +108,6 @@ class FileWidget(QWidget):
             target = MDF
             kwargs = {
                 "name": file_name,
-                "memory": memory,
                 "callback": self.update_progress,
             }
 
@@ -977,8 +975,6 @@ class FileWidget(QWidget):
     def convert(self, event):
         version = self.convert_format.currentText()
 
-        memory = self.memory
-
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
         else:
@@ -1017,7 +1013,7 @@ class FileWidget(QWidget):
 
             # convert self.mdf
             target = self.mdf.convert
-            kwargs = {"version": version, "memory": memory}
+            kwargs = {"version": version}
 
             mdf = run_thread_with_progress(
                 self,
@@ -1052,7 +1048,6 @@ class FileWidget(QWidget):
     def resample(self, event):
         version = self.resample_format.currentText()
         raster = self.raster.value()
-        memory = self.memory
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
@@ -1089,7 +1084,7 @@ class FileWidget(QWidget):
 
             # resample self.mdf
             target = self.mdf.resample
-            kwargs = {"raster": raster, "memory": memory}
+            kwargs = {"raster": raster}
 
             mdf = run_thread_with_progress(
                 self,
@@ -1110,7 +1105,7 @@ class FileWidget(QWidget):
             )
 
             target = mdf.convert
-            kwargs = {"to": version, "memory": memory}
+            kwargs = {"to": version}
 
             mdf = run_thread_with_progress(
                 self,
@@ -1146,7 +1141,7 @@ class FileWidget(QWidget):
         version = self.cut_format.currentText()
         start = self.cut_start.value()
         stop = self.cut_stop.value()
-        memory = self.memory
+
         if self.whence.checkState() == Qt.Checked:
             whence = 1
         else:
@@ -1210,7 +1205,7 @@ class FileWidget(QWidget):
             )
 
             target = mdf.convert
-            kwargs = {"to": version, "memory": memory}
+            kwargs = {"to": version}
 
             mdf = run_thread_with_progress(
                 self,
@@ -1374,6 +1369,7 @@ class FileWidget(QWidget):
             it.setName(name)
             it.setValue("")
             it.setColor(sig.color)
+            item.setSizeHint(it.sizeHint())
             self.channel_selection.addItem(item)
             self.channel_selection.setItemWidget(item, it)
 
@@ -1395,7 +1391,6 @@ class FileWidget(QWidget):
 
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(self.filter_tree)
-        memory = self.memory
 
         group = -1
         index = 0
@@ -1451,7 +1446,7 @@ class FileWidget(QWidget):
 
             # filtering self.mdf
             target = self.mdf.filter
-            kwargs = {"channels": channels, "memory": memory}
+            kwargs = {"channels": channels}
 
             mdf = run_thread_with_progress(
                 self,
@@ -1472,7 +1467,7 @@ class FileWidget(QWidget):
             )
 
             target = mdf.convert
-            kwargs = {"to": version, "memory": memory}
+            kwargs = {"to": version}
 
             mdf = run_thread_with_progress(
                 self,
