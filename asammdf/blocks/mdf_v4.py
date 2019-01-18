@@ -4246,17 +4246,40 @@ class MDF4(object):
 
                         if kind_ == "b":
                             pass
-                        elif (
-                            kind_ not in "ui"
-                            and (bit_offset or bit_count != size * 8)
-                            or (
-                                len(shape_) > 1
-                                and data_type != v4c.DATA_TYPE_BYTEARRAY
-                            )
-                        ):
+                        elif len(shape_) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY:
                             vals = self._get_not_byte_aligned_data(
                                 data_bytes, grp, ch_nr
                             )
+                        elif kind_ not in 'ui':
+                            if bit_offset:
+                                print('NBA', 'bit offset', channel)
+                                vals = self._get_not_byte_aligned_data(
+                                    data_bytes, grp, ch_nr
+                                )
+                            else:
+                                if bit_count != size * 8:
+                                    if (
+                                        bit_count %8 == 0
+                                        and size in (2, 4, 8)
+                                        and data_type <= 3
+                                    ): #integer types
+                                        vals = frombuffer(
+                                            vals.tobytes(),
+                                            dtype=f'<u{size}',
+                                        )
+                                        if data_type in v4c.SIGNED_INT:
+                                            vals = as_non_byte_sized_signed_int(vals, bit_count)
+                                        else:
+                                            mask = (1 << bit_count) - 1
+                                            if vals.flags.writeable:
+                                                vals &= mask
+                                            else:
+                                                vals = vals & mask
+                                    else:
+                                        print('NBA', 'float', channel)
+                                        vals = self._get_not_byte_aligned_data(
+                                            data_bytes, grp, ch_nr
+                                        )
                         else:
                             if dtype_.byteorder == '>':
                                 if bit_offset or bit_count != size << 3:
