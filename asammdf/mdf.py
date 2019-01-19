@@ -15,7 +15,7 @@ from pathlib import Path
 
 import numpy as np
 from numpy.core.defchararray import encode, decode
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
@@ -1051,7 +1051,7 @@ class MDF(object):
                     return
 
         if single_time_base or fmt in ("pandas", "parquet"):
-            mdict = OrderedDict()
+            df = DataFrame()
             units = OrderedDict()
             comments = OrderedDict()
             masters = [self.get_master(i) for i in range(len(self.groups))]
@@ -1072,9 +1072,11 @@ class MDF(object):
                         master = np.arange(master[0], master[-1], raster, dtype=np.float64)
 
             if time_from_zero and len(master):
-                mdict["time"] = master - master[0]
+                df = df.assing(time=master)
+                df["time"] = Series(master - master[0], index=np.arange(len(master)))
             else:
-                mdict["time"] = master
+                df["time"] = Series(master, index=np.arange(len(master)))
+                df = df.assign(time=master)
 
             units["time"] = "s"
             comments["time"] = ""
@@ -1101,9 +1103,7 @@ class MDF(object):
                     ).interp(master, self._integer_interpolation)
 
                     if len(sig.samples.shape) > 1:
-                        arr = [sig.samples]
-                        types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
-                        sig.samples = np.core.records.fromarrays(arr, dtype=types)
+                        continue
 
                     if use_display_names:
                         channel_name = sig.display_name or sig.name
@@ -1113,12 +1113,18 @@ class MDF(object):
                     channel_name = used_names.get_unique_name(channel_name)
 
                     if len(sig):
-                        mdict[channel_name] = sig.samples
+                        try:
+                            # df = df.assign(**{channel_name: sig.samples})
+                            df[channel_name] = sig.samples
+                        except:
+                            print(sig.samples.dtype, sig.samples.shape, sig.name)
+                            print(list(df), len(df))
+                            raise
                         units[channel_name] = sig.unit
                         comments[channel_name] = sig.comment
                     else:
                         if empty_channels == "zeros":
-                            mdict[channel_name] = np.zeros(
+                            df[channel_name] = np.zeros(
                                 len(master), dtype=sig.samples.dtype
                             )
                             units[channel_name] = sig.unit
@@ -1481,7 +1487,7 @@ class MDF(object):
 
         elif fmt in ("pandas", "parquet"):
             if fmt == "pandas":
-                return DataFrame.from_dict(mdict)
+                return df
             else:
                 name = name.with_suffix(".parquet")
                 write_parquet(name, DataFrame.from_dict(mdict))
