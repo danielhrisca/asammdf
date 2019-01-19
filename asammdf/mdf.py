@@ -1005,7 +1005,7 @@ class MDF(object):
         raster = kargs.get("raster", 0)
         time_from_zero = kargs.get("time_from_zero", True)
         use_display_names = kargs.get("use_display_names", True)
-        empty_channels = kargs.get("empty_channels", "zeros")
+        empty_channels = kargs.get("empty_channels", "ignore")
         format = kargs.get("format", "5")
         oned_as = kargs.get("oned_as", "row")
 
@@ -1087,15 +1087,18 @@ class MDF(object):
             for i, grp in enumerate(self.groups):
                 if self._terminate:
                     return
+                print(i)
 
                 included_channels = self._included_channels(i)
 
                 data = self._load_data(grp)
 
                 data = b"".join(d[0] for d in data)
-                data = (data, 0, None)
+                data = (data, 0, -1)
 
                 for j in included_channels:
+                    if j % 1000 == 0:
+                        print(i, j)
                     sig = self.get(
                         group=i,
                         index=j,
@@ -1103,7 +1106,9 @@ class MDF(object):
                     ).interp(master, self._integer_interpolation)
 
                     if len(sig.samples.shape) > 1:
-                        continue
+                        arr = [sig.samples]
+                        types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
+                        sig.samples = np.core.records.fromarrays(arr, dtype=types)
 
                     if use_display_names:
                         channel_name = sig.display_name or sig.name
@@ -1133,6 +1138,8 @@ class MDF(object):
                             )
                             units[channel_name] = sig.unit
                             comments[channel_name] = sig.comment
+
+                del self._master_channel_cache[(i, 0, -1)]
 
         if fmt == "hdf5":
             name = name.with_suffix(".hdf")
@@ -1188,7 +1195,7 @@ class MDF(object):
                         data = self._load_data(grp)
 
                         data = b"".join(d[0] for d in data)
-                        data = (data, 0, None)
+                        data = (data, 0, -1)
 
                         for j, _ in enumerate(grp["channels"]):
                             sig = self.get(group=i, index=j, data=data)
@@ -1202,6 +1209,8 @@ class MDF(object):
                             comment = sig.comment.replace("\0", "")
                             if comment:
                                 dataset.attrs["comment"] = comment
+
+                        del self._master_channel_cache[(i, 0, -1)]
 
         elif fmt == "excel":
 
@@ -1242,7 +1251,7 @@ class MDF(object):
                     data = self._load_data(grp)
 
                     data = b"".join(d[0] for d in data)
-                    data = (data, 0, None)
+                    data = (data, 0, -1)
 
                     master_index = self.masters_db.get(i, None)
                     if master_index is not None:
@@ -1299,6 +1308,7 @@ class MDF(object):
                             sheet.write_column(1, col + offset, vals)
 
                     workbook.close()
+                    del self._master_channel_cache[(i, 0, -1)]
 
         elif fmt == "csv":
 
@@ -1336,7 +1346,7 @@ class MDF(object):
                     data = self._load_data(grp)
 
                     data = b"".join(d[0] for d in data)
-                    data = (data, 0, None)
+                    data = (data, 0, -1)
 
                     group_name = f"DataGroup_{i+1}"
                     group_csv_name = Path(f"{name.stem}_{group_name}.csv")
@@ -1414,6 +1424,8 @@ class MDF(object):
                         for idx, row in enumerate(zip(*vals)):
                             writer.writerow(row)
 
+                    del self._master_channel_cache[(i, 0, -1)]
+
         elif fmt == "mat":
 
             name = name.with_suffix(".mat")
@@ -1438,7 +1450,7 @@ class MDF(object):
                     data = self._load_data(grp)
 
                     data = b"".join(d[0] for d in data)
-                    data = (data, 0, None)
+                    data = (data, 0, -1)
 
                     for j in included_channels:
                         sig = self.get(group=i, index=j, data=data)
@@ -1461,6 +1473,8 @@ class MDF(object):
                             ]
 
                         mdict[channel_name] = sig.samples
+
+                    del self._master_channel_cache[(i, 0, -1)]
             else:
                 used_names = UniqueDB()
                 new_mdict = {}
