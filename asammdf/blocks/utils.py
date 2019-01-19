@@ -612,7 +612,6 @@ def debug_channel(mdf, group, channel, dependency, file=None):
     print("MDF", "=" * 76, file=file)
     print("name:", mdf.name, file=file)
     print("version:", mdf.version, file=file)
-    print("memory:", mdf.memory, file=file)
     print("read fragment size:", mdf._read_fragment_size, file=file)
     print("write fragment size:", mdf._write_fragment_size, file=file)
     print()

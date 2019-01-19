@@ -1055,6 +1055,7 @@ class MDF(object):
             units = OrderedDict()
             comments = OrderedDict()
             masters = [self.get_master(i) for i in range(len(self.groups))]
+            self.masters_db.clear()
             master = reduce(np.union1d, masters)
 
             if raster and len(master):
@@ -1072,11 +1073,10 @@ class MDF(object):
                         master = np.arange(master[0], master[-1], raster, dtype=np.float64)
 
             if time_from_zero and len(master):
-                df = df.assing(time=master)
+                df = df.assign(time=master)
                 df["time"] = Series(master - master[0], index=np.arange(len(master)))
             else:
                 df["time"] = Series(master, index=np.arange(len(master)))
-                df = df.assign(time=master)
 
             units["time"] = "s"
             comments["time"] = ""
@@ -1115,7 +1115,11 @@ class MDF(object):
                     if len(sig):
                         try:
                             # df = df.assign(**{channel_name: sig.samples})
-                            df[channel_name] = sig.samples
+                            if sig.samples.dtype.names:
+
+                                df[channel_name] = Series(sig.samples, dtype='O')
+                            else:
+                                df[channel_name] = Series(sig.samples)
                         except:
                             print(sig.samples.dtype, sig.samples.shape, sig.name)
                             print(list(df), len(df))
