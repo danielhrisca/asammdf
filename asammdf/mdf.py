@@ -979,10 +979,14 @@ class MDF(object):
             * `use_display_names`: use display name instead of standard channel
               name, if available.
             * `empty_channels`: behaviour for channels without samples; the
-              options are *skip* or *zeros*; default is *zeros*
+              options are *skip* or *zeros*; default is *skip*
             * `format`: only valid for *mat* export; can be '4', '5' or '7.3',
               default is '5'
             * `oned_as`: only valid for *mat* export; can be 'row' or 'column'
+            * `keep_arrays` : keep arrays and structure channels as well as the
+              component channels. If *True* this can be very slow. If *False*
+              only the component channels are saved, and their names will be
+              prefixed with the parent channel.
 
         Returns
         -------
@@ -990,6 +994,9 @@ class MDF(object):
             only in case of *pandas* export
 
         """
+
+        from time import perf_counter as pc
+
 
         header_items = ("date", "time", "author", "department", "project", "subject")
 
@@ -1005,7 +1012,7 @@ class MDF(object):
         raster = kargs.get("raster", 0)
         time_from_zero = kargs.get("time_from_zero", True)
         use_display_names = kargs.get("use_display_names", True)
-        empty_channels = kargs.get("empty_channels", "ignore")
+        empty_channels = kargs.get("empty_channels", "skip")
         format = kargs.get("format", "5")
         oned_as = kargs.get("oned_as", "row")
 
@@ -1055,6 +1062,8 @@ class MDF(object):
             units = OrderedDict()
             comments = OrderedDict()
             masters = [self.get_master(i) for i in range(len(self.groups))]
+            for i in range(len(self.groups)):
+                self._master_channel_cache[(i, 0, -1)] = self._master_channel_cache[i]
             self.masters_db.clear()
             master = reduce(np.union1d, masters)
 
@@ -1084,6 +1093,8 @@ class MDF(object):
             used_names = UniqueDB()
             used_names.get_unique_name("time")
 
+            start__ = pc()
+
             for i, grp in enumerate(self.groups):
                 if self._terminate:
                     return
@@ -1099,6 +1110,8 @@ class MDF(object):
                 for j in included_channels:
                     if j % 1000 == 0:
                         print(i, j)
+                    if pc()-start__ > 180:
+                        return
                     sig = self.get(
                         group=i,
                         index=j,
@@ -1106,6 +1119,7 @@ class MDF(object):
                     ).interp(master, self._integer_interpolation)
 
                     if len(sig.samples.shape) > 1:
+                        print(sig.name)
                         arr = [sig.samples]
                         types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
                         sig.samples = np.core.records.fromarrays(arr, dtype=types)
@@ -2951,6 +2965,208 @@ class MDF(object):
         except:
             debug_channel(self, group, None, None)
             raise
+
+    def to_dataframe(
+            self,
+            channels=None,
+            raster=None,
+            time_from_zero=True,
+            empty_channels="skip",
+            keep_arrays=False,
+            use_display_names=False
+    ):
+        """ generate pandas DataFrame
+
+        Parameters
+        ----------
+        * channels : list
+            filter a subset of channels; default *None*
+        * raster : float
+            time raster for resampling; default *None*
+        * time_from_zero : bool
+            adjust time channel to start from 0
+        * empty_channels : str
+            behaviour for channels without samples; the options are *skip* or
+            *zeros*; default is *skip*
+        * use_display_names : bool
+            use display name instead of standard channel name, if available.
+        * keep_arrays : bool
+            keep arrays and structure channels as well as the
+            component channels. If *True* this can be very slow. If *False*
+            only the component channels are saved, and their names will be
+            prefixed with the parent channel.
+
+        Returns
+        -------
+        dataframe : pandas.DataFrame
+
+        """
+
+        def components(channel, unique_names, prefix=''):
+            names = channel.dtype.names
+
+            # channel arrays
+            if names[0] == channel.name:
+                name = names[0]
+
+                name_ = unique_names.get_unique_name(f"{prefix}.{name}")
+
+                values = channel[name]
+                if len(values.shape) > 1:
+                    arr = [values]
+                    types = [('', values.dtype, values.shape[1:])]
+                    values = np.core.records.fromarrays(arr, dtype=types)
+                    del arr
+                yield name_, Series(values)
+
+                for name in names[1:]:
+                    values = channel[name]
+                    axis_name = unique_names.get_unique_name(f"{name_}.{name}")
+                    if len(values.shape) > 1:
+                        arr = [values]
+                        types = [('', values.dtype, values.shape[1:])]
+                        values = np.core.records.fromarrays(arr, dtype=types)
+                        del arr
+                    yield axis_name, Series(values)
+
+            # structure composition
+            else:
+                for name in channel.dtype.names:
+                    values = channel[name]
+
+                    if values.dtype.names:
+                        yield from components(values, unique_names, prefix=f"{prefix}.{name}")
+
+                    else:
+                        name_ = unique_names.get_unique_name(f"{prefix}.{name}")
+                        if len(values.shape) > 1:
+                            arr = [values]
+                            types = [('', values.dtype, values.shape[1:])]
+                            values = np.core.records.fromarrays(arr, dtype=types)
+                            del arr
+                        yield name_, Series(values)
+
+        from time import perf_counter as pc
+
+        df = DataFrame()
+        masters = [self.get_master(i) for i in range(len(self.groups))]
+        for i in range(len(self.groups)):
+            self._master_channel_cache[(i, 0, -1)] = self._master_channel_cache[i]
+        self.masters_db.clear()
+        master = reduce(np.union1d, masters)
+
+        if raster and len(master):
+            if len(master) > 1:
+                num = float(
+                    np.float32((master[-1] - master[0]) / raster)
+                )
+                if num.is_integer():
+                    master = np.linspace(
+                        master[0],
+                        master[-1],
+                        int(num),
+                    )
+                else:
+                    master = np.arange(
+                        master[0],
+                        master[-1],
+                        raster,
+                        dtype=np.float64,
+                    )
+
+        if time_from_zero and len(master):
+            df = df.assign(time=master)
+            df["time"] = Series(master - master[0], index=np.arange(len(master)))
+        else:
+            df["time"] = Series(master, index=np.arange(len(master)))
+
+        used_names = UniqueDB()
+        used_names.get_unique_name("time")
+
+        start__ = pc()
+
+        for i, grp in enumerate(self.groups):
+            if grp['channel_group']['cycles_nr'] == 0 and empty_channels == "skip":
+                continue
+            print(i)
+
+            included_channels = self._included_channels(i)
+
+            data = self._load_data(grp)
+
+            data = b"".join(d[0] for d in data)
+            data = (data, 0, -1)
+
+            for j in included_channels:
+                if j % 1000 == 0:
+                    print(i, j)
+                if pc()-start__ > 180:
+                    return
+                sig = self.get(
+                    group=i,
+                    index=j,
+                    data=data,
+                ).interp(master, self._integer_interpolation)
+
+                # byte arrays
+                if len(sig.samples.shape) > 1:
+                    arr = [sig.samples]
+                    types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
+                    sig.samples = np.core.records.fromarrays(arr, dtype=types)
+
+                    if use_display_names:
+                        channel_name = sig.display_name or sig.name
+                    else:
+                        channel_name = sig.name
+
+                    channel_name = used_names.get_unique_name(channel_name)
+
+                    df[channel_name] = Series(sig.samples)
+
+                # arrays and structures
+                elif sig.samples.dtype.names:
+                    for name, series in components(sig.samples, used_names):
+                        df[name] = series
+
+                # scalars
+                else:
+                    if use_display_names:
+                        channel_name = sig.display_name or sig.name
+                    else:
+                        channel_name = sig.name
+
+                    channel_name = used_names.get_unique_name(channel_name)
+
+                    df[channel_name] = Series(sig.samples)
+
+                if use_display_names:
+                    channel_name = sig.display_name or sig.name
+                else:
+                    channel_name = sig.name
+
+                channel_name = used_names.get_unique_name(channel_name)
+
+                if len(sig):
+                    try:
+                        # df = df.assign(**{channel_name: sig.samples})
+                        if sig.samples.dtype.names:
+
+                            df[channel_name] = Series(sig.samples, dtype='O')
+                        else:
+                            df[channel_name] = Series(sig.samples)
+                    except:
+                        print(sig.samples.dtype, sig.samples.shape, sig.name)
+                        print(list(df), len(df))
+                        raise
+                else:
+                    if empty_channels == "zeros":
+                        df[channel_name] = np.zeros(
+                            len(master), dtype=sig.samples.dtype
+                        )
+
+            del self._master_channel_cache[(i, 0, -1)]
+
+        return df
 
 if __name__ == "__main__":
     pass
