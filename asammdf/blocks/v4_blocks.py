@@ -372,9 +372,7 @@ class Channel(dict):
 
     """
 
-    __slots__ = (
-                'name', 'unit', 'comment', 'display_name', 'conversion',
-                'source', 'attachments', 'address', 'dtype_fmt')
+    __slots__ = ('name', 'unit', 'comment', 'display_name', 'conversion', 'source', 'attachments', 'address', 'dtype_fmt')
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -586,6 +584,537 @@ class Channel(dict):
         if self["channel_type"] == v4c.CHANNEL_TYPE_MLSD:
             self["data_block_addr"] = 0
             self["channel_type"] = v4c.CHANNEL_TYPE_VALUE
+
+    def to_blocks(self, address, blocks, defined_texts, cc_map, si_map):
+        key = "name_addr"
+        text = self.name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block["block_len"]
+                blocks.append(tx_block)
+        else:
+            self[key] = 0
+
+        key = "unit_addr"
+        text = self.unit
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block["block_len"]
+                blocks.append(tx_block)
+        else:
+            self[key] = 0
+
+        key = "comment_addr"
+        comment = self.comment
+        display_name = self.display_name
+
+        if display_name and not text:
+            text = v4c.CN_COMMENT_TEMPLATE.format(comment, display_name)
+        elif display_name and comment:
+            if not comment.startswith("<CNcomment"):
+                text = v4c.CN_COMMENT_TEMPLATE.format(comment, display_name)
+            else:
+                if display_name not in comment:
+                    try:
+                        CNcomment = ET.fromstring(comment)
+                        display_name_element = CNcomment.find(".//names/display")
+                        if display_name is not None:
+                            display_name_element.text = display_name
+                        else:
+
+                            display = ET.Element("display")
+                            display.text = display_name
+                            names = ET.Element("names")
+                            names.append(display)
+                            CNcomment.append(names)
+
+                        text = ET.tostring(CNcomment).decode("utf-8")
+
+                    except UnicodeEncodeError:
+                        text = comment
+                else:
+                    text = comment
+        else:
+            text = comment
+
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith("<CNcomment")
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block["block_len"]
+                blocks.append(tx_block)
+        else:
+            self[key] = 0
+
+        conversion = self.conversion
+        if conversion:
+            address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
+            self["conversion_addr"] = conversion.address
+        else:
+            self["conversion_addr"] = 0
+
+        source = self.source
+        if source:
+            address = source.to_blocks(address, blocks, defined_texts, si_map)
+            self["source_addr"] = source.address
+        else:
+            self["source_addr"] = 0
+
+        blocks.append(self)
+        self.address = address
+        address += self["block_len"]
+
+        return address
+
+    def __bytes__(self):
+
+        if self["block_len"] == v4c.CN_BLOCK_SIZE:
+            keys = v4c.KEYS_SIMPLE_CHANNEL
+            fmt = v4c.FMT_SIMPLE_CHANNEL
+        else:
+            fmt = v4c.FMT_CHANNEL.format(self["links_nr"])
+
+            keys = (
+                "id",
+                "reserved0",
+                "block_len",
+                "links_nr",
+                "next_ch_addr",
+                "component_addr",
+                "name_addr",
+                "source_addr",
+                "conversion_addr",
+                "data_block_addr",
+                "unit_addr",
+                "comment_addr",
+            )
+            if self["attachment_nr"]:
+                keys += tuple(
+                    f"attachment_{i}_addr"
+                    for i in range(self["attachment_nr"])
+                )
+            if self["flags"] & v4c.FLAG_CN_DEFAULT_X:
+                keys += (
+                    "default_X_dg_addr",
+                    "default_X_cg_addr",
+                    "default_X_ch_addr",
+                )
+            keys += (
+                "channel_type",
+                "sync_type",
+                "data_type",
+                "bit_offset",
+                "byte_offset",
+                "bit_count",
+                "flags",
+                "pos_invalidation_bit",
+                "precision",
+                "reserved1",
+                "attachment_nr",
+                "min_raw_value",
+                "max_raw_value",
+                "lower_limit",
+                "upper_limit",
+                "lower_ext_limit",
+                "upper_ext_limit",
+            )
+        result = pack(fmt, *[self[key] for key in keys])
+        return result
+
+    def __repr__(self):
+        return f"""<Channel (name: {self.name}, unit: {self.unit}, comment: {self.comment}, address: {hex(self.address)},
+    conversion: {self.conversion},
+    source: {self.source},
+    fields: {dict(self)})>"""
+
+    def metadata(self):
+        max_len = max(len(key) for key in self)
+        template = "{{: <{}}}: {{}}".format(max_len)
+
+        metadata = []
+        lines = """
+name: {}
+display name: {}
+address: {}
+comment: {}
+
+""".format(
+            self.name, self.display_name, hex(self.address), self.comment
+        ).split(
+            "\n"
+        )
+        for key, val in self.items():
+            if key.endswith("addr") or key.startswith("text_"):
+                lines.append(template.format(key, hex(val)))
+            elif isinstance(val, float):
+                lines.append(template.format(key, round(val, 6)))
+            else:
+                if isinstance(val, bytes):
+                    lines.append(template.format(key, val.strip(b"\0")))
+                else:
+                    lines.append(template.format(key, val))
+        for line in lines:
+            if not line:
+                metadata.append(line)
+            else:
+                for wrapped_line in wrap(line, width=120):
+                    metadata.append(wrapped_line)
+
+        return "\n".join(metadata)
+
+    def __lt__(self, other):
+        self_byte_offset = self["byte_offset"]
+        other_byte_offset = other["byte_offset"]
+
+        if self_byte_offset < other_byte_offset:
+            result = 1
+        elif self_byte_offset == other_byte_offset:
+            self_range = self["bit_offset"] + self["bit_count"]
+            other_range = other["bit_offset"] + other["bit_count"]
+
+            if self_range > other_range:
+                result = 1
+            else:
+                result = 0
+        else:
+            result = 0
+        return result
+
+
+class Channel:
+    """ CNBLOCK class
+
+    If the `load_metadata` keyword argument is not provided or is False,
+    then the conversion, source and display name information is not processed.
+    Further more if the `parse_xml_comment` is not provided or is False, then
+    the display name information from the channel comment is not processed (this
+    is done to avoid expensive XML operations)
+
+    *Channel* has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##CN'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``next_ch_addr`` - int : next ATBLOCK address
+    * ``component_addr`` - int : address of first channel in case of structure channel
+      composition, or ChannelArrayBlock in case of arrays
+      file name
+    * ``name_addr`` - int : address of TXBLOCK that contains the channel name
+    * ``source_addr`` - int : address of channel source block
+    * ``conversion_addr`` - int : address of channel conversion block
+    * ``data_block_addr`` - int : address of signal data block for VLSD channels
+    * ``unit_addr`` - int : address of TXBLOCK that contains the channel unit
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
+      channel comment
+    * ``attachment_<N>_addr`` - int : address of N-th ATBLOCK referenced by the
+      current channel; if no ATBLOCK is referenced there will be no such key-value
+      pair
+    * ``default_X_dg_addr`` - int : address of DGBLOCK where the default X axis
+      channel for the current channel is found; this key-value pair will not
+      exist for channels that don't have a default X axis
+    * ``default_X_cg_addr`` - int : address of CGBLOCK where the default X axis
+      channel for the current channel is found; this key-value pair will not
+      exist for channels that don't have a default X axis
+    * ``default_X_ch_addr`` - int : address of default X axis
+      channel for the current channel; this key-value pair will not
+      exist for channels that don't have a default X axis
+    * ``channel_type`` - int : integer code for the channel type
+    * ``sync_type`` - int : integer code for the channel's sync type
+    * ``data_type`` - int : integer code for the channel's data type
+    * ``bit_offset`` - int : bit offset
+    * ``byte_offset`` - int : byte offset within the data record
+    * ``bit_count`` - int : channel bit count
+    * ``flags`` - int : CNBLOCK flags
+    * ``pos_invalidation_bit`` - int : invalidation bit position for the current
+      channel if there are invalidation bytes in the data record
+    * ``precision`` - int : integer code for teh precision
+    * ``reserved1`` - int : reserved bytes
+    * ``min_raw_value`` - int : min raw value of all samples
+    * ``max_raw_value`` - int : max raw value of all samples
+    * ``lower_limit`` - int : min physical value of all samples
+    * ``upper_limit`` - int : max physical value of all samples
+    * ``lower_ext_limit`` - int : min physical value of all samples
+    * ``upper_ext_limit`` - int : max physical value of all samples
+
+    Parameters
+    ----------
+    address : int
+        block address; to be used for objects created from file
+    stream : handle
+        file handle; to be used for objects created from file
+    load_metadata : bool
+        option to load conversion, source and display_name; default *True*
+    parse_xml_comment : bool
+        option to parse XML channel comment to search for display name; default
+        *True*
+    for dynamically created objects :
+        see the key-value pairs
+
+    Attributes
+    ----------
+    address : int
+        channel address
+    attachments : list
+        list of referenced attachment blocks indexes; the index referece to the
+        attachment block index
+    comment : str
+        channel comment
+    conversion : ChannelConversion
+        channel conversion; *None* if the channel has no conversion
+    display_name : str
+        channel display name; this is extracted from the XML channel comment
+    name : str
+        channel name
+    source : SourceInformation
+        channel source information; *None* if the channel has no source information
+    unit : str
+        channel unit
+
+    """
+
+    __slots__ = 'name', 'unit', 'comment', 'display_name', 'conversion', 'source', 'attachments', 'address', 'dtype_fmt', 'id', 'reserved0', 'block_len', 'links_nr', 'next_ch_addr', 'component_addr', 'name_addr', 'source_addr', 'conversion_addr', 'data_block_addr', 'unit_addr', 'comment_addr', 'channel_type', 'sync_type', 'data_type', 'bit_offset', 'byte_offset', 'bit_count', 'flags', 'pos_invalidation_bit', 'precision', 'reserved1', 'attachment_nr', 'min_raw_value', 'max_raw_value', 'lower_limit', 'upper_limit', 'lower_ext_limit', 'upper_ext_limit'
+
+    def __init__(self, **kwargs):
+
+        if "stream" in kwargs:
+
+            self.address = address = kwargs["address"]
+            stream = kwargs["stream"]
+            stream.seek(address)
+
+            block = stream.read(CN_BLOCK_SIZE)
+
+            (
+                self.id,
+                self.reserved0,
+                self.block_len,
+                self.links_nr,
+            ) = COMMON_uf(block)
+
+            block_len = self.block_len
+
+            if block_len == CN_BLOCK_SIZE:
+
+                (
+                    self.next_ch_addr,
+                    self.component_addr,
+                    self.name_addr,
+                    self.source_addr,
+                    self.conversion_addr,
+                    self.data_block_addr,
+                    self.unit_addr,
+                    self.comment_addr,
+                    self.channel_type,
+                    self.sync_type,
+                    self.data_type,
+                    self.bit_offset,
+                    self.byte_offset,
+                    self.bit_count,
+                    self.flags,
+                    self.pos_invalidation_bit,
+                    self.precision,
+                    self.reserved1,
+                    self.attachment_nr,
+                    self.min_raw_value,
+                    self.max_raw_value,
+                    self.lower_limit,
+                    self.upper_limit,
+                    self.lower_ext_limit,
+                    self.upper_ext_limit,
+                ) = SIMPLE_CHANNEL_PARAMS_uf(block, COMMON_SIZE)
+
+            else:
+
+                1/0
+
+                block = block[24:] + stream.read(block_len - CN_BLOCK_SIZE)
+                links_nr = self["links_nr"]
+
+                links = unpack_from(f"<{links_nr}Q", block)
+                params = unpack_from(v4c.FMT_CHANNEL_PARAMS, block, links_nr * 8)
+
+                (
+                    self["next_ch_addr"],
+                    self["component_addr"],
+                    self["name_addr"],
+                    self["source_addr"],
+                    self["conversion_addr"],
+                    self["data_block_addr"],
+                    self["unit_addr"],
+                    self["comment_addr"],
+                ) = links[:8]
+
+                at_map = kwargs.get("at_map", {})
+                if params[10]:
+                    self.attachments = []
+                    for i in range(params[10]):
+                        self[f"attachment_{i}_addr"] = links[8 + i]
+                        self.attachments.append(at_map.get(links[8 + i], 0))
+
+                if params[6] & v4c.FLAG_CN_DEFAULT_X:
+                    (
+                        self["default_X_dg_addr"],
+                        self["default_X_cg_addr"],
+                        self["default_X_ch_addr"],
+                    ) = links[-3:]
+
+                    # default X not supported yet
+                    (
+                        self["default_X_dg_addr"],
+                        self["default_X_cg_addr"],
+                        self["default_X_ch_addr"],
+                    ) = (0, 0, 0)
+
+                (
+                    self["channel_type"],
+                    self["sync_type"],
+                    self["data_type"],
+                    self["bit_offset"],
+                    self["byte_offset"],
+                    self["bit_count"],
+                    self["flags"],
+                    self["pos_invalidation_bit"],
+                    self["precision"],
+                    self["reserved1"],
+                    self["attachment_nr"],
+                    self["min_raw_value"],
+                    self["max_raw_value"],
+                    self["lower_limit"],
+                    self["upper_limit"],
+                    self["lower_ext_limit"],
+                    self["upper_ext_limit"],
+                ) = params
+
+            if self.id != b"##CN":
+                message = f'Expected "##CN" block @{hex(address)} but found "{self.id}"'
+                logger.exception(message)
+                raise MdfException(message)
+
+            self.name = get_text_v4(self.name_addr, stream)
+            self.unit = get_text_v4(self.unit_addr, stream)
+            self.comment = get_text_v4(self.comment_addr, stream)
+
+            if kwargs.get("use_display_names", True):
+                try:
+                    display_name = ET.fromstring(sanitize_xml(self.comment)).find(".//names/display")
+                    if display_name is not None:
+                        self.display_name = display_name.text
+                except:
+                    self.display_name = ""
+            else:
+                self.display_name = ""
+
+            si_map = kwargs.get("si_map", {})
+            cc_map = kwargs.get("cc_map", {})
+
+            address = self.conversion_addr
+            if address:
+                stream.seek(address + 8)
+                (size,) = UINT64_u(stream.read(8))
+                stream.seek(address)
+                raw_bytes = stream.read(size)
+                if raw_bytes in cc_map:
+                    conv = cc_map[raw_bytes]
+                else:
+                    conv = ChannelConversion(
+                       raw_bytes=raw_bytes, stream=stream, address=address
+                    )
+                    cc_map[raw_bytes] = conv
+                self.conversion = conv
+            else:
+                self.conversion = None
+
+            address = self.source_addr
+            if address:
+                stream.seek(address)
+                raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                if raw_bytes in si_map:
+                    source = si_map[raw_bytes]
+                else:
+                    source = SourceInformation(
+                        raw_bytes=raw_bytes, stream=stream, address=address
+                    )
+                    si_map[raw_bytes] = source
+                self.source = source
+            else:
+                self.source = None
+            self.dtype_fmt = self.attachments = None
+        else:
+            self.address = 0
+            self.name = self.comment = self.display_name = self.unit = ""
+            self.conversion = self.source = self.attachments = self.dtype_fmt = None
+
+            self["id"] = b"##CN"
+            self["reserved0"] = 0
+            self["block_len"] = v4c.CN_BLOCK_SIZE
+            self["links_nr"] = 8
+            self["next_ch_addr"] = 0
+            self["component_addr"] = 0
+            self["name_addr"] = kwargs.get("name_addr", 0)
+            self["source_addr"] = 0
+            self["conversion_addr"] = 0
+            self["data_block_addr"] = kwargs.get("data_block_addr", 0)
+            self["unit_addr"] = kwargs.get("unit_addr", 0)
+            self["comment_addr"] = kwargs.get("comment_addr", 0)
+            try:
+                self["attachment_0_addr"] = kwargs["attachment_0_addr"]
+                self["block_len"] += 8
+                self["links_nr"] += 1
+                attachments = 1
+            except KeyError:
+                attachments = 0
+            self["channel_type"] = kwargs["channel_type"]
+            self["sync_type"] = kwargs.get("sync_type", 0)
+            self["data_type"] = kwargs["data_type"]
+            self["bit_offset"] = kwargs["bit_offset"]
+            self["byte_offset"] = kwargs["byte_offset"]
+            self["bit_count"] = kwargs["bit_count"]
+            self["flags"] = kwargs.get("flags", 0)
+            self["pos_invalidation_bit"] = kwargs.get("pos_invalidation_bit", 0)
+            self["precision"] = kwargs.get("precision", 3)
+            self["reserved1"] = 0
+            self["attachment_nr"] = attachments
+            self["min_raw_value"] = kwargs.get("min_raw_value", 0)
+            self["max_raw_value"] = kwargs.get("max_raw_value", 0)
+            self["lower_limit"] = kwargs.get("lower_limit", 0)
+            self["upper_limit"] = kwargs.get("upper_limit", 0)
+            self["lower_ext_limit"] = kwargs.get("lower_ext_limit", 0)
+            self["upper_ext_limit"] = kwargs.get("upper_ext_limit", 0)
+
+        # ignore MLSD signal data
+        if self.channel_type == v4c.CHANNEL_TYPE_MLSD:
+            self.data_block_addr = 0
+            self.channel_type = v4c.CHANNEL_TYPE_VALUE
+
+    # def __getitem__(self, item):
+    #     return self.__dict__[item]
+
+    # def __setitem__(self, item, value):
+    #     self.__dict__[item] = value
+
+    def __getitem__(self, item):
+        return self.__getattribute__(item)
+
+    def __setitem__(self, item, value):
+        self.__setattr__(item, value)
 
     def to_blocks(self, address, blocks, defined_texts, cc_map, si_map):
         key = "name_addr"
@@ -3608,8 +4137,10 @@ class SourceInformation(dict):
         super().__init__()
 
         self.name = self.path = self.comment = ""
+        print('SI')
 
         if "stream" in kwargs:
+
             stream = kwargs["stream"]
             try:
                 block = kwargs["raw_bytes"]
@@ -3659,6 +4190,207 @@ class SourceInformation(dict):
             self["bus_type"] = kwargs.get("bus_type", v4c.BUS_TYPE_NONE)
             self["flags"] = 0
             self["reserved1"] = b"\x00" * 5
+
+    def metadata(self):
+        max_len = max(len(key) for key in self)
+        template = "{{: <{max_len}}}: {{}}"
+
+        metadata = []
+        lines = f"""
+name: {self.name}
+path: {self.path}
+address: {hex(self.address)}
+comment: {self.comment}
+
+""".split("\n")
+        for key, val in self.items():
+            if key.endswith("addr") or key.startswith("text_"):
+                lines.append(template.format(key, hex(val)))
+            elif isinstance(val, float):
+                lines.append(template.format(key, round(val, 6)))
+            else:
+                if isinstance(val, bytes):
+                    lines.append(template.format(key, val.strip(b"\0")))
+                else:
+                    lines.append(template.format(key, val))
+        for line in lines:
+            if not line:
+                metadata.append(line)
+            else:
+                for wrapped_line in wrap(line, width=120):
+                    metadata.append(wrapped_line)
+
+        return "\n".join(metadata)
+
+    def to_blocks(self, address, blocks, defined_texts, si_map):
+        key = "name_addr"
+        text = self.name
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block["block_len"]
+                blocks.append(tx_block)
+        else:
+            self[key] = 0
+
+        key = "path_addr"
+        text = self.path
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                tx_block = TextBlock(text=text)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block["block_len"]
+                blocks.append(tx_block)
+        else:
+            self[key] = 0
+
+        key = "comment_addr"
+        text = self.comment
+        if text:
+            if text in defined_texts:
+                self[key] = defined_texts[text]
+            else:
+                meta = text.startswith("<SIcomment")
+                tx_block = TextBlock(text=text, meta=meta)
+                self[key] = address
+                defined_texts[text] = address
+                tx_block.address = address
+                address += tx_block["block_len"]
+                blocks.append(tx_block)
+        else:
+            self[key] = 0
+
+        bts = bytes(self)
+        if bts in si_map:
+            self.address = si_map[bts]
+        else:
+            blocks.append(bts)
+            si_map[bts] = address
+            self.address = address
+            address += self["block_len"]
+
+        return address
+
+    def to_common_source(self):
+        return SignalSource(
+            self.name, self.path, self.comment, self["source_type"], self["bus_type"]
+        )
+
+    def __bytes__(self):
+        result = pack(
+            v4c.FMT_SOURCE_INFORMATION,
+            *[self[key] for key in v4c.KEYS_SOURCE_INFORMATION]
+        )
+        return result
+
+    def __repr__(self):
+        return "<SourceInformation (name: {}, path: {}, comment: {}, address: {}, fields: {})>".format(
+            self.name, self.path, self.comment, hex(self.address), dict(self)
+        )
+
+
+class SourceInformation:
+    """SIBLOCK class
+
+    *SourceInformation* has the following key-value pairs
+
+    * ``id`` - bytes : block ID; always b'##SI'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``name_addr`` - int : address of TXBLOCK that contains the source name
+    * ``path_addr`` - int : address of TXBLOCK that contains the source path
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK tha contains the
+      source comment
+    * ``source_type`` - int : integer code for source type
+    * ``bus_type`` - int : integer code for source bus type
+    * ``flags`` - int : source flags
+    * ``reserved1`` - bytes : reserved bytes
+
+    Attributes
+    ----------
+    address : int
+        source information address
+    comment : str
+        source comment
+    name : str
+        source name
+    path : str
+        source path
+
+    """
+
+    __slots__ = 'address', 'comment', 'name', 'path', 'id', 'reserved0', 'block_len', 'links_nr', 'name_addr', 'path_addr', 'comment_addr', 'source_type', 'bus_type', 'flags', 'reserved1'
+
+    def __init__(self, **kwargs):
+        self.name = self.path = self.comment = ""
+
+        if "stream" in kwargs:
+
+            stream = kwargs["stream"]
+            try:
+                block = kwargs["raw_bytes"]
+                self.address = kwargs.get("address", 0)
+            except KeyError:
+                self.address = address = kwargs["address"]
+                stream.seek(address)
+                block = stream.read(v4c.SI_BLOCK_SIZE)
+
+            (
+                self["id"],
+                self["reserved0"],
+                self["block_len"],
+                self["links_nr"],
+                self["name_addr"],
+                self["path_addr"],
+                self["comment_addr"],
+                self["source_type"],
+                self["bus_type"],
+                self["flags"],
+                self["reserved1"],
+            ) = unpack(v4c.FMT_SOURCE_INFORMATION, block)
+
+            if self["id"] != b"##SI":
+                message = f'Expected "##SI" block @{hex(address)} but found "{self["id"]}"'
+
+                logger.exception(message)
+                raise MdfException(message)
+
+            self.name = get_text_v4(address=self["name_addr"], stream=stream)
+            self.path = get_text_v4(address=self["path_addr"], stream=stream)
+            self.comment = get_text_v4(
+                address=self["comment_addr"],
+                stream=stream,
+            )
+
+        else:
+            self.address = 0
+            self["id"] = b"##SI"
+            self["reserved0"] = 0
+            self["block_len"] = v4c.SI_BLOCK_SIZE
+            self["links_nr"] = 3
+            self["name_addr"] = kwargs.get("name_addr", 0)
+            self["path_addr"] = kwargs.get("path_addr", 0)
+            self["comment_addr"] = kwargs.get("comment_addr", 0)
+            self["source_type"] = kwargs.get("source_type", v4c.SOURCE_TOOL)
+            self["bus_type"] = kwargs.get("bus_type", v4c.BUS_TYPE_NONE)
+            self["flags"] = 0
+            self["reserved1"] = b"\x00" * 5
+
+    def __getitem__(self, item):
+        return self.__getattribute__(item)
+
+    def __setitem__(self, item, value):
+        self.__setattr__(item, value)
 
     def metadata(self):
         max_len = max(len(key) for key in self)

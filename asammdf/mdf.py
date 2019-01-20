@@ -1111,6 +1111,7 @@ class MDF(object):
                     if j % 1000 == 0:
                         print(i, j)
                     if pc()-start__ > 180:
+                        print('FINAL', i, j)
                         return
                     sig = self.get(
                         group=i,
@@ -1119,7 +1120,6 @@ class MDF(object):
                     ).interp(master, self._integer_interpolation)
 
                     if len(sig.samples.shape) > 1:
-                        print(sig.name)
                         arr = [sig.samples]
                         types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
                         sig.samples = np.core.records.fromarrays(arr, dtype=types)
@@ -3002,11 +3002,11 @@ class MDF(object):
 
         """
 
-        def components(channel, unique_names, prefix=''):
+        def components(channel, channel_name, unique_names, prefix=''):
             names = channel.dtype.names
 
             # channel arrays
-            if names[0] == channel.name:
+            if names[0] == channel_name:
                 name = names[0]
 
                 name_ = unique_names.get_unique_name(f"{prefix}.{name}")
@@ -3017,7 +3017,7 @@ class MDF(object):
                     types = [('', values.dtype, values.shape[1:])]
                     values = np.core.records.fromarrays(arr, dtype=types)
                     del arr
-                yield name_, Series(values)
+                yield name_, Series(values, dtype='O')
 
                 for name in names[1:]:
                     values = channel[name]
@@ -3035,7 +3035,7 @@ class MDF(object):
                     values = channel[name]
 
                     if values.dtype.names:
-                        yield from components(values, unique_names, prefix=f"{prefix}.{name}")
+                        yield from components(values, name, unique_names, prefix=f"{prefix}.{name}")
 
                     else:
                         name_ = unique_names.get_unique_name(f"{prefix}.{name}")
@@ -3101,12 +3101,21 @@ class MDF(object):
                 if j % 1000 == 0:
                     print(i, j)
                 if pc()-start__ > 180:
+                    print('FINAL', i, j)
                     return
                 sig = self.get(
                     group=i,
                     index=j,
                     data=data,
                 ).interp(master, self._integer_interpolation)
+
+                if len(sig) == 0:
+                    if empty_channels == "zeros":
+                        sig.samples = np.zeros(
+                            len(master), dtype=sig.samples.dtype
+                        )
+                    else:
+                        continue
 
                 # byte arrays
                 if len(sig.samples.shape) > 1:
@@ -3121,11 +3130,11 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    df[channel_name] = Series(sig.samples)
+                    df[channel_name] = Series(sig.samples, dtype='O')
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
-                    for name, series in components(sig.samples, used_names):
+                    for name, series in components(sig.samples, sig.name, used_names):
                         df[name] = series
 
                 # scalars
@@ -3143,26 +3152,6 @@ class MDF(object):
                     channel_name = sig.display_name or sig.name
                 else:
                     channel_name = sig.name
-
-                channel_name = used_names.get_unique_name(channel_name)
-
-                if len(sig):
-                    try:
-                        # df = df.assign(**{channel_name: sig.samples})
-                        if sig.samples.dtype.names:
-
-                            df[channel_name] = Series(sig.samples, dtype='O')
-                        else:
-                            df[channel_name] = Series(sig.samples)
-                    except:
-                        print(sig.samples.dtype, sig.samples.shape, sig.name)
-                        print(list(df), len(df))
-                        raise
-                else:
-                    if empty_channels == "zeros":
-                        df[channel_name] = np.zeros(
-                            len(master), dtype=sig.samples.dtype
-                        )
 
             del self._master_channel_cache[(i, 0, -1)]
 
