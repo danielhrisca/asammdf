@@ -415,7 +415,7 @@ class MDF(object):
                     if gp_nr == index:
                         included_channels.add(ch_nr)
         else:
-            if group.get("CAN_logging", False):
+            if group.CAN_logging:
                 where = (
                     self.whereis("CAN_DataFrame")
                     + self.whereis("CAN_ErrorFrame")
@@ -510,6 +510,7 @@ class MDF(object):
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
+
             encodings = [None, ]
             included_channels = self._included_channels(i)
             if included_channels:
@@ -522,12 +523,16 @@ class MDF(object):
 
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
-                if dtypes.itemsize:
-                    group["record"] = np.core.records.fromstring(
-                        fragment[0], dtype=dtypes
-                    )
-                else:
-                    group["record"] = None
+                try:
+                    if dtypes.itemsize:
+                        group["record"] = np.core.records.fromstring(
+                            fragment[0], dtype=dtypes
+                        )
+                    else:
+                        group["record"] = None
+                except:
+                    print(group.types, group.parents)
+                    raise
 
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
@@ -620,7 +625,7 @@ class MDF(object):
                         sigs.append(sig)
                     out.extend(cg_nr, sigs)
 
-                del group["record"]
+                group["record"] = None
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -882,7 +887,7 @@ class MDF(object):
 
                     idx += 1
 
-                del group["record"]
+                group["record"] = None
 
             # if the cut interval is not found in the measurement
             # then append an empty data group
@@ -1772,7 +1777,7 @@ class MDF(object):
                     if sigs:
                         mdf.extend(new_index, sigs)
 
-                del group["record"]
+                group["record"] = None
 
             if self._callback:
                 self._callback(new_index + 1, groups_nr)
@@ -2119,7 +2124,7 @@ class MDF(object):
                                 first_timestamp = master[0]
                         idx += 1
 
-                    del group["record"]
+                    group["record"] = None
 
                 last_timestamps[i] = last_timestamp
                 if first_timestamp is not None:
@@ -2315,7 +2320,7 @@ class MDF(object):
                                 stacked.extend(cg_nr, signals)
                         idx += 1
 
-                    del group["record"]
+                    group["record"] = None
 
                 stacked.groups[-1]['channel_group'].comment = (
                     f"stacked from channel group {i} of \"{mdf.name.parent}\""
@@ -2617,7 +2622,7 @@ class MDF(object):
                         signal_parts[(group, index)] = [signal]
                     else:
                         signal_parts[(group, index)].append(signal)
-                del grp["record"]
+                grp["record"] = None
 
         signals = []
         for pair in indexes:

@@ -1381,9 +1381,9 @@ class MDF4(object):
             mapping of channels to records fields, records fields dtype
 
         """
-        try:
+        if group.parents is not None:
             parents, dtypes = group.parents, group.types
-        except KeyError:
+        else:
 
             grp = group
             channel_group = grp.channel_group
@@ -2259,7 +2259,7 @@ class MDF4(object):
 
         dg_cntr = len(self.groups)
 
-        gp = {}
+        gp = Group(None)
         gp.signal_data = gp_sdata = []
         gp.signal_data_size = gp_sdata_size = []
         gp.channels = gp_channels = []
@@ -2967,7 +2967,7 @@ class MDF4(object):
 
         dg_cntr = len(self.groups)
 
-        gp = {}
+        gp = Group(None)
         gp.signal_data = gp_sdata = []
         gp.signal_data_size = gp_sdata_size = []
         gp.channels = gp_channels = []
@@ -3734,9 +3734,8 @@ class MDF4(object):
             dependency_list = grp.channel_dependencies[ch_nr]
 
             # get data group record
-            try:
-                parents, dtypes = grp.parents, grp.types
-            except KeyError:
+            parents, dtypes = grp.parents, grp.types
+            if parents is None:
                 grp.parents, grp.types = self._prepare_record(grp)
                 parents, dtypes = grp.parents, grp.types
 
@@ -3759,9 +3758,8 @@ class MDF4(object):
             bit_count = channel["bit_count"]
         else:
             # get data group record
-            try:
-                parents, dtypes = grp.parents, grp.types
-            except KeyError:
+            parents, dtypes = grp.parents, grp.types
+            if parents is None:
                 grp.parents, grp.types = self._prepare_record(grp)
                 parents, dtypes = grp.parents, grp.types
 
@@ -3891,7 +3889,7 @@ class MDF4(object):
                         parent, bit_offset = None, None
 
                     if parent is not None:
-                        if "record" not in grp:
+                        if grp.record is None:
                             if dtypes.itemsize:
                                 record = fromstring(data_bytes, dtype=dtypes)
                             else:
@@ -4528,7 +4526,7 @@ class MDF4(object):
             else:
                 source = None
 
-            if channel.attachments:
+            if channel.attachment:
                 attachment = self.extract_attachment(index=channel.attachments[0])
             elif channel_type == v4c.CHANNEL_TYPE_SYNC:
                 index = self._attachments_map[channel.data_block_addr]
@@ -4667,9 +4665,8 @@ class MDF4(object):
 
             else:
                 # get data group parents and dtypes
-                try:
-                    parents, dtypes = group.parents, group.types
-                except KeyError:
+                parents, dtypes = group.parents, group.types
+                if parents is None:
                     parents, dtypes = self._prepare_record(group)
                     group.parents, group.types = parents, dtypes
 
@@ -4692,6 +4689,8 @@ class MDF4(object):
                                 record = fromstring(data_bytes, dtype=dtypes)
                             else:
                                 record = None
+                        else:
+                            record = group.record
 
                         t = record[parent]
                     else:

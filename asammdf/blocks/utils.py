@@ -941,6 +941,7 @@ class Group:
         'logging_channels',
         'data_block',
         'channel_dependencies',
+        'signal_data_size',
         'signal_data',
         'channel_group',
         'record_size',
@@ -965,6 +966,7 @@ class Group:
         'parents',
         'types',
         'signal_types',
+        'size',
 
     )
 
@@ -984,6 +986,9 @@ class Group:
         self.message_id = None
         self.CAN_database = False
         self.dbc_addr = None
+        self.parents = None
+        self.types = None
+        self.record = None
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
