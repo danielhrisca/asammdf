@@ -4517,11 +4517,19 @@ class MDF4(object):
             cg_source = grp.channel_group.acq_source
             if source:
                 source = SignalSource(
-                    source.name or (cg_source and cg_source.name) or "",
+                    source.name,
                     source.path,
                     source.comment,
                     source.source_type,
                     source.bus_type,
+                )
+            elif cg_source:
+                source = SignalSource(
+                    cg_source.name,
+                    cg_source.path,
+                    cg_source.comment,
+                    cg_source.source_type,
+                    cg_source.bus_type,
                 )
             else:
                 source = None
