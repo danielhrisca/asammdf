@@ -77,6 +77,7 @@ from .utils import (
     info_to_datatype_v4,
     is_file_like,
     sanitize_xml,
+    Group,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -321,7 +322,7 @@ class MDF4(object):
         while fh_addr:
             history_block = FileHistory(address=fh_addr, stream=stream)
             self.file_history.append(history_block)
-            fh_addr = history_block["next_fh_addr"]
+            fh_addr = history_block.next_fh_addr
 
         # read attachments
         at_addr = self.header["first_attachment_addr"]
@@ -330,19 +331,19 @@ class MDF4(object):
             at_block = AttachmentBlock(address=at_addr, stream=stream)
             self._attachments_map[at_addr] = index
             self.attachments.append(at_block)
-            at_addr = at_block["next_at_addr"]
+            at_addr = at_block.next_at_addr
             index += 1
 
         # go to first date group and read each data group sequentially
-        dg_addr = self.header["first_dg_addr"]
+        dg_addr = self.header.first_dg_addr
 
         while dg_addr:
             new_groups = []
             group = DataGroup(address=dg_addr, stream=stream)
-            record_id_nr = group["record_id_len"]
+            record_id_nr = group.record_id_len
 
             # go to first channel group of the current data group
-            cg_addr = group["first_cg_addr"]
+            cg_addr = group.first_cg_addr
 
             cg_nr = 0
 
@@ -351,31 +352,23 @@ class MDF4(object):
             while cg_addr:
                 cg_nr += 1
 
-                grp = {}
-
-                grp["channels"] = []
-                grp["logging_channels"] = []
-                grp["data_block"] = None
-                grp["channel_dependencies"] = []
-                grp["signal_data"] = []
-                grp["reduction_blocks"] = []
-                grp["reduction_data_block"] = []
+                grp = Group(group)
 
                 # read each channel group sequentially
                 block = ChannelGroup(address=cg_addr, stream=stream)
                 self._cg_map[cg_addr] = dg_cntr
-                channel_group = grp["channel_group"] = block
+                channel_group = grp.channel_group = block
 
-                grp["record_size"] = cg_size
+                grp.record_size = cg_size
 
-                if channel_group["flags"] & v4c.FLAG_CG_VLSD:
+                if channel_group.flags & v4c.FLAG_CG_VLSD:
                     # VLDS flag
-                    record_id = channel_group["record_id"]
+                    record_id = channel_group.record_id
                     cg_size[record_id] = 0
-                elif channel_group["flags"] & v4c.FLAG_CG_BUS_EVENT:
-                    bus_type = channel_group.acq_source["bus_type"]
+                elif channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                    bus_type = channel_group.acq_source.bus_type
                     if bus_type == v4c.BUS_TYPE_CAN:
-                        grp["CAN_logging"] = True
+                        grp.CAN_logging = True
                         message_name = channel_group.acq_name
 
                         comment = channel_group.acq_source.comment
@@ -384,14 +377,14 @@ class MDF4(object):
                         for e in common_properties:
                             name = e.get("name")
                             if name == "ChannelNo":
-                                grp["CAN_id"] = f"CAN{e.text}"
+                                grp.CAN_id = f"CAN{e.text}"
                                 break
 
                         if message_name == "CAN_DataFrame":
                             # this is a raw CAN bus logging channel group
                             # it will be later processed to extract all
                             # signals to new groups (one group per CAN message)
-                            grp["raw_can"] = True
+                            grp.raw_can = True
 
                         elif message_name in ("CAN_ErrorFrame", "CAN_RemoteFrame"):
                             # for now ignore bus logging flag
@@ -420,11 +413,9 @@ class MDF4(object):
                                     if message_id > 0:
                                         if message_id > 0x80000000:
                                             message_id -= 0x80000000
-                                            grp["extended_id"] = True
-                                        else:
-                                            grp["extended_id"] = False
-                                        grp["message_name"] = message_name
-                                        grp["message_id"] = message_id
+                                            grp.extended_id = True
+                                        grp.message_name = message_name
+                                        grp.message_id = message_id
 
                                 else:
                                     message = f"Invalid bus logging channel group metadata: {comment}"
@@ -438,27 +429,24 @@ class MDF4(object):
                     else:
                         # only CAN bus logging is supported
                         pass
-                    samples_size = channel_group["samples_byte_nr"]
-                    inval_size = channel_group["invalidation_bytes_nr"]
-                    record_id = channel_group["record_id"]
+                    samples_size = channel_group.samples_byte_nr
+                    inval_size = channel_group.invalidation_bytes_nr
+                    record_id = channel_group.record_id
                     cg_size[record_id] = samples_size + inval_size
                 else:
 
-                    samples_size = channel_group["samples_byte_nr"]
-                    inval_size = channel_group["invalidation_bytes_nr"]
-                    record_id = channel_group["record_id"]
+                    samples_size = channel_group.samples_byte_nr
+                    inval_size = channel_group.invalidation_bytes_nr
+                    record_id = channel_group.record_id
                     cg_size[record_id] = samples_size + inval_size
 
                 if record_id_nr:
-                    grp["sorted"] = False
+                    grp.sorted = False
                 else:
-                    grp["sorted"] = True
-
-                data_group = DataGroup(address=dg_addr, stream=stream)
-                grp["data_group"] = data_group
+                    grp.sorted = True
 
                 # go to first channel of the current channel group
-                ch_addr = channel_group["first_ch_addr"]
+                ch_addr = channel_group.first_ch_addr
                 ch_cntr = 0
                 neg_ch_cntr = -1
 
@@ -466,7 +454,7 @@ class MDF4(object):
                 # starting from the first channel
                 self._read_channels(ch_addr, grp, stream, dg_cntr, ch_cntr, neg_ch_cntr)
 
-                cg_addr = channel_group["next_cg_addr"]
+                cg_addr = channel_group.next_cg_addr
                 dg_cntr += 1
 
                 current_cg_index += 1
@@ -483,55 +471,37 @@ class MDF4(object):
             # new group data belong to the initial unsorted group, and add
             # the key 'sorted' with the value False to use a flag;
 
-            address = group["data_block_addr"]
+            address = group.data_block_addr
 
             info = self._get_data_blocks_info(
                 address=address, stream=stream, block_type=b"##DT"
             )
 
             for grp in new_groups:
-                grp["data_location"] = v4c.LOCATION_ORIGINAL_FILE
-                grp.update(info)
-
-            # sample reduction blocks
-            addr = grp["channel_group"]["first_sample_reduction_addr"]
-
-            while addr:
-
-                reduction_block = SampleReductionBlock(address=addr, stream=stream)
-                address = reduction_block["data_block_addr"]
-
-                grp["reduction_blocks"].append(reduction_block)
-
-                grp["reduction_data_block"].append(
-                    self._get_data_blocks_info(
-                        address=address, stream=stream, block_type=b"##RD"
-                    )
-                )
-
-                addr = reduction_block["next_sr_addr"]
+                grp.data_location= v4c.LOCATION_ORIGINAL_FILE
+                grp.set_blocks_info(info)
 
             self.groups.extend(new_groups)
 
-            dg_addr = group["next_dg_addr"]
+            dg_addr = group.next_dg_addr
 
         # all channels have been loaded so now we can link the
         # channel dependencies and load the signal data for VLSD channels
         for grp in self.groups:
-            for dep_list in grp["channel_dependencies"]:
+            for dep_list in grp.channel_dependencies:
                 if not dep_list:
                     continue
 
                 for dep in dep_list:
                     if isinstance(dep, ChannelArrayBlock):
                         conditions = (
-                            dep["ca_type"] == v4c.CA_TYPE_LOOKUP,
-                            dep["links_nr"] == 4 * dep["dims"] + 1,
+                            dep.ca_type == v4c.CA_TYPE_LOOKUP,
+                            dep.links_nr == 4 * dep.dims + 1,
                         )
                         if not all(conditions):
                             continue
 
-                        for i in range(dep["dims"]):
+                        for i in range(dep.dims):
                             ch_addr = dep[f"scale_axis_{i}_ch_addr"]
                             ref_channel = self._ch_map[ch_addr]
                             dep.referenced_channels.append(ref_channel)
@@ -544,16 +514,16 @@ class MDF4(object):
         raw_can = []
         processed_can = []
         for i, group in enumerate(self.groups):
-            if group.get("CAN_logging", False):
-                if group["CAN_id"] not in self.can_logging_db:
-                    self.can_logging_db[group["CAN_id"]] = {}
-                message_id = group.get("message_id", None)
+            if group.CAN_logging:
+                if group.CAN_id not in self.can_logging_db:
+                    self.can_logging_db[group.CAN_id] = {}
+                message_id = group.message_id
                 if message_id is not None:
-                    self.can_logging_db[group["CAN_id"]][message_id] = i
+                    self.can_logging_db[group.CAN_id][message_id] = i
             else:
                 continue
 
-            if group.get("raw_can", False):
+            if group.raw_can:
                 can_ids = self.get(
                     "CAN_DataFrame.ID", group=i, ignore_invalidation_bits=True
                 )
@@ -580,10 +550,10 @@ class MDF4(object):
 
                     board_units = set(bu.name for bu in db.boardUnits)
 
-                    cg_source = group["channel_group"].acq_source
+                    cg_source = group.channel_group.acq_source
 
                     for message_id in all_can_ids:
-                        self.can_logging_db[group["CAN_id"]][message_id] = i
+                        self.can_logging_db[group.CAN_id][message_id] = i
                         sigs = []
                         can_msg = db.frameById(message_id)
 
@@ -613,7 +583,7 @@ class MDF4(object):
                         for signal in sorted(can_msg.signals, key=lambda x: x.name):
 
                             sig_vals = self.get_can_signal(
-                                f'CAN{group["CAN_id"]}.{can_msg.name}.{signal.name}',
+                                f'CAN{group.CAN_id}.{can_msg.name}.{signal.name}',
                                 db=db,
                                 ignore_invalidation_bits=True,
                             ).samples
@@ -638,16 +608,16 @@ class MDF4(object):
                             )
 
                         processed_can.append(
-                            [sigs, message_id, message_name, cg_source, group["CAN_id"]]
+                            [sigs, message_id, message_name, cg_source, group.CAN_id]
                         )
                 else:
                     at_name = attachment[1] if attachment else ""
                     message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
                     logger.warning(message)
-                    grp["CAN_database"] = False
+                    grp.CAN_database = False
                     raw_can.append(i)
                     sigs = []
-                    cg_source = group["channel_group"].acq_source
+                    cg_source = group.channel_group.acq_source
 
                     for message_id in all_can_ids:
 
@@ -674,7 +644,7 @@ class MDF4(object):
                             )
                         )
                         processed_can.append(
-                            [sigs, message_id, "", cg_source, group["CAN_id"]]
+                            [sigs, message_id, "", cg_source, group.CAN_id]
                         )
 
         # delete the groups that contain raw CAN bus logging and also
@@ -709,32 +679,32 @@ class MDF4(object):
                     sigs, "Extracted from raw CAN bus logging", common_timebase=True
                 )
                 group = self.groups[-1]
-                group["CAN_database"] = message_name != ""
-                group["CAN_logging"] = True
-                group["CAN_id"] = can_id
+                group.CAN_database = message_name != ""
+                group.CAN_logging = True
+                group.CAN_id = can_id
                 if message_id > 0:
                     if message_id > 0x80000000:
                         message_id -= 0x80000000
-                        group["extended_id"] = True
+                        group.extended_id = True
                     else:
-                        group["extended_id"] = False
-                    group["message_name"] = message_name
-                    group["message_id"] = message_id
-                group["channel_group"].acq_source = cg_source
-                group["data_group"].comment = f'From message {hex(message_id)}="{message_name}"'
+                        group.extended_id = False
+                    group.message_name = message_name
+                    group.message_id = message_id
+                group.channel_group.acq_source = cg_source
+                group.data_group.comment = f'From message {hex(message_id)}="{message_name}"'
 
         self.can_logging_db = {}
 
         for i, group in enumerate(self.groups):
-            if not group.get("CAN_logging", False):
+            if not group.CAN_logging:
                 continue
-            if not group["CAN_id"] in self.can_logging_db:
-                self.can_logging_db[group["CAN_id"]] = {}
-            if "message_id" in group:
-                self.can_logging_db[group["CAN_id"]][group["message_id"]] = i
+            if not group.CAN_id in self.can_logging_db:
+                self.can_logging_db[group.CAN_id] = {}
+            if group.message_id is not None:
+                self.can_logging_db[group.CAN_id][group.message_id] = i
 
         # read events
-        addr = self.header["first_event_addr"]
+        addr = self.header.first_event_addr
         ev_map = {}
         event_index = 0
         while addr:
@@ -744,14 +714,14 @@ class MDF4(object):
             ev_map[addr] = event_index
             event_index += 1
 
-            addr = event["next_ev_addr"]
+            addr = event.next_ev_addr
 
         for event in self.events:
-            addr = event["parent_ev_addr"]
+            addr = event.parent_ev_addr
             if addr:
                 event.parent = ev_map[addr]
 
-            addr = event["range_start_ev_addr"]
+            addr = event.range_start_ev_addr
             if addr:
                 event.range_start = ev_map[addr]
 
@@ -773,9 +743,9 @@ class MDF4(object):
         channel_composition=False,
     ):
 
-        channels = grp["channels"]
+        channels = grp.channels
 
-        dependencies = grp["channel_dependencies"]
+        dependencies = grp.channel_dependencies
 
         composition = []
         while ch_addr:
@@ -804,15 +774,15 @@ class MDF4(object):
             self.channels_db.add(name, entry)
 
             # signal data
-            address = channel["data_block_addr"]
-            grp["signal_data"].append(address)
+            address = channel.data_block_addr
+            grp.signal_data.append(address)
 
-            if channel["channel_type"] in MASTER_CHANNELS:
+            if channel.channel_type in MASTER_CHANNELS:
                 self.masters_db[dg_cntr] = ch_cntr
 
             ch_cntr += 1
 
-            component_addr = channel["component_addr"]
+            component_addr = channel.component_addr
 
             if component_addr:
                 # check if it is a CABLOCK or CNBLOCK
@@ -833,10 +803,13 @@ class MDF4(object):
                     dependencies[index] = ret_composition
 
                     if (
-                        grp.get("CAN_id", None) is not None
-                        and grp.get("message_id", None) is not None
+                        grp.CAN_id is not None
+                        and grp.message_id is not None
                     ):
-                        addr = channel.get("attachment_0_addr", 0)
+                        try:
+                            addr = channel.attachment_addr
+                        except:
+                            addr = 0
                         if addr:
                             attachment_addr = self._attachments_map[addr]
                             if attachment_addr not in self._dbc_cache:
@@ -849,7 +822,7 @@ class MDF4(object):
                                 ):
                                     message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
                                     logger.warning(message)
-                                    grp["CAN_database"] = False
+                                    grp.CAN_database = False
                                 else:
                                     import_type = (
                                         "dbc"
@@ -863,7 +836,7 @@ class MDF4(object):
                                             importType=import_type,
                                             key="db",
                                         )["db"]
-                                        grp["CAN_database"] = True
+                                        grp.CAN_database = True
                                     except UnicodeDecodeError:
                                         try:
                                             from cchardet import detect
@@ -878,7 +851,7 @@ class MDF4(object):
                                                 key="db",
                                                 encoding=encoding,
                                             )["db"]
-                                            grp["CAN_database"] = True
+                                            grp.CAN_database = True
                                         except ImportError:
                                             message = (
                                                 "Unicode exception occured while processing the database "
@@ -888,23 +861,23 @@ class MDF4(object):
                                                 " encoding was used"
                                             )
                                             logger.warning(message)
-                                            grp["CAN_database"] = False
+                                            grp.CAN_database = False
                             else:
-                                grp["CAN_database"] = True
+                                grp.CAN_database = True
                         else:
-                            grp["CAN_database"] = False
+                            grp.CAN_database = False
 
-                        if grp["CAN_database"]:
+                        if grp.CAN_database:
 
                             # here we make available multiple ways to refer to
                             # CAN signals by using fake negative indexes for
                             # the channel entries in the channels_db
 
-                            grp["dbc_addr"] = attachment_addr
+                            grp.dbc_addr = attachment_addr
 
-                            message_id = grp["message_id"]
-                            message_name = grp["message_name"]
-                            can_id = grp["CAN_id"]
+                            message_id = grp.message_id
+                            message_name = grp.message_name
+                            can_id = grp.CAN_id
 
                             can_msg = self._dbc_cache[attachment_addr].frameById(
                                 message_id
@@ -918,7 +891,7 @@ class MDF4(object):
 
                             payload = channels[index]
 
-                            logging_channels = grp["logging_channels"]
+                            logging_channels = grp.logging_channels
 
                             for signal in can_msg.signals:
                                 signal_name = signal.name
@@ -953,8 +926,8 @@ class MDF4(object):
                                 kwargs = {
                                     "channel_type": v4c.CHANNEL_TYPE_VALUE,
                                     "data_type": s_type,
-                                    "sync_type": payload["sync_type"],
-                                    "byte_offset": byte_offset + payload["byte_offset"],
+                                    "sync_type": payload.sync_type,
+                                    "byte_offset": byte_offset + payload.byte_offset,
                                     "bit_offset": bit_offset,
                                     "bit_count": bit_count,
                                     "min_raw_value": 0,
@@ -962,9 +935,7 @@ class MDF4(object):
                                     "lower_limit": 0,
                                     "upper_limit": 0,
                                     "flags": 0,
-                                    "pos_invalidation_bit": payload[
-                                        "pos_invalidation_bit"
-                                    ],
+                                    "pos_invalidation_bit": payload.pos_invalidation_bit,
                                 }
 
                                 log_channel = Channel(**kwargs)
@@ -993,7 +964,7 @@ class MDF4(object):
 
                                 neg_ch_cntr -= 1
 
-                            grp["channel_group"][
+                            grp.channel_group[
                                 "flags"
                             ] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
 
@@ -1003,12 +974,12 @@ class MDF4(object):
                     ca_block = ChannelArrayBlock(
                         address=component_addr, stream=stream
                     )
-                    if ca_block["storage"] != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
+                    if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
                         logger.warning("Only CN template arrays are supported")
                     ca_list = [ca_block]
-                    while ca_block["composition_addr"]:
+                    while ca_block.composition_addr:
                         ca_block = ChannelArrayBlock(
-                            address=ca_block["composition_addr"], stream=stream
+                            address=ca_block.composition_addr, stream=stream
                         )
                         ca_list.append(ca_block)
                     dependencies.append(ca_list)
@@ -1017,7 +988,7 @@ class MDF4(object):
                 dependencies.append(None)
 
             # go to next channel of the current channel group
-            ch_addr = channel["next_ch_addr"]
+            ch_addr = channel.next_ch_addr
 
         return ch_cntr, neg_ch_cntr, composition
 
@@ -1047,10 +1018,10 @@ class MDF4(object):
             blk_id = stream.read(4)
             if blk_id == b"##SD":
                 data = DataBlock(address=address, stream=stream)
-                data = data["data"]
+                data = data.data
             elif blk_id == b"##DZ":
                 data = DataZippedBlock(address=address, stream=stream)
-                data = data["data"]
+                data = data.data
             elif blk_id == b"##CG":
                 group = self.groups[self._cg_map[address]]
                 data = b"".join(fragment[0] for fragment in self._load_data(group))
@@ -1059,7 +1030,7 @@ class MDF4(object):
                 while address:
                     # the data list will contain only links to SDBLOCK's
                     data_list = DataList(address=address, stream=stream)
-                    nr = data_list["links_nr"]
+                    nr = data_list.links_nr
                     # aggregate data from all SDBLOCK
                     for i in range(nr - 1):
                         addr = data_list[f"data_block_addr{i}"]
@@ -1067,15 +1038,15 @@ class MDF4(object):
                         blk_id = stream.read(4)
                         if blk_id == b"##SD":
                             block = DataBlock(address=addr, stream=stream)
-                            data.append(block["data"])
+                            data.append(block.data)
                         elif blk_id == b"##DZ":
                             block = DataZippedBlock(address=addr, stream=stream)
-                            data.append(block["data"])
+                            data.append(block.data)
                         else:
                             message = f'Expected SD, DZ or DL block at {hex(address)} but found id="{blk_id}"'
                             logger.warning(message)
                             return b""
-                    address = data_list["next_dl_addr"]
+                    address = data_list.next_dl_addr
                 data = b"".join(data)
             elif blk_id == b"##CN":
                 data = b""
@@ -1083,7 +1054,7 @@ class MDF4(object):
                 hl = HeaderList(address=address, stream=stream)
 
                 data = self._load_signal_data(
-                    address=hl["first_dl_addr"], stream=stream, group=group, index=index
+                    address=hl.first_dl_addr, stream=stream, group=group, index=index
                 )
             elif blk_id == b"##AT":
                 data = b""
@@ -1093,18 +1064,18 @@ class MDF4(object):
                 data = b""
 
         elif group is not None and index is not None:
-            if group["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
+            if group.data_location== v4c.LOCATION_ORIGINAL_FILE:
                 data = self._load_signal_data(
-                    address=group["signal_data"][index], stream=self._file
+                    address=group.signal_data[index], stream=self._file
                 )
-            elif group["data_location"] == v4c.LOCATION_MEMORY:
-                data = group["signal_data"][index]
+            elif group.data_location== v4c.LOCATION_MEMORY:
+                data = group.signal_data[index]
             else:
                 data = []
                 stream = self._tempfile
-                if group["signal_data"][index]:
+                if group.signal_data[index]:
                     for addr, size in zip(
-                        group["signal_data"][index], group["signal_data_size"][index]
+                        group.signal_data[index], group.signal_data_size[index]
                     ):
                         if not size:
                             continue
@@ -1121,10 +1092,10 @@ class MDF4(object):
         offset = 0
         has_yielded = False
         _count = record_count
-        data_group = group["data_group"]
-        channel_group = group["channel_group"]
+        data_group = group.data_group
+        channel_group = group.channel_group
 
-        if group["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
+        if group.data_location== v4c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -1132,12 +1103,12 @@ class MDF4(object):
         read = stream.read
         seek = stream.seek
 
-        block_type = group["data_block_type"]
-        param = group["param"]
+        block_type = group.data_block_type
+        param = group.param
 
         samples_size = (
-            channel_group["samples_byte_nr"]
-            + channel_group["invalidation_bytes_nr"]
+            channel_group.samples_byte_nr
+            + channel_group.invalidation_bytes_nr
         )
 
         record_offset *= samples_size
@@ -1150,12 +1121,12 @@ class MDF4(object):
             yield b"", offset, _count
         else:
 
-            if group["sorted"]:
+            if group.sorted:
                 if self._read_fragment_size:
                     split_size = self._read_fragment_size // samples_size
                     split_size *= samples_size
                 else:
-                    channels_nr = len(group["channels"])
+                    channels_nr = len(group.channels)
 
                     y_axis = CONVERT
 
@@ -1170,16 +1141,16 @@ class MDF4(object):
                 if split_size == 0:
                     split_size = samples_size
 
-            addr = group["data_block_addr"]
+            addr = group.data_block_addr
             blocks = zip(
-                group["data_block_addr"],
-                group["data_size"],
-                group["data_block_size"],
+                group.data_block_addr,
+                group.data_size,
+                group.data_block_size,
             )
 
             if addr:
 
-                if group["sorted"]:
+                if group.sorted:
 
                     if block_type == v4c.DT_BLOCK:
                         cur_size = 0
@@ -1333,9 +1304,9 @@ class MDF4(object):
 
                         rec_data = []
 
-                        cg_size = group["record_size"]
-                        record_id = channel_group["record_id"]
-                        record_id_nr = data_group["record_id_len"]
+                        cg_size = group.record_size
+                        record_id = channel_group.record_id
+                        record_id_nr = data_group.record_id_len
 
                         if record_id_nr == 1:
                             _unpack_stuct = UINT8_u
@@ -1411,15 +1382,15 @@ class MDF4(object):
 
         """
         try:
-            parents, dtypes = group["parents"], group["types"]
+            parents, dtypes = group.parents, group.types
         except KeyError:
 
             grp = group
-            channel_group = grp["channel_group"]
-            channels = grp["channels"]
+            channel_group = grp.channel_group
+            channels = grp.channels
 
-            record_size = channel_group["samples_byte_nr"]
-            invalidation_bytes_nr = channel_group["invalidation_bytes_nr"]
+            record_size = channel_group.samples_byte_nr
+            invalidation_bytes_nr = channel_group.invalidation_bytes_nr
             next_byte_aligned_position = 0
             types = []
             current_parent = ""
@@ -1432,12 +1403,12 @@ class MDF4(object):
             sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
             for original_index, new_ch in sortedchannels:
 
-                start_offset = new_ch["byte_offset"]
-                bit_offset = new_ch["bit_offset"]
-                data_type = new_ch["data_type"]
-                bit_count = new_ch["bit_count"]
-                ch_type = new_ch["channel_type"]
-                dependency_list = grp["channel_dependencies"][original_index]
+                start_offset = new_ch.byte_offset
+                bit_offset = new_ch.bit_offset
+                data_type = new_ch.data_type
+                bit_count = new_ch.bit_count
+                ch_type = new_ch.channel_type
+                dependency_list = grp.channel_dependencies[original_index]
                 name = new_ch.name
 
                 # handle multiple occurance of same channel name
@@ -1495,14 +1466,14 @@ class MDF4(object):
                                 size = max(bit_count >> 3, 1)
                                 shape = tuple(
                                     ca_block[f"dim_size_{i}"]
-                                    for i in range(ca_block["dims"])
+                                    for i in range(ca_block.dims)
                                 )
 
                                 if (
-                                    ca_block["byte_offset_base"] // size > 1
+                                    ca_block.byte_offset_base // size > 1
                                     and len(shape) == 1
                                 ):
-                                    shape += (ca_block["byte_offset_base"] // size,)
+                                    shape += (ca_block.byte_offset_base // size,)
                                 dim = 1
                                 for d in shape:
                                     dim *= d
@@ -1522,11 +1493,11 @@ class MDF4(object):
 
                             else:
                                 parents[original_index] = None, None
-                                if channel_group["flags"] & v4c.FLAG_CG_BUS_EVENT:
-                                    for logging_channel in grp["logging_channels"]:
+                                if channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                                    for logging_channel in grp.logging_channels:
                                         parents[neg_index] = (
                                             "CAN_DataFrame.DataBytes",
-                                            logging_channel["bit_offset"],
+                                            logging_channel.bit_offset,
                                         )
                                         neg_index -= 1
 
@@ -1599,11 +1570,11 @@ class MDF4(object):
         seek(0, 2)
 
         gp = grp
-        gp_sdata = gp["signal_data"]
-        gp_sdata_size = gp["signal_data_size"]
-        gp_channels = gp["channels"]
-        gp_dep = gp["channel_dependencies"]
-        gp_sig_types = gp["signal_types"]
+        gp_sdata = gp.signal_data
+        gp_sdata_size = gp.signal_data_size
+        gp_channels = gp.channels
+        gp_dep = gp.channel_dependencies
+        gp_sig_types = gp.signal_types
 
         name = signal.name
         names = signal.samples.dtype.names
@@ -1629,11 +1600,11 @@ class MDF4(object):
             "flags": 0,
         }
         if attachment_addr:
-            kwargs["attachment_0_addr"] = attachment_addr
-            kwargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
+            kwargs["attachment_addr"] = attachment_addr
+            kwargs.flags |= v4c.FLAG_CN_BUS_EVENT
         if invalidation_bytes_nr and signal.invalidation_bits is not None:
             inval_bits.append(signal.invalidation_bits)
-            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+            kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
             kwargs["pos_invalidation_bit"] = inval_cntr
             inval_cntr += 1
 
@@ -1717,12 +1688,12 @@ class MDF4(object):
                 }
 
                 if attachment_addr:
-                    kwargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
+                    kwargs.flags |= v4c.FLAG_CN_BUS_EVENT
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -1779,27 +1750,27 @@ class MDF4(object):
             v4c.DATA_TYPE_SIGNED_MOTOROLA,
         )
 
-        record_size = group["channel_group"]["samples_byte_nr"]
+        record_size = group.channel_group.samples_byte_nr
 
         if ch_nr >= 0:
-            channel = group["channels"][ch_nr]
+            channel = group.channels[ch_nr]
         else:
-            channel = group["logging_channels"][-ch_nr - 1]
+            channel = group.logging_channels[-ch_nr - 1]
 
-        bit_offset = channel["bit_offset"]
-        byte_offset = channel["byte_offset"]
-        bit_count = channel["bit_count"]
+        bit_offset = channel.bit_offset
+        byte_offset = channel.byte_offset
+        bit_count = channel.bit_count
 
-        dependencies = group["channel_dependencies"][ch_nr]
+        dependencies = group.channel_dependencies[ch_nr]
         if dependencies and isinstance(dependencies[0], ChannelArrayBlock):
             ca_block = dependencies[0]
 
             size = bit_count >> 3
             shape = tuple(
-                ca_block[f"dim_size_{i}"] for i in range(ca_block["dims"])
+                ca_block[f"dim_size_{i}"] for i in range(ca_block.dims)
             )
-            if ca_block["byte_offset_base"] // size > 1 and len(shape) == 1:
-                shape += (ca_block["byte_offset_base"] // size,)
+            if ca_block.byte_offset_base // size > 1 and len(shape) == 1:
+                shape += (ca_block.byte_offset_base // size,)
             dim = 1
             for d in shape:
                 dim *= d
@@ -1822,7 +1793,7 @@ class MDF4(object):
 
         vals = vals["vals"]
 
-        if channel["data_type"] not in big_endian_types:
+        if channel.data_type not in big_endian_types:
             vals = flip(vals, 1)
 
         vals = unpackbits(vals)
@@ -1844,7 +1815,7 @@ class MDF4(object):
             for i, mask in enumerate(masks):
                 vals[:, i] &= mask
 
-        if channel["data_type"] not in big_endian_types:
+        if channel.data_type not in big_endian_types:
             vals = flip(vals, 1)
 
         if bit_count <= 8:
@@ -1870,10 +1841,10 @@ class MDF4(object):
 
         vals = vals.tostring()
 
-        channel.dtype_fmt = get_fmt_v4(channel["data_type"], bit_count)
+        channel.dtype_fmt = get_fmt_v4(channel.data_type, bit_count)
         fmt = channel.dtype_fmt
         if size <= byte_count:
-            if channel["data_type"] in big_endian_types:
+            if channel.data_type in big_endian_types:
                 types = [("", f"a{byte_count - size}"), ("vals", fmt)]
             else:
                 types = [("vals", fmt), ("", f"a{byte_count - size}")]
@@ -1882,7 +1853,7 @@ class MDF4(object):
 
         vals = fromstring(vals, dtype=dtype(types))["vals"]
 
-        if channel["data_type"] in v4c.SIGNED_INT:
+        if channel.data_type in v4c.SIGNED_INT:
             return as_non_byte_sized_signed_int(vals, bit_count)
         else:
             return vals
@@ -1941,7 +1912,7 @@ class MDF4(object):
                         raise MdfException("Group index out of range")
 
                     try:
-                        grp["channels"][ch_nr]
+                        grp.channels[ch_nr]
                     except IndexError:
                         raise MdfException("Channel index out of range")
         else:
@@ -1990,7 +1961,7 @@ class MDF4(object):
         return gp_nr, ch_nr
 
     def _get_source_name(self, group, index):
-        return self.groups[group]["channels"][index].source.name or ""
+        return self.groups[group].channels[index].source.name or ""
 
     def _get_data_blocks_info(self, address, stream, block_type=b"##DT"):
         info = {
@@ -2049,7 +2020,7 @@ class MDF4(object):
                 info["data_block_type"] = v4c.DT_BLOCK
                 while address:
                     dl = DataList(address=address, stream=stream)
-                    for i in range(dl["data_block_nr"]):
+                    for i in range(dl.data_block_nr):
                         addr = dl[f"data_block_addr{i}"]
                         stream.seek(addr + 8)
                         (size, ) = UINT64_u(stream.read(8))
@@ -2058,19 +2029,19 @@ class MDF4(object):
                             info["data_block_addr"].append(addr + COMMON_SIZE)
                             info["data_size"].append(size)
                             info["data_block_size"].append(size)
-                    address = dl["next_dl_addr"]
+                    address = dl.next_dl_addr
             # or a header list
             elif id_string == b"##HL":
                 hl = HeaderList(address=address, stream=stream)
-                if hl["zip_type"] == v4c.FLAG_DZ_DEFLATE:
+                if hl.zip_type == v4c.FLAG_DZ_DEFLATE:
                     info["data_block_type"] = v4c.DZ_BLOCK_DEFLATE
                 else:
                     info["data_block_type"] = v4c.DZ_BLOCK_TRANSPOSED
 
-                address = hl["first_dl_addr"]
+                address = hl.first_dl_addr
                 while address:
                     dl = DataList(address=address, stream=stream)
-                    for i in range(dl["data_block_nr"]):
+                    for i in range(dl.data_block_nr):
                         addr = dl[f"data_block_addr{i}"]
 
                         stream.seek(addr + 28)
@@ -2081,7 +2052,7 @@ class MDF4(object):
                             info["data_block_size"].append(zip_size)
                             info["param"] = param
 
-                    address = dl["next_dl_addr"]
+                    address = dl.next_dl_addr
 
         return info
 
@@ -2105,8 +2076,8 @@ class MDF4(object):
 
         """
         group = self.groups[group_index]
-        dtypes = group["types"]
-        invalidation_size = group["channel_group"]["invalidation_bytes_nr"]
+        dtypes = group.types
+        invalidation_size = group.channel_group.invalidation_bytes_nr
 
         data_bytes, offset, _count = fragment
         try:
@@ -2289,21 +2260,21 @@ class MDF4(object):
         dg_cntr = len(self.groups)
 
         gp = {}
-        gp["signal_data"] = gp_sdata = []
-        gp["signal_data_size"] = gp_sdata_size = []
-        gp["channels"] = gp_channels = []
-        gp["channel_dependencies"] = gp_dep = []
-        gp["signal_types"] = gp_sig_types = []
-        gp["logging_channels"] = []
+        gp.signal_data = gp_sdata = []
+        gp.signal_data_size = gp_sdata_size = []
+        gp.channels = gp_channels = []
+        gp.channel_dependencies = gp_dep = []
+        gp.signal_types = gp_sig_types = []
+        gp.logging_channels = []
 
         # channel group
         kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
-        gp["channel_group"] = ChannelGroup(**kwargs)
-        gp["channel_group"].name = source_info
+        gp.channel_group = ChannelGroup(**kwargs)
+        gp.channel_group.name = source_info
 
         if any(sig.invalidation_bits is not None for sig in signals):
             invalidation_bytes_nr = 1
-            gp["channel_group"]["invalidation_bytes_nr"] = invalidation_bytes_nr
+            gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
             inval_bits = []
 
@@ -2453,7 +2424,7 @@ class MDF4(object):
 
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
-                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = inval_cntr
                     inval_cntr += 1
 
@@ -2558,7 +2529,7 @@ class MDF4(object):
                 }
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
-                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = inval_cntr
                     inval_cntr += 1
 
@@ -2696,7 +2667,7 @@ class MDF4(object):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -2776,7 +2747,7 @@ class MDF4(object):
                     if invalidation_bytes_nr:
                         if signal.invalidation_bits is not None:
                             inval_bits.append(signal.invalidation_bits)
-                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
                             kwargs["pos_invalidation_bit"] = inval_cntr
                             inval_cntr += 1
 
@@ -2860,7 +2831,7 @@ class MDF4(object):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -2924,7 +2895,7 @@ class MDF4(object):
 
             invalidation_bytes_nr = len(inval_bits) // 8
 
-            gp["channel_group"]["invalidation_bytes_nr"] = invalidation_bytes_nr
+            gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
             inval_bits = fliplr(
                 packbits(array(inval_bits).T).reshape(
@@ -2935,22 +2906,19 @@ class MDF4(object):
             fields.append(inval_bits)
             types.append(("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:]))
 
-        gp["channel_group"]["cycles_nr"] = cycles_nr
-        gp["channel_group"]["samples_byte_nr"] = offset
-        gp["size"] = cycles_nr * (offset + invalidation_bytes_nr)
-
-        gp["reduction_blocks"] = []
-        gp["reduction_data_block"] = []
+        gp.channel_group.cycles_nr = cycles_nr
+        gp.channel_group.samples_byte_nr = offset
+        gp.size = cycles_nr * (offset + invalidation_bytes_nr)
 
         # data group
-        gp["data_group"] = DataGroup()
+        gp.data_group = DataGroup()
 
         # data block
         types = dtype(types)
 
-        gp["sorted"] = True
-        gp["types"] = types
-        gp["parents"] = parents
+        gp.sorted = True
+        gp.types = types
+        gp.parents = parents
 
         if signals:
             samples = fromarrays(fields, dtype=types)
@@ -2964,24 +2932,24 @@ class MDF4(object):
 
         if size:
             data_address = self._tempfile.tell()
-            gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
+            gp.data_location= v4c.LOCATION_TEMPORARY_FILE
             samples.tofile(self._tempfile)
             dim = size
             block_type = v4c.DT_BLOCK
-            gp["data_block_type"] = block_type
-            gp["param"] = 0
-            gp["data_size"] = [size]
-            gp["data_block_size"] = [dim]
-            gp["data_block_addr"] = [data_address]
-            gp["data_block"] = [data_address]
+            gp.data_block_type = block_type
+            gp.param = 0
+            gp.data_size = [size]
+            gp.data_block_size = [dim]
+            gp.data_block_addr = [data_address]
+            gp.data_block = [data_address]
         else:
-            gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-            gp["data_block"] = []
-            gp["data_block_type"] = v4c.DT_BLOCK
-            gp["param"] = 0
-            gp["data_size"] = []
-            gp["data_block_size"] = []
-            gp["data_block_addr"] = []
+            gp.data_location= v4c.LOCATION_TEMPORARY_FILE
+            gp.data_block = []
+            gp.data_block_type = v4c.DT_BLOCK
+            gp.param = 0
+            gp.data_size = []
+            gp.data_block_size = []
+            gp.data_block_addr = []
 
     def _append_dataframe(self, df, source_info="", units=None):
         """
@@ -3000,17 +2968,17 @@ class MDF4(object):
         dg_cntr = len(self.groups)
 
         gp = {}
-        gp["signal_data"] = gp_sdata = []
-        gp["signal_data_size"] = gp_sdata_size = []
-        gp["channels"] = gp_channels = []
-        gp["channel_dependencies"] = gp_dep = []
-        gp["signal_types"] = gp_sig_types = []
-        gp["logging_channels"] = []
+        gp.signal_data = gp_sdata = []
+        gp.signal_data_size = gp_sdata_size = []
+        gp.channels = gp_channels = []
+        gp.channel_dependencies = gp_dep = []
+        gp.signal_types = gp_sig_types = []
+        gp.logging_channels = []
 
         # channel group
         kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
-        gp["channel_group"] = ChannelGroup(**kwargs)
-        gp["channel_group"].acq_name = source_info
+        gp.channel_group = ChannelGroup(**kwargs)
+        gp.channel_group.acq_name = source_info
 
         invalidation_bytes_nr = 0
         inval_bits = []
@@ -3202,22 +3170,19 @@ class MDF4(object):
                 # simple channels don't have channel dependencies
                 gp_dep.append(None)
 
-        gp["channel_group"]["cycles_nr"] = cycles_nr
-        gp["channel_group"]["samples_byte_nr"] = offset
-        gp["size"] = cycles_nr * (offset + invalidation_bytes_nr)
-
-        gp["reduction_blocks"] = []
-        gp["reduction_data_block"] = []
+        gp.channel_group.cycles_nr = cycles_nr
+        gp.channel_group.samples_byte_nr = offset
+        gp.size = cycles_nr * (offset + invalidation_bytes_nr)
 
         # data group
-        gp["data_group"] = DataGroup()
+        gp.data_group = DataGroup()
 
         # data block
         types = dtype(types)
 
-        gp["sorted"] = True
-        gp["types"] = types
-        gp["parents"] = parents
+        gp.sorted = True
+        gp.types = types
+        gp.parents = parents
 
         if df.shape[0]:
             samples = fromarrays(fields, dtype=types)
@@ -3227,25 +3192,25 @@ class MDF4(object):
         size = len(samples) * samples.itemsize
         if size:
             data_address = self._tempfile.tell()
-            gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
+            gp.data_location= v4c.LOCATION_TEMPORARY_FILE
 
             samples.tofile(self._tempfile)
             dim = size
             block_type = v4c.DT_BLOCK
-            gp["data_block_type"] = block_type
-            gp["param"] = 0
-            gp["data_size"] = [size]
-            gp["data_block_size"] = [dim]
-            gp["data_block_addr"] = [data_address]
-            gp["data_block"] = [data_address]
+            gp.data_block_type = block_type
+            gp.param = 0
+            gp.data_size = [size]
+            gp.data_block_size = [dim]
+            gp.data_block_addr = [data_address]
+            gp.data_block = [data_address]
         else:
-            gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-            gp["data_block"] = []
-            gp["data_block_type"] = v4c.DT_BLOCK
-            gp["param"] = 0
-            gp["data_size"] = []
-            gp["data_block_size"] = []
-            gp["data_block_addr"] = []
+            gp.data_location= v4c.LOCATION_TEMPORARY_FILE
+            gp.data_block = []
+            gp.data_block_type = v4c.DT_BLOCK
+            gp.param = 0
+            gp.data_size = []
+            gp.data_block_size = []
+            gp.data_block_addr = []
 
     def extend(self, index, signals):
         """
@@ -3296,9 +3261,9 @@ class MDF4(object):
         types = []
         inval_bits = []
 
-        invalidation_bytes_nr = gp["channel_group"]["invalidation_bytes_nr"]
+        invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
         for i, ((signal, invalidation_bits), sig_type) in enumerate(
-            zip(signals, gp["signal_types"])
+            zip(signals, gp.signal_types)
         ):
 
             # first add the signals in the simple signal list
@@ -3364,7 +3329,7 @@ class MDF4(object):
                         inval_bits.append(invalidation_bits)
 
             else:
-                cur_offset = sum(gp["signal_data_size"][i])
+                cur_offset = sum(gp.signal_data_size[i])
 
                 offsets = (
                     arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
@@ -3381,8 +3346,8 @@ class MDF4(object):
                 block_size = len(values) * values.itemsize
                 if block_size:
                     values.tofile(stream)
-                    gp["signal_data"][i].append(addr)
-                    gp["signal_data_size"][i].append(block_size)
+                    gp.signal_data[i].append(addr)
+                    gp.signal_data_size[i].append(block_size)
 
                 fields.append(offsets)
                 types.append(("", uint64))
@@ -3401,7 +3366,7 @@ class MDF4(object):
 
             invalidation_bytes_nr = len(inval_bits) // 8
 
-            gp["channel_group"]["invalidation_bytes_nr"] = invalidation_bytes_nr
+            gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
 
             inval_bits = fliplr(
                 packbits(array(inval_bits).T).reshape(
@@ -3422,19 +3387,19 @@ class MDF4(object):
         size = len(samples) * samples.itemsize
 
         if size:
-            gp["data_block"].append(addr)
+            gp.data_block.append(addr)
             samples.tofile(stream)
             dim = size
 
-            record_size = gp["channel_group"]["samples_byte_nr"]
-            record_size += gp["data_group"]["record_id_len"]
-            record_size += gp["channel_group"]["invalidation_bytes_nr"]
+            record_size = gp.channel_group.samples_byte_nr
+            record_size += gp.data_group.record_id_len
+            record_size += gp.channel_group.invalidation_bytes_nr
             added_cycles = size // record_size
-            gp["channel_group"]["cycles_nr"] += added_cycles
+            gp.channel_group.cycles_nr += added_cycles
 
-            gp["data_block_addr"].append(addr)
-            gp["data_size"].append(size)
-            gp["data_block_size"].append(dim)
+            gp.data_block_addr.append(addr)
+            gp.data_size.append(size)
+            gp.data_block_size.append(dim)
 
         del samples
 
@@ -3547,7 +3512,7 @@ class MDF4(object):
         try:
             os.chdir(self.name.resolve().parent)
 
-            flags = attachment["flags"]
+            flags = attachment.flags
 
             # for embedded attachments extrat data and create new files
             if flags & v4c.FLAG_AT_EMBEDDED:
@@ -3754,7 +3719,7 @@ class MDF4(object):
         )
 
         grp = self.groups[gp_nr]
-        if grp["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
+        if grp.data_location== v4c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -3764,16 +3729,16 @@ class MDF4(object):
         if ch_nr >= 0:
 
             # get the channel object
-            channel = grp["channels"][ch_nr]
+            channel = grp.channels[ch_nr]
 
-            dependency_list = grp["channel_dependencies"][ch_nr]
+            dependency_list = grp.channel_dependencies[ch_nr]
 
             # get data group record
             try:
-                parents, dtypes = grp["parents"], grp["types"]
+                parents, dtypes = grp.parents, grp.types
             except KeyError:
-                grp["parents"], grp["types"] = self._prepare_record(grp)
-                parents, dtypes = grp["parents"], grp["types"]
+                grp.parents, grp.types = self._prepare_record(grp)
+                parents, dtypes = grp.parents, grp.types
 
             # get group data
             if data is None:
@@ -3786,7 +3751,7 @@ class MDF4(object):
                 data = (data,)
 
             channel_invalidation_present = (
-                channel["flags"]
+                channel.flags
                 & (v4c.FLAG_INVALIDATION_BIT_VALID | v4c.FLAG_ALL_SAMPLES_VALID)
                 == v4c.FLAG_INVALIDATION_BIT_VALID
             )
@@ -3795,17 +3760,17 @@ class MDF4(object):
         else:
             # get data group record
             try:
-                parents, dtypes = grp["parents"], grp["types"]
+                parents, dtypes = grp.parents, grp.types
             except KeyError:
-                grp["parents"], grp["types"] = self._prepare_record(grp)
-                parents, dtypes = grp["parents"], grp["types"]
+                grp.parents, grp.types = self._prepare_record(grp)
+                parents, dtypes = grp.parents, grp.types
 
             parent, bit_offset = parents[ch_nr]
 
             channel_invalidation_present = False
             dependency_list = None
 
-            channel = grp["logging_channels"][-ch_nr - 1]
+            channel = grp.logging_channels[-ch_nr - 1]
 
             # get group data
             if data is None:
@@ -3820,7 +3785,7 @@ class MDF4(object):
             bit_count = channel["bit_count"]
 
         data_type = channel["data_type"]
-        channel_type = channel["channel_type"]
+        channel_type = channel.channel_type
         stream_sync = channel_type == v4c.CHANNEL_TYPE_SYNC
 
         encoding = None
@@ -3835,7 +3800,7 @@ class MDF4(object):
                 # structure channel composition
 
                 names = [
-                    grp["channels"][ch_nr].name for _, ch_nr in dependency_list
+                    grp.channels[ch_nr].name for _, ch_nr in dependency_list
                 ]
 
                 channel_values = [[] for _ in dependency_list]
@@ -3902,10 +3867,10 @@ class MDF4(object):
 
             else:
                 # channel arrays
-                channel_group = grp["channel_group"]
+                channel_group = grp.channel_group
                 samples_size = (
-                    channel_group["samples_byte_nr"]
-                    + channel_group["invalidation_bytes_nr"]
+                    channel_group.samples_byte_nr
+                    + channel_group.invalidation_bytes_nr
                 )
 
                 channel_values = []
@@ -3933,7 +3898,7 @@ class MDF4(object):
                                 record = None
 
                         else:
-                            record = grp["record"]
+                            record = grp.record
 
                         vals = record[parent]
                     else:
@@ -3942,7 +3907,7 @@ class MDF4(object):
                     vals = vals.copy()
 
                     dep = dependency_list[0]
-                    if dep["flags"] & v4c.FLAG_CA_INVERSE_LAYOUT:
+                    if dep.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
                         shape = vals.shape
                         shape = (shape[0],) + shape[1:][::-1]
                         vals = vals.reshape(shape)
@@ -3953,21 +3918,21 @@ class MDF4(object):
                     cycles_nr = len(vals)
 
                     for ca_block in dependency_list[:1]:
-                        dims_nr = ca_block["dims"]
+                        dims_nr = ca_block.dims
 
-                        if ca_block["ca_type"] == v4c.CA_TYPE_SCALE_AXIS:
+                        if ca_block.ca_type == v4c.CA_TYPE_SCALE_AXIS:
                             shape = (ca_block["dim_size_0"],)
                             arrays.append(vals)
                             dtype_pair = channel.name, vals.dtype, shape
                             types.append(dtype_pair)
 
-                        elif ca_block["ca_type"] == v4c.CA_TYPE_LOOKUP:
+                        elif ca_block.ca_type == v4c.CA_TYPE_LOOKUP:
                             shape = vals.shape[1:]
                             arrays.append(vals)
                             dtype_pair = channel.name, vals.dtype, shape
                             types.append(dtype_pair)
 
-                            if ca_block["flags"] & v4c.FLAG_CA_FIXED_AXIS:
+                            if ca_block.flags & v4c.FLAG_CA_FIXED_AXIS:
                                 for i in range(dims_nr):
                                     shape = (ca_block[f"dim_size_{i}"],)
                                     axis = []
@@ -3994,7 +3959,7 @@ class MDF4(object):
                                         )
                                         raise
 
-                                    axisname = self.groups[ref_dg_nr]["channels"][
+                                    axisname = self.groups[ref_dg_nr].channels[
                                         ref_ch_nr
                                     ].name
 
@@ -4010,11 +3975,9 @@ class MDF4(object):
                                             record_count=cycles,
                                         )[0]
                                     else:
-                                        channel_group = grp["channel_group"]
-                                        record_size = channel_group["samples_byte_nr"]
-                                        record_size += channel_group[
-                                            "invalidation_bytes_nr"
-                                        ]
+                                        channel_group = grp.channel_group
+                                        record_size = channel_group.samples_byte_nr
+                                        record_size += channel_group.invalidation_bytes_nr
                                         start = offset // record_size
                                         end = start + len(data_bytes) // record_size + 1
                                         ref = self.get(
@@ -4032,16 +3995,16 @@ class MDF4(object):
                                     dtype_pair = (axisname, axis_values.dtype, shape)
                                     types.append(dtype_pair)
 
-                        elif ca_block["ca_type"] == v4c.CA_TYPE_ARRAY:
+                        elif ca_block.ca_type == v4c.CA_TYPE_ARRAY:
                             shape = vals.shape[1:]
                             arrays.append(vals)
                             dtype_pair = channel.name, vals.dtype, shape
                             types.append(dtype_pair)
 
                     for ca_block in dependency_list[1:]:
-                        dims_nr = ca_block["dims"]
+                        dims_nr = ca_block.dims
 
-                        if ca_block["flags"] & v4c.FLAG_CA_FIXED_AXIS:
+                        if ca_block.flags & v4c.FLAG_CA_FIXED_AXIS:
                             for i in range(dims_nr):
                                 shape = (ca_block[f"dim_size_{i}"],)
                                 axis = []
@@ -4055,7 +4018,7 @@ class MDF4(object):
                             for i in range(dims_nr):
                                 ref_dg_nr, ref_ch_nr = ca_block.referenced_channels[i]
 
-                                axisname = self.groups[ref_dg_nr]["channels"][
+                                axisname = self.groups[ref_dg_nr].channels[
                                     ref_ch_nr
                                 ].name
 
@@ -4071,8 +4034,8 @@ class MDF4(object):
                                         record_count=cycles,
                                     )[0]
                                 else:
-                                    channel_group = grp["channel_group"]
-                                    record_size = channel_group["samples_byte_nr"]
+                                    channel_group = grp.channel_group
+                                    record_size = channel_group.samples_byte_nr
                                     record_size += channel_group[
                                         "invalidation_bytes_nr"
                                     ]
@@ -4151,9 +4114,9 @@ class MDF4(object):
                 timestamps = []
                 invalidation_bits = []
 
-                channel_group = grp["channel_group"]
-                record_size = channel_group["samples_byte_nr"]
-                record_size += channel_group["invalidation_bytes_nr"]
+                channel_group = grp.channel_group
+                record_size = channel_group.samples_byte_nr
+                record_size += channel_group.invalidation_bytes_nr
 
                 count = 0
                 for fragment in data:
@@ -4228,11 +4191,11 @@ class MDF4(object):
                         parent, bit_offset = None, None
 
                     if parent is not None:
-                        if "record" not in grp:
+                        if grp.record is None:
                             record = fromstring(data_bytes, dtype=dtypes)
 
                         else:
-                            record = grp["record"]
+                            record = grp.record
 
                         vals = record[parent]
 
@@ -4252,7 +4215,6 @@ class MDF4(object):
                             )
                         elif kind_ not in 'ui':
                             if bit_offset:
-                                print('NBA', 'bit offset', channel)
                                 vals = self._get_not_byte_aligned_data(
                                     data_bytes, grp, ch_nr
                                 )
@@ -4276,7 +4238,6 @@ class MDF4(object):
                                             else:
                                                 vals = vals & mask
                                     else:
-                                        print('NBA', 'float', channel)
                                         vals = self._get_not_byte_aligned_data(
                                             data_bytes, grp, ch_nr
                                         )
@@ -4377,7 +4338,7 @@ class MDF4(object):
             if conversion is None:
                 conversion_type = v4c.CONVERSION_TYPE_NON
             else:
-                conversion_type = conversion["conversion_type"]
+                conversion_type = conversion.conversion_type
 
             if conversion_type in v4c.CONVERSION_GROUP_1:
 
@@ -4555,14 +4516,14 @@ class MDF4(object):
             comment = channel.comment
 
             source = channel.source
-            cg_source = grp["channel_group"].acq_source
+            cg_source = grp.channel_group.acq_source
             if source:
                 source = SignalSource(
                     source.name or (cg_source and cg_source.name) or "",
                     source.path,
                     source.comment,
-                    source["source_type"],
-                    source["bus_type"],
+                    source.source_type,
+                    source.bus_type,
                 )
             else:
                 source = None
@@ -4570,7 +4531,7 @@ class MDF4(object):
             if channel.attachments:
                 attachment = self.extract_attachment(index=channel.attachments[0])
             elif channel_type == v4c.CHANNEL_TYPE_SYNC:
-                index = self._attachments_map[channel["data_block_addr"]]
+                index = self._attachments_map[channel.data_block_addr]
                 attachment = self.extract_attachment(index=index)
             else:
                 attachment = ()
@@ -4663,16 +4624,16 @@ class MDF4(object):
 
         original_data = fragment
 
-        if group["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
+        if group.data_location== v4c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
 
         time_ch_nr = self.masters_db.get(index, None)
-        channel_group = group["channel_group"]
-        record_size = channel_group["samples_byte_nr"]
-        record_size += channel_group["invalidation_bytes_nr"]
-        cycles_nr = group["channel_group"]["cycles_nr"]
+        channel_group = group.channel_group
+        record_size = channel_group.samples_byte_nr
+        record_size += channel_group.invalidation_bytes_nr
+        cycles_nr = group.channel_group.cycles_nr
 
         if original_data:
             cycles_nr = len(data_bytes) // record_size
@@ -4689,13 +4650,13 @@ class MDF4(object):
             metadata = ("time", v4c.SYNC_TYPE_TIME)
         else:
 
-            time_ch = group["channels"][time_ch_nr]
+            time_ch = group.channels[time_ch_nr]
             time_conv = time_ch.conversion
             time_name = time_ch.name
 
-            metadata = (time_name, time_ch["sync_type"])
+            metadata = (time_name, time_ch.sync_type)
 
-            if time_ch["channel_type"] == v4c.CHANNEL_TYPE_VIRTUAL_MASTER:
+            if time_ch.channel_type == v4c.CHANNEL_TYPE_VIRTUAL_MASTER:
                 offset = offset // record_size
                 time_a = time_conv["a"]
                 time_b = time_conv["b"]
@@ -4707,10 +4668,10 @@ class MDF4(object):
             else:
                 # get data group parents and dtypes
                 try:
-                    parents, dtypes = group["parents"], group["types"]
+                    parents, dtypes = group.parents, group.types
                 except KeyError:
                     parents, dtypes = self._prepare_record(group)
-                    group["parents"], group["types"] = parents, dtypes
+                    group.parents, group.types = parents, dtypes
 
                 # get data
                 if fragment is None:
@@ -4726,9 +4687,7 @@ class MDF4(object):
                     except KeyError:
                         parent = None
                     if parent is not None:
-                        not_found = object()
-                        record = group.get("record", not_found)
-                        if record is not_found:
+                        if group.record is None:
                             if dtypes.itemsize:
                                 record = fromstring(data_bytes, dtype=dtypes)
                             else:
@@ -5104,19 +5063,19 @@ class MDF4(object):
         )
         info["groups"] = len(self.groups)
         for i, gp in enumerate(self.groups):
-            if gp["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
+            if gp.data_location== v4c.LOCATION_ORIGINAL_FILE:
                 stream = self._file
-            elif gp["data_location"] == v4c.LOCATION_TEMPORARY_FILE:
+            elif gp.data_location== v4c.LOCATION_TEMPORARY_FILE:
                 stream = self._tempfile
             inf = {}
             info[f"group {i}"] = inf
-            inf["cycles"] = gp["channel_group"]["cycles_nr"]
-            inf["comment"] = gp["channel_group"].comment
-            inf["channels count"] = len(gp["channels"])
-            for j, channel in enumerate(gp["channels"]):
+            inf["cycles"] = gp.channel_group.cycles_nr
+            inf["comment"] = gp.channel_group.comment
+            inf["channels count"] = len(gp.channels)
+            for j, channel in enumerate(gp.channels):
                 name = channel.name
 
-                ch_type = v4c.CHANNEL_TYPE_TO_DESCRIPTION[channel["channel_type"]]
+                ch_type = v4c.CHANNEL_TYPE_TO_DESCRIPTION[channel.channel_type]
                 inf[f"channel {i}"] = f'name="{name}" type={ch_type}'
 
         return info
@@ -5211,9 +5170,9 @@ class MDF4(object):
 
             # write DataBlocks first
             for gp_nr, gp in enumerate(self.groups):
-                original_data_addresses.append(gp["data_group"]["data_block_addr"])
+                original_data_addresses.append(gp.data_group.data_block_addr)
 
-                if gp["channel_group"]["flags"] & v4c.FLAG_CG_VLSD:
+                if gp.channel_group.flags & v4c.FLAG_CG_VLSD:
                     continue
 
                 address = tell()
@@ -5221,15 +5180,15 @@ class MDF4(object):
                 data = self._load_data(gp)
 
                 total_size = (
-                    gp["channel_group"]["samples_byte_nr"]
-                    + gp["channel_group"]["invalidation_bytes_nr"]
-                ) * gp["channel_group"]["cycles_nr"]
+                    gp.channel_group.samples_byte_nr
+                    + gp.channel_group.invalidation_bytes_nr
+                ) * gp.channel_group.cycles_nr
 
                 if self._write_fragment_size:
 
                     samples_size = (
-                        gp["channel_group"]["samples_byte_nr"]
-                        + gp["channel_group"]["invalidation_bytes_nr"]
+                        gp.channel_group.samples_byte_nr
+                        + gp.channel_group.invalidation_bytes_nr
                     )
                     if samples_size:
                         split_size = self._write_fragment_size // samples_size
@@ -5251,8 +5210,8 @@ class MDF4(object):
                             param = 0
                         else:
                             param = (
-                                gp["channel_group"]["samples_byte_nr"]
-                                + gp["channel_group"]["invalidation_bytes_nr"]
+                                gp.channel_group.samples_byte_nr
+                                + gp.channel_group.invalidation_bytes_nr
                             )
                         kwargs = {"data": data, "zip_type": zip_type, "param": param}
                         data_block = DataZippedBlock(**kwargs)
@@ -5260,14 +5219,14 @@ class MDF4(object):
                         data_block = DataBlock(data=data)
                     write(bytes(data_block))
 
-                    align = data_block["block_len"] % 8
+                    align = data_block.block_len % 8
                     if align:
                         write(b"\0" * (8 - align))
 
-                    if gp["channel_group"]["cycles_nr"]:
-                        gp["data_group"]["data_block_addr"] = address
+                    if gp.channel_group.cycles_nr:
+                        gp.data_group.data_block_addr = address
                     else:
-                        gp["data_group"]["data_block_addr"] = 0
+                        gp.data_group.data_block_addr = 0
                 else:
                     kwargs = {"flags": v4c.FLAG_DL_EQUAL_LENGHT, "zip_type": zip_type}
                     hl_block = HeaderList(**kwargs)
@@ -5302,8 +5261,8 @@ class MDF4(object):
                                 param = 0
                             else:
                                 param = (
-                                    gp["channel_group"]["samples_byte_nr"]
-                                    + gp["channel_group"]["invalidation_bytes_nr"]
+                                    gp.channel_group.samples_byte_nr
+                                    + gp.channel_group.invalidation_bytes_nr
                                 )
                             kwargs = {
                                 "data": data_,
@@ -5318,7 +5277,7 @@ class MDF4(object):
 
                         write(bytes(block))
 
-                        align = block["block_len"] % 8
+                        align = block.block_len % 8
                         if align:
                             write(b"\0" * (8 - align))
                         dl_block[f"data_block_addr{i}"] = address
@@ -5328,12 +5287,12 @@ class MDF4(object):
                     write(bytes(dl_block))
 
                     if compression and self.version != "4.00":
-                        hl_block["first_dl_addr"] = address
+                        hl_block.first_dl_addr = address
                         address = tell()
                         hl_block.address = address
                         write(bytes(hl_block))
 
-                    gp["data_group"]["data_block_addr"] = address
+                    gp.data_group.data_block_addr = address
 
                 if self._callback:
                     self._callback(int(50 * (gp_nr + 1) / groups_nr), 100)
@@ -5354,47 +5313,46 @@ class MDF4(object):
 
                 for i in range(len(self.attachments) - 1):
                     at_block = self.attachments[i]
-                    at_block["next_at_addr"] = self.attachments[i + 1].address
-                self.attachments[-1]["next_at_addr"] = 0
+                    at_block.next_at_addr = self.attachments[i + 1].address
+                self.attachments[-1].next_at_addr = 0
 
             # file history blocks
             for fh in self.file_history:
                 address = fh.to_blocks(address, blocks, defined_texts)
 
             for i, fh in enumerate(self.file_history[:-1]):
-                fh["next_fh_addr"] = self.file_history[i + 1].address
-            self.file_history[-1]["next_fh_addr"] = 0
+                fh.next_fh_addr = self.file_history[i + 1].address
+            self.file_history[-1].next_fh_addr = 0
 
             # data groups
             gp_rec_ids = []
             valid_data_groups = []
             for gp in self.groups:
-                if gp["channel_group"]["flags"] & v4c.FLAG_CG_VLSD:
+                if gp.channel_group.flags & v4c.FLAG_CG_VLSD:
                     continue
 
-                valid_data_groups.append(gp["data_group"])
-                gp_rec_ids.append(gp["data_group"]["record_id_len"])
+                valid_data_groups.append(gp.data_group)
+                gp_rec_ids.append(gp.data_group.record_id_len)
 
-                address = gp["data_group"].to_blocks(address, blocks, defined_texts)
+                address = gp.data_group.to_blocks(address, blocks, defined_texts)
 
             if valid_data_groups:
                 for i, dg in enumerate(valid_data_groups[:-1]):
                     addr_ = valid_data_groups[i + 1].address
-                    dg["next_dg_addr"] = addr_
-                valid_data_groups[-1]["next_dg_addr"] = 0
+                    dg.next_dg_addr = addr_
+                valid_data_groups[-1].next_dg_addr = 0
 
             # go through each data group and append the rest of the blocks
             for i, gp in enumerate(self.groups):
 
-                for channel in gp["channels"]:
-                    if channel["channel_type"] == v4c.CHANNEL_TYPE_SYNC:
-                        idx = self._attachments_map[channel["data_block_addr"]]
-                        channel["data_block_addr"] = self.attachments[idx].address
+                for channel in gp.channels:
+                    if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
+                        idx = self._attachments_map[channel.data_block_addr]
+                        channel.data_block_addr = self.attachments[idx].address
 
-                    if channel.attachments:
+                    if channel.attachment:
                         for j, idx in enumerate(channel.attachments):
-                            key = f"attachment_{j}_addr"
-                            channel[key] = self.attachments[idx].address
+                            channel.attachment_addr = self.attachments[idx].address
 
                     address = channel.to_blocks(
                         address, blocks, defined_texts, cc_map, si_map
@@ -5402,7 +5360,7 @@ class MDF4(object):
 
                 # channel data
                 gp_sd = []
-                for j, sdata in enumerate(gp["signal_data"]):
+                for j, sdata in enumerate(gp.signal_data):
                     sdata = self._load_signal_data(group=gp, index=j)
                     if sdata:
                         split_size = self._write_fragment_size
@@ -5420,18 +5378,18 @@ class MDF4(object):
                                     original_type=b"SD",
                                 )
                                 signal_data.address = address
-                                address += signal_data["block_len"]
+                                address += signal_data.block_len
                                 blocks.append(signal_data)
-                                align = signal_data["block_len"] % 8
+                                align = signal_data.block_len % 8
                                 if align:
                                     blocks.append(b"\0" * (8 - align))
                                     address += 8 - align
                             else:
                                 signal_data = DataBlock(data=sdata, type="SD")
                                 signal_data.address = address
-                                address += signal_data["block_len"]
+                                address += signal_data.block_len
                                 blocks.append(signal_data)
-                                align = signal_data["block_len"] % 8
+                                align = signal_data.block_len % 8
                                 if align:
                                     blocks.append(b"\0" * (8 - align))
                                     address += 8 - align
@@ -5463,9 +5421,9 @@ class MDF4(object):
                                     block = DataBlock(data=data_, type="SD")
                                 blocks.append(block)
                                 block.address = address
-                                address += block["block_len"]
+                                address += block.block_len
 
-                                align = block["block_len"] % 8
+                                align = block.block_len % 8
                                 if align:
                                     blocks.append(b"\0" * (8 - align))
                                     address += 8 - align
@@ -5474,7 +5432,7 @@ class MDF4(object):
                             dl_block.address = address
                             blocks.append(dl_block)
 
-                            address += dl_block["block_len"]
+                            address += dl_block.block_len
 
                             if compression and self.version > "4.00":
                                 kwargs = {
@@ -5484,7 +5442,7 @@ class MDF4(object):
                                 }
                                 hl_block = HeaderList(**kwargs)
                                 hl_block.address = address
-                                address += hl_block["block_len"]
+                                address += hl_block.block_len
 
                                 blocks.append(hl_block)
 
@@ -5496,99 +5454,80 @@ class MDF4(object):
                         gp_sd.append(None)
 
                 # channel dependecies
-                for j, dep_list in enumerate(gp["channel_dependencies"]):
+                for j, dep_list in enumerate(gp.channel_dependencies):
                     if dep_list:
                         if all(isinstance(dep, ChannelArrayBlock) for dep in dep_list):
                             for dep in dep_list:
                                 dep.address = address
-                                address += dep["block_len"]
+                                address += dep.block_len
                                 blocks.append(dep)
                             for k, dep in enumerate(dep_list[:-1]):
-                                dep["composition_addr"] = dep_list[k + 1].address
-                            dep_list[-1]["composition_addr"] = 0
+                                dep.composition_addr = dep_list[k + 1].address
+                            dep_list[-1].composition_addr = 0
 
                 # channels
-                for j, (channel, signal_data) in enumerate(zip(gp["channels"], gp_sd)):
+                for j, (channel, signal_data) in enumerate(zip(gp.channels, gp_sd)):
 
                     if signal_data:
-                        channel["data_block_addr"] = signal_data.address
-                    elif channel["channel_type"] == v4c.CHANNEL_TYPE_SYNC:
+                        channel.data_block_addr = signal_data.address
+                    elif channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
                         pass
                     else:
-                        channel["data_block_addr"] = 0
+                        channel.data_block_addr = 0
 
-                    if gp["channel_dependencies"][j]:
-                        dep = gp["channel_dependencies"][j][0]
+                    if gp.channel_dependencies[j]:
+                        dep = gp.channel_dependencies[j][0]
                         if isinstance(dep, tuple):
                             index = dep[1]
-                            addr_ = gp["channels"][index].address
+                            addr_ = gp.channels[index].address
                         else:
                             addr_ = dep.address
-                        channel["component_addr"] = addr_
+                        channel.component_addr = addr_
 
-                for channel in gp["logging_channels"]:
+                for channel in gp.logging_channels:
                     address = channel.to_blocks(
                         address, blocks, defined_texts, cc_map, si_map
                     )
 
-                group_channels = list(chain(gp["channels"], gp["logging_channels"]))
+                group_channels = list(chain(gp.channels, gp.logging_channels))
                 if group_channels:
                     for j, channel in enumerate(group_channels[:-1]):
-                        channel["next_ch_addr"] = group_channels[j + 1].address
-                    group_channels[-1]["next_ch_addr"] = 0
+                        channel.next_ch_addr = group_channels[j + 1].address
+                    group_channels[-1].next_ch_addr = 0
 
                 # channel dependecies
-                j = len(gp["channels"]) - 1
+                j = len(gp.channels) - 1
                 while j >= 0:
-                    dep_list = gp["channel_dependencies"][j]
+                    dep_list = gp.channel_dependencies[j]
                     if dep_list and all(isinstance(dep, tuple) for dep in dep_list):
                         index = dep_list[0][1]
-                        gp["channels"][j]["component_addr"] = gp["channels"][
+                        gp.channels[j].component_addr = gp.channels[
                             index
                         ].address
                         index = dep_list[-1][1]
-                        gp["channels"][j]["next_ch_addr"] = gp["channels"][index][
-                            "next_ch_addr"
-                        ]
-                        gp["channels"][index]["next_ch_addr"] = 0
+                        gp.channels[j].next_ch_addr = gp.channels[index].next_ch_addr
+                        gp.channels[index].next_ch_addr = 0
 
                         for _, ch_nr in dep_list:
-                            gp["channels"][ch_nr]["source_addr"] = 0
+                            gp.channels[ch_nr].source_addr = 0
                     j -= 1
 
                 # channel group
-                if gp["channel_group"]["flags"] & v4c.FLAG_CG_VLSD:
+                if gp.channel_group.flags & v4c.FLAG_CG_VLSD:
                     continue
 
-                # sample reduction blocks
-                next_sr_addr = 0
-                dim = len(gp["reduction_blocks"])
-                for idx in range(dim - 1, -1, -1):
-                    sr = gp["reduction_blocks"][idx]
-                    data = gp["reduction_data_block"][idx]
-                    bts = b"".join(e[0] for e in self._load_data(gp, idx))
-                    data = DataBlock(data=bts, type="RD")
+                gp.channel_group.first_sample_reduction_addr = 0
 
-                    sr["data_block_addr"] = data.address = address
-                    sr["next_sr_addr"] = next_sr_addr
-                    address += data["block_len"]
-                    blocks.append(data)
-                    sr.adddress = next_sr_addr = address
-                    address += sr["block_len"]
-                    blocks.append(sr)
-
-                gp["channel_group"]["first_sample_reduction_addr"] = next_sr_addr
-
-                if gp["channels"]:
-                    gp["channel_group"]["first_ch_addr"] = gp["channels"][0].address
+                if gp.channels:
+                    gp.channel_group.first_ch_addr = gp.channels[0].address
                 else:
-                    gp["channel_group"]["first_ch_addr"] = 0
-                gp["channel_group"]["next_cg_addr"] = 0
+                    gp.channel_group.first_ch_addr = 0
+                gp.channel_group.next_cg_addr = 0
 
-                address = gp["channel_group"].to_blocks(
+                address = gp.channel_group.to_blocks(
                     address, blocks, defined_texts, si_map
                 )
-                gp["data_group"]["first_cg_addr"] = gp["channel_group"].address
+                gp.data_group.first_cg_addr = gp.channel_group.address
 
                 if self._callback:
                     self._callback(int(50 * (i + 1) / groups_nr) + 25, 100)
@@ -5598,24 +5537,24 @@ class MDF4(object):
                     return
 
             for gp in self.groups:
-                for dep_list in gp["channel_dependencies"]:
+                for dep_list in gp.channel_dependencies:
                     if dep_list:
                         if all(isinstance(dep, ChannelArrayBlock) for dep in dep_list):
                             for dep in dep_list:
-                                if dep["ca_type"] != v4c.CA_TYPE_LOOKUP:
+                                if dep.ca_type != v4c.CA_TYPE_LOOKUP:
                                     dep.referenced_channels = []
                                     continue
                                 for i, (gp_nr, ch_nr) in enumerate(
                                     dep.referenced_channels
                                 ):
                                     grp = self.groups[gp_nr]
-                                    ch = grp["channels"][ch_nr]
-                                    dep[f"scale_axis_{i}_dg_addr"] = grp["data_group"].address
-                                    dep[f"scale_axis_{i}_cg_addr"] = grp["channel_group"].address
+                                    ch = grp.channels[ch_nr]
+                                    dep[f"scale_axis_{i}_dg_addr"] = grp.data_group.address
+                                    dep[f"scale_axis_{i}_cg_addr"] = grp.channel_group.address
                                     dep[f"scale_axis_{i}_ch_addr"] = ch.address
 
             for gp in self.groups:
-                gp["data_group"]["record_id_len"] = 0
+                gp.data_group.record_id_len = 0
 
             ev_map = []
 
@@ -5624,11 +5563,11 @@ class MDF4(object):
                     for i, ref in enumerate(event.scopes):
                         try:
                             dg_cntr, ch_cntr = ref
-                            event[f"scope_{i}_addr"] = self.groups[dg_cntr]["channels"][ch_cntr].address
+                            event[f"scope_{i}_addr"] = self.groups[dg_cntr].channels[ch_cntr].address
                         except TypeError:
                             dg_cntr = ref
-                            event[f"scope_{i}_addr"] = self.groups[dg_cntr]["channel_group"].address
-                    for i in range(event["attachment_nr"]):
+                            event[f"scope_{i}_addr"] = self.groups[dg_cntr].channel_group.address
+                    for i in range(event.attachment_nr):
                         key = f"attachment_{i}_addr"
                         addr = event[key]
                         event[key] = at_map[addr]
@@ -5636,37 +5575,37 @@ class MDF4(object):
                     blocks.append(event)
                     ev_map.append(address)
                     event.address = address
-                    address += event["block_len"]
+                    address += event.block_len
 
                     if event.name:
                         tx_block = TextBlock(text=event.name)
                         tx_block.address = address
                         blocks.append(tx_block)
-                        address += tx_block["block_len"]
-                        event["name_addr"] = tx_block.address
+                        address += tx_block.block_len
+                        event.name_addr = tx_block.address
                     else:
-                        event["name_addr"] = 0
+                        event.name_addr = 0
 
                     if event.comment:
                         meta = event.comment.startswith("<EVcomment")
                         tx_block = TextBlock(text=event.comment, meta=meta)
                         tx_block.address = address
                         blocks.append(tx_block)
-                        address += tx_block["block_len"]
-                        event["comment_addr"] = tx_block.address
+                        address += tx_block.block_len
+                        event.comment_addr = tx_block.address
                     else:
-                        event["comment_addr"] = 0
+                        event.comment_addr = 0
 
                     if event.parent is not None:
-                        event["parent_ev_addr"] = ev_map[event.parent]
+                        event.parent_ev_addr = ev_map[event.parent]
                     if event.range_start is not None:
-                        event["range_start_ev_addr"] = ev_map[event.range_start]
+                        event.range_start_ev_addr = ev_map[event.range_start]
 
                 for i in range(len(self.events) - 1):
-                    self.events[i]["next_ev_addr"] = self.events[i + 1].address
-                self.events[-1]["next_ev_addr"] = 0
+                    self.events[i].next_ev_addr = self.events[i + 1].address
+                self.events[-1].next_ev_addr = 0
 
-                self.header["first_event_addr"] = self.events[0].address
+                self.header.first_event_addr = self.events[0].address
 
             if self._terminate:
                 dst_.close()
@@ -5688,31 +5627,31 @@ class MDF4(object):
                     write(bytes(block))
 
             for gp, rec_id in zip(self.groups, gp_rec_ids):
-                gp["data_group"]["record_id_len"] = rec_id
+                gp.data_group.record_id_len = rec_id
 
             if valid_data_groups:
                 addr_ = valid_data_groups[0].address
-                self.header["first_dg_addr"] = addr_
+                self.header.first_dg_addr = addr_
             else:
-                self.header["first_dg_addr"] = 0
-            self.header["file_history_addr"] = self.file_history[0].address
+                self.header.first_dg_addr = 0
+            self.header.file_history_addr = self.file_history[0].address
             if self.attachments:
                 first_attachment = self.attachments[0]
                 addr_ = first_attachment.address
-                self.header["first_attachment_addr"] = addr_
+                self.header.first_attachment_addr = addr_
             else:
-                self.header["first_attachment_addr"] = 0
+                self.header.first_attachment_addr = 0
 
             seek(v4c.IDENTIFICATION_BLOCK_SIZE)
             write(bytes(self.header))
 
             for orig_addr, gp in zip(original_data_addresses, self.groups):
-                gp["data_group"]["data_block_addr"] = orig_addr
+                gp.data_group.data_block_addr = orig_addr
 
             at_map = {value: key for key, value in at_map.items()}
 
             for event in self.events:
-                for i in range(event["attachment_nr"]):
+                for i in range(event.attachment_nr):
                     key = f"attachment_{i}_addr"
                     addr = event[key]
                     event[key] = at_map[addr]
@@ -5761,22 +5700,22 @@ class MDF4(object):
         """
         gp_nr, ch_nr = self._validate_channel_selection(None, group, index)
 
-        return self.groups[gp_nr]["channels"][ch_nr].name
+        return self.groups[gp_nr].channels[ch_nr].name
 
     def get_channel_metadata(self, name=None, group=None, index=None):
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         grp = self.groups[gp_nr]
 
-        if grp["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
+        if grp.data_location== v4c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
 
         if ch_nr >= 0:
-            channel = grp["channels"][ch_nr]
+            channel = grp.channels[ch_nr]
         else:
-            channel = grp["logging_channels"][-ch_nr - 1]
+            channel = grp.logging_channels[-ch_nr - 1]
 
         return channel
 
@@ -5820,12 +5759,12 @@ class MDF4(object):
 
         grp = self.groups[gp_nr]
 
-        if grp["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
+        if grp.data_location== v4c.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
 
-        channel = grp["channels"][ch_nr].conversion
+        channel = grp.channels[ch_nr].conversion
 
         conversion = channel.conversion
 
@@ -5873,6 +5812,6 @@ class MDF4(object):
 
         grp = self.groups[gp_nr]
 
-        channel = grp["channels"][ch_nr]
+        channel = grp.channels[ch_nr]
 
         return extract_cncomment_xml(channel.comment)

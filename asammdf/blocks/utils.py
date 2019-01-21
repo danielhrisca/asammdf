@@ -932,3 +932,65 @@ def get_video_stream_duration(stream):
         except FileNotFoundError:
             result = None
     return result
+
+
+class Group:
+
+    __slots__ = (
+        'channels',
+        'logging_channels',
+        'data_block',
+        'channel_dependencies',
+        'signal_data',
+        'channel_group',
+        'record_size',
+        'sorted',
+        'data_group',
+        'data_location',
+        'data_block_addr',
+        'data_block_type',
+        'data_size',
+        'data_block_size',
+        'param',
+        'record_size',
+        'CAN_logging',
+        'CAN_id',
+        'CAN_database',
+        'dbc_addr',
+        'raw_can',
+        'extended_id',
+        'message_name',
+        'message_id',
+        'record',
+        'parents',
+        'types',
+        'signal_types',
+
+    )
+
+    def __init__(self, data_group):
+        self.data_group = data_group
+        self.channels = []
+        self.logging_channels = []
+        self.data_block = None
+        self.channel_dependencies = []
+        self.signal_data = []
+        self.CAN_logging = False
+        self.CAN_id = None
+        self.CAN_database = False
+        self.raw_can = False
+        self.extended_id = False
+        self.message_name = ''
+        self.message_id = None
+        self.CAN_database = False
+        self.dbc_addr = None
+
+    def __getitem__(self, item):
+        return self.__getattribute__(item)
+
+    def __setitem__(self, item, value):
+        self.__setattr__(item, value)
+
+    def set_blocks_info(self, info):
+        for key, value in info.items():
+            self[key] = value
