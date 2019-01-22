@@ -2657,6 +2657,7 @@ formula: {}
             self.comment,
             self.formula,
             self.referenced_blocks,
+            self.address,
             fields,
         )
 

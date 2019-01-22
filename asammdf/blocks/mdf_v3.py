@@ -1274,6 +1274,7 @@ class MDF3(object):
                 new_gp = {}
                 new_gp["channels"] = new_gp_channels = []
                 new_gp["channel_dependencies"] = new_gp_dep = []
+                new_gp["signal_types"] = new_gp_sig_types = []
                 self.groups.append(new_gp)
 
                 new_fields = []
@@ -1325,7 +1326,8 @@ class MDF3(object):
 
                 new_fields.append(timestamps)
                 new_types.append((name, timestamps.dtype))
-                new_field_names.add(name)
+                new_field_names.get_unique_name(name)
+                new_gp_sig_types.append(0)
 
                 new_offset += t_size
                 new_ch_cntr += 1
@@ -1451,23 +1453,20 @@ class MDF3(object):
                 new_gp["sorted"] = True
 
                 samples = fromarrays(new_fields, dtype=new_types)
-                try:
-                    block = samples.tostring()
 
-                    new_gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
-                    if cycles_nr:
-                        data_address = tell()
-                        new_gp["data_group"]["data_block_addr"] = data_address
-                        self._tempfile.write(block)
-                    else:
-                        new_gp["data_group"]["data_block_addr"] = 0
-                except MemoryError:
-                    new_gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
+                block = samples.tostring()
 
+                new_gp["data_location"] = v23c.LOCATION_TEMPORARY_FILE
+                if cycles_nr:
                     data_address = tell()
                     new_gp["data_group"]["data_block_addr"] = data_address
-                    for sample in samples:
-                        self._tempfile.write(sample.tostring())
+                    new_gp["data_block_addr"] = [data_address,]
+                    new_gp["data_block_size"] = [new_gp["size"] ,]
+                    self._tempfile.write(block)
+                else:
+                    new_gp["data_group"]["data_block_addr"] = 0
+                    new_gp["data_block_addr"] = [0,]
+                    new_gp["data_block_size"] = [0,]
 
                 # data group trigger
                 new_gp["trigger"] = None

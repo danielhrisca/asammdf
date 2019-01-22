@@ -744,6 +744,7 @@ class ChannelConversion(dict):
 
             self.address = 0
             self["id"] = "CC".encode("latin-1")
+            self.unit = kwargs.get('unit', b'').decode('latin-1')
 
             if kwargs["conversion_type"] == v23c.CONVERSION_TYPE_NONE:
                 self["block_len"] = v23c.CC_COMMON_BLOCK_SIZE

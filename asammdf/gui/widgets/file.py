@@ -1084,35 +1084,17 @@ class FileWidget(QWidget):
 
             # resample self.mdf
             target = self.mdf.resample
-            kwargs = {"raster": raster}
+            kwargs = {
+                "raster": raster,
+                "version": version,
+            }
 
             mdf = run_thread_with_progress(
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=33,
+                factor=66,
                 offset=0,
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-            # convert mdf
-            progress.setLabelText(
-                "Converting from {} to {}".format(mdf.version, version)
-            )
-
-            target = mdf.convert
-            kwargs = {"to": version}
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=33,
-                offset=33,
                 progress=progress,
             )
 
@@ -1184,35 +1166,19 @@ class FileWidget(QWidget):
 
             # cut self.mdf
             target = self.mdf.cut
-            kwargs = {"start": start, "stop": stop, "whence": whence}
+            kwargs = {
+                "start": start,
+                "stop": stop,
+                "whence": whence,
+                "version": version,
+            }
 
             mdf = run_thread_with_progress(
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=33,
+                factor=66,
                 offset=0,
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-            # convert mdf
-            progress.setLabelText(
-                "Converting from {} to {}".format(mdf.version, version)
-            )
-
-            target = mdf.convert
-            kwargs = {"to": version}
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=33,
-                offset=33,
                 progress=progress,
             )
 
@@ -1446,35 +1412,17 @@ class FileWidget(QWidget):
 
             # filtering self.mdf
             target = self.mdf.filter
-            kwargs = {"channels": channels}
+            kwargs = {
+                "channels": channels,
+                "version": version,
+            }
 
             mdf = run_thread_with_progress(
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=33,
+                factor=66,
                 offset=0,
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-            # convert mdf
-            progress.setLabelText(
-                "Converting from {} to {}".format(mdf.version, version)
-            )
-
-            target = mdf.convert
-            kwargs = {"to": version}
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=33,
-                offset=33,
                 progress=progress,
             )
 

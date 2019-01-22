@@ -511,7 +511,7 @@ class MDF(object):
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
 
-            encodings = [None, ]
+            encodings = []
             included_channels = self._included_channels(i)
             if included_channels:
                 cg_nr += 1
@@ -594,7 +594,7 @@ class MDF(object):
                 else:
                     sigs = [(self.get_master(i, data=fragment, copy_master=False), None)]
 
-                    for j in included_channels:
+                    for k, j in enumerate(included_channels):
                         sig = self.get(
                             group=i,
                             index=j,
@@ -605,7 +605,7 @@ class MDF(object):
                         )
 
                         if version < "4.00":
-                            encoding = encodings[j]
+                            encoding = encodings[k]
                             samples = sig[0]
                             if encoding:
                                 if encoding != "latin-1":
@@ -1100,7 +1100,6 @@ class MDF(object):
             for i, grp in enumerate(self.groups):
                 if self._terminate:
                     return
-                print(i)
 
                 included_channels = self._included_channels(i)
 
@@ -1110,11 +1109,6 @@ class MDF(object):
                 data = (data, 0, -1)
 
                 for j in included_channels:
-                    if j % 1000 == 0:
-                        print(i, j)
-                    if pc()-start__ > 180:
-                        print('FINAL', i, j)
-                        return
                     sig = self.get(
                         group=i,
                         index=j,
@@ -2493,6 +2487,9 @@ class MDF(object):
 
             if self._terminate:
                 return
+
+        if self._callback:
+            self._callback(groups_nr, groups_nr)
 
         mdf._transfer_events(self)
         if self._callback:

@@ -133,7 +133,7 @@ def setup_progress(parent, title, message, icon_name):
 
 class WorkerThread(Thread):
     def __init__(self, *args, **kargs):
-        super(WorkerThread, self).__init__(*args, **kargs)
+        super().__init__(*args, **kargs)
         self.output = None
         self.error = ""
 
@@ -141,4 +141,5 @@ class WorkerThread(Thread):
         try:
             self.output = self._target(*self._args, **self._kwargs)
         except Exception as err:
+            raise
             self.error = err

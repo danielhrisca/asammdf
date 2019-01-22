@@ -39,43 +39,69 @@ def conversion_transfer(conversion, version=3):
                 unit = conversion.unit.strip(" \r\n\t\0").encode("latin-1")
 
                 if conversion_type == v4c.CONVERSION_TYPE_NON:
-                    conversion = dict(conversion)
-                    conversion["conversion_type"] = v3c.CONVERSION_TYPE_NONE
-                    conversion = v3b.ChannelConversion(unit=unit, **conversion)
+                    conversion = v3b.ChannelConversion(
+                        unit=unit,
+                        conversion_type=v3c.CONVERSION_TYPE_NONE,
+                    )
 
                 elif conversion_type == v4c.CONVERSION_TYPE_LIN:
-                    conversion = dict(conversion)
-                    conversion["conversion_type"] = v3c.CONVERSION_TYPE_LINEAR
-                    conversion = v3b.ChannelConversion(unit=unit, **conversion)
+                    conversion = v3b.ChannelConversion(
+                        unit=unit,
+                        conversion_type=v3c.CONVERSION_TYPE_LINEAR,
+                        a=conversion.a,
+                        b=conversion.b,
+                    )
 
                 elif conversion_type == v4c.CONVERSION_TYPE_RAT:
-                    conversion = dict(conversion)
-                    conversion["conversion_type"] = v3c.CONVERSION_TYPE_RAT
-                    conversion = v3b.ChannelConversion(unit=unit, **conversion)
+                    conversion = v3b.ChannelConversion(
+                        unit=unit,
+                        conversion_type=v3c.CONVERSION_TYPE_RAT,
+                        P1=conversion.P1,
+                        P2=conversion.P2,
+                        P3=conversion.P3,
+                        P4=conversion.P4,
+                        P5=conversion.P5,
+                        P6=conversion.P6,
+                    )
 
                 elif conversion_type == v4c.CONVERSION_TYPE_TAB:
-                    conversion = dict(conversion)
-                    conversion["conversion_type"] = v3c.CONVERSION_TYPE_TAB
-                    conversion = v3b.ChannelConversion(unit=unit, **conversion)
+                    conversion_ = {}
+                    conversion_["ref_param_nr"] = conversion.val_param_nr // 2
+                    for i in range(conversion.val_param_nr // 2):
+                        conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
+                        conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
+
+                    conversion = v3b.ChannelConversion(
+                        unit=unit,
+                        conversion_type=v3c.CONVERSION_TYPE_TAB,
+                        **conversion_,
+                    )
 
                 elif conversion_type == v4c.CONVERSION_TYPE_TABI:
-                    conversion = dict(conversion)
-                    conversion["conversion_type"] = v3c.CONVERSION_TYPE_TABI
-                    conversion["ref_param_nr"] = conversion["val_param_nr"] // 2
-                    conversion = v3b.ChannelConversion(unit=unit, **conversion)
+                    conversion_ = {}
+                    conversion_["ref_param_nr"] = conversion.val_param_nr // 2
+                    for i in range(conversion.val_param_nr // 2):
+                        conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
+                        conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
+
+                    conversion = v3b.ChannelConversion(
+                        unit=unit,
+                        conversion_type=v3c.CONVERSION_TYPE_TAB,
+                        **conversion_,
+                    )
 
                 elif conversion_type == v4c.CONVERSION_TYPE_ALG:
                     formula = conversion.formula.replace("X", "X1")
-                    conversion = dict(conversion)
-                    conversion["conversion_type"] = v3c.CONVERSION_TYPE_FORMULA
                     conversion = v3b.ChannelConversion(
-                        formula=formula, unit=unit, **conversion
+                        formula=formula,
+                        unit=unit,
+                        conversion_type=v3c.CONVERSION_TYPE_FORMULA,
                     )
 
                 elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
-                    nr = (conversion["val_param_nr"] - 1) // 3
+                    nr = (conversion.val_param_nr - 1) // 3
                     kargs = {
-                        "ref_param_nr": 2 * nr,
+                        "ref_param_nr": nr,
                         "conversion_type": v3c.CONVERSION_TYPE_TABI,
                     }
 
@@ -91,7 +117,7 @@ def conversion_transfer(conversion, version=3):
                     conversion = v3b.ChannelConversion(unit=unit, **kargs)
 
                 elif conversion_type == v4c.CONVERSION_TYPE_TABX:
-                    nr = conversion["val_param_nr"]
+                    nr = conversion.val_param_nr
                     kargs = {
                         "ref_param_nr": nr,
                         "unit": unit,
@@ -99,12 +125,12 @@ def conversion_transfer(conversion, version=3):
                     }
                     for i in range(nr):
                         kargs[f"param_val_{i}"] = conversion[f"val_{i}"]
-                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]["text"]
+                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].text
 
                     conversion = v3b.ChannelConversion(**kargs)
 
                 elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-                    nr = conversion["val_param_nr"] // 2
+                    nr = conversion.val_param_nr // 2
                     kargs = {
                         "ref_param_nr": nr + 1,
                         "unit": unit,
@@ -113,12 +139,12 @@ def conversion_transfer(conversion, version=3):
                     for i in range(nr):
                         kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
                         kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
-                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]["text"]
+                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].text
 
                     new_conversion = v3b.ChannelConversion(**kargs)
 
                     new_conversion.referenced_blocks["default_addr"] = v3b.TextBlock(
-                        text=conversion.referenced_blocks["default_addr"]["text"]
+                        text=conversion.referenced_blocks["default_addr"].text
                     )
 
                     conversion = new_conversion
