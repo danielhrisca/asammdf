@@ -4334,7 +4334,10 @@ class MDF4(object):
 
             if all(not isinstance(dep, ChannelArrayBlock) for dep in dependency_list):
                 # structure channel composition
-                _dtype = dtype(channel.dtype_fmt)
+                if PYVERSION == 2 and channel.dtype_fmt is not None:
+                    _dtype = dtype(fix_dtype_fields(channel.dtype_fmt, "utf-8"))
+                else:
+                    _dtype = dtype(channel.dtype_fmt)
                 if _dtype.itemsize == bit_count >> 3:
                     fast_path = True
                     channel_values = []
