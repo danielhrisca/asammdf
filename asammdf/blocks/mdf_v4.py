@@ -748,6 +748,7 @@ class MDF4(object):
         dependencies = grp.channel_dependencies
 
         composition = []
+        composition_dtype = []
         while ch_addr:
             # read channel block and create channel object
 
@@ -791,7 +792,7 @@ class MDF4(object):
                 if blk_id == b"##CN":
                     index = ch_cntr - 1
                     dependencies.append(None)
-                    ch_cntr, neg_ch_cntr, ret_composition = self._read_channels(
+                    ch_cntr, neg_ch_cntr, ret_composition, ret_composition_dtype = self._read_channels(
                         component_addr,
                         grp,
                         stream,
@@ -801,6 +802,9 @@ class MDF4(object):
                         True,
                     )
                     dependencies[index] = ret_composition
+
+                    channel.dtype_fmt = ret_composition_dtype
+                    composition_dtype.append((channel.name, channel.dtype_fmt))
 
                     if (
                         grp.CAN_id is not None
@@ -986,11 +990,14 @@ class MDF4(object):
 
             else:
                 dependencies.append(None)
+                if channel_composition:
+                    channel.dtype_fmt = get_fmt_v4(channel.data_type, channel.bit_count)
+                    composition_dtype.append((channel.name, channel.dtype_fmt))
 
             # go to next channel of the current channel group
             ch_addr = channel.next_ch_addr
 
-        return ch_cntr, neg_ch_cntr, composition
+        return ch_cntr, neg_ch_cntr, composition, composition_dtype
 
     def _load_signal_data(self, address=None, stream=None, group=None, index=None):
         """ this method is used to get the channel signal data, usually for
@@ -1750,7 +1757,7 @@ class MDF4(object):
             v4c.DATA_TYPE_SIGNED_MOTOROLA,
         )
 
-        record_size = group.channel_group.samples_byte_nr
+        record_size = group.channel_group.samples_byte_nr + group.channel_group.invalidation_bytes_nr
 
         if ch_nr >= 0:
             channel = group.channels[ch_nr]
@@ -3797,48 +3804,86 @@ class MDF4(object):
             if all(not isinstance(dep, ChannelArrayBlock) for dep in dependency_list):
                 # structure channel composition
 
-                names = [
-                    grp.channels[ch_nr].name for _, ch_nr in dependency_list
-                ]
+                _dtype = dtype(channel.dtype_fmt)
+                if _dtype.itemsize == bit_count >> 3:
+                    fast_path = True
+                    channel_values = []
+                    timestamps = []
+                    invalidation_bits = []
 
-                channel_values = [[] for _ in dependency_list]
-                timestamps = []
-                invalidation_bits = []
+                    byte_offset = channel.byte_offset
+                    record_size = grp.channel_group.samples_byte_nr + grp.channel_group.invalidation_bytes_nr
 
-                count = 0
-                for fragment in data:
-                    for i, (dg_nr, ch_nr) in enumerate(dependency_list):
-                        vals = self.get(
-                            group=dg_nr,
-                            index=ch_nr,
-                            samples_only=True,
-                            raw=raw,
-                            data=fragment,
-                            ignore_invalidation_bits=ignore_invalidation_bits,
-                            record_offset=record_offset,
-                            record_count=record_count,
-                        )[0]
-                        channel_values[i].append(vals)
-                    if not samples_only or raster:
-                        timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
-                    if channel_invalidation_present:
-                        invalidation_bits.append(
-                            self.get_invalidation_bits(gp_nr, channel, fragment)
-                        )
+                    count = 0
+                    for fragment in data:
 
-                    count += 1
+                        bts = fragment[0]
+                        types = [
+                            ("", f"V{byte_offset}"),
+                            ("vals", _dtype),
+                            ("", f"V{record_size - _dtype.itemsize - byte_offset}"),
+                        ]
 
-                if count > 1:
-                    arrays = [concatenate(lst) for lst in channel_values]
+                        channel_values.append(fromstring(bts, types)["vals"].copy())
+
+                        if not samples_only or raster:
+                            timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
+                        if channel_invalidation_present:
+                            invalidation_bits.append(
+                                self.get_invalidation_bits(gp_nr, channel, fragment)
+                            )
+
+                        count += 1
                 else:
-                    arrays = [lst[0] for lst in channel_values]
-                types = [
-                    (name_, arr.dtype, arr.shape[1:])
-                    for name_, arr in zip(names, arrays)
-                ]
-                types = dtype(types)
+                    fast_path = False
+                    names = [
+                        grp.channels[ch_nr].name for _, ch_nr in dependency_list
+                    ]
 
-                vals = fromarrays(arrays, dtype=types)
+                    channel_values = [[] for _ in dependency_list]
+                    timestamps = []
+                    invalidation_bits = []
+
+                    count = 0
+                    for fragment in data:
+                        for i, (dg_nr, ch_nr) in enumerate(dependency_list):
+                            vals = self.get(
+                                group=dg_nr,
+                                index=ch_nr,
+                                samples_only=True,
+                                raw=raw,
+                                data=fragment,
+                                ignore_invalidation_bits=ignore_invalidation_bits,
+                                record_offset=record_offset,
+                                record_count=record_count,
+                            )[0]
+                            channel_values[i].append(vals)
+                        if not samples_only or raster:
+                            timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
+                        if channel_invalidation_present:
+                            invalidation_bits.append(
+                                self.get_invalidation_bits(gp_nr, channel, fragment)
+                            )
+
+                        count += 1
+
+                if fast_path:
+                    if count > 1:
+                        vals = concatenate(channel_values)
+                    else:
+                        vals = channel_values[0]
+                else:
+                    if count > 1:
+                        arrays = [concatenate(lst) for lst in channel_values]
+                    else:
+                        arrays = [lst[0] for lst in channel_values]
+                    types = [
+                        (name_, arr.dtype, arr.shape[1:])
+                        for name_, arr in zip(names, arrays)
+                    ]
+                    types = dtype(types)
+
+                    vals = fromarrays(arrays, dtype=types)
 
                 if not samples_only or raster:
                     if count > 1:

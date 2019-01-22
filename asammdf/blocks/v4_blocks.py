@@ -403,7 +403,7 @@ class Channel:
         'precision', 'reserved1', 'attachment_nr', 'min_raw_value',
         'max_raw_value', 'lower_limit', 'upper_limit', 'lower_ext_limit',
         'upper_ext_limit', 'default_X_dg_addr', 'default_X_cg_addr',
-        'default_X_ch_addr', 'attachment_0_addr',
+        'default_X_ch_addr', 'attachment_addr',
     )
 
     def __init__(self, **kwargs):
@@ -805,10 +805,20 @@ class Channel:
         return result
 
     def __repr__(self):
+        fields = []
+        for attr in dir(self):
+            if attr[:2] + attr[-2:] == '____':
+                continue
+            try:
+                if callable(getattr(self, attr)):
+                    continue
+                fields.append(f"{attr}:{getattr(self, attr)}")
+            except AttributeError:
+                continue
         return f"""<Channel (name: {self.name}, unit: {self.unit}, comment: {self.comment}, address: {hex(self.address)},
     conversion: {self.conversion},
     source: {self.source},
-    fields: {dict(self)})>"""
+    fields: {fields})>"""
 
     def metadata(self):
         max_len = max(len(key) for key in self)
@@ -2631,14 +2641,23 @@ formula: {}
         return result
 
     def __repr__(self):
+        fields = []
+        for attr in dir(self):
+            if attr[:2] + attr[-2:] == '____':
+                continue
+            try:
+                if callable(getattr(self, attr)):
+                    continue
+                fields.append(f"{attr}:{getattr(self, attr)}")
+            except AttributeError:
+                continue
         return "<ChannelConversion (name: {}, unit: {}, comment: {}, formula: {}, referenced blocks: {}, address: {}, fields: {})>".format(
             self.name,
             self.unit,
             self.comment,
             self.formula,
             self.referenced_blocks,
-            hex(self.address),
-            dict(self),
+            fields,
         )
 
 
@@ -4223,8 +4242,18 @@ comment: {self.comment}
         return result
 
     def __repr__(self):
+        fields = []
+        for attr in dir(self):
+            if attr[:2] + attr[-2:] == '____':
+                continue
+            try:
+                if callable(getattr(self, attr)):
+                    continue
+                fields.append(f"{attr}:{getattr(self, attr)}")
+            except AttributeError:
+                continue
         return "<SourceInformation (name: {}, path: {}, comment: {}, address: {}, fields: {})>".format(
-            self.name, self.path, self.comment, hex(self.address), dict(self)
+            self.name, self.path, self.comment, hex(self.address), fields
         )
 
 

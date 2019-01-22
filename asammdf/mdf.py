@@ -451,7 +451,7 @@ class MDF(object):
                 if dependencies is None:
                     continue
                 if all(not isinstance(dep, ChannelArrayBlock) for dep in dependencies):
-                    for ch_nr, _ in dependencies:
+                    for _, ch_nr in dependencies:
                         try:
                             included_channels.remove(ch_nr)
                         except KeyError:
@@ -523,16 +523,13 @@ class MDF(object):
 
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
-                try:
-                    if dtypes.itemsize:
-                        group["record"] = np.core.records.fromstring(
-                            fragment[0], dtype=dtypes
-                        )
-                    else:
-                        group["record"] = None
-                except:
-                    print(group.types, group.parents)
-                    raise
+                if dtypes.itemsize:
+                    group["record"] = np.core.records.fromstring(
+                        fragment[0], dtype=dtypes
+                    )
+                else:
+                    group["record"] = None
+                    continue
 
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
@@ -3051,8 +3048,6 @@ class MDF(object):
                             del arr
                         yield name_, Series(values)
 
-        from time import perf_counter as pc
-
         df = DataFrame()
         masters = [self.get_master(i) for i in range(len(self.groups))]
         for i in range(len(self.groups)):
@@ -3088,12 +3083,9 @@ class MDF(object):
         used_names = UniqueDB()
         used_names.get_unique_name("time")
 
-        start__ = pc()
-
         for i, grp in enumerate(self.groups):
             if grp['channel_group']['cycles_nr'] == 0 and empty_channels == "skip":
                 continue
-            print(i)
 
             included_channels = self._included_channels(i)
 
@@ -3103,11 +3095,6 @@ class MDF(object):
             data = (data, 0, -1)
 
             for j in included_channels:
-                if j % 1000 == 0:
-                    print(i, j)
-                if pc()-start__ > 180:
-                    print('FINAL', i, j)
-                    return
                 sig = self.get(
                     group=i,
                     index=j,
