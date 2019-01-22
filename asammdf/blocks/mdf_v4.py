@@ -4349,9 +4349,9 @@ class MDF4(object):
 
                         bts = fragment[0]
                         types = [
-                            ("", f"V{byte_offset}"),
+                            ("", "V{}".format(byte_offset)),
                             ("vals", _dtype),
-                            ("", f"V{record_size - _dtype.itemsize - byte_offset}"),
+                            ("", "V{}".format(record_size - _dtype.itemsize - byte_offset)),
                         ]
 
                         channel_values.append(fromstring(bts, types)["vals"].copy())
