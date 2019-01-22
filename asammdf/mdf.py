@@ -480,7 +480,7 @@ class MDF(object):
                 if dependencies is None:
                     continue
                 if all(not isinstance(dep, ChannelArrayBlock) for dep in dependencies):
-                    for ch_nr, _ in dependencies:
+                    for _, ch_nr in dependencies:
                         try:
                             included_channels.remove(ch_nr)
                         except KeyError:
@@ -1763,6 +1763,7 @@ class MDF(object):
                                     else:
                                         samples = encode(decode(samples, encoding), "latin-1")
                                     sig.samples = samples
+                        sigs.append(sig)
 
                     if sigs:
                         mdf.extend(new_index, sigs)

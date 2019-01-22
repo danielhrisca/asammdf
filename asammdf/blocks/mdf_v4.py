@@ -18,14 +18,6 @@ from struct import unpack
 from tempfile import TemporaryFile
 from zlib import decompress
 
-try:
-    from blosc import compress as blosc_compress
-    BLOSC = True
-except ImportError:
-    BLOSC = False
-BLOSC = False
-
-
 from numpy import (
     arange,
     array,
@@ -943,6 +935,7 @@ class MDF4(object):
         dependencies = grp["channel_dependencies"]
 
         composition = []
+        composition_dtype = []
         while ch_addr:
             # read channel block and create channel object
             if memory == "minimum":
@@ -1020,7 +1013,7 @@ class MDF4(object):
                 if blk_id == b"##CN":
                     index = ch_cntr - 1
                     dependencies.append(None)
-                    ch_cntr, neg_ch_cntr, ret_composition = self._read_channels(
+                    ch_cntr, neg_ch_cntr, ret_composition, ret_composition_dtype = self._read_channels(
                         component_addr,
                         grp,
                         stream,
@@ -1030,7 +1023,8 @@ class MDF4(object):
                         True,
                     )
                     dependencies[index] = ret_composition
-
+                    channel.dtype_fmt = ret_composition_dtype
+                    composition_dtype.append((channel.name, channel.dtype_fmt))
                     if (
                         grp.get("CAN_id", None) is not None
                         and grp.get("message_id", None) is not None
@@ -1222,11 +1216,14 @@ class MDF4(object):
 
             else:
                 dependencies.append(None)
+                if channel_composition:
+                    channel.dtype_fmt = get_fmt_v4(channel["data_type"], channel["bit_count"])
+                    composition_dtype.append((channel.name, channel.dtype_fmt))
 
             # go to next channel of the current channel group
             ch_addr = channel["next_ch_addr"]
 
-        return ch_cntr, neg_ch_cntr, composition
+        return ch_cntr, neg_ch_cntr, composition, composition_dtype
 
     def _read_data_block(self, address, stream, size=-1):
         """read and aggregate data blocks for a given data group
@@ -2034,6 +2031,7 @@ class MDF4(object):
         gp_sdata.append(None)
         gp_sdata_size.append(0)
         self.channels_db.add(name, entry)
+        self.channels_db.add(ch.display_name, entry)
 
         # update the parents as well
         parents[ch_cntr] = name, 0
@@ -2108,6 +2106,7 @@ class MDF4(object):
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
                 self.channels_db.add(name, entry)
+                self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
@@ -2148,7 +2147,7 @@ class MDF4(object):
             v4c.DATA_TYPE_SIGNED_MOTOROLA,
         )
 
-        record_size = group["channel_group"]["samples_byte_nr"]
+        record_size = group["channel_group"]["samples_byte_nr"] + group["channel_group"]["invalidation_bytes_nr"]
 
         if ch_nr >= 0:
             if self.memory == "minimum":
@@ -3399,15 +3398,9 @@ class MDF4(object):
             if size:
                 data_address = self._tempfile.tell()
                 gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-                if BLOSC:
-                    samples = blosc_compress(samples.tobytes())
-                    self._tempfile.write(samples)
-                    dim = len(samples)
-                    block_type = v4c.BLOSC_BLOCK
-                else:
-                    samples.tofile(self._tempfile)
-                    dim = size
-                    block_type = v4c.DT_BLOCK
+                samples.tofile(self._tempfile)
+                dim = size
+                block_type = v4c.DT_BLOCK
                 gp["data_block_type"] = block_type
                 gp["param"] = 0
                 gp["data_size"] = [size]
@@ -3417,7 +3410,7 @@ class MDF4(object):
             else:
                 gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
                 gp["data_block"] = []
-                gp["data_block_type"] = v4c.BLOSC_BLOCK if BLOSC else v4c.DT_BLOCK
+                gp["data_block_type"] = v4c.DT_BLOCK
                 gp["param"] = 0
                 gp["data_size"] = []
                 gp["data_block_size"] = []
@@ -3700,15 +3693,9 @@ class MDF4(object):
             if size:
                 data_address = self._tempfile.tell()
                 gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
-                if BLOSC:
-                    samples = blosc_compress(samples.tobytes())
-                    self._tempfile.write(samples)
-                    dim = len(samples)
-                    block_type = v4c.BLOSC_BLOCK
-                else:
-                    samples.tofile(self._tempfile)
-                    dim = size
-                    block_type = v4c.DT_BLOCK
+                samples.tofile(self._tempfile)
+                dim = size
+                block_type = v4c.DT_BLOCK
                 gp["data_block_type"] = block_type
                 gp["param"] = 0
                 gp["data_size"] = [size]
@@ -3718,7 +3705,7 @@ class MDF4(object):
             else:
                 gp["data_location"] = v4c.LOCATION_TEMPORARY_FILE
                 gp["data_block"] = []
-                gp["data_block_type"] = v4c.BLOSC_BLOCK if BLOSC else v4c.DT_BLOCK
+                gp["data_block_type"] = v4c.DT_BLOCK
                 gp["param"] = 0
                 gp["data_size"] = []
                 gp["data_block_size"] = []
@@ -3811,19 +3798,12 @@ class MDF4(object):
                     inval_bits.append(invalidation_bits)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
-                names = signal.dtype.names
-
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     inval_bits.append(invalidation_bits)
 
-                for name in names:
-                    samples = signal[name]
-
-                    fields.append(samples)
-                    types.append(("", samples.dtype))
-
-                    if invalidation_bytes_nr and invalidation_bits is not None:
-                        inval_bits.append(invalidation_bits)
+                fields.append(signal)
+                types.append(("", signal.dtype))
+                names = signal.dtype.names
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names
@@ -3937,13 +3917,8 @@ class MDF4(object):
 
             if size:
                 gp["data_block"].append(addr)
-                if BLOSC:
-                    samples = blosc_compress(samples.tobytes())
-                    stream.write(samples)
-                    dim = len(samples)
-                else:
-                    samples.tofile(stream)
-                    dim = size
+                samples.tofile(stream)
+                dim = size
 
                 record_size = gp["channel_group"]["samples_byte_nr"]
                 record_size += gp["data_group"]["record_id_len"]
@@ -4359,65 +4334,102 @@ class MDF4(object):
 
             if all(not isinstance(dep, ChannelArrayBlock) for dep in dependency_list):
                 # structure channel composition
+                _dtype = dtype(channel.dtype_fmt)
+                if _dtype.itemsize == bit_count >> 3:
+                    fast_path = True
+                    channel_values = []
+                    timestamps = []
+                    invalidation_bits = []
 
-                if memory == "minimum":
-                    names = []
+                    byte_offset = channel["byte_offset"]
+                    record_size = grp["channel_group"]["samples_byte_nr"] + grp["channel_group"]["invalidation_bytes_nr"]
 
-                    for _, ch_nr in dependency_list:
-                        address = grp["channels"][ch_nr]
-                        channel_ = Channel(
-                            address=address, stream=stream, load_metadata=False
-                        )
+                    count = 0
+                    for fragment in data:
 
-                        name_ = get_text_v4(
-                            address=channel_["name_addr"], stream=stream
-                        )
-                        names.append(name_)
+                        bts = fragment[0]
+                        types = [
+                            ("", f"V{byte_offset}"),
+                            ("vals", _dtype),
+                            ("", f"V{record_size - _dtype.itemsize - byte_offset}"),
+                        ]
+
+                        channel_values.append(fromstring(bts, types)["vals"].copy())
+
+                        if not samples_only or raster:
+                            timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
+                        if channel_invalidation_present:
+                            invalidation_bits.append(
+                                self.get_invalidation_bits(gp_nr, channel, fragment)
+                            )
+
+                        count += 1
                 else:
-                    names = [
-                        grp["channels"][ch_nr].name for _, ch_nr in dependency_list
+                    fast_path = False
+                    if memory == "minimum":
+                        names = []
+
+                        for _, ch_nr in dependency_list:
+                            address = grp["channels"][ch_nr]
+                            channel_ = Channel(
+                                address=address, stream=stream, load_metadata=False
+                            )
+
+                            name_ = get_text_v4(
+                                address=channel_["name_addr"], stream=stream
+                            )
+                            names.append(name_)
+                    else:
+                        names = [
+                            grp["channels"][ch_nr].name for _, ch_nr in dependency_list
+                        ]
+
+                    channel_values = [[] for _ in dependency_list]
+                    timestamps = []
+                    invalidation_bits = []
+
+                    count = 0
+                    for fragment in data:
+                        for i, (dg_nr, ch_nr) in enumerate(dependency_list):
+                            vals = self.get(
+                                group=dg_nr,
+                                index=ch_nr,
+                                samples_only=True,
+                                raw=raw,
+                                data=fragment,
+                                ignore_invalidation_bits=ignore_invalidation_bits,
+                                record_offset=record_offset,
+                                record_count=record_count,
+                            )[0]
+                            channel_values[i].append(vals)
+                        if not samples_only or raster:
+                            timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
+                        if channel_invalidation_present:
+                            invalidation_bits.append(
+                                self.get_invalidation_bits(gp_nr, channel, fragment)
+                            )
+
+                        count += 1
+
+                if fast_path:
+                    if count > 1:
+                        vals = concatenate(channel_values)
+                    else:
+                        vals = channel_values[0]
+                else:
+                    if count > 1:
+                        arrays = [concatenate(lst) for lst in channel_values]
+                    else:
+                        arrays = [lst[0] for lst in channel_values]
+                    types = [
+                        (name_, arr.dtype, arr.shape[1:])
+                        for name_, arr in zip(names, arrays)
                     ]
+                    if PYVERSION == 2:
+                        types = fix_dtype_fields(types, "utf-8")
+                    types = dtype(types)
 
-                channel_values = [[] for _ in dependency_list]
-                timestamps = []
-                invalidation_bits = []
-
-                count = 0
-                for fragment in data:
-                    for i, (dg_nr, ch_nr) in enumerate(dependency_list):
-                        vals = self.get(
-                            group=dg_nr,
-                            index=ch_nr,
-                            samples_only=True,
-                            raw=raw,
-                            data=fragment,
-                            ignore_invalidation_bits=ignore_invalidation_bits,
-                            record_offset=record_offset,
-                            record_count=record_count,
-                        )[0]
-                        channel_values[i].append(vals)
-                    if not samples_only or raster:
-                        timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
-                    if channel_invalidation_present:
-                        invalidation_bits.append(
-                            self.get_invalidation_bits(gp_nr, channel, fragment)
-                        )
-
-                    count += 1
-
-                if count > 1:
-                    arrays = [concatenate(lst) for lst in channel_values]
-                else:
-                    arrays = [lst[0] for lst in channel_values]
-                types = [
-                    (name_, arr.dtype, arr.shape[1:])
-                    for name_, arr in zip(names, arrays)
-                ]
-                if PYVERSION == 2:
-                    types = fix_dtype_fields(types, "utf-8")
-                types = dtype(types)
-
-                vals = fromarrays(arrays, dtype=types)
+                    vals = fromarrays(arrays, dtype=types)
 
                 if not samples_only or raster:
                     if count > 1:
