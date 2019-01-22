@@ -1675,7 +1675,7 @@ class MDF(object):
         # append filtered channels to new MDF
         for new_index, (group_index, indexes) in enumerate(gps.items()):
             if version < "4.00":
-                encodings = [None, ]
+                encodings = []
 
             group = self.groups[group_index]
 
@@ -1741,7 +1741,7 @@ class MDF(object):
                 else:
                     sigs = [(self.get_master(group_index, data=fragment, copy_master=False), None)]
 
-                    for j in indexes:
+                    for k, j in enumerate(included_channels):
                         sig = self.get(
                             group=group_index,
                             index=j,
@@ -1751,7 +1751,7 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                         )
                         if version < "4.00":
-                            encoding = encodings[j]
+                            encoding = encodings[k]
                             samples = sig[0]
                             if encoding:
                                 if encoding != "latin-1":
@@ -2010,7 +2010,7 @@ class MDF(object):
                         group["record"] = None
 
                     if mdf_index == 0 and idx == 0:
-                        encodings = [None, ]
+                        encodings = []
                         signals = []
                         for j in included_channels:
                             sig = mdf.get(
@@ -2083,7 +2083,7 @@ class MDF(object):
 
                             signals = [(master, None)]
 
-                            for j in included_channels:
+                            for k, j in enumerate(included_channels):
                                 sig = mdf.get(
                                     group=i,
                                     index=j,
@@ -2096,7 +2096,7 @@ class MDF(object):
                                 signals.append(sig)
 
                                 if version < '4.00':
-                                    encoding = encodings[j]
+                                    encoding = encodings[k]
                                     samples = sig[0]
                                     if encoding:
                                         if encoding != "latin-1":
@@ -2211,7 +2211,7 @@ class MDF(object):
             for i, group in enumerate(mdf.groups):
                 idx = 0
                 if version < "4.00":
-                    encodings = [None, ]
+                    encodings = []
                 included_channels = mdf._included_channels(i)
                 if included_channels:
                     cg_nr += 1
@@ -2283,7 +2283,7 @@ class MDF(object):
 
                             signals = [(master, None)]
 
-                            for j in included_channels:
+                            for k, j in enumerate(included_channels):
                                 sig = mdf.get(
                                         group=i,
                                         index=j,
@@ -2295,7 +2295,7 @@ class MDF(object):
                                 signals.append(sig)
 
                                 if version < "4.00":
-                                    encoding = encodings[j]
+                                    encoding = encodings[k]
                                     samples = sig[0]
                                     if encoding:
                                         if encoding != "latin-1":
@@ -2393,7 +2393,7 @@ class MDF(object):
         cg_nr = -1
         for i, group in enumerate(self.groups):
             if version < "4.00":
-                encodings = [None, ]
+                encodings = []
             included_channels = self._included_channels(i)
             if included_channels:
                 cg_nr += 1
@@ -2451,7 +2451,7 @@ class MDF(object):
                 else:
                     sigs = [(self.get_master(i, data=fragment, raster=raster), None)]
 
-                    for j in included_channels:
+                    for k, j in enumerate(included_channels):
                         sig = self.get(
                             group=i,
                             index=j,
@@ -2463,7 +2463,7 @@ class MDF(object):
                         )
 
                         if version < "4.00":
-                            encoding = encodings[j]
+                            encoding = encodings[k]
                             samples = sig[0]
                             if encoding:
                                 if encoding != "latin-1":

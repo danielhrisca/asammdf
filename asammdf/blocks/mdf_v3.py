@@ -382,9 +382,9 @@ class MDF3(object):
 
                 start_offset = new_ch["start_offset"]
                 try:
-                    additional_byte_offset = new_ch["aditional_byte_offset"]
+                    additional_byte_offset = new_ch["additional_byte_offset"]
                     start_offset += 8 * additional_byte_offset
-                except KeyError:
+                except AttributeError:
                     pass
 
                 bit_offset = start_offset % 8
@@ -1224,7 +1224,7 @@ class MDF3(object):
                     "data_type": s_type,
                     "start_offset": start_bit_offset,
                     "bit_count": s_size_,
-                    "aditional_byte_offset": additional_byte_offset,
+                    "additional_byte_offset": additional_byte_offset,
                     "block_len": channel_size,
                     "version": version,
                 }
@@ -1398,7 +1398,7 @@ class MDF3(object):
                         "data_type": s_type,
                         "start_offset": start_bit_offset,
                         "bit_count": s_size,
-                        "aditional_byte_offset": additional_byte_offset,
+                        "additional_byte_offset": additional_byte_offset,
                         "block_len": channel_size,
                         "version": version,
                     }
@@ -1538,7 +1538,7 @@ class MDF3(object):
                     "data_type": s_type,
                     "start_offset": start_bit_offset,
                     "bit_count": s_size,
-                    "aditional_byte_offset": additional_byte_offset,
+                    "additional_byte_offset": additional_byte_offset,
                     "block_len": channel_size,
                     "version": version,
                 }
@@ -1604,7 +1604,7 @@ class MDF3(object):
                         "data_type": s_type,
                         "start_offset": start_bit_offset,
                         "bit_count": s_size,
-                        "aditional_byte_offset": additional_byte_offset,
+                        "additional_byte_offset": additional_byte_offset,
                         "block_len": channel_size,
                         "description": description,
                         "version": version,
@@ -1698,7 +1698,7 @@ class MDF3(object):
                         "data_type": s_type,
                         "start_offset": start_bit_offset,
                         "bit_count": s_size,
-                        "aditional_byte_offset": additional_byte_offset,
+                        "additional_byte_offset": additional_byte_offset,
                         "block_len": channel_size,
                         "version": version,
                     }
@@ -1765,7 +1765,7 @@ class MDF3(object):
                             "data_type": s_type,
                             "start_offset": start_bit_offset,
                             "bit_count": s_size,
-                            "aditional_byte_offset": additional_byte_offset,
+                            "additional_byte_offset": additional_byte_offset,
                             "block_len": channel_size,
                             "description": description,
                             "version": version,
@@ -1986,7 +1986,7 @@ class MDF3(object):
                 "max_raw_value": 0,
                 "start_offset": start_bit_offset,
                 "bit_count": s_size,
-                "aditional_byte_offset": additional_byte_offset,
+                "additional_byte_offset": additional_byte_offset,
                 "block_len": channel_size,
                 "version": version,
             }

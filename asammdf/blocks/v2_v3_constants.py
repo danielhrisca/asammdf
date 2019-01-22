@@ -146,10 +146,10 @@ HEADER_COMMON_KEYS = (
     "dg_nr",
     "date",
     "time",
-    "author",
-    "department",
-    "project",
-    "subject",
+    "author_field",
+    "department_field",
+    "project_field",
+    "subject_field",
 )
 
 FMT_COMMON = "<2sH"
@@ -188,7 +188,7 @@ KEYS_CHANNEL_DISPLAYNAME = (
     "sampling_rate",
     "long_name_addr",
     "display_name_addr",
-    "aditional_byte_offset",
+    "additional_byte_offset",
 )
 
 FMT_CHANNEL_SHORT = "<2sH5IH32s128s4H3d"
@@ -305,7 +305,7 @@ KEYS_CONVESION_NONE = (
     "range_flag",
     "min_phy_value",
     "max_phy_value",
-    "unit",
+    "unit_field",
     "conversion_type",
     "ref_param_nr",
 )
@@ -317,10 +317,10 @@ KEYS_CONVESION_FORMULA = (
     "range_flag",
     "min_phy_value",
     "max_phy_value",
-    "unit",
+    "unit_field",
     "conversion_type",
     "ref_param_nr",
-    "formula",
+    "formula_field",
 )
 
 FMT_CONVERSION_LINEAR = "<2s2H2d20s2H2d"
@@ -330,7 +330,7 @@ KEYS_CONVESION_LINEAR = (
     "range_flag",
     "min_phy_value",
     "max_phy_value",
-    "unit",
+    "unit_field",
     "conversion_type",
     "ref_param_nr",
     "b",
@@ -344,7 +344,7 @@ KEYS_CONVESION_POLY_RAT = (
     "range_flag",
     "min_phy_value",
     "max_phy_value",
-    "unit",
+    "unit_field",
     "conversion_type",
     "ref_param_nr",
     "P1",
@@ -362,7 +362,7 @@ KEYS_CONVESION_EXPO_LOGH = (
     "range_flag",
     "min_phy_value",
     "max_phy_value",
-    "unit",
+    "unit_field",
     "conversion_type",
     "ref_param_nr",
     "P1",
