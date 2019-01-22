@@ -967,7 +967,7 @@ class Group:
         'types',
         'signal_types',
         'size',
-
+        'trigger',
     )
 
     def __init__(self, data_group):
@@ -989,6 +989,7 @@ class Group:
         self.parents = None
         self.types = None
         self.record = None
+        self.trigger = None
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
