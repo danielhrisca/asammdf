@@ -968,6 +968,7 @@ class Group:
         'signal_types',
         'size',
         'trigger',
+        'string_dtypes',
     )
 
     def __init__(self, data_group):
@@ -990,6 +991,7 @@ class Group:
         self.types = None
         self.record = None
         self.trigger = None
+        self.string_dtypes = None
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -1000,3 +1002,7 @@ class Group:
     def set_blocks_info(self, info):
         for key, value in info.items():
             self[key] = value
+
+    def __contains__(self, item):
+        return hasattr(self, item)
+

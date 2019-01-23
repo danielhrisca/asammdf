@@ -209,7 +209,7 @@ class Channel:
                 if addr:
                     self.name = get_text_v3(address=addr, stream=stream)
                 else:
-                    self.name = self.short_name.decode("latin-1").strip(" \t\n\r0")
+                    self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
                 addr = self.display_name_addr
                 if addr:
@@ -322,8 +322,8 @@ class Channel:
             self.ch_depend_addr = kwargs.get("ch_depend_addr", 0)
             self.comment_addr = kwargs.get("comment_addr", 0)
             self.channel_type = kwargs.get("channel_type", 0)
-            self.short_name = kwargs.get("short_name", (b"0" * 32))
-            self.description = kwargs.get("description", (b"0" * 128))
+            self.short_name = kwargs.get("short_name", (b"\0" * 32))
+            self.description = kwargs.get("description", (b"\0" * 128))
             self.start_offset = kwargs.get("start_offset", 0)
             self.bit_count = kwargs.get("bit_count", 8)
             self.data_type = kwargs.get("data_type", 0)
@@ -388,7 +388,7 @@ class Channel:
                     tx_block.address = address
                     address += tx_block.block_len
                     blocks.append(tx_block)
-                self.description = b"0"
+                self.description = b"\0"
         else:
             self[key] = 0
 
@@ -469,6 +469,20 @@ comment: {}
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
 
+    def __contains__(self, item):
+        return hasattr(self, item)
+
+    def __iter__(self):
+        for attr in dir(self):
+            if attr[:2] + attr[-2:] == '____':
+                continue
+            try:
+                if callable(getattr(self, attr)):
+                    continue
+                yield attr
+            except AttributeError:
+                continue
+
     def __lt__(self, other):
         self_start = self.start_offset
         other_start = other.start_offset
@@ -494,7 +508,17 @@ comment: {}
         return result
 
     def __repr__(self):
-        return f"Channel (name: {self.name}, display name: {self.display_name,}, comment: {self.comment}, address: {hex(self.address)}, fields: {dict(self)})"
+        fields = []
+        for attr in dir(self):
+            if attr[:2] + attr[-2:] == '____':
+                continue
+            try:
+                if callable(getattr(self, attr)):
+                    continue
+                fields.append(f"{attr}:{getattr(self, attr)}")
+            except AttributeError:
+                continue
+        return f"Channel (name: {self.name}, display name: {self.display_name,}, comment: {self.comment}, address: {hex(self.address)}, fields: {fields})"
 
 
 class _ChannelConversionBase:
@@ -657,7 +681,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.ref_param_nr,
             ) = CONVERSION_COMMON_SHORT_uf(block)
 
-            self.unit = self.unit_field.decode("latin-1").strip(" \t\r\n0")
+            self.unit = self.unit_field.decode("latin-1").strip(" \t\r\n\0")
 
             conv_type = self.conversion_type
 
@@ -673,7 +697,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             elif conv_type == v23c.CONVERSION_TYPE_FORMULA:
                 self.formula_field = block[v23c.CC_COMMON_SHORT_SIZE :]
-                self.formula = self.formula_field.decode("latin-1").strip(" \t\r\n0")
+                self.formula = self.formula_field.decode("latin-1").strip(" \t\r\n\0")
 
             elif conv_type in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
 
@@ -880,7 +904,7 @@ class ChannelConversion(_ChannelConversionBase):
                     formula += b"\0"
                 except:
                     self.formula = formula
-                    formula = formula.encode("latin-1") + b"0"
+                    formula = formula.encode("latin-1") + b"\0"
                 self.block_len = 46 + formula_len + 1
                 self.range_flag = kwargs.get("range_flag", 1)
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
@@ -1298,12 +1322,17 @@ address: {}
         return result
 
     def __str__(self):
-        return "ChannelConversion (referneced blocks: {}, address: {}, fields: {})".format(
-            self.referenced_blocks,
-            hex(self.address),
-            super().__str__(),
-        )
-
+        fields = []
+        for attr in dir(self):
+            if attr[:2] + attr[-2:] == '____':
+                continue
+            try:
+                if callable(getattr(self, attr)):
+                    continue
+                fields.append(f"{attr}:{getattr(self, attr)}")
+            except AttributeError:
+                continue
+        return f"ChannelConversion (referneced blocks: {self.referenced_blocks}, address: {hex(self.address)}, fields: {fields})"
 
 class ChannelDependency:
     """ CDBLOCK class
@@ -1556,25 +1585,25 @@ class ChannelExtension:
             if self.type == v23c.SOURCE_ECU:
                 self.module_nr = kwargs.get("module_nr", 0)
                 self.module_address = kwargs.get("module_address", 0)
-                self.description = kwargs.get("description", b"0")
-                self.ECU_identification = kwargs.get("ECU_identification", b"0")
-                self.reserved0 = kwargs.get("reserved0", b"0")
+                self.description = kwargs.get("description", b"\0")
+                self.ECU_identification = kwargs.get("ECU_identification", b"\0")
+                self.reserved0 = kwargs.get("reserved0", b"\0")
             elif self.type == v23c.SOURCE_VECTOR:
                 self.CAN_id = kwargs.get("CAN_id", 0)
                 self.CAN_ch_index = kwargs.get("CAN_ch_index", 0)
-                self.message_name = kwargs.get("message_name", b"0")
-                self.sender_name = kwargs.get("sender_name", b"0")
-                self.reserved0 = kwargs.get("reserved0", b"0")
+                self.message_name = kwargs.get("message_name", b"\0")
+                self.sender_name = kwargs.get("sender_name", b"\0")
+                self.reserved0 = kwargs.get("reserved0", b"\0")
 
         if self.type == v23c.SOURCE_ECU:
-            self.path = self.ECU_identification.decode("latin-1").strip(" \t\n\r0")
-            self.name = self.description.decode("latin-1").strip(" \t\n\r0")
+            self.path = self.ECU_identification.decode("latin-1").strip(" \t\n\r\0")
+            self.name = self.description.decode("latin-1").strip(" \t\n\r\0")
             self.comment = "Module number={} @ address={}".format(
                 self.module_nr, self.module_address
             )
         else:
-            self.path = self.sender_name.decode("latin-1").strip(" \t\n\r0")
-            self.name = self.message_name.decode("latin-1").strip(" \t\n\r0")
+            self.path = self.sender_name.decode("latin-1").strip(" \t\n\r\0")
+            self.name = self.message_name.decode("latin-1").strip(" \t\n\r\0")
             self.comment = "Message ID={} on CAN bus {}".format(
                 hex(self.CAN_id), self.CAN_ch_index
             )
@@ -1665,13 +1694,17 @@ address: {}
         return result
 
     def __str__(self):
-        return "ChannelExtension (name: {}, path: {}, comment: {}, address: {}, fields: {})".format(
-            self.name,
-            self.path,
-            self.comment,
-            hex(self.address),
-            super().__str__(),
-        )
+        fields = []
+        for attr in dir(self):
+            if attr[:2] + attr[-2:] == '____':
+                continue
+            try:
+                if callable(getattr(self, attr)):
+                    continue
+                fields.append(f"{attr}:{getattr(self, attr)}")
+            except AttributeError:
+                continue
+        return f"ChannelExtension (name: {self.name}, path: {self.path}, comment: {self.comment}, address: {hex(self.address)}, fields: {fields})"
 
 
 class ChannelGroup:
@@ -2046,7 +2079,7 @@ class FileIdentificationBlock:
         except KeyError:
             version = kwargs["version"]
             self.file_identification = "MDF     ".encode("latin-1")
-            self.version_str = version.encode("latin-1") + b"0" * 4
+            self.version_str = version.encode("latin-1") + b"\0" * 4
             self.program_identification = "amdf{}".format(
                 __version__.replace(".", "")
             ).encode("latin-1")
@@ -2054,8 +2087,8 @@ class FileIdentificationBlock:
             self.float_format = 0
             self.mdf_version = int(version.replace(".", ""))
             self.code_page = 0
-            self.reserved0 = b"0" * 2
-            self.reserved1 = b"0" * 26
+            self.reserved0 = b"\0" * 2
+            self.reserved1 = b"\0" * 26
             self.unfinalized_standard_flags = 0
             self.unfinalized_custom_flags = 0
 

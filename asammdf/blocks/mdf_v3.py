@@ -1078,7 +1078,7 @@ class MDF3(object):
 
         dg_cntr = len(self.groups)
 
-        gp = {}
+        gp = Group(None)
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
@@ -2928,7 +2928,7 @@ class MDF3(object):
                 t = arange(cycles_nr, dtype=float64) * sampling_rate
             else:
                 # get data group parents and dtypes
-                parents, dtypes = self._prepare_record(grp)
+                parents, dtypes = self._prepare_record(group)
 
                 # get data group record
                 if data is None:
@@ -2948,6 +2948,8 @@ class MDF3(object):
                                 record = fromstring(data_bytes, dtype=dtypes)
                             else:
                                 record = None
+                        else:
+                            record = group.record
                         record.setflags(write=False)
                         t = record[parent]
                     else:

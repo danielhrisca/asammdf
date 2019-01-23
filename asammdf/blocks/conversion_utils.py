@@ -167,7 +167,7 @@ def conversion_transfer(conversion, version=3):
 
             elif conversion_type == v3c.CONVERSION_TYPE_RAT:
                 conversion = v4b.ChannelConversion(
-                    conversion_type=v3c.CONVERSION_TYPE_RAT,
+                    conversion_type=v4c.CONVERSION_TYPE_RAT,
                     P1=conversion.P1,
                     P2=conversion.P2,
                     P3=conversion.P3,
@@ -178,8 +178,10 @@ def conversion_transfer(conversion, version=3):
 
             elif conversion_type == v3c.CONVERSION_TYPE_FORMULA:
                 formula = conversion.formula
-                conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_ALG)
-                conversion.formula = formula
+                conversion = v4b.ChannelConversion(
+                    conversion_type=v4c.CONVERSION_TYPE_ALG,
+                    formula=formula,
+                )
 
             elif conversion_type == v3c.CONVERSION_TYPE_TAB:
                 conversion_ = {}
