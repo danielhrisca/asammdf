@@ -57,11 +57,6 @@ ProgramBlock Class
 ^^^^^^^^^^^^^^^^^^
 .. autoclass:: asammdf.blocks.v2_v3_blocks.ProgramBlock
 
-SampleReduction Class
-^^^^^^^^^^^^^^^^^^^^^
-.. autoclass:: asammdf.blocks.v2_v3_blocks.SampleReduction
-    :members:
-
 TextBlock Class
 ^^^^^^^^^^^^^^^
 .. autoclass:: asammdf.blocks.v2_v3_blocks.TextBlock

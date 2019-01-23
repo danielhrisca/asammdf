@@ -94,7 +94,6 @@ from .v4_blocks import (
     FileIdentificationBlock,
     HeaderBlock,
     HeaderList,
-    SampleReductionBlock,
     SourceInformation,
     TextBlock,
 )

@@ -55,7 +55,6 @@ __all__ = [
     "FileIdentificationBlock",
     "HeaderBlock",
     "ProgramBlock",
-    "SampleReduction",
     "TextBlock",
     "TriggerBlock",
 ]

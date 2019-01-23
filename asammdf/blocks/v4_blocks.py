@@ -59,7 +59,6 @@ __all__ = [
     "FileHistory",
     "SourceInformation",
     "TextBlock",
-    "SampleReductionBlock",
 ]
 
 
@@ -4374,103 +4373,4 @@ class TextBlock:
             self.links_nr,
             self.text,
         )
-        return result
-
-
-class SampleReductionBlock:
-    """SRBLOCK class
-
-    *SampleReductionBlock* has the following key-value pairs
-
-    * ``id`` - bytes : block ID; always b'##SR'
-    * ``reserved0`` - int : reserved bytes
-    * ``block_len`` - int : block bytes size
-    * ``links_nr`` - int : number of links
-    * ``next_sr_addr`` - int : address of next SampleReductionBlock
-    * ``data_block_addr`` - int : address of data block that contains the
-      raw samples for this sample reduction block
-    * ``cycles_nr`` - int : number of cycles
-    * ``interval`` - float : interval between consecutive samples
-    * ``sync_type`` - int : sync channel type
-    * ``flags`` - int : flags
-    * ``reserved1`` - int : reserved byte
-
-    Attributes
-    ----------
-    address : int
-        data block address
-
-    Parameters
-    ----------
-    address : int
-        DTBLOCK/RDBLOCK address inside the file
-    stream : int
-        file handle
-
-    """
-
-    __slots__ = (
-        'address',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'next_sr_addr',
-        'data_block_addr',
-        'cycles_nr',
-        'interval',
-        'sync_type',
-        'reserved1',
-    )
-
-    def __init__(self, **kwargs):
-        super().__init__()
-
-        try:
-            self.address = address = kwargs["address"]
-            stream = kwargs["stream"]
-            stream.seek(address)
-
-            (
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-                self.next_sr_addr,
-                self.data_block_addr,
-                self.cycles_nr,
-                self.interval,
-                self.sync_type,
-                self.flags,
-                self.reserved1,
-            ) = unpack(v4c.FMT_SR_BLOCK, stream.read(v4c.SR_BLOCK_SIZE))
-
-            if self.id != b"##SR":
-                message = f'Expected "##SR" block @{hex(address)} but found "{self.id}"'
-
-                logger.exception(message)
-                raise MdfException(message)
-
-        except KeyError:
-
-            self.id = b"##DT" if kwargs.get("reduction", False) else b"##RD"
-            self.reserved0 = 0
-            self.block_len = len(kwargs["data"]) + COMMON_SIZE
-            self.links_nr = 0
-            self.next_sr_addr = 0
-            self.data_block_addr = kwargs.get("data_block_addr", 0)
-            self.cycles_nr = kwargs.get("cycles_nr", 0)
-            self.interval = kwargs.get("interval", 0)
-            self.sync_type = kwargs.get("sync_type", 1)
-            self.reserved1 = b"\0" * 6
-
-    def __getitem__(self, item):
-        return self.__getattribute__(item)
-
-    def __setitem__(self, item, value):
-        self.__setattr__(item, value)
-
-    def __bytes__(self):
-        fmt = v4c.FMT_SR_BLOCK.format(self.block_len - v4c.SR_BLOCK_SIZE)
-        result = pack(fmt, *[self[key] for key in v4c.KEYS_SR_BLOCK])
         return result
