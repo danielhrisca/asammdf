@@ -45,7 +45,7 @@ class RangeEditor(QDialog):
 
         for col in (0, 1):
             box = QDoubleSpinBox(self.table)
-            box.setSuffix(" {}".format(self.unit))
+            box.setSuffix(f" {self.unit}")
             box.setRange(-10 ** 10, 10 ** 10)
             box.setDecimals(6)
             box.setValue(range[col])
@@ -53,7 +53,7 @@ class RangeEditor(QDialog):
             self.table.setCellWidget(row, col, box)
 
         button = QPushButton("", self.table)
-        button.setStyleSheet("background-color: {};".format(color))
+        button.setStyleSheet(f"background-color: {color};")
         self.table.setCellWidget(row, 2, button)
         button.clicked.connect(partial(self.select_color, button=button))
 
@@ -68,7 +68,7 @@ class RangeEditor(QDialog):
     def select_color(self, event, button):
         color = button.palette().button().color()
         color = QColorDialog.getColor(color).name()
-        button.setStyleSheet("background-color: {};".format(color))
+        button.setStyleSheet(f"background-color: {color};")
 
     def apply(self, event):
         for row in range(100):

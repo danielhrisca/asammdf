@@ -41,32 +41,32 @@ class ChannelStats(QWidget):
                         sign = "-" if value < 0 else ""
                         value = abs(value)
                         if self.fmt == "hex":
-                            value = "{}0x{:X}".format(sign, value)
+                            value = f"{sign}0x{value:X}"
                         elif self.fmt == "bin":
-                            value = "{}0b{:b}".format(sign, value)
+                            value = f"{sign}0b{value:b}"
                         else:
-                            value = "{}{}".format(sign, value)
+                            value = f"{sign}{value}"
                     else:
-                        value = "{:.6f}".format(value)
+                        value = f"{value:.6f}"
                 except:
                     if isinstance(value, int):
                         sign = "-" if value < 0 else ""
                         value = abs(value)
                         if self.fmt == "hex":
-                            value = "{}0x{:X}".format(sign, value)
+                            value = f"{sign}0x{value:X}"
                         elif self.fmt == "bin":
-                            value = "{}0b{:b}".format(sign, value)
+                            value = f"{sign}0b{value:b}"
                         else:
-                            value = "{}{}".format(sign, value)
+                            value = f"{sign}{value}"
                     elif isinstance(value, float):
-                        value = "{:.6f}".format(value)
+                        value = f"{value:.6f}"
                     else:
                         value = value
 
                 if name == "unit":
                     for i in range(1, 10):
-                        label = self.findChild(QLabel, "unit{}".format(i))
-                        label.setText(" {}".format(value))
+                        label = self.findChild(QLabel, f"unit{i}")
+                        label.setText(f" {value}")
                 elif name == "name":
                     self._name = value
                     self.name.setText(self.name_template.format(self.color, self._name))

@@ -50,7 +50,7 @@ class AdvancedSearch(QDialog):
                 pattern = text
 
             try:
-                pattern = re.compile("(?i){}".format(pattern))
+                pattern = re.compile(f"(?i){pattern}")
                 matches = [name for name in self.channels_db if pattern.match(name)]
                 self.matches.clear()
                 self.matches.addItems(matches)

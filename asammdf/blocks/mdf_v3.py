@@ -401,7 +401,7 @@ class MDF3(object):
                     # check if there are byte gaps in the record
                     gap = (parent_start_offset - next_byte_aligned_position) // 8
                     if gap:
-                        types.append(("", "a{}".format(gap)))
+                        types.append(("", f"V{gap}"))
 
                     # adjust size to 1, 2, 4 or 8 bytes for nonstandard integers
                     size = bit_offset + bit_count
@@ -453,7 +453,7 @@ class MDF3(object):
 
             gap = (record_size - next_byte_aligned_position) >> 3
             if gap:
-                dtype_pair = ("", "a{}".format(gap))
+                dtype_pair = ("", f"V{gap}")
                 types.append(dtype_pair)
 
             dtypes = dtype(types)
@@ -485,9 +485,9 @@ class MDF3(object):
             byte_count >>= 3
 
         types = [
-            ("", "a{}".format(byte_offset)),
-            ("vals", "({},)u1".format(byte_count)),
-            ("", "a{}".format(record_size - byte_count - byte_offset)),
+            ("", f"V{byte_offset}"),
+            ("vals", f"({byte_count},)u1"),
+            ("", f"V{record_size - byte_count - byte_offset}"),
         ]
 
         vals = fromstring(data, dtype=dtype(types))
@@ -545,9 +545,9 @@ class MDF3(object):
         fmt = get_fmt_v3(channel.data_type, bit_count)
         if size <= byte_count:
             if channel.data_type in big_endian_types:
-                types = [("", "a{}".format(byte_count - size)), ("vals", fmt)]
+                types = [("", f"a{byte_count - size}"), ("vals", fmt)]
             else:
-                types = [("vals", fmt), ("", "a{}".format(byte_count - size))]
+                types = [("vals", fmt), ("", f"a{byte_count - size}")]
         else:
             types = [("vals", fmt)]
 
@@ -612,7 +612,7 @@ class MDF3(object):
                         raise MdfException("Channel index out of range")
         else:
             if name not in self.channels_db:
-                raise MdfException('Channel "{}" not found'.format(name))
+                raise MdfException(f'Channel "{name}" not found')
             else:
                 if source is not None:
                     for gp_nr, ch_nr in self.channels_db[name]:
@@ -621,19 +621,18 @@ class MDF3(object):
                             break
                     else:
                         raise MdfException(
-                            "{} with source {} not found".format(name, source)
+                            f"{name} with source {source} not found"
                         )
                 elif group is None:
 
                     gp_nr, ch_nr = self.channels_db[name][0]
                     if len(self.channels_db[name]) > 1 and not suppress:
                         message = (
-                            'Multiple occurances for channel "{}". '
-                            "Using first occurance from data group {}. "
+                            f'Multiple occurances for channel "{name}". '
+                            f"Using first occurance from data group {gp_nr}. "
                             'Provide both "group" and "index" arguments'
                             " to select another data group"
                         )
-                        message = message.format(name, gp_nr)
                         logger.warning(message)
 
                 else:
@@ -649,13 +648,11 @@ class MDF3(object):
                                     break
                         else:
                             if index is None:
-                                message = 'Channel "{}" not found in group {}'
-                                message = message.format(name, group)
+                                message = f'Channel "{name}" not found in group {group}'
                             else:
                                 message = (
-                                    'Channel "{}" not found in group {} ' "at index {}"
+                                    f'Channel "{name}" not found in group {group} at index {index}'
                                 )
-                                message = message.format(name, group, index)
                             raise MdfException(message)
 
         return gp_nr, ch_nr
@@ -823,7 +820,7 @@ class MDF3(object):
             for dep in grp.channel_dependencies:
                 if dep:
                     for i in range(dep.sd_nr):
-                        ref_channel_addr = dep["ch_{}".format(i)]
+                        ref_channel_addr = dep[f"ch_{i}"]
                         channel = ch_map[ref_channel_addr]
                         dep.referenced_channels.append(channel)
 
@@ -917,12 +914,12 @@ class MDF3(object):
             count = trigger["trigger_events_nr"]
             trigger["trigger_events_nr"] += 1
             trigger.block_len += 24
-            trigger["trigger_{}_time".format(count)] = timestamp
-            trigger["trigger_{}_pretime".format(count)] = pre_time
-            trigger["trigger_{}_posttime".format(count)] = post_time
+            trigger[f"trigger_{count}_time"] = timestamp
+            trigger[f"trigger_{count}_pretime"] = pre_time
+            trigger[f"trigger_{count}_posttime"] = post_time
             if comment:
                 if trigger.comment is None:
-                    comment = "{}. {}".format(count + 1, comment)
+                    comment = f"{count + 1}. {comment}"
                     comment = comment_template.format(comment)
                     trigger.comment = comment
                 else:
@@ -936,7 +933,7 @@ class MDF3(object):
                     except ET.ParseError:
                         pass
 
-                    comment = "{}\n{}. {}".format(current_comment, count + 1, comment)
+                    comment = f"{current_comment}\n{count + 1}. {comment}"
                     comment = comment_template.format(comment)
                     trigger.comment = comment
         else:
@@ -947,7 +944,7 @@ class MDF3(object):
                 trigger_0_posttime=post_time,
             )
             if comment:
-                comment = "1. {}".format(comment)
+                comment = f"1. {comment}"
                 comment = comment_template.format(comment)
                 trigger.comment = comment
 
@@ -1490,15 +1487,15 @@ class MDF3(object):
                         subarray = subarray[:, idx]
                     component_samples.append(subarray)
 
-                    indexes = "".join("[{}]".format(idx) for idx in indexes)
-                    component_name = "{}{}".format(name, indexes)
+                    indexes = "".join(f"[{idx}]" for idx in indexes)
+                    component_name = f"{name}{indexes}"
                     component_names.append(component_name)
 
                 # add channel dependency block for composed parent channel
                 sd_nr = len(component_samples)
                 kargs = {"sd_nr": sd_nr}
                 for i, dim in enumerate(shape[::-1]):
-                    kargs["dim_{}".format(i)] = dim
+                    kargs[f"dim_{i}"] = dim
                 parent_dep = ChannelDependency(**kargs)
                 gp_dep.append(parent_dep)
 
@@ -1564,7 +1561,7 @@ class MDF3(object):
                         parent_dep.referenced_channels.append(dep_pair)
                         description = b"\0"
                     else:
-                        description = "{} - axis {}".format(signal.name, name)
+                        description = f"{signal.name} - axis {name}"
                         description = description.encode("latin-1")
 
                     s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
@@ -1650,8 +1647,8 @@ class MDF3(object):
                             subarray = subarray[:, idx]
                         component_samples.append(subarray)
 
-                        indexes = "".join("[{}]".format(idx) for idx in indexes)
-                        component_name = "{}{}".format(name, indexes)
+                        indexes = "".join(f"[{idx}]" for idx in indexes)
+                        component_name = f"{name}{indexes}"
                         component_names.append(component_name)
 
                     # add channel dependency block for composed parent channel
@@ -1724,7 +1721,7 @@ class MDF3(object):
                             parent_dep.referenced_channels.append(dep_pair)
                             description = b"\0"
                         else:
-                            description = "{} - axis {}".format(signal.name, name)
+                            description = f"{signal.name} - axis {name}"
                             description = description.encode("latin-1")
 
                         s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
@@ -2601,7 +2598,7 @@ class MDF3(object):
                 i = 0
                 while True:
                     try:
-                        dim = dep["dim_{}".format(i)]
+                        dim = dep[f"dim_{i}"]
                         shape.append(dim)
                         i += 1
                     except KeyError:
@@ -2702,7 +2699,7 @@ class MDF3(object):
                             if bit_offset:
                                 if dtype_.kind == "i":
                                     vals = vals.astype(
-                                        dtype("{}u{}".format(dtype_.byteorder, size))
+                                        dtype(f"{dtype_.byteorder}u{size}")
                                     )
                                     vals >>= bit_offset
                                 else:
@@ -2809,7 +2806,7 @@ class MDF3(object):
 
             description = channel.description.decode("latin-1").strip(" \t\n\0")
             if comment:
-                comment = "{}\n{}".format(comment, description)
+                comment = f"{comment}\n{description}"
             else:
                 comment = description
 
@@ -3041,9 +3038,9 @@ class MDF3(object):
                         "comment": trigger.comment,
                         "index": j,
                         "group": i,
-                        "time": trigger["trigger_{}_time".format(j)],
-                        "pre_time": trigger["trigger_{}_pretime".format(j)],
-                        "post_time": trigger["trigger_{}_posttime".format(j)],
+                        "time": trigger[f"trigger_{j}_time"],
+                        "pre_time": trigger[f"trigger_{j}_pretime"],
+                        "post_time": trigger[f"trigger_{j}_posttime"],
                     }
                     yield trigger_info
 
@@ -3068,7 +3065,7 @@ class MDF3(object):
             elif gp.data_location == v23c.LOCATION_TEMPORARY_FILE:
                 stream = self._tempfile
             inf = {}
-            info["group {}".format(i)] = inf
+            info[f"group {i}"] = inf
             inf["cycles"] = gp.channel_group.cycles_nr
             inf["comment"] = gp.channel_group.comment
             inf["channels count"] = len(gp.channels)
@@ -3079,7 +3076,7 @@ class MDF3(object):
                     ch_type = "master"
                 else:
                     ch_type = "value"
-                inf["channel {}".format(j)] = 'name="{}" type={}'.format(name, ch_type)
+                inf[f"channel {j}"] = f'name="{name}" type={ch_type}'
 
         return info
 
@@ -3132,16 +3129,14 @@ class MDF3(object):
 <TX>created</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor> </tool_vendor>
-<tool_version>{}</tool_version>
-</FHcomment>""".format(
-                __version__
-            )
+<tool_version>{__version__}</tool_version>
+</FHcomment>"""
         else:
-            text = "{}\n{}: updated by asammdf {}"
+
             old_history = self.header.comment
             timestamp = time.asctime().encode("latin-1")
 
-            text = text.format(old_history, timestamp, __version__)
+            text = f"{old_history}\n{timestamp}: updated by asammdf {__version__}"
             self.header.comment = text
 
         defined_texts, cc_map, si_map = {}, {}, {}
@@ -3281,9 +3276,9 @@ class MDF3(object):
                         dg_nr, ch_nr = pair_
                         grp = self.groups[dg_nr]
                         ch = grp.channels[ch_nr]
-                        dep["ch_{}".format(i)] = ch.address
-                        dep["cg_{}".format(i)] = grp.channel_group.address
-                        dep["dg_{}".format(i)] = grp.data_group.address
+                        dep[f"ch_{i}"] = ch.address
+                        dep[f"cg_{i}"] = grp.channel_group.address
+                        dep[f"dg_{i}"] = grp.data_group.address
 
             # DataGroup
             for gp in self.groups:

@@ -79,14 +79,12 @@ class ChannelDisplay(base_1, form_1):
         self.color = color
         self.setName(self._name)
         self.setValue(self._value)
-        self.color_btn.setStyleSheet("background-color: {};".format(color))
+        self.color_btn.setStyleSheet(f"background-color: {color};")
 
     def setName(self, text=""):
         self._name = text
         self.name.setText(
-            '<html><head/><body><p><span style=" color:{};">{}</span></p></body></html>'.format(
-                self.color, self._name
-            )
+            '<html><head/><body><p><span style=" color:{self.color};">{self._name}</span></p></body></html>'
         )
 
     def setPrefix(self, text=""):
@@ -97,7 +95,7 @@ class ChannelDisplay(base_1, form_1):
         if self.ranges and value not in ("", "n.a."):
             for (start, stop), color in self.ranges.items():
                 if start <= value < stop:
-                    self.setStyleSheet("background-color: {};".format(color))
+                    self.setStyleSheet(f"background-color: {color};")
                     self._transparent = False
                     break
             else:

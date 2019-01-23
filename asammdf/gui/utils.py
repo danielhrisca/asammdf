@@ -62,7 +62,7 @@ def excepthook(exc_type, exc_value, tracebackobj):
     info.seek(0)
     info = info.read()
 
-    errmsg = "{}\t \n{}".format(exc_type, exc_value)
+    errmsg = f"{exc_type}\t \n{exc_value}"
     sections = [now, separator, errmsg, separator, info]
     msg = "\n".join(sections)
 
@@ -124,7 +124,7 @@ def setup_progress(parent, title, message, icon_name):
     progress.setAutoClose(True)
     progress.setWindowTitle(title)
     icon = QIcon()
-    icon.addPixmap(QPixmap(":/{}.png".format(icon_name)), QIcon.Normal, QIcon.Off)
+    icon.addPixmap(QPixmap(f":/{icon_name}.png"), QIcon.Normal, QIcon.Off)
     progress.setWindowIcon(icon)
     progress.show()
 

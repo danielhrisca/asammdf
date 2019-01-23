@@ -407,20 +407,17 @@ class Channel:
 
     def metadata(self):
         max_len = max(len(key) for key in self)
-        template = "{{: <{}}}: {{}}".format(max_len)
+        template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
         lines = """
-name: {}
-display name: {}
-address: {}
-comment: {}
+name: {self.name}
+display name: {self.display_name}
+address: {hex(self.address)}
+comment: {self.comment}
 
-""".format(
-            self.name, self.display_name, hex(self.address), self.comment
-        ).split(
-            "\n"
-        )
+""".split("\n")
+
         for key, val in self.items():
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
@@ -1003,13 +1000,9 @@ class ChannelConversion(_ChannelConversionBase):
 
         metadata = []
         lines = """
-address: {}
+address: {hex(self.address)}
 
-""".format(
-            hex(self.address)
-        ).split(
-            "\n"
-        )
+""".split("\n")
         for key, val in self.items():
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
@@ -1022,7 +1015,7 @@ address: {}
                     lines.append(template.format(key, val))
         if self.referenced_blocks:
             max_len = max(len(key) for key in self.referenced_blocks)
-            template = "{{: <{}}}: {{}}".format(max_len)
+            template = f"{{: <{max_len}}}: {{}}"
 
             lines.append("")
             lines.append("Referenced blocks:")
@@ -1419,7 +1412,7 @@ class ChannelDependency:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        fmt = "<2s3H{}I".format(self.sd_nr * 3)
+        fmt = f"<2s3H{self.sd_nr * 3}I"
         keys = ("id", "block_len", "dependency_type", "sd_nr")
         for i in range(self.sd_nr):
             keys += (f"dg_{i}", f"cg_{i}", f"ch_{i}")
@@ -1582,15 +1575,11 @@ class ChannelExtension:
         if self.type == v23c.SOURCE_ECU:
             self.path = self.ECU_identification.decode("latin-1").strip(" \t\n\r\0")
             self.name = self.description.decode("latin-1").strip(" \t\n\r\0")
-            self.comment = "Module number={} @ address={}".format(
-                self.module_nr, self.module_address
-            )
+            self.comment = f"Module number={self.module_nr} @ address={self.module_address}"
         else:
             self.path = self.sender_name.decode("latin-1").strip(" \t\n\r\0")
             self.name = self.message_name.decode("latin-1").strip(" \t\n\r\0")
-            self.comment = "Message ID={} on CAN bus {}".format(
-                hex(self.CAN_id), self.CAN_ch_index
-            )
+            self.comment = f"Message ID={hex(self.CAN_id)} on CAN bus {self.CAN_ch_index}"
 
     def to_blocks(self, address, blocks, defined_texts, cc_map):
 
@@ -1635,17 +1624,14 @@ class ChannelExtension:
 
     def metadata(self):
         max_len = max(len(key) for key in self)
-        template = "{{: <{}}}: {{}}".format(max_len)
+        template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
         lines = """
-address: {}
+address: {hex(self.address)}
 
-""".format(
-            hex(self.address)
-        ).split(
-            "\n"
-        )
+""".split("\n")
+
         for key, val in self.items():
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))

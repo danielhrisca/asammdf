@@ -52,7 +52,7 @@ class MainWindow(QMainWindow):
         self.files_layout.addWidget(self.files_list, 0, 0, 1, 2)
         self.files_list.itemDoubleClicked.connect(self.delete_item)
 
-        self.statusbar.addPermanentWidget(QLabel("asammdf {}".format(libversion)))
+        self.statusbar.addPermanentWidget(QLabel(f"asammdf {libversion}"))
 
         menu = self.menubar.addMenu("File")
         open_group = QActionGroup(self)
@@ -122,7 +122,7 @@ class MainWindow(QMainWindow):
 
         icon = QIcon()
         icon.addPixmap(QPixmap(":/fit.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tF".format("Fit trace"), menu)
+        action = QAction(icon, f"{'Fit trace': <20}\tF", menu)
         action.triggered.connect(partial(self.plot_action, key=Qt.Key_F))
         action.setShortcut(Qt.Key_F)
         plot_actions.addAction(action)
@@ -348,8 +348,8 @@ class MainWindow(QMainWindow):
 
             progress = setup_progress(
                 parent=self,
-                title="{} measurements".format(operation),
-                message="{} files and saving to {} format".format(operation, version),
+                title=f"{operation} measurements",
+                message=f"{operation} files and saving to {version} format",
                 icon_name="stack",
             )
 
@@ -377,7 +377,7 @@ class MainWindow(QMainWindow):
             mdf.configure(write_fragment_size=split_size)
 
             # save it
-            progress.setLabelText('Saving output file "{}"'.format(file_name))
+            progress.setLabelText(f'Saving output file "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}

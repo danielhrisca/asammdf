@@ -57,7 +57,7 @@ class FileWidget(QWidget):
         self.with_dots = with_dots
 
         progress = QProgressDialog(
-            'Opening "{}"'.format(self.file_name), "", 0, 100, self.parent()
+            f'Opening "{self.file_name}"', "", 0, 100, self.parent()
         )
 
         progress.setWindowModality(Qt.ApplicationModal)
@@ -87,7 +87,7 @@ class FileWidget(QWidget):
 
                     index = 0
                     while True:
-                        mdf_name = "{}.{}.mdf".format(file_name, index)
+                        mdf_name = f"{file_name}.{index}.mdf"
                         if os.path.exists(mdf_name):
                             index += 1
                         else:
@@ -261,8 +261,8 @@ class FileWidget(QWidget):
         for i, group in enumerate(self.mdf.groups):
             channel_group = QTreeWidgetItem()
             filter_channel_group = QTreeWidgetItem()
-            channel_group.setText(0, "Channel group {}".format(i))
-            filter_channel_group.setText(0, "Channel group {}".format(i))
+            channel_group.setText(0, f"Channel group {i}")
+            filter_channel_group.setText(0, f"Channel group {i}")
             channel_group.setFlags(
                 channel_group.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable
             )
@@ -273,7 +273,7 @@ class FileWidget(QWidget):
             self.channels_tree.addTopLevelItem(channel_group)
             self.filter_tree.addTopLevelItem(filter_channel_group)
 
-            for j, ch in enumerate(group["channels"]):
+            for j, ch in enumerate(group.channels):
 
                 name = self.mdf.get_channel_name(i, j)
                 channel = TreeItem((i, j), channel_group)
@@ -287,7 +287,7 @@ class FileWidget(QWidget):
                 channel.setCheckState(0, Qt.Unchecked)
 
             if self.mdf.version >= "4.00":
-                for j, ch in enumerate(group["logging_channels"], 1):
+                for j, ch in enumerate(group.logging_channels, 1):
                     name = ch.name
 
                     channel = TreeItem((i, -j), channel_group)
@@ -717,12 +717,12 @@ class FileWidget(QWidget):
             self.plot.cursor_hint.show()
 
         if not self.plot.region:
-            self.cursor_info.setText("t = {:.6f}s".format(position))
+            self.cursor_info.setText(f"t = {position:.6f}s")
             for i, signal in enumerate(self.plot.signals):
                 cut_sig = signal.cut(position, position)
                 if signal.texts is None or len(cut_sig) == 0:
                     samples = cut_sig.samples
-                    if signal.conversion and "text_0" in signal.conversion:
+                    if signal.conversion and hasattr(signal.conversion, "text_0"):
                         samples = signal.conversion.convert(samples)
                         try:
                             samples = [s.decode("utf-8") for s in samples]
@@ -777,11 +777,11 @@ class FileWidget(QWidget):
         self.cursor_info.setText(
             (
                 "< html > < head / > < body >"
-                "< p >t1 = {:.6f}s< / p > "
-                "< p >t2 = {:.6f}s< / p > "
-                "< p >Δt = {:.6f}s< / p > "
+                f"< p >t1 = {start:.6f}s< / p > "
+                f"< p >t2 = {stop:.6f}s< / p > "
+                f"< p >Δt = {stop - start:.6f}s< / p > "
                 "< / body > < / html >"
-            ).format(start, stop, stop - start)
+            )
         )
 
         for i, signal in enumerate(self.plot.signals):
@@ -935,7 +935,7 @@ class FileWidget(QWidget):
         group_index, channel_index = search.entries[search.current_index]
 
         grp = self.mdf.groups[group_index]
-        channel_count = len(grp["channels"])
+        channel_count = len(grp.channels)
 
         iterator = QTreeWidgetItemIterator(tree)
 
@@ -1002,9 +1002,7 @@ class FileWidget(QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Converting measurement",
-                message='Converting "{}" from {} to {} '.format(
-                    self.file_name, self.mdf.version, version
-                ),
+                message=f'Converting "{self.file_name}" from {self.mdf.version} to {version}',
                 icon_name="convert",
             )
 
@@ -1028,7 +1026,7 @@ class FileWidget(QWidget):
             mdf.configure(write_fragment_size=split_size)
 
             # then save it
-            progress.setLabelText('Saving converted file "{}"'.format(file_name))
+            progress.setLabelText(f'Saving converted file "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
@@ -1075,7 +1073,7 @@ class FileWidget(QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Resampling measurement",
-                message='Resampling "{}" to {}s raster '.format(self.file_name, raster),
+                message=f'Resampling "{self.file_name}" to {raster}s raster ',
                 icon_name="resample",
             )
 
@@ -1099,7 +1097,7 @@ class FileWidget(QWidget):
             mdf.configure(write_fragment_size=split_size)
 
             # then save it
-            progress.setLabelText('Saving resampled file "{}"'.format(file_name))
+            progress.setLabelText(f'Saving resampled file "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
@@ -1152,9 +1150,7 @@ class FileWidget(QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Cutting measurement",
-                message='Cutting "{}" from {}s to {}s'.format(
-                    self.file_name, start, stop
-                ),
+                message='Cutting "{self.file_name}" from {start}s to {stop}s',
                 icon_name="cut",
             )
 
@@ -1183,7 +1179,7 @@ class FileWidget(QWidget):
             mdf.configure(write_fragment_size=split_size)
 
             # then save it
-            progress.setLabelText('Saving cut file "{}"'.format(file_name))
+            progress.setLabelText(f'Saving cut file "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
@@ -1243,7 +1239,7 @@ class FileWidget(QWidget):
             )
 
             progress = QProgressDialog(
-                "Exporting to {} ...".format(export_type), "Abort export", 0, 100
+                f"Exporting to {export_type} ...", "Abort export", 0, 100
             )
             progress.setWindowModality(Qt.ApplicationModal)
             progress.setCancelButton(None)
@@ -1318,9 +1314,9 @@ class FileWidget(QWidget):
 
         for i, sig in enumerate(self.plot.signals):
             if sig.empty:
-                name = "{} [has no samples]".format(sig.name)
+                name = f"{sig.name} [has no samples]"
             else:
-                name = "{} ({})".format(sig.name, sig.unit)
+                name = f"{sig.name} ({sig.unit})"
             is_float = sig.samples.dtype.kind == "f"
             item = QListWidgetItem(self.channel_selection)
             it = ChannelDisplay(i, sig.unit, self)
@@ -1400,7 +1396,7 @@ class FileWidget(QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Filtering measurement",
-                message='Filtering selected channels from "{}"'.format(self.file_name),
+                message=f'Filtering selected channels from "{self.file_name}"',
                 icon_name="filter",
             )
 
@@ -1424,7 +1420,7 @@ class FileWidget(QWidget):
             mdf.configure(write_fragment_size=split_size)
 
             # then save it
-            progress.setLabelText('Saving filtered file "{}"'.format(file_name))
+            progress.setLabelText(f'Saving filtered file "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}

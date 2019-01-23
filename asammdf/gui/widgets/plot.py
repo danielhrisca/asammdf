@@ -347,7 +347,7 @@ try:
                     viewbox.setXLink(self.viewbox)
                     axis = self.axis
 
-                    if sig.conversion and "text_0" in sig.conversion:
+                    if sig.conversion and hasattr(sig.conversion, "text_0"):
                         axis.text_conversion = sig.conversion
                     else:
                         axis.text_conversion = None
@@ -486,14 +486,14 @@ try:
                         if x[0] <= position <= x[-1]:
                             idx = np.searchsorted(x, position)
                             val = sig.original_samples[idx]
-                            if sig.conversion and "text_0" in sig.conversion:
+                            if sig.conversion and hasattr(sig.conversion,"text_0"):
                                 vals = np.array([val])
                                 vals = sig.conversion.convert(vals)
                                 try:
                                     vals = [s.decode("utf-8") for s in vals]
                                 except:
                                     vals = [s.decode("latin-1") for s in vals]
-                                val = "{}= {}".format(val, vals[0])
+                                val = f"{val}= {vals[0]}"
                             stats["cursor_value"] = val
 
                         else:

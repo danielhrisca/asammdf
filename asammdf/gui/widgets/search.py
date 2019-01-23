@@ -51,7 +51,7 @@ class SearchWidget(QWidget):
             self.current_index += 1
             if self.current_index >= self.matches:
                 self.current_index = 0
-            self.label.setText("{} of {}".format(self.current_index + 1, self.matches))
+            self.label.setText(f"{self.current_index + 1} of {self.matches}")
             self.selectionChanged.emit()
 
     def up(self, event):
@@ -59,7 +59,7 @@ class SearchWidget(QWidget):
             self.current_index -= 1
             if self.current_index < 0:
                 self.current_index = self.matches - 1
-            self.label.setText("{} of {}".format(self.current_index + 1, self.matches))
+            self.label.setText(f"{self.current_index + 1} of {self.matches}")
             self.selectionChanged.emit()
 
     def set_search_option(self, option):
@@ -74,7 +74,7 @@ class SearchWidget(QWidget):
         if channel_name in self.channels_db:
             self.entries = self.channels_db[channel_name]
             self.matches = len(self.entries)
-            self.label.setText("1 of {}".format(self.matches))
+            self.label.setText(f"1 of {self.matches}")
             self.current_index = 0
             self.selectionChanged.emit()
 
