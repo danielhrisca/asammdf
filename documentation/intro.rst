@@ -35,7 +35,7 @@ Features
         * 2 - look-up
         
 * add and extract attachments for mdf version 4
-* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi) using *memory* = *minimum* argument
+* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi)
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
 * time domain operation using the *Signal* class
 

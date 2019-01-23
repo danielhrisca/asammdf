@@ -48,15 +48,6 @@ Settings
 
 The following settings are available
 
-* **Memory**: this specifies the *memory* argument when instantiating the *MDF* object. 
-  It can have one of the values:
-  
-      * ``full``
-      * ``low``
-      * ``minimum``
-      
-  Changing this option does not affect already opened files; it will only apply later when opening a new file.
-  
 * **Plot lines**: controls the visual style of the channels plot lines:
 
       * ``Simple``: a simple line is used to join the channel samples. It is the default option because it gives the best performance for high sample count
