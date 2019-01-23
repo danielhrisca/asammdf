@@ -3136,7 +3136,7 @@ class MDF(object):
             signals = [sig for sig in signals if len(sig)]
 
             for k, sig in enumerate(signals):
-                if pc() - start__ > 60:
+                if pc() - start__ > 120:
                     print(pc() - start__, i, k)
                     return
                 # byte arrays

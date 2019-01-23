@@ -2756,7 +2756,7 @@ class DataBlock:
         return result
 
 
-class DataZippedBlock:
+class DataZippedBlock(object):
     """DZBLOCK class
 
     *DataZippedBlock* has the following key-value pairs
@@ -2861,7 +2861,7 @@ class DataZippedBlock:
         self._prevent_data_setitem = False
         self.return_unzipped = True
 
-    def __setitem__(self, item, value):
+    def __setattr__(self, item, value):
         if item == "data" and not self._prevent_data_setitem:
             data = value
             original_size = len(data)
@@ -2895,14 +2895,14 @@ class DataZippedBlock:
             zipped_size = len(data)
             self.zip_size = zipped_size
             self.block_len = zipped_size + v4c.DZ_COMMON_SIZE
-            self.__setattr__(item, data)
+            DataZippedBlock.__dict__[item].__set__(self, data)
         else:
-            super().__setitem__(item, value)
+            DataZippedBlock.__dict__[item].__set__(self, value)
 
-    def __getitem__(self, item):
+    def __getattribute__(self, item):
         if item == "data":
             if self.return_unzipped:
-                data = self.__getattribute__(item)
+                data = self._data
                 original_size = self.original_size
                 data = decompress(data, 0, original_size)
                 if self.zip_type == v4c.FLAG_DZ_TRANPOSED_DEFLATE:
@@ -2924,11 +2924,17 @@ class DataZippedBlock:
                             .tostring()
                         )
             else:
-                data = self.__getattribute__(item)
+                data = DataZippedBlock.__dict__[item].__get__(self)
             value = data
         else:
-            value = self.__getattribute__(item)
+            value = DataZippedBlock.__dict__[item].__get__(self)
         return value
+
+    def __setitem__(self, item, value):
+        self.__setattr__(item, value)
+
+    def __getitem__(self, item):
+        return self.__getattribute__(item)
 
     def __bytes__(self):
         fmt = v4c.FMT_DZ_COMMON + "{}s".format(self.zip_size)
