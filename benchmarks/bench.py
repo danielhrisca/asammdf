@@ -659,7 +659,7 @@ def merge_reader_v3_compress(output, fmt):
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.merge_mdf(x2)
-        x2 = MDFreader(files[2])
+        x2 = MDFreader(files[2], compression='blosc')
         x2.resample(0.01)
         x1.merge_mdf(x2)
     output.send([timer.output, timer.error])
@@ -676,7 +676,7 @@ def merge_reader_v3_nodata(output, fmt):
         x2 = MDFreader(files[1], no_data_loading=True)
         x2.resample(0.01)
         x1.merge_mdf(x2)
-        x2 = MDFreader(files[2])
+        x2 = MDFreader(files[2], no_data_loading=True)
         x2.resample(0.01)
         x1.merge_mdf(x2)
     output.send([timer.output, timer.error])
@@ -711,7 +711,7 @@ def merge_reader_v4_compress(output, fmt):
         x2 = MDFreader(files[1], compression='blosc')
         x2.resample(0.01)
         x1.merge_mdf(x2)
-        x2 = MDFreader(files[2])
+        x2 = MDFreader(files[2], compression='blosc')
         x2.resample(0.01)
         x1.merge_mdf(x2)
 
@@ -728,7 +728,7 @@ def merge_reader_v4_nodata(output, fmt):
         x2 = MDFreader(files[1], no_data_loading=True)
         x2.resample(0.01)
         x1.merge_mdf(x2)
-        x2 = MDFreader(files[2])
+        x2 = MDFreader(files[2], no_data_loading=True)
         x2.resample(0.01)
         x1.merge_mdf(x2)
 
@@ -941,17 +941,17 @@ def main(text_output, fmt):
     # output.append('    * {} groups'.format(v4_groups))
     # output.append('    * {} channels\n\n'.format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 0, 0, 0, 0, 0, 0
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 1, 1, 1
 
     tests = (
-         # open_mdf3,
-         # open_reader3,
-         # open_reader3_compression,
-         # open_reader3_nodata,
+          open_mdf3,
+          open_reader3,
+          open_reader3_compression,
+          open_reader3_nodata,
          open_mdf4,
-         # open_reader4,
-         # open_reader4_compression,
-         # open_reader4_nodata,
+          open_reader4,
+          open_reader4_compression,
+          open_reader4_nodata,
     )
 
     if tests and OPEN:
@@ -967,13 +967,13 @@ def main(text_output, fmt):
 
     tests = (
          save_mdf3,
-#         save_reader3,
-#         save_reader3_nodata,
-#         save_reader3_compression,
+        save_reader3,
+        save_reader3_nodata,
+        save_reader3_compression,
          save_mdf4,
-#         save_reader4,
-#         save_reader4_nodata,
-#         save_reader4_compression,
+        save_reader4,
+        save_reader4_nodata,
+        save_reader4_compression,
     )
 
     if tests and SAVE:

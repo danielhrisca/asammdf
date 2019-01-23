@@ -442,15 +442,75 @@ comment: {self.comment}
         block_len = self.block_len
         if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
             fmt = v23c.FMT_CHANNEL_DISPLAYNAME
-            keys = v23c.KEYS_CHANNEL_DISPLAYNAME
+            result = pack(
+                fmt,
+                self.id,
+                self.block_len,
+                self.next_ch_addr,
+                self.conversion_addr,
+                self.source_addr,
+                self.ch_depend_addr,
+                self.comment_addr,
+                self.channel_type,
+                self.short_name,
+                self.description,
+                self.start_offset,
+                self.bit_count,
+                self.data_type,
+                self.range_flag,
+                self.min_raw_value,
+                self.max_raw_value,
+                self.sampling_rate,
+                self.long_name_addr,
+                self.display_name_addr,
+                self.additional_byte_offset,
+            )
         elif block_len == v23c.CN_LONGNAME_BLOCK_SIZE:
             fmt = v23c.FMT_CHANNEL_LONGNAME
-            keys = v23c.KEYS_CHANNEL_LONGNAME
+            result = pack(
+                fmt,
+                self.id,
+                self.block_len,
+                self.next_ch_addr,
+                self.conversion_addr,
+                self.source_addr,
+                self.ch_depend_addr,
+                self.comment_addr,
+                self.channel_type,
+                self.short_name,
+                self.description,
+                self.start_offset,
+                self.bit_count,
+                self.data_type,
+                self.range_flag,
+                self.min_raw_value,
+                self.max_raw_value,
+                self.sampling_rate,
+                self.long_name_addr,
+            )
         else:
             fmt = v23c.FMT_CHANNEL_SHORT
-            keys = v23c.KEYS_CHANNEL_SHORT
+            result = pack(
+                fmt,
+                self.id,
+                self.block_len,
+                self.next_ch_addr,
+                self.conversion_addr,
+                self.source_addr,
+                self.ch_depend_addr,
+                self.comment_addr,
+                self.channel_type,
+                self.short_name,
+                self.description,
+                self.start_offset,
+                self.bit_count,
+                self.data_type,
+                self.range_flag,
+                self.min_raw_value,
+                self.max_raw_value,
+                self.sampling_rate,
+            )
 
-        result = pack(fmt, *[self[key] for key in keys])
         return result
 
     def __getitem__(self, item):
