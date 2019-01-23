@@ -106,10 +106,7 @@ class FileWidget(QWidget):
                     return
 
             target = MDF
-            kwargs = {
-                "name": file_name,
-                "callback": self.update_progress,
-            }
+            kwargs = {"name": file_name, "callback": self.update_progress}
 
             self.mdf = run_thread_with_progress(
                 self,
@@ -1084,10 +1081,7 @@ class FileWidget(QWidget):
 
             # resample self.mdf
             target = self.mdf.resample
-            kwargs = {
-                "raster": raster,
-                "version": version,
-            }
+            kwargs = {"raster": raster, "version": version}
 
             mdf = run_thread_with_progress(
                 self,
@@ -1412,10 +1406,7 @@ class FileWidget(QWidget):
 
             # filtering self.mdf
             target = self.mdf.filter
-            kwargs = {
-                "channels": channels,
-                "version": version,
-            }
+            kwargs = {"channels": channels, "version": version}
 
             mdf = run_thread_with_progress(
                 self,

@@ -3,7 +3,7 @@
 
 import logging
 
-logging.getLogger('asammdf').addHandler(logging.NullHandler())
+logging.getLogger("asammdf").addHandler(logging.NullHandler())
 
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3

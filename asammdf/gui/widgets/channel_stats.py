@@ -2,6 +2,7 @@
 import os
 
 import pyqtgraph as pg
+
 try:
     from PyQt5.QtGui import *
     from PyQt5.QtWidgets import *
@@ -68,14 +69,10 @@ class ChannelStats(QWidget):
                         label.setText(" {}".format(value))
                 elif name == "name":
                     self._name = value
-                    self.name.setText(
-                        self.name_template.format(self.color, self._name)
-                    )
+                    self.name.setText(self.name_template.format(self.color, self._name))
                 elif name == "color":
                     self.color = value
-                    self.name.setText(
-                        self.name_template.format(self.color, self._name)
-                    )
+                    self.name.setText(self.name_template.format(self.color, self._name))
                 else:
                     label = self.findChild(QLabel, name)
                     label.setText(value)

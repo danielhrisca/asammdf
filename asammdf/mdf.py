@@ -116,9 +116,7 @@ class MDF(object):
             elif version in MDF2_VERSIONS:
                 self._mdf = MDF2(name, **kwargs)
             else:
-                message = (
-                    f'"{name}" is not a supported MDF file; "{version}" file version was found'
-                )
+                message = f'"{name}" is not a supported MDF file; "{version}" file version was found'
                 raise MdfException(message)
 
         else:
@@ -339,7 +337,7 @@ class MDF(object):
             for dep in group.channel_dependencies:
                 if dep is None:
                     continue
-                for gp_nr, ch_nr  in dep.referenced_channels:
+                for gp_nr, ch_nr in dep.referenced_channels:
                     if gp_nr == index:
                         excluded_channels.add(ch_nr)
         else:
@@ -357,8 +355,7 @@ class MDF(object):
                 else:
                     stream = self._tempfile
                 frame_bytes = range(
-                    channel.byte_offset,
-                    channel.byte_offset + channel.bit_count // 8,
+                    channel.byte_offset, channel.byte_offset + channel.bit_count // 8
                 )
                 for i, channel in enumerate(channels):
                     if channel.byte_offset in frame_bytes:
@@ -425,12 +422,13 @@ class MDF(object):
                     if dg_cntr == index:
                         break
                 else:
-                    raise MdfException(f"CAN_DataFrame or CAN_ErrorFrame not found in group {index}")
+                    raise MdfException(
+                        f"CAN_DataFrame or CAN_ErrorFrame not found in group {index}"
+                    )
                 channel = channels[ch_cntr]
 
                 frame_bytes = range(
-                    channel.byte_offset,
-                    channel.byte_offset + channel.bit_count // 8,
+                    channel.byte_offset, channel.byte_offset + channel.bit_count // 8
                 )
                 for i, channel in enumerate(channels):
                     if channel.byte_offset in frame_bytes:
@@ -520,9 +518,7 @@ class MDF(object):
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
                 if dtypes.itemsize:
-                    group.record = np.core.records.fromstring(
-                        fragment[0], dtype=dtypes
-                    )
+                    group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     group.record = None
                     continue
@@ -554,10 +550,18 @@ class MDF(object):
                                 if sig.encoding != "latin-1":
 
                                     if sig.encoding == "utf-16-le":
-                                        sig.samples = sig.samples.view(np.uint16).byteswap().view(sig.samples.dtype)
-                                        sig.samples = encode(decode(sig.samples, "utf-16-be"), "latin-1")
+                                        sig.samples = (
+                                            sig.samples.view(np.uint16)
+                                            .byteswap()
+                                            .view(sig.samples.dtype)
+                                        )
+                                        sig.samples = encode(
+                                            decode(sig.samples, "utf-16-be"), "latin-1"
+                                        )
                                     else:
-                                        sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
+                                        sig.samples = encode(
+                                            decode(sig.samples, sig.encoding), "latin-1"
+                                        )
                             else:
                                 encodings.append(None)
                         if not sig.samples.flags.writeable:
@@ -566,11 +570,7 @@ class MDF(object):
                     source_info = f"Converted from {self.version} to {version}"
 
                     if sigs:
-                        out.append(
-                            sigs,
-                            source_info,
-                            common_timebase=True,
-                        )
+                        out.append(sigs, source_info, common_timebase=True)
                         new_group = out.groups[-1]
                         new_channel_group = new_group.channel_group
                         old_channel_group = group.channel_group
@@ -588,7 +588,9 @@ class MDF(object):
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
                 else:
-                    sigs = [(self.get_master(i, data=fragment, copy_master=False), None)]
+                    sigs = [
+                        (self.get_master(i, data=fragment, copy_master=False), None)
+                    ]
 
                     for k, j in enumerate(included_channels):
                         sig = self.get(
@@ -607,10 +609,18 @@ class MDF(object):
                                 if encoding != "latin-1":
 
                                     if encoding == "utf-16-le":
-                                        samples = samples.view(np.uint16).byteswap().view(samples.dtype)
-                                        samples = encode(decode(samples, "utf-16-be"), "latin-1")
+                                        samples = (
+                                            samples.view(np.uint16)
+                                            .byteswap()
+                                            .view(samples.dtype)
+                                        )
+                                        samples = encode(
+                                            decode(samples, "utf-16-be"), "latin-1"
+                                        )
                                     else:
-                                        samples = encode(decode(samples, encoding), "latin-1")
+                                        samples = encode(
+                                            decode(samples, encoding), "latin-1"
+                                        )
                                     sig.samples = samples
 
                         if not sig[0].flags.writeable:
@@ -717,9 +727,7 @@ class MDF(object):
             idx = 0
             for fragment in data:
                 if dtypes.itemsize:
-                    group.record = np.core.records.fromstring(
-                        fragment[0], dtype=dtypes
-                    )
+                    group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     group.record = None
                 master = self.get_master(i, fragment)
@@ -778,9 +786,11 @@ class MDF(object):
                             needs_cutting = False
 
                 if needs_cutting:
-                    cut_timebase = Signal(master, master, name="_").cut(
-                        fragment_start, fragment_stop, include_ends
-                    ).timestamps
+                    cut_timebase = (
+                        Signal(master, master, name="_")
+                        .cut(fragment_start, fragment_stop, include_ends)
+                        .timestamps
+                    )
 
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
@@ -833,9 +843,7 @@ class MDF(object):
                         else:
                             stop_ = "end of measurement"
                         out.append(
-                            sigs,
-                            f"Cut from {start_} to {stop_}",
-                            common_timebase=True,
+                            sigs, f"Cut from {start_} to {stop_}", common_timebase=True
                         )
                     else:
                         break
@@ -861,15 +869,9 @@ class MDF(object):
                         )
                         if needs_cutting:
                             _sig = Signal(
-                                sig[0],
-                                master,
-                                name='_',
-                                invalidation_bits=sig[1],
+                                sig[0], master, name="_", invalidation_bits=sig[1]
                             ).interp(cut_timebase, mode=interp_mode)
-                            sig = (
-                                _sig.samples,
-                                _sig.invalidation_bits
-                            )
+                            sig = (_sig.samples, _sig.invalidation_bits)
 
                             del _sig
                         sigs.append(sig)
@@ -912,11 +914,7 @@ class MDF(object):
                     stop_ = f"{stop}s"
                 else:
                     stop_ = "end of measurement"
-                out.append(
-                    sigs,
-                    f"Cut from {start_} to {stop_}",
-                    common_timebase=True,
-                )
+                out.append(sigs, f"Cut from {start_} to {stop_}", common_timebase=True)
 
                 self.configure(read_fragment_size=0)
 
@@ -994,7 +992,6 @@ class MDF(object):
 
         from time import perf_counter as pc
 
-
         header_items = ("date", "time", "author", "department", "project", "subject")
 
         if fmt != "pandas" and filename is None and self.name is None:
@@ -1066,17 +1063,13 @@ class MDF(object):
 
             if raster and len(master):
                 if len(master) > 1:
-                    num = float(
-                        np.float32((master[-1] - master[0]) / raster)
-                    )
+                    num = float(np.float32((master[-1] - master[0]) / raster))
                     if num.is_integer():
-                        master = np.linspace(
-                            master[0],
-                            master[-1],
-                            int(num),
-                        )
+                        master = np.linspace(master[0], master[-1], int(num))
                     else:
-                        master = np.arange(master[0], master[-1], raster, dtype=np.float64)
+                        master = np.arange(
+                            master[0], master[-1], raster, dtype=np.float64
+                        )
 
             if time_from_zero and len(master):
                 df = df.assign(time=master)
@@ -1104,11 +1097,9 @@ class MDF(object):
                 data = (data, 0, -1)
 
                 for j in included_channels:
-                    sig = self.get(
-                        group=i,
-                        index=j,
-                        data=data,
-                    ).interp(master, self._integer_interpolation)
+                    sig = self.get(group=i, index=j, data=data).interp(
+                        master, self._integer_interpolation
+                    )
 
                     if len(sig.samples.shape) > 1:
                         arr = [sig.samples]
@@ -1127,7 +1118,7 @@ class MDF(object):
                             # df = df.assign(**{channel_name: sig.samples})
                             if sig.samples.dtype.names:
 
-                                df[channel_name] = Series(sig.samples, dtype='O')
+                                df[channel_name] = Series(sig.samples, dtype="O")
                             else:
                                 df[channel_name] = Series(sig.samples)
                         except:
@@ -1242,7 +1233,7 @@ class MDF(object):
                 workbook.close()
 
             else:
-                while name.suffix == '.xlsx':
+                while name.suffix == ".xlsx":
                     name = name.stem
 
                 count = len(self.groups)
@@ -1419,9 +1410,7 @@ class MDF(object):
                         else:
                             names_row = []
                             vals = []
-                        names_row += [
-                            f"{ch.name} [{ch.unit}]" for ch in channels
-                        ]
+                        names_row += [f"{ch.name} [{ch.unit}]" for ch in channels]
                         writer.writerow(names_row)
 
                         vals += [ch.samples for ch in channels]
@@ -1501,12 +1490,7 @@ class MDF(object):
                     oned_as=oned_as,
                 )
             else:
-                savemat(
-                    name,
-                    mdict,
-                    long_field_names=True,
-                    oned_as=oned_as,
-                )
+                savemat(name, mdict, long_field_names=True, oned_as=oned_as)
 
         elif fmt in ("pandas", "parquet"):
             if fmt == "pandas":
@@ -1625,7 +1609,7 @@ class MDF(object):
             included_channels = set(indexes)
             master_index = self.masters_db.get(group_index, None)
             if master_index is not None:
-                to_exclude = {master_index, }
+                to_exclude = {master_index}
             else:
                 to_exclude = set()
             for index in indexes:
@@ -1680,9 +1664,7 @@ class MDF(object):
             for idx, fragment in enumerate(data):
 
                 if dtypes.itemsize:
-                    group.record = np.core.records.fromstring(
-                        fragment[0], dtype=dtypes
-                    )
+                    group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     group.record = None
 
@@ -1713,10 +1695,18 @@ class MDF(object):
                                 if sig.encoding != "latin-1":
 
                                     if sig.encoding == "utf-16-le":
-                                        sig.samples = sig.samples.view(np.uint16).byteswap().view(sig.samples.dtype)
-                                        sig.samples = encode(decode(sig.samples, "utf-16-be"), "latin-1")
+                                        sig.samples = (
+                                            sig.samples.view(np.uint16)
+                                            .byteswap()
+                                            .view(sig.samples.dtype)
+                                        )
+                                        sig.samples = encode(
+                                            decode(sig.samples, "utf-16-be"), "latin-1"
+                                        )
                                     else:
-                                        sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
+                                        sig.samples = encode(
+                                            decode(sig.samples, sig.encoding), "latin-1"
+                                        )
                             else:
                                 encodings.append(None)
                         if not sig.samples.flags.writeable:
@@ -1733,7 +1723,14 @@ class MDF(object):
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
                 else:
-                    sigs = [(self.get_master(group_index, data=fragment, copy_master=False), None)]
+                    sigs = [
+                        (
+                            self.get_master(
+                                group_index, data=fragment, copy_master=False
+                            ),
+                            None,
+                        )
+                    ]
 
                     for k, j in enumerate(included_channels):
                         sig = self.get(
@@ -1751,10 +1748,18 @@ class MDF(object):
                                 if encoding != "latin-1":
 
                                     if encoding == "utf-16-le":
-                                        samples = samples.view(np.uint16).byteswap().view(samples.dtype)
-                                        samples = encode(decode(samples, "utf-16-be"), "latin-1")
+                                        samples = (
+                                            samples.view(np.uint16)
+                                            .byteswap()
+                                            .view(samples.dtype)
+                                        )
+                                        samples = encode(
+                                            decode(samples, "utf-16-be"), "latin-1"
+                                        )
                                     else:
-                                        samples = encode(decode(samples, encoding), "latin-1")
+                                        samples = encode(
+                                            decode(samples, encoding), "latin-1"
+                                        )
                                     sig.samples = samples
 
                         sigs.append(sig)
@@ -1870,26 +1875,21 @@ class MDF(object):
                         blk_id = mdf.read(2)
                         if blk_id == b"HD":
                             header = HeaderV3
-                            versions.append('3.00')
+                            versions.append("3.00")
                         else:
-                            versions.append('4.00')
+                            versions.append("4.00")
                             blk_id += mdf.read(2)
                             if blk_id == b"##HD":
                                 header = HeaderV4
                             else:
-                                raise MdfException(
-                                    f'"{file}" is not a valid MDF file'
-                                )
+                                raise MdfException(f'"{file}" is not a valid MDF file')
 
                         header = header(address=64, stream=mdf)
 
                         timestamps.append(header.start_time)
 
             oldest = timestamps[0]
-            offsets = [
-                (timestamp - oldest).total_seconds()
-                for timestamp in timestamps
-            ]
+            offsets = [(timestamp - oldest).total_seconds() for timestamp in timestamps]
             offsets = [offset if offset > 0 else 0 for offset in offsets]
 
         else:
@@ -1902,17 +1902,15 @@ class MDF(object):
                     mdf.seek(64)
                     blk_id = mdf.read(2)
                     if blk_id == b"HD":
-                        versions.append('3.00')
+                        versions.append("3.00")
                         header = HeaderV3
                     else:
-                        versions.append('4.00')
+                        versions.append("4.00")
                         blk_id += mdf.read(2)
                         if blk_id == b"##HD":
                             header = HeaderV4
                         else:
-                            raise MdfException(
-                                f'"{file}" is not a valid MDF file'
-                            )
+                            raise MdfException(f'"{file}" is not a valid MDF file')
 
                     header = header(address=64, stream=mdf)
 
@@ -1923,18 +1921,16 @@ class MDF(object):
         sizes = set()
         for file in files:
             if isinstance(file, MDF):
-                if file.version < '4.00':
-                    ch_count = sum(
-                        len(group.channels)
-                        for group in file.groups
-                    )
+                if file.version < "4.00":
+                    ch_count = sum(len(group.channels) for group in file.groups)
                 else:
                     ch_count = sum(
-                        len(group.channels) - sum(
-                                len(dep)
-                                for dep in group.channel_dependencies
-                                if dep and not isinstance(dep[0], ChannelArrayBlock)
-                            )
+                        len(group.channels)
+                        - sum(
+                            len(dep)
+                            for dep in group.channel_dependencies
+                            if dep and not isinstance(dep[0], ChannelArrayBlock)
+                        )
                         for group in file.groups
                     )
                 info = len(file.groups), ch_count
@@ -1949,10 +1945,7 @@ class MDF(object):
 
         groups_nr, _ = sizes.pop()
 
-        last_timestamps = [
-            None
-            for _ in range(groups_nr)
-        ]
+        last_timestamps = [None for _ in range(groups_nr)]
 
         version = validate_version_argument(version)
 
@@ -1976,7 +1969,7 @@ class MDF(object):
 
                 y_axis = MERGE
 
-                idx = np.searchsorted(CHANNEL_COUNT, channels_nr, side='right') - 1
+                idx = np.searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
                 if idx < 0:
                     idx = 0
                 read_size = y_axis[idx]
@@ -2029,10 +2022,20 @@ class MDF(object):
                                     if sig.encoding != "latin-1":
 
                                         if sig.encoding == "utf-16-le":
-                                            sig.samples = sig.samples.view(np.uint16).byteswap().view(sig.samples.dtype)
-                                            sig.samples = encode(decode(sig.samples, "utf-16-be"), "latin-1")
+                                            sig.samples = (
+                                                sig.samples.view(np.uint16)
+                                                .byteswap()
+                                                .view(sig.samples.dtype)
+                                            )
+                                            sig.samples = encode(
+                                                decode(sig.samples, "utf-16-be"),
+                                                "latin-1",
+                                            )
                                         else:
-                                            sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
+                                            sig.samples = encode(
+                                                decode(sig.samples, sig.encoding),
+                                                "latin-1",
+                                            )
                                 else:
                                     encodings.append(None)
 
@@ -2088,17 +2091,26 @@ class MDF(object):
 
                                 signals.append(sig)
 
-                                if version < '4.00':
+                                if version < "4.00":
                                     encoding = encodings[k]
                                     samples = sig[0]
                                     if encoding:
                                         if encoding != "latin-1":
 
                                             if encoding == "utf-16-le":
-                                                samples = samples.view(np.uint16).byteswap().view(samples.dtype)
-                                                samples = encode(decode(samples, "utf-16-be"), "latin-1")
+                                                samples = (
+                                                    samples.view(np.uint16)
+                                                    .byteswap()
+                                                    .view(samples.dtype)
+                                                )
+                                                samples = encode(
+                                                    decode(samples, "utf-16-be"),
+                                                    "latin-1",
+                                                )
                                             else:
-                                                samples = encode(decode(samples, encoding), "latin-1")
+                                                samples = encode(
+                                                    decode(samples, encoding), "latin-1"
+                                                )
                                             sig.samples = samples
 
                             if signals:
@@ -2113,14 +2125,14 @@ class MDF(object):
                 last_timestamps[i] = last_timestamp
                 if first_timestamp is not None:
                     merged.groups[-1].channel_group.comment += (
-                            f"{first_timestamp}s to {last_timestamp}s "
-                            f"concatenated from channel group {i} of \"{mdf.name.parent}\""
-                            f"with first time stamp at {original_first_timestamp}s\n"
-                        )
-                else:
-                    merged.groups[-1].channel_group.comment += (
-                        f"there were no samples in channel group {i} of \"{mdf.name.parent}\"\n"
+                        f"{first_timestamp}s to {last_timestamp}s "
+                        f'concatenated from channel group {i} of "{mdf.name.parent}"'
+                        f"with first time stamp at {original_first_timestamp}s\n"
                     )
+                else:
+                    merged.groups[
+                        -1
+                    ].channel_group.comment += f'there were no samples in channel group {i} of "{mdf.name.parent}"\n'
 
             if callback:
                 callback(i + 1, groups_nr)
@@ -2181,9 +2193,7 @@ class MDF(object):
                             if blk_id == b"##HD":
                                 header = HeaderV4
                             else:
-                                raise MdfException(
-                                    f'"{file}" is not a valid MDF file'
-                                )
+                                raise MdfException(f'"{file}" is not a valid MDF file')
 
                         header = header(address=64, stream=mdf)
 
@@ -2249,10 +2259,20 @@ class MDF(object):
                                     if sig.encoding != "latin-1":
 
                                         if sig.encoding == "utf-16-le":
-                                            sig.samples = sig.samples.view(np.uint16).byteswap().view(sig.samples.dtype)
-                                            sig.samples = encode(decode(sig.samples, "utf-16-be"), "latin-1")
+                                            sig.samples = (
+                                                sig.samples.view(np.uint16)
+                                                .byteswap()
+                                                .view(sig.samples.dtype)
+                                            )
+                                            sig.samples = encode(
+                                                decode(sig.samples, "utf-16-be"),
+                                                "latin-1",
+                                            )
                                         else:
-                                            sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
+                                            sig.samples = encode(
+                                                decode(sig.samples, sig.encoding),
+                                                "latin-1",
+                                            )
                                 else:
                                     encodings.append(None)
 
@@ -2277,13 +2297,13 @@ class MDF(object):
 
                             for k, j in enumerate(included_channels):
                                 sig = mdf.get(
-                                        group=i,
-                                        index=j,
-                                        data=fragment,
-                                        raw=True,
-                                        samples_only=True,
-                                        ignore_invalidation_bits=True,
-                                    )
+                                    group=i,
+                                    index=j,
+                                    data=fragment,
+                                    raw=True,
+                                    samples_only=True,
+                                    ignore_invalidation_bits=True,
+                                )
                                 signals.append(sig)
 
                                 if version < "4.00":
@@ -2293,10 +2313,19 @@ class MDF(object):
                                         if encoding != "latin-1":
 
                                             if encoding == "utf-16-le":
-                                                samples = samples.view(np.uint16).byteswap().view(samples.dtype)
-                                                samples = encode(decode(samples, "utf-16-be"), "latin-1")
+                                                samples = (
+                                                    samples.view(np.uint16)
+                                                    .byteswap()
+                                                    .view(samples.dtype)
+                                                )
+                                                samples = encode(
+                                                    decode(samples, "utf-16-be"),
+                                                    "latin-1",
+                                                )
                                             else:
-                                                samples = encode(decode(samples, encoding), "latin-1")
+                                                samples = encode(
+                                                    decode(samples, encoding), "latin-1"
+                                                )
                                             sig.samples = samples
 
                             if signals:
@@ -2305,8 +2334,10 @@ class MDF(object):
 
                     group.record = None
 
-                stacked.groups[-1].channel_group.comment = (
-                    f"stacked from channel group {i} of \"{mdf.name.parent}\""
+                stacked.groups[
+                    -1
+                ].channel_group.comment = (
+                    f'stacked from channel group {i} of "{mdf.name.parent}"'
                 )
 
             if callback:
@@ -2420,10 +2451,18 @@ class MDF(object):
                                 if sig.encoding != "latin-1":
 
                                     if sig.encoding == "utf-16-le":
-                                        sig.samples = sig.samples.view(np.uint16).byteswap().view(sig.samples.dtype)
-                                        sig.samples = encode(decode(sig.samples, "utf-16-be"), "latin-1")
+                                        sig.samples = (
+                                            sig.samples.view(np.uint16)
+                                            .byteswap()
+                                            .view(sig.samples.dtype)
+                                        )
+                                        sig.samples = encode(
+                                            decode(sig.samples, "utf-16-be"), "latin-1"
+                                        )
                                     else:
-                                        sig.samples = encode(decode(sig.samples, sig.encoding), "latin-1")
+                                        sig.samples = encode(
+                                            decode(sig.samples, sig.encoding), "latin-1"
+                                        )
                             else:
                                 encodings.append(None)
 
@@ -2433,9 +2472,7 @@ class MDF(object):
 
                     if sigs:
                         mdf.append(
-                            sigs,
-                            f"Resampled to {raster}s",
-                            common_timebase=True,
+                            sigs, f"Resampled to {raster}s", common_timebase=True
                         )
                     else:
                         break
@@ -2461,10 +2498,18 @@ class MDF(object):
                                 if encoding != "latin-1":
 
                                     if encoding == "utf-16-le":
-                                        samples = samples.view(np.uint16).byteswap().view(samples.dtype)
-                                        samples = encode(decode(samples, "utf-16-be"), "latin-1")
+                                        samples = (
+                                            samples.view(np.uint16)
+                                            .byteswap()
+                                            .view(samples.dtype)
+                                        )
+                                        samples = encode(
+                                            decode(samples, "utf-16-be"), "latin-1"
+                                        )
                                     else:
-                                        samples = encode(decode(samples, encoding), "latin-1")
+                                        samples = encode(
+                                            decode(samples, encoding), "latin-1"
+                                        )
                                     sig.samples = samples
 
                         if not sig[0].flags.writeable:
@@ -2591,17 +2636,12 @@ class MDF(object):
 
             for fragment in data:
                 if dtypes.itemsize:
-                    grp.record = np.core.records.fromstring(
-                        fragment[0], dtype=dtypes
-                    )
+                    grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     grp.record = None
                 for index in gps[group]:
                     signal = self.get(
-                        group=group,
-                        index=index,
-                        data=fragment,
-                        copy_master=False,
+                        group=group, index=index, data=fragment, copy_master=False
                     )
                     if (group, index) not in signal_parts:
                         signal_parts[(group, index)] = [signal]
@@ -2626,10 +2666,7 @@ class MDF(object):
         if dataframe:
             times = [s.timestamps for s in signals]
             t = reduce(np.union1d, times).flatten().astype(np.float64)
-            signals = [
-                s.interp(t, mode=self._integer_interpolation)
-                for s in signals
-            ]
+            signals = [s.interp(t, mode=self._integer_interpolation) for s in signals]
 
             pandas_dict = {"time": t}
             for sig in signals:
@@ -2760,11 +2797,7 @@ class MDF(object):
                     conv = ch.conversion_addr
                     if conv:
                         conv = ChannelConversion(address=conv, stream=stream)
-                        for addr in (
-                            conv.name_addr,
-                            conv.unit_addr,
-                            conv.comment_addr,
-                        ):
+                        for addr in (conv.name_addr, conv.unit_addr, conv.comment_addr):
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
                                 size = UINT64_u(stream.read(8))[0] - 24
@@ -2923,11 +2956,7 @@ class MDF(object):
             if j != master_index
         ]
 
-        sigs = [
-            []
-            for j, _ in enumerate(group.channels)
-            if j != master_index
-        ]
+        sigs = [[] for j, _ in enumerate(group.channels) if j != master_index]
 
         data = self._load_data(group)
         for fragment in data:
@@ -2958,13 +2987,13 @@ class MDF(object):
             raise
 
     def to_dataframe(
-            self,
-            channels=None,
-            raster=None,
-            time_from_zero=True,
-            empty_channels="skip",
-            keep_arrays=False,
-            use_display_names=False
+        self,
+        channels=None,
+        raster=None,
+        time_from_zero=True,
+        empty_channels="skip",
+        keep_arrays=False,
+        use_display_names=False,
     ):
         """ generate pandas DataFrame
 
@@ -2993,7 +3022,7 @@ class MDF(object):
 
         """
 
-        def components(channel, channel_name, unique_names, prefix=''):
+        def components(channel, channel_name, unique_names, prefix=""):
             names = channel.dtype.names
 
             # channel arrays
@@ -3005,17 +3034,17 @@ class MDF(object):
                 values = channel[name]
                 if len(values.shape) > 1:
                     arr = [values]
-                    types = [('', values.dtype, values.shape[1:])]
+                    types = [("", values.dtype, values.shape[1:])]
                     values = np.core.records.fromarrays(arr, dtype=types)
                     del arr
-                yield name_, Series(values, dtype='O')
+                yield name_, Series(values, dtype="O")
 
                 for name in names[1:]:
                     values = channel[name]
                     axis_name = unique_names.get_unique_name(f"{name_}.{name}")
                     if len(values.shape) > 1:
                         arr = [values]
-                        types = [('', values.dtype, values.shape[1:])]
+                        types = [("", values.dtype, values.shape[1:])]
                         values = np.core.records.fromarrays(arr, dtype=types)
                         del arr
                     yield axis_name, Series(values)
@@ -3026,13 +3055,15 @@ class MDF(object):
                     values = channel[name]
 
                     if values.dtype.names:
-                        yield from components(values, name, unique_names, prefix=f"{prefix}.{name}")
+                        yield from components(
+                            values, name, unique_names, prefix=f"{prefix}.{name}"
+                        )
 
                     else:
                         name_ = unique_names.get_unique_name(f"{prefix}.{name}")
                         if len(values.shape) > 1:
                             arr = [values]
-                            types = [('', values.dtype, values.shape[1:])]
+                            types = [("", values.dtype, values.shape[1:])]
                             values = np.core.records.fromarrays(arr, dtype=types)
                             del arr
                         yield name_, Series(values)
@@ -3046,22 +3077,11 @@ class MDF(object):
 
         if raster and len(master):
             if len(master) > 1:
-                num = float(
-                    np.float32((master[-1] - master[0]) / raster)
-                )
+                num = float(np.float32((master[-1] - master[0]) / raster))
                 if num.is_integer():
-                    master = np.linspace(
-                        master[0],
-                        master[-1],
-                        int(num),
-                    )
+                    master = np.linspace(master[0], master[-1], int(num))
                 else:
-                    master = np.arange(
-                        master[0],
-                        master[-1],
-                        raster,
-                        dtype=np.float64,
-                    )
+                    master = np.arange(master[0], master[-1], raster, dtype=np.float64)
 
         if time_from_zero and len(master):
             df = df.assign(time=master)
@@ -3075,8 +3095,8 @@ class MDF(object):
         start__ = pc()
 
         for i, grp in enumerate(self.groups):
-#            if i == 971:
-#                break
+            #            if i == 971:
+            #                break
             if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
 
@@ -3085,25 +3105,17 @@ class MDF(object):
             data = self._load_data(grp)
             parents, dtypes = self._prepare_record(grp)
 
-            signals = [
-                []
-                for _ in included_channels
-            ]
+            signals = [[] for _ in included_channels]
             timestamps = []
 
             for fragment in data:
                 if dtypes.itemsize:
-                    grp.record = np.core.records.fromstring(
-                        fragment[0], dtype=dtypes
-                    )
+                    grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     grp.record = None
                 for k, index in enumerate(included_channels):
                     signal = self.get(
-                        group=i,
-                        index=index,
-                        data=fragment,
-                        samples_only=True
+                        group=i, index=index, data=fragment, samples_only=True
                     )
                     signals[k].append(signal[0])
                 timestamps.append(self.get_master(i, data=fragment, copy_master=False))
@@ -3111,36 +3123,29 @@ class MDF(object):
                 grp.record = None
 
             if len(timestamps):
-                signals = [
-                    np.concatenate(parts)
-                    for parts in signals
-                ]
+                signals = [np.concatenate(parts) for parts in signals]
                 timestamps = np.concatenate(timestamps)
 
             signals = [
-                Signal(
-                    samples,
-                    timestamps,
-                    name='_'
-                ).interp(master, self._integer_interpolation)
+                Signal(samples, timestamps, name="_").interp(
+                    master, self._integer_interpolation
+                )
                 for samples in signals
             ]
 
             for sig in signals:
                 if len(sig) == 0:
                     if empty_channels == "zeros":
-                        sig.samples = np.zeros(
-                            len(master), dtype=sig.samples.dtype
-                        )
+                        sig.samples = np.zeros(len(master), dtype=sig.samples.dtype)
                     else:
                         continue
 
             signals = [sig for sig in signals if len(sig)]
 
             for k, sig in enumerate(signals):
-#                if pc() - start__ > 120:
-#                    print(pc() - start__, i, k)
-#                    return
+                #                if pc() - start__ > 120:
+                #                    print(pc() - start__, i, k)
+                #                    return
                 # byte arrays
                 if len(sig.samples.shape) > 1:
                     arr = [sig.samples]
@@ -3154,7 +3159,7 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    df[channel_name] = Series(sig.samples, dtype='O')
+                    df[channel_name] = Series(sig.samples, dtype="O")
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
@@ -3178,6 +3183,7 @@ class MDF(object):
                     channel_name = sig.name
 
         return df
+
 
 if __name__ == "__main__":
     pass

@@ -60,23 +60,13 @@ __all__ = [
 ]
 
 CHANNEL_COUNT = (1000, 2000, 10000, 20000)
-_channel_count = arange(0, 20000, 1000, dtype='<u4')
+_channel_count = arange(0, 20000, 1000, dtype="<u4")
 
-CONVERT = (
-    10 * 2 ** 20,
-    20 * 2 ** 20,
-    30 * 2 ** 20,
-    40 * 2 ** 20,
-)
-CONVERT = interp(_channel_count, CHANNEL_COUNT, CONVERT).astype('<u4')
+CONVERT = (10 * 2 ** 20, 20 * 2 ** 20, 30 * 2 ** 20, 40 * 2 ** 20)
+CONVERT = interp(_channel_count, CHANNEL_COUNT, CONVERT).astype("<u4")
 
-MERGE = (
-    10 * 2 ** 20,
-    20 * 2 ** 20,
-    35 * 2 ** 20,
-    60 * 2 ** 20,
-)
-MERGE = interp(_channel_count, CHANNEL_COUNT, MERGE).astype('<u4')
+MERGE = (10 * 2 ** 20, 20 * 2 ** 20, 35 * 2 ** 20, 60 * 2 ** 20)
+MERGE = interp(_channel_count, CHANNEL_COUNT, MERGE).astype("<u4")
 
 CHANNEL_COUNT = _channel_count
 
@@ -168,10 +158,7 @@ def matlab_compatible(name):
 
     """
 
-    compatible_name = [
-        ch if ch in ALLOWED_MATLAB_CHARS else "_"
-        for ch in name
-    ]
+    compatible_name = [ch if ch in ALLOWED_MATLAB_CHARS else "_" for ch in name]
     compatible_name = "".join(compatible_name)
 
     if compatible_name[0] not in string.ascii_letters:
@@ -580,16 +567,16 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
     """
 
     if integer_array.flags.writeable:
-        integer_array &= (
-            (1 << bit_length) - 1
-        )  # Zero out the unwanted bits
+        integer_array &= (1 << bit_length) - 1  # Zero out the unwanted bits
     else:
         truncated_integers = integer_array & (
             (1 << bit_length) - 1
         )  # Zero out the unwanted bits
     return where(
-        truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
-        (2 ** bit_length - truncated_integers) * -1,  # when negative, do two's complement
+        truncated_integers
+        >> bit_length - 1,  # sign bit as a truth series (True when negative)
+        (2 ** bit_length - truncated_integers)
+        * -1,  # when negative, do two's complement
         truncated_integers,  # when positive, return the truncated int
     )
 
@@ -787,7 +774,7 @@ class ChannelsDB(dict):
         """
         if channel_name:
             if channel_name not in self:
-                self[channel_name] = [entry, ]
+                self[channel_name] = [entry]
             else:
                 self[channel_name].append(entry)
 
@@ -795,7 +782,7 @@ class ChannelsDB(dict):
                 channel_name = channel_name.split("\\")[0]
 
                 if channel_name not in self:
-                    self[channel_name] = [entry, ]
+                    self[channel_name] = [entry]
                 else:
                     self[channel_name].append(entry)
 
@@ -856,7 +843,6 @@ def is_file_like(obj):
 
 
 class UniqueDB(object):
-
     def __init__(self):
         self._db = {}
 
@@ -903,13 +889,27 @@ def cut_video_stream(stream, start, end, fmt):
 
     """
     with TemporaryDirectory() as tmp:
-        in_file = Path(tmp) / f'in{fmt}'
-        out_file = Path(tmp) / f'out{fmt}'
+        in_file = Path(tmp) / f"in{fmt}"
+        out_file = Path(tmp) / f"out{fmt}"
 
         in_file.write_bytes(stream)
 
         try:
-            ret = subprocess.run(["ffmpeg", "-ss", f"{start}", "-i", f"{in_file}", "-to", f"{end}", "-c", "copy", f"{out_file}"], capture_output=True)
+            ret = subprocess.run(
+                [
+                    "ffmpeg",
+                    "-ss",
+                    f"{start}",
+                    "-i",
+                    f"{in_file}",
+                    "-to",
+                    f"{end}",
+                    "-c",
+                    "copy",
+                    f"{out_file}",
+                ],
+                capture_output=True,
+            )
         except FileNotFoundError:
             result = stream
         else:
@@ -923,11 +923,23 @@ def cut_video_stream(stream, start, end, fmt):
 
 def get_video_stream_duration(stream):
     with TemporaryDirectory() as tmp:
-        in_file = Path(tmp) / 'in'
+        in_file = Path(tmp) / "in"
         in_file.write_bytes(stream)
 
         try:
-            result = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", f"{in_file}"], capture_output=True)
+            result = subprocess.run(
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-show_entries",
+                    "format=duration",
+                    "-of",
+                    "default=noprint_wrappers=1:nokey=1",
+                    f"{in_file}",
+                ],
+                capture_output=True,
+            )
             result = float(result.stdout)
         except FileNotFoundError:
             result = None
@@ -937,38 +949,38 @@ def get_video_stream_duration(stream):
 class Group:
 
     __slots__ = (
-        'channels',
-        'logging_channels',
-        'data_block',
-        'channel_dependencies',
-        'signal_data_size',
-        'signal_data',
-        'channel_group',
-        'record_size',
-        'sorted',
-        'data_group',
-        'data_location',
-        'data_block_addr',
-        'data_block_type',
-        'data_size',
-        'data_block_size',
-        'param',
-        'record_size',
-        'CAN_logging',
-        'CAN_id',
-        'CAN_database',
-        'dbc_addr',
-        'raw_can',
-        'extended_id',
-        'message_name',
-        'message_id',
-        'record',
-        'parents',
-        'types',
-        'signal_types',
-        'size',
-        'trigger',
-        'string_dtypes',
+        "channels",
+        "logging_channels",
+        "data_block",
+        "channel_dependencies",
+        "signal_data_size",
+        "signal_data",
+        "channel_group",
+        "record_size",
+        "sorted",
+        "data_group",
+        "data_location",
+        "data_block_addr",
+        "data_block_type",
+        "data_size",
+        "data_block_size",
+        "param",
+        "record_size",
+        "CAN_logging",
+        "CAN_id",
+        "CAN_database",
+        "dbc_addr",
+        "raw_can",
+        "extended_id",
+        "message_name",
+        "message_id",
+        "record",
+        "parents",
+        "types",
+        "signal_types",
+        "size",
+        "trigger",
+        "string_dtypes",
     )
 
     def __init__(self, data_group):
@@ -983,7 +995,7 @@ class Group:
         self.CAN_database = False
         self.raw_can = False
         self.extended_id = False
-        self.message_name = ''
+        self.message_name = ""
         self.message_id = None
         self.CAN_database = False
         self.dbc_addr = None
@@ -1005,4 +1017,3 @@ class Group:
 
     def __contains__(self, item):
         return hasattr(self, item)
-

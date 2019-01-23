@@ -117,25 +117,25 @@ class AttachmentBlock:
     """
 
     __slots__ = (
-        'address',
-        'file_name',
-        'mime',
-        'comment',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'next_at_addr',
-        'file_name_addr',
-        'mime_addr',
-        'comment_addr',
-        'flags',
-        'creator_index',
-        'reserved1',
-        'md5_sum',
-        'original_size',
-        'embedded_size',
-        'embedded_data',
+        "address",
+        "file_name",
+        "mime",
+        "comment",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "next_at_addr",
+        "file_name_addr",
+        "mime_addr",
+        "comment_addr",
+        "flags",
+        "creator_index",
+        "reserved1",
+        "md5_sum",
+        "original_size",
+        "embedded_size",
+        "embedded_data",
     )
 
     def __init__(self, **kwargs):
@@ -196,7 +196,7 @@ class AttachmentBlock:
                 self.file_name = Path(self.file_name.name)
                 self.file_name.write_bytes(data)
                 embedded_size = 0
-                data = b''
+                data = b""
 
             md5_sum = md5(data).digest()
 
@@ -229,7 +229,7 @@ class AttachmentBlock:
                 if self.md5_sum == md5_sum:
                     return data
                 else:
-                    message = f'ATBLOCK md5sum={self.md5_sum} and embedded data md5sum={md5_sum}'
+                    message = f"ATBLOCK md5sum={self.md5_sum} and embedded data md5sum={md5_sum}"
                     logger.warning(message)
         else:
             logger.warning("external attachments not supported")
@@ -296,9 +296,10 @@ class AttachmentBlock:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        fmt = f'{v4c.FMT_AT_COMMON}{self.embedded_size}s'
+        fmt = f"{v4c.FMT_AT_COMMON}{self.embedded_size}s"
         result = pack(fmt, *[self[key] for key in v4c.KEYS_AT_BLOCK])
         return result
+
 
 class Channel:
     """ CNBLOCK class
@@ -393,16 +394,48 @@ class Channel:
     """
 
     __slots__ = (
-        'name', 'unit', 'comment', 'display_name', 'conversion', 'source',
-        'attachment', 'address', 'dtype_fmt', 'id', 'reserved0', 'block_len',
-        'links_nr', 'next_ch_addr', 'component_addr', 'name_addr',
-        'source_addr', 'conversion_addr', 'data_block_addr', 'unit_addr',
-        'comment_addr', 'channel_type', 'sync_type', 'data_type', 'bit_offset',
-        'byte_offset', 'bit_count', 'flags', 'pos_invalidation_bit',
-        'precision', 'reserved1', 'attachment_nr', 'min_raw_value',
-        'max_raw_value', 'lower_limit', 'upper_limit', 'lower_ext_limit',
-        'upper_ext_limit', 'default_X_dg_addr', 'default_X_cg_addr',
-        'default_X_ch_addr', 'attachment_addr',
+        "name",
+        "unit",
+        "comment",
+        "display_name",
+        "conversion",
+        "source",
+        "attachment",
+        "address",
+        "dtype_fmt",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "next_ch_addr",
+        "component_addr",
+        "name_addr",
+        "source_addr",
+        "conversion_addr",
+        "data_block_addr",
+        "unit_addr",
+        "comment_addr",
+        "channel_type",
+        "sync_type",
+        "data_type",
+        "bit_offset",
+        "byte_offset",
+        "bit_count",
+        "flags",
+        "pos_invalidation_bit",
+        "precision",
+        "reserved1",
+        "attachment_nr",
+        "min_raw_value",
+        "max_raw_value",
+        "lower_limit",
+        "upper_limit",
+        "lower_ext_limit",
+        "upper_ext_limit",
+        "default_X_dg_addr",
+        "default_X_cg_addr",
+        "default_X_ch_addr",
+        "attachment_addr",
     )
 
     def __init__(self, **kwargs):
@@ -415,12 +448,7 @@ class Channel:
 
             block = stream.read(CN_BLOCK_SIZE)
 
-            (
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-            ) = COMMON_uf(block)
+            (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(block)
 
             block_len = self.block_len
 
@@ -456,7 +484,7 @@ class Channel:
 
             else:
 
-                1/0
+                1 / 0
 
                 block = block[24:] + stream.read(block_len - CN_BLOCK_SIZE)
                 links_nr = self.links_nr
@@ -529,7 +557,9 @@ class Channel:
 
             if kwargs.get("use_display_names", True):
                 try:
-                    display_name = ET.fromstring(sanitize_xml(self.comment)).find(".//names/display")
+                    display_name = ET.fromstring(sanitize_xml(self.comment)).find(
+                        ".//names/display"
+                    )
                     if display_name is not None:
                         self.display_name = display_name.text
                 except:
@@ -550,7 +580,7 @@ class Channel:
                     conv = cc_map[raw_bytes]
                 else:
                     conv = ChannelConversion(
-                       raw_bytes=raw_bytes, stream=stream, address=address
+                        raw_bytes=raw_bytes, stream=stream, address=address
                     )
                     cc_map[raw_bytes] = conv
                 self.conversion = conv
@@ -773,14 +803,10 @@ class Channel:
                 "comment_addr",
             )
             if self.attachment_nr:
-                keys += "attachment_addr",
+                keys += ("attachment_addr",)
 
             if self.flags & v4c.FLAG_CN_DEFAULT_X:
-                keys += (
-                    "default_X_dg_addr",
-                    "default_X_cg_addr",
-                    "default_X_ch_addr",
-                )
+                keys += ("default_X_dg_addr", "default_X_cg_addr", "default_X_ch_addr")
             keys += (
                 "channel_type",
                 "sync_type",
@@ -806,7 +832,7 @@ class Channel:
     def __repr__(self):
         fields = []
         for attr in dir(self):
-            if attr[:2] + attr[-2:] == '____':
+            if attr[:2] + attr[-2:] == "____":
                 continue
             try:
                 if callable(getattr(self, attr)):
@@ -878,18 +904,18 @@ comment: {}
 
 class _ChannelArrayBlockBase:
     __slots__ = (
-        'referenced_channels',
-        'address',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'ca_type',
-        'storage',
-        'dims',
-        'flags',
-        'byte_offset_base',
-        'invalidation_bit_base',
+        "referenced_channels",
+        "address",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "ca_type",
+        "storage",
+        "dims",
+        "flags",
+        "byte_offset_base",
+        "invalidation_bit_base",
     )
 
 
@@ -914,12 +940,9 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             stream = kwargs["stream"]
             stream.seek(address)
 
-            (
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-            ) = unpack("<4sI2Q", stream.read(24))
+            (self.id, self.reserved0, self.block_len, self.links_nr) = unpack(
+                "<4sI2Q", stream.read(24)
+            )
 
             nr = self.links_nr
             links = unpack(f"<{nr}Q", stream.read(8 * nr))
@@ -962,7 +985,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             if self.flags & v4c.FLAG_CA_FIXED_AXIS:
                 for i in range(dims_nr):
                     for j in range(self[f"dim_size_{i}"]):
-                        (value, ) = FLOAT64_u(stream.read(8))
+                        (value,) = FLOAT64_u(stream.read(8))
                         self[f"axis_{i}_value_{j}"] = value
 
             if self.id != b"##CA":
@@ -1016,14 +1039,14 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     self.dims = dims_nr
                     self.flags = v4c.FLAG_CA_FIXED_AXIS | v4c.FLAG_CA_AXIS
                     self.byte_offset_base = kwargs.get("byte_offset_base", 1)
-                    self.invalidation_bit_base = kwargs.get(
-                        "invalidation_bit_base", 0
-                    )
+                    self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
                     for i in range(dims_nr):
                         self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]
                     for i in range(dims_nr):
                         for j in range(self[f"dim_size_{i}"]):
-                            self[f"axis_{i}_value_{j}"] = kwargs.get(f"axis_{i}_value_{j}", j)
+                            self[f"axis_{i}_value_{j}"] = kwargs.get(
+                                f"axis_{i}_value_{j}", j
+                            )
                 else:
                     self.block_len = 48 + dims_nr * 5 * 8
                     self.links_nr = 1 + dims_nr * 4
@@ -1039,9 +1062,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     self.dims = dims_nr
                     self.flags = v4c.FLAG_CA_AXIS
                     self.byte_offset_base = kwargs.get("byte_offset_base", 1)
-                    self.invalidation_bit_base = kwargs.get(
-                        "invalidation_bit_base", 0
-                    )
+                    self.invalidation_bit_base = kwargs.get("invalidation_bit_base", 0)
                     for i in range(dims_nr):
                         self[f"dim_size_{i}"] = kwargs[f"dim_size_{i}"]
 
@@ -1183,28 +1204,28 @@ class ChannelGroup:
     """
 
     __slots__ = (
-        'address',
-        'acq_name',
-        'acq_source',
-        'comment',
-        'name',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'next_cg_addr',
-        'first_ch_addr',
-        'acq_name_addr',
-        'acq_source_addr',
-        'first_sample_reduction_addr',
-        'comment_addr',
-        'record_id',
-        'cycles_nr',
-        'flags',
-        'path_separator',
-        'reserved1',
-        'samples_byte_nr',
-        'invalidation_bytes_nr',
+        "address",
+        "acq_name",
+        "acq_source",
+        "comment",
+        "name",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "next_cg_addr",
+        "first_ch_addr",
+        "acq_name_addr",
+        "acq_source_addr",
+        "first_sample_reduction_addr",
+        "comment_addr",
+        "record_id",
+        "cycles_nr",
+        "flags",
+        "path_separator",
+        "reserved1",
+        "samples_byte_nr",
+        "invalidation_bytes_nr",
     )
 
     def __init__(self, **kwargs):
@@ -1344,37 +1365,38 @@ class ChannelGroup:
         )
         return result
 
+
 class _ChannelConversionBase:
     __slots__ = (
-        'name',
-        'unit',
-        'comment',
-        'formula',
-        'referenced_blocks',
-        'address',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'name_addr',
-        'unit_addr',
-        'comment_addr',
-        'inv_conv_addr',
-        'conversion_type',
-        'precision',
-        'flags',
-        'ref_param_nr',
-        'val_param_nr',
-        'min_phy_value',
-        'max_phy_value',
-        'a',
-        'b',
-        'P1',
-        'P2',
-        'P3',
-        'P4',
-        'P5',
-        'P6',
+        "name",
+        "unit",
+        "comment",
+        "formula",
+        "referenced_blocks",
+        "address",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "name_addr",
+        "unit_addr",
+        "comment_addr",
+        "inv_conv_addr",
+        "conversion_type",
+        "precision",
+        "flags",
+        "ref_param_nr",
+        "val_param_nr",
+        "min_phy_value",
+        "max_phy_value",
+        "a",
+        "b",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
     )
 
 
@@ -1490,12 +1512,9 @@ class ChannelConversion(_ChannelConversionBase):
             stream = kwargs["stream"]
             try:
                 block = kwargs["raw_bytes"]
-                (
-                    self.id,
-                    self.reserved0,
-                    self.block_len,
-                    self.links_nr,
-                ) = COMMON_uf(block)
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
+                    block
+                )
 
                 block = block[COMMON_SIZE:]
 
@@ -1505,16 +1524,13 @@ class ChannelConversion(_ChannelConversionBase):
                 self.address = address = kwargs["address"]
                 stream.seek(address)
 
-                (
-                    self.id,
-                    self.reserved0,
-                    self.block_len,
-                    self.links_nr,
-                ) = COMMON_u(stream.read(COMMON_SIZE))
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
+                    stream.read(COMMON_SIZE)
+                )
 
                 block = stream.read(self.block_len - COMMON_SIZE)
 
-            (conv, ) = UINT8_uf(block, self.links_nr * 8)
+            (conv,) = UINT8_uf(block, self.links_nr * 8)
 
             if conv == v4c.CONVERSION_TYPE_NON:
                 (
@@ -1625,12 +1641,12 @@ class ChannelConversion(_ChannelConversionBase):
                 nr = self.val_param_nr
                 values = unpack(f"<{nr}d", block[56:])
                 for i in range((nr - 1) // 3):
-                    (
-                        self[f"lower_{i}"],
-                        self[f"upper_{i}"],
-                        self[f"phys_{i}"],
-                    ) = (values[i * 3], values[3 * i + 1], values[3 * i + 2])
-                (self.default, ) = FLOAT64_u(block[-8:])
+                    (self[f"lower_{i}"], self[f"upper_{i}"], self[f"phys_{i}"]) = (
+                        values[i * 3],
+                        values[3 * i + 1],
+                        values[3 * i + 2],
+                    )
+                (self.default,) = FLOAT64_u(block[-8:])
 
             elif conv == v4c.CONVERSION_TYPE_TABX:
                 (
@@ -1657,9 +1673,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self.max_phy_value,
                 ) = unpack_from("<2B3H2d", block, 32 + links_nr * 8)
 
-                values = unpack_from(
-                    f"<{links_nr - 1}d", block, 32 + links_nr * 8 + 24
-                )
+                values = unpack_from(f"<{links_nr - 1}d", block, 32 + links_nr * 8 + 24)
                 for i, val in enumerate(values):
                     self[f"val_{i}"] = val
 
@@ -1785,9 +1799,7 @@ class ChannelConversion(_ChannelConversionBase):
                             block = TextBlock(address=address, stream=stream)
                             refs[f"text_{i}"] = block
                         except MdfException:
-                            block = ChannelConversion(
-                                address=address, stream=stream
-                            )
+                            block = ChannelConversion(address=address, stream=stream)
                             refs[f"text_{i}"] = block
 
                     else:
@@ -1799,9 +1811,7 @@ class ChannelConversion(_ChannelConversionBase):
                             block = TextBlock(address=address, stream=stream)
                             refs["default_addr"] = block
                         except MdfException:
-                            block = ChannelConversion(
-                                address=address, stream=stream
-                            )
+                            block = ChannelConversion(address=address, stream=stream)
                             refs["default_addr"] = block
                     else:
                         refs["default_addr"] = None
@@ -1810,10 +1820,7 @@ class ChannelConversion(_ChannelConversionBase):
                 refs = self.referenced_blocks = {}
                 # link_nr - common links (4) - default text link (1)
                 for i in range((self.links_nr - 4 - 1) // 2):
-                    for key in (
-                        f"input_{i}_addr",
-                        f"output_{i}_addr",
-                    ):
+                    for key in (f"input_{i}_addr", f"output_{i}_addr"):
                         address = self[key]
                         if address:
                             block = TextBlock(address=address, stream=stream)
@@ -2120,7 +2127,9 @@ class ChannelConversion(_ChannelConversionBase):
                             self[key] = address
                             address += block["block_len"]
                     else:
-                        address = block.to_blocks(address, blocks, defined_texts, cc_map)
+                        address = block.to_blocks(
+                            address, blocks, defined_texts, cc_map
+                        )
                         self[key] = block.address
                 else:
                     self[key] = 0
@@ -2170,7 +2179,7 @@ class ChannelConversion(_ChannelConversionBase):
                 try:
                     values = evaluate(v4c.CONV_RAT_TEXT)
                 except TypeError:
-                    values = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
+                    values = (P1 * X ** 2 + P2 * X + P3) / (P4 * X ** 2 + P5 * X + P6)
 
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
             X = values
@@ -2339,8 +2348,7 @@ class ChannelConversion(_ChannelConversionBase):
             nr = self.val_param_nr - 1
 
             raw_values = [
-                self.referenced_blocks[f"text_{i}"].text.strip(b"\0")
-                for i in range(nr)
+                self.referenced_blocks[f"text_{i}"].text.strip(b"\0") for i in range(nr)
             ]
             phys = [self[f"val_{i}"] for i in range(nr)]
             default = self.val_default
@@ -2537,11 +2545,7 @@ formula: {}
         elif self.conversion_type == v4c.CONVERSION_TYPE_RTAB:
             keys = v4c.KEYS_CONVERSION_NONE
             for i in range(self.val_param_nr // 3):
-                keys += (
-                    f"lower_{i}",
-                    f"upper_{i}",
-                    f"phys_{i}",
-                )
+                keys += (f"lower_{i}", f"upper_{i}", f"phys_{i}")
             keys += ("default",)
             result = pack(fmt, *[self[key] for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_TABX:
@@ -2648,7 +2652,7 @@ formula: {}
     def __repr__(self):
         fields = []
         for attr in dir(self):
-            if attr[:2] + attr[-2:] == '____':
+            if attr[:2] + attr[-2:] == "____":
                 continue
             try:
                 if callable(getattr(self, attr)):
@@ -2695,14 +2699,7 @@ class DataBlock:
 
     """
 
-    __slots__ = (
-        'address',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'data',
-    )
+    __slots__ = ("address", "id", "reserved0", "block_len", "links_nr", "data")
 
     def __init__(self, **kwargs):
 
@@ -2711,12 +2708,9 @@ class DataBlock:
             stream = kwargs["stream"]
             stream.seek(address)
 
-            (
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-            ) = COMMON_u(stream.read(COMMON_SIZE))
+            (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
+                stream.read(COMMON_SIZE)
+            )
             self.data = stream.read(self.block_len - COMMON_SIZE)
 
             if self.id not in (b"##DT", b"##RD", b"##SD"):
@@ -2746,12 +2740,7 @@ class DataBlock:
     def __bytes__(self):
         fmt = v4c.FMT_DATA_BLOCK.format(self.block_len - COMMON_SIZE)
         result = pack(
-            fmt,
-            self.id,
-            self.reserved0,
-            self.block_len,
-            self.links_nr,
-            self.data,
+            fmt, self.id, self.reserved0, self.block_len, self.links_nr, self.data
         )
         return result
 
@@ -2791,20 +2780,20 @@ class DataZippedBlock(object):
     """
 
     __slots__ = (
-        'address',
-        '_prevent_data_setitem',
-        'return_unzipped',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'original_type',
-        'zip_type',
-        'reserved1',
-        'param',
-        'original_size',
-        'zip_size',
-        'data',
+        "address",
+        "_prevent_data_setitem",
+        "return_unzipped",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "original_type",
+        "zip_type",
+        "reserved1",
+        "param",
+        "original_size",
+        "zip_size",
+        "data",
     )
 
     def __init__(self, **kwargs):
@@ -2879,16 +2868,14 @@ class DataZippedBlock(object):
                     data = (
                         np.fromstring(data[: lines * cols], dtype=np.uint8)
                         .reshape((lines, cols))
-                        .T
-                        .tostring()
-                    ) + data[lines * cols:]
+                        .T.tostring()
+                    ) + data[lines * cols :]
 
                 else:
                     data = (
                         np.fromstring(data, dtype=np.uint8)
                         .reshape((lines, cols))
-                        .T
-                        .tostring()
+                        .T.tostring()
                     )
                 data = compress(data, 1)
 
@@ -2913,15 +2900,13 @@ class DataZippedBlock(object):
                         data = (
                             np.fromstring(data[: lines * cols], dtype=np.uint8)
                             .reshape((cols, lines))
-                            .T
-                            .tostring()
-                        ) + data[lines * cols:]
+                            .T.tostring()
+                        ) + data[lines * cols :]
                     else:
                         data = (
                             np.fromstring(data, dtype=np.uint8)
                             .reshape((cols, lines))
-                            .T
-                            .tostring()
+                            .T.tostring()
                         )
             else:
                 data = DataZippedBlock.__dict__[item].__get__(self)
@@ -2975,18 +2960,18 @@ class DataGroup:
     """
 
     __slots__ = (
-        'address',
-        'comment',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'next_dg_addr',
-        'first_cg_addr',
-        'data_block_addr',
-        'comment_addr',
-        'record_id_len',
-        'reserved1',
+        "address",
+        "comment",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "next_dg_addr",
+        "first_cg_addr",
+        "data_block_addr",
+        "comment_addr",
+        "record_id_len",
+        "reserved1",
     )
 
     def __init__(self, **kwargs):
@@ -3079,16 +3064,16 @@ class DataGroup:
 
 class _DataListBase:
     __slots__ = (
-        'address',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'next_dl_addr',
-        'flags',
-        'reserved1',
-        'data_block_nr',
-        'data_block_len',
+        "address",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "next_dl_addr",
+        "flags",
+        "reserved1",
+        "data_block_nr",
+        "data_block_len",
     )
 
 
@@ -3129,18 +3114,14 @@ class DataList(_DataListBase):
             stream = kwargs["stream"]
             stream.seek(address)
 
-            (
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-            ) = COMMON_u(stream.read(COMMON_SIZE))
+            (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
+                stream.read(COMMON_SIZE)
+            )
 
-            (self.next_dl_addr, ) = UINT64_u(stream.read(8))
+            (self.next_dl_addr,) = UINT64_u(stream.read(8))
 
             links = unpack(
-                "<{}Q".format(self.links_nr - 1),
-                stream.read((self.links_nr - 1) * 8),
+                "<{}Q".format(self.links_nr - 1), stream.read((self.links_nr - 1) * 8)
             )
 
             for i, addr in enumerate(links):
@@ -3148,15 +3129,11 @@ class DataList(_DataListBase):
 
             self.flags = stream.read(1)[0]
             if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
-                (
-                    self.reserved1,
-                    self.data_block_nr,
-                    self.data_block_len,
-                ) = unpack("<3sIQ", stream.read(15))
-            else:
-                (self.reserved1, self.data_block_nr) =  unpack(
-                    "<3sI", stream.read(7)
+                (self.reserved1, self.data_block_nr, self.data_block_len) = unpack(
+                    "<3sIQ", stream.read(15)
                 )
+            else:
+                (self.reserved1, self.data_block_nr) = unpack("<3sI", stream.read(7))
                 offsets = unpack(
                     "<{}Q".format(self.links_nr - 1),
                     stream.read((self.links_nr - 1) * 8),
@@ -3180,9 +3157,7 @@ class DataList(_DataListBase):
             self.next_dl_addr = 0
 
             for i in range(self.links_nr - 1):
-                self[f"data_block_addr{i}"] = kwargs.get(
-                    f"data_block_addr{i}", 0
-                )
+                self[f"data_block_addr{i}"] = kwargs.get(f"data_block_addr{i}", 0)
 
             self.flags = kwargs.get("flags", 1)
             self.reserved1 = kwargs.get("reserved1", b"\0\0\0")
@@ -3202,9 +3177,7 @@ class DataList(_DataListBase):
     def __bytes__(self):
         fmt = v4c.FMT_DATA_LIST.format(self.links_nr)
         keys = ("id", "reserved0", "block_len", "links_nr", "next_dl_addr")
-        keys += tuple(
-            f"data_block_addr{i}" for i in range(self.links_nr - 1)
-        )
+        keys += tuple(f"data_block_addr{i}" for i in range(self.links_nr - 1))
         keys += ("flags", "reserved1", "data_block_nr", "data_block_len")
         result = pack(fmt, *[self[key] for key in keys])
         return result
@@ -3212,34 +3185,33 @@ class DataList(_DataListBase):
 
 class _EventBlockBase:
     __slots__ = (
-        'address',
-        'comment',
-        'name',
-        'parent',
-        'range_start',
-        'scopes',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'next_ev_addr',
-        'parent_ev_addr',
-        'range_start_ev_addr',
-        'name_addr',
-        'comment_addr',
-        'event_type',
-        'sync_type',
-        'range_type',
-        'cause',
-        'flags',
-        'reserved1',
-        'scope_nr',
-        'attachment_nr',
-        'creator_index',
-        'sync_base',
-        'sync_factor',
+        "address",
+        "comment",
+        "name",
+        "parent",
+        "range_start",
+        "scopes",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "next_ev_addr",
+        "parent_ev_addr",
+        "range_start_ev_addr",
+        "name_addr",
+        "comment_addr",
+        "event_type",
+        "sync_type",
+        "range_type",
+        "cause",
+        "flags",
+        "reserved1",
+        "scope_nr",
+        "attachment_nr",
+        "creator_index",
+        "sync_base",
+        "sync_factor",
     )
-
 
 
 class EventBlock(_EventBlockBase):
@@ -3306,12 +3278,9 @@ class EventBlock(_EventBlockBase):
             stream = kwargs["stream"]
             stream.seek(address)
 
-            (
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-            ) = COMMON_u(stream.read(COMMON_SIZE))
+            (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
+                stream.read(COMMON_SIZE)
+            )
 
             block = stream.read(self.block_len - COMMON_SIZE)
 
@@ -3424,15 +3393,9 @@ class EventBlock(_EventBlockBase):
             "comment_addr",
         )
 
-        keys += tuple(
-            f"scope_{i}_addr"
-            for i in range(self.scope_nr)
-        )
+        keys += tuple(f"scope_{i}_addr" for i in range(self.scope_nr))
 
-        keys += tuple(
-            f"attachment_{i}_addr"
-            for i in range(self.attachment_nr)
-        )
+        keys += tuple(f"attachment_{i}_addr" for i in range(self.attachment_nr))
 
         keys += (
             "event_type",
@@ -3459,11 +3422,7 @@ class EventBlock(_EventBlockBase):
 
     def __str__(self):
         return "EventBlock (name: {}, comment: {}, address: {}, scopes: {}, fields: {})".format(
-            self.name,
-            self.comment,
-            hex(self.address),
-            self.scopes,
-            super().__str__(),
+            self.name, self.comment, hex(self.address), self.scopes, super().__str__()
         )
 
 
@@ -3489,15 +3448,15 @@ class FileIdentificationBlock:
     """
 
     __slots__ = (
-        'address',
-        'file_identification',
-        'version_str',
-        'program_identification',
-        'reserved0',
-        'mdf_version',
-        'reserved1',
-        'unfinalized_standard_flags',
-        'unfinalized_custom_flags',
+        "address",
+        "file_identification",
+        "version_str",
+        "program_identification",
+        "reserved0",
+        "mdf_version",
+        "reserved1",
+        "unfinalized_standard_flags",
+        "unfinalized_custom_flags",
     )
 
     def __init__(self, **kwargs):
@@ -3526,7 +3485,7 @@ class FileIdentificationBlock:
 
         except KeyError:
 
-            version = kwargs.get("version", '4.00')
+            version = kwargs.get("version", "4.00")
             self.file_identification = "MDF     ".encode("utf-8")
             self.version_str = "{}    ".format(version).encode("utf-8")
             self.program_identification = "amdf{}".format(
@@ -3547,7 +3506,7 @@ class FileIdentificationBlock:
     def __bytes__(self):
         result = pack(
             v4c.FMT_IDENTIFICATION_BLOCK,
-            *[self[key] for key in v4c.KEYS_IDENTIFICATION_BLOCK]
+            *[self[key] for key in v4c.KEYS_IDENTIFICATION_BLOCK],
         )
         return result
 
@@ -3580,19 +3539,19 @@ class FileHistory:
     """
 
     __slots__ = (
-        'address',
-        'comment',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'next_fh_addr',
-        'comment_addr',
-        'abs_time',
-        'tz_offset',
-        'daylight_save_time',
-        'time_flags',
-        'reserved1',
+        "address",
+        "comment",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "next_fh_addr",
+        "comment_addr",
+        "abs_time",
+        "tz_offset",
+        "daylight_save_time",
+        "time_flags",
+        "reserved1",
     )
 
     def __init__(self, **kwargs):
@@ -3625,10 +3584,7 @@ class FileHistory:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(
-                address=self.comment_addr,
-                stream=stream,
-            )
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream)
 
         except KeyError:
             self.id = b"##FH"
@@ -3723,31 +3679,31 @@ class HeaderBlock:
     """
 
     __slots__ = (
-        'address',
-        'comment',
-        'author',
-        'department',
-        'project',
-        'subject',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'first_dg_addr',
-        'file_history_addr',
-        'channel_tree_addr',
-        'first_attachment_addr',
-        'first_event_addr',
-        'comment_addr',
-        'abs_time',
-        'tz_offset',
-        'daylight_save_time',
-        'time_flags',
-        'time_quality',
-        'flags',
-        'reserved1',
-        'start_angle',
-        'start_distance',
+        "address",
+        "comment",
+        "author",
+        "department",
+        "project",
+        "subject",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "first_dg_addr",
+        "file_history_addr",
+        "channel_tree_addr",
+        "first_attachment_addr",
+        "first_event_addr",
+        "comment_addr",
+        "abs_time",
+        "tz_offset",
+        "daylight_save_time",
+        "time_flags",
+        "time_quality",
+        "flags",
+        "reserved1",
+        "start_angle",
+        "start_distance",
     )
 
     def __init__(self, **kwargs):
@@ -3790,10 +3746,7 @@ class HeaderBlock:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(
-                address=self.comment_addr,
-                stream=stream,
-            )
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream)
 
         except KeyError:
 
@@ -3977,15 +3930,15 @@ class HeaderList:
     """
 
     __slots__ = (
-        'address',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'first_dl_addr',
-        'flags',
-        'zip_type',
-        'reserved1',
+        "address",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "first_dl_addr",
+        "flags",
+        "zip_type",
+        "reserved1",
     )
 
     def __init__(self, **kwargs):
@@ -4068,21 +4021,21 @@ class SourceInformation:
     """
 
     __slots__ = (
-        'address',
-        'comment',
-        'name',
-        'path',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'name_addr',
-        'path_addr',
-        'comment_addr',
-        'source_type',
-        'bus_type',
-        'flags',
-        'reserved1',
+        "address",
+        "comment",
+        "name",
+        "path",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "name_addr",
+        "path_addr",
+        "comment_addr",
+        "source_type",
+        "bus_type",
+        "flags",
+        "reserved1",
     )
 
     def __init__(self, **kwargs):
@@ -4121,10 +4074,7 @@ class SourceInformation:
 
             self.name = get_text_v4(address=self.name_addr, stream=stream)
             self.path = get_text_v4(address=self.path_addr, stream=stream)
-            self.comment = get_text_v4(
-                address=self.comment_addr,
-                stream=stream,
-            )
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream)
 
         else:
             self.address = 0
@@ -4160,7 +4110,9 @@ path: {self.path}
 address: {hex(self.address)}
 comment: {self.comment}
 
-""".split("\n")
+""".split(
+            "\n"
+        )
         for key, val in self.items():
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
@@ -4259,7 +4211,7 @@ comment: {self.comment}
     def __repr__(self):
         fields = []
         for attr in dir(self):
-            if attr[:2] + attr[-2:] == '____':
+            if attr[:2] + attr[-2:] == "____":
                 continue
             try:
                 if callable(getattr(self, attr)):
@@ -4302,14 +4254,7 @@ class TextBlock:
 
     """
 
-    __slots__ = (
-        'address',
-        'id',
-        'reserved0',
-        'block_len',
-        'links_nr',
-        'text',
-    )
+    __slots__ = ("address", "id", "reserved0", "block_len", "links_nr", "text")
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -4319,12 +4264,9 @@ class TextBlock:
             self.address = address = kwargs["address"]
 
             stream.seek(address)
-            (
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-            ) = COMMON_u(stream.read(COMMON_SIZE))
+            (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
+                stream.read(COMMON_SIZE)
+            )
 
             size = self.block_len - COMMON_SIZE
 
@@ -4372,11 +4314,6 @@ class TextBlock:
     def __bytes__(self):
         fmt = v4c.FMT_TEXT_BLOCK.format(self.block_len - COMMON_SIZE)
         result = pack(
-            fmt,
-            self.id,
-            self.reserved0,
-            self.block_len,
-            self.links_nr,
-            self.text,
+            fmt, self.id, self.reserved0, self.block_len, self.links_nr, self.text
         )
         return result

@@ -442,9 +442,7 @@ class MainWindow(QMainWindow):
             index = self.files.count()
 
             try:
-                widget = FileWidget(
-                    file_name, self.step_mode, self.with_dots, self
-                )
+                widget = FileWidget(file_name, self.step_mode, self.with_dots, self)
                 widget.search_field.set_search_option(self.match)
                 widget.filter_field.set_search_option(self.match)
             except:

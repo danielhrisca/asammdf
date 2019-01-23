@@ -251,6 +251,7 @@ try:
                 stats = self.plot.get_stats(0)
                 self.info.set_stats(stats)
 
+
 except ImportError:
     raise
     PYQTGRAPH_AVAILABLE = False

@@ -213,7 +213,7 @@ class MDF3(object):
 
                     y_axis = CONVERT
 
-                    idx = searchsorted(CHANNEL_COUNT, channels_nr, side='right') - 1
+                    idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
                     if idx < 0:
                         idx = 0
                     split_size = y_axis[idx]
@@ -687,8 +687,8 @@ class MDF3(object):
         self.identification = FileIdentificationBlock(stream=stream)
         self.header = HeaderBlock(stream=stream)
 
-        self.version = (
-            self.identification.version_str.decode("latin-1").strip(" \n\t\0")
+        self.version = self.identification.version_str.decode("latin-1").strip(
+            " \n\t\0"
         )
 
         # this will hold mapping from channel address to Channel object
@@ -749,9 +749,7 @@ class MDF3(object):
 
                 while ch_addr:
                     # read channel block and create channel object
-                    new_ch = Channel(
-                        address=ch_addr, stream=stream, load_metadata=True
-                    )
+                    new_ch = Channel(address=ch_addr, stream=stream, load_metadata=True)
 
                     # check if it has channel dependencies
                     if new_ch.ch_depend_addr:
@@ -1461,13 +1459,13 @@ class MDF3(object):
                 if cycles_nr:
                     data_address = tell()
                     new_gp.data_group.data_block_addr = data_address
-                    new_gp.data_block_addr = [data_address,]
-                    new_gp.data_block_size = [new_gp.size ,]
+                    new_gp.data_block_addr = [data_address]
+                    new_gp.data_block_size = [new_gp.size]
                     self._tempfile.write(block)
                 else:
                     new_gp.data_group.data_block_addr = 0
-                    new_gp.data_block_addr = [0,]
-                    new_gp.data_block_size = [0,]
+                    new_gp.data_block_addr = [0]
+                    new_gp.data_block_size = [0]
 
                 # data group trigger
                 new_gp.trigger = None
@@ -2588,7 +2586,9 @@ class MDF3(object):
 
         # get data group record
         if data is None:
-            data = self._load_data(grp, record_offset=record_offset, record_count=record_count)
+            data = self._load_data(
+                grp, record_offset=record_offset, record_count=record_count
+            )
         else:
             data = (data,)
 
@@ -2641,19 +2641,17 @@ class MDF3(object):
                     copy_master=copy_master,
                 )
                 if raster and len(timestamps) > 1:
-                    num = float(
-                        float32((timestamps[-1] - timestamps[0]) / raster)
-                    )
+                    num = float(float32((timestamps[-1] - timestamps[0]) / raster))
                     if num.is_integer():
-                        t = linspace(
-                            timestamps[0],
-                            timestamps[-1],
-                            int(num),
-                        )
+                        t = linspace(timestamps[0], timestamps[-1], int(num))
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t, mode=self._integer_interpolation).samples
+                    vals = (
+                        Signal(vals, timestamps, name="_")
+                        .interp(t, mode=self._integer_interpolation)
+                        .samples
+                    )
 
                     timestamps = t
 
@@ -2695,13 +2693,17 @@ class MDF3(object):
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                     else:
                         dtype_ = vals.dtype
-                        if dtype_.byteorder == '>':
+                        if dtype_.byteorder == ">":
                             if bit_offset or bits != size << 3:
-                                vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
+                                vals = self._get_not_byte_aligned_data(
+                                    data_bytes, grp, ch_nr
+                                )
                         else:
                             if bit_offset:
                                 if dtype_.kind == "i":
-                                    vals = vals.astype(dtype("{}u{}".format(dtype_.byteorder, size)))
+                                    vals = vals.astype(
+                                        dtype("{}u{}".format(dtype_.byteorder, size))
+                                    )
                                     vals >>= bit_offset
                                 else:
                                     vals = vals >> bit_offset
@@ -2720,7 +2722,9 @@ class MDF3(object):
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
                 if not samples_only or raster:
-                    timestamps.append(self.get_master(gp_nr, fragment, copy_master=copy_master))
+                    timestamps.append(
+                        self.get_master(gp_nr, fragment, copy_master=copy_master)
+                    )
 
                 if bits == 1 and self._single_bit_uint_as_bool:
                     vals = array(vals, dtype=bool)
@@ -2747,19 +2751,17 @@ class MDF3(object):
                     timestamps = timestamps[0]
 
                 if raster and len(timestamps) > 1:
-                    num = float(
-                        float32((timestamps[-1] - timestamps[0]) / raster)
-                    )
+                    num = float(float32((timestamps[-1] - timestamps[0]) / raster))
                     if num.is_integer():
-                        t = linspace(
-                            timestamps[0],
-                            timestamps[-1],
-                            int(num),
-                        )
+                        t = linspace(timestamps[0], timestamps[-1], int(num))
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t, mode=self._integer_interpolation).samples
+                    vals = (
+                        Signal(vals, timestamps, name="_")
+                        .interp(t, mode=self._integer_interpolation)
+                        .samples
+                    )
 
                     timestamps = t
 
@@ -2769,8 +2771,8 @@ class MDF3(object):
                 conversion_type = conversion.conversion_type
 
             if conversion_type == v23c.CONVERSION_TYPE_NONE:
-                if vals.dtype.kind == 'S':
-                    encoding = 'latin-1'
+                if vals.dtype.kind == "S":
+                    encoding = "latin-1"
 
             elif conversion_type in (
                 v23c.CONVERSION_TYPE_LINEAR,
@@ -2850,7 +2852,15 @@ class MDF3(object):
 
         return res
 
-    def get_master(self, index, data=None, raster=None, record_offset=0, record_count=None, copy_master=True):
+    def get_master(
+        self,
+        index,
+        data=None,
+        raster=None,
+        record_offset=0,
+        record_count=None,
+        copy_master=True,
+    ):
         """ returns master channel samples for given group
 
         Parameters
@@ -2932,7 +2942,9 @@ class MDF3(object):
 
                 # get data group record
                 if data is None:
-                    data = self._load_data(group, record_offset=record_offset, record_count=record_count)
+                    data = self._load_data(
+                        group, record_offset=record_offset, record_count=record_count
+                    )
                     _count = record_count
                 else:
                     data = (data,)
@@ -2993,15 +3005,9 @@ class MDF3(object):
         if raster:
             timestamps = t
             if len(t) > 1:
-                num = float(
-                    float32((timestamps[-1] - timestamps[0]) / raster)
-                )
+                num = float(float32((timestamps[-1] - timestamps[0]) / raster))
                 if int(num) == num:
-                    timestamps = linspace(
-                        t[0],
-                        t[-1],
-                        int(num),
-                    )
+                    timestamps = linspace(t[0], t[-1], int(num))
                 else:
                     timestamps = arange(t[0], t[-1], raster)
         else:
@@ -3100,7 +3106,7 @@ class MDF3(object):
 
         """
 
-        dst = Path(dst).with_suffix('.mdf')
+        dst = Path(dst).with_suffix(".mdf")
 
         destination_dir = dst.parent
         destination_dir.mkdir(parents=True, exist_ok=True)
@@ -3197,9 +3203,7 @@ class MDF3(object):
                     gp.data_group.data_block_addr = address
                 else:
                     gp.data_group.data_block_addr = 0
-                address += (
-                    gp.size - gp_rec_ids[idx] * gp.channel_group.cycles_nr
-                )
+                address += gp.size - gp_rec_ids[idx] * gp.channel_group.cycles_nr
 
                 if self._callback:
                     self._callback(int(33 * (idx + 1) / groups_nr), 100)
@@ -3243,9 +3247,7 @@ class MDF3(object):
                 count = len(gp.channels)
                 if count:
                     for i in range(count - 1):
-                        gp.channels[i].next_ch_addr = gp.channels[
-                            i + 1
-                        ].address
+                        gp.channels[i].next_ch_addr = gp.channels[i + 1].address
                     gp.channels[-1].next_ch_addr = 0
 
                 # ChannelGroup

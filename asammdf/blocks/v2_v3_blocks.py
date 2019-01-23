@@ -13,13 +13,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v2_v3_constants as v23c
-from .utils import (
-    MdfException,
-    get_text_v3,
-    SignalSource,
-    UINT16_u,
-    UINT32_u,
-)
+from .utils import MdfException, get_text_v3, SignalSource, UINT16_u, UINT32_u
 from ..version import __version__
 
 
@@ -136,32 +130,32 @@ class Channel:
     """
 
     __slots__ = (
-        'name',
-        'display_name',
-        'comment',
-        'conversion',
-        'source',
-        'address',
-        'id',
-        'block_len',
-        'next_ch_addr',
-        'conversion_addr',
-        'source_addr',
-        'ch_depend_addr',
-        'comment_addr',
-        'channel_type',
-        'short_name',
-        'description',
-        'start_offset',
-        'bit_count',
-        'data_type',
-        'range_flag',
-        'min_raw_value',
-        'max_raw_value',
-        'sampling_rate',
-        'long_name_addr',
-        'display_name_addr',
-        'additional_byte_offset',
+        "name",
+        "display_name",
+        "comment",
+        "conversion",
+        "source",
+        "address",
+        "id",
+        "block_len",
+        "next_ch_addr",
+        "conversion_addr",
+        "source_addr",
+        "ch_depend_addr",
+        "comment_addr",
+        "channel_type",
+        "short_name",
+        "description",
+        "start_offset",
+        "bit_count",
+        "data_type",
+        "range_flag",
+        "min_raw_value",
+        "max_raw_value",
+        "sampling_rate",
+        "long_name_addr",
+        "display_name_addr",
+        "additional_byte_offset",
     )
 
     def __init__(self, **kwargs):
@@ -174,7 +168,7 @@ class Channel:
             stream = kwargs["stream"]
             self.address = address = kwargs["address"]
             stream.seek(address + 2)
-            (size, ) = UINT16_u(stream.read(2))
+            (size,) = UINT16_u(stream.read(2))
             stream.seek(address)
             block = stream.read(size)
 
@@ -473,7 +467,7 @@ comment: {}
 
     def __iter__(self):
         for attr in dir(self):
-            if attr[:2] + attr[-2:] == '____':
+            if attr[:2] + attr[-2:] == "____":
                 continue
             try:
                 if callable(getattr(self, attr)):
@@ -509,7 +503,7 @@ comment: {}
     def __repr__(self):
         fields = []
         for attr in dir(self):
-            if attr[:2] + attr[-2:] == '____':
+            if attr[:2] + attr[-2:] == "____":
                 continue
             try:
                 if callable(getattr(self, attr)):
@@ -522,33 +516,33 @@ comment: {}
 
 class _ChannelConversionBase:
     __slots__ = (
-        'unit',
-        'unit_field',
-        'formula',
-        'formula_field',
-        'referenced_blocks',
-        'address',
-        'id',
-        'reserved0',
-        'block_len',
-        'comment_addr',
-        'inv_conv_addr',
-        'conversion_type',
-        'precision',
-        'flags',
-        'ref_param_nr',
-        'val_param_nr',
-        'min_phy_value',
-        'max_phy_value',
-        'a',
-        'b',
-        'P1',
-        'P2',
-        'P3',
-        'P4',
-        'P5',
-        'P6',
-        'P7',
+        "unit",
+        "unit_field",
+        "formula",
+        "formula_field",
+        "referenced_blocks",
+        "address",
+        "id",
+        "reserved0",
+        "block_len",
+        "comment_addr",
+        "inv_conv_addr",
+        "conversion_type",
+        "precision",
+        "flags",
+        "ref_param_nr",
+        "val_param_nr",
+        "min_phy_value",
+        "max_phy_value",
+        "a",
+        "b",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5",
+        "P6",
+        "P7",
     )
 
 
@@ -685,9 +679,7 @@ class ChannelConversion(_ChannelConversionBase):
             conv_type = self.conversion_type
 
             if conv_type == v23c.CONVERSION_TYPE_LINEAR:
-                (self.b, self.a) = unpack_from(
-                    "<2d", block, v23c.CC_COMMON_SHORT_SIZE
-                )
+                (self.b, self.a) = unpack_from("<2d", block, v23c.CC_COMMON_SHORT_SIZE)
                 if not size == v23c.CC_LIN_BLOCK_SIZE:
                     self.CANapeHiddenExtra = block[v23c.CC_LIN_BLOCK_SIZE - 4 :]
 
@@ -716,9 +708,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self.referenced_blocks = conversion.referenced_blocks
 
                 else:
-                    values = unpack_from(
-                        f"<{2*nr}d", block, v23c.CC_COMMON_SHORT_SIZE
-                    )
+                    values = unpack_from(f"<{2*nr}d", block, v23c.CC_COMMON_SHORT_SIZE)
                     for i in range(nr):
                         (self[f"raw_{i}"], self[f"phys_{i}"]) = (
                             values[i * 2],
@@ -726,14 +716,9 @@ class ChannelConversion(_ChannelConversionBase):
                         )
 
             elif conv_type in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
-                (
-                    self.P1,
-                    self.P2,
-                    self.P3,
-                    self.P4,
-                    self.P5,
-                    self.P6,
-                ) = unpack_from("<6d", block, v23c.CC_COMMON_SHORT_SIZE)
+                (self.P1, self.P2, self.P3, self.P4, self.P5, self.P6) = unpack_from(
+                    "<6d", block, v23c.CC_COMMON_SHORT_SIZE
+                )
 
             elif conv_type in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
                 (
@@ -810,19 +795,17 @@ class ChannelConversion(_ChannelConversionBase):
                         "<" + "2dI" * nr, block, v23c.CC_COMMON_SHORT_SIZE + 20
                     )
                     for i in range(nr):
-                        (
-                            self[f"lower_{i}"],
-                            self[f"upper_{i}"],
-                            self[f"text_{i}"],
-                        ) = (values[i * 3], values[3 * i + 1], values[3 * i + 2])
+                        (self[f"lower_{i}"], self[f"upper_{i}"], self[f"text_{i}"]) = (
+                            values[i * 3],
+                            values[3 * i + 1],
+                            values[3 * i + 2],
+                        )
                         if values[3 * i + 2]:
                             block = TextBlock(address=values[3 * i + 2], stream=stream)
                             self.referenced_blocks[f"text_{i}"] = block
 
                         else:
-                            self.referenced_blocks[f"text_{i}"] = TextBlock(
-                                text=""
-                            )
+                            self.referenced_blocks[f"text_{i}"] = TextBlock(text="")
 
             if self.id != b"CC":
                 message = f'Expected "CC" block @{hex(address)} but found "{self.id}"'
@@ -834,7 +817,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             self.address = 0
             self.id = "CC".encode("latin-1")
-            self.unit_field = kwargs.get('unit', b'').decode('latin-1')
+            self.unit_field = kwargs.get("unit", b"").decode("latin-1")
 
             if kwargs["conversion_type"] == v23c.CONVERSION_TYPE_NONE:
                 self.block_len = v23c.CC_COMMON_BLOCK_SIZE
@@ -969,7 +952,9 @@ class ChannelConversion(_ChannelConversionBase):
                     self[key] = 0
                     self.referenced_blocks[key] = TextBlock(text=kwargs[key])
             else:
-                message = f'Conversion type "{kwargs["conversion_type"]}" not implemented'
+                message = (
+                    f'Conversion type "{kwargs["conversion_type"]}" not implemented'
+                )
                 logger.exception(message)
                 raise MdfException(message)
 
@@ -1209,7 +1194,7 @@ address: {}
                 try:
                     values = evaluate(v23c.RAT_CONV_TEXT)
                 except TypeError:
-                    values = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
+                    values = (P1 * X ** 2 + P2 * X + P3) / (P4 * X ** 2 + P5 * X + P6)
 
         elif conversion_type == v23c.CONVERSION_TYPE_POLY:
             # pylint: disable=unused-variable,C0103
@@ -1235,7 +1220,7 @@ address: {}
                 try:
                     values = evaluate(v23c.POLY_CONV_LONG_TEXT)
                 except TypeError:
-                    values = (P2 - (P4 * (X - P5 -P6))) / (P3* (X - P5 - P6) - P1)
+                    values = (P2 - (P4 * (X - P5 - P6))) / (P3 * (X - P5 - P6) - P1)
 
         elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
             # pylint: disable=unused-variable,C0103
@@ -1267,7 +1252,7 @@ address: {}
         elif conv == v23c.CONVERSION_TYPE_LINEAR:
             fmt = v23c.FMT_CONVERSION_LINEAR
             if not self.block_len == v23c.CC_LIN_BLOCK_SIZE:
-                fmt += f'{self.block_len - v23c.CC_LIN_BLOCK_SIZE}s'
+                fmt += f"{self.block_len - v23c.CC_LIN_BLOCK_SIZE}s"
         elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
             fmt = v23c.FMT_CONVERSION_POLY_RAT
         elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
@@ -1323,7 +1308,7 @@ address: {}
     def __str__(self):
         fields = []
         for attr in dir(self):
-            if attr[:2] + attr[-2:] == '____':
+            if attr[:2] + attr[-2:] == "____":
                 continue
             try:
                 if callable(getattr(self, attr)):
@@ -1332,6 +1317,7 @@ address: {}
             except AttributeError:
                 continue
         return f"ChannelConversion (referneced blocks: {self.referenced_blocks}, address: {hex(self.address)}, fields: {fields})"
+
 
 class ChannelDependency:
     """ CDBLOCK class
@@ -1379,12 +1365,9 @@ class ChannelDependency:
             self.address = address = kwargs["address"]
             stream.seek(address)
 
-            (
-                self.id,
-                self.block_len,
-                self.dependency_type,
-                self.sd_nr,
-            ) = unpack("<2s3H", stream.read(8))
+            (self.id, self.block_len, self.dependency_type, self.sd_nr) = unpack(
+                "<2s3H", stream.read(8)
+            )
 
             links_size = 3 * 4 * self.sd_nr
             links = unpack("<{}I".format(3 * self.sd_nr), stream.read(links_size))
@@ -1499,22 +1482,22 @@ class ChannelExtension:
     """
 
     __slots__ = (
-        'address',
-        'name',
-        'path',
-        'comment',
-        'id',
-        'block_len',
-        'type',
-        'module_nr',
-        'module_address',
-        'description',
-        'ECU_identification',
-        'reserved0',
-        'CAN_id',
-        'CAN_ch_index',
-        'message_name',
-        'sender_name',
+        "address",
+        "name",
+        "path",
+        "comment",
+        "id",
+        "block_len",
+        "type",
+        "module_nr",
+        "module_address",
+        "description",
+        "ECU_identification",
+        "reserved0",
+        "CAN_id",
+        "CAN_ch_index",
+        "message_name",
+        "sender_name",
     )
 
     def __init__(self, **kwargs):
@@ -1526,7 +1509,9 @@ class ChannelExtension:
             stream = kwargs["stream"]
             try:
 
-                (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(kwargs["raw_bytes"])
+                (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(
+                    kwargs["raw_bytes"]
+                )
                 if self.type == v23c.SOURCE_ECU:
                     (
                         self.module_nr,
@@ -1695,7 +1680,7 @@ address: {}
     def __str__(self):
         fields = []
         for attr in dir(self):
-            if attr[:2] + attr[-2:] == '____':
+            if attr[:2] + attr[-2:] == "____":
                 continue
             try:
                 if callable(getattr(self, attr)):
@@ -1756,18 +1741,18 @@ class ChannelGroup:
     """
 
     __slots__ = (
-        'address',
-        'comment',
-        'id',
-        'block_len',
-        'next_cg_addr',
-        'first_ch_addr',
-        'comment_addr',
-        'record_id',
-        'ch_nr',
-        'samples_byte_nr',
-        'cycles_nr',
-        'sample_reduction_addr',
+        "address",
+        "comment",
+        "id",
+        "block_len",
+        "next_cg_addr",
+        "first_ch_addr",
+        "comment_addr",
+        "record_id",
+        "ch_nr",
+        "samples_byte_nr",
+        "cycles_nr",
+        "sample_reduction_addr",
     )
 
     def __init__(self, **kwargs):
@@ -1793,7 +1778,7 @@ class ChannelGroup:
                 self.cycles_nr,
             ) = unpack(v23c.FMT_CHANNEL_GROUP, block)
             if self.block_len == v23c.CG_POST_330_BLOCK_SIZE:
-                (self.sample_reduction_addr, ) = UINT32_u(stream.read(4))
+                (self.sample_reduction_addr,) = UINT32_u(stream.read(4))
                 # sample reduction blocks are not yet used
                 self.sample_reduction_addr = 0
             if self.id != b"CG":
@@ -1877,7 +1862,7 @@ class DataBlock:
 
     """
 
-    __slots__ = 'address', 'data'
+    __slots__ = "address", "data"
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -1936,16 +1921,16 @@ class DataGroup:
     """
 
     __slots__ = (
-        'address',
-        'id',
-        'block_len',
-        'next_dg_addr',
-        'first_cg_addr',
-        'trigger_addr',
-        'data_block_addr',
-        'cg_nr',
-        'record_id_len',
-        'reserved0',
+        "address",
+        "id",
+        "block_len",
+        "next_dg_addr",
+        "first_cg_addr",
+        "trigger_addr",
+        "data_block_addr",
+        "cg_nr",
+        "record_id_len",
+        "reserved0",
     )
 
     def __init__(self, **kwargs):
@@ -2039,18 +2024,18 @@ class FileIdentificationBlock:
     """
 
     __slots__ = (
-        'address',
-        'file_identification',
-        'version_str',
-        'program_identification',
-        'byte_order',
-        'float_format',
-        'mdf_version',
-        'code_page',
-        'reserved0',
-        'reserved1',
-        'unfinalized_standard_flags',
-        'unfinalized_custom_flags',
+        "address",
+        "file_identification",
+        "version_str",
+        "program_identification",
+        "byte_order",
+        "float_format",
+        "mdf_version",
+        "code_page",
+        "reserved0",
+        "reserved1",
+        "unfinalized_standard_flags",
+        "unfinalized_custom_flags",
     )
 
     def __init__(self, **kwargs):
@@ -2158,29 +2143,29 @@ class HeaderBlock:
     """
 
     __slots__ = (
-        'address',
-        'program',
-        'comment',
-        'id',
-        'block_len',
-        'first_dg_addr',
-        'comment_addr',
-        'program_addr',
-        'dg_nr',
-        'date',
-        'time',
-        'author',
-        'department',
-        'project',
-        'subject',
-        'abs_time',
-        'tz_offset',
-        'time_quality',
-        'timer_identification',
-        'author_field',
-        'department_field',
-        'project_field',
-        'subject_field',
+        "address",
+        "program",
+        "comment",
+        "id",
+        "block_len",
+        "first_dg_addr",
+        "comment_addr",
+        "program_addr",
+        "dg_nr",
+        "date",
+        "time",
+        "author",
+        "department",
+        "project",
+        "subject",
+        "abs_time",
+        "tz_offset",
+        "time_quality",
+        "timer_identification",
+        "author_field",
+        "department_field",
+        "project_field",
+        "subject_field",
     )
 
     def __init__(self, **kwargs):
@@ -2221,7 +2206,9 @@ class HeaderBlock:
                 )
 
             if self.id != b"HD":
-                message = f'Expected "HD" block @{hex(self.address)} but found "{self.id}"'
+                message = (
+                    f'Expected "HD" block @{hex(self.address)} but found "{self.id}"'
+                )
                 message = message.format(hex(64), self.id)
                 logger.exception(message)
                 raise MdfException(message)
@@ -2375,12 +2362,7 @@ class ProgramBlock:
 
     """
 
-    __slots__ = (
-        'address',
-        'id',
-        'block_len',
-        'data',
-    )
+    __slots__ = ("address", "id", "block_len", "data")
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -2449,12 +2431,7 @@ class TextBlock:
 
     """
 
-    __slots__ = (
-        'address',
-        'id',
-        'block_len',
-        'text',
-    )
+    __slots__ = ("address", "id", "block_len", "text")
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -2495,7 +2472,7 @@ class TextBlock:
     def __bytes__(self):
         result = pack(
             "<2sH{}s".format(self.block_len - 4),
-            *[self[key] for key in v23c.KEYS_TEXT_BLOCK]
+            *[self[key] for key in v23c.KEYS_TEXT_BLOCK],
         )
         return result
 
@@ -2542,16 +2519,13 @@ class TriggerBlock:
             stream = kwargs["stream"]
 
             stream.seek(address + 2)
-            (size, ) = UINT16_u(stream.read(2))
+            (size,) = UINT16_u(stream.read(2))
             stream.seek(address)
             block = stream.read(size)
 
-            (
-                self.id,
-                self.block_len,
-                self.text_addr,
-                self.trigger_events_nr,
-            ) = unpack("<2sHIH", block[:10])
+            (self.id, self.block_len, self.text_addr, self.trigger_events_nr) = unpack(
+                "<2sHIH", block[:10]
+            )
 
             nr = self.trigger_events_nr
             if nr:

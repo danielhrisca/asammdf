@@ -40,8 +40,7 @@ def conversion_transfer(conversion, version=3):
 
                 if conversion_type == v4c.CONVERSION_TYPE_NON:
                     conversion = v3b.ChannelConversion(
-                        unit=unit,
-                        conversion_type=v3c.CONVERSION_TYPE_NONE,
+                        unit=unit, conversion_type=v3c.CONVERSION_TYPE_NONE
                     )
 
                 elif conversion_type == v4c.CONVERSION_TYPE_LIN:
@@ -110,7 +109,7 @@ def conversion_transfer(conversion, version=3):
                         u_ = conversion[f"upper_{i}"]
                         p_ = conversion[f"phys_{i}"]
                         kargs[f"raw_{i}"] = l_
-                        kargs[f"raw_{i}"] = u_ - 0.000001
+                        kargs[f"raw_{i}"] = u_ - 0.000_001
                         kargs[f"phys_{i}"] = p_
                         kargs[f"phys_{i}"] = p_
 
@@ -125,7 +124,9 @@ def conversion_transfer(conversion, version=3):
                     }
                     for i in range(nr):
                         kargs[f"param_val_{i}"] = conversion[f"val_{i}"]
-                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].text
+                        kargs[f"text_{i}"] = conversion.referenced_blocks[
+                            f"text_{i}"
+                        ].text
 
                     conversion = v3b.ChannelConversion(**kargs)
 
@@ -139,7 +140,9 @@ def conversion_transfer(conversion, version=3):
                     for i in range(nr):
                         kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
                         kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
-                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].text
+                        kargs[f"text_{i}"] = conversion.referenced_blocks[
+                            f"text_{i}"
+                        ].text
 
                     new_conversion = v3b.ChannelConversion(**kargs)
 
@@ -156,7 +159,9 @@ def conversion_transfer(conversion, version=3):
             conversion_type = conversion["conversion_type"]
             unit = conversion["unit_field"].decode("latin-1").strip(" \r\n\t\0")
             if conversion_type == v3c.CONVERSION_TYPE_NONE:
-                conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
+                conversion = v4b.ChannelConversion(
+                    conversion_type=v4c.CONVERSION_TYPE_NON
+                )
 
             elif conversion_type == v3c.CONVERSION_TYPE_LINEAR:
                 conversion = v4b.ChannelConversion(
@@ -179,8 +184,7 @@ def conversion_transfer(conversion, version=3):
             elif conversion_type == v3c.CONVERSION_TYPE_FORMULA:
                 formula = conversion.formula
                 conversion = v4b.ChannelConversion(
-                    conversion_type=v4c.CONVERSION_TYPE_ALG,
-                    formula=formula,
+                    conversion_type=v4c.CONVERSION_TYPE_ALG, formula=formula
                 )
 
             elif conversion_type == v3c.CONVERSION_TYPE_TAB:
@@ -191,8 +195,7 @@ def conversion_transfer(conversion, version=3):
                     conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
 
                 conversion = v4b.ChannelConversion(
-                    conversion_type=v4c.CONVERSION_TYPE_TAB,
-                    **conversion_,
+                    conversion_type=v4c.CONVERSION_TYPE_TAB, **conversion_
                 )
 
             elif conversion_type == v3c.CONVERSION_TYPE_TABI:
@@ -203,8 +206,7 @@ def conversion_transfer(conversion, version=3):
                     conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
 
                 conversion = v4b.ChannelConversion(
-                    conversion_type=v4c.CONVERSION_TYPE_TABI,
-                    **conversion_,
+                    conversion_type=v4c.CONVERSION_TYPE_TABI, **conversion_
                 )
 
             elif conversion_type == v3c.CONVERSION_TYPE_TABX:

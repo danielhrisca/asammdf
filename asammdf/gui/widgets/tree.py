@@ -18,6 +18,7 @@ except ImportError:
 
     QT = 4
 
+
 class TreeWidget(QTreeWidget):
     def __init__(self, *args, **kwargs):
 

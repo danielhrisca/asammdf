@@ -167,7 +167,7 @@ try:
                 axis.linkToView(view_box)
                 axis.labelText = sig.name
                 axis.labelUnits = sig.unit
-                axis.labelStyle = {'color': color}
+                axis.labelStyle = {"color": color}
 
                 self.layout.addItem(axis, 2, i + 2)
 
@@ -196,8 +196,8 @@ try:
                 view_box.addItem(curve)
 
                 view_box.setXLink(self.viewbox)
-#                view_box.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
-#                view_box.sigResized.connect(self.update_views)
+                #                view_box.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
+                #                view_box.sigResized.connect(self.update_views)
 
                 self.view_boxes.append(view_box)
                 self.curves.append(curve)
@@ -207,11 +207,10 @@ try:
             if len(signals) == 1:
                 self.setSignalEnable(0, 1)
 
-
-#            self.update_views()
+            #            self.update_views()
             self.viewbox.sigResized.connect(self.update_views)
 
-#            self.viewbox.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
+            #            self.viewbox.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
             self.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_H, Qt.NoModifier))
 
             self.resizeEvent = self._resizeEvent
@@ -651,7 +650,10 @@ try:
                 elif key == Qt.Key_F:
                     for viewbox, signal in zip(self.view_boxes, self.signals):
                         if len(signal.samples):
-                            min_, max_ = np.amin(signal.samples), np.amax(signal.samples)
+                            min_, max_ = (
+                                np.amin(signal.samples),
+                                np.amax(signal.samples),
+                            )
                             viewbox.setYRange(min_, max_, padding=0)
 
                     if self.cursor1:
@@ -672,7 +674,9 @@ try:
                     if self.cursor1:
                         pos = self.cursor1.value()
                         x_range = pos - delta / 2, pos + delta / 2
-                    self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
+                    self.viewbox.setXRange(
+                        x_range[0] - step, x_range[1] + step, padding=0
+                    )
 
                 elif key == Qt.Key_R:
                     if self.region is None:
@@ -709,9 +713,10 @@ try:
                     if count:
                         position = 0
                         for signal, viewbox, curve in zip(
-                                reversed(self.signals),
-                                reversed(self.view_boxes),
-                                reversed(self.curves)):
+                            reversed(self.signals),
+                            reversed(self.view_boxes),
+                            reversed(self.curves),
+                        ):
                             if not signal.empty and curve.isVisible():
                                 min_ = signal.min
                                 max_ = signal.max
@@ -721,7 +726,10 @@ try:
                                 dim = (max_ - min_) * 1.1
 
                                 max_ = min_ + dim * count
-                                min_, max_ = min_ - dim * position, max_ - dim * position
+                                min_, max_ = (
+                                    min_ - dim * position,
+                                    max_ - dim * position,
+                                )
 
                                 viewbox.setYRange(min_, max_, padding=0)
 
@@ -855,7 +863,10 @@ try:
                 dim = len(sig.original_samples)
                 if dim:
 
-                    start_t, stop_t = sig.original_timestamps[0], sig.original_timestamps[-1]
+                    start_t, stop_t = (
+                        sig.original_timestamps[0],
+                        sig.original_timestamps[-1],
+                    )
                     if start > stop_t or stop < start_t:
                         sig.samples = sig.original_samples[:0]
                         sig.timestamps = sig.original_timestamps[:0]
@@ -867,19 +878,27 @@ try:
 
                         visible = int((stop_ - start_) / (stop - start) * width)
 
-                        start_ = np.searchsorted(sig.original_timestamps, start_, side="right")
-                        stop_ = np.searchsorted(sig.original_timestamps, stop_, side="right")
+                        start_ = np.searchsorted(
+                            sig.original_timestamps, start_, side="right"
+                        )
+                        stop_ = np.searchsorted(
+                            sig.original_timestamps, stop_, side="right"
+                        )
 
                         if visible:
                             raster = max((stop_ - start_) // visible, 1)
                         else:
                             raster = 1
                         if raster >= 10:
-                            samples = np.array_split(sig.original_samples[start_:stop_], visible)
+                            samples = np.array_split(
+                                sig.original_samples[start_:stop_], visible
+                            )
                             max_ = np.array([np.amax(s) for s in samples])
                             min_ = np.array([np.amin(s) for s in samples])
                             samples = np.dstack((min_, max_)).ravel()
-                            timestamps = np.array_split(sig.original_timestamps[start_:stop_], visible)
+                            timestamps = np.array_split(
+                                sig.original_timestamps[start_:stop_], visible
+                            )
                             timestamps1 = np.array([s[0] for s in timestamps])
                             timestamps2 = np.array([s[1] for s in timestamps])
                             timestamps = np.dstack((timestamps1, timestamps2)).ravel()
@@ -889,19 +908,20 @@ try:
                             if sig.texts is not None:
                                 sig.texts = sig.original_texts[start_:stop_:raster]
                         else:
-                            start_ = max(0, start_ -2)
+                            start_ = max(0, start_ - 2)
                             stop_ += 2
 
-                            sig.samples = sig.original_samples[start_: stop_]
-                            sig.timestamps = sig.original_timestamps[start_: stop_]
+                            sig.samples = sig.original_samples[start_:stop_]
+                            sig.timestamps = sig.original_timestamps[start_:stop_]
                             if sig.texts is not None:
-                                sig.texts = sig.original_texts[start_: stop_]
+                                sig.texts = sig.original_texts[start_:stop_]
 
             self.update_lines(force=True)
 
         def _resizeEvent(self, ev):
             self.xrange_changed_handle()
             super(Plot, self).resizeEvent(ev)
+
 
 except ImportError:
     raise

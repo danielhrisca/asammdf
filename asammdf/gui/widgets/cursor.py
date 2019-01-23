@@ -2,6 +2,7 @@
 
 import pyqtgraph as pg
 
+
 class Cursor(pg.InfiniteLine):
     def __init__(self, *args, **kwargs):
 
