@@ -3075,6 +3075,8 @@ class MDF(object):
         start__ = pc()
 
         for i, grp in enumerate(self.groups):
+#            if i == 971:
+#                break
             if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
 
@@ -3136,9 +3138,9 @@ class MDF(object):
             signals = [sig for sig in signals if len(sig)]
 
             for k, sig in enumerate(signals):
-                if pc() - start__ > 120:
-                    print(pc() - start__, i, k)
-                    return
+#                if pc() - start__ > 120:
+#                    print(pc() - start__, i, k)
+#                    return
                 # byte arrays
                 if len(sig.samples.shape) > 1:
                     arr = [sig.samples]
