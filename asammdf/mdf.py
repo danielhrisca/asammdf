@@ -167,26 +167,26 @@ class MDF(object):
                         try:
                             dg_cntr, ch_cntr = ref
                             try:
-                                (self.groups[dg_cntr]["channels"][ch_cntr])
+                                (self.groups[dg_cntr].channels[ch_cntr])
                             except:
                                 event_valid = False
                         except TypeError:
                             dg_cntr = ref
                             try:
-                                (self.groups[dg_cntr]["channel_group"])
+                                (self.groups[dg_cntr].channel_group)
                             except:
                                 event_valid = False
                     # ignore attachments for now
-                    for i in range(new_event["attachment_nr"]):
+                    for i in range(new_event.attachment_nr):
                         key = f"attachment_{i}_addr"
                         event[key] = 0
                     if event_valid:
                         self.events.append(new_event)
                 else:
-                    ev_type = event["event_type"]
-                    ev_range = event["range_type"]
-                    ev_base = event["sync_base"]
-                    ev_factor = event["sync_factor"]
+                    ev_type = event.event_type
+                    ev_range = event.range_type
+                    ev_base = event.sync_base
+                    ev_factor = event.sync_factor
 
                     timestamp = ev_base * ev_factor
 
@@ -332,18 +332,18 @@ class MDF(object):
         master_index = self.masters_db.get(index, -1)
         excluded_channels.add(master_index)
 
-        channels = group["channels"]
-        channel_group = group["channel_group"]
+        channels = group.channels
+        channel_group = group.channel_group
 
         if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-            for dep in group["channel_dependencies"]:
+            for dep in group.channel_dependencies:
                 if dep is None:
                     continue
                 for gp_nr, ch_nr  in dep.referenced_channels:
                     if gp_nr == index:
                         excluded_channels.add(ch_nr)
         else:
-            if channel_group["flags"] & v4c.FLAG_CG_BUS_EVENT:
+            if channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
                 where = self.whereis("CAN_DataFrame")
                 for dg_cntr, ch_cntr in where:
                     if dg_cntr == index:
@@ -352,19 +352,19 @@ class MDF(object):
                     raise MdfException("CAN_DataFrame not found in group " + str(index))
                 channel = channels[ch_cntr]
                 excluded_channels.add(ch_cntr)
-                if group["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
+                if group.data_location == v4c.LOCATION_ORIGINAL_FILE:
                     stream = self._file
                 else:
                     stream = self._tempfile
                 frame_bytes = range(
-                    channel["byte_offset"],
-                    channel["byte_offset"] + channel["bit_count"] // 8,
+                    channel.byte_offset,
+                    channel.byte_offset + channel.bit_count // 8,
                 )
                 for i, channel in enumerate(channels):
-                    if channel["byte_offset"] in frame_bytes:
+                    if channel.byte_offset in frame_bytes:
                         excluded_channels.add(i)
 
-            for dependencies in group["channel_dependencies"]:
+            for dependencies in group.channel_dependencies:
                 if dependencies is None:
                     continue
                 if all(not isinstance(dep, ChannelArrayBlock) for dep in dependencies):
@@ -400,15 +400,15 @@ class MDF(object):
 
         group = self.groups[index]
 
-        included_channels = set(range(len(group["channels"])))
+        included_channels = set(range(len(group.channels)))
         master_index = self.masters_db.get(index, None)
         if master_index is not None:
             included_channels.remove(master_index)
 
-        channels = group["channels"]
+        channels = group.channels
 
         if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-            for dep in group["channel_dependencies"]:
+            for dep in group.channel_dependencies:
                 if dep is None:
                     continue
                 for gp_nr, ch_nr in dep.referenced_channels:
@@ -425,29 +425,26 @@ class MDF(object):
                     if dg_cntr == index:
                         break
                 else:
-                    raise MdfException("CAN_DataFrame or CAN_ErrorFrame not found in group " + str(index))
+                    raise MdfException(f"CAN_DataFrame or CAN_ErrorFrame not found in group {index}")
                 channel = channels[ch_cntr]
-                if group["data_location"] == v4c.LOCATION_ORIGINAL_FILE:
-                    stream = self._file
-                else:
-                    stream = self._tempfile
+
                 frame_bytes = range(
-                    channel["byte_offset"],
-                    channel["byte_offset"] + channel["bit_count"] // 8,
+                    channel.byte_offset,
+                    channel.byte_offset + channel.bit_count // 8,
                 )
                 for i, channel in enumerate(channels):
-                    if channel["byte_offset"] in frame_bytes:
+                    if channel.byte_offset in frame_bytes:
                         included_channels.remove(i)
 
-                if group.get("CAN_database", False):
-                    dbc_addr = group["dbc_addr"]
-                    message_id = group["message_id"]
+                if group.CAN_database:
+                    dbc_addr = group.dbc_addr
+                    message_id = group.message_id
                     can_msg = self._dbc_cache[dbc_addr].frameById(message_id)
 
                     for i, _ in enumerate(can_msg.signals, 1):
                         included_channels.add(-i)
 
-            for dependencies in group["channel_dependencies"]:
+            for dependencies in group.channel_dependencies:
                 if dependencies is None:
                     continue
                 if all(not isinstance(dep, ChannelArrayBlock) for dep in dependencies):
@@ -523,11 +520,11 @@ class MDF(object):
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
                 if dtypes.itemsize:
-                    group["record"] = np.core.records.fromstring(
+                    group.record = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
                     )
                 else:
-                    group["record"] = None
+                    group.record = None
                     continue
 
                 # the first fragment triggers and append that will add the
@@ -575,8 +572,8 @@ class MDF(object):
                             common_timebase=True,
                         )
                         new_group = out.groups[-1]
-                        new_channel_group = new_group["channel_group"]
-                        old_channel_group = group["channel_group"]
+                        new_channel_group = new_group.channel_group
+                        old_channel_group = group.channel_group
                         new_channel_group.comment = old_channel_group.comment
                         if version >= "4.00":
                             new_channel_group["path_separator"] = ord(".")
@@ -621,7 +618,7 @@ class MDF(object):
                         sigs.append(sig)
                     out.extend(cg_nr, sigs)
 
-                group["record"] = None
+                group.record = None
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -720,11 +717,11 @@ class MDF(object):
             idx = 0
             for fragment in data:
                 if dtypes.itemsize:
-                    group["record"] = np.core.records.fromstring(
+                    group.record = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
                     )
                 else:
-                    group["record"] = None
+                    group.record = None
                 master = self.get_master(i, fragment)
                 if not len(master):
                     continue
@@ -882,7 +879,7 @@ class MDF(object):
 
                     idx += 1
 
-                group["record"] = None
+                group.record = None
 
             # if the cut interval is not found in the measurement
             # then append an empty data group
@@ -1205,7 +1202,7 @@ class MDF(object):
                         data = b"".join(d[0] for d in data)
                         data = (data, 0, -1)
 
-                        for j, _ in enumerate(grp["channels"]):
+                        for j, _ in enumerate(grp.channels):
                             sig = self.get(group=i, index=j, data=data)
                             name = sig.name
                             if j == master_index:
@@ -1295,7 +1292,7 @@ class MDF(object):
                     else:
                         offset = 0
 
-                    for col, _ in enumerate(grp["channels"]):
+                    for col, _ in enumerate(grp.channels):
                         if self._terminate:
                             return
                         if col == master_index:
@@ -1382,7 +1379,7 @@ class MDF(object):
                             elif len(master):
                                 master.samples -= master.samples[0]
 
-                        ch_nr = len(grp["channels"])
+                        ch_nr = len(grp.channels)
                         if master is None:
                             channels = [
                                 self.get(group=i, index=j, data=data)
@@ -1407,7 +1404,7 @@ class MDF(object):
                         if raster_ is not None:
                             cycles = len(raster_)
                         else:
-                            cycles = grp["channel_group"]["cycles_nr"]
+                            cycles = grp.channel_group["cycles_nr"]
 
                         if empty_channels == "zeros":
                             for channel in channels:
@@ -1633,19 +1630,19 @@ class MDF(object):
                 to_exclude = set()
             for index in indexes:
                 if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-                    dep = grp["channel_dependencies"][index]
+                    dep = grp.channel_dependencies[index]
                     if dep:
                         for gp_nr, ch_nr in dep.referenced_channels:
                             if gp_nr == group:
                                 included_channels.remove(ch_nr)
                 else:
-                    dependencies = grp["channel_dependencies"][index]
+                    dependencies = grp.channel_dependencies[index]
                     if dependencies is None:
                         continue
                     if all(
                         not isinstance(dep, ChannelArrayBlock) for dep in dependencies
                     ):
-                        channels = grp["channels"]
+                        channels = grp.channels
                         for _, channel in dependencies:
                             to_exclude.add(channel)
                     else:
@@ -1683,11 +1680,11 @@ class MDF(object):
             for idx, fragment in enumerate(data):
 
                 if dtypes.itemsize:
-                    group["record"] = np.core.records.fromstring(
+                    group.record = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
                     )
                 else:
-                    group["record"] = None
+                    group.record = None
 
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
@@ -1765,7 +1762,7 @@ class MDF(object):
                     if sigs:
                         mdf.extend(new_index, sigs)
 
-                group["record"] = None
+                group.record = None
 
             if self._callback:
                 self._callback(new_index + 1, groups_nr)
@@ -1928,14 +1925,14 @@ class MDF(object):
             if isinstance(file, MDF):
                 if file.version < '4.00':
                     ch_count = sum(
-                        len(group['channels'])
+                        len(group.channels)
                         for group in file.groups
                     )
                 else:
                     ch_count = sum(
-                        len(group['channels']) - sum(
+                        len(group.channels) - sum(
                                 len(dep)
-                                for dep in group['channel_dependencies']
+                                for dep in group.channel_dependencies
                                 if dep and not isinstance(dep[0], ChannelArrayBlock)
                             )
                         for group in file.groups
@@ -1975,7 +1972,7 @@ class MDF(object):
                     cg_nr += 1
                 else:
                     continue
-                channels_nr = len(group["channels"])
+                channels_nr = len(group.channels)
 
                 y_axis = MERGE
 
@@ -1999,11 +1996,11 @@ class MDF(object):
                 for fragment in data:
 
                     if dtypes.itemsize:
-                        group["record"] = np.core.records.fromstring(
+                        group.record = np.core.records.fromstring(
                             fragment[0], dtype=dtypes
                         )
                     else:
-                        group["record"] = None
+                        group.record = None
 
                     if mdf_index == 0 and idx == 0:
                         encodings = []
@@ -2111,17 +2108,17 @@ class MDF(object):
                                 first_timestamp = master[0]
                         idx += 1
 
-                    group["record"] = None
+                    group.record = None
 
                 last_timestamps[i] = last_timestamp
                 if first_timestamp is not None:
-                    merged.groups[-1]['channel_group'].comment += (
+                    merged.groups[-1].channel_group.comment += (
                             f"{first_timestamp}s to {last_timestamp}s "
                             f"concatenated from channel group {i} of \"{mdf.name.parent}\""
                             f"with first time stamp at {original_first_timestamp}s\n"
                         )
                 else:
-                    merged.groups[-1]['channel_group'].comment += (
+                    merged.groups[-1].channel_group.comment += (
                         f"there were no samples in channel group {i} of \"{mdf.name.parent}\"\n"
                     )
 
@@ -2221,11 +2218,11 @@ class MDF(object):
                 for fragment in data:
 
                     if dtypes.itemsize:
-                        group["record"] = np.core.records.fromstring(
+                        group.record = np.core.records.fromstring(
                             fragment[0], dtype=dtypes
                         )
                     else:
-                        group["record"] = None
+                        group.record = None
                     if idx == 0:
                         signals = []
                         for j in included_channels:
@@ -2306,9 +2303,9 @@ class MDF(object):
                                 stacked.extend(cg_nr, signals)
                         idx += 1
 
-                    group["record"] = None
+                    group.record = None
 
-                stacked.groups[-1]['channel_group'].comment = (
+                stacked.groups[-1].channel_group.comment = (
                     f"stacked from channel group {i} of \"{mdf.name.parent}\""
                 )
 
@@ -2335,7 +2332,7 @@ class MDF(object):
             except KeyError:
                 master_index = -1
 
-            for j, _ in enumerate(group["channels"]):
+            for j, _ in enumerate(group.channels):
                 if skip_master and j == master_index:
                     continue
                 yield self.get(group=i, index=j)
@@ -2594,11 +2591,11 @@ class MDF(object):
 
             for fragment in data:
                 if dtypes.itemsize:
-                    grp["record"] = np.core.records.fromstring(
+                    grp.record = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
                     )
                 else:
-                    grp["record"] = None
+                    grp.record = None
                 for index in gps[group]:
                     signal = self.get(
                         group=group,
@@ -2610,7 +2607,7 @@ class MDF(object):
                         signal_parts[(group, index)] = [signal]
                     else:
                         signal_parts[(group, index)].append(signal)
-                grp["record"] = None
+                grp.record = None
 
         signals = []
         for pair in indexes:
@@ -2689,20 +2686,20 @@ class MDF(object):
 
             stream = mdf._file
 
-            if mdf.header["comment_addr"]:
-                stream.seek(mdf.header["comment_addr"] + 8)
+            if mdf.header.comment_addr:
+                stream.seek(mdf.header.comment_addr + 8)
                 size = UINT64_u(stream.read(8))[0] - 24
-                texts[mdf.header["comment_addr"]] = randomized_string(size)
+                texts[mdf.header.comment_addr] = randomized_string(size)
 
             for fh in mdf.file_history:
-                addr = fh["comment_addr"]
+                addr = fh.comment_addr
                 if addr and addr not in texts:
                     stream.seek(addr + 8)
                     size = UINT64_u(stream.read(8))[0] - 24
                     texts[addr] = randomized_string(size)
 
             for ev in mdf.events:
-                for addr in (ev["comment_addr"], ev["name_addr"]):
+                for addr in (ev.comment_addr, ev.name_addr):
                     if addr and addr not in texts:
                         stream.seek(addr + 8)
                         size = UINT64_u(stream.read(8))[0] - 24
@@ -2710,15 +2707,15 @@ class MDF(object):
 
             for gp in mdf.groups:
 
-                addr = gp["data_group"]["comment_addr"]
+                addr = gp.data_group.comment_addr
                 if addr and addr not in texts:
                     stream.seek(addr + 8)
                     size = UINT64_u(stream.read(8))[0] - 24
                     texts[addr] = randomized_string(size)
 
-                cg = gp["channel_group"]
-                for addr in (cg["acq_name_addr"], cg["comment_addr"]):
-                    if cg["flags"] & v4c.FLAG_CG_BUS_EVENT:
+                cg = gp.channel_group
+                for addr in (cg.acq_name_addr, cg.comment_addr):
+                    if cg.flags & v4c.FLAG_CG_BUS_EVENT:
                         continue
 
                     if addr and addr not in texts:
@@ -2726,56 +2723,54 @@ class MDF(object):
                         size = UINT64_u(stream.read(8))[0] - 24
                         texts[addr] = randomized_string(size)
 
-                    source = cg["acq_source_addr"]
+                    source = cg.acq_source_addr
                     if source:
                         source = SourceInformation(address=source, stream=stream)
                         for addr in (
-                            source["name_addr"],
-                            source["path_addr"],
-                            source["comment_addr"],
+                            source.name_addr,
+                            source.path_addr,
+                            source.comment_addr,
                         ):
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
                                 size = UINT64_u(stream.read(8))[0] - 24
                                 texts[addr] = randomized_string(size)
 
-                for ch in gp["channels"]:
-                    if mdf.memory == "minimum":
-                        ch = Channel(address=ch, stream=stream, load_metadata=False)
+                for ch in gp.channels:
 
-                    for addr in (ch["name_addr"], ch["unit_addr"], ch["comment_addr"]):
+                    for addr in (ch.name_addr, ch.unit_addr, ch.comment_addr):
                         if addr and addr not in texts:
                             stream.seek(addr + 8)
                             size = UINT64_u(stream.read(8))[0] - 24
                             texts[addr] = randomized_string(size)
 
-                    source = ch["source_addr"]
+                    source = ch.source_addr
                     if source:
                         source = SourceInformation(address=source, stream=stream)
                         for addr in (
-                            source["name_addr"],
-                            source["path_addr"],
-                            source["comment_addr"],
+                            source.name_addr,
+                            source.path_addr,
+                            source.comment_addr,
                         ):
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
                                 size = UINT64_u(stream.read(8))[0] - 24
                                 texts[addr] = randomized_string(size)
 
-                    conv = ch["conversion_addr"]
+                    conv = ch.conversion_addr
                     if conv:
                         conv = ChannelConversion(address=conv, stream=stream)
                         for addr in (
-                            conv["name_addr"],
-                            conv["unit_addr"],
-                            conv["comment_addr"],
+                            conv.name_addr,
+                            conv.unit_addr,
+                            conv.comment_addr,
                         ):
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
                                 size = UINT64_u(stream.read(8))[0] - 24
                                 texts[addr] = randomized_string(size)
-                        if conv["conversion_type"] == v4c.CONVERSION_TYPE_ALG:
-                            addr = conv["formula_addr"]
+                        if conv.conversion_type == v4c.CONVERSION_TYPE_ALG:
+                            addr = conv.formula_addr
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
                                 size = UINT64_u(stream.read(8))[0] - 24
@@ -2784,11 +2779,11 @@ class MDF(object):
                         if conv.referenced_blocks:
                             for key, block in conv.referenced_blocks.items():
                                 if block:
-                                    if block["id"] == b"##TX":
+                                    if block.id == b"##TX":
                                         addr = block.address
                                         if addr not in texts:
                                             stream.seek(addr + 8)
-                                            size = block["block_len"] - 24
+                                            size = block.block_len - 24
                                             texts[addr] = randomized_string(size)
             mdf.close()
 
@@ -2810,10 +2805,10 @@ class MDF(object):
 
             stream = mdf._file
 
-            if mdf.header["comment_addr"]:
-                stream.seek(mdf.header["comment_addr"] + 2)
+            if mdf.header.comment_addr:
+                stream.seek(mdf.header.comment_addr + 2)
                 size = UINT16_u(stream.read(2))[0] - 4
-                texts[mdf.header["comment_addr"] + 4] = randomized_string(size)
+                texts[mdf.header.comment_addr + 4] = randomized_string(size)
             texts[36 + 0x40] = randomized_string(32)
             texts[68 + 0x40] = randomized_string(32)
             texts[100 + 0x40] = randomized_string(32)
@@ -2821,25 +2816,28 @@ class MDF(object):
 
             for gp in mdf.groups:
 
-                cg = gp["channel_group"]
-                addr = cg["comment_addr"]
+                cg = gp.channel_group
+                addr = cg.comment_addr
 
                 if addr and addr not in texts:
                     stream.seek(addr + 2)
                     size = UINT16_u(stream.read(2))[0] - 4
                     texts[addr + 4] = randomized_string(size)
 
-                if gp["trigger"]:
-                    addr = gp["trigger"]["text_addr"]
+                if gp.trigger:
+                    addr = gp.trigger.text_addr
                     if addr:
                         stream.seek(addr + 2)
                         size = UINT16_u(stream.read(2))[0] - 4
                         texts[addr + 4] = randomized_string(size)
 
-                for ch in gp["channels"]:
+                for ch in gp.channels:
 
                     for key in ("long_name_addr", "display_name_addr", "comment_addr"):
-                        addr = ch.get(key, 0)
+                        if hasattr(ch, key):
+                            addr = getattr(ch, key)
+                        else:
+                            addr = 0
                         if addr and addr not in texts:
                             stream.seek(addr + 2)
                             size = UINT16_u(stream.read(2))[0] - 4
@@ -2848,29 +2846,29 @@ class MDF(object):
                     texts[ch.address + 26] = randomized_string(32)
                     texts[ch.address + 58] = randomized_string(128)
 
-                    source = ch["source_addr"]
+                    source = ch.source_addr
                     if source:
                         source = ChannelExtension(address=source, stream=stream)
-                        if source["type"] == v23c.SOURCE_ECU:
+                        if source.type == v23c.SOURCE_ECU:
                             texts[source.address + 12] = randomized_string(80)
                             texts[source.address + 92] = randomized_string(32)
                         else:
                             texts[source.address + 14] = randomized_string(36)
                             texts[source.address + 50] = randomized_string(36)
 
-                    conv = ch["conversion_addr"]
+                    conv = ch.conversion_addr
                     if conv:
                         texts[conv + 22] = randomized_string(20)
 
                         conv = ChannelConversion(address=conv, stream=stream)
 
-                        if conv["conversion_type"] == v23c.CONVERSION_TYPE_FORMULA:
-                            texts[conv + 36] = randomized_string(conv["block_len"] - 36)
+                        if conv.conversion_type == v23c.CONVERSION_TYPE_FORMULA:
+                            texts[conv + 36] = randomized_string(conv.block_len - 36)
 
                         if conv.referenced_blocks:
                             for key, block in conv.referenced_blocks.items():
                                 if block:
-                                    if block["id"] == b"TX":
+                                    if block.id == b"TX":
                                         addr = block.address
                                         if addr and addr not in texts:
                                             stream.seek(addr + 2)
@@ -2921,13 +2919,13 @@ class MDF(object):
 
         names = [
             self.get_channel_name(i, j)
-            for j, _ in enumerate(group["channels"])
+            for j, _ in enumerate(group.channels)
             if j != master_index
         ]
 
         sigs = [
             []
-            for j, _ in enumerate(group["channels"])
+            for j, _ in enumerate(group.channels)
             if j != master_index
         ]
 
@@ -2937,7 +2935,7 @@ class MDF(object):
             master.append(self.get_master(i, data=fragment, copy_master=False))
 
             idx = 0
-            for j, _ in enumerate(group["channels"]):
+            for j, _ in enumerate(group.channels):
                 if j == master_index:
                     continue
                 sigs[idx].append(
@@ -3039,11 +3037,11 @@ class MDF(object):
                             del arr
                         yield name_, Series(values)
 
+        from time import perf_counter as pc
+
         df = DataFrame()
         masters = [self.get_master(i) for i in range(len(self.groups))]
-        for i in range(len(self.groups)):
-            self._master_channel_cache[(i, 0, -1)] = self._master_channel_cache[i]
-        self.masters_db.clear()
+        self._master_channel_cache.clear()
         master = reduce(np.union1d, masters)
 
         if raster and len(master):
@@ -3074,8 +3072,10 @@ class MDF(object):
         used_names = UniqueDB()
         used_names.get_unique_name("time")
 
+        start__ = pc()
+
         for i, grp in enumerate(self.groups):
-            if grp['channel_group']['cycles_nr'] == 0 and empty_channels == "skip":
+            if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
 
             included_channels = self._included_channels(i)
@@ -3086,6 +3086,9 @@ class MDF(object):
             data = (data, 0, -1)
 
             for j in included_channels:
+                if pc() - start__ > 120:
+                    print(i, j)
+                    return
                 sig = self.get(
                     group=i,
                     index=j,
