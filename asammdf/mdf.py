@@ -3081,20 +3081,50 @@ class MDF(object):
             included_channels = self._included_channels(i)
 
             data = self._load_data(grp)
+            parents, dtypes = self._prepare_record(grp)
 
-            data = b"".join(d[0] for d in data)
-            data = (data, 0, -1)
+            signals = [
+                []
+                for _ in included_channels
+            ]
+            timestamps = []
 
-            for j in included_channels:
-                if pc() - start__ > 120:
-                    print(i, j)
-                    return
-                sig = self.get(
-                    group=i,
-                    index=j,
-                    data=data,
+            for fragment in data:
+                if dtypes.itemsize:
+                    grp.record = np.core.records.fromstring(
+                        fragment[0], dtype=dtypes
+                    )
+                else:
+                    grp.record = None
+                for k, index in enumerate(included_channels):
+                    signal = self.get(
+                        group=i,
+                        index=index,
+                        data=fragment,
+                        samples_only=True
+                    )
+                    signals[k].append(signal[0])
+                timestamps.append(self.get_master(i, data=fragment, copy_master=False))
+
+                grp.record = None
+
+            if len(timestamps):
+                signals = [
+                    np.concatenate(parts)
+                    for parts in signals
+                ]
+                timestamps = np.concatenate(timestamps)
+
+            signals = [
+                Signal(
+                    samples,
+                    timestamps,
+                    name='_'
                 ).interp(master, self._integer_interpolation)
+                for samples in signals
+            ]
 
+            for sig in signals:
                 if len(sig) == 0:
                     if empty_channels == "zeros":
                         sig.samples = np.zeros(
@@ -3103,6 +3133,12 @@ class MDF(object):
                     else:
                         continue
 
+            signals = [sig for sig in signals if len(sig)]
+
+            for k, sig in enumerate(signals):
+                if pc() - start__ > 60:
+                    print(pc() - start__, i, k)
+                    return
                 # byte arrays
                 if len(sig.samples.shape) > 1:
                     arr = [sig.samples]
@@ -3138,8 +3174,6 @@ class MDF(object):
                     channel_name = sig.display_name or sig.name
                 else:
                     channel_name = sig.name
-
-            del self._master_channel_cache[(i, 0, -1)]
 
         return df
 
