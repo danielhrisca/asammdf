@@ -1388,9 +1388,9 @@ class MDF4(object):
             mapping of channels to records fields, records fields dtype
 
         """
-        if group.parents is not None:
-            parents, dtypes = group.parents, group.types
-        else:
+
+        parents, dtypes = group.parents, group.types
+        if parents is None:
 
             grp = group
             channel_group = grp.channel_group
@@ -1534,6 +1534,7 @@ class MDF4(object):
             types.append(dtype_pair)
 
             dtypes = dtype(types)
+            group.parents, group.types = parents, dtypes
 
         return parents, dtypes
 
@@ -3741,10 +3742,7 @@ class MDF4(object):
             dependency_list = grp.channel_dependencies[ch_nr]
 
             # get data group record
-            parents, dtypes = grp.parents, grp.types
-            if parents is None:
-                grp.parents, grp.types = self._prepare_record(grp)
-                parents, dtypes = grp.parents, grp.types
+            parents, dtypes = self._prepare_record(grp)
 
             # get group data
             if data is None:
@@ -3765,10 +3763,7 @@ class MDF4(object):
             bit_count = channel["bit_count"]
         else:
             # get data group record
-            parents, dtypes = grp.parents, grp.types
-            if parents is None:
-                grp.parents, grp.types = self._prepare_record(grp)
-                parents, dtypes = grp.parents, grp.types
+            parents, dtypes = self._prepare_record(grp)
 
             parent, bit_offset = parents[ch_nr]
 
@@ -4718,10 +4713,7 @@ class MDF4(object):
 
             else:
                 # get data group parents and dtypes
-                parents, dtypes = group.parents, group.types
-                if parents is None:
-                    parents, dtypes = self._prepare_record(group)
-                    group.parents, group.types = parents, dtypes
+                parents, dtypes = self._prepare_record(group)
 
                 # get data
                 if fragment is None:

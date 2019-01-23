@@ -345,9 +345,8 @@ class MDF3(object):
 
         """
 
-        try:
-            parents, dtypes = group.parents, group.types
-        except KeyError:
+        parents, dtypes = group.parents, group.types
+        if parents is None:
             if group.data_location == v23c.LOCATION_ORIGINAL_FILE:
                 stream = self._file
             else:
@@ -459,6 +458,7 @@ class MDF3(object):
 
             dtypes = dtype(types)
 
+            group.parents, group.types = parents, dtypes
         return parents, dtypes
 
     def _get_not_byte_aligned_data(self, data, group, ch_nr):
@@ -2664,11 +2664,7 @@ class MDF3(object):
             count = 0
             for fragment in data:
                 data_bytes, _offset, _count = fragment
-                try:
-                    parents, dtypes = grp.parents, grp.types
-                except KeyError:
-                    grp.parents, grp.types = self._prepare_record(grp)
-                    parents, dtypes = grp.parents, grp.types
+                parents, dtypes = self._prepare_record(grp)
 
                 try:
                     parent, bit_offset = parents[ch_nr]
@@ -2932,11 +2928,7 @@ class MDF3(object):
                 t = arange(cycles_nr, dtype=float64) * sampling_rate
             else:
                 # get data group parents and dtypes
-                try:
-                    parents, dtypes = group.parents, group.types
-                except KeyError:
-                    parents, dtypes = self._prepare_record(group)
-                    group.parents, group.types = parents, dtypes
+                parents, dtypes = self._prepare_record(grp)
 
                 # get data group record
                 if data is None:

@@ -855,6 +855,9 @@ comment: {}
 
         return "\n".join(metadata)
 
+    def __contains__(self, item):
+        return hasattr(self, item)
+
     def __lt__(self, other):
         self_byte_offset = self.byte_offset
         other_byte_offset = other.byte_offset
@@ -2436,6 +2439,9 @@ formula: {}
 
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
+
+    def __contains__(self, item):
+        return hasattr(self, item)
 
     def __bytes__(self):
         fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
@@ -4134,6 +4140,9 @@ class SourceInformation:
 
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
+
+    def __contains__(self, item):
+        return hasattr(self, item)
 
     def metadata(self):
         max_len = max(len(key) for key in self)

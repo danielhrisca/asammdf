@@ -164,7 +164,7 @@ try:
 
                 view_box = pg.ViewBox(enableMenu=False)
 
-#                axis.linkToView(view_box)
+                axis.linkToView(view_box)
                 axis.labelText = sig.name
                 axis.labelUnits = sig.unit
                 axis.labelStyle = {'color': color}
@@ -197,7 +197,7 @@ try:
 
                 view_box.setXLink(self.viewbox)
 #                view_box.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
-                # view_box.sigResized.connect(self.update_views)
+#                view_box.sigResized.connect(self.update_views)
 
                 self.view_boxes.append(view_box)
                 self.curves.append(curve)

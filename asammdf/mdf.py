@@ -519,7 +519,6 @@ class MDF(object):
                 continue
 
             parents, dtypes = self._prepare_record(group)
-            group["parents"], group["types"] = parents, dtypes
 
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
@@ -717,7 +716,6 @@ class MDF(object):
 
             data = self._load_data(group)
             parents, dtypes = self._prepare_record(group)
-            group["parents"], group["types"] = parents, dtypes
 
             idx = 0
             for fragment in data:
@@ -1681,7 +1679,6 @@ class MDF(object):
 
             data = self._load_data(group)
             parents, dtypes = self._prepare_record(group)
-            group["parents"], group["types"] = parents, dtypes
 
             for idx, fragment in enumerate(data):
 
@@ -1996,7 +1993,6 @@ class MDF(object):
                     mdf.configure(read_fragment_size=int(read_size))
 
                 parents, dtypes = mdf._prepare_record(group)
-                group["parents"], group["types"] = parents, dtypes
 
                 data = mdf._load_data(group)
 
@@ -2219,7 +2215,6 @@ class MDF(object):
                     continue
 
                 parents, dtypes = mdf._prepare_record(group)
-                group["parents"], group["types"] = parents, dtypes
 
                 data = mdf._load_data(group)
 
@@ -2596,7 +2591,6 @@ class MDF(object):
             grp = self.groups[group]
             data = self._load_data(grp, record_offset=record_offset)
             parents, dtypes = self._prepare_record(grp)
-            grp["parents"], grp["types"] = parents, dtypes
 
             for fragment in data:
                 if dtypes.itemsize:
