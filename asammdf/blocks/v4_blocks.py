@@ -450,9 +450,7 @@ class Channel:
 
             (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(block)
 
-            block_len = self.block_len
-
-            if block_len == CN_BLOCK_SIZE:
+            if self.block_len == CN_BLOCK_SIZE:
 
                 (
                     self.next_ch_addr,
@@ -484,9 +482,7 @@ class Channel:
 
             else:
 
-                1 / 0
-
-                block = block[24:] + stream.read(block_len - CN_BLOCK_SIZE)
+                block = block[24:] + stream.read(self.block_len - CN_BLOCK_SIZE)
                 links_nr = self.links_nr
 
                 links = unpack_from(f"<{links_nr}Q", block)
@@ -753,8 +749,7 @@ class Channel:
     def __bytes__(self):
 
         if self.block_len == v4c.CN_BLOCK_SIZE:
-            fmt = v4c.FMT_SIMPLE_CHANNEL
-            result = v4c.SIMPLE_CHANNEL_PACK(
+            return v4c.SIMPLE_CHANNEL_PACK(
                 self.id,
                 self.reserved0,
                 self.block_len,
@@ -826,10 +821,9 @@ class Channel:
                 "lower_ext_limit",
                 "upper_ext_limit",
             )
-            result = pack(fmt, *[self.__getattribute__(key) for key in keys])
-        return result
+            return pack(fmt, *[getattr(self, key) for key in keys])
 
-    def __repr__(self):
+    def __str__(self):
         fields = []
         for attr in dir(self):
             if attr[:2] + attr[-2:] == "____":
@@ -843,25 +837,65 @@ class Channel:
         return f"""<Channel (name: {self.name}, unit: {self.unit}, comment: {self.comment}, address: {hex(self.address)},
     conversion: {self.conversion},
     source: {self.source},
-    fields: {fields})>"""
+    fields: {', '.join(fields)})>"""
 
     def metadata(self):
-        max_len = max(len(key) for key in self)
-        template = "{{: <{}}}: {{}}".format(max_len)
+        if self.block_len == v4c.CN_BLOCK_SIZE:
+            keys = v4c.KEYS_SIMPLE_CHANNEL
+        else:
+            keys = (
+                "id",
+                "reserved0",
+                "block_len",
+                "links_nr",
+                "next_ch_addr",
+                "component_addr",
+                "name_addr",
+                "source_addr",
+                "conversion_addr",
+                "data_block_addr",
+                "unit_addr",
+                "comment_addr",
+            )
+            if self.attachment_nr:
+                keys += ("attachment_addr",)
+
+            if self.flags & v4c.FLAG_CN_DEFAULT_X:
+                keys += ("default_X_dg_addr", "default_X_cg_addr", "default_X_ch_addr")
+            keys += (
+                "channel_type",
+                "sync_type",
+                "data_type",
+                "bit_offset",
+                "byte_offset",
+                "bit_count",
+                "flags",
+                "pos_invalidation_bit",
+                "precision",
+                "reserved1",
+                "attachment_nr",
+                "min_raw_value",
+                "max_raw_value",
+                "lower_limit",
+                "upper_limit",
+                "lower_ext_limit",
+                "upper_ext_limit",
+            )
+
+        max_len = max(len(key) for key in keys)
+        template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
-        lines = """
-name: {}
-display name: {}
-address: {}
-comment: {}
+        lines = f"""
+name: {self.name}
+display name: {self.display_name}
+address: {hex(self.address)}
+comment: {self.comment}
 
-""".format(
-            self.name, self.display_name, hex(self.address), self.comment
-        ).split(
-            "\n"
-        )
-        for key, val in self.items():
+""".split("\n")
+
+        for key in keys:
+            val = getattr(self, key)
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
@@ -1072,7 +1106,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
 
-    def __repr__(self):
+    def __str__(self):
         return "<ChannelArrayBlock (referenced channels: {}, address: {}, fields: {})>".format(
             self.referenced_channels, hex(self.address), dict(self)
         )
@@ -1156,7 +1190,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                 keys += tuple(f"dim_size_{i}" for i in range(dims_nr))
                 fmt = "<4sI{}Q2BHIiI{}Q".format(self.links_nr + 2, dims_nr)
 
-        result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
 
 
@@ -2390,23 +2424,134 @@ class ChannelConversion(_ChannelConversionBase):
         return values
 
     def metadata(self, indent=""):
-        max_len = max(len(key) for key in self)
-        template = "{{: <{}}}: {{}}".format(max_len)
+        if self.conversion_type == v4c.CONVERSION_TYPE_NON:
+            keys = v4c.KEYS_CONVERSION_NONE
+        elif self.conversion_type == v4c.CONVERSION_TYPE_LIN:
+            keys = v4c.KEYS_CONVERSION_LINEAR
+        elif self.conversion_type == v4c.CONVERSION_TYPE_RAT:
+            keys = v4c.KEYS_CONVERSION_RAT
+        elif self.conversion_type == v4c.CONVERSION_TYPE_ALG:
+            keys = v4c.KEYS_CONVERSION_ALGEBRAIC
+        elif self.conversion_type in (
+            v4c.CONVERSION_TYPE_TABI,
+            v4c.CONVERSION_TYPE_TAB,
+        ):
+            keys = v4c.KEYS_CONVERSION_NONE
+            for i in range(self.val_param_nr // 2):
+                keys += (f"raw_{i}", f"phys_{i}")
+        elif self.conversion_type == v4c.CONVERSION_TYPE_RTAB:
+            keys = v4c.KEYS_CONVERSION_NONE
+            for i in range(self.val_param_nr // 3):
+                keys += (f"lower_{i}", f"upper_{i}", f"phys_{i}")
+            keys += ("default",)
+        elif self.conversion_type == v4c.CONVERSION_TYPE_TABX:
+            keys = (
+                "id",
+                "reserved0",
+                "block_len",
+                "links_nr",
+                "name_addr",
+                "unit_addr",
+                "comment_addr",
+                "inv_conv_addr",
+            )
+            keys += tuple(f"text_{i}" for i in range(self.links_nr - 4 - 1))
+            keys += ("default_addr",)
+            keys += (
+                "conversion_type",
+                "precision",
+                "flags",
+                "ref_param_nr",
+                "val_param_nr",
+                "min_phy_value",
+                "max_phy_value",
+            )
+            keys += tuple(f"val_{i}" for i in range(self.val_param_nr))
+        elif self.conversion_type == v4c.CONVERSION_TYPE_RTABX:
+            keys = (
+                "id",
+                "reserved0",
+                "block_len",
+                "links_nr",
+                "name_addr",
+                "unit_addr",
+                "comment_addr",
+                "inv_conv_addr",
+            )
+            keys += tuple(f"text_{i}" for i in range(self.links_nr - 4 - 1))
+            keys += ("default_addr",)
+            keys += (
+                "conversion_type",
+                "precision",
+                "flags",
+                "ref_param_nr",
+                "val_param_nr",
+                "min_phy_value",
+                "max_phy_value",
+            )
+            for i in range(self.val_param_nr // 2):
+                keys += (f"lower_{i}", f"upper_{i}")
+        elif self.conversion_type == v4c.CONVERSION_TYPE_TTAB:
+            keys = (
+                "id",
+                "reserved0",
+                "block_len",
+                "links_nr",
+                "name_addr",
+                "unit_addr",
+                "comment_addr",
+                "inv_conv_addr",
+            )
+            keys += tuple(f"text_{i}" for i in range(self.links_nr - 4))
+            keys += (
+                "conversion_type",
+                "precision",
+                "flags",
+                "ref_param_nr",
+                "val_param_nr",
+                "min_phy_value",
+                "max_phy_value",
+            )
+            keys += tuple(f"val_{i}" for i in range(self.val_param_nr - 1))
+            keys += ("val_default",)
+        elif self.conversion_type == v4c.CONVERSION_TYPE_TRANS:
+            keys = (
+                "id",
+                "reserved0",
+                "block_len",
+                "links_nr",
+                "name_addr",
+                "unit_addr",
+                "comment_addr",
+                "inv_conv_addr",
+            )
+            for i in range((self.links_nr - 4 - 1) // 2):
+                keys += (f"input_{i}_addr", f"output_{i}_addr")
+            keys += (
+                "default_addr",
+                "conversion_type",
+                "precision",
+                "flags",
+                "ref_param_nr",
+                "val_param_nr",
+                "min_phy_value",
+                "max_phy_value",
+            )
+            keys += tuple(f"val_{i}" for i in range(self.val_param_nr - 1))
+        max_len = max(len(key) for key in keys)
+        template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
         lines = """
-name: {}
-unit: {}
-address: {}
-comment: {}
-formula: {}
+name: {self.name}
+unit: {self.unit}
+address: {hex(self.address)}
+comment: {self.comment}
+formula: {self.formula}
 
-""".format(
-            self.name, self.unit, hex(self.address), self.comment, self.formula
-        ).split(
-            "\n"
-        )
-        for key, val in self.items():
+""".split("\n")
+        for key in keys:
+            val = getattr(self, key)
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
@@ -2419,7 +2564,7 @@ formula: {}
 
         if self.referenced_blocks:
             max_len = max(len(key) for key in self.referenced_blocks)
-            template = "{{: <{}}}: {{}}".format(max_len)
+            template = f"{{: <{max_len}}}: {{}}"
 
             lines.append("")
             lines.append("Referenced blocks:")
@@ -2451,8 +2596,6 @@ formula: {}
         return hasattr(self, item)
 
     def __bytes__(self):
-        fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
-
         if self.conversion_type == v4c.CONVERSION_TYPE_NON:
             result = v4c.CONVERSION_NONE_PACK(
                 self.id,
@@ -2538,17 +2681,20 @@ formula: {}
             v4c.CONVERSION_TYPE_TABI,
             v4c.CONVERSION_TYPE_TAB,
         ):
+            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
             keys = v4c.KEYS_CONVERSION_NONE
             for i in range(self.val_param_nr // 2):
                 keys += (f"raw_{i}", f"phys_{i}")
-            result = pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_RTAB:
+            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
             keys = v4c.KEYS_CONVERSION_NONE
             for i in range(self.val_param_nr // 3):
                 keys += (f"lower_{i}", f"upper_{i}", f"phys_{i}")
             keys += ("default",)
-            result = pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_TABX:
+            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
             keys = (
                 "id",
                 "reserved0",
@@ -2571,8 +2717,9 @@ formula: {}
                 "max_phy_value",
             )
             keys += tuple(f"val_{i}" for i in range(self.val_param_nr))
-            result = pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_RTABX:
+            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
             keys = (
                 "id",
                 "reserved0",
@@ -2596,8 +2743,9 @@ formula: {}
             )
             for i in range(self.val_param_nr // 2):
                 keys += (f"lower_{i}", f"upper_{i}")
-            result = pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_TTAB:
+            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
             keys = (
                 "id",
                 "reserved0",
@@ -2620,8 +2768,9 @@ formula: {}
             )
             keys += tuple(f"val_{i}" for i in range(self.val_param_nr - 1))
             keys += ("val_default",)
-            result = pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_TRANS:
+            fmt = "<4sI{}Q2B3H{}d".format(self.links_nr + 2, self.val_param_nr + 2)
             keys = (
                 "id",
                 "reserved0",
@@ -2646,10 +2795,10 @@ formula: {}
             )
             keys += tuple(f"val_{i}" for i in range(self.val_param_nr - 1))
 
-            result = pack(fmt, *[self[key] for key in keys])
+            result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
 
-    def __repr__(self):
+    def __str__(self):
         fields = []
         for attr in dir(self):
             if attr[:2] + attr[-2:] == "____":
@@ -2738,11 +2887,9 @@ class DataBlock:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        fmt = v4c.FMT_DATA_BLOCK.format(self.block_len - COMMON_SIZE)
-        result = pack(
-            fmt, self.id, self.reserved0, self.block_len, self.links_nr, self.data
-        )
-        return result
+        return v4c.COMMON_p(
+            self.id, self.reserved0, self.block_len, self.links_nr
+        ) + self.data
 
 
 class DataZippedBlock(object):
@@ -3179,7 +3326,7 @@ class DataList(_DataListBase):
         keys = ("id", "reserved0", "block_len", "links_nr", "next_dl_addr")
         keys += tuple(f"data_block_addr{i}" for i in range(self.links_nr - 1))
         keys += ("flags", "reserved1", "data_block_nr", "data_block_len")
-        result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
 
 
@@ -3410,7 +3557,7 @@ class EventBlock(_EventBlockBase):
             "sync_base",
             "sync_factor",
         )
-        result = pack(fmt, *[self[key] for key in keys])
+        result = pack(fmt, *[getattr(self, key) for key in keys])
 
         return result
 
@@ -4100,8 +4247,8 @@ class SourceInformation:
         return hasattr(self, item)
 
     def metadata(self):
-        max_len = max(len(key) for key in self)
-        template = "{{: <{max_len}}}: {{}}"
+        max_len = max(len(key) for key in v4c.KEYS_SOURCE_INFORMATION)
+        template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
         lines = f"""
@@ -4110,10 +4257,9 @@ path: {self.path}
 address: {hex(self.address)}
 comment: {self.comment}
 
-""".split(
-            "\n"
-        )
-        for key, val in self.items():
+""".split("\n")
+        for key in v4c.KEYS_SOURCE_INFORMATION:
+            val = getattr(self, key)
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
@@ -4193,7 +4339,7 @@ comment: {self.comment}
         )
 
     def __bytes__(self):
-        result = v4c.SOURCE_INFORMATION_PACK(
+        return v4c.SOURCE_INFORMATION_PACK(
             self.id,
             self.reserved0,
             self.block_len,
@@ -4206,9 +4352,8 @@ comment: {self.comment}
             self.flags,
             self.reserved1,
         )
-        return result
 
-    def __repr__(self):
+    def __str__(self):
         fields = []
         for attr in dir(self):
             if attr[:2] + attr[-2:] == "____":
@@ -4268,9 +4413,7 @@ class TextBlock:
                 stream.read(COMMON_SIZE)
             )
 
-            size = self.block_len - COMMON_SIZE
-
-            self.text = text = stream.read(size)
+            self.text = stream.read(self.block_len - COMMON_SIZE)
 
             if self.id not in (b"##TX", b"##MD"):
                 message = f'Expected "##TX" or "##MD" block @{hex(address)} but found "{self.id}"'
@@ -4283,27 +4426,22 @@ class TextBlock:
             text = kwargs["text"]
 
             try:
-                text = text.encode("utf-8")
+                text = f"{text}\0".encode("utf-8")
             except (AttributeError, UnicodeDecodeError):
-                pass
+                text += b'\0'
 
             size = len(text)
 
+            align = size % 8
+            if align:
+                self.block_len = size + COMMON_SIZE + 8 - align
+            else:
+                self.block_len = size + COMMON_SIZE
+
             self.id = b"##MD" if kwargs.get("meta", False) else b"##TX"
             self.reserved0 = 0
-            self.block_len = size + COMMON_SIZE
             self.links_nr = 0
             self.text = text
-
-        align = size % 8
-        if align:
-            self.block_len = size + COMMON_SIZE + 8 - align
-        else:
-            if text:
-                if text[-1] not in (0, b"\0"):
-                    self.block_len += 8
-            else:
-                self.block_len += 8
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -4312,8 +4450,6 @@ class TextBlock:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        fmt = v4c.FMT_TEXT_BLOCK.format(self.block_len - COMMON_SIZE)
-        result = pack(
-            fmt, self.id, self.reserved0, self.block_len, self.links_nr, self.text
-        )
-        return result
+        return v4c.COMMON_p(
+            self.id, self.reserved0, self.block_len, self.links_nr
+        ) + self.text

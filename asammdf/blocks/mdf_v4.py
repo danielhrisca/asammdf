@@ -5375,116 +5375,114 @@ class MDF4(object):
             # go through each data group and append the rest of the blocks
             for i, gp in enumerate(self.groups):
 
-                for channel in gp.channels:
-                    if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
-                        idx = self._attachments_map[channel.data_block_addr]
-                        channel.data_block_addr = self.attachments[idx].address
+                channels = gp.channels
 
+                for j, channel in enumerate(channels):
                     if channel.attachment:
-                        for j, idx in enumerate(channel.attachments):
-                            channel.attachment_addr = self.attachments[idx].address
+                        channel.attachment_addr = self.attachments[channel.attachment].address
 
                     address = channel.to_blocks(
                         address, blocks, defined_texts, cc_map, si_map
                     )
 
-                # channel data
-                gp_sd = []
-                for j, sdata in enumerate(gp.signal_data):
-                    sdata = self._load_signal_data(group=gp, index=j)
-                    if sdata:
-                        split_size = self._write_fragment_size
-                        if self._write_fragment_size:
-                            chunks = float(len(sdata)) / split_size
-                            chunks = int(ceil(chunks))
-                        else:
-                            chunks = 1
-
-                        if chunks == 1:
-                            if compression and self.version > "4.00":
-                                signal_data = DataZippedBlock(
-                                    data=sdata,
-                                    zip_type=v4c.FLAG_DZ_DEFLATE,
-                                    original_type=b"SD",
-                                )
-                                signal_data.address = address
-                                address += signal_data.block_len
-                                blocks.append(signal_data)
-                                align = signal_data.block_len % 8
-                                if align:
-                                    blocks.append(b"\0" * (8 - align))
-                                    address += 8 - align
+                    if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
+                        idx = self._attachments_map[channel.data_block_addr]
+                        channel.data_block_addr = self.attachments[idx].address
+                    else:
+                        sdata = self._load_signal_data(group=gp, index=j)
+                        if sdata:
+                            split_size = self._write_fragment_size
+                            if self._write_fragment_size:
+                                chunks = float(len(sdata)) / split_size
+                                chunks = int(ceil(chunks))
                             else:
-                                signal_data = DataBlock(data=sdata, type="SD")
-                                signal_data.address = address
-                                address += signal_data.block_len
-                                blocks.append(signal_data)
-                                align = signal_data.block_len % 8
-                                if align:
-                                    blocks.append(b"\0" * (8 - align))
-                                    address += 8 - align
-                            gp_sd.append(signal_data)
-                        else:
-                            kwargs = {
-                                "flags": v4c.FLAG_DL_EQUAL_LENGHT,
-                                "links_nr": chunks + 1,
-                                "data_block_nr": chunks,
-                                "data_block_len": self._write_fragment_size,
-                            }
-                            dl_block = DataList(**kwargs)
+                                chunks = 1
 
-                            for k in range(chunks):
-
-                                data_ = sdata[k * split_size : (k + 1) * split_size]
+                            if chunks == 1:
                                 if compression and self.version > "4.00":
-                                    zip_type = v4c.FLAG_DZ_DEFLATE
-                                    param = 0
-
-                                    kwargs = {
-                                        "data": data_,
-                                        "zip_type": zip_type,
-                                        "param": param,
-                                        "original_type": b"SD",
-                                    }
-                                    block = DataZippedBlock(**kwargs)
+                                    signal_data = DataZippedBlock(
+                                        data=sdata,
+                                        zip_type=v4c.FLAG_DZ_DEFLATE,
+                                        original_type=b"SD",
+                                    )
+                                    signal_data.address = address
+                                    address += signal_data.block_len
+                                    blocks.append(signal_data)
+                                    align = signal_data.block_len % 8
+                                    if align:
+                                        blocks.append(b"\0" * (8 - align))
+                                        address += 8 - align
                                 else:
-                                    block = DataBlock(data=data_, type="SD")
-                                blocks.append(block)
-                                block.address = address
-                                address += block.block_len
+                                    signal_data = DataBlock(data=sdata, type="SD")
+                                    signal_data.address = address
+                                    address += signal_data.block_len
+                                    blocks.append(signal_data)
+                                    align = signal_data.block_len % 8
+                                    if align:
+                                        blocks.append(b"\0" * (8 - align))
+                                        address += 8 - align
 
-                                align = block.block_len % 8
-                                if align:
-                                    blocks.append(b"\0" * (8 - align))
-                                    address += 8 - align
-                                dl_block[f"data_block_addr{k}"] = block.address
-
-                            dl_block.address = address
-                            blocks.append(dl_block)
-
-                            address += dl_block.block_len
-
-                            if compression and self.version > "4.00":
+                                channel.data_block_addr = signal_data.address
+                            else:
                                 kwargs = {
                                     "flags": v4c.FLAG_DL_EQUAL_LENGHT,
-                                    "zip_type": v4c.FLAG_DZ_DEFLATE,
-                                    "first_dl_addr": dl_block.address,
+                                    "links_nr": chunks + 1,
+                                    "data_block_nr": chunks,
+                                    "data_block_len": self._write_fragment_size,
                                 }
-                                hl_block = HeaderList(**kwargs)
-                                hl_block.address = address
-                                address += hl_block.block_len
+                                dl_block = DataList(**kwargs)
 
-                                blocks.append(hl_block)
+                                for k in range(chunks):
 
-                                gp_sd.append(hl_block)
-                            else:
-                                gp_sd.append(dl_block)
+                                    data_ = sdata[k * split_size : (k + 1) * split_size]
+                                    if compression and self.version > "4.00":
+                                        zip_type = v4c.FLAG_DZ_DEFLATE
+                                        param = 0
 
-                    else:
-                        gp_sd.append(None)
+                                        kwargs = {
+                                            "data": data_,
+                                            "zip_type": zip_type,
+                                            "param": param,
+                                            "original_type": b"SD",
+                                        }
+                                        block = DataZippedBlock(**kwargs)
+                                    else:
+                                        block = DataBlock(data=data_, type="SD")
+                                    blocks.append(block)
+                                    block.address = address
+                                    address += block.block_len
 
-                # channel dependecies
-                for j, dep_list in enumerate(gp.channel_dependencies):
+                                    align = block.block_len % 8
+                                    if align:
+                                        blocks.append(b"\0" * (8 - align))
+                                        address += 8 - align
+                                    dl_block[f"data_block_addr{k}"] = block.address
+
+                                dl_block.address = address
+                                blocks.append(dl_block)
+
+                                address += dl_block.block_len
+
+                                if compression and self.version > "4.00":
+                                    kwargs = {
+                                        "flags": v4c.FLAG_DL_EQUAL_LENGHT,
+                                        "zip_type": v4c.FLAG_DZ_DEFLATE,
+                                        "first_dl_addr": dl_block.address,
+                                    }
+                                    hl_block = HeaderList(**kwargs)
+                                    hl_block.address = address
+                                    address += hl_block.block_len
+
+                                    blocks.append(hl_block)
+
+                                    channel.data_block_addr = hl_block.address
+                                else:
+                                    channel.data_block_addr = dl_block.address
+
+                        else:
+                            channel.data_block_addr = 0
+
+                    dep_list = gp.channel_dependencies[j]
                     if dep_list:
                         if all(isinstance(dep, ChannelArrayBlock) for dep in dep_list):
                             for dep in dep_list:
@@ -5495,24 +5493,11 @@ class MDF4(object):
                                 dep.composition_addr = dep_list[k + 1].address
                             dep_list[-1].composition_addr = 0
 
-                # channels
-                for j, (channel, signal_data) in enumerate(zip(gp.channels, gp_sd)):
+                            channel.component_addr = dep_list[0].address
 
-                    if signal_data:
-                        channel.data_block_addr = signal_data.address
-                    elif channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
-                        pass
-                    else:
-                        channel.data_block_addr = 0
-
-                    if gp.channel_dependencies[j]:
-                        dep = gp.channel_dependencies[j][0]
-                        if isinstance(dep, tuple):
-                            index = dep[1]
-                            addr_ = gp.channels[index].address
                         else:
-                            addr_ = dep.address
-                        channel.component_addr = addr_
+                            index = dep_list[0][1]
+                            addr_ = gp.channels[index].address
 
                 for channel in gp.logging_channels:
                     address = channel.to_blocks(
@@ -5526,18 +5511,18 @@ class MDF4(object):
                     group_channels[-1].next_ch_addr = 0
 
                 # channel dependecies
-                j = len(gp.channels) - 1
+                j = len(channels) - 1
                 while j >= 0:
                     dep_list = gp.channel_dependencies[j]
                     if dep_list and all(isinstance(dep, tuple) for dep in dep_list):
                         index = dep_list[0][1]
-                        gp.channels[j].component_addr = gp.channels[index].address
+                        channels[j].component_addr = channels[index].address
                         index = dep_list[-1][1]
-                        gp.channels[j].next_ch_addr = gp.channels[index].next_ch_addr
-                        gp.channels[index].next_ch_addr = 0
+                        channels[j].next_ch_addr = channels[index].next_ch_addr
+                        channels[index].next_ch_addr = 0
 
                         for _, ch_nr in dep_list:
-                            gp.channels[ch_nr].source_addr = 0
+                            channels[ch_nr].source_addr = 0
                     j -= 1
 
                 # channel group
@@ -5546,7 +5531,7 @@ class MDF4(object):
 
                 gp.channel_group.first_sample_reduction_addr = 0
 
-                if gp.channels:
+                if channels:
                     gp.channel_group.first_ch_addr = gp.channels[0].address
                 else:
                     gp.channel_group.first_ch_addr = 0

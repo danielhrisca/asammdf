@@ -317,6 +317,7 @@ KEYS_DATA_BLOCK = ("id", "reserved0", "block_len", "links_nr", "data")
 FMT_COMMON = "<4sI2Q"
 COMMON_u = struct.Struct(FMT_COMMON).unpack
 COMMON_uf = struct.Struct(FMT_COMMON).unpack_from
+COMMON_p = struct.Struct(FMT_COMMON).pack
 
 FMT_FILE_HISTORY = "<4sI5Q2HB3s"
 KEYS_FILE_HISTORY = (
