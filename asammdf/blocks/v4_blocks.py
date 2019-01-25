@@ -2274,7 +2274,7 @@ class ChannelConversion(_ChannelConversionBase):
             default = self.referenced_blocks.get("default_addr", {})
             try:
                 default = default.text
-            except KeyError:
+            except AttributeError:
                 pass
             except TypeError:
                 default = b""
@@ -2324,7 +2324,7 @@ class ChannelConversion(_ChannelConversionBase):
             default = self.referenced_blocks.get("default_addr", {})
             try:
                 default = default.text
-            except KeyError:
+            except AttributeError:
                 pass
             except TypeError:
                 default = b""
@@ -4371,15 +4371,12 @@ comment: {self.comment}
 
 class TextBlock:
     """common TXBLOCK and MDBLOCK class
-
     *TextBlock* has the following key-value pairs
-
     * ``id`` - bytes : block ID; b'##TX' for TXBLOCK and b'##MD' for MDBLOCK
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
     * ``text`` - bytes : actual text content
-
     Parameters
     ----------
     address : int
@@ -4390,13 +4387,10 @@ class TextBlock:
         flag to set the block type to MDBLOCK for dynamically created objects; default *False*
     text : bytes/str
         text content for dynamically created objects
-
-
     Attributes
     ----------
     address : int
         text block address
-
     """
 
     __slots__ = ("address", "id", "reserved0", "block_len", "links_nr", "text")
@@ -4413,12 +4407,24 @@ class TextBlock:
                 stream.read(COMMON_SIZE)
             )
 
-            self.text = stream.read(self.block_len - COMMON_SIZE)
+            size = self.block_len - COMMON_SIZE
+
+            self.text = text = stream.read(size)
 
             if self.id not in (b"##TX", b"##MD"):
                 message = f'Expected "##TX" or "##MD" block @{hex(address)} but found "{self.id}"'
                 logger.exception(message)
                 raise MdfException(message)
+
+            align = size % 8
+            if align:
+                self.block_len = size + COMMON_SIZE + 8 - align
+            else:
+                if text:
+                    if text[-1] not in (0, b"\0"):
+                        self.block_len += 8
+                else:
+                    self.block_len += 8
 
         else:
 
@@ -4426,22 +4432,18 @@ class TextBlock:
             text = kwargs["text"]
 
             try:
-                text = f"{text}\0".encode("utf-8")
+                text = text.encode("utf-8")
             except (AttributeError, UnicodeDecodeError):
-                text += b'\0'
+                pass
 
             size = len(text)
-
-            align = size % 8
-            if align:
-                self.block_len = size + COMMON_SIZE + 8 - align
-            else:
-                self.block_len = size + COMMON_SIZE
 
             self.id = b"##MD" if kwargs.get("meta", False) else b"##TX"
             self.reserved0 = 0
             self.links_nr = 0
             self.text = text
+
+            self.block_len = size + 32 - size % 8
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -4450,6 +4452,8 @@ class TextBlock:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        return v4c.COMMON_p(
-            self.id, self.reserved0, self.block_len, self.links_nr
-        ) + self.text
+        fmt = v4c.FMT_TEXT_BLOCK.format(self.block_len - COMMON_SIZE)
+        result = pack(
+            fmt, self.id, self.reserved0, self.block_len, self.links_nr, self.text
+        )
+        return result
