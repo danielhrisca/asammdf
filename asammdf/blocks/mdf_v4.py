@@ -5261,6 +5261,7 @@ class MDF4(object):
                     else:
                         gp.data_group.data_block_addr = 0
                 else:
+                    # self.configure(read_fragment_size=split_size)
                     kwargs = {"flags": v4c.FLAG_DL_EQUAL_LENGHT, "zip_type": zip_type}
                     hl_block = HeaderList(**kwargs)
 

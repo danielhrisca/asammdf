@@ -480,6 +480,7 @@ KEYS_DZ_BLOCK = (
     "zip_size",
     "data",
 )
+DZ_COMMON_p = struct.Struct(FMT_DZ_COMMON).pack
 
 FMT_HL_BLOCK = "<4sI3QHB5s"
 KEYS_HL_BLOCK = (

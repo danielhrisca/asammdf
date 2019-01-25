@@ -3069,9 +3069,19 @@ class DataZippedBlock(object):
         return self.__getattribute__(item)
 
     def __bytes__(self):
-        fmt = v4c.FMT_DZ_COMMON + "{}s".format(self.zip_size)
         self.return_unzipped = False
-        data = pack(fmt, *[self[key] for key in v4c.KEYS_DZ_BLOCK])
+        data = v4c.DZ_COMMON_p(
+            self.id,
+            self.reserved0,
+            self.block_len,
+            self.links_nr,
+            self.original_type,
+            self.zip_type,
+            self.reserved1,
+            self.param,
+            self.original_size,
+            self.zip_size,
+        ) + self.data
         self.return_unzipped = True
         return data
 
