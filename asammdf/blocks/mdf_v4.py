@@ -5228,6 +5228,7 @@ class MDF4(object):
                         split_size *= samples_size
                         if split_size == 0:
                             chunks = 1
+                            split_size = samples_size
                         else:
                             chunks = float(total_size) / split_size
                             chunks = int(ceil(chunks))
@@ -5236,8 +5237,10 @@ class MDF4(object):
                 else:
                     chunks = 1
 
+                self.configure(read_fragment_size=split_size)
+
                 if chunks == 1:
-                    data = b"".join(d[0] for d in data)
+                    data_ = next(data)[0]
                     if compression and self.version > "4.00":
                         if compression == 1:
                             param = 0
@@ -5246,10 +5249,10 @@ class MDF4(object):
                                 gp.channel_group.samples_byte_nr
                                 + gp.channel_group.invalidation_bytes_nr
                             )
-                        kwargs = {"data": data, "zip_type": zip_type, "param": param}
+                        kwargs = {"data": data_, "zip_type": zip_type, "param": param}
                         data_block = DataZippedBlock(**kwargs)
                     else:
-                        data_block = DataBlock(data=data)
+                        data_block = DataBlock(data=data_)
                     write(bytes(data_block))
 
                     align = data_block.block_len % 8
@@ -5261,7 +5264,6 @@ class MDF4(object):
                     else:
                         gp.data_group.data_block_addr = 0
                 else:
-                    # self.configure(read_fragment_size=split_size)
                     kwargs = {"flags": v4c.FLAG_DL_EQUAL_LENGHT, "zip_type": zip_type}
                     hl_block = HeaderList(**kwargs)
 
@@ -5273,16 +5275,9 @@ class MDF4(object):
                     }
                     dl_block = DataList(**kwargs)
 
-                    cur_data = b""
-
                     for i in range(chunks):
-                        while len(cur_data) < split_size:
-                            try:
-                                cur_data += next(data)[0]
-                            except StopIteration:
-                                break
+                        data_ = next(data)[0]
 
-                        data_, cur_data = (cur_data[:split_size], cur_data[split_size:])
                         if compression and self.version > "4.00":
                             if compression == 1:
                                 zip_type = v4c.FLAG_DZ_DEFLATE
