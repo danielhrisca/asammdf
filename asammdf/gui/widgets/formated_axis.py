@@ -18,11 +18,16 @@ class FormatedAxis(pg.AxisItem):
         if self.format == "phys":
             strns = super(FormatedAxis, self).tickStrings(values, scale, spacing)
             if self.text_conversion:
-                strns = self.text_conversion.convert(np.array(values))
-                try:
-                    strns = [s.decode("utf-8") for s in strns]
-                except:
-                    strns = [s.decode("latin-1") for s in strns]
+                strns = []
+                for val in values:
+                    nv = self.text_conversion.convert(np.array([val]))[0]
+                    if isinstance(nv, bytes):
+                        try:
+                            strns.append(nv.decode("utf-8"))
+                        except:
+                            strns.append(nv.decode("latin-1"))
+                    else:
+                        strns.append(f"{val:.6f}")
 
         elif self.format == "hex":
             for val in values:

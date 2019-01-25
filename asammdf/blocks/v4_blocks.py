@@ -2265,7 +2265,7 @@ class ChannelConversion(_ChannelConversionBase):
             for i in range(nr):
                 try:
                     value = self.referenced_blocks[f"text_{i}"].text
-                except KeyError:
+                except AttributeError:
                     value = self.referenced_blocks[f"text_{i}"]
                 except TypeError:
                     value = b""
@@ -2315,7 +2315,7 @@ class ChannelConversion(_ChannelConversionBase):
             for i in range(nr):
                 try:
                     value = self.referenced_blocks[f"text_{i}"].text
-                except KeyError:
+                except AttributeError:
                     value = self.referenced_blocks[f"text_{i}"]
                 except TypeError:
                     value = b""

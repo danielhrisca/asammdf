@@ -84,7 +84,7 @@ class ChannelDisplay(base_1, form_1):
     def setName(self, text=""):
         self._name = text
         self.name.setText(
-            '<html><head/><body><p><span style=" color:{self.color};">{self._name}</span></p></body></html>'
+            f'<html><head/><body><p><span style=" color:{self.color};">{self._name}</span></p></body></html>'
         )
 
     def setPrefix(self, text=""):
@@ -108,4 +108,8 @@ class ChannelDisplay(base_1, form_1):
             template = template.format(self.fmt)
         else:
             template = template.format("{}")
-        self.value.setText(template.format(self.color, self._value_prefix, value))
+        try:
+            self.value.setText(template.format(self.color, self._value_prefix, value))
+        except:
+            template = '<html><head/><body><p><span style=" color:{};">{}{}</span></p></body></html>'
+            self.value.setText(template.format(self.color, self._value_prefix, value))
