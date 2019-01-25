@@ -5227,11 +5227,9 @@ class MDF4(object):
                         split_size = self._write_fragment_size // samples_size
                         split_size *= samples_size
                         if split_size == 0:
-                            chunks = 1
                             split_size = samples_size
-                        else:
-                            chunks = float(total_size) / split_size
-                            chunks = int(ceil(chunks))
+                        chunks = float(total_size) / split_size
+                        chunks = int(ceil(chunks))
                     else:
                         chunks = 1
                 else:
