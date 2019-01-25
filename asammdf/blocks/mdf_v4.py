@@ -747,7 +747,7 @@ class MDF4(object):
                             v4c.BUS_TYPE_CAN,
                         )
 
-                        idx = nonzero(can_ids.samples == message_id)
+                        idx = nonzero(can_ids.samples == message_id)[0]
                         data = payload[idx]
                         t = can_ids.timestamps[idx].copy()
                         if can_ids.invalidation_bits is not None:
@@ -804,7 +804,7 @@ class MDF4(object):
                             "", "", "", v4c.SOURCE_BUS, v4c.BUS_TYPE_CAN
                         )
 
-                        idx = nonzero(can_ids.samples == message_id)
+                        idx = nonzero(can_ids.samples == message_id)[0]
                         data = payload[idx]
                         t = can_ids.timestamps[idx]
                         if can_ids.invalidation_bits is not None:
@@ -4446,9 +4446,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
-                        vals = vals[nonzero(~invalidation_bits)]
+                        vals = vals[nonzero(~invalidation_bits)[0]]
                         if not samples_only or raster:
-                            timestamps = timestamps[nonzero(~invalidation_bits)]
+                            timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
@@ -4710,9 +4710,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
-                        vals = vals[nonzero(~invalidation_bits)]
+                        vals = vals[nonzero(~invalidation_bits)[0]]
                         if not samples_only or raster:
-                            timestamps = timestamps[nonzero(~invalidation_bits)]
+                            timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
@@ -4778,9 +4778,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
-                        vals = vals[nonzero(~invalidation_bits)]
+                        vals = vals[nonzero(~invalidation_bits)[0]]
                         if not samples_only or raster:
-                            timestamps = timestamps[nonzero(~invalidation_bits)]
+                            timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
                     num = float(
@@ -4914,9 +4914,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = []
                     if not ignore_invalidation_bits:
-                        vals = vals[nonzero(~invalidation_bits)]
+                        vals = vals[nonzero(~invalidation_bits)[0]]
                         if not samples_only or raster:
-                            timestamps = timestamps[nonzero(~invalidation_bits)]
+                            timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
 
@@ -5554,7 +5554,7 @@ class MDF4(object):
             ignore_invalidation_bits=ignore_invalidation_bits,
         )[0]
 
-        idx = nonzero(can_ids.samples == message.id)
+        idx = nonzero(can_ids.samples == message.id)[0]
         data = payload[idx]
         t = can_ids.timestamps[idx].copy()
         if can_ids.invalidation_bits is not None:
@@ -5670,8 +5670,8 @@ class MDF4(object):
         else:
 
             if invalidation_bits is not None:
-                vals = vals[nonzero(~invalidation_bits)]
-                t = t[nonzero(~invalidation_bits)]
+                vals = vals[nonzero(~invalidation_bits)[0]]
+                t = t[nonzero(~invalidation_bits)[0]]
 
             return Signal(
                 samples=vals,

@@ -494,11 +494,14 @@ try:
                             if sig.conversion and "text_0" in sig.conversion:
                                 vals = np.array([val])
                                 vals = sig.conversion.convert(vals)
-                                try:
-                                    vals = [s.decode("utf-8") for s in vals]
-                                except:
-                                    vals = [s.decode("latin-1") for s in vals]
-                                val = "{}= {}".format(val, vals[0])
+                                if vals.dtype.kind == 'S':
+                                    try:
+                                        vals = [s.decode("utf-8") for s in vals]
+                                    except:
+                                        vals = [s.decode("latin-1") for s in vals]
+                                    val = f"{val:.6f}= {vals[0]}"
+                                else:
+                                    val = f"{val:.6f}= {vals[0]:.6f}"
                             stats["cursor_value"] = val
 
                         else:

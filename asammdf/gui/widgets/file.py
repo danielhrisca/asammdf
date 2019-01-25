@@ -401,10 +401,18 @@ class FileWidget(QWidget):
                 else:
                     stats = self.plot.get_stats(self.info_index)
                     self.info.set_stats(stats)
+
+                self.splitter.setStretchFactor(0, 0)
+                self.splitter.setStretchFactor(1, 1)
+                self.splitter.setStretchFactor(2, 0)
+
             else:
                 self.info.setParent(None)
                 self.info.hide()
                 self.info = None
+
+                self.splitter.setStretchFactor(0, 0)
+                self.splitter.setStretchFactor(1, 1)
 
         elif modifier == Qt.ControlModifier and key in (Qt.Key_B, Qt.Key_H, Qt.Key_P):
             if key == Qt.Key_B:
@@ -726,13 +734,14 @@ class FileWidget(QWidget):
             for i, signal in enumerate(self.plot.signals):
                 cut_sig = signal.cut(position, position)
                 if signal.texts is None or len(cut_sig) == 0:
-                    samples = cut_sig.samples
-                    if signal.conversion and "text_0" in signal.conversion:
-                        samples = signal.conversion.convert(samples)
+                    samples = signal.conversion.convert(samples)
+                    if samples.dtype.kind == 'S':
                         try:
                             samples = [s.decode("utf-8") for s in samples]
                         except:
                             samples = [s.decode("latin-1") for s in samples]
+                    else:
+                        samples = samples.tolist()
                 else:
                     t = np.argwhere(signal.timestamps == cut_sig.timestamps).flatten()
                     try:
