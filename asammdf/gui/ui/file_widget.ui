@@ -24,7 +24,7 @@
      </property>
      <widget class="QWidget" name="channels_tab">
       <attribute name="icon">
-       <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
+       <iconset resource="resource.qrc">
         <normaloff>:/graph.png</normaloff>:/graph.png</iconset>
       </attribute>
       <attribute name="title">
