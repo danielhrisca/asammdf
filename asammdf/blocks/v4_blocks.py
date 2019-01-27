@@ -4551,12 +4551,15 @@ comment: {self.comment}
 
 class TextBlock:
     """common TXBLOCK and MDBLOCK class
+
     *TextBlock* has the following key-value pairs
+
     * ``id`` - bytes : block ID; b'##TX' for TXBLOCK and b'##MD' for MDBLOCK
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
     * ``text`` - bytes : actual text content
+
     Parameters
     ----------
     address : int
@@ -4567,10 +4570,12 @@ class TextBlock:
         flag to set the block type to MDBLOCK for dynamically created objects; default *False*
     text : bytes/str
         text content for dynamically created objects
+
     Attributes
     ----------
     address : int
         text block address
+
     """
 
     __slots__ = ("address", "id", "reserved0", "block_len", "links_nr", "text")
