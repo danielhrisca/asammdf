@@ -309,7 +309,9 @@ KEYS_CHANNEL_GROUP = (
     "samples_byte_nr",
     "invalidation_bytes_nr",
 )
-CHANNEL_GROUP_PACK = struct.Struct(FMT_CHANNEL_GROUP).pack
+CHANNEL_GROUP_u = struct.Struct(FMT_CHANNEL_GROUP).unpack
+CHANNEL_GROUP_uf = struct.Struct(FMT_CHANNEL_GROUP).unpack_from
+CHANNEL_GROUP_p = struct.Struct(FMT_CHANNEL_GROUP).pack
 
 FMT_DATA_BLOCK = "<4sI2Q{}s"
 KEYS_DATA_BLOCK = ("id", "reserved0", "block_len", "links_nr", "data")
@@ -347,7 +349,9 @@ KEYS_DATA_GROUP = (
     "record_id_len",
     "reserved1",
 )
-DATA_GROUP_PACK = struct.Struct(FMT_DATA_GROUP).pack
+DATA_GROUP_u = struct.Struct(FMT_DATA_GROUP).unpack
+DATA_GROUP_uf = struct.Struct(FMT_DATA_GROUP).unpack_from
+DATA_GROUP_p = struct.Struct(FMT_DATA_GROUP).pack
 
 FMT_DATA_LIST = "<4sI2Q{}QB3sIQ"
 
@@ -465,6 +469,8 @@ KEYS_AT_BLOCK = (
     "embedded_size",
     "embedded_data",
 )
+AT_COMMON_u = struct.Struct(FMT_AT_COMMON).unpack
+AT_COMMON_uf = struct.Struct(FMT_AT_COMMON).unpack_from
 
 FMT_DZ_COMMON = "<4sI2Q2s2BI2Q"
 KEYS_DZ_BLOCK = (
@@ -480,6 +486,8 @@ KEYS_DZ_BLOCK = (
     "zip_size",
     "data",
 )
+DZ_COMMON_u = struct.Struct(FMT_DZ_COMMON).unpack
+DZ_COMMON_uf = struct.Struct(FMT_DZ_COMMON).unpack_from
 DZ_COMMON_p = struct.Struct(FMT_DZ_COMMON).pack
 
 FMT_HL_BLOCK = "<4sI3QHB5s"

@@ -11,7 +11,7 @@ from functools import reduce
 from hashlib import md5
 from itertools import chain
 from math import ceil
-from struct import unpack
+from struct import unpack, unpack_from
 from tempfile import TemporaryFile
 from zlib import decompress
 from pathlib import Path
@@ -60,6 +60,7 @@ from .utils import (
     UINT32_u,
     UINT32_uf,
     UINT64_u,
+    UINT64_uf,
     FLOAT64_u,
     CHANNEL_COUNT,
     CONVERT,
@@ -104,6 +105,7 @@ from ..version import __version__
 MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
 COMMON_SIZE = v4c.COMMON_SIZE
 COMMON_u = v4c.COMMON_u
+COMMON_uf = v4c.COMMON_uf
 
 
 logger = logging.getLogger("asammdf")
@@ -240,7 +242,10 @@ class MDF4(object):
                 self._from_filelike = False
                 self._read(mapped=True)
 
-                self._file = x
+                self._file.close()
+                x.close()
+
+                self._file = open(self.name, "r+b")
 
         else:
             self._from_filelike = False
@@ -306,19 +311,19 @@ class MDF4(object):
             self._callback(0, cg_count)
         current_cg_index = 0
 
-        self.identification = FileIdentificationBlock(stream=stream)
+        self.identification = FileIdentificationBlock(stream=stream, mapped=mapped)
         version = self.identification["version_str"]
         self.version = version.decode("utf-8").strip(" \n\t\0")
 
         if self.version >= "4.10":
             self._check_finalised()
 
-        self.header = HeaderBlock(address=0x40, stream=stream)
+        self.header = HeaderBlock(address=0x40, stream=stream, mapped=mapped)
 
         # read file history
         fh_addr = self.header["file_history_addr"]
         while fh_addr:
-            history_block = FileHistory(address=fh_addr, stream=stream)
+            history_block = FileHistory(address=fh_addr, stream=stream, mapped=mapped)
             self.file_history.append(history_block)
             fh_addr = history_block.next_fh_addr
 
@@ -326,7 +331,7 @@ class MDF4(object):
         at_addr = self.header["first_attachment_addr"]
         index = 0
         while at_addr:
-            at_block = AttachmentBlock(address=at_addr, stream=stream)
+            at_block = AttachmentBlock(address=at_addr, stream=stream, mapped=mapped)
             self._attachments_map[at_addr] = index
             self.attachments.append(at_block)
             at_addr = at_block.next_at_addr
@@ -337,7 +342,7 @@ class MDF4(object):
 
         while dg_addr:
             new_groups = []
-            group = DataGroup(address=dg_addr, stream=stream)
+            group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
             record_id_nr = group.record_id_len
 
             # go to first channel group of the current data group
@@ -353,7 +358,7 @@ class MDF4(object):
                 grp = Group(group)
 
                 # read each channel group sequentially
-                block = ChannelGroup(address=cg_addr, stream=stream)
+                block = ChannelGroup(address=cg_addr, stream=stream, mapped=mapped)
                 self._cg_map[cg_addr] = dg_cntr
                 channel_group = grp.channel_group = block
 
@@ -472,7 +477,7 @@ class MDF4(object):
             address = group.data_block_addr
 
             info = self._get_data_blocks_info(
-                address=address, stream=stream, block_type=b"##DT"
+                address=address, stream=stream, block_type=b"##DT", mapped=mapped
             )
 
             for grp in new_groups:
@@ -708,7 +713,7 @@ class MDF4(object):
         ev_map = {}
         event_index = 0
         while addr:
-            event = EventBlock(address=addr, stream=stream)
+            event = EventBlock(address=addr, stream=stream, mapped=mapped)
             event.update_references(self._ch_map, self._cg_map)
             self.events.append(event)
             ev_map[addr] = event_index
@@ -966,13 +971,17 @@ class MDF4(object):
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are
                     # supported so far
-                    ca_block = ChannelArrayBlock(address=component_addr, stream=stream)
+                    ca_block = ChannelArrayBlock(
+                        address=component_addr, stream=stream, mapped=mapped
+                    )
                     if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
                         logger.warning("Only CN template arrays are supported")
                     ca_list = [ca_block]
                     while ca_block.composition_addr:
                         ca_block = ChannelArrayBlock(
-                            address=ca_block.composition_addr, stream=stream
+                            address=ca_block.composition_addr,
+                            stream=stream,
+                            mapped=mapped,
                         )
                         ca_list.append(ca_block)
                     dependencies.append(ca_list)
@@ -1947,7 +1956,7 @@ class MDF4(object):
     def _get_source_name(self, group, index):
         return self.groups[group].channels[index].source.name or ""
 
-    def _get_data_blocks_info(self, address, stream, block_type=b"##DT"):
+    def _get_data_blocks_info(self, address, stream, block_type=b"##DT", mapped=False):
         info = {
             "data_block_addr": [],
             "data_block_type": 0,
@@ -1959,84 +1968,160 @@ class MDF4(object):
         # for low and minimum options save each block's type,
         # address and size
 
-        if address:
-            stream.seek(address)
-            id_string, _, block_len, __ = COMMON_u(stream.read(COMMON_SIZE))
+        if mapped:
+            if address:
+                id_string, _, block_len, __ = COMMON_uf(stream, address)
 
-            # can be a DataBlock
-            if id_string == block_type:
-                size = block_len - 24
-                if size:
-                    info["data_size"].append(size)
-                    info["data_block_size"].append(size)
-                    info["data_block_addr"].append(address + COMMON_SIZE)
+                # can be a DataBlock
+                if id_string == block_type:
+                    size = block_len - 24
+                    if size:
+                        info["data_size"].append(size)
+                        info["data_block_size"].append(size)
+                        info["data_block_addr"].append(address + COMMON_SIZE)
+                        info["data_block_type"] = v4c.DT_BLOCK
+                # or a DataZippedBlock
+                elif id_string == b"##DZ":
+                    temp = {}
+                    (
+                        temp["id"],
+                        temp["reserved0"],
+                        temp["block_len"],
+                        temp["links_nr"],
+                        temp["original_type"],
+                        temp["zip_type"],
+                        temp["reserved1"],
+                        temp["param"],
+                        temp["original_size"],
+                        temp["zip_size"],
+                    ) = v4c.DZ_COMMON_uf(stream, address)
+
+                    if temp["original_size"]:
+                        info["data_size"].append(temp["original_size"])
+                        info["data_block_size"].append(temp["zip_size"])
+                        info["data_block_addr"].append(address + v4c.DZ_COMMON_SIZE)
+                        if temp["zip_type"] == v4c.FLAG_DZ_DEFLATE:
+                            info["data_block_type"] = v4c.DZ_BLOCK_DEFLATE
+                        else:
+                            info["data_block_type"] = v4c.DZ_BLOCK_TRANSPOSED
+                            info["param"] = temp["param"]
+
+                # or a DataList
+                elif id_string == b"##DL":
                     info["data_block_type"] = v4c.DT_BLOCK
-            # or a DataZippedBlock
-            elif id_string == b"##DZ":
-                stream.seek(address)
-
-                temp = {}
-                (
-                    temp["id"],
-                    temp["reserved0"],
-                    temp["block_len"],
-                    temp["links_nr"],
-                    temp["original_type"],
-                    temp["zip_type"],
-                    temp["reserved1"],
-                    temp["param"],
-                    temp["original_size"],
-                    temp["zip_size"],
-                ) = unpack(v4c.FMT_DZ_COMMON, stream.read(v4c.DZ_COMMON_SIZE))
-
-                if temp["original_size"]:
-                    info["data_size"].append(temp["original_size"])
-                    info["data_block_size"].append(temp["zip_size"])
-                    info["data_block_addr"].append(address + v4c.DZ_COMMON_SIZE)
-                    if temp["zip_type"] == v4c.FLAG_DZ_DEFLATE:
+                    while address:
+                        dl = DataList(address=address, stream=stream, mapped=mapped)
+                        for i in range(dl.data_block_nr):
+                            addr = dl[f"data_block_addr{i}"]
+                            (size,) = UINT64_uf(stream, addr + 8)
+                            size -= COMMON_SIZE
+                            if size:
+                                info["data_block_addr"].append(addr + COMMON_SIZE)
+                                info["data_size"].append(size)
+                                info["data_block_size"].append(size)
+                        address = dl.next_dl_addr
+                # or a header list
+                elif id_string == b"##HL":
+                    hl = HeaderList(address=address, stream=stream, mapped=mapped)
+                    if hl.zip_type == v4c.FLAG_DZ_DEFLATE:
                         info["data_block_type"] = v4c.DZ_BLOCK_DEFLATE
                     else:
                         info["data_block_type"] = v4c.DZ_BLOCK_TRANSPOSED
-                        info["param"] = temp["param"]
 
-            # or a DataList
-            elif id_string == b"##DL":
-                info["data_block_type"] = v4c.DT_BLOCK
-                while address:
-                    dl = DataList(address=address, stream=stream)
-                    for i in range(dl.data_block_nr):
-                        addr = dl[f"data_block_addr{i}"]
-                        stream.seek(addr + 8)
-                        (size,) = UINT64_u(stream.read(8))
-                        size -= COMMON_SIZE
-                        if size:
-                            info["data_block_addr"].append(addr + COMMON_SIZE)
-                            info["data_size"].append(size)
-                            info["data_block_size"].append(size)
-                    address = dl.next_dl_addr
-            # or a header list
-            elif id_string == b"##HL":
-                hl = HeaderList(address=address, stream=stream)
-                if hl.zip_type == v4c.FLAG_DZ_DEFLATE:
-                    info["data_block_type"] = v4c.DZ_BLOCK_DEFLATE
-                else:
-                    info["data_block_type"] = v4c.DZ_BLOCK_TRANSPOSED
+                    address = hl.first_dl_addr
+                    while address:
+                        dl = DataList(address=address, stream=stream, mapped=mapped)
+                        for i in range(dl.data_block_nr):
+                            addr = dl[f"data_block_addr{i}"]
 
-                address = hl.first_dl_addr
-                while address:
-                    dl = DataList(address=address, stream=stream)
-                    for i in range(dl.data_block_nr):
-                        addr = dl[f"data_block_addr{i}"]
+                            param, size, zip_size = unpack_from("<I2Q", stream, addr + 28)
+                            if size:
+                                info["data_block_addr"].append(addr + v4c.DZ_COMMON_SIZE)
+                                info["data_size"].append(size)
+                                info["data_block_size"].append(zip_size)
+                                info["param"] = param
 
-                        stream.seek(addr + 28)
-                        param, size, zip_size = unpack("<I2Q", stream.read(20))
-                        if size:
-                            info["data_block_addr"].append(addr + v4c.DZ_COMMON_SIZE)
-                            info["data_size"].append(size)
-                            info["data_block_size"].append(zip_size)
-                            info["param"] = param
+                        address = dl.next_dl_addr
+        else:
 
-                    address = dl.next_dl_addr
+            if address:
+                stream.seek(address)
+                id_string, _, block_len, __ = COMMON_u(stream.read(COMMON_SIZE))
+
+                # can be a DataBlock
+                if id_string == block_type:
+                    size = block_len - 24
+                    if size:
+                        info["data_size"].append(size)
+                        info["data_block_size"].append(size)
+                        info["data_block_addr"].append(address + COMMON_SIZE)
+                        info["data_block_type"] = v4c.DT_BLOCK
+                # or a DataZippedBlock
+                elif id_string == b"##DZ":
+                    stream.seek(address)
+
+                    temp = {}
+                    (
+                        temp["id"],
+                        temp["reserved0"],
+                        temp["block_len"],
+                        temp["links_nr"],
+                        temp["original_type"],
+                        temp["zip_type"],
+                        temp["reserved1"],
+                        temp["param"],
+                        temp["original_size"],
+                        temp["zip_size"],
+                    ) = v4c.DZ_COMMON_u(stream.read(v4c.DZ_COMMON_SIZE))
+
+                    if temp["original_size"]:
+                        info["data_size"].append(temp["original_size"])
+                        info["data_block_size"].append(temp["zip_size"])
+                        info["data_block_addr"].append(address + v4c.DZ_COMMON_SIZE)
+                        if temp["zip_type"] == v4c.FLAG_DZ_DEFLATE:
+                            info["data_block_type"] = v4c.DZ_BLOCK_DEFLATE
+                        else:
+                            info["data_block_type"] = v4c.DZ_BLOCK_TRANSPOSED
+                            info["param"] = temp["param"]
+
+                # or a DataList
+                elif id_string == b"##DL":
+                    info["data_block_type"] = v4c.DT_BLOCK
+                    while address:
+                        dl = DataList(address=address, stream=stream)
+                        for i in range(dl.data_block_nr):
+                            addr = dl[f"data_block_addr{i}"]
+                            stream.seek(addr + 8)
+                            (size,) = UINT64_u(stream.read(8))
+                            size -= COMMON_SIZE
+                            if size:
+                                info["data_block_addr"].append(addr + COMMON_SIZE)
+                                info["data_size"].append(size)
+                                info["data_block_size"].append(size)
+                        address = dl.next_dl_addr
+                # or a header list
+                elif id_string == b"##HL":
+                    hl = HeaderList(address=address, stream=stream)
+                    if hl.zip_type == v4c.FLAG_DZ_DEFLATE:
+                        info["data_block_type"] = v4c.DZ_BLOCK_DEFLATE
+                    else:
+                        info["data_block_type"] = v4c.DZ_BLOCK_TRANSPOSED
+
+                    address = hl.first_dl_addr
+                    while address:
+                        dl = DataList(address=address, stream=stream)
+                        for i in range(dl.data_block_nr):
+                            addr = dl[f"data_block_addr{i}"]
+
+                            stream.seek(addr + 28)
+                            param, size, zip_size = unpack("<I2Q", stream.read(20))
+                            if size:
+                                info["data_block_addr"].append(addr + v4c.DZ_COMMON_SIZE)
+                                info["data_size"].append(size)
+                                info["data_block_size"].append(zip_size)
+                                info["param"] = param
+
+                        address = dl.next_dl_addr
 
         return info
 

@@ -146,35 +146,60 @@ class AttachmentBlock:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            stream.seek(address)
+            mapped = kwargs.get("mapped", False)
 
-            (
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-                self.next_at_addr,
-                self.file_name_addr,
-                self.mime_addr,
-                self.comment_addr,
-                self.flags,
-                self.creator_index,
-                self.reserved1,
-                self.md5_sum,
-                self.original_size,
-                self.embedded_size,
-            ) = unpack(v4c.FMT_AT_COMMON, stream.read(v4c.AT_COMMON_SIZE))
+            if mapped:
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                    self.next_at_addr,
+                    self.file_name_addr,
+                    self.mime_addr,
+                    self.comment_addr,
+                    self.flags,
+                    self.creator_index,
+                    self.reserved1,
+                    self.md5_sum,
+                    self.original_size,
+                    self.embedded_size,
+                ) = v4c.AT_COMMON_uf(stream, address)
 
-            self.embedded_data = stream.read(self.embedded_size)
+                address += v4c.AT_COMMON_SIZE
+
+                self.embedded_data = stream[address: address + self.embedded_size]
+            else:
+
+                stream.seek(address)
+
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                    self.next_at_addr,
+                    self.file_name_addr,
+                    self.mime_addr,
+                    self.comment_addr,
+                    self.flags,
+                    self.creator_index,
+                    self.reserved1,
+                    self.md5_sum,
+                    self.original_size,
+                    self.embedded_size,
+                ) = v4c.AT_COMMON_u(stream.read(v4c.AT_COMMON_SIZE))
+
+                self.embedded_data = stream.read(self.embedded_size)
 
             if self.id != b"##AT":
                 message = f'Expected "##AT" block @{hex(address)} but found "{self.id}"'
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.file_name = get_text_v4(self.file_name_addr, stream)
-            self.mime = get_text_v4(self.mime_addr, stream)
-            self.comment = get_text_v4(self.comment_addr, stream)
+            self.file_name = get_text_v4(self.file_name_addr, stream, mapped=mapped)
+            self.mime = get_text_v4(self.mime_addr, stream, mapped=mapped)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
 
         except KeyError:
 
@@ -1138,55 +1163,112 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            stream.seek(address)
 
-            (self.id, self.reserved0, self.block_len, self.links_nr) = unpack(
-                "<4sI2Q", stream.read(24)
-            )
+            mapped = kwargs.get("mapped", False)
 
-            nr = self.links_nr
-            links = unpack(f"<{nr}Q", stream.read(8 * nr))
-            self.composition_addr = links[0]
+            if mapped:
 
-            values = unpack("<2BHIiI", stream.read(16))
-            dims_nr = values[2]
+                (self.id, self.reserved0, self.block_len, self.links_nr) = v4c.COMMON_uf(
+                    stream, address
+                )
 
-            if nr == 1:
-                pass
+                nr = self.links_nr
+                address += COMMON_SIZE
+                links = unpack_from(f"<{nr}Q", stream, address)
+                self.composition_addr = links[0]
 
-            # lookup table with fixed axis
-            elif nr == dims_nr + 1:
-                for i in range(dims_nr):
-                    self[f"axis_conversion_{i}"] = links[i + 1]
+                address += nr * 8
+                values = unpack_from("<2BHIiI", stream, address)
+                dims_nr = values[2]
 
-            # lookup table with CN template
-            elif nr == 4 * dims_nr + 1:
-                for i in range(dims_nr):
-                    self[f"axis_conversion_{i}"] = links[i + 1]
-                links = links[dims_nr + 1 :]
-                for i in range(dims_nr):
-                    self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
-                    self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
-                    self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
+                if nr == 1:
+                    pass
 
-            (
-                self.ca_type,
-                self.storage,
-                self.dims,
-                self.flags,
-                self.byte_offset_base,
-                self.invalidation_bit_base,
-            ) = values
+                # lookup table with fixed axis
+                elif nr == dims_nr + 1:
+                    for i in range(dims_nr):
+                        self[f"axis_conversion_{i}"] = links[i + 1]
 
-            dim_sizes = unpack(f"<{dims_nr}Q", stream.read(8 * dims_nr))
-            for i, size in enumerate(dim_sizes):
-                self[f"dim_size_{i}"] = size
+                # lookup table with CN template
+                elif nr == 4 * dims_nr + 1:
+                    for i in range(dims_nr):
+                        self[f"axis_conversion_{i}"] = links[i + 1]
+                    links = links[dims_nr + 1 :]
+                    for i in range(dims_nr):
+                        self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
+                        self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
 
-            if self.flags & v4c.FLAG_CA_FIXED_AXIS:
-                for i in range(dims_nr):
-                    for j in range(self[f"dim_size_{i}"]):
-                        (value,) = FLOAT64_u(stream.read(8))
-                        self[f"axis_{i}_value_{j}"] = value
+                (
+                    self.ca_type,
+                    self.storage,
+                    self.dims,
+                    self.flags,
+                    self.byte_offset_base,
+                    self.invalidation_bit_base,
+                ) = values
+
+                address += 16
+                dim_sizes = unpack_from(f"<{dims_nr}Q", stream, address)
+                for i, size in enumerate(dim_sizes):
+                    self[f"dim_size_{i}"] = size
+
+                if self.flags & v4c.FLAG_CA_FIXED_AXIS:
+                    for i in range(dims_nr):
+                        for j in range(self[f"dim_size_{i}"]):
+                            (value,) = FLOAT64_u(stream.read(8))
+                            self[f"axis_{i}_value_{j}"] = value
+            else:
+
+                stream.seek(address)
+
+                (self.id, self.reserved0, self.block_len, self.links_nr) = unpack(
+                    "<4sI2Q", stream.read(24)
+                )
+
+                nr = self.links_nr
+                links = unpack(f"<{nr}Q", stream.read(8 * nr))
+                self.composition_addr = links[0]
+
+                values = unpack("<2BHIiI", stream.read(16))
+                dims_nr = values[2]
+
+                if nr == 1:
+                    pass
+
+                # lookup table with fixed axis
+                elif nr == dims_nr + 1:
+                    for i in range(dims_nr):
+                        self[f"axis_conversion_{i}"] = links[i + 1]
+
+                # lookup table with CN template
+                elif nr == 4 * dims_nr + 1:
+                    for i in range(dims_nr):
+                        self[f"axis_conversion_{i}"] = links[i + 1]
+                    links = links[dims_nr + 1 :]
+                    for i in range(dims_nr):
+                        self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
+                        self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
+
+                (
+                    self.ca_type,
+                    self.storage,
+                    self.dims,
+                    self.flags,
+                    self.byte_offset_base,
+                    self.invalidation_bit_base,
+                ) = values
+
+                dim_sizes = unpack(f"<{dims_nr}Q", stream.read(8 * dims_nr))
+                for i, size in enumerate(dim_sizes):
+                    self[f"dim_size_{i}"] = size
+
+                if self.flags & v4c.FLAG_CA_FIXED_AXIS:
+                    for i in range(dims_nr):
+                        for j in range(self[f"dim_size_{i}"]):
+                            (value,) = FLOAT64_u(stream.read(8))
+                            self[f"axis_{i}_value_{j}"] = value
 
             if self.id != b"##CA":
                 message = f'Expected "##CA" block @{hex(address)} but found "{self.id}"'
@@ -1436,27 +1518,51 @@ class ChannelGroup:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            stream.seek(address)
+            mapped = kwargs.get("mapped", False)
 
-            (
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-                self.next_cg_addr,
-                self.first_ch_addr,
-                self.acq_name_addr,
-                self.acq_source_addr,
-                self.first_sample_reduction_addr,
-                self.comment_addr,
-                self.record_id,
-                self.cycles_nr,
-                self.flags,
-                self.path_separator,
-                self.reserved1,
-                self.samples_byte_nr,
-                self.invalidation_bytes_nr,
-            ) = unpack(v4c.FMT_CHANNEL_GROUP, stream.read(v4c.CG_BLOCK_SIZE))
+            if mapped:
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                    self.next_cg_addr,
+                    self.first_ch_addr,
+                    self.acq_name_addr,
+                    self.acq_source_addr,
+                    self.first_sample_reduction_addr,
+                    self.comment_addr,
+                    self.record_id,
+                    self.cycles_nr,
+                    self.flags,
+                    self.path_separator,
+                    self.reserved1,
+                    self.samples_byte_nr,
+                    self.invalidation_bytes_nr,
+                ) = v4c.CHANNEL_GROUP_uf(stream, address)
+            else:
+
+                stream.seek(address)
+
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                    self.next_cg_addr,
+                    self.first_ch_addr,
+                    self.acq_name_addr,
+                    self.acq_source_addr,
+                    self.first_sample_reduction_addr,
+                    self.comment_addr,
+                    self.record_id,
+                    self.cycles_nr,
+                    self.flags,
+                    self.path_separator,
+                    self.reserved1,
+                    self.samples_byte_nr,
+                    self.invalidation_bytes_nr,
+                ) = v4c.CHANNEL_GROUP_u(stream.read(v4c.CG_BLOCK_SIZE))
 
             if self.id != b"##CG":
                 message = f'Expected "##CG" block @{hex(address)} but found "{self.id}"'
@@ -1464,12 +1570,12 @@ class ChannelGroup:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.acq_name = get_text_v4(self.acq_name_addr, stream)
-            self.comment = get_text_v4(self.comment_addr, stream)
+            self.acq_name = get_text_v4(self.acq_name_addr, stream, mapped=mapped)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
 
             if self.acq_source_addr:
                 self.acq_source = SourceInformation(
-                    address=self.acq_source_addr, stream=stream
+                    address=self.acq_source_addr, stream=stream, mapped=mapped
                 )
 
         except KeyError:
@@ -1544,7 +1650,7 @@ class ChannelGroup:
         return address
 
     def __bytes__(self):
-        result = v4c.CHANNEL_GROUP_PACK(
+        result = v4c.CHANNEL_GROUP_p(
             self.id,
             self.reserved0,
             self.block_len,
@@ -1710,8 +1816,7 @@ class ChannelConversion(_ChannelConversionBase):
 
         if "stream" in kwargs:
             mapped = kwargs.get("mapped", False)
-            if not mapped:
-                1/0
+
             stream = kwargs["stream"]
             try:
                 block = kwargs["raw_bytes"]
@@ -1987,7 +2092,7 @@ class ChannelConversion(_ChannelConversionBase):
             conv_type = conv
 
             if conv_type == v4c.CONVERSION_TYPE_ALG:
-                self.formula = get_text_v4(self.formula_addr, stream)
+                self.formula = get_text_v4(self.formula_addr, stream, mapped=mapped)
 
             elif conv_type in v4c.TABULAR_CONVERSIONS:
                 refs = self.referenced_blocks = {}
@@ -1999,7 +2104,7 @@ class ChannelConversion(_ChannelConversionBase):
                     address = self[f"text_{i}"]
                     if address:
                         try:
-                            block = TextBlock(address=address, stream=stream)
+                            block = TextBlock(address=address, stream=stream, mapped=mapped)
                             refs[f"text_{i}"] = block
                         except MdfException:
                             block = ChannelConversion(address=address, stream=stream, mapped=mapped)
@@ -2011,7 +2116,7 @@ class ChannelConversion(_ChannelConversionBase):
                     address = self.default_addr
                     if address:
                         try:
-                            block = TextBlock(address=address, stream=stream)
+                            block = TextBlock(address=address, stream=stream, mapped=mapped)
                             refs["default_addr"] = block
                         except MdfException:
                             block = ChannelConversion(address=address, stream=stream, mapped=mapped)
@@ -2026,11 +2131,11 @@ class ChannelConversion(_ChannelConversionBase):
                     for key in (f"input_{i}_addr", f"output_{i}_addr"):
                         address = self[key]
                         if address:
-                            block = TextBlock(address=address, stream=stream)
+                            block = TextBlock(address=address, stream=stream, mapped=mapped)
                             refs[key] = block
                 address = self.default_addr
                 if address:
-                    block = TextBlock(address=address, stream=stream)
+                    block = TextBlock(address=address, stream=stream, mapped=mapped)
                     refs["default_addr"] = block
                 else:
                     refs["default_addr"] = None
@@ -3024,12 +3129,22 @@ class DataBlock:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            stream.seek(address)
+            mapped = kwargs.get("mapped", False)
 
-            (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
-                stream.read(COMMON_SIZE)
-            )
-            self.data = stream.read(self.block_len - COMMON_SIZE)
+            if mapped:
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
+                    stream, address
+                )
+                address += COMMON_SIZE
+                self.data = stream[address: address + self.block_len]
+            else:
+
+                stream.seek(address)
+
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
+                    stream.read(COMMON_SIZE)
+                )
+                self.data = stream.read(self.block_len - COMMON_SIZE)
 
             if self.id not in (b"##DT", b"##RD", b"##SD"):
                 message = f'Expected "##DT", "##RD" or "##SD" block @{hex(address)} but found "{self.id}"'
@@ -3307,20 +3422,39 @@ class DataGroup:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            stream.seek(address)
+            mapped = kwargs.get("mapped", False)
 
-            (
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-                self.next_dg_addr,
-                self.first_cg_addr,
-                self.data_block_addr,
-                self.comment_addr,
-                self.record_id_len,
-                self.reserved1,
-            ) = unpack(v4c.FMT_DATA_GROUP, stream.read(v4c.DG_BLOCK_SIZE))
+            if mapped:
+                stream.seek(address)
+
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                    self.next_dg_addr,
+                    self.first_cg_addr,
+                    self.data_block_addr,
+                    self.comment_addr,
+                    self.record_id_len,
+                    self.reserved1,
+                ) = v4c.DATA_GROUP_uf(stream, address)
+            else:
+
+                stream.seek(address)
+
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                    self.next_dg_addr,
+                    self.first_cg_addr,
+                    self.data_block_addr,
+                    self.comment_addr,
+                    self.record_id_len,
+                    self.reserved1,
+                ) = v4c.DATA_GROUP_u(stream.read(v4c.DG_BLOCK_SIZE))
 
             if self.id != b"##DG":
                 message = f'Expected "##DG" block @{hex(address)} but found "{self.id}"'
@@ -3328,7 +3462,7 @@ class DataGroup:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.comment = get_text_v4(self.comment_addr, stream)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
 
         except KeyError:
 
@@ -3373,7 +3507,7 @@ class DataGroup:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        result = v4c.DATA_GROUP_PACK(
+        result = v4c.DATA_GROUP_p(
             self.id,
             self.reserved0,
             self.block_len,
@@ -3438,34 +3572,69 @@ class DataList(_DataListBase):
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            stream.seek(address)
+            mapped = kwargs.get("mapped", False)
 
-            (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
-                stream.read(COMMON_SIZE)
-            )
-
-            (self.next_dl_addr,) = UINT64_u(stream.read(8))
-
-            links = unpack(
-                "<{}Q".format(self.links_nr - 1), stream.read((self.links_nr - 1) * 8)
-            )
-
-            for i, addr in enumerate(links):
-                self[f"data_block_addr{i}"] = addr
-
-            self.flags = stream.read(1)[0]
-            if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
-                (self.reserved1, self.data_block_nr, self.data_block_len) = unpack(
-                    "<3sIQ", stream.read(15)
+            if mapped:
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
+                    stream, address
                 )
+
+                address += COMMON_SIZE
+
+                links = unpack_from(
+                    f"<{self.links_nr}Q", stream, address
+                )
+
+                self.next_dl_addr = links[0]
+
+                for i, addr in enumerate(links[1:]):
+                    self[f"data_block_addr{i}"] = addr
+
+                stream.seek(address + self.links_nr * 8)
+
+                self.flags = stream.read(1)[0]
+                if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
+                    (self.reserved1, self.data_block_nr, self.data_block_len) = unpack(
+                        "<3sIQ", stream.read(15)
+                    )
+                else:
+                    (self.reserved1, self.data_block_nr) = unpack("<3sI", stream.read(7))
+                    offsets = unpack(
+                        "<{}Q".format(self.links_nr - 1),
+                        stream.read((self.links_nr - 1) * 8),
+                    )
+                    for i, offset in enumerate(offsets):
+                        self[f"offset_{i}"] = offset
             else:
-                (self.reserved1, self.data_block_nr) = unpack("<3sI", stream.read(7))
-                offsets = unpack(
-                    "<{}Q".format(self.links_nr - 1),
-                    stream.read((self.links_nr - 1) * 8),
+
+                stream.seek(address)
+
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
+                    stream.read(COMMON_SIZE)
                 )
-                for i, offset in enumerate(offsets):
-                    self[f"offset_{i}"] = offset
+
+                links = unpack(
+                    f"<{self.links_nr}Q", stream.read(self.links_nr * 8)
+                )
+
+                self.next_dl_addr = links[0]
+
+                for i, addr in enumerate(links[1:]):
+                    self[f"data_block_addr{i}"] = addr
+
+                self.flags = stream.read(1)[0]
+                if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
+                    (self.reserved1, self.data_block_nr, self.data_block_len) = unpack(
+                        "<3sIQ", stream.read(15)
+                    )
+                else:
+                    (self.reserved1, self.data_block_nr) = unpack("<3sI", stream.read(7))
+                    offsets = unpack(
+                        "<{}Q".format(self.links_nr - 1),
+                        stream.read((self.links_nr - 1) * 8),
+                    )
+                    for i, offset in enumerate(offsets):
+                        self[f"offset_{i}"] = offset
 
             if self.id != b"##DL":
                 message = f'Expected "##DL" block @{hex(address)} but found "{self.id}"'
@@ -4585,16 +4754,27 @@ class TextBlock:
 
         if "stream" in kwargs:
             stream = kwargs["stream"]
+            mapped = kwargs.get("mapped", False)
             self.address = address = kwargs["address"]
 
-            stream.seek(address)
-            (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
-                stream.read(COMMON_SIZE)
-            )
+            if mapped:
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
+                    stream, address
+                )
 
-            size = self.block_len - COMMON_SIZE
+                size = self.block_len - COMMON_SIZE
 
-            self.text = text = stream.read(size)
+                self.text = text = stream[address + COMMON_SIZE: address + self.block_len]
+
+            else:
+                stream.seek(address)
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
+                    stream.read(COMMON_SIZE)
+                )
+
+                size = self.block_len - COMMON_SIZE
+
+                self.text = text = stream.read(size)
 
             if self.id not in (b"##TX", b"##MD"):
                 message = f'Expected "##TX" or "##MD" block @{hex(address)} but found "{self.id}"'
