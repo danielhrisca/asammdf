@@ -6,6 +6,7 @@ import os
 import sys
 import time
 import xml.etree.ElementTree as ET
+import mmap
 from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
@@ -170,11 +171,18 @@ class MDF3(object):
                 self._file = name
                 self.name = Path("From_FileLike.mf4")
                 self._from_filelike = True
+                self._read(mapped=False)
             else:
                 self.name = Path(name)
-                self._file = open(self.name, "rb")
+                x = open(self.name, "r+b")
+                self._file = mmap.mmap(x.fileno(), 0)
                 self._from_filelike = False
-            self._read()
+                self._read(mapped=True)
+
+                self._file.close()
+                x.close()
+
+                self._file = open(self.name, "r+b")
         else:
             self._from_filelike = False
             version = validate_version_argument(version, hint=3)
@@ -666,7 +674,7 @@ class MDF3(object):
             name = ""
         return name
 
-    def _read(self):
+    def _read(self, mapped=False):
         stream = self._file
 
         cg_count, _ = count_channel_groups(stream)
@@ -746,7 +754,7 @@ class MDF3(object):
 
                 while ch_addr:
                     # read channel block and create channel object
-                    new_ch = Channel(address=ch_addr, stream=stream, load_metadata=True)
+                    new_ch = Channel(address=ch_addr, stream=stream, load_metadata=True, mapped=mapped)
 
                     # check if it has channel dependencies
                     if new_ch.ch_depend_addr:

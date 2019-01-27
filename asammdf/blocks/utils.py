@@ -170,7 +170,7 @@ def matlab_compatible(name):
     return compatible_name[:60]
 
 
-def get_text_v3(address, stream):
+def get_text_v3(address, stream, mapped=False):
     """ faster way to extract strings from mdf versions 2 and 3 TextBlock
 
     Parameters
@@ -190,9 +190,13 @@ def get_text_v3(address, stream):
     if address == 0:
         return ""
 
-    stream.seek(address + 2)
-    size = UINT16_u(stream.read(2))[0] - 4
-    text_bytes = stream.read(size)
+    if mapped:
+        size, = UINT16_uf(stream, address + 2)
+        text_bytes = stream[address + 4: address + size]
+    else:
+        stream.seek(address + 2)
+        size = UINT16_u(stream.read(2))[0] - 4
+        text_bytes = stream.read(size)
     try:
         text = text_bytes.strip(b" \r\t\n\0").decode("latin-1")
     except UnicodeDecodeError as err:
@@ -236,8 +240,6 @@ def get_text_v4(address, stream, mapped=False):
     if mapped:
         size, _ = TWO_UINT64_uf(stream, address + 8)
         text_bytes = stream[address + 24: address + size]
-        # stream.seek(address + 24)
-        # text_bytes = stream.read(size - 24)
     else:
         stream.seek(address + 8)
         size, _ = TWO_UINT64_u(stream.read(16))

@@ -13,7 +13,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v2_v3_constants as v23c
-from .utils import MdfException, get_text_v3, SignalSource, UINT16_u, UINT32_u
+from .utils import MdfException, get_text_v3, SignalSource, UINT16_u, UINT16_uf, UINT32_u
 from ..version import __version__
 
 
@@ -22,8 +22,11 @@ SEEK_END = v23c.SEEK_END
 
 
 CHANNEL_DISPLAYNAME_u = v23c.CHANNEL_DISPLAYNAME_u
+CHANNEL_DISPLAYNAME_uf = v23c.CHANNEL_DISPLAYNAME_uf
 CHANNEL_LONGNAME_u = v23c.CHANNEL_LONGNAME_u
+CHANNEL_LONGNAME_uf = v23c.CHANNEL_LONGNAME_uf
 CHANNEL_SHORT_u = v23c.CHANNEL_SHORT_u
+CHANNEL_SHORT_uf = v23c.CHANNEL_SHORT_uf
 COMMON_uf = v23c.COMMON_uf
 COMMON_u = v23c.COMMON_u
 CONVERSION_COMMON_SHORT_uf = v23c.CONVERSION_COMMON_SHORT_uf
@@ -167,137 +170,255 @@ class Channel:
         try:
             stream = kwargs["stream"]
             self.address = address = kwargs["address"]
-            stream.seek(address + 2)
-            (size,) = UINT16_u(stream.read(2))
-            stream.seek(address)
-            block = stream.read(size)
-
+            mapped = kwargs.get("mapped", False)
             load_metadata = kwargs.get("load_metadata", True)
 
-            if size == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
-                (
-                    self.id,
-                    self.block_len,
-                    self.next_ch_addr,
-                    self.conversion_addr,
-                    self.source_addr,
-                    self.ch_depend_addr,
-                    self.comment_addr,
-                    self.channel_type,
-                    self.short_name,
-                    self.description,
-                    self.start_offset,
-                    self.bit_count,
-                    self.data_type,
-                    self.range_flag,
-                    self.min_raw_value,
-                    self.max_raw_value,
-                    self.sampling_rate,
-                    self.long_name_addr,
-                    self.display_name_addr,
-                    self.additional_byte_offset,
-                ) = CHANNEL_DISPLAYNAME_u(block)
+            if mapped:
+                (size,) = UINT16_uf(stream, address + 2)
 
-                addr = self.long_name_addr
-                if addr:
-                    self.name = get_text_v3(address=addr, stream=stream)
+                if size == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
+                    (
+                        self.id,
+                        self.block_len,
+                        self.next_ch_addr,
+                        self.conversion_addr,
+                        self.source_addr,
+                        self.ch_depend_addr,
+                        self.comment_addr,
+                        self.channel_type,
+                        self.short_name,
+                        self.description,
+                        self.start_offset,
+                        self.bit_count,
+                        self.data_type,
+                        self.range_flag,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.sampling_rate,
+                        self.long_name_addr,
+                        self.display_name_addr,
+                        self.additional_byte_offset,
+                    ) = CHANNEL_DISPLAYNAME_uf(stream, address)
+
+                    addr = self.long_name_addr
+                    if addr:
+                        self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+                    else:
+                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
+                    addr = self.display_name_addr
+                    if addr:
+                        self.display_name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+
+                    if load_metadata:
+                        addr = self.conversion_addr
+                        if addr:
+                            self.conversion = ChannelConversion(address=addr, stream=stream, mapped=mapped)
+
+                        addr = self.source_addr
+                        if addr:
+                            self.source = ChannelExtension(address=addr, stream=stream, mapped=mapped)
+
+                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
+
+                elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
+                    (
+                        self.id,
+                        self.block_len,
+                        self.next_ch_addr,
+                        self.conversion_addr,
+                        self.source_addr,
+                        self.ch_depend_addr,
+                        self.comment_addr,
+                        self.channel_type,
+                        self.short_name,
+                        self.description,
+                        self.start_offset,
+                        self.bit_count,
+                        self.data_type,
+                        self.range_flag,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.sampling_rate,
+                        self.long_name_addr,
+                    ) = CHANNEL_LONGNAME_uf(stream, address)
+
+                    addr = self.long_name_addr
+                    if addr:
+                        self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+                    else:
+                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
+                    if load_metadata:
+
+                        addr = self.conversion_addr
+                        if addr:
+                            self.conversion = ChannelConversion(address=addr, stream=stream, mapped=mapped)
+
+                        addr = self.source_addr
+                        if addr:
+                            self.source = ChannelExtension(address=addr, stream=stream, mapped=mapped)
+
+                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
                 else:
+                    (
+                        self.id,
+                        self.block_len,
+                        self.next_ch_addr,
+                        self.conversion_addr,
+                        self.source_addr,
+                        self.ch_depend_addr,
+                        self.comment_addr,
+                        self.channel_type,
+                        self.short_name,
+                        self.description,
+                        self.start_offset,
+                        self.bit_count,
+                        self.data_type,
+                        self.range_flag,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.sampling_rate,
+                    ) = CHANNEL_SHORT_uf(stream, address)
+
                     self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
-                addr = self.display_name_addr
-                if addr:
-                    self.display_name = get_text_v3(address=addr, stream=stream)
+                    if load_metadata:
 
-                if load_metadata:
-                    addr = self.conversion_addr
-                    if addr:
-                        self.conversion = ChannelConversion(address=addr, stream=stream)
+                        addr = self.conversion_addr
+                        if addr:
+                            self.conversion = ChannelConversion(address=addr, stream=stream)
 
-                    addr = self.source_addr
-                    if addr:
-                        self.source = ChannelExtension(address=addr, stream=stream)
+                        addr = self.source_addr
+                        if addr:
+                            self.source = ChannelExtension(address=addr, stream=stream)
 
-                    addr = self.comment_addr
-                    if addr:
-                        self.comment = get_text_v3(address=addr, stream=stream)
+                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
 
-            elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
-                (
-                    self.id,
-                    self.block_len,
-                    self.next_ch_addr,
-                    self.conversion_addr,
-                    self.source_addr,
-                    self.ch_depend_addr,
-                    self.comment_addr,
-                    self.channel_type,
-                    self.short_name,
-                    self.description,
-                    self.start_offset,
-                    self.bit_count,
-                    self.data_type,
-                    self.range_flag,
-                    self.min_raw_value,
-                    self.max_raw_value,
-                    self.sampling_rate,
-                    self.long_name_addr,
-                ) = CHANNEL_LONGNAME_u(block)
-
-                addr = self.long_name_addr
-                if addr:
-                    self.name = get_text_v3(address=addr, stream=stream)
-                else:
-                    self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
-
-                if load_metadata:
-
-                    addr = self.conversion_addr
-                    if addr:
-                        self.conversion = ChannelConversion(address=addr, stream=stream)
-
-                    addr = self.source_addr
-                    if addr:
-                        self.source = ChannelExtension(address=addr, stream=stream)
-
-                    addr = self.comment_addr
-                    if addr:
-                        self.comment = get_text_v3(address=addr, stream=stream)
             else:
-                (
-                    self.id,
-                    self.block_len,
-                    self.next_ch_addr,
-                    self.conversion_addr,
-                    self.source_addr,
-                    self.ch_depend_addr,
-                    self.comment_addr,
-                    self.channel_type,
-                    self.short_name,
-                    self.description,
-                    self.start_offset,
-                    self.bit_count,
-                    self.data_type,
-                    self.range_flag,
-                    self.min_raw_value,
-                    self.max_raw_value,
-                    self.sampling_rate,
-                ) = CHANNEL_SHORT_u(block)
+                stream.seek(address + 2)
+                (size,) = UINT16_u(stream.read(2))
+                stream.seek(address)
+                block = stream.read(size)
 
-                self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                if size == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
+                    (
+                        self.id,
+                        self.block_len,
+                        self.next_ch_addr,
+                        self.conversion_addr,
+                        self.source_addr,
+                        self.ch_depend_addr,
+                        self.comment_addr,
+                        self.channel_type,
+                        self.short_name,
+                        self.description,
+                        self.start_offset,
+                        self.bit_count,
+                        self.data_type,
+                        self.range_flag,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.sampling_rate,
+                        self.long_name_addr,
+                        self.display_name_addr,
+                        self.additional_byte_offset,
+                    ) = CHANNEL_DISPLAYNAME_u(block)
 
-                if load_metadata:
-
-                    addr = self.conversion_addr
+                    addr = self.long_name_addr
                     if addr:
-                        self.conversion = ChannelConversion(address=addr, stream=stream)
+                        self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+                    else:
+                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
-                    addr = self.source_addr
+                    addr = self.display_name_addr
                     if addr:
-                        self.source = ChannelExtension(address=addr, stream=stream)
+                        self.display_name = get_text_v3(address=addr, stream=stream, mapped=mapped)
 
-                    addr = self.comment_addr
+                    if load_metadata:
+                        addr = self.conversion_addr
+                        if addr:
+                            self.conversion = ChannelConversion(address=addr, stream=stream, mapped=mapped)
+
+                        addr = self.source_addr
+                        if addr:
+                            self.source = ChannelExtension(address=addr, stream=stream, mapped=mapped)
+
+                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
+
+                elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
+                    (
+                        self.id,
+                        self.block_len,
+                        self.next_ch_addr,
+                        self.conversion_addr,
+                        self.source_addr,
+                        self.ch_depend_addr,
+                        self.comment_addr,
+                        self.channel_type,
+                        self.short_name,
+                        self.description,
+                        self.start_offset,
+                        self.bit_count,
+                        self.data_type,
+                        self.range_flag,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.sampling_rate,
+                        self.long_name_addr,
+                    ) = CHANNEL_LONGNAME_u(block)
+
+                    addr = self.long_name_addr
                     if addr:
-                        self.comment = get_text_v3(address=addr, stream=stream)
+                        self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+                    else:
+                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
+                    if load_metadata:
+
+                        addr = self.conversion_addr
+                        if addr:
+                            self.conversion = ChannelConversion(address=addr, stream=stream, mapped=mapped)
+
+                        addr = self.source_addr
+                        if addr:
+                            self.source = ChannelExtension(address=addr, stream=stream, mapped=mapped)
+
+                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
+                else:
+                    (
+                        self.id,
+                        self.block_len,
+                        self.next_ch_addr,
+                        self.conversion_addr,
+                        self.source_addr,
+                        self.ch_depend_addr,
+                        self.comment_addr,
+                        self.channel_type,
+                        self.short_name,
+                        self.description,
+                        self.start_offset,
+                        self.bit_count,
+                        self.data_type,
+                        self.range_flag,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.sampling_rate,
+                    ) = CHANNEL_SHORT_u(block)
+
+                    self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
+                    if load_metadata:
+
+                        addr = self.conversion_addr
+                        if addr:
+                            self.conversion = ChannelConversion(address=addr, stream=stream)
+
+                        addr = self.source_addr
+                        if addr:
+                            self.source = ChannelExtension(address=addr, stream=stream)
+
+                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
 
             if self.id != b"CN":
                 message = f'Expected "CN" block @{hex(address)} but found "{self.id}"'
