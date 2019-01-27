@@ -20,11 +20,11 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="channels_tab">
       <attribute name="icon">
-       <iconset>
+       <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
         <normaloff>:/graph.png</normaloff>:/graph.png</iconset>
       </attribute>
       <attribute name="title">
@@ -45,7 +45,7 @@
      </widget>
      <widget class="QWidget" name="convert_tab">
       <attribute name="icon">
-       <iconset>
+       <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
         <normaloff>:/convert.png</normaloff>:/convert.png</iconset>
       </attribute>
       <attribute name="title">
@@ -172,7 +172,7 @@
             <string>Convert</string>
            </property>
            <property name="icon">
-            <iconset>
+            <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
              <normaloff>:/convert.png</normaloff>:/convert.png</iconset>
            </property>
           </widget>
@@ -183,7 +183,7 @@
      </widget>
      <widget class="QWidget" name="cut_tab">
       <attribute name="icon">
-       <iconset>
+       <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
         <normaloff>:/cut.png</normaloff>:/cut.png</iconset>
       </attribute>
       <attribute name="title">
@@ -217,7 +217,7 @@
             <string>Cut</string>
            </property>
            <property name="icon">
-            <iconset>
+            <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
              <normaloff>:/cut.png</normaloff>:/cut.png</iconset>
            </property>
           </widget>
@@ -372,7 +372,7 @@
      </widget>
      <widget class="QWidget" name="export_tab">
       <attribute name="icon">
-       <iconset>
+       <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
         <normaloff>:/export.png</normaloff>:/export.png</iconset>
       </attribute>
       <attribute name="title">
@@ -455,7 +455,7 @@
             <string>Export</string>
            </property>
            <property name="icon">
-            <iconset>
+            <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
              <normaloff>:/export.png</normaloff>:/export.png</iconset>
            </property>
           </widget>
@@ -548,7 +548,7 @@
      </widget>
      <widget class="QWidget" name="filter_tab">
       <attribute name="icon">
-       <iconset>
+       <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
         <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
       </attribute>
       <attribute name="title">
@@ -575,7 +575,7 @@
             <string>Filter</string>
            </property>
            <property name="icon">
-            <iconset>
+            <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
              <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
            </property>
           </widget>
@@ -689,7 +689,7 @@
             <string>Clear selection</string>
            </property>
            <property name="icon">
-            <iconset>
+            <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
              <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
            </property>
           </widget>
@@ -709,7 +709,7 @@
               <string>Load selection</string>
              </property>
              <property name="icon">
-              <iconset>
+              <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
                <normaloff>:/open.png</normaloff>:/open.png</iconset>
              </property>
             </widget>
@@ -720,7 +720,7 @@
               <string>Save selection</string>
              </property>
              <property name="icon">
-              <iconset>
+              <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
                <normaloff>:/save.png</normaloff>:/save.png</iconset>
              </property>
             </widget>
@@ -733,7 +733,7 @@
      </widget>
      <widget class="QWidget" name="resample_tab">
       <attribute name="icon">
-       <iconset>
+       <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
         <normaloff>:/resample.png</normaloff>:/resample.png</iconset>
       </attribute>
       <attribute name="title">
@@ -857,7 +857,7 @@
             <string>Resample</string>
            </property>
            <property name="icon">
-            <iconset>
+            <iconset resource="../../../../../asammdf/asammdf/gui/ui/resource.qrc">
              <normaloff>:/resample.png</normaloff>:/resample.png</iconset>
            </property>
           </widget>
