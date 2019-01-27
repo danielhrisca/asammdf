@@ -32,6 +32,7 @@ UINT64_uf = Struct("<Q").unpack_from
 FLOAT64_u = Struct("<d").unpack
 FLOAT64_uf = Struct("<d").unpack_from
 TWO_UINT64_u = Struct("<2Q").unpack
+TWO_UINT64_uf = Struct("<2Q").unpack_from
 
 _xmlns_pattern = re.compile(' xmlns="[^"]*"')
 
@@ -212,7 +213,7 @@ def get_text_v3(address, stream):
     return text
 
 
-def get_text_v4(address, stream):
+def get_text_v4(address, stream, mapped=False):
     """ faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
@@ -232,9 +233,15 @@ def get_text_v4(address, stream):
     if address == 0:
         return ""
 
-    stream.seek(address + 8)
-    size, _ = TWO_UINT64_u(stream.read(16))
-    text_bytes = stream.read(size - 24)
+    if mapped:
+        size, _ = TWO_UINT64_uf(stream, address + 8)
+        text_bytes = stream[address + 24: address + size]
+        # stream.seek(address + 24)
+        # text_bytes = stream.read(size - 24)
+    else:
+        stream.seek(address + 8)
+        size, _ = TWO_UINT64_u(stream.read(16))
+        text_bytes = stream.read(size - 24)
     try:
         text = text_bytes.strip(b" \r\t\n\0").decode("utf-8")
     except UnicodeDecodeError as err:

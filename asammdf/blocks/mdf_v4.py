@@ -15,6 +15,7 @@ from struct import unpack
 from tempfile import TemporaryFile
 from zlib import decompress
 from pathlib import Path
+import mmap
 
 from numpy import (
     arange,
@@ -231,11 +232,15 @@ class MDF4(object):
                 self._file = name
                 self.name = Path("From_FileLike.mf4")
                 self._from_filelike = True
+                self._read(mapped=False)
             else:
                 self.name = Path(name)
-                self._file = open(self.name, "rb")
+                x = open(self.name, "r+b")
+                self._file = mmap.mmap(x.fileno(), 0)
                 self._from_filelike = False
-            self._read()
+                self._read(mapped=True)
+
+                self._file = x
 
         else:
             self._from_filelike = False
@@ -291,7 +296,7 @@ class MDF4(object):
 
             logger.warning(message)
 
-    def _read(self):
+    def _read(self, mapped=False):
 
         stream = self._file
         dg_cntr = 0
@@ -445,7 +450,7 @@ class MDF4(object):
 
                 # Read channels by walking recursively in the channel group
                 # starting from the first channel
-                self._read_channels(ch_addr, grp, stream, dg_cntr, ch_cntr, neg_ch_cntr)
+                self._read_channels(ch_addr, grp, stream, dg_cntr, ch_cntr, neg_ch_cntr, mapped=mapped)
 
                 cg_addr = channel_group.next_cg_addr
                 dg_cntr += 1
@@ -736,6 +741,7 @@ class MDF4(object):
         ch_cntr,
         neg_ch_cntr,
         channel_composition=False,
+        mapped=False,
     ):
 
         channels = grp.channels
@@ -754,6 +760,7 @@ class MDF4(object):
                 si_map=self._si_map,
                 at_map=self._attachments_map,
                 use_display_names=self._use_display_names,
+                mapped=mapped,
             )
             value = channel
             display_name = channel.display_name
@@ -788,7 +795,7 @@ class MDF4(object):
                     index = ch_cntr - 1
                     dependencies.append(None)
                     ch_cntr, neg_ch_cntr, ret_composition, ret_composition_dtype = self._read_channels(
-                        component_addr, grp, stream, dg_cntr, ch_cntr, neg_ch_cntr, True
+                        component_addr, grp, stream, dg_cntr, ch_cntr, neg_ch_cntr, True, mapped=mapped
                     )
                     dependencies[index] = ret_composition
 

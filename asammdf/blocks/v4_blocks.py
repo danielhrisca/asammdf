@@ -24,6 +24,7 @@ from .utils import (
     SignalSource,
     UINT8_uf,
     UINT64_u,
+    UINT64_uf,
     FLOAT64_u,
     sanitize_xml,
 )
@@ -444,160 +445,325 @@ class Channel:
 
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            stream.seek(address)
+            mapped = kwargs.get('mapped', False)
 
-            block = stream.read(CN_BLOCK_SIZE)
+            if mapped:
 
-            (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(block)
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
-            if self.block_len == CN_BLOCK_SIZE:
+                if self.block_len == CN_BLOCK_SIZE:
 
-                (
-                    self.next_ch_addr,
-                    self.component_addr,
-                    self.name_addr,
-                    self.source_addr,
-                    self.conversion_addr,
-                    self.data_block_addr,
-                    self.unit_addr,
-                    self.comment_addr,
-                    self.channel_type,
-                    self.sync_type,
-                    self.data_type,
-                    self.bit_offset,
-                    self.byte_offset,
-                    self.bit_count,
-                    self.flags,
-                    self.pos_invalidation_bit,
-                    self.precision,
-                    self.reserved1,
-                    self.attachment_nr,
-                    self.min_raw_value,
-                    self.max_raw_value,
-                    self.lower_limit,
-                    self.upper_limit,
-                    self.lower_ext_limit,
-                    self.upper_ext_limit,
-                ) = SIMPLE_CHANNEL_PARAMS_uf(block, COMMON_SIZE)
-
-            else:
-
-                block = block[24:] + stream.read(self.block_len - CN_BLOCK_SIZE)
-                links_nr = self.links_nr
-
-                links = unpack_from(f"<{links_nr}Q", block)
-                params = unpack_from(v4c.FMT_CHANNEL_PARAMS, block, links_nr * 8)
-
-                (
-                    self.next_ch_addr,
-                    self.component_addr,
-                    self.name_addr,
-                    self.source_addr,
-                    self.conversion_addr,
-                    self.data_block_addr,
-                    self.unit_addr,
-                    self.comment_addr,
-                ) = links[:8]
-
-                at_map = kwargs.get("at_map", {})
-                if params[10]:
-                    self.attachment = []
-                    self.attachment_addr = links[8]
-                    self.attachment = at_map.get(links[8], 0)
-                    self.links_nr -= params[10] - 1
-                    self.block_len -= (params[10] - 1) * 8
-                    params[10] = 1
-
-                if params[6] & v4c.FLAG_CN_DEFAULT_X:
                     (
-                        self.default_X_dg_addr,
-                        self.default_X_cg_addr,
-                        self.default_X_ch_addr,
-                    ) = links[-3:]
+                        self.next_ch_addr,
+                        self.component_addr,
+                        self.name_addr,
+                        self.source_addr,
+                        self.conversion_addr,
+                        self.data_block_addr,
+                        self.unit_addr,
+                        self.comment_addr,
+                        self.channel_type,
+                        self.sync_type,
+                        self.data_type,
+                        self.bit_offset,
+                        self.byte_offset,
+                        self.bit_count,
+                        self.flags,
+                        self.pos_invalidation_bit,
+                        self.precision,
+                        self.reserved1,
+                        self.attachment_nr,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.lower_limit,
+                        self.upper_limit,
+                        self.lower_ext_limit,
+                        self.upper_ext_limit,
+                    ) = SIMPLE_CHANNEL_PARAMS_uf(stream, address + COMMON_SIZE)
 
-                    # default X not supported yet
+                else:
+
+                    stream.seek(address + COMMON_SIZE)
+                    block = stream.read(self.block_len - COMMON_SIZE)
+                    links_nr = self.links_nr
+
+                    links = unpack_from(f"<{links_nr}Q", block)
+                    params = unpack_from(v4c.FMT_CHANNEL_PARAMS, block, links_nr * 8)
+
                     (
-                        self.default_X_dg_addr,
-                        self.default_X_cg_addr,
-                        self.default_X_ch_addr,
-                    ) = (0, 0, 0)
+                        self.next_ch_addr,
+                        self.component_addr,
+                        self.name_addr,
+                        self.source_addr,
+                        self.conversion_addr,
+                        self.data_block_addr,
+                        self.unit_addr,
+                        self.comment_addr,
+                    ) = links[:8]
 
-                (
-                    self.channel_type,
-                    self.sync_type,
-                    self.data_type,
-                    self.bit_offset,
-                    self.byte_offset,
-                    self.bit_count,
-                    self.flags,
-                    self.pos_invalidation_bit,
-                    self.precision,
-                    self.reserved1,
-                    self.attachment_nr,
-                    self.min_raw_value,
-                    self.max_raw_value,
-                    self.lower_limit,
-                    self.upper_limit,
-                    self.lower_ext_limit,
-                    self.upper_ext_limit,
-                ) = params
+                    at_map = kwargs.get("at_map", {})
+                    if params[10]:
+                        self.attachment = []
+                        self.attachment_addr = links[8]
+                        self.attachment = at_map.get(links[8], 0)
+                        self.links_nr -= params[10] - 1
+                        self.block_len -= (params[10] - 1) * 8
+                        params[10] = 1
 
-            if self.id != b"##CN":
-                message = f'Expected "##CN" block @{hex(address)} but found "{self.id}"'
-                logger.exception(message)
-                raise MdfException(message)
+                    if params[6] & v4c.FLAG_CN_DEFAULT_X:
+                        (
+                            self.default_X_dg_addr,
+                            self.default_X_cg_addr,
+                            self.default_X_ch_addr,
+                        ) = links[-3:]
 
-            self.name = get_text_v4(self.name_addr, stream)
-            self.unit = get_text_v4(self.unit_addr, stream)
-            self.comment = get_text_v4(self.comment_addr, stream)
+                        # default X not supported yet
+                        (
+                            self.default_X_dg_addr,
+                            self.default_X_cg_addr,
+                            self.default_X_ch_addr,
+                        ) = (0, 0, 0)
 
-            if kwargs.get("use_display_names", True):
-                try:
-                    display_name = ET.fromstring(sanitize_xml(self.comment)).find(
-                        ".//names/display"
-                    )
-                    if display_name is not None:
-                        self.display_name = display_name.text
-                except:
+                    (
+                        self.channel_type,
+                        self.sync_type,
+                        self.data_type,
+                        self.bit_offset,
+                        self.byte_offset,
+                        self.bit_count,
+                        self.flags,
+                        self.pos_invalidation_bit,
+                        self.precision,
+                        self.reserved1,
+                        self.attachment_nr,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.lower_limit,
+                        self.upper_limit,
+                        self.lower_ext_limit,
+                        self.upper_ext_limit,
+                    ) = params
+
+                if self.id != b"##CN":
+                    message = f'Expected "##CN" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
+
+                self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
+                self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped)
+                self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+
+                if kwargs.get("use_display_names", True):
+                    try:
+                        display_name = ET.fromstring(sanitize_xml(self.comment)).find(
+                            ".//names/display"
+                        )
+                        if display_name is not None:
+                            self.display_name = display_name.text
+                    except:
+                        self.display_name = ""
+                else:
                     self.display_name = ""
-            else:
-                self.display_name = ""
 
-            si_map = kwargs.get("si_map", {})
-            cc_map = kwargs.get("cc_map", {})
+                si_map = kwargs.get("si_map", {})
+                cc_map = kwargs.get("cc_map", {})
 
-            address = self.conversion_addr
-            if address:
-                stream.seek(address + 8)
-                (size,) = UINT64_u(stream.read(8))
-                stream.seek(address)
-                raw_bytes = stream.read(size)
-                if raw_bytes in cc_map:
-                    conv = cc_map[raw_bytes]
+                address = self.conversion_addr
+                if address:
+                    if mapped:
+                        (size,) = UINT64_uf(stream, address + 8)
+                        raw_bytes = stream[address: address + size]
+                    else:
+                        stream.seek(address + 8)
+                        (size,) = UINT64_u(stream.read(8))
+                        stream.seek(address)
+                        raw_bytes = stream.read(size)
+                    if raw_bytes in cc_map:
+                        conv = cc_map[raw_bytes]
+                    else:
+                        conv = ChannelConversion(
+                            raw_bytes=raw_bytes, stream=stream, address=address,
+                            mapped=mapped,
+                        )
+                        cc_map[raw_bytes] = conv
+                    self.conversion = conv
                 else:
-                    conv = ChannelConversion(
-                        raw_bytes=raw_bytes, stream=stream, address=address
-                    )
-                    cc_map[raw_bytes] = conv
-                self.conversion = conv
-            else:
-                self.conversion = None
+                    self.conversion = None
 
-            address = self.source_addr
-            if address:
-                stream.seek(address)
-                raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
-                if raw_bytes in si_map:
-                    source = si_map[raw_bytes]
+                address = self.source_addr
+                if address:
+                    if mapped:
+                        raw_bytes = stream[address: address + v4c.SI_BLOCK_SIZE]
+                    else:
+                        stream.seek(address)
+                        raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                    if raw_bytes in si_map:
+                        source = si_map[raw_bytes]
+                    else:
+                        source = SourceInformation(
+                            raw_bytes=raw_bytes, stream=stream, address=address,
+                            mapped=mapped,
+                        )
+                        si_map[raw_bytes] = source
+                    self.source = source
                 else:
-                    source = SourceInformation(
-                        raw_bytes=raw_bytes, stream=stream, address=address
-                    )
-                    si_map[raw_bytes] = source
-                self.source = source
+                    self.source = None
+                self.dtype_fmt = self.attachment = None
             else:
-                self.source = None
-            self.dtype_fmt = self.attachment = None
+                stream.seek(address)
+
+                block = stream.read(CN_BLOCK_SIZE)
+
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(block)
+
+                if self.block_len == CN_BLOCK_SIZE:
+
+                    (
+                        self.next_ch_addr,
+                        self.component_addr,
+                        self.name_addr,
+                        self.source_addr,
+                        self.conversion_addr,
+                        self.data_block_addr,
+                        self.unit_addr,
+                        self.comment_addr,
+                        self.channel_type,
+                        self.sync_type,
+                        self.data_type,
+                        self.bit_offset,
+                        self.byte_offset,
+                        self.bit_count,
+                        self.flags,
+                        self.pos_invalidation_bit,
+                        self.precision,
+                        self.reserved1,
+                        self.attachment_nr,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.lower_limit,
+                        self.upper_limit,
+                        self.lower_ext_limit,
+                        self.upper_ext_limit,
+                    ) = SIMPLE_CHANNEL_PARAMS_uf(block, COMMON_SIZE)
+
+                else:
+
+                    block = block[24:] + stream.read(self.block_len - CN_BLOCK_SIZE)
+                    links_nr = self.links_nr
+
+                    links = unpack_from(f"<{links_nr}Q", block)
+                    params = unpack_from(v4c.FMT_CHANNEL_PARAMS, block, links_nr * 8)
+
+                    (
+                        self.next_ch_addr,
+                        self.component_addr,
+                        self.name_addr,
+                        self.source_addr,
+                        self.conversion_addr,
+                        self.data_block_addr,
+                        self.unit_addr,
+                        self.comment_addr,
+                    ) = links[:8]
+
+                    at_map = kwargs.get("at_map", {})
+                    if params[10]:
+                        self.attachment = []
+                        self.attachment_addr = links[8]
+                        self.attachment = at_map.get(links[8], 0)
+                        self.links_nr -= params[10] - 1
+                        self.block_len -= (params[10] - 1) * 8
+                        params[10] = 1
+
+                    if params[6] & v4c.FLAG_CN_DEFAULT_X:
+                        (
+                            self.default_X_dg_addr,
+                            self.default_X_cg_addr,
+                            self.default_X_ch_addr,
+                        ) = links[-3:]
+
+                        # default X not supported yet
+                        (
+                            self.default_X_dg_addr,
+                            self.default_X_cg_addr,
+                            self.default_X_ch_addr,
+                        ) = (0, 0, 0)
+
+                    (
+                        self.channel_type,
+                        self.sync_type,
+                        self.data_type,
+                        self.bit_offset,
+                        self.byte_offset,
+                        self.bit_count,
+                        self.flags,
+                        self.pos_invalidation_bit,
+                        self.precision,
+                        self.reserved1,
+                        self.attachment_nr,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.lower_limit,
+                        self.upper_limit,
+                        self.lower_ext_limit,
+                        self.upper_ext_limit,
+                    ) = params
+
+                if self.id != b"##CN":
+                    message = f'Expected "##CN" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
+
+                self.name = get_text_v4(self.name_addr, stream)
+                self.unit = get_text_v4(self.unit_addr, stream)
+                self.comment = get_text_v4(self.comment_addr, stream)
+
+                if kwargs.get("use_display_names", True):
+                    try:
+                        display_name = ET.fromstring(sanitize_xml(self.comment)).find(
+                            ".//names/display"
+                        )
+                        if display_name is not None:
+                            self.display_name = display_name.text
+                    except:
+                        self.display_name = ""
+                else:
+                    self.display_name = ""
+
+                si_map = kwargs.get("si_map", {})
+                cc_map = kwargs.get("cc_map", {})
+
+                address = self.conversion_addr
+                if address:
+                    stream.seek(address + 8)
+                    (size,) = UINT64_u(stream.read(8))
+                    stream.seek(address)
+                    raw_bytes = stream.read(size)
+                    if raw_bytes in cc_map:
+                        conv = cc_map[raw_bytes]
+                    else:
+                        conv = ChannelConversion(
+                            raw_bytes=raw_bytes, stream=stream, address=address
+                        )
+                        cc_map[raw_bytes] = conv
+                    self.conversion = conv
+                else:
+                    self.conversion = None
+
+                address = self.source_addr
+                if address:
+                    stream.seek(address)
+                    raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                    if raw_bytes in si_map:
+                        source = si_map[raw_bytes]
+                    else:
+                        source = SourceInformation(
+                            raw_bytes=raw_bytes, stream=stream, address=address
+                        )
+                        si_map[raw_bytes] = source
+                    self.source = source
+                else:
+                    self.source = None
+                self.dtype_fmt = self.attachment = None
         else:
             self.address = 0
             self.name = self.comment = self.display_name = self.unit = ""
@@ -1543,6 +1709,9 @@ class ChannelConversion(_ChannelConversionBase):
         self.referenced_blocks = None
 
         if "stream" in kwargs:
+            mapped = kwargs.get("mapped", False)
+            if not mapped:
+                1/0
             stream = kwargs["stream"]
             try:
                 block = kwargs["raw_bytes"]
@@ -1809,9 +1978,9 @@ class ChannelConversion(_ChannelConversionBase):
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.name = get_text_v4(self.name_addr, stream)
-            self.unit = get_text_v4(self.unit_addr, stream)
-            self.comment = get_text_v4(self.comment_addr, stream)
+            self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
+            self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped)
+            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
             self.formula = ""
             self.referenced_blocks = None
 
@@ -1833,7 +2002,7 @@ class ChannelConversion(_ChannelConversionBase):
                             block = TextBlock(address=address, stream=stream)
                             refs[f"text_{i}"] = block
                         except MdfException:
-                            block = ChannelConversion(address=address, stream=stream)
+                            block = ChannelConversion(address=address, stream=stream, mapped=mapped)
                             refs[f"text_{i}"] = block
 
                     else:
@@ -1845,7 +2014,7 @@ class ChannelConversion(_ChannelConversionBase):
                             block = TextBlock(address=address, stream=stream)
                             refs["default_addr"] = block
                         except MdfException:
-                            block = ChannelConversion(address=address, stream=stream)
+                            block = ChannelConversion(address=address, stream=stream, mapped=mapped)
                             refs["default_addr"] = block
                     else:
                         refs["default_addr"] = None
@@ -4201,6 +4370,7 @@ class SourceInformation:
         if "stream" in kwargs:
 
             stream = kwargs["stream"]
+            mapped = kwargs.get("mapped", False)
             try:
                 block = kwargs["raw_bytes"]
                 self.address = kwargs.get("address", 0)
@@ -4229,9 +4399,9 @@ class SourceInformation:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.name = get_text_v4(address=self.name_addr, stream=stream)
-            self.path = get_text_v4(address=self.path_addr, stream=stream)
-            self.comment = get_text_v4(address=self.comment_addr, stream=stream)
+            self.name = get_text_v4(address=self.name_addr, stream=stream, mapped=mapped)
+            self.path = get_text_v4(address=self.path_addr, stream=stream, mapped=mapped)
+            self.comment = get_text_v4(address=self.comment_addr, stream=stream, mapped=mapped)
 
         else:
             self.address = 0
@@ -4462,8 +4632,6 @@ class TextBlock:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        fmt = v4c.FMT_TEXT_BLOCK.format(self.block_len - COMMON_SIZE)
-        result = pack(
-            fmt, self.id, self.reserved0, self.block_len, self.links_nr, self.text
-        )
-        return result
+        return v4c.COMMON_p(
+            self.id, self.reserved0, self.block_len, self.links_nr
+        ) + pack(f"{self.block_len - COMMON_SIZE}s", self.text)
