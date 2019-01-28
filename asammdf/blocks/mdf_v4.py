@@ -3844,7 +3844,7 @@ class MDF4(object):
             if name is None:
                 name = channel.name
 
-            if all(not isinstance(dep, ChannelArrayBlock) for dep in dependency_list):
+            if not isinstance(dependency_list[0], ChannelArrayBlock):
                 # structure channel composition
 
                 _dtype = dtype(channel.dtype_fmt)

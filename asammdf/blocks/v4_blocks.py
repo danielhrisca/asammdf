@@ -69,29 +69,40 @@ class AttachmentBlock:
     When adding new attachments only embedded attachments are allowed, with
     keyword argument *data* of type bytes
 
-    *AttachmentBlock* has the following key-value pairs
-
-    * ``id`` - bytes : block ID; always b'##AT'
-    * ``reserved0`` - int : reserved bytes
-    * ``block_len`` - int : block bytes size
-    * ``links_nr`` - int : number of links
-    * ``next_at_addr`` - int : next ATBLOCK address
-    * ``file_name_addr`` - int : address of TXBLOCK that contains the attachment
-      file name
-    * ``mime_addr`` - int : address of TXBLOCK that contains the attachment
-      mime type description
-    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
-      attachment comment
-    * ``flags`` - int : ATBLOCK flags
-    * ``creator_index`` - int : index of file history block
-    * ``reserved1`` - int : reserved bytes
-    * ``md5_sum`` - bytes : attachment file md5 sum
-    * ``original_size`` - int : original uncompress file size in bytes
-    * ``embedded_size`` - int : embedded compressed file size in bytes
-    * ``embedded_data`` - bytes : embedded atatchment bytes
-
     Attributes
     ----------
+    address : int
+        attachment address
+    id : bytes
+        block ID; always b'##AT'
+    reserved0 : int
+        reserved bytes
+    block_len : int
+        block bytes size
+    links_nr : int
+        number of links
+    next_at_addr : int
+        next ATBLOCK address
+    file_name_addr : int
+        address of TXBLOCK that contains the attachment file name
+    mime_addr : int
+        address of TXBLOCK that contains the attachment mime type description
+    comment_addr : int
+        address of TXBLOCK/MDBLOCK that contains the attachment comment
+    flags : int
+        ATBLOCK flags
+    creator_index : int
+        index of file history block
+    reserved1 : int
+        reserved bytes
+    md5_sum : bytes
+        attachment file md5 sum
+    original_size : int
+        original uncompress file size in bytes
+    embedded_size : int
+        embedded compressed file size in bytes
+    embedded_data : bytes
+        embedded atatchment bytes
     address : int
         attachment address
     file_name : pathlib.Path
