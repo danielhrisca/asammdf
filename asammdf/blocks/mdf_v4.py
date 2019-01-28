@@ -1548,18 +1548,6 @@ class MDF4(object):
         fields = []
         types = []
 
-        canopen_time_fields = ("ms", "days")
-        canopen_date_fields = (
-            "ms",
-            "min",
-            "hour",
-            "day",
-            "month",
-            "year",
-            "summer_time",
-            "day_of_week",
-        )
-
         file = self._tempfile
         seek = file.seek
         seek(0, 2)
@@ -1656,7 +1644,7 @@ class MDF4(object):
                 if samples.dtype.kind in "SV":
                     sig_type = v4c.SIGNAL_TYPE_STRING
             else:
-                if fld_names in (canopen_time_fields, canopen_date_fields):
+                if fld_names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
                 elif fld_names[0] != name:
                     sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
@@ -2314,18 +2302,6 @@ class MDF4(object):
         else:
             t = []
 
-        canopen_time_fields = ("ms", "days")
-        canopen_date_fields = (
-            "ms",
-            "min",
-            "hour",
-            "day",
-            "month",
-            "year",
-            "summer_time",
-            "day_of_week",
-        )
-
         dg_cntr = len(self.groups)
 
         gp = Group(None)
@@ -2447,7 +2423,7 @@ class MDF4(object):
                 if sig_dtype.kind in "SV":
                     sig_type = v4c.SIGNAL_TYPE_STRING
             else:
-                if names in (canopen_time_fields, canopen_date_fields):
+                if names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
                 elif names[0] != sig.name:
                     sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
@@ -2550,7 +2526,7 @@ class MDF4(object):
 
                 field_name = field_names.get_unique_name(name)
 
-                if names == canopen_time_fields:
+                if names == v4c.CANOPEN_TIME_FIELDS:
 
                     vals = signal.samples.tostring()
 
@@ -3316,8 +3292,6 @@ class MDF4(object):
 
         stream = self._tempfile
 
-        canopen_time_fields = ("ms", "days")
-
         fields = []
         types = []
         inval_bits = []
@@ -3339,7 +3313,7 @@ class MDF4(object):
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
                 names = signal.dtype.names
 
-                if names == canopen_time_fields:
+                if names == v4c.CANOPEN_TIME_FIELDS:
 
                     vals = signal.tostring()
 
@@ -3795,7 +3769,9 @@ class MDF4(object):
             dependency_list = grp.channel_dependencies[ch_nr]
 
             # get data group record
-            parents, dtypes = self._prepare_record(grp)
+            parents, dtypes = grp.parents, grp.types
+            if parents is None:
+                parents, dtypes = self._prepare_record(grp)
 
             # get group data
             if data is None:
@@ -3845,7 +3821,7 @@ class MDF4(object):
             if name is None:
                 name = channel.name
 
-            if all(not isinstance(dep, ChannelArrayBlock) for dep in dependency_list):
+            if not isinstance(dependency_list, ChannelArrayBlock):
                 # structure channel composition
 
                 _dtype = dtype(channel.dtype_fmt)
@@ -4798,7 +4774,9 @@ class MDF4(object):
 
             else:
                 # get data group parents and dtypes
-                parents, dtypes = self._prepare_record(group)
+                parents, dtype = group.parents, group.types
+                if parents is None:
+                    parents, dtypes = self._prepare_record(group)
 
                 # get data
                 if fragment is None:

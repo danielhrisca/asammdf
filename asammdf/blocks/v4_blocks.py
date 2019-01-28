@@ -800,12 +800,12 @@ class Channel:
             self.links_nr = 8
             self.next_ch_addr = 0
             self.component_addr = 0
-            self.name_addr = kwargs.get("name_addr", 0)
+            self.name_addr = 0
             self.source_addr = 0
             self.conversion_addr = 0
-            self.data_block_addr = kwargs.get("data_block_addr", 0)
-            self.unit_addr = kwargs.get("unit_addr", 0)
-            self.comment_addr = kwargs.get("comment_addr", 0)
+            self.data_block_addr = 0
+            self.unit_addr = 0
+            self.comment_addr = 0
             try:
                 self.attachment_0_addr = kwargs["attachment_addr"]
                 self.block_len += 8

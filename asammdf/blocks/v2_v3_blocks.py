@@ -994,7 +994,7 @@ class ChannelConversion(_ChannelConversionBase):
         else:
 
             self.address = 0
-            self.id = "CC".encode("latin-1")
+            self.id = b"CC"
             self.unit_field = kwargs.get("unit", b"").decode("latin-1")
 
             if kwargs["conversion_type"] == v23c.CONVERSION_TYPE_NONE:

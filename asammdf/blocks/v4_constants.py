@@ -541,3 +541,15 @@ HD_COMMENT_TEMPLATE = """<HDcomment>
     <e name="subject">{}</e>
 </common_properties>
 </HDcomment>"""
+
+CANOPEN_TIME_FIELDS = ("ms", "days")
+CANOPEN_DATE_FIELDS = (
+    "ms",
+    "min",
+    "hour",
+    "day",
+    "month",
+    "year",
+    "summer_time",
+    "day_of_week",
+)
