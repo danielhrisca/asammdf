@@ -83,23 +83,6 @@ class MainWindow(QMainWindow):
         submenu.addActions(memory_option.actions())
         menu.addMenu(submenu)
 
-        # integer stepmode menu
-        memory_option = QActionGroup(self)
-
-        for option in ("Step mode", "Direct connect mode"):
-
-            action = QAction(option, menu)
-            action.setCheckable(True)
-            memory_option.addAction(action)
-            action.triggered.connect(partial(self.set_step_mode, option))
-
-            if option == "Direct connect mode":
-                action.setChecked(True)
-
-        submenu = QMenu("Integer line style", self.menubar)
-        submenu.addActions(memory_option.actions())
-        menu.addMenu(submenu)
-
         # search mode menu
         search_option = QActionGroup(self)
 
@@ -277,14 +260,6 @@ class MainWindow(QMainWindow):
         for i in range(count):
             self.files.widget(i).set_line_style(with_dots=self.with_dots)
 
-    def set_step_mode(self, option):
-        self.step_mode = True if option == "Step mode" else False
-
-        count = self.files.count()
-
-        for i in range(count):
-            self.files.widget(i).set_line_style(step_mode=self.step_mode)
-
     def set_search_option(self, option):
         self.match = option
         count = self.files.count()
@@ -442,7 +417,7 @@ class MainWindow(QMainWindow):
             index = self.files.count()
 
             try:
-                widget = FileWidget(file_name, self.step_mode, self.with_dots, self)
+                widget = FileWidget(file_name, self.with_dots, self)
                 widget.search_field.set_search_option(self.match)
                 widget.filter_field.set_search_option(self.match)
             except:

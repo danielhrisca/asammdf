@@ -2827,7 +2827,7 @@ class ChannelConversion(_ChannelConversionBase):
         template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
-        lines = """
+        lines = f"""
 name: {self.name}
 unit: {self.unit}
 address: {hex(self.address)}

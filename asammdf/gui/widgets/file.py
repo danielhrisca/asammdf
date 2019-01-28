@@ -41,7 +41,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 
 
 class FileWidget(QWidget):
-    def __init__(self, file_name, step_mode, with_dots, *args, **kwargs):
+    def __init__(self, file_name, with_dots, *args, **kwargs):
         super(FileWidget, self).__init__(*args, **kwargs)
         uic.loadUi(os.path.join(HERE, "..", "ui", "file_widget.ui"), self)
 
@@ -52,7 +52,6 @@ class FileWidget(QWidget):
         self.mdf = None
         self.info = None
         self.info_index = None
-        self.step_mode = step_mode
         self.with_dots = with_dots
 
         progress = QProgressDialog(
@@ -388,16 +387,13 @@ class FileWidget(QWidget):
             self.channel_selection_modified
         )
 
-    def set_line_style(self, with_dots=None, step_mode=None):
-        if (with_dots, step_mode) != (None, None):
-            if step_mode is not None:
-                self.step_mode = step_mode
+    def set_line_style(self, with_dots=None):
+        if with_dots is not None:
 
-            if with_dots is not None:
-                self.with_dots = with_dots
+            self.with_dots = with_dots
 
             if self.plot:
-                self.plot.update_lines(step_mode=step_mode, with_dots=with_dots)
+                self.plot.update_lines(with_dots=with_dots)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -1330,7 +1326,7 @@ class FileWidget(QWidget):
             self.info.setParent(None)
             self.info = None
 
-        self.plot = Plot(signals, self.with_dots, self.step_mode, self)
+        self.plot = Plot(signals, self.with_dots, self)
         self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
         self.plot.range_modified_finished.connect(self.range_modified_finished)

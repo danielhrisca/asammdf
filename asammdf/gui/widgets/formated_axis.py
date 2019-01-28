@@ -23,9 +23,9 @@ class FormatedAxis(pg.AxisItem):
                     nv = self.text_conversion.convert(np.array([val]))[0]
                     if isinstance(nv, bytes):
                         try:
-                            strns.append(nv.decode("utf-8"))
+                            strns.append(f'{val}={nv.decode("utf-8")}')
                         except:
-                            strns.append(nv.decode("latin-1"))
+                            strns.append(f'{val}={nv.decode("latin-1")}')
                     else:
                         strns.append(f"{val:.6f}")
 

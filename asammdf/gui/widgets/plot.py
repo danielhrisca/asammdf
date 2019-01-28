@@ -55,8 +55,7 @@ try:
         cursor_move_finished = pyqtSignal()
         xrange_changed = pyqtSignal()
 
-        def __init__(self, signals, with_dots, step_mode, *args, **kwargs):
-            print(len(signals))
+        def __init__(self, signals, with_dots, *args, **kwargs):
             super(Plot, self).__init__(*args, **kwargs)
             self.xrange_changed.connect(self.xrange_changed_handle)
             self.with_dots = with_dots
@@ -64,7 +63,6 @@ try:
                 self.curvetype = pg.PlotDataItem
             else:
                 self.curvetype = pg.PlotCurveItem
-            self.step_mode = step_mode
             self.info = None
 
             self.standalone = kwargs.get("standalone", False)
@@ -78,14 +76,9 @@ try:
             self.disabled_keys = set()
             for sig in self.signals:
                 if sig.samples.dtype.kind == "f":
-                    sig.stepmode = False
                     sig.format = "{:.6f}"
                     sig.texts = None
                 else:
-                    if self.step_mode:
-                        sig.stepmode = True
-                    else:
-                        sig.stepmode = False
                     sig.format = "phys"
                     if sig.samples.dtype.kind in "SV":
                         sig.texts = sig.original_texts = sig.samples
@@ -93,6 +86,17 @@ try:
                     else:
                         sig.texts = None
                 sig.enable = True
+
+                if sig.conversion:
+                    vals = sig.conversion.convert(sig.samples)
+                    nans = np.isnan(vals)
+                    samples = np.where(
+                        nans,
+                        sig.samples,
+                        vals,
+                    )
+                    sig.samples = samples
+
                 sig.original_samples = sig.samples
                 sig.original_timestamps = sig.timestamps
 
@@ -173,14 +177,7 @@ try:
 
                 self.scene_.addItem(view_box)
 
-                if sig.stepmode:
-                    if len(sig.timestamps):
-                        to_append = sig.timestamps[-1]
-                    else:
-                        to_append = 0
-                    t = np.append(sig.timestamps, to_append)
-                else:
-                    t = sig.timestamps
+                t = sig.timestamps
 
                 curve = self.curvetype(
                     t,
@@ -190,7 +187,6 @@ try:
                     symbolPen=color,
                     symbol="o",
                     symbolSize=4,
-                    stepMode=sig.stepmode,
                 )
 
                 view_box.addItem(curve)
@@ -215,30 +211,18 @@ try:
 
             self.resizeEvent = self._resizeEvent
 
-        def update_lines(self, with_dots=None, step_mode=None, force=False):
-            step_mode_changed = False
+        def update_lines(self, with_dots=None, force=False):
             with_dots_changed = False
-            if step_mode is not None and step_mode != self.step_mode:
-                self.step_mode = step_mode
-                step_mode_changed = True
 
             if with_dots is not None and with_dots != self.with_dots:
                 self.with_dots = with_dots
                 self.curvetype = pg.PlotDataItem if with_dots else pg.PlotCurveItem
                 with_dots_changed = True
 
-            if with_dots_changed or step_mode_changed or force:
+            if with_dots_changed or force:
                 for i, sig in enumerate(self.signals):
-                    sig.stepmode = self.step_mode
                     color = sig.color
-                    if sig.stepmode:
-                        if len(sig.timestamps):
-                            to_append = sig.timestamps[-1]
-                        else:
-                            to_append = 0
-                        t = np.append(sig.timestamps, to_append)
-                    else:
-                        t = sig.timestamps
+                    t = sig.timestamps
 
                     if not force:
                         try:
@@ -250,8 +234,6 @@ try:
                                 symbolPen=color,
                                 symbol="o",
                                 symbolSize=4,
-                                stepMode=sig.stepmode,
-                                # connect='pairs'
                             )
                         except:
                             message = (
@@ -269,7 +251,7 @@ try:
                         self.view_boxes[i].addItem(curve)
                     else:
                         curve = self.curves[i]
-                        curve.setData(x=t, y=sig.samples, stepMode=sig.stepmode)
+                        curve.setData(x=t, y=sig.samples)
 
                     if sig.enable and self.singleton is None:
                         curve.show()
@@ -280,14 +262,7 @@ try:
                     sig = self.signals[self.singleton]
                     if sig.enable:
                         color = sig.color
-                        if sig.stepmode:
-                            if len(sig.timestamps):
-                                to_append = sig.timestamps[-1]
-                            else:
-                                to_append = 0
-                            t = np.append(sig.timestamps, to_append)
-                        else:
-                            t = sig.timestamps
+                        t = sig.timestamps
 
                         curve = self.curvetype(
                             t,
@@ -297,8 +272,6 @@ try:
                             symbolPen=color,
                             symbol="o",
                             symbolSize=4,
-                            stepMode=sig.stepmode,
-                            # connect='pairs'
                         )
                         self.viewbox.removeItem(self.curve)
 
@@ -357,14 +330,7 @@ try:
 
                     viewbox.setYLink(axis.linkedView())
 
-                    if sig.stepmode:
-                        if len(sig.timestamps):
-                            to_append = sig.timestamps[-1]
-                        else:
-                            to_append = 0
-                        t = np.append(sig.timestamps, to_append)
-                    else:
-                        t = sig.timestamps
+                    t = sig.timestamps
 
                     if isinstance(self.curve, pg.PlotCurveItem):
                         self.curve.updateData(
@@ -375,7 +341,6 @@ try:
                             symbolPen=color,
                             symbol="o",
                             symbolSize=4,
-                            stepMode=sig.stepmode,
                         )
                     else:
                         self.curve.setData(
@@ -386,7 +351,6 @@ try:
                             symbolPen=color,
                             symbol="o",
                             symbolSize=4,
-                            stepMode=sig.stepmode,
                         )
 
                     axis.setLabel(sig.name, sig.unit, color=color)

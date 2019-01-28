@@ -582,10 +582,8 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
             (1 << bit_length) - 1
         )  # Zero out the unwanted bits
     return where(
-        truncated_integers
-        >> bit_length - 1,  # sign bit as a truth series (True when negative)
-        (2 ** bit_length - truncated_integers)
-        * -1,  # when negative, do two's complement
+        truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
+        (2 ** bit_length - truncated_integers) * -1,  # when negative, do two's complement
         truncated_integers,  # when positive, return the truncated int
     )
 
