@@ -2142,6 +2142,7 @@ class MDF4(object):
         except KeyError:
             record = group.record
             if record is None:
+                dtypes = group.types
                 if dtypes.itemsize:
                     record = fromstring(data_bytes, dtype=dtypes)
                 else:
@@ -3966,6 +3967,7 @@ class MDF4(object):
 
                     if parent is not None:
                         if grp.record is None:
+                            dtypes = grp.types
                             if dtypes.itemsize:
                                 record = fromstring(data_bytes, dtype=dtypes)
                             else:
@@ -4773,7 +4775,7 @@ class MDF4(object):
 
             else:
                 # get data group parents and dtypes
-                parents, dtype = group.parents, group.types
+                parents, dtypes = group.parents, group.types
                 if parents is None:
                     parents, dtypes = self._prepare_record(group)
 
@@ -4794,6 +4796,7 @@ class MDF4(object):
                         parent = None
                     if parent is not None:
                         if group.record is None:
+                            dtypes = group.types
                             if dtypes.itemsize:
                                 record = fromstring(data_bytes, dtype=dtypes)
                             else:
