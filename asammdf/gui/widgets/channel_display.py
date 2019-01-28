@@ -30,6 +30,18 @@ class ChannelDisplay(base_1, form_1):
     color_changed = pyqtSignal(int, str)
     enable_changed = pyqtSignal(int, int)
 
+    __slots__ = (
+        'color',
+        '_value_prefix',
+        '_value',
+        '_name',
+        'fmt',
+        'index',
+        'ranges',
+        'unit',
+        '_transparent',
+    )
+
     def __init__(self, index, unit="", *args, **kwargs):
         super(base_1, self).__init__(*args, **kwargs)
         self.setupUi(self)

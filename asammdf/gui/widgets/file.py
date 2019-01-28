@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-from copy import deepcopy
 from functools import partial
 from threading import Thread
 from time import sleep
@@ -124,7 +123,7 @@ class FileWidget(QWidget):
 
         progress.setValue(35)
 
-        self.filter_field = SearchWidget(deepcopy(self.mdf.channels_db), self)
+        self.filter_field = SearchWidget(self.mdf.channels_db, self)
 
         progress.setValue(37)
 
@@ -135,7 +134,7 @@ class FileWidget(QWidget):
 
         self.channels_tree = TreeWidget(channel_and_search)
         self.search_field = SearchWidget(
-            deepcopy(self.mdf.channels_db), channel_and_search
+            self.mdf.channels_db, channel_and_search
         )
         self.filter_tree = TreeWidget()
 
@@ -258,6 +257,8 @@ class FileWidget(QWidget):
         self.filter_tree.setHeaderLabel("Channels")
         self.filter_tree.setToolTip("Double click channel to see extended information")
 
+        flags = None
+
         for i, group in enumerate(self.mdf.groups):
             channel_group = QTreeWidgetItem()
             filter_channel_group = QTreeWidgetItem()
@@ -277,12 +278,14 @@ class FileWidget(QWidget):
 
                 name = self.mdf.get_channel_name(i, j)
                 channel = TreeItem((i, j), channel_group)
-                channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                if flags is None:
+                    flags = channel.flags() | Qt.ItemIsUserCheckable
+                channel.setFlags(flags)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
 
                 channel = TreeItem((i, j), filter_channel_group)
-                channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                channel.setFlags(flags)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
 
@@ -291,17 +294,18 @@ class FileWidget(QWidget):
                     name = ch.name
 
                     channel = TreeItem((i, -j), channel_group)
-                    channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                    channel.setFlags(flags)
                     channel.setText(0, name)
                     channel.setCheckState(0, Qt.Unchecked)
 
                     channel = TreeItem((i, -j), filter_channel_group)
-                    channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                    channel.setFlags(flags)
                     channel.setText(0, name)
                     channel.setCheckState(0, Qt.Unchecked)
 
             progress.setValue(37 + int(53 * (i + 1) / groups_nr))
-            QApplication.processEvents()
+            if i % 5 == 0:
+                QApplication.processEvents()
 
         progress.setValue(90)
 
