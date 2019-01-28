@@ -268,44 +268,57 @@ class FileWidget(QWidget):
                 channel_group.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable
             )
             filter_channel_group.setFlags(
-                channel_group.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable
+                filter_channel_group.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable
             )
 
             self.channels_tree.addTopLevelItem(channel_group)
             self.filter_tree.addTopLevelItem(filter_channel_group)
 
+            group_children = []
+            filter_children = []
+
             for j, ch in enumerate(group.channels):
+                entry = i, j
 
                 name = self.mdf.get_channel_name(i, j)
-                channel = TreeItem((i, j), channel_group)
+                channel = TreeItem(entry)
                 if flags is None:
                     flags = channel.flags() | Qt.ItemIsUserCheckable
                 channel.setFlags(flags)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
+                group_children.append(channel)
 
-                channel = TreeItem((i, j), filter_channel_group)
+                channel = TreeItem(entry)
                 channel.setFlags(flags)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
+                filter_children.append(channel)
 
             if self.mdf.version >= "4.00":
                 for j, ch in enumerate(group.logging_channels, 1):
                     name = ch.name
+                    entry = i, -j
 
-                    channel = TreeItem((i, -j), channel_group)
+                    channel = TreeItem(entry)
                     channel.setFlags(flags)
                     channel.setText(0, name)
                     channel.setCheckState(0, Qt.Unchecked)
+                    group_children.append(channel)
 
-                    channel = TreeItem((i, -j), filter_channel_group)
+                    channel = TreeItem(entry)
                     channel.setFlags(flags)
                     channel.setText(0, name)
                     channel.setCheckState(0, Qt.Unchecked)
+                    filter_children.append(channel)
+
+            channel_group.addChildren(group_children)
+            filter_channel_group.addChildren(filter_children)
+
+            del group_children
+            del filter_children
 
             progress.setValue(37 + int(53 * (i + 1) / groups_nr))
-            if i % 5 == 0:
-                QApplication.processEvents()
 
         progress.setValue(90)
 

@@ -10,8 +10,8 @@ class TreeItem(QTreeWidgetItem):
 
     __slots__ = 'entry',
 
-    def __init__(self, entry, *args, **kwargs):
+    def __init__(self, entry):
 
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
         self.entry = entry
