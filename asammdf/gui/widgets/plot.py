@@ -93,6 +93,17 @@ try:
                         sig.samples = np.zeros(len(sig.samples))
                     else:
                         sig.texts = None
+
+                if sig.conversion:
+                    vals = sig.conversion.convert(sig.samples)
+                    nans = np.isnan(vals)
+                    samples = np.where(
+                        nans,
+                        sig.samples,
+                        vals,
+                    )
+                    sig.samples = samples
+
                 sig.enable = True
                 sig.original_samples = sig.samples
                 sig.original_timestamps = sig.timestamps
