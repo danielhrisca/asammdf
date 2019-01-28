@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-from copy import deepcopy
 from functools import partial
 from threading import Thread
 from time import sleep
@@ -124,7 +123,7 @@ class FileWidget(QWidget):
 
         progress.setValue(35)
 
-        self.filter_field = SearchWidget(deepcopy(self.mdf.channels_db), self)
+        self.filter_field = SearchWidget(self.mdf.channels_db, self)
 
         progress.setValue(37)
 
@@ -135,7 +134,7 @@ class FileWidget(QWidget):
 
         self.channels_tree = TreeWidget(channel_and_search)
         self.search_field = SearchWidget(
-            deepcopy(self.mdf.channels_db), channel_and_search
+            self.mdf.channels_db, channel_and_search
         )
         self.filter_tree = TreeWidget()
 
@@ -258,6 +257,8 @@ class FileWidget(QWidget):
         self.filter_tree.setHeaderLabel("Channels")
         self.filter_tree.setToolTip("Double click channel to see extended information")
 
+        flags = None
+
         for i, group in enumerate(self.mdf.groups):
             channel_group = QTreeWidgetItem()
             filter_channel_group = QTreeWidgetItem()
@@ -267,41 +268,57 @@ class FileWidget(QWidget):
                 channel_group.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable
             )
             filter_channel_group.setFlags(
-                channel_group.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable
+                filter_channel_group.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable
             )
 
             self.channels_tree.addTopLevelItem(channel_group)
             self.filter_tree.addTopLevelItem(filter_channel_group)
 
+            group_children = []
+            filter_children = []
+
             for j, ch in enumerate(group.channels):
+                entry = i, j
 
                 name = self.mdf.get_channel_name(i, j)
-                channel = TreeItem((i, j), channel_group)
-                channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                channel = TreeItem(entry)
+                if flags is None:
+                    flags = channel.flags() | Qt.ItemIsUserCheckable
+                channel.setFlags(flags)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
+                group_children.append(channel)
 
-                channel = TreeItem((i, j), filter_channel_group)
-                channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                channel = TreeItem(entry)
+                channel.setFlags(flags)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
+                filter_children.append(channel)
 
             if self.mdf.version >= "4.00":
                 for j, ch in enumerate(group.logging_channels, 1):
                     name = ch.name
+                    entry = i, -j
 
-                    channel = TreeItem((i, -j), channel_group)
-                    channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                    channel = TreeItem(entry)
+                    channel.setFlags(flags)
                     channel.setText(0, name)
                     channel.setCheckState(0, Qt.Unchecked)
+                    group_children.append(channel)
 
-                    channel = TreeItem((i, -j), filter_channel_group)
-                    channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                    channel = TreeItem(entry)
+                    channel.setFlags(flags)
                     channel.setText(0, name)
                     channel.setCheckState(0, Qt.Unchecked)
+                    filter_children.append(channel)
+
+            channel_group.addChildren(group_children)
+            filter_channel_group.addChildren(filter_children)
+
+            del group_children
+            del filter_children
 
             progress.setValue(37 + int(53 * (i + 1) / groups_nr))
-            QApplication.processEvents()
 
         progress.setValue(90)
 

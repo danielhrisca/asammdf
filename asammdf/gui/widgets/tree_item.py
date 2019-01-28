@@ -7,8 +7,11 @@ except ImportError:
 
 
 class TreeItem(QTreeWidgetItem):
-    def __init__(self, entry, *args, **kwargs):
 
-        super(TreeItem, self).__init__(*args, **kwargs)
+    __slots__ = 'entry',
+
+    def __init__(self, entry):
+
+        super().__init__()
 
         self.entry = entry

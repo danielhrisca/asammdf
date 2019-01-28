@@ -1584,10 +1584,10 @@ class MDF4(object):
         }
         if attachment_addr:
             kwargs["attachment_addr"] = attachment_addr
-            kwargs.flags |= v4c.FLAG_CN_BUS_EVENT
+            kwargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
         if invalidation_bytes_nr and signal.invalidation_bits is not None:
             inval_bits.append(signal.invalidation_bits)
-            kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
+            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
             kwargs["pos_invalidation_bit"] = inval_cntr
             inval_cntr += 1
 
@@ -1670,12 +1670,12 @@ class MDF4(object):
                 }
 
                 if attachment_addr:
-                    kwargs.flags |= v4c.FLAG_CN_BUS_EVENT
+                    kwargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -2140,9 +2140,8 @@ class MDF4(object):
         try:
             invalidation = self._invalidation_cache[(group_index, offset, _count)]
         except KeyError:
-            not_found = object()
-            record = group.get("record", not_found)
-            if record is not_found:
+            record = group.record
+            if record is None:
                 if dtypes.itemsize:
                     record = fromstring(data_bytes, dtype=dtypes)
                 else:
@@ -2469,7 +2468,7 @@ class MDF4(object):
 
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
-                    kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = inval_cntr
                     inval_cntr += 1
 
@@ -2573,7 +2572,7 @@ class MDF4(object):
                 }
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
-                    kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = inval_cntr
                     inval_cntr += 1
 
@@ -2710,7 +2709,7 @@ class MDF4(object):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -2789,7 +2788,7 @@ class MDF4(object):
                     if invalidation_bytes_nr:
                         if signal.invalidation_bits is not None:
                             inval_bits.append(signal.invalidation_bits)
-                            kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
                             kwargs["pos_invalidation_bit"] = inval_cntr
                             inval_cntr += 1
 
@@ -2870,7 +2869,7 @@ class MDF4(object):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs.flags |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -3821,7 +3820,7 @@ class MDF4(object):
             if name is None:
                 name = channel.name
 
-            if not isinstance(dependency_list, ChannelArrayBlock):
+            if not isinstance(dependency_list[0], ChannelArrayBlock):
                 # structure channel composition
 
                 _dtype = dtype(channel.dtype_fmt)
