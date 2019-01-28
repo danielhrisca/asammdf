@@ -505,10 +505,6 @@ class MDF(object):
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
-            if i > 971:
-                break
-            if i < 971:
-                continue
 
             encodings = []
             included_channels = self._included_channels(i)
