@@ -1024,3 +1024,18 @@ class Group:
 
     def __contains__(self, item):
         return hasattr(self, item)
+
+def block_fields(obj):
+    fields = []
+    for attr in dir(obj):
+        if attr[:2] + attr[-2:] == "____":
+            continue
+        try:
+            if callable(getattr(obj, attr)):
+                continue
+            fields.append(f"{attr}:{getattr(obj, attr)}")
+        except AttributeError:
+            continue
+
+    return fields
+

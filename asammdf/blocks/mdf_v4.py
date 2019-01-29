@@ -1822,8 +1822,6 @@ class MDF4(object):
             ]
             vals = fromarrays([vals, extra], dtype=dtype(types))
 
-        vals = vals.tostring()
-
         channel.dtype_fmt = get_fmt_v4(channel.data_type, bit_count)
         fmt = channel.dtype_fmt
         if size <= byte_count:
@@ -1834,7 +1832,7 @@ class MDF4(object):
         else:
             types = [("vals", fmt)]
 
-        vals = fromstring(vals, dtype=dtype(types))["vals"]
+        vals = vals.view(dtype=dtype(types))["vals"]
 
         if channel.data_type in v4c.SIGNED_INT:
             return as_non_byte_sized_signed_int(vals, bit_count)
@@ -4305,9 +4303,7 @@ class MDF4(object):
                                         and size in (2, 4, 8)
                                         and data_type <= 3
                                     ):  # integer types
-                                        vals = frombuffer(
-                                            vals.tobytes(), dtype=f"<u{size}"
-                                        )
+                                        vals = vals.view(f"<u{size}")
                                         if data_type in v4c.SIGNED_INT:
                                             vals = as_non_byte_sized_signed_int(
                                                 vals, bit_count
@@ -4446,9 +4442,7 @@ class MDF4(object):
                         if data_type == v4c.DATA_TYPE_BYTEARRAY:
 
                             vals = array(values)
-                            vals = frombuffer(
-                                vals.tobytes(), dtype=f"({vals.itemsize},)u1"
-                            )
+                            vals = vals.view(dtype=f"({vals.itemsize},)u1")
 
                         else:
 
@@ -4534,24 +4528,24 @@ class MDF4(object):
                             ("year", "<u1"),
                         ]
                     )
-                    dates = frombuffer(vals, types)
+                    vals = vals.view(types)
 
                     arrays = []
-                    arrays.append(dates["ms"])
+                    arrays.append(vals["ms"])
                     # bit 6 and 7 of minutes are reserved
-                    arrays.append(dates["min"] & 0x3F)
+                    arrays.append(vals["min"] & 0x3F)
                     # only firt 4 bits of hour are used
-                    arrays.append(dates["hour"] & 0xF)
+                    arrays.append(vals["hour"] & 0xF)
                     # the first 4 bits are the day number
-                    arrays.append(dates["day"] & 0xF)
+                    arrays.append(vals["day"] & 0xF)
                     # bit 6 and 7 of month are reserved
-                    arrays.append(dates["month"] & 0x3F)
+                    arrays.append(vals["month"] & 0x3F)
                     # bit 7 of year is reserved
-                    arrays.append(dates["year"] & 0x7F)
+                    arrays.append(vals["year"] & 0x7F)
                     # add summer or standard time information for hour
-                    arrays.append((dates["hour"] & 0x80) >> 7)
+                    arrays.append((vals["hour"] & 0x80) >> 7)
                     # add day of week information
-                    arrays.append((dates["day"] & 0xF0) >> 4)
+                    arrays.append((vals["day"] & 0xF0) >> 4)
 
                     names = [
                         "ms",
@@ -4565,20 +4559,23 @@ class MDF4(object):
                     ]
                     vals = fromarrays(arrays, names=names)
 
+                    del arrays
+
                 # CANopen time
                 elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
-                    vals = vals.tostring()
 
                     types = dtype([("ms", "<u4"), ("days", "<u2")])
-                    dates = fromstring(vals, types)
+                    vals = vals.view(types)
 
                     arrays = []
                     # bits 28 to 31 are reserverd for ms
-                    arrays.append(dates["ms"] & 0xFFFFFFF)
-                    arrays.append(dates["days"] & 0x3F)
+                    arrays.append(vals["ms"] & 0xFFFFFFF)
+                    arrays.append(vals["days"] & 0x3F)
 
                     names = ["ms", "days"]
                     vals = fromarrays(arrays, names=names)
+
+                    del arrays
 
                 if conversion_type == v4c.CONVERSION_TYPE_TRANS:
                     if not raw:
@@ -5026,14 +5023,14 @@ class MDF4(object):
         )[0]
 
         idx = nonzero(can_ids.samples == message.id)[0]
-        data = payload[idx]
+        vals = payload[idx]
         t = can_ids.timestamps[idx].copy()
         if can_ids.invalidation_bits is not None:
             invalidation_bits = can_ids.invalidation_bits
         else:
             invalidation_bits = None
 
-        record_size = data.shape[1]
+        record_size = vals.shape[1]
 
         big_endian = False if signal.is_little_endian else True
         signed = signal.is_signed
@@ -5054,7 +5051,7 @@ class MDF4(object):
             ("", f"a{record_size - byte_count - byte_offset}"),
         ]
 
-        vals = fromstring(data.tostring(), dtype=dtype(types))
+        vals = vals.view(dtype=dtype(types))
 
         vals = vals["vals"]
 
@@ -5104,8 +5101,6 @@ class MDF4(object):
             ]
             vals = fromarrays([vals, extra], dtype=dtype(types))
 
-        vals = vals.tostring()
-
         fmt = "{}u{}".format(">" if big_endian else "<", size)
         if size <= byte_count:
             if big_endian:
@@ -5115,7 +5110,7 @@ class MDF4(object):
         else:
             types = [("vals", fmt)]
 
-        vals = fromstring(vals, dtype=dtype(types))
+        vals = vals.view(dtype=dtype(types))
 
         if signed:
             vals = as_non_byte_sized_signed_int(vals["vals"], bit_count)

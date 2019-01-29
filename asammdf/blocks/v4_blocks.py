@@ -5,7 +5,6 @@ classes that implement the blocks for MDF version 4
 
 import logging
 import xml.etree.ElementTree as ET
-import sys
 import time
 from datetime import datetime
 from hashlib import md5
@@ -27,6 +26,7 @@ from .utils import (
     UINT64_uf,
     FLOAT64_u,
     sanitize_xml,
+    block_fields,
 )
 from ..version import __version__
 
@@ -1002,20 +1002,10 @@ class Channel:
             return pack(fmt, *[getattr(self, key) for key in keys])
 
     def __str__(self):
-        fields = []
-        for attr in dir(self):
-            if attr[:2] + attr[-2:] == "____":
-                continue
-            try:
-                if callable(getattr(self, attr)):
-                    continue
-                fields.append(f"{attr}:{getattr(self, attr)}")
-            except AttributeError:
-                continue
         return f"""<Channel (name: {self.name}, unit: {self.unit}, comment: {self.comment}, address: {hex(self.address)},
     conversion: {self.conversion},
     source: {self.source},
-    fields: {', '.join(fields)})>"""
+    fields: {', '.join(block_fields(self))})>"""
 
     def metadata(self):
         if self.block_len == v4c.CN_BLOCK_SIZE:
@@ -3050,16 +3040,6 @@ formula: {self.formula}
         return result
 
     def __str__(self):
-        fields = []
-        for attr in dir(self):
-            if attr[:2] + attr[-2:] == "____":
-                continue
-            try:
-                if callable(getattr(self, attr)):
-                    continue
-                fields.append(f"{attr}:{getattr(self, attr)}")
-            except AttributeError:
-                continue
         return "<ChannelConversion (name: {}, unit: {}, comment: {}, formula: {}, referenced blocks: {}, address: {}, fields: {})>".format(
             self.name,
             self.unit,
@@ -3067,7 +3047,7 @@ formula: {self.formula}
             self.formula,
             self.referenced_blocks,
             self.address,
-            fields,
+            block_fields(self),
         )
 
 
@@ -4553,9 +4533,9 @@ class SourceInformation:
             self.reserved0 = 0
             self.block_len = v4c.SI_BLOCK_SIZE
             self.links_nr = 3
-            self.name_addr = kwargs.get("name_addr", 0)
-            self.path_addr = kwargs.get("path_addr", 0)
-            self.comment_addr = kwargs.get("comment_addr", 0)
+            self.name_addr = 0
+            self.path_addr = 0
+            self.comment_addr = 0
             self.source_type = kwargs.get("source_type", v4c.SOURCE_TOOL)
             self.bus_type = kwargs.get("bus_type", v4c.BUS_TYPE_NONE)
             self.flags = 0
@@ -4678,18 +4658,8 @@ comment: {self.comment}
         )
 
     def __str__(self):
-        fields = []
-        for attr in dir(self):
-            if attr[:2] + attr[-2:] == "____":
-                continue
-            try:
-                if callable(getattr(self, attr)):
-                    continue
-                fields.append(f"{attr}:{getattr(self, attr)}")
-            except AttributeError:
-                continue
         return "<SourceInformation (name: {}, path: {}, comment: {}, address: {}, fields: {})>".format(
-            self.name, self.path, self.comment, hex(self.address), fields
+            self.name, self.path, self.comment, hex(self.address), block_fields(self)
         )
 
 
@@ -4764,7 +4734,7 @@ class TextBlock:
                 self.block_len = size + COMMON_SIZE + 8 - align
             else:
                 if text:
-                    if text[-1] not in (0, b"\0"):
+                    if text[-1]:
                         self.block_len += 8
                 else:
                     self.block_len += 8
