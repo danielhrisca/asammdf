@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>543</width>
+    <width>655</width>
     <height>569</height>
    </rect>
   </property>
@@ -288,6 +288,9 @@
            <property name="decimals">
             <number>6</number>
            </property>
+           <property name="maximum">
+            <double>999999.999998999992386</double>
+           </property>
           </widget>
          </item>
          <item row="5" column="1">
@@ -350,6 +353,9 @@
            </property>
            <property name="decimals">
             <number>6</number>
+           </property>
+           <property name="maximum">
+            <double>999999.999998999992386</double>
            </property>
           </widget>
          </item>
