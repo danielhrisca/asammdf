@@ -64,53 +64,39 @@ __all__ = [
 
 
 class AttachmentBlock:
-    """ ATBLOCK class
-
-    When adding new attachments only embedded attachments are allowed, with
+    """When adding new attachments only embedded attachments are allowed, with
     keyword argument *data* of type bytes
 
-    Attributes
-    ----------
-    address : int
-        attachment address
-    id : bytes
-        block ID; always b'##AT'
-    reserved0 : int
-        reserved bytes
-    block_len : int
-        block bytes size
-    links_nr : int
-        number of links
-    next_at_addr : int
-        next ATBLOCK address
-    file_name_addr : int
-        address of TXBLOCK that contains the attachment file name
-    mime_addr : int
-        address of TXBLOCK that contains the attachment mime type description
-    comment_addr : int
-        address of TXBLOCK/MDBLOCK that contains the attachment comment
-    flags : int
-        ATBLOCK flags
-    creator_index : int
-        index of file history block
-    reserved1 : int
-        reserved bytes
-    md5_sum : bytes
-        attachment file md5 sum
-    original_size : int
-        original uncompress file size in bytes
-    embedded_size : int
-        embedded compressed file size in bytes
-    embedded_data : bytes
-        embedded atatchment bytes
-    address : int
-        attachment address
-    file_name : pathlib.Path
-        attachment file name
-    mime : str
-        mime type
-    comment : str
-        attachment comment
+    *AttachmentBlock* has the following attributes, that are also available as
+    dict like key-value pairs
+
+    ATBLOCK fields
+
+    * ``id`` - bytes : block ID; always b'##AT'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``next_at_addr`` - int : next ATBLOCK address
+    * ``file_name_addr`` - int : address of TXBLOCK that contains the attachment
+      file name
+    * ``mime_addr`` - int : address of TXBLOCK that contains the attachment
+      mime type description
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
+      attachment comment
+    * ``flags`` - int : ATBLOCK flags
+    * ``creator_index`` - int : index of file history block
+    * ``reserved1`` - int : reserved bytes
+    * ``md5_sum`` - bytes : attachment file md5 sum
+    * ``original_size`` - int : original uncompress file size in bytes
+    * ``embedded_size`` - int : embedded compressed file size in bytes
+    * ``embedded_data`` - bytes : embedded atatchment bytes
+
+    Other attributes
+
+    * ``address`` - int : attachment address
+    * ``file_name`` - str : attachment file name
+    * ``mime`` - str : mime type
+    * ``comment`` - str : attachment comment
 
     Parameters
     ----------
@@ -118,14 +104,8 @@ class AttachmentBlock:
         block address; to be used for objects created from file
     stream : handle
         file handle; to be used for objects created from file
-    embedded : bool
-        attachment is embedded
-    compression : bool
-        attachment is compresseed
-
     for dynamically created objects :
         see the key-value pairs
-
     """
 
     __slots__ = (
@@ -339,15 +319,16 @@ class AttachmentBlock:
 
 
 class Channel:
-    """ CNBLOCK class
-
-    If the `load_metadata` keyword argument is not provided or is False,
+    """ If the `load_metadata` keyword argument is not provided or is False,
     then the conversion, source and display name information is not processed.
     Further more if the `parse_xml_comment` is not provided or is False, then
     the display name information from the channel comment is not processed (this
     is done to avoid expensive XML operations)
 
-    *Channel* has the following key-value pairs
+    *Channel* has the following attributes, that are also available as
+    dict like key-value pairs
+
+    CNBLOCK fields
 
     * ``id`` - bytes : block ID; always b'##CN'
     * ``reserved0`` - int : reserved bytes
@@ -394,6 +375,21 @@ class Channel:
     * ``lower_ext_limit`` - int : min physical value of all samples
     * ``upper_ext_limit`` - int : max physical value of all samples
 
+    Other attributes
+
+    * ``address`` - int : channel address
+    * ``attachments`` - list : list of referenced attachment blocks indexes;
+      the index referece to the attachment block index
+    * ``comment`` - str : channel comment
+    * ``conversion`` - ChannelConversion : channel conversion; *None* if the
+      channel has no conversion
+    * ``display_name`` - str : channel display name; this is extracted from the
+      XML channel comment
+    * ``name`` - str : channel name
+    * ``source`` - SourceInformation : channel source information; *None* if
+      the channel has no source information
+    * ``unit`` - str : channel unit
+
     Parameters
     ----------
     address : int
@@ -407,26 +403,6 @@ class Channel:
         *True*
     for dynamically created objects :
         see the key-value pairs
-
-    Attributes
-    ----------
-    address : int
-        channel address
-    attachments : list
-        list of referenced attachment blocks indexes; the index referece to the
-        attachment block index
-    comment : str
-        channel comment
-    conversion : ChannelConversion
-        channel conversion; *None* if the channel has no conversion
-    display_name : str
-        channel display name; this is extracted from the XML channel comment
-    name : str
-        channel name
-    source : SourceInformation
-        channel source information; *None* if the channel has no source information
-    unit : str
-        channel unit
 
     """
 
@@ -1156,14 +1132,12 @@ class _ChannelArrayBlockBase:
 
 
 class ChannelArrayBlock(_ChannelArrayBlockBase):
-    """CABLOCK class
+    """
+    Other attributes
 
-    Attributes
-    ----------
-    address : int
-        array block address
-    referenced_channels : list
-        list of (group index, channel index) pairs referenced by this array block
+    * ``address`` - int : array block address
+    * ``referenced_channels`` - list : list of (group index, channel index)
+      pairs referenced by this array block
 
     """
 
@@ -1454,9 +1428,10 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
 
 class ChannelGroup:
-    """CGBLOCK class
+    """*ChannelGroup* has the following attributes, that are also available as
+    dict like key-value pairs
 
-    *ChannelGroup* has the following key-value pairs
+    CGBLOCK fields
 
     * ``id`` - bytes : block ID; always b'##CG'
     * ``reserved0`` - int : reserved bytes
@@ -1483,16 +1458,12 @@ class ChannelGroup:
     * ``invalidation_bytes_nr`` - int : number of bytes used for invalidation
       bits by this channl group
 
-    Attributes
-    ----------
-    acq_name : str
-        acquisition name
-    acq_source : SourceInformation
-        acquisition source information
-    address : int
-        channel group address
-    comment : str
-        channel group comment
+    Other attributes
+
+    * ``acq_name`` - str : acquisition name
+    * ``acq_source`` - SourceInformation : acquisition source information
+    * ``address`` - int : channel group address
+    * ``comment`` - str : channel group comment
 
     """
 
@@ -1718,9 +1689,10 @@ class _ChannelConversionBase:
 
 
 class ChannelConversion(_ChannelConversionBase):
-    """CCBLOCK class
+    """*ChannelConversion* has the following attributes, that are also available as
+    dict like key-value pairs
 
-    *ChannelConversion* has the following common key-value pairs
+    CNBLOCK common fields
 
     * ``id`` - bytes : block ID; always b'##CG'
     * ``reserved0`` - int : reserved bytes
@@ -1742,7 +1714,7 @@ class ChannelConversion(_ChannelConversionBase):
     * ``min_phy_value`` - float : minimum physical channel value
     * ``max_phy_value`` - float : maximum physical channel value
 
-    *ChannelConversion* has the following specific key-value pairs
+    CNBLOCK specific fields
 
     * linear conversion
 
@@ -1802,22 +1774,16 @@ class ChannelConversion(_ChannelConversionBase):
         * ``default_addr`` - int : address of TXBLOCK that contains
           the default physical value
 
-    Attributes
-    ----------
-    address : int
-        channel conversion address
-    comment : str
-        channel conversion comment
-    formula : str
-        algebraic conversion formula; default ''
-    referenced_blocks : list
-        list of refenced blocks; can be TextBlock objects for value to text, and
-        text to text conversions; for partial conversions the referenced blocks
-        can be ChannelConversion obejct as well
-    name : str
-        channel conversion name
-    unit : str
-        channel conversion unit
+    Other attributes
+
+    * ``address`` - int : channel conversion address
+    * ``comment`` - str : channel conversion comment
+    * ``formula`` - str : algebraic conversion formula; default ''
+    * ``referenced_blocks`` - list :  list of refenced blocks; can be TextBlock
+      objects for value to text, and text to text conversions; for partial
+      conversions the referenced blocks can be ChannelConversion obejct as well
+    * ``name`` - str : channel conversion name
+    * ``unit`` - str : channel conversion unit
 
     """
 
@@ -3106,9 +3072,12 @@ formula: {self.formula}
 
 
 class DataBlock:
-    """DTBLOCK/RDBLOCK/SDBLOCK class
+    """Common implementation for DTBLOCK/RDBLOCK/SDBLOCK
 
-    *DataBlock* has the following key-value pairs
+    *DataBlock* has the following attributes, that are also available as
+    dict like key-value pairs
+
+    DTBLOCK fields
 
     * ``id`` - bytes : block ID; b'##DT' for DTBLOCK, b'##RD' for RDBLOCK or
       b'##SD' for SDBLOCK
@@ -3117,10 +3086,9 @@ class DataBlock:
     * ``links_nr`` - int : number of links
     * ``data`` - bytes : raw samples
 
-    Attributes
-    ----------
-    address : int
-        data block address
+    Other attributes
+
+    * ``address`` - int : data block address
 
     Parameters
     ----------
@@ -3188,9 +3156,10 @@ class DataBlock:
 
 
 class DataZippedBlock(object):
-    """DZBLOCK class
+    """*DataZippedBlock* has the following attributes, that are also available
+    as dict like key-value pairs
 
-    *DataZippedBlock* has the following key-value pairs
+    DZBLOCK fields
 
     * ``id`` - bytes : block ID; always b'##DZ'
     * ``reserved0`` - int : reserved bytes
@@ -3199,18 +3168,17 @@ class DataZippedBlock(object):
     * ``original_type`` - bytes : b'DT' or b'SD'
     * ``zip_type`` - int : zip algorithm used
     * ``reserved1`` - int : reserved bytes
-    * ``param`` - int : for transpose deflate the record size used for transposition
+    * ``param`` - int : for transpose deflate the record size used for
+      transposition
     * ``original_size`` - int : size of the original uncompressed raw bytes
     * ``zip_size`` - int : size of compressed bytes
     * ``data`` - bytes : compressed bytes
 
+    Other attributes
 
-    Attributes
-    ----------
-    address : int
-        data zipped block address
-    return_unzipped : bool
-        decompress data when accessing the 'data' key
+    * ``address`` - int : data zipped block address
+    * ``return_unzipped`` - bool : decompress data when accessing the 'data'
+      key
 
     Parameters
     ----------
@@ -3382,9 +3350,11 @@ class DataZippedBlock(object):
 
 
 class DataGroup:
-    """DGBLOCK class
+    """
+    *DataGroup* has the following attributes, that are also available as
+    dict like key-value pairs
 
-    *DataGroup* has the following key-value pairs
+    DGBLOCK fields
 
     * ``id`` - bytes : block ID; always b'##DG'
     * ``reserved0`` - int : reserved bytes
@@ -3401,13 +3371,10 @@ class DataGroup:
       data groups; can be 1, 2, 4 or 8
     * ``reserved1`` - int : reserved bytes
 
+    Other attributes
 
-    Attributes
-    ----------
-    address : int
-        dat group address
-    comment : str
-        data group comment
+    * ``address`` - int : dat group address
+    * ``comment`` - str : data group comment
 
     """
 
@@ -3549,9 +3516,11 @@ class _DataListBase:
 
 
 class DataList(_DataListBase):
-    """DLBLOCK class
+    """
+    *DataList* has the following attributes, that are also available as
+    dict like key-value pairs
 
-    *DataList* has the following common key-value pairs
+    DLBLOCK common fields
 
     * ``id`` - bytes : block ID; always b'##DL'
     * ``reserved0`` - int : reserved bytes
@@ -3562,6 +3531,9 @@ class DataList(_DataListBase):
     * ``flags`` - int : data list flags
     * ``reserved1`` - int : reserved bytes
     * ``data_block_nr`` - int : number of data blocks referenced by thsi list
+
+    DLBLOCK specific fields
+
     * for equall lenght blocks
 
         * ``data_block_len`` - int : equall uncompressed size in bytes for all
@@ -3571,10 +3543,9 @@ class DataList(_DataListBase):
 
         * ``offset_<N>`` - int : byte offset of N-th data block
 
-    Attributes
-    ----------
-    address : int
-        data list address
+    Other attributes
+
+    * ``address`` - int : data list address
 
     """
 
@@ -3721,9 +3692,11 @@ class _EventBlockBase:
 
 
 class EventBlock(_EventBlockBase):
-    """ EVBLOCK class
+    """
+    *EventBlock* has the following attributes, that are also available as
+    dict like key-value pairs
 
-    *EventBlock* has the following common key-value pairs
+    EVBLOCK fields
 
     * ``id`` - bytes : block ID; always b'##EV'
     * ``reserved0`` - int : reserved bytes
@@ -3752,22 +3725,17 @@ class EventBlock(_EventBlockBase):
     * ``sync_base`` - int : timestamp base value
     * ``sync_factor`` - float : timestamp factor
 
-    Attributes
-    ----------
-    address : int
-        event block address
-    comment : str
-        event comment
-    name : str
-        event name
-    parent : int
-        index of event block that is the parent for the current event
-    range_start : int
-        index of event block that is the start of the range for which the
-        current event is the end
-    scopes : list
-        list of (group index, channel index) or channel group index that define
-        the scope of the current event
+    Other attributes
+
+    * ``address`` - int : event block address
+    * ``comment`` - str : event comment
+    * ``name`` - str : event name
+    * ``parent`` - int : index of event block that is the parent for the
+      current event
+    * ``range_start`` - int : index of event block that is the start of the
+      range for which the current event is the end
+    * ``scopes`` - list : list of (group index, channel index) or channel group
+      index that define the scope of the current event
 
     """
 
@@ -3933,9 +3901,11 @@ class EventBlock(_EventBlockBase):
 
 
 class FileIdentificationBlock:
-    """IDBLOCK class
+    """
+    *FileIdentificationBlock* has the following attributes, that are also available as
+    dict like key-value pairs
 
-    *FileIdentificationBlock* has the following key-value pairs
+    IDBLOCK fields
 
     * ``file_identification`` -  bytes : file identifier
     * ``version_str`` - bytes : format identifier
@@ -3946,10 +3916,9 @@ class FileIdentificationBlock:
     * ``unfinalized_standard_flags`` - int : standard flags for unfinalized MDF
     * ``unfinalized_custom_flags`` - int : custom flags for unfinalized MDF
 
-    Attributes
-    ----------
-    address : int
-        should always be 0
+    Other attributes
+
+    * ``address`` - int : should always be 0
 
     """
 
@@ -4018,9 +3987,11 @@ class FileIdentificationBlock:
 
 
 class FileHistory:
-    """FHBLOCK class
+    """
+    *FileHistory* has the following attributes, that are also available as
+    dict like key-value pairs
 
-    *FileHistory* has the following common key-value pairs
+    FHBLOCK fields
 
     * ``id`` - bytes : block ID; always b'##FH'
     * ``reserved0`` - int : reserved bytes
@@ -4035,12 +4006,10 @@ class FileHistory:
     * ``time_flags`` - int : time flags
     * ``reserved1`` - bytes : reserved bytes
 
-    Attributes
-    ----------
-    address : int
-        file history address
-    comment : str
-        history comment
+    Other attributes
+
+    * ``address`` - int : file history address
+    * ``comment`` - str : history comment
 
     """
 
@@ -4141,9 +4110,11 @@ class FileHistory:
 
 
 class HeaderBlock:
-    """HDBLOCK class
+    """
+    *HeaderBlock* has the following attributes, that are also available as
+    dict like key-value pairs
 
-    *HeaderBlock* has the following common key-value pairs
+    HDBLOCK fields
 
     * ``id`` - bytes : block ID; always b'##HD'
     * ``reserved0`` - int : reserved bytes
@@ -4167,20 +4138,14 @@ class HeaderBlock:
     * ``start_angle`` - int : angle value at measurement start
     * ``start_distance`` - int : distance value at measurement start
 
-    Attributes
-    ----------
-    address : int
-        header address
-    comment : str
-        file comment
-    author : str
-        measurement author
-    department : str
-        author's department
-    project : str
-        working project
-    subject : str
-        measurement subject
+    Other attributes
+
+    * ``address`` - int : header address
+    * ``comment`` - str : file comment
+    * ``author`` - str : measurement author
+    * ``department`` - str : author's department
+    * ``project`` - str : working project
+    * ``subject`` - str : measurement subject
 
     """
 
@@ -4414,9 +4379,11 @@ class HeaderBlock:
 
 
 class HeaderList:
-    """HLBLOCK class
+    """
+    *HeaderList* has the following attributes, that are also available as
+    dict like key-value pairs
 
-    *HeaderList* has the following key-value pairs
+    HLBLOCK fields
 
     * ``id`` - bytes : block ID; always b'##HL'
     * ``reserved0`` - int : reserved bytes
@@ -4428,10 +4395,9 @@ class HeaderList:
     * ``zip_type`` - int : integer code for zip type
     * ``reserved1`` - bytes : reserved bytes
 
-     Attributes
-    ----------
-    address : int
-        header list address
+    Other attributes
+
+    * ``address`` - int : header list address
 
     """
 
@@ -4496,9 +4462,11 @@ class HeaderList:
 
 
 class SourceInformation:
-    """SIBLOCK class
+    """
+    *SourceInformation* has the following attributes, that are also available as
+    dict like key-value pairs
 
-    *SourceInformation* has the following key-value pairs
+    SIBLOCK fields
 
     * ``id`` - bytes : block ID; always b'##SI'
     * ``reserved0`` - int : reserved bytes
@@ -4513,16 +4481,12 @@ class SourceInformation:
     * ``flags`` - int : source flags
     * ``reserved1`` - bytes : reserved bytes
 
-    Attributes
-    ----------
-    address : int
-        source information address
-    comment : str
-        source comment
-    name : str
-        source name
-    path : str
-        source path
+    Other attributes
+
+    * ``address`` - int : source information address
+    * ``comment`` - str : source comment
+    * ``name`` - str : source name
+    * ``path`` - str : source path
 
     """
 
@@ -4732,13 +4696,20 @@ comment: {self.comment}
 class TextBlock:
     """common TXBLOCK and MDBLOCK class
 
-    *TextBlock* has the following key-value pairs
+    *TextBlock* has the following attributes, that are also available as
+    dict like key-value pairs
+
+    TXBLOCK fields
 
     * ``id`` - bytes : block ID; b'##TX' for TXBLOCK and b'##MD' for MDBLOCK
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
     * ``text`` - bytes : actual text content
+
+    Other attributes
+
+    * ``address`` - int : text block address
 
     Parameters
     ----------
@@ -4751,10 +4722,6 @@ class TextBlock:
     text : bytes/str
         text content for dynamically created objects
 
-    Attributes
-    ----------
-    address : int
-        text block address
 
     """
 
