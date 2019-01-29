@@ -3752,10 +3752,6 @@ class MDF4(object):
         )
 
         grp = self.groups[gp_nr]
-        if grp.data_location == v4c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
 
         interp_mode = self._integer_interpolation
 
@@ -3785,7 +3781,7 @@ class MDF4(object):
                 == v4c.FLAG_INVALIDATION_BIT_VALID
             )
 
-            bit_count = channel["bit_count"]
+            bit_count = channel.bit_count
         else:
             # get data group record
             parents, dtypes = self._prepare_record(grp)
@@ -3805,9 +3801,9 @@ class MDF4(object):
             else:
                 data = (data,)
 
-            bit_count = channel["bit_count"]
+            bit_count = channel.bit_count
 
-        data_type = channel["data_type"]
+        data_type = channel.data_type
         channel_type = channel.channel_type
         stream_sync = channel_type == v4c.CHANNEL_TYPE_SYNC
 
@@ -3995,7 +3991,7 @@ class MDF4(object):
                         dims_nr = ca_block.dims
 
                         if ca_block.ca_type == v4c.CA_TYPE_SCALE_AXIS:
-                            shape = (ca_block["dim_size_0"],)
+                            shape = (ca_block.dim_size_0,)
                             arrays.append(vals)
                             dtype_pair = channel.name, vals.dtype, shape
                             types.append(dtype_pair)
@@ -4108,9 +4104,7 @@ class MDF4(object):
                                 else:
                                     channel_group = grp.channel_group
                                     record_size = channel_group.samples_byte_nr
-                                    record_size += channel_group[
-                                        "invalidation_bytes_nr"
-                                    ]
+                                    record_size += channel_group.invalidation_bytes_nr
                                     start = offset // record_size
                                     end = start + len(data_bytes) // record_size + 1
                                     ref = self.get(
@@ -4467,7 +4461,7 @@ class MDF4(object):
 
                     else:
                         # no VLSD signal data samples
-                        vals = array([], dtype=dtype("S"))
+                        vals = array([], dtype="S")
                         if data_type != v4c.DATA_TYPE_BYTEARRAY:
 
                             if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
