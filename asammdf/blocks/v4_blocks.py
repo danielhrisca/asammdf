@@ -2360,10 +2360,10 @@ class ChannelConversion(dict):
                 idx1 = np.searchsorted(lower, values, side="right") - 1
                 idx2 = np.searchsorted(upper, values, side="right") - 1
 
-            idx_ne = np.nonzero(idx1 != idx2)
-            idx_eq = np.nonzero(idx1 == idx2)
+            idx_ne = np.nonzero(idx1 != idx2)[0]
+            idx_eq = np.nonzero(idx1 == idx2)[0]
 
-            new_values = np.zeros(len(values), dtype=phys.dtype)
+            new_values = np.zeros(len(values), dtype=phys.dtype)[0]
 
             if len(idx_ne):
                 new_values[idx_ne] = default
@@ -2459,8 +2459,8 @@ class ChannelConversion(dict):
                 idx1 = np.searchsorted(lower, values, side="right") - 1
                 idx2 = np.searchsorted(upper, values, side="right") - 1
 
-            idx_ne = np.nonzero(idx1 != idx2)
-            idx_eq = np.nonzero(idx1 == idx2)
+            idx_ne = np.nonzero(idx1 != idx2)[0]
+            idx_eq = np.nonzero(idx1 == idx2)[0]
 
             if PYVERSION < 3:
                 cls = str

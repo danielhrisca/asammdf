@@ -747,7 +747,7 @@ class MDF4(object):
                             v4c.BUS_TYPE_CAN,
                         )
 
-                        idx = nonzero(can_ids.samples == message_id)
+                        idx = nonzero(can_ids.samples == message_id)[0]
                         data = payload[idx]
                         t = can_ids.timestamps[idx].copy()
                         if can_ids.invalidation_bits is not None:
@@ -804,7 +804,7 @@ class MDF4(object):
                             "", "", "", v4c.SOURCE_BUS, v4c.BUS_TYPE_CAN
                         )
 
-                        idx = nonzero(can_ids.samples == message_id)
+                        idx = nonzero(can_ids.samples == message_id)[0]
                         data = payload[idx]
                         t = can_ids.timestamps[idx]
                         if can_ids.invalidation_bits is not None:
@@ -4334,7 +4334,10 @@ class MDF4(object):
 
             if all(not isinstance(dep, ChannelArrayBlock) for dep in dependency_list):
                 # structure channel composition
-                _dtype = dtype(channel.dtype_fmt)
+                if PYVERSION == 2 and channel.dtype_fmt is not None:
+                    _dtype = dtype(fix_dtype_fields(channel.dtype_fmt, "utf-8"))
+                else:
+                    _dtype = dtype(channel.dtype_fmt)
                 if _dtype.itemsize == bit_count >> 3:
                     fast_path = True
                     channel_values = []
@@ -4349,9 +4352,9 @@ class MDF4(object):
 
                         bts = fragment[0]
                         types = [
-                            ("", f"V{byte_offset}"),
+                            ("", "V{}".format(byte_offset)),
                             ("vals", _dtype),
-                            ("", f"V{record_size - _dtype.itemsize - byte_offset}"),
+                            ("", "V{}".format(record_size - _dtype.itemsize - byte_offset)),
                         ]
 
                         channel_values.append(fromstring(bts, types)["vals"].copy())
@@ -4443,9 +4446,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
-                        vals = vals[nonzero(~invalidation_bits)]
+                        vals = vals[nonzero(~invalidation_bits)[0]]
                         if not samples_only or raster:
-                            timestamps = timestamps[nonzero(~invalidation_bits)]
+                            timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
@@ -4707,9 +4710,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
-                        vals = vals[nonzero(~invalidation_bits)]
+                        vals = vals[nonzero(~invalidation_bits)[0]]
                         if not samples_only or raster:
-                            timestamps = timestamps[nonzero(~invalidation_bits)]
+                            timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
@@ -4775,9 +4778,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
-                        vals = vals[nonzero(~invalidation_bits)]
+                        vals = vals[nonzero(~invalidation_bits)[0]]
                         if not samples_only or raster:
-                            timestamps = timestamps[nonzero(~invalidation_bits)]
+                            timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
                     num = float(
@@ -4911,9 +4914,9 @@ class MDF4(object):
                     else:
                         invalidation_bits = []
                     if not ignore_invalidation_bits:
-                        vals = vals[nonzero(~invalidation_bits)]
+                        vals = vals[nonzero(~invalidation_bits)[0]]
                         if not samples_only or raster:
-                            timestamps = timestamps[nonzero(~invalidation_bits)]
+                            timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
 
@@ -5551,7 +5554,7 @@ class MDF4(object):
             ignore_invalidation_bits=ignore_invalidation_bits,
         )[0]
 
-        idx = nonzero(can_ids.samples == message.id)
+        idx = nonzero(can_ids.samples == message.id)[0]
         data = payload[idx]
         t = can_ids.timestamps[idx].copy()
         if can_ids.invalidation_bits is not None:
@@ -5667,8 +5670,8 @@ class MDF4(object):
         else:
 
             if invalidation_bits is not None:
-                vals = vals[nonzero(~invalidation_bits)]
-                t = t[nonzero(~invalidation_bits)]
+                vals = vals[nonzero(~invalidation_bits)[0]]
+                t = t[nonzero(~invalidation_bits)[0]]
 
             return Signal(
                 samples=vals,

@@ -106,4 +106,8 @@ class ChannelDisplay(QWidget):
             template = template.format(self.fmt)
         else:
             template = template.format("{}")
-        self.value.setText(template.format(self.color, self._value_prefix, value))
+        try:
+            self.value.setText(template.format(self.color, self._value_prefix, value))
+        except:
+            template = '<html><head/><body><p><span style=" color:{};">{}{}</span></p></body></html>'
+            self.value.setText(template.format(self.color, self._value_prefix, value))

@@ -63,6 +63,8 @@ try:
                 self.curvetype = pg.PlotDataItem
             else:
                 self.curvetype = pg.PlotCurveItem
+
+
             self.step_mode = step_mode
             self.info = None
 
@@ -91,6 +93,17 @@ try:
                         sig.samples = np.zeros(len(sig.samples))
                     else:
                         sig.texts = None
+
+                if sig.conversion:
+                    vals = sig.conversion.convert(sig.samples)
+                    nans = np.isnan(vals)
+                    samples = np.where(
+                        nans,
+                        sig.samples,
+                        vals,
+                    )
+                    sig.samples = samples
+
                 sig.enable = True
                 sig.original_samples = sig.samples
                 sig.original_timestamps = sig.timestamps
@@ -270,7 +283,7 @@ try:
                         self.view_boxes[i].addItem(curve)
                     else:
                         curve = self.curves[i]
-                        curve.setData(x=t, y=sig.samples)
+                        curve.setData(x=t, y=sig.samples, stepMode=sig.stepmode)
 
                     if sig.enable and self.singleton is None:
                         curve.show()
@@ -492,11 +505,14 @@ try:
                             if sig.conversion and "text_0" in sig.conversion:
                                 vals = np.array([val])
                                 vals = sig.conversion.convert(vals)
-                                try:
-                                    vals = [s.decode("utf-8") for s in vals]
-                                except:
-                                    vals = [s.decode("latin-1") for s in vals]
-                                val = "{}= {}".format(val, vals[0])
+                                if vals.dtype.kind == 'S':
+                                    try:
+                                        vals = [s.decode("utf-8") for s in vals]
+                                    except:
+                                        vals = [s.decode("latin-1") for s in vals]
+                                    val = f"{val:.6f}= {vals[0]}"
+                                else:
+                                    val = f"{val:.6f}= {vals[0]:.6f}"
                             stats["cursor_value"] = val
 
                         else:

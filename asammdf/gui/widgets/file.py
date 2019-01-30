@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-from copy import deepcopy
 from functools import partial
 from threading import Thread
 from time import sleep
@@ -129,7 +128,7 @@ class FileWidget(QWidget):
 
         progress.setValue(35)
 
-        self.filter_field = SearchWidget(deepcopy(self.mdf.channels_db), self)
+        self.filter_field = SearchWidget(self.mdf.channels_db, self)
 
         progress.setValue(37)
 
@@ -140,7 +139,7 @@ class FileWidget(QWidget):
 
         self.channels_tree = TreeWidget(channel_and_search)
         self.search_field = SearchWidget(
-            deepcopy(self.mdf.channels_db), channel_and_search
+            self.mdf.channels_db, channel_and_search
         )
         self.filter_tree = TreeWidget()
 
@@ -264,6 +263,9 @@ class FileWidget(QWidget):
         self.filter_tree.setToolTip("Double click channel to see extended information")
 
         for i, group in enumerate(self.mdf.groups):
+            filter_items = []
+            group_items = []
+
             channel_group = QTreeWidgetItem()
             filter_channel_group = QTreeWidgetItem()
             channel_group.setText(0, "Channel group {}".format(i))
@@ -280,33 +282,45 @@ class FileWidget(QWidget):
 
             for j, ch in enumerate(group["channels"]):
 
-                name = self.mdf.get_channel_name(i, j)
-                channel = TreeItem((i, j), channel_group)
-                channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
-                channel.setText(0, name)
-                channel.setCheckState(0, Qt.Unchecked)
+                entry = i, j
 
-                channel = TreeItem((i, j), filter_channel_group)
+                name = self.mdf.get_channel_name(i, j)
+                channel = TreeItem(entry)
                 channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
                 channel.setText(0, name)
                 channel.setCheckState(0, Qt.Unchecked)
+                group_items.append(channel)
+
+                channel = TreeItem(entry)
+                channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                channel.setText(0, name)
+                channel.setCheckState(0, Qt.Unchecked)
+                filter_items.append(channel)
 
             if self.mdf.version >= "4.00":
                 for j, ch in enumerate(group["logging_channels"], 1):
                     name = ch.name
 
-                    channel = TreeItem((i, -j), channel_group)
-                    channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
-                    channel.setText(0, name)
-                    channel.setCheckState(0, Qt.Unchecked)
+                    entry = i, -j
 
-                    channel = TreeItem((i, -j), filter_channel_group)
+                    channel = TreeItem(entry)
                     channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
                     channel.setText(0, name)
                     channel.setCheckState(0, Qt.Unchecked)
+                    group_items.append(channel)
+
+                    channel = TreeItem(entry)
+                    channel.setFlags(channel.flags() | Qt.ItemIsUserCheckable)
+                    channel.setText(0, name)
+                    channel.setCheckState(0, Qt.Unchecked)
+                    filter_items.append(channel)
 
             progress.setValue(37 + int(53 * (i + 1) / groups_nr))
-            QApplication.processEvents()
+            channel_group.addChildren(group_items)
+            filter_channel_group.addChildren(filter_items)
+
+            del filter_items
+            del group_items
 
         progress.setValue(90)
 
@@ -401,10 +415,18 @@ class FileWidget(QWidget):
                 else:
                     stats = self.plot.get_stats(self.info_index)
                     self.info.set_stats(stats)
+
+                self.splitter.setStretchFactor(0, 0)
+                self.splitter.setStretchFactor(1, 1)
+                self.splitter.setStretchFactor(2, 0)
+
             else:
                 self.info.setParent(None)
                 self.info.hide()
                 self.info = None
+
+                self.splitter.setStretchFactor(0, 0)
+                self.splitter.setStretchFactor(1, 1)
 
         elif modifier == Qt.ControlModifier and key in (Qt.Key_B, Qt.Key_H, Qt.Key_P):
             if key == Qt.Key_B:
@@ -726,13 +748,14 @@ class FileWidget(QWidget):
             for i, signal in enumerate(self.plot.signals):
                 cut_sig = signal.cut(position, position)
                 if signal.texts is None or len(cut_sig) == 0:
-                    samples = cut_sig.samples
-                    if signal.conversion and "text_0" in signal.conversion:
-                        samples = signal.conversion.convert(samples)
+                    samples = signal.conversion.convert(samples)
+                    if samples.dtype.kind == 'S':
                         try:
                             samples = [s.decode("utf-8") for s in samples]
                         except:
                             samples = [s.decode("latin-1") for s in samples]
+                    else:
+                        samples = samples.tolist()
                 else:
                     t = np.argwhere(signal.timestamps == cut_sig.timestamps).flatten()
                     try:
