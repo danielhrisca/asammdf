@@ -3279,7 +3279,7 @@ class DataZippedBlock(object):
     def __getattribute__(self, item):
         if item == "data":
             if self.return_unzipped:
-                data = self._data
+                data = DataZippedBlock.__dict__[item].__get__(self)
                 original_size = self.original_size
                 data = decompress(data, 0, original_size)
                 if self.zip_type == v4c.FLAG_DZ_TRANPOSED_DEFLATE:

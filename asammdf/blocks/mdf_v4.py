@@ -989,7 +989,7 @@ class MDF4(object):
             else:
                 dependencies.append(None)
                 if channel_composition:
-                    channel.dtype_fmt = get_fmt_v4(channel.data_type, channel.bit_count)
+                    channel.dtype_fmt = get_fmt_v4(channel.data_type, channel.bit_count, channel.channel_type)
                     composition_dtype.append((channel.name, channel.dtype_fmt))
 
             # go to next channel of the current channel group
@@ -1436,7 +1436,7 @@ class MDF4(object):
                                 else:
                                     size = 1
                             else:
-                                size = size // 3
+                                size = size // 8
 
                             next_byte_aligned_position = parent_start_offset + size
                             bit_count = size * 8
@@ -1520,6 +1520,7 @@ class MDF4(object):
             types.append(dtype_pair)
 
             dtypes = dtype(types)
+
             group.parents, group.types = parents, dtypes
 
         return parents, dtypes
@@ -1821,7 +1822,7 @@ class MDF4(object):
             ]
             vals = fromarrays([vals, extra], dtype=dtype(types))
 
-        channel.dtype_fmt = get_fmt_v4(channel.data_type, bit_count)
+        channel.dtype_fmt = get_fmt_v4(channel.data_type, bit_count, channel.channel_type)
         fmt = channel.dtype_fmt
         if size <= byte_count:
             if channel.data_type in big_endian_types:
@@ -1831,7 +1832,7 @@ class MDF4(object):
         else:
             types = [("vals", fmt)]
 
-        vals = vals.view(dtype=dtype(types))["vals"]
+        vals = fromstring(vals.tobytes(), dtype=dtype(types))["vals"]
 
         if channel.data_type in v4c.SIGNED_INT:
             return as_non_byte_sized_signed_int(vals, bit_count)
@@ -4347,7 +4348,7 @@ class MDF4(object):
                     else:
                         if not channel.dtype_fmt:
                             channel.dtype_fmt = get_fmt_v4(
-                                data_type, bit_count, channel_type
+                                data_type, bit_count, channel_type,
                             )
                         channel_dtype = dtype(channel.dtype_fmt.split(")")[-1])
                         if vals.dtype != channel_dtype:
