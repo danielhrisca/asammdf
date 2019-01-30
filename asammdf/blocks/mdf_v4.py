@@ -3809,17 +3809,15 @@ class MDF4(object):
 
         encoding = None
 
+        master_is_required = not samples_only or raster
+
         # check if this is a channel array
         if dependency_list:
-            arrays = []
-            if name is None:
-                name = channel.name
-
             if not isinstance(dependency_list[0], ChannelArrayBlock):
                 # structure channel composition
 
                 _dtype = dtype(channel.dtype_fmt)
-                if _dtype.itemsize == bit_count >> 3:
+                if _dtype.itemsize == bit_count // 8:
                     fast_path = True
                     channel_values = []
                     timestamps = []
@@ -3843,7 +3841,7 @@ class MDF4(object):
 
                         channel_values.append(fromstring(bts, types)["vals"].copy())
 
-                        if not samples_only or raster:
+                        if master_is_required:
                             timestamps.append(
                                 self.get_master(
                                     gp_nr, fragment, copy_master=copy_master
@@ -3877,7 +3875,7 @@ class MDF4(object):
                                 record_count=record_count,
                             )[0]
                             channel_values[i].append(vals)
-                        if not samples_only or raster:
+                        if master_is_required:
                             timestamps.append(
                                 self.get_master(
                                     gp_nr, fragment, copy_master=copy_master
@@ -3908,7 +3906,7 @@ class MDF4(object):
 
                     vals = fromarrays(arrays, dtype=types)
 
-                if not samples_only or raster:
+                if master_is_required:
                     if count > 1:
                         timestamps = concatenate(timestamps)
                     else:
@@ -3921,7 +3919,7 @@ class MDF4(object):
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
                         vals = vals[nonzero(~invalidation_bits)[0]]
-                        if not samples_only or raster:
+                        if master_is_required:
                             timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
@@ -4124,7 +4122,7 @@ class MDF4(object):
 
                     vals = fromarrays(arrays, dtype(types))
 
-                    if not samples_only or raster:
+                    if master_is_required:
                         timestamps.append(
                             self.get_master(gp_nr, fragment, copy_master=copy_master)
                         )
@@ -4143,7 +4141,7 @@ class MDF4(object):
                 else:
                     vals = []
 
-                if not samples_only or raster:
+                if master_is_required:
                     if count > 1:
                         timestamps = concatenate(timestamps)
                     else:
@@ -4156,7 +4154,7 @@ class MDF4(object):
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
                         vals = vals[nonzero(~invalidation_bits)[0]]
-                        if not samples_only or raster:
+                        if master_is_required:
                             timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
@@ -4198,7 +4196,7 @@ class MDF4(object):
                     vals = arange(len(data_bytes) // record_size, dtype=ch_dtype)
                     vals += offset
 
-                    if not samples_only or raster:
+                    if master_is_required:
                         timestamps.append(
                             self.get_master(gp_nr, fragment, copy_master=copy_master)
                         )
@@ -4217,7 +4215,7 @@ class MDF4(object):
                 else:
                     vals = []
 
-                if not samples_only or raster:
+                if master_is_required:
                     if count > 1:
                         timestamps = concatenate(timestamps)
                     else:
@@ -4230,7 +4228,7 @@ class MDF4(object):
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
                         vals = vals[nonzero(~invalidation_bits)[0]]
-                        if not samples_only or raster:
+                        if master_is_required:
                             timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
@@ -4354,7 +4352,7 @@ class MDF4(object):
                         if vals.dtype != channel_dtype:
                             vals = vals.astype(channel_dtype)
 
-                    if not samples_only or raster:
+                    if master_is_required:
                         timestamps.append(
                             self.get_master(gp_nr, fragment, copy_master=copy_master)
                         )
@@ -4375,7 +4373,7 @@ class MDF4(object):
                 else:
                     vals = []
 
-                if not samples_only or raster:
+                if master_is_required:
                     if count > 1:
                         timestamps = concatenate(timestamps)
                     elif count == 1:
@@ -4392,7 +4390,7 @@ class MDF4(object):
                         invalidation_bits = []
                     if not ignore_invalidation_bits:
                         vals = vals[nonzero(~invalidation_bits)[0]]
-                        if not samples_only or raster:
+                        if master_is_required:
                             timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
@@ -5271,8 +5269,6 @@ class MDF4(object):
 
                 address = tell()
 
-                data = self._load_data(gp)
-
                 total_size = (
                     gp.channel_group.samples_byte_nr
                     + gp.channel_group.invalidation_bytes_nr
@@ -5297,6 +5293,7 @@ class MDF4(object):
                     chunks = 1
 
                 self.configure(read_fragment_size=split_size)
+                data = self._load_data(gp)
 
                 if chunks == 1:
                     data_ = next(data)[0]

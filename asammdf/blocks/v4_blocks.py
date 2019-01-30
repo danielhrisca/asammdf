@@ -3249,8 +3249,6 @@ class DataZippedBlock(object):
             if self.zip_type == v4c.FLAG_DZ_DEFLATE:
                 data = compress(data)
             else:
-                if isinstance(data, bytearray):
-                    data = bytes(data)
                 cols = self.param
                 lines = original_size // cols
 
