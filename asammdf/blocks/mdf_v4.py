@@ -1621,7 +1621,8 @@ class MDF4(object):
         gp_sdata.append(None)
         gp_sdata_size.append(0)
         self.channels_db.add(name, entry)
-        self.channels_db.add(ch.display_name, entry)
+        if ch.display_name:
+            self.channels_db.add(ch.display_name, entry)
 
         # update the parents as well
         parents[ch_cntr] = name, 0
@@ -1691,7 +1692,6 @@ class MDF4(object):
                 gp_sdata.append(None)
                 gp_sdata_size.append(0)
                 self.channels_db.add(name, entry)
-                self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
@@ -2467,7 +2467,7 @@ class MDF4(object):
 
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
-                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = inval_cntr
                     inval_cntr += 1
 
@@ -2506,7 +2506,8 @@ class MDF4(object):
                 gp_sdata_size.append(0)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                self.channels_db.add(ch.display_name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
@@ -2604,7 +2605,8 @@ class MDF4(object):
 
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                self.channels_db.add(ch.display_name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
@@ -2746,7 +2748,8 @@ class MDF4(object):
                 gp_sdata_size.append(0)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                self.channels_db.add(ch.display_name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
@@ -2808,7 +2811,6 @@ class MDF4(object):
                     gp_sdata.append(None)
                     gp_sdata_size.append(0)
                     self.channels_db.add(name, entry)
-                    self.channels_db.add(ch.display_name, entry)
 
                     # update the parents as well
                     parents[ch_cntr] = field_name, 0
@@ -2906,7 +2908,8 @@ class MDF4(object):
 
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                self.channels_db.add(ch.display_name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
