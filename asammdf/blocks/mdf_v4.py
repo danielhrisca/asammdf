@@ -1382,11 +1382,12 @@ class MDF4(object):
         """
 
         parents, dtypes = group.parents, group.types
+        no_parent = None, None
         if parents is None:
+            channel_group = group.channel_group
+            channels = group.channels
 
-            grp = group
-            channel_group = grp.channel_group
-            channels = grp.channels
+            bus_event = channel_group.flags & v4c.FLAG_CG_BUS_EVENT
 
             record_size = channel_group.samples_byte_nr
             invalidation_bytes_nr = channel_group.invalidation_bytes_nr
@@ -1407,7 +1408,7 @@ class MDF4(object):
                 data_type = new_ch.data_type
                 bit_count = new_ch.bit_count
                 ch_type = new_ch.channel_type
-                dependency_list = grp.channel_dependencies[original_index]
+                dependency_list = group.channel_dependencies[original_index]
                 name = new_ch.name
 
                 # handle multiple occurance of same channel name
@@ -1421,7 +1422,7 @@ class MDF4(object):
                             # check if there are byte gaps in the record
                             gap = parent_start_offset - next_byte_aligned_position
                             if gap:
-                                types.append(("", f"a{gap}"))
+                                types.append(("", f"V{gap}"))
 
                             # adjust size to 1, 2, 4 or 8 bytes
                             size = bit_offset + bit_count
@@ -1435,7 +1436,7 @@ class MDF4(object):
                                 else:
                                     size = 1
                             else:
-                                size = size >> 3
+                                size = size // 3
 
                             next_byte_aligned_position = parent_start_offset + size
                             bit_count = size * 8
@@ -1458,10 +1459,10 @@ class MDF4(object):
                                 # check if there are byte gaps in the record
                                 gap = start_offset - next_byte_aligned_position
                                 if gap:
-                                    dtype_pair = "", f"a{gap}"
+                                    dtype_pair = "", f"V{gap}"
                                     types.append(dtype_pair)
 
-                                size = max(bit_count >> 3, 1)
+                                size = max(bit_count // 8, 1)
                                 shape = tuple(
                                     ca_block[f"dim_size_{i}"]
                                     for i in range(ca_block.dims)
@@ -1486,9 +1487,9 @@ class MDF4(object):
                                 parents[original_index] = name, 0
 
                             else:
-                                parents[original_index] = None, None
-                                if channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                                    for logging_channel in grp.logging_channels:
+                                parents[original_index] = no_parent
+                                if bus_event:
+                                    for logging_channel in group.logging_channels:
                                         parents[neg_index] = (
                                             "CAN_DataFrame.DataBytes",
                                             logging_channel.bit_offset,
@@ -1497,24 +1498,22 @@ class MDF4(object):
 
                     # virtual channels do not have bytes in the record
                     else:
-                        parents[original_index] = None, None
+                        parents[original_index] = no_parent
 
                 else:
-                    max_overlapping_size = (
-                        next_byte_aligned_position - start_offset
-                    ) * 8
+                    max_overlapping_size = (next_byte_aligned_position - start_offset) * 8
                     needed_size = bit_offset + bit_count
                     if max_overlapping_size >= needed_size:
                         parents[original_index] = (
                             current_parent,
-                            ((start_offset - parent_start_offset) << 3) + bit_offset,
+                            ((start_offset - parent_start_offset) * 8) + bit_offset,
                         )
                 if next_byte_aligned_position > record_size:
                     break
 
             gap = record_size - next_byte_aligned_position
             if gap > 0:
-                dtype_pair = "", f"a{gap}"
+                dtype_pair = "", f"V{gap}"
                 types.append(dtype_pair)
 
             dtype_pair = "invalidation_bytes", "<u1", (invalidation_bytes_nr,)
