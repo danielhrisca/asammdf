@@ -840,7 +840,7 @@ class Signal(object):
                 idx = np.clip(idx, 0, idx[-1])
                 s = self.samples[idx]
 
-            if self.invalidation_bits is not None is not None:
+            if self.invalidation_bits is not None:
                 idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
                 idx -= 1
                 idx = np.clip(idx, 0, idx[-1])
