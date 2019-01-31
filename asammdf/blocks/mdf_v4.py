@@ -3931,10 +3931,13 @@ class MDF4(object):
                     vals = (
                         Signal(vals, timestamps, name="_")
                         .interp(t, mode=interp_mode)
-                        .samples
                     )
 
-                    timestamps = t
+                    vals, timestamps, invalidation_bits = (
+                        vals.samples,
+                        vals.timestamps,
+                        vals.invaidation_bits,
+                    )
 
             else:
                 # channel arrays
@@ -4163,13 +4166,11 @@ class MDF4(object):
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = (
-                        Signal(vals, timestamps, name="_")
-                        .interp(t, mode=interp_mode)
-                        .samples
+                    vals, timestamps, invalidation_bits = (
+                        vals.samples,
+                        vals.timestamps,
+                        vals.invaidation_bits,
                     )
-
-                    timestamps = t
 
             conversion = channel.conversion
 
@@ -4241,13 +4242,11 @@ class MDF4(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = (
-                        Signal(vals, timestamps, name="_")
-                        .interp(t, mode=interp_mode)
-                        .samples
+                    vals, timestamps, invalidation_bits = (
+                        vals.samples,
+                        vals.timestamps,
+                        vals.invaidation_bits,
                     )
-
-                    timestamps = t
 
             else:
                 channel_values = []
@@ -4404,13 +4403,11 @@ class MDF4(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = (
-                        Signal(vals, timestamps, name="_")
-                        .interp(t, mode=interp_mode)
-                        .samples
+                    vals, timestamps, invalidation_bits = (
+                        vals.samples,
+                        vals.timestamps,
+                        vals.invaidation_bits,
                     )
-
-                    timestamps = t
 
             # get the channel conversion
             conversion = channel.conversion
