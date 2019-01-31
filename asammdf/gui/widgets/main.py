@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 from functools import partial
+from pathlib import Path
 
 try:
     from PyQt5.QtGui import *
@@ -317,7 +318,7 @@ class MainWindow(QMainWindow):
             file_name = QFileDialog.getSaveFileName(
                 self, "Select output measurement file", "", filter
             )
-            file_name = str(file_name)
+            file_name = Path(file_name)
 
         if file_name:
 
@@ -377,7 +378,7 @@ class MainWindow(QMainWindow):
             file_names = QFileDialog.getOpenFileNames(
                 self, "Select measurement file", "", "MDF files (*.dat *.mdf *.mf4)"
             )
-            file_names = [str(file_name) for file_name in file_names]
+            file_names = [Path(file_name) for file_name in file_names]
 
         if file_names:
             self.files_list.addItems(file_names)
@@ -410,10 +411,10 @@ class MainWindow(QMainWindow):
                 "",
                 "MDF/DL3/ERG files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
             )
-            file_name = str(file_name)
+            file_name = Path(file_name)
 
         if file_name:
-            file_name = str(file_name)
+            file_name = Path(file_name)
             index = self.files.count()
 
             try:
@@ -424,8 +425,25 @@ class MainWindow(QMainWindow):
                 raise
             else:
                 self.files.addTab(widget, os.path.basename(file_name))
-                self.files.setTabToolTip(index, file_name)
+                self.files.setTabToolTip(index, str(file_name))
                 self.files.setCurrentIndex(index)
+                widget.file_scrambled.connect(self.open_scrambled_file)
+
+    def open_scrambled_file(self, name):
+        name = Path(name)
+        index = self.files.count()
+
+        try:
+            widget = FileWidget(name, self.with_dots, self)
+            widget.search_field.set_search_option(self.match)
+            widget.filter_field.set_search_option(self.match)
+        except:
+            raise
+        else:
+            self.files.addTab(widget, os.path.basename(name))
+            self.files.setTabToolTip(index, str(name))
+            self.files.setCurrentIndex(index)
+            widget.file_scrambled.connect(self.open_scrambled_file)
 
     def close_file(self, index):
         widget = self.files.widget(index)

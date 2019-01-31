@@ -808,7 +808,7 @@ def randomized_string(size):
         randomized string
 
     """
-    return "".join(chr(randint(65, 90)) for _ in range(size - 1)) + "\0"
+    return bytes(randint(65, 90) for _ in range(size - 1)) + b"\0"
 
 
 def is_file_like(obj):
