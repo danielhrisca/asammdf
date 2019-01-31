@@ -2537,16 +2537,16 @@ class MDF4(object):
         rec = fromstring(
             invalidation,
             dtype=[
-                ("", "S{}".format(pos_byte)),
+                ("", "V{}".format(pos_byte)),
                 ("vals", "<u1"),
-                ("", "S{}".format(invalidation_size - pos_byte - 1)),
+                ("", "V{}".format(invalidation_size - pos_byte - 1)),
             ],
         )
 
         mask = 1 << pos_offset
 
         invalidation_bits = rec["vals"] & mask
-        invalidation_bits = invalidation_bits.astype(bool)
+        invalidation_bits = invalidation_bits
 
         return invalidation_bits
 
@@ -3339,7 +3339,7 @@ class MDF4(object):
             invalidation_bytes_nr = len(inval_bits)
 
             for _ in range(8 - invalidation_bytes_nr % 8):
-                inval_bits.append(zeros(cycles_nr, dtype=bool))
+                inval_bits.append(zeros(cycles_nr, dtype='<u1'))
 
             inval_bits.reverse()
 
@@ -3868,7 +3868,7 @@ class MDF4(object):
             cycles_nr = len(inval_bits[0])
 
             for _ in range(8 - invalidation_bytes_nr % 8):
-                inval_bits.append(zeros(cycles_nr, dtype=bool))
+                inval_bits.append(zeros(cycles_nr, dtype='<u1'))
 
             inval_bits.reverse()
 
@@ -4932,7 +4932,8 @@ class MDF4(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = Signal(vals, timestamps, name="_").interp(t)
+                    vals, t, invalidation_bits = vals.samples, vals.timestamps, vals.invalidation_bits
 
                     timestamps = t
 
