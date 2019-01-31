@@ -4166,6 +4166,11 @@ class MDF4(object):
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
 
+                    vals = (
+                        Signal(vals, timestamps, name="_")
+                        .interp(t, mode=interp_mode)
+                    )
+
                     vals, timestamps, invalidation_bits = (
                         vals.samples,
                         vals.timestamps,
@@ -4241,6 +4246,11 @@ class MDF4(object):
                         t = linspace(timestamps[0], timestamps[-1], int(num))
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
+
+                    vals = (
+                        Signal(vals, timestamps, name="_")
+                        .interp(t, mode=interp_mode)
+                    )
 
                     vals, timestamps, invalidation_bits = (
                         vals.samples,
@@ -4402,6 +4412,11 @@ class MDF4(object):
                         t = linspace(timestamps[0], timestamps[-1], int(num))
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
+
+                    vals = (
+                        Signal(vals, timestamps, name="_")
+                        .interp(t, mode=interp_mode)
+                    )
 
                     vals, timestamps, invalidation_bits = (
                         vals.samples,
