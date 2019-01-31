@@ -4453,9 +4453,16 @@ class MDF4(object):
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = (
+                        Signal(vals, timestamps, name="_")
+                        .interp(t)
+                    )
 
-                    timestamps = t
+                    vals, timestamps, invalidation_bits = (
+                        vals.samples,
+                        vals.timestamps,
+                        vals.invaidation_bits,
+                    )
 
             else:
                 # channel arrays
@@ -4717,9 +4724,16 @@ class MDF4(object):
                 if raster and len(timestamps) > 1:
                     t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = (
+                        Signal(vals, timestamps, name="_")
+                        .interp(t)
+                    )
 
-                    timestamps = t
+                    vals, timestamps, invalidation_bits = (
+                        vals.samples,
+                        vals.timestamps,
+                        vals.invaidation_bits,
+                    )
 
             conversion = channel.conversion
 
@@ -4795,9 +4809,16 @@ class MDF4(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t).samples
+                    vals = (
+                        Signal(vals, timestamps, name="_")
+                        .interp(t)
+                    )
 
-                    timestamps = t
+                    vals, timestamps, invalidation_bits = (
+                        vals.samples,
+                        vals.timestamps,
+                        vals.invaidation_bits,
+                    )
 
             else:
                 channel_values = []
@@ -4932,10 +4953,16 @@ class MDF4(object):
                     else:
                         t = arange(timestamps[0], timestamps[-1], raster)
 
-                    vals = Signal(vals, timestamps, name="_").interp(t)
-                    vals, t, invalidation_bits = vals.samples, vals.timestamps, vals.invalidation_bits
+                    vals = (
+                        Signal(vals, timestamps, name="_")
+                        .interp(t)
+                    )
 
-                    timestamps = t
+                    vals, timestamps, invalidation_bits = (
+                        vals.samples,
+                        vals.timestamps,
+                        vals.invaidation_bits,
+                    )
 
             # get the channel conversion
             conversion = channel.conversion
