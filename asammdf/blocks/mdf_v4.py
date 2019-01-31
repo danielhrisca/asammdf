@@ -3936,7 +3936,7 @@ class MDF4(object):
                     vals, timestamps, invalidation_bits = (
                         vals.samples,
                         vals.timestamps,
-                        vals.invaidation_bits,
+                        vals.invalidation_bits,
                     )
 
             else:
@@ -4174,7 +4174,7 @@ class MDF4(object):
                     vals, timestamps, invalidation_bits = (
                         vals.samples,
                         vals.timestamps,
-                        vals.invaidation_bits,
+                        vals.invalidation_bits,
                     )
 
             conversion = channel.conversion
@@ -4255,7 +4255,7 @@ class MDF4(object):
                     vals, timestamps, invalidation_bits = (
                         vals.samples,
                         vals.timestamps,
-                        vals.invaidation_bits,
+                        vals.invalidation_bits,
                     )
 
             else:
@@ -4421,7 +4421,7 @@ class MDF4(object):
                     vals, timestamps, invalidation_bits = (
                         vals.samples,
                         vals.timestamps,
-                        vals.invaidation_bits,
+                        vals.invalidation_bits,
                     )
 
             # get the channel conversion
