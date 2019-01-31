@@ -29,5 +29,6 @@
     <file alias="zoom-out.png">images/zoom-out.png</file>
     <file alias="search.png">images/search.png</file>
     <file alias="checkmark.png">images/checkmark.png</file>
+    <file alias="scramble.png">images/scramble.png</file>
 </qresource>
 </RCC>

@@ -3,6 +3,7 @@ import os
 from functools import partial
 from threading import Thread
 from time import sleep
+from pathlib import Path
 
 import numpy as np
 
@@ -41,9 +42,13 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 
 
 class FileWidget(QWidget):
+
+    file_scrambled = pyqtSignal(str)
+
     def __init__(self, file_name, with_dots, *args, **kwargs):
         super(FileWidget, self).__init__(*args, **kwargs)
         uic.loadUi(os.path.join(HERE, "..", "ui", "file_widget.ui"), self)
+        file_name = Path(file_name)
 
         self.plot = None
 
@@ -67,7 +72,7 @@ class FileWidget(QWidget):
         progress.setWindowIcon(icon)
         progress.show()
 
-        if file_name.lower().endswith("erg"):
+        if file_name.suffix.lower() == ".erg":
             progress.setLabelText("Converting from erg to mdf")
             try:
                 from mfile import ERG
@@ -78,7 +83,7 @@ class FileWidget(QWidget):
                 return
         else:
 
-            if file_name.lower().endswith("dl3"):
+            if file_name.suffix.lower() == ".dl3":
                 progress.setLabelText("Converting from dl3 to mdf")
                 try:
                     import win32com.client
@@ -381,6 +386,8 @@ class FileWidget(QWidget):
         self.save_channel_list_btn.clicked.connect(self.save_channel_list)
         self.load_filter_list_btn.clicked.connect(self.load_filter_list)
         self.save_filter_list_btn.clicked.connect(self.save_filter_list)
+
+        self.scramble_btn.clicked.connect(self.scramble)
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.itemSelectionChanged.connect(
@@ -990,7 +997,7 @@ class FileWidget(QWidget):
     def close(self):
         mdf_name = self.mdf.name
         self.mdf.close()
-        if self.file_name.lower().endswith("dl3"):
+        if self.file_name.suffix.lower() == ".dl3":
             os.remove(mdf_name)
 
     def convert(self, event):
@@ -1459,3 +1466,31 @@ class FileWidget(QWidget):
                 offset=66,
                 progress=progress,
             )
+
+    def scramble(self, event):
+
+        progress = setup_progress(
+            parent=self,
+            title="Scrambling measurement",
+            message=f'Scrambling "{self.file_name}"',
+            icon_name="scramble",
+        )
+
+        # scrambling self.mdf
+        target = MDF.scramble
+        kwargs = {"name": self.file_name, "callback": self.update_progress}
+
+        mdf = run_thread_with_progress(
+            self,
+            target=target,
+            kwargs=kwargs,
+            factor=100,
+            offset=0,
+            progress=progress,
+        )
+
+        if mdf is TERMINATED:
+            progress.cancel()
+            return
+
+        self.file_scrambled.emit(str(Path(self.file_name).with_suffix(".scrambled.mf4")))

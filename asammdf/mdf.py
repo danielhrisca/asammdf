@@ -2704,7 +2704,7 @@ class MDF(object):
             return tuple()
 
     @staticmethod
-    def scramble(name):
+    def scramble(name, **kwargs):
         """ scramble text blocks and keep original file structure
 
         Parameters
@@ -2714,8 +2714,16 @@ class MDF(object):
 
         """
 
+        name = Path(name)
+
         mdf = MDF(name)
         texts = {}
+
+        callback = kwargs.get("callback", None)
+        if callback:
+            callback(0, 100)
+
+        count = len(mdf.groups)
 
         if mdf.version >= "4.00":
             Channel = ChannelV4
@@ -2742,7 +2750,7 @@ class MDF(object):
                         size = UINT64_u(stream.read(8))[0] - 24
                         texts[addr] = randomized_string(size)
 
-            for gp in mdf.groups:
+            for idx, gp in enumerate(mdf.groups, 1):
 
                 addr = gp.data_group.comment_addr
                 if addr and addr not in texts:
@@ -2818,19 +2826,29 @@ class MDF(object):
                                             stream.seek(addr + 8)
                                             size = block.block_len - 24
                                             texts[addr] = randomized_string(size)
+
+                if callback:
+                    callback(int(idx/count*66), 100)
+
             mdf.close()
 
-            if name.lower().endswith(".mf4"):
-                dst = name[:-4] + ".scrambled.mf4"
-            else:
-                dst = name + ".scrambled.mf4"
+            dst = name.with_suffix(".scrambled.mf4")
 
             copy(name, dst)
 
             with open(dst, "rb+") as mdf:
-                for addr, bts in texts.items():
+                count = len(texts)
+                chunk = count // 34
+                idx = 0
+                for index, (addr, bts) in enumerate(texts.items()):
                     mdf.seek(addr + 24)
                     mdf.write(bts)
+                    if index % chunk == 0:
+                        if callback:
+                            callback(66 + idx, 100)
+
+            if callback:
+                callback(100, 100)
 
         else:
             Channel = ChannelV3
@@ -2847,7 +2865,7 @@ class MDF(object):
             texts[100 + 0x40] = randomized_string(32)
             texts[132 + 0x40] = randomized_string(32)
 
-            for gp in mdf.groups:
+            for idx, gp in enumerate(mdf.groups, 1):
 
                 cg = gp.channel_group
                 addr = cg.comment_addr
@@ -2907,19 +2925,27 @@ class MDF(object):
                                             stream.seek(addr + 2)
                                             size = UINT16_u(stream.read(2))[0] - 4
                                             texts[addr + 4] = randomized_string(size)
+                if callback:
+                    callback(int(idx/count*66), 100)
+
             mdf.close()
 
-            if name.lower().endswith(".mdf"):
-                dst = name[:-4] + ".scrambled.mdf"
-            else:
-                dst = name + ".scrambled.mdf"
+            dst = name.with_suffix(".scrambled.mf4")
 
             copy(name, dst)
 
             with open(dst, "rb+") as mdf:
-                for addr, bts in texts.items():
+                chunk = count // 34
+                idx = 0
+                for index, (addr, bts) in enumerate(texts.items()):
                     mdf.seek(addr)
                     mdf.write(bts)
+                    if index % chunk == 0:
+                        if callback:
+                            callback(66 + idx, 100)
+
+            if callback:
+                callback(100, 100)
 
     def get_group(self, index):
         """ get channel group as pandas DataFrames. If there are multiple
