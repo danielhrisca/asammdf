@@ -3434,6 +3434,24 @@ class DataGroup:
             self.record_id_len = kwargs.get("record_id_len", 0)
             self.reserved1 = kwargs.get("reserved1", b"\00" * 7)
 
+    def copy(self):
+        dg = DataGroup(
+            id=self.id,
+            reserved0=self.reserved0,
+            block_len=self.block_len,
+            links_nr=self.links_nr,
+            next_dg_addr=self.next_dg_addr,
+            first_cg_addr=self.first_cg_addr,
+            data_block_addr=self.data_block_addr,
+            comment_addr=self.comment_addr,
+            record_id_len=self.record_id_len,
+            reserved1=self.reserved1,
+        )
+        dg.comment = self.comment
+        dg.address = self.address
+
+        return dg
+
     def to_blocks(self, address, blocks, defined_texts):
         text = self.comment
         if text:
@@ -4334,7 +4352,7 @@ class HeaderBlock:
                     common_properties, "e", name="subject"
                 ).text = self.subject
 
-            comment = ET.tostring(comment, encoding="utf8", method="xml")
+            comment = ET.tostring(comment, encoding="utf8", method="xml").replace(b"<?xml version='1.0' encoding='utf8'?>\n", b"")
 
         else:
             comment = v4c.HD_COMMENT_TEMPLATE.format(

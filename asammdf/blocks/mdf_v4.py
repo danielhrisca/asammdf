@@ -355,7 +355,7 @@ class MDF4(object):
             while cg_addr:
                 cg_nr += 1
 
-                grp = Group(group)
+                grp = Group(group.copy())
 
                 # read each channel group sequentially
                 block = ChannelGroup(address=cg_addr, stream=stream, mapped=mapped)
@@ -5265,8 +5265,13 @@ class MDF4(object):
             tell = dst_.tell
             seek = dst_.seek
 
+            blocks = []
+
             write(bytes(self.identification))
-            write(bytes(self.header))
+
+            self.header.to_blocks(dst_.tell(), blocks)
+            for block in blocks:
+                write(bytes(block))
 
             original_data_addresses = []
 

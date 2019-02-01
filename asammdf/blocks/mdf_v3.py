@@ -164,6 +164,9 @@ class MDF3(object):
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
 
+        self._si_map = {}
+        self._cc_map = {}
+
         self._callback = kwargs.get("callback", None)
 
         if name:
@@ -683,31 +686,25 @@ class MDF3(object):
         current_cg_index = 0
 
         # performance optimization
-        read = stream.read
-        seek = stream.seek
+        stream.seek(0)
 
         dg_cntr = 0
-        seek(0)
 
         self.identification = FileIdentificationBlock(stream=stream)
         self.header = HeaderBlock(stream=stream)
 
-        self.version = self.identification.version_str.decode("latin-1").strip(
-            " \n\t\0"
-        )
+        self.version = self.identification.version_str.decode("latin-1").strip(" \n\t\0")
 
         # this will hold mapping from channel address to Channel object
         # needed for linking dependency blocks to referenced channels after
         # the file is loaded
         ch_map = {}
-        ce_map = {}
-        cc_map = {}
 
         # go to first date group
         dg_addr = self.header.first_dg_addr
         # read each data group sequentially
         while dg_addr:
-            data_group = DataGroup(address=dg_addr, stream=stream)
+            data_group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
             record_id_nr = data_group.record_id_len
             cg_nr = data_group.cg_nr
             cg_addr = data_group.first_cg_addr
@@ -754,12 +751,18 @@ class MDF3(object):
 
                 while ch_addr:
                     # read channel block and create channel object
-                    new_ch = Channel(address=ch_addr, stream=stream, load_metadata=True, mapped=mapped)
+                    new_ch = Channel(
+                        address=ch_addr,
+                        stream=stream,
+                        mapped=mapped,
+                        si_map=self._si_map,
+                        cc_map=self._cc_map,
+                    )
 
                     # check if it has channel dependencies
                     if new_ch.ch_depend_addr:
                         dep = ChannelDependency(
-                            address=new_ch.ch_depend_addr, stream=stream
+                            address=new_ch.ch_depend_addr, stream=stream,
                         )
                         grp.channel_dependencies.append(dep)
                     else:
@@ -770,7 +773,8 @@ class MDF3(object):
                     ch_map[ch_addr] = entry
 
                     for name in (new_ch.name, new_ch.display_name):
-                        self.channels_db.add(name, entry)
+                        if name:
+                            self.channels_db.add(name, entry)
 
                     if new_ch.channel_type == v23c.CHANNEL_TYPE_MASTER:
                         self.masters_db[dg_cntr] = ch_cntr

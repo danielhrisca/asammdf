@@ -13,7 +13,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v2_v3_constants as v23c
-from .utils import MdfException, get_text_v3, SignalSource, UINT16_u, UINT16_uf, UINT32_u
+from .utils import MdfException, get_text_v3, SignalSource, UINT16_u, UINT16_uf, UINT32_u, UINT32_uf
 from ..version import __version__
 
 
@@ -210,17 +210,6 @@ class Channel:
                     if addr:
                         self.display_name = get_text_v3(address=addr, stream=stream, mapped=mapped)
 
-                    if load_metadata:
-                        addr = self.conversion_addr
-                        if addr:
-                            self.conversion = ChannelConversion(address=addr, stream=stream, mapped=mapped)
-
-                        addr = self.source_addr
-                        if addr:
-                            self.source = ChannelExtension(address=addr, stream=stream, mapped=mapped)
-
-                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
-
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
                         self.id,
@@ -249,17 +238,6 @@ class Channel:
                     else:
                         self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
-                    if load_metadata:
-
-                        addr = self.conversion_addr
-                        if addr:
-                            self.conversion = ChannelConversion(address=addr, stream=stream, mapped=mapped)
-
-                        addr = self.source_addr
-                        if addr:
-                            self.source = ChannelExtension(address=addr, stream=stream, mapped=mapped)
-
-                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
                 else:
                     (
                         self.id,
@@ -283,18 +261,43 @@ class Channel:
 
                     self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
-                    if load_metadata:
+                cc_map = kwargs.get('cc_map', {})
+                si_map = kwargs.get('si_map', {})
 
-                        addr = self.conversion_addr
-                        if addr:
-                            self.conversion = ChannelConversion(address=addr, stream=stream)
+                address = self.conversion_addr
+                if address:
+                    size, = UINT16_uf(stream, address + 2)
+                    raw_bytes = stream[address: address + size]
 
-                        addr = self.source_addr
-                        if addr:
-                            self.source = ChannelExtension(address=addr, stream=stream)
+                    if raw_bytes in cc_map:
+                        conv = cc_map[raw_bytes]
+                    else:
+                        conv = ChannelConversion(
+                            raw_bytes=raw_bytes,
+                            stream=stream,
+                            address=address,
+                            mapped=mapped,
+                        )
+                        cc_map[raw_bytes] = conv
+                    self.conversion = conv
 
-                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
+                address = self.source_addr
+                if address:
+                    raw_bytes = stream[address: address + v23c.CE_BLOCK_SIZE]
 
+                    if raw_bytes in si_map:
+                        source = si_map[raw_bytes]
+                    else:
+                        source = ChannelExtension(
+                            raw_bytes=raw_bytes,
+                            stream=stream,
+                            address=address,
+                            mapped=mapped,
+                        )
+                        si_map[raw_bytes] = source
+                    self.source = source
+
+                self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
             else:
                 stream.seek(address + 2)
                 (size,) = UINT16_u(stream.read(2))
@@ -335,17 +338,6 @@ class Channel:
                     if addr:
                         self.display_name = get_text_v3(address=addr, stream=stream, mapped=mapped)
 
-                    if load_metadata:
-                        addr = self.conversion_addr
-                        if addr:
-                            self.conversion = ChannelConversion(address=addr, stream=stream, mapped=mapped)
-
-                        addr = self.source_addr
-                        if addr:
-                            self.source = ChannelExtension(address=addr, stream=stream, mapped=mapped)
-
-                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
-
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
                         self.id,
@@ -374,17 +366,6 @@ class Channel:
                     else:
                         self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
-                    if load_metadata:
-
-                        addr = self.conversion_addr
-                        if addr:
-                            self.conversion = ChannelConversion(address=addr, stream=stream, mapped=mapped)
-
-                        addr = self.source_addr
-                        if addr:
-                            self.source = ChannelExtension(address=addr, stream=stream, mapped=mapped)
-
-                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
                 else:
                     (
                         self.id,
@@ -408,17 +389,46 @@ class Channel:
 
                     self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
-                    if load_metadata:
+                cc_map = kwargs.get('cc_map', {})
+                si_map = kwargs.get('si_map', {})
 
-                        addr = self.conversion_addr
-                        if addr:
-                            self.conversion = ChannelConversion(address=addr, stream=stream)
+                address = self.conversion_addr
+                if address:
+                    stream.seek(address + 2)
+                    size, = UINT16_u(stream.read(2))
+                    stream.seek(address)
+                    raw_bytes = stream.read(size)
 
-                        addr = self.source_addr
-                        if addr:
-                            self.source = ChannelExtension(address=addr, stream=stream)
+                    if raw_bytes in cc_map:
+                        conv = cc_map[raw_bytes]
+                    else:
+                        conv = ChannelConversion(
+                            raw_bytes=raw_bytes,
+                            stream=stream,
+                            address=address,
+                            mapped=mapped,
+                        )
+                        cc_map[raw_bytes] = conv
+                    self.conversion = conv
 
-                        self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
+                address = self.source_addr
+                if address:
+                    stream.seek(address)
+                    raw_bytes = stream.read(v23c.CE_BLOCK_SIZE)
+
+                    if raw_bytes in si_map:
+                        source = si_map[raw_bytes]
+                    else:
+                        source = ChannelExtension(
+                            raw_bytes=raw_bytes,
+                            stream=stream,
+                            address=address,
+                            mapped=mapped,
+                        )
+                        si_map[raw_bytes] = source
+                    self.source = source
+
+                self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
 
             if self.id != b"CN":
                 message = f'Expected "CN" block @{hex(address)} but found "{self.id}"'
@@ -562,9 +572,7 @@ comment: {self.comment}
 
         block_len = self.block_len
         if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
-            fmt = v23c.FMT_CHANNEL_DISPLAYNAME
-            result = pack(
-                fmt,
+            return v23c.CHANNEL_DISPLAYNAME_p(
                 self.id,
                 self.block_len,
                 self.next_ch_addr,
@@ -587,9 +595,7 @@ comment: {self.comment}
                 self.additional_byte_offset,
             )
         elif block_len == v23c.CN_LONGNAME_BLOCK_SIZE:
-            fmt = v23c.FMT_CHANNEL_LONGNAME
-            result = pack(
-                fmt,
+            return v23c.CHANNEL_LONGNAME_p(
                 self.id,
                 self.block_len,
                 self.next_ch_addr,
@@ -610,9 +616,7 @@ comment: {self.comment}
                 self.long_name_addr,
             )
         else:
-            fmt = v23c.FMT_CHANNEL_SHORT
-            result = pack(
-                fmt,
+            return v23c.CHANNEL_SHORT_p(
                 self.id,
                 self.block_len,
                 self.next_ch_addr,
@@ -631,8 +635,6 @@ comment: {self.comment}
                 self.max_raw_value,
                 self.sampling_rate,
             )
-
-        return result
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -820,8 +822,9 @@ class ChannelConversion(_ChannelConversionBase):
         self.referenced_blocks = {}
 
         if "raw_bytes" in kwargs or "stream" in kwargs:
+            mapped = kwargs.get("mapped", False)
+            self.address = address = kwargs.get("address", 0)
             try:
-                self.address = 0
                 block = kwargs["raw_bytes"]
                 (self.id, self.block_len) = COMMON_uf(block)
                 size = self.block_len
@@ -831,17 +834,17 @@ class ChannelConversion(_ChannelConversionBase):
 
             except KeyError:
                 stream = kwargs["stream"]
-                self.address = address = kwargs["address"]
-                stream.seek(address)
-                block = stream.read(4)
-                (self.id, self.block_len) = COMMON_u(block)
+                if mapped:
+                    (self.id, self.block_len) = COMMON_uf(stream, address)
+                    block_size = size = self.block_len
+                    block = stream[address+4: address + size]
+                else:
+                    stream.seek(address)
+                    block = stream.read(4)
+                    (self.id, self.block_len) = COMMON_u(block)
 
-                size = self.block_len
-                block_size = size
-                block = stream.read(size - 4)
-
-            address = kwargs.get("address", 0)
-            self.address = address
+                    block_size = size = self.block_len
+                    block = stream.read(size - 4)
 
             (
                 self.range_flag,
@@ -964,7 +967,8 @@ class ChannelConversion(_ChannelConversionBase):
 
                     if self.default_addr:
                         self.referenced_blocks["default_addr"] = TextBlock(
-                            address=self.default_addr, stream=stream
+                            address=self.default_addr, stream=stream,
+                            mapped=mapped,
                         )
                     else:
                         self.referenced_blocks["default_addr"] = TextBlock(text="")
@@ -979,7 +983,11 @@ class ChannelConversion(_ChannelConversionBase):
                             values[3 * i + 2],
                         )
                         if values[3 * i + 2]:
-                            block = TextBlock(address=values[3 * i + 2], stream=stream)
+                            block = TextBlock(
+                                address=values[3 * i + 2],
+                                stream=stream,
+                                mapped=mapped,
+                            )
                             self.referenced_blocks[f"text_{i}"] = block
 
                         else:
@@ -1705,28 +1713,49 @@ class ChannelExtension:
 
                 self.address = kwargs.get("address", 0)
             except KeyError:
+                if kwargs.get("mapped", False):
+                    self.address = address = kwargs["address"]
 
-                self.address = address = kwargs["address"]
-                stream.seek(address)
-                (self.id, self.block_len, self.type) = SOURCE_COMMON_u(stream.read(6))
-                block = stream.read(self.block_len - 6)
+                    (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(stream, address)
 
-                if self.type == v23c.SOURCE_ECU:
-                    (
-                        self.module_nr,
-                        self.module_address,
-                        self.description,
-                        self.ECU_identification,
-                        self.reserved0,
-                    ) = SOURCE_EXTRA_ECU_u(block)
-                elif self.type == v23c.SOURCE_VECTOR:
-                    (
-                        self.CAN_id,
-                        self.CAN_ch_index,
-                        self.message_name,
-                        self.sender_name,
-                        self.reserved0,
-                    ) = SOURCE_EXTRA_VECTOR_u(block)
+                    if self.type == v23c.SOURCE_ECU:
+                        (
+                            self.module_nr,
+                            self.module_address,
+                            self.description,
+                            self.ECU_identification,
+                            self.reserved0,
+                        ) = SOURCE_EXTRA_ECU_uf(stream, address + 6)
+                    elif self.type == v23c.SOURCE_VECTOR:
+                        (
+                            self.CAN_id,
+                            self.CAN_ch_index,
+                            self.message_name,
+                            self.sender_name,
+                            self.reserved0,
+                        ) = SOURCE_EXTRA_VECTOR_uf(stream, address + 6)
+                else:
+                    self.address = address = kwargs["address"]
+                    stream.seek(address)
+                    block = stream.read(v23c.CE_BLOCK_SIZE)
+                    (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(block)
+
+                    if self.type == v23c.SOURCE_ECU:
+                        (
+                            self.module_nr,
+                            self.module_address,
+                            self.description,
+                            self.ECU_identification,
+                            self.reserved0,
+                        ) = SOURCE_EXTRA_ECU_uf(block, 6)
+                    elif self.type == v23c.SOURCE_VECTOR:
+                        (
+                            self.CAN_id,
+                            self.CAN_ch_index,
+                            self.message_name,
+                            self.sender_name,
+                            self.reserved0,
+                        ) = SOURCE_EXTRA_VECTOR_uf(block, 6)
 
             if self.id != b"CE":
                 message = f'Expected "CE" block @{hex(address)} but found "{self.id}"'
@@ -1835,14 +1864,27 @@ address: {hex(self.address)}
     def __bytes__(self):
         typ = self.type
         if typ == v23c.SOURCE_ECU:
-            fmt = v23c.FMT_SOURCE_ECU
-            keys = v23c.KEYS_SOURCE_ECU
+            return v23c.SOURCE_ECU_p(
+                self.id,
+                self.block_len,
+                self.type,
+                self.module_nr,
+                self.module_address,
+                self.description,
+                self.ECU_identification,
+                self.reserved0,
+            )
         else:
-            fmt = v23c.FMT_SOURCE_VECTOR
-            keys = v23c.KEYS_SOURCE_VECTOR
-
-        result = pack(fmt, *[self[key] for key in keys])
-        return result
+            return v23c.VECTOR_ECU_p(
+                self.id,
+                self.block_len,
+                self.type,
+                self.CAN_id,
+                self.CAN_ch_index,
+                self.message_name,
+                self.sender_name,
+                self.reserved0,
+            )
 
     def __str__(self):
         fields = []
@@ -1927,33 +1969,49 @@ class ChannelGroup:
         self.comment = ""
 
         try:
-
             stream = kwargs["stream"]
+            mapped = kwargs.get("mapped", False)
             self.address = address = kwargs["address"]
-            stream.seek(address)
-            block = stream.read(v23c.CG_PRE_330_BLOCK_SIZE)
 
-            (
-                self.id,
-                self.block_len,
-                self.next_cg_addr,
-                self.first_ch_addr,
-                self.comment_addr,
-                self.record_id,
-                self.ch_nr,
-                self.samples_byte_nr,
-                self.cycles_nr,
-            ) = unpack(v23c.FMT_CHANNEL_GROUP, block)
-            if self.block_len == v23c.CG_POST_330_BLOCK_SIZE:
-                (self.sample_reduction_addr,) = UINT32_u(stream.read(4))
-                # sample reduction blocks are not yet used
-                self.sample_reduction_addr = 0
+            if mapped:
+                (
+                    self.id,
+                    self.block_len,
+                    self.next_cg_addr,
+                    self.first_ch_addr,
+                    self.comment_addr,
+                    self.record_id,
+                    self.ch_nr,
+                    self.samples_byte_nr,
+                    self.cycles_nr,
+                ) = v23c.CHANNEL_GROUP_uf(stream, address)
+                if self.block_len == v23c.CG_POST_330_BLOCK_SIZE:
+                    # sample reduction blocks are not yet used
+                    self.sample_reduction_addr = 0
+            else:
+                stream.seek(address)
+                block = stream.read(v23c.CG_PRE_330_BLOCK_SIZE)
+
+                (
+                    self.id,
+                    self.block_len,
+                    self.next_cg_addr,
+                    self.first_ch_addr,
+                    self.comment_addr,
+                    self.record_id,
+                    self.ch_nr,
+                    self.samples_byte_nr,
+                    self.cycles_nr,
+                ) = unpack(v23c.FMT_CHANNEL_GROUP, block)
+                if self.block_len == v23c.CG_POST_330_BLOCK_SIZE:
+                    # sample reduction blocks are not yet used
+                    self.sample_reduction_addr = 0
             if self.id != b"CG":
                 message = f'Expected "CG" block @{hex(address)} but found "{self.id}"'
 
                 raise MdfException(message.format(self.id))
             if self.comment_addr:
-                self.comment = get_text_v3(address=self.comment_addr, stream=stream)
+                self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
         except KeyError:
             self.address = 0
             self.id = b"CG"
@@ -1997,13 +2055,30 @@ class ChannelGroup:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        fmt = v23c.FMT_CHANNEL_GROUP
-        keys = v23c.KEYS_CHANNEL_GROUP
         if self.block_len == v23c.CG_POST_330_BLOCK_SIZE:
-            fmt += "I"
-            keys += ("sample_reduction_addr",)
-        result = pack(fmt, *[self[key] for key in keys])
-        return result
+            return v23c.CHANNEL_GROUP_p(
+                self.id,
+                self.block_len,
+                self.next_cg_addr,
+                self.first_ch_addr,
+                self.comment_addr,
+                self.record_id,
+                self.ch_nr,
+                self.samples_byte_nr,
+                self.cycles_nr,
+            ) + b'\0'*4
+        else:
+            return v23c.CHANNEL_GROUP_p(
+                self.id,
+                self.block_len,
+                self.next_cg_addr,
+                self.first_ch_addr,
+                self.comment_addr,
+                self.record_id,
+                self.ch_nr,
+                self.samples_byte_nr,
+                self.cycles_nr,
+            )
 
 
 class DataBlock:
@@ -2105,23 +2180,41 @@ class DataGroup:
 
         try:
             stream = kwargs["stream"]
+            mapped = kwargs.get("mapped", False)
             self.address = address = kwargs["address"]
-            stream.seek(address)
-            block = stream.read(v23c.DG_PRE_320_BLOCK_SIZE)
+            if mapped:
+                block = stream.read(v23c.DG_PRE_320_BLOCK_SIZE)
 
-            (
-                self.id,
-                self.block_len,
-                self.next_dg_addr,
-                self.first_cg_addr,
-                self.trigger_addr,
-                self.data_block_addr,
-                self.cg_nr,
-                self.record_id_len,
-            ) = unpack(v23c.FMT_DATA_GROUP_PRE_320, block)
+                (
+                    self.id,
+                    self.block_len,
+                    self.next_dg_addr,
+                    self.first_cg_addr,
+                    self.trigger_addr,
+                    self.data_block_addr,
+                    self.cg_nr,
+                    self.record_id_len,
+                ) = v23c.DATA_GROUP_PRE_320_uf(stream, address)
 
-            if self.block_len == v23c.DG_POST_320_BLOCK_SIZE:
-                self.reserved0 = stream.read(4)
+                if self.block_len == v23c.DG_POST_320_BLOCK_SIZE:
+                    self.reserved0 = stream[address + v23c.DG_PRE_320_BLOCK_SIZE: address + v23c.DG_POST_320_BLOCK_SIZE]
+            else:
+                stream.seek(address)
+                block = stream.read(v23c.DG_PRE_320_BLOCK_SIZE)
+
+                (
+                    self.id,
+                    self.block_len,
+                    self.next_dg_addr,
+                    self.first_cg_addr,
+                    self.trigger_addr,
+                    self.data_block_addr,
+                    self.cg_nr,
+                    self.record_id_len,
+                ) = v23c.DATA_GROUP_PRE_320_u(block)
+
+                if self.block_len == v23c.DG_POST_320_BLOCK_SIZE:
+                    self.reserved0 = stream.read(4)
 
             if self.id != b"DG":
                 message = f'Expected "DG" block @{hex(address)} but found "{self.id}"'
@@ -2603,13 +2696,17 @@ class TextBlock:
     def __init__(self, **kwargs):
         super().__init__()
         try:
-
             stream = kwargs["stream"]
+            mapped = kwargs.get("mapped", False)
             self.address = address = kwargs["address"]
-            stream.seek(address)
-            (self.id, self.block_len) = COMMON_u(stream.read(4))
-            size = self.block_len - 4
-            self.text = stream.read(size)
+            if mapped:
+                (self.id, self.block_len) = COMMON_uf(stream, address)
+                self.text = stream[address + 4: address + self.block_len]
+            else:
+                stream.seek(address)
+                (self.id, self.block_len) = COMMON_u(stream.read(4))
+                size = self.block_len - 4
+                self.text = stream.read(size)
 
             if self.id != b"TX":
                 message = f'Expected "TX" block @{hex(address)} but found "{self.id}"'
@@ -2627,8 +2724,8 @@ class TextBlock:
                 pass
 
             self.id = b"TX"
-            self.block_len = len(text) + 4 + 1
-            self.text = text + b"\0"
+            self.block_len = len(text) + 5
+            self.text = text
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -2637,11 +2734,10 @@ class TextBlock:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        result = pack(
-            "<2sH{}s".format(self.block_len - 4),
-            *[self[key] for key in v23c.KEYS_TEXT_BLOCK],
-        )
-        return result
+        return v23c.COMMON_p(
+            self.id,
+            self.block_len,
+        ) + self.text
 
 
 class TriggerBlock:
