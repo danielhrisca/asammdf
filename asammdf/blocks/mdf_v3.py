@@ -3146,7 +3146,7 @@ class MDF3(object):
         else:
 
             old_history = self.header.comment
-            timestamp = time.asctime().encode("latin-1")
+            timestamp = time.asctime()
 
             text = f"{old_history}\n{timestamp}: updated by asammdf {__version__}"
             self.header.comment = text

@@ -2725,7 +2725,7 @@ class TextBlock:
 
             self.id = b"TX"
             self.block_len = len(text) + 5
-            self.text = text
+            self.text = text + b'\0'
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
