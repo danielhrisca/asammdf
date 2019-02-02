@@ -2453,8 +2453,6 @@ class MDF(object):
                             master = np.arange(last, master[-1], raster)
                         last = master[-1] + raster
 
-                print(master)
-
                 if idx == 0:
                     sigs = []
                     for j in included_channels:
