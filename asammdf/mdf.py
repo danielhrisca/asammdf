@@ -2423,9 +2423,36 @@ class MDF(object):
             else:
                 continue
 
+            last = None
+
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
-                master = self.get_master(i, data=fragment, raster=raster)
+                if idx == 0:
+                    master = self.get_master(i, data=fragment)
+                    if len(master) > 1:
+                        num = float(np.float32((master[-1] - master[0]) / raster))
+                        if int(num) == num:
+                            master = np.linspace(master[0], master[-1], int(num))
+                        else:
+                            master = np.arange(master[0], master[-1], raster)
+                        last = master[-1] + raster
+                    elif len(master) == 1:
+                        last = master[-1] + raster
+                    else:
+                        last = None
+
+                else:
+                    master = self.get_master(i, data=fragment)
+                    if len(master):
+                        if last is None:
+                            last = master[0] + raster
+                        num = float(np.float32((master[-1] - last) / raster))
+                        if int(num) == num:
+                            master = np.linspace(master[0], master[-1], int(num))
+                        else:
+                            master = np.arange(last, master[-1], raster)
+                        last = master[-1] + raster
+
                 print(master)
 
                 if idx == 0:
@@ -2467,7 +2494,7 @@ class MDF(object):
                             else:
                                 encodings.append(None)
 
-                        if len(master) > 1:
+                        if len(master):
                             sig = sig.interp(master)
 
                         if not sig.samples.flags.writeable:
@@ -2516,7 +2543,7 @@ class MDF(object):
                                         )
                                     sig.samples = samples
 
-                        if len(master) > 1:
+                        if len(master):
                             sig = Signal(sig[0], t, invalidation_bits=sig[1], name='_').interp(master)
                             sig = sig.samples, sig.invalidation_bits
                         if not sig[0].flags.writeable:
