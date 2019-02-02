@@ -2425,6 +2425,8 @@ class MDF(object):
 
             data = self._load_data(group)
             for idx, fragment in enumerate(data):
+                master = self.get_master(i, data=fragment, raster=raster)
+                print(master)
 
                 if idx == 0:
                     sigs = []
@@ -2434,7 +2436,6 @@ class MDF(object):
                             index=j,
                             data=fragment,
                             raw=True,
-                            raster=raster,
                             ignore_invalidation_bits=True,
                         )
                         if version < "4.00":
@@ -2466,6 +2467,9 @@ class MDF(object):
                             else:
                                 encodings.append(None)
 
+                        if len(master) > 1:
+                            sig = sig.interp(master)
+
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
@@ -2478,7 +2482,8 @@ class MDF(object):
                         break
 
                 else:
-                    sigs = [(self.get_master(i, data=fragment, raster=raster), None)]
+                    sigs = [(master, None)]
+                    t = self.get_master(i, data=fragment)
 
                     for k, j in enumerate(included_channels):
                         sig = self.get(
@@ -2487,7 +2492,6 @@ class MDF(object):
                             data=fragment,
                             raw=True,
                             samples_only=True,
-                            raster=raster,
                             ignore_invalidation_bits=True,
                         )
 
@@ -2512,6 +2516,9 @@ class MDF(object):
                                         )
                                     sig.samples = samples
 
+                        if len(master) > 1:
+                            sig = Signal(sig[0], t, invalidation_bits=sig[1], name='_').interp(master)
+                            sig = sig.samples, sig.invalidation_bits
                         if not sig[0].flags.writeable:
                             sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
