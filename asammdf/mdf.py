@@ -1953,6 +1953,8 @@ class MDF(object):
 
         merged.header.start_time = oldest
 
+        encodings = []
+
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf)
@@ -1996,7 +1998,8 @@ class MDF(object):
                         group.record = None
 
                     if mdf_index == 0 and idx == 0:
-                        encodings = []
+                        encodings_ = []
+                        encodings.append(encodings_)
                         signals = []
                         for j in included_channels:
                             sig = mdf.get(
@@ -2010,7 +2013,7 @@ class MDF(object):
 
                             if version < "4.00":
                                 if sig.samples.dtype.kind == "S":
-                                    encodings.append(sig.encoding)
+                                    encodings_.append(sig.encoding)
                                     strsig = mdf.get(
                                         group=i,
                                         index=j,
@@ -2037,7 +2040,7 @@ class MDF(object):
                                                 "latin-1",
                                             )
                                 else:
-                                    encodings.append(None)
+                                    encodings_.append(None)
 
                             if not sig.samples.flags.writeable:
                                 sig.samples = sig.samples.copy()
@@ -2092,7 +2095,8 @@ class MDF(object):
                                 signals.append(sig)
 
                                 if version < "4.00":
-                                    encoding = encodings[k]
+                                    # print(k, len(encodings[mdf_index]), len(included_channels))
+                                    encoding = encodings[i][k]
                                     samples = sig[0]
                                     if encoding:
                                         if encoding != "latin-1":
@@ -2125,14 +2129,14 @@ class MDF(object):
                 last_timestamps[i] = last_timestamp
                 if first_timestamp is not None:
                     merged.groups[-1].channel_group.comment += (
-                        f"{first_timestamp}s to {last_timestamp}s "
-                        f'concatenated from channel group {i} of "{mdf.name.parent}"'
-                        f"with first time stamp at {original_first_timestamp}s\n"
+                        f"{first_timestamp:.6f}s-{last_timestamp:.6f}s "
+                        f'from CG {i} of "{mdf.name.name}"'
+                        f"start @ {original_first_timestamp:.6f}s\n"
                     )
                 else:
                     merged.groups[
                         -1
-                    ].channel_group.comment += f'there were no samples in channel group {i} of "{mdf.name.parent}"\n'
+                    ].channel_group.comment += f'there were no samples in channel group {i} of "{mdf.name.name}"\n'
 
             if callback:
                 callback(i + 1, groups_nr)
@@ -2379,7 +2383,7 @@ class MDF(object):
         for i, group in enumerate(self.groups):
             yield self.get_group(i)
 
-    def resample(self, raster, version=None):
+    def resample(self, raster, version=None, interpolation_mode=0):
         """ resample all channels using the given raster
 
         Parameters
@@ -2390,6 +2394,11 @@ class MDF(object):
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
             case the original file version is used
+        interpolation_mode : int
+            interpolation mode for integer signals; default 0
+
+                * 0 - repeat previous samples
+                * 1 - linear interpolation
 
         Returns
         -------
@@ -2493,7 +2502,7 @@ class MDF(object):
                                 encodings.append(None)
 
                         if len(master):
-                            sig = sig.interp(master)
+                            sig = sig.interp(master, mode=interpolation_mode)
 
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
@@ -2542,7 +2551,10 @@ class MDF(object):
                                     sig.samples = samples
 
                         if len(master):
-                            sig = Signal(sig[0], t, invalidation_bits=sig[1], name='_').interp(master)
+                            sig = (
+                                Signal(sig[0], t, invalidation_bits=sig[1], name='_')
+                                .interp(master, mode=interpolation_mode)
+                            )
                             sig = sig.samples, sig.invalidation_bits
                         if not sig[0].flags.writeable:
                             sig = sig[0].copy(), sig[1]
