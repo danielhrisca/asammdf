@@ -423,7 +423,7 @@ class Signal(object):
             except Exception as err:
                 print(err)
 
-    def cut(self, start=None, stop=None, include_ends=True):
+    def cut(self, start=None, stop=None, include_ends=True, interpolation_mode=0):
         """
         Cuts the signal according to the *start* and *stop* values, by using
         the insertion indexes in the signal's *time* axis.
@@ -438,6 +438,11 @@ class Signal(object):
             include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are found in the original timestamps, then
             the new samples will be computed using interpolation. Default *True*
+        interpolation_mode : int
+            interpolation mode for integer signals; default 0
+
+                * 0 - repeat previous samples
+                * 1 - linear interpolation
 
         Returns
         -------
@@ -520,7 +525,7 @@ class Signal(object):
                         and ends[-1] not in self.timestamps
                         and ends[-1] < self.timestamps[-1]
                     ):
-                        interpolated = self.interp([ends[1]])
+                        interpolated = self.interp([ends[1]], interpolation_mode=interpolation_mode)
                         samples = np.append(
                             self.samples[:stop], interpolated.samples, axis=0
                         )
@@ -584,7 +589,7 @@ class Signal(object):
                         and ends[0] not in self.timestamps
                         and ends[0] > self.timestamps[0]
                     ):
-                        interpolated = self.interp([ends[0]])
+                        interpolated = self.interp([ends[0]], interpolation_mode=interpolation_mode)
                         samples = np.append(
                             interpolated.samples, self.samples[start:], axis=0
                         )
@@ -646,7 +651,7 @@ class Signal(object):
 
                     if start == stop:
                         if include_ends:
-                            interpolated = self.interp(np.unique(ends))
+                            interpolated = self.interp(np.unique(ends), interpolation_mode=interpolation_mode)
                             samples = interpolated.samples
                             timestamps = np.array(
                                 np.unique(ends), dtype=self.timestamps.dtype
@@ -674,7 +679,7 @@ class Signal(object):
                             and ends[-1] not in self.timestamps
                             and ends[-1] < self.timestamps[-1]
                         ):
-                            interpolated = self.interp([ends[1]])
+                            interpolated = self.interp([ends[1]], interpolation_mode=interpolation_mode)
                             samples = np.append(samples, interpolated.samples, axis=0)
                             timestamps = np.append(timestamps, ends[1])
                             if invalidation_bits is not None:
@@ -687,7 +692,7 @@ class Signal(object):
                             and ends[0] not in self.timestamps
                             and ends[0] > self.timestamps[0]
                         ):
-                            interpolated = self.interp([ends[0]])
+                            interpolated = self.interp([ends[0]], interpolation_mode=interpolation_mode)
                             samples = np.append(interpolated.samples, samples, axis=0)
                             timestamps = np.append(ends[0], timestamps)
 
@@ -777,14 +782,14 @@ class Signal(object):
 
         return result
 
-    def interp(self, new_timestamps, mode=0):
+    def interp(self, new_timestamps, interpolation_mode=0):
         """ returns a new *Signal* interpolated using the *new_timestamps*
 
         Parameters
         ----------
         new_timestamps : np.array
             timestamps used for interpolation
-        mode : int
+        interpolation_mode : int
             interpolation mode for integer signals; default 0
 
                 * 0 - repeat previous samples
@@ -842,7 +847,7 @@ class Signal(object):
                     else:
                         invalidation_bits = None
                 elif kind in "ui":
-                    if mode == 1:
+                    if interpolation_mode == 1:
                         s = np.interp(
                             new_timestamps, self.timestamps, self.samples
                         ).astype(self.samples.dtype)

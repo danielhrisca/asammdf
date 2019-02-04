@@ -8,7 +8,6 @@ import string
 import xml.etree.ElementTree as ET
 import re
 import subprocess
-import os
 
 from collections import namedtuple
 from random import randint
@@ -16,7 +15,9 @@ from struct import Struct
 from tempfile import TemporaryDirectory
 from pathlib import Path
 
-from numpy import amin, amax, where, arange, interp
+from numpy import where, arange, interp
+from numpy.core.records import fromarrays
+from pandas import Series
 
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
@@ -1025,6 +1026,7 @@ class Group:
     def __contains__(self, item):
         return hasattr(self, item)
 
+
 def block_fields(obj):
     fields = []
     for attr in dir(obj):
@@ -1039,3 +1041,67 @@ def block_fields(obj):
 
     return fields
 
+
+def components(channel, channel_name, unique_names, prefix=""):
+    """ yield pandas Series and unique name based on the ndarray object
+
+    Parameters
+    ----------
+    channel : numpy.ndarray
+        channel to be used foir Series
+    channel_name : str
+        channel name
+    unique_names : UniqueDB
+        unique names object
+    prefix : str
+        prefix used in case of nested recarrays
+
+    Returns
+    -------
+    name, series : (str, pandas.Series)
+        tuple of unqiue name and Series object
+    """
+    names = channel.dtype.names
+
+    # channel arrays
+    if names[0] == channel_name:
+        name = names[0]
+
+        name_ = unique_names.get_unique_name(f"{prefix}.{name}")
+
+        values = channel[name]
+        if len(values.shape) > 1:
+            arr = [values]
+            types = [("", values.dtype, values.shape[1:])]
+            values = fromarrays(arr, dtype=types)
+            del arr
+        yield name_, Series(values, dtype="O")
+
+        for name in names[1:]:
+            values = channel[name]
+            axis_name = unique_names.get_unique_name(f"{name_}.{name}")
+            if len(values.shape) > 1:
+                arr = [values]
+                types = [("", values.dtype, values.shape[1:])]
+                values = fromarrays(arr, dtype=types)
+                del arr
+            yield axis_name, Series(values)
+
+    # structure composition
+    else:
+        for name in channel.dtype.names:
+            values = channel[name]
+
+            if values.dtype.names:
+                yield from components(
+                    values, name, unique_names, prefix=f"{prefix}.{name}"
+                )
+
+            else:
+                name_ = unique_names.get_unique_name(f"{prefix}.{name}")
+                if len(values.shape) > 1:
+                    arr = [values]
+                    types = [("", values.dtype, values.shape[1:])]
+                    values = fromarrays(arr, dtype=types)
+                    del arr
+                yield name_, Series(values)

@@ -40,6 +40,7 @@ from .blocks.utils import (
     UniqueDB,
     cut_video_stream,
     get_video_stream_duration,
+    components,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -666,7 +667,7 @@ class MDF(object):
         include_ends : bool
             include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are found in the original timestamps, then
-            the new samples will be computed using interpolation. Default *True*
+            the new samples will be computed using interpolation. Default *True*\
 
         Returns
         -------
@@ -711,7 +712,7 @@ class MDF(object):
 
         cg_nr = -1
 
-        interp_mode = self._integer_interpolation
+        interpolation_mode = self._integer_interpolation
 
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
@@ -788,7 +789,7 @@ class MDF(object):
                 if needs_cutting:
                     cut_timebase = (
                         Signal(master, master, name="_")
-                        .cut(fragment_start, fragment_stop, include_ends)
+                        .cut(fragment_start, fragment_stop, include_ends, interpolation_mode=interpolation_mode)
                         .timestamps
                     )
 
@@ -806,7 +807,7 @@ class MDF(object):
                             copy_master=False,
                         )
                         if needs_cutting:
-                            sig = sig.interp(cut_timebase, mode=interp_mode)
+                            sig = sig.interp(cut_timebase, interpolation_mode=interpolation_mode)
 
                         # if sig.stream_sync and False:
                         #     attachment, _name = sig.attachment
@@ -870,7 +871,7 @@ class MDF(object):
                         if needs_cutting:
                             _sig = Signal(
                                 sig[0], master, name="_", invalidation_bits=sig[1]
-                            ).interp(cut_timebase, mode=interp_mode)
+                            ).interp(cut_timebase, interpolation_mode=interpolation_mode)
                             sig = (_sig.samples, _sig.invalidation_bits)
 
                             del _sig
@@ -2383,8 +2384,9 @@ class MDF(object):
         for i, group in enumerate(self.groups):
             yield self.get_group(i)
 
-    def resample(self, raster, version=None, interpolation_mode=0):
-        """ resample all channels using the given raster
+    def resample(self, raster, version=None):
+        """ resample all channels using the given raster. See *configure* to select
+        the interpolation method for interger channels
 
         Parameters
         ----------
@@ -2394,11 +2396,6 @@ class MDF(object):
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
             case the original file version is used
-        interpolation_mode : int
-            interpolation mode for integer signals; default 0
-
-                * 0 - repeat previous samples
-                * 1 - linear interpolation
 
         Returns
         -------
@@ -2411,6 +2408,8 @@ class MDF(object):
             version = self.version
         else:
             version = validate_version_argument(version)
+
+        interpolation_mode = self._integer_interpolation
 
         mdf = MDF(version=version)
 
@@ -2502,7 +2501,7 @@ class MDF(object):
                                 encodings.append(None)
 
                         if len(master):
-                            sig = sig.interp(master, mode=interpolation_mode)
+                            sig = sig.interp(master, interpolation_mode=interpolation_mode)
 
                         if not sig.samples.flags.writeable:
                             sig.samples = sig.samples.copy()
@@ -2553,7 +2552,7 @@ class MDF(object):
                         if len(master):
                             sig = (
                                 Signal(sig[0], t, invalidation_bits=sig[1], name='_')
-                                .interp(master, mode=interpolation_mode)
+                                .interp(master, interpolation_mode=interpolation_mode)
                             )
                             sig = sig.samples, sig.invalidation_bits
                         if not sig[0].flags.writeable:
@@ -2708,17 +2707,47 @@ class MDF(object):
             signals.append(signal)
 
         if dataframe:
+
+            interpolation_mode = self._integer_interpolation
             times = [s.timestamps for s in signals]
-            t = reduce(np.union1d, times).flatten().astype(np.float64)
-            signals = [s.interp(t, mode=self._integer_interpolation) for s in signals]
+            master = reduce(np.union1d, times).flatten().astype(np.float64)
+            signals = [
+                s.interp(master, interpolation_mode=interpolation_mode)
+                for s in signals
+            ]
 
-            pandas_dict = {"time": t}
-            for sig in signals:
-                pandas_dict[sig.name] = sig.samples
+            df = DataFrame()
 
-            signals = DataFrame.from_dict(pandas_dict)
+            df["time"] = Series(master, index=np.arange(len(master)))
 
-        return signals
+            df.set_index('time', inplace=True)
+
+            used_names = UniqueDB()
+            used_names.get_unique_name("time")
+
+            for k, sig in enumerate(signals):
+                # byte arrays
+                if len(sig.samples.shape) > 1:
+                    arr = [sig.samples]
+                    types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
+                    sig.samples = np.core.records.fromarrays(arr, dtype=types)
+
+                    channel_name = used_names.get_unique_name(sig.name)
+                    df[channel_name] = Series(sig.samples, dtype="O")
+
+                # arrays and structures
+                elif sig.samples.dtype.names:
+                    for name, series in components(sig.samples, sig.name, used_names):
+                        df[name] = series
+
+                # scalars
+                else:
+                    channel_name = used_names.get_unique_name(sig.name)
+                    df[channel_name] = Series(sig.samples)
+
+            return df
+        else:
+            return signals
 
     def whereis(self, channel):
         """ get ocurrences of channel name in the file
@@ -2991,7 +3020,7 @@ class MDF(object):
             if callback:
                 callback(100, 100)
 
-    def get_group(self, index):
+    def get_group(self, index, raster=None, time_from_zero=False, use_display_names=False):
         """ get channel group as pandas DataFrames. If there are multiple
         occurences for the same channel name, then a counter will be used to
         make the names unique (<original_name>_<counter>)
@@ -3007,54 +3036,81 @@ class MDF(object):
 
         """
 
-        group = self.groups[index]
+        interpolation_mode = self._integer_interpolation
 
-        i = index
+        df = DataFrame()
+        master = self.get_master(index)
 
-        master_index = self.masters_db.get(i, -1)
+        if raster and len(master):
+            if len(master) > 1:
+                num = float(np.float32((master[-1] - master[0]) / raster))
+                if num.is_integer():
+                    master = np.linspace(master[0], master[-1], int(num))
+                else:
+                    master = np.arange(master[0], master[-1], raster, dtype=np.float64)
 
-        if master_index >= 0:
-            master_name = self.get_channel_name(i, master_index)
+        if time_from_zero and len(master):
+            df = df.assign(time=master)
+            df["time"] = Series(master - master[0], index=np.arange(len(master)))
         else:
-            master_name = "Idx"
+            df["time"] = Series(master, index=np.arange(len(master)))
 
-        master = []
-
-        names = [
-            self.get_channel_name(i, j)
-            for j, _ in enumerate(group.channels)
-            if j != master_index
-        ]
-
-        sigs = [[] for j, _ in enumerate(group.channels) if j != master_index]
-
-        data = self._load_data(group)
-        for fragment in data:
-
-            master.append(self.get_master(i, data=fragment, copy_master=False))
-
-            idx = 0
-            for j, _ in enumerate(group.channels):
-                if j == master_index:
-                    continue
-                sigs[idx].append(
-                    self.get(group=i, index=j, data=fragment, samples_only=True)[0]
-                )
-                idx += 1
-
-        pandas_dict = {master_name: np.concatenate(master)}
+        df.set_index('time', inplace=True)
 
         used_names = UniqueDB()
-        used_names.get_unique_name(master_name)
-        for name, sig in zip(names, sigs):
-            name = used_names.get_unique_name(name)
-            pandas_dict[name] = np.concatenate(sig)
+        used_names.get_unique_name("time")
 
-        try:
-            return DataFrame.from_dict(pandas_dict)
-        except:
-            debug_channel(self, group, None, None)
-            raise
+        included_channels = self._included_channels(index)
+
+        signals = [
+                self.get(group=index, index=idx, copy_master=False)
+                for idx in included_channels
+            ]
+
+        if raster and len(master):
+            signals = [
+                sig.interp(master, interpolation_mode=interpolation_mode)
+                for sig in signals
+            ]
+
+        for k, sig in enumerate(signals):
+            # byte arrays
+            if len(sig.samples.shape) > 1:
+                arr = [sig.samples]
+                types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
+                sig.samples = np.core.records.fromarrays(arr, dtype=types)
+
+                if use_display_names:
+                    channel_name = sig.display_name or sig.name
+                else:
+                    channel_name = sig.name
+
+                channel_name = used_names.get_unique_name(channel_name)
+
+                df[channel_name] = Series(sig.samples, dtype="O")
+
+            # arrays and structures
+            elif sig.samples.dtype.names:
+                for name, series in components(sig.samples, sig.name, used_names):
+                    df[name] = series
+
+            # scalars
+            else:
+                if use_display_names:
+                    channel_name = sig.display_name or sig.name
+                else:
+                    channel_name = sig.name
+
+                channel_name = used_names.get_unique_name(channel_name)
+
+                df[channel_name] = Series(sig.samples)
+
+            if use_display_names:
+                channel_name = sig.display_name or sig.name
+            else:
+                channel_name = sig.name
+
+        return df
 
     def to_dataframe(
         self,
@@ -3092,54 +3148,6 @@ class MDF(object):
 
         """
 
-        def components(channel, channel_name, unique_names, prefix=""):
-            names = channel.dtype.names
-
-            # channel arrays
-            if names[0] == channel_name:
-                name = names[0]
-
-                name_ = unique_names.get_unique_name(f"{prefix}.{name}")
-
-                values = channel[name]
-                if len(values.shape) > 1:
-                    arr = [values]
-                    types = [("", values.dtype, values.shape[1:])]
-                    values = np.core.records.fromarrays(arr, dtype=types)
-                    del arr
-                yield name_, Series(values, dtype="O")
-
-                for name in names[1:]:
-                    values = channel[name]
-                    axis_name = unique_names.get_unique_name(f"{name_}.{name}")
-                    if len(values.shape) > 1:
-                        arr = [values]
-                        types = [("", values.dtype, values.shape[1:])]
-                        values = np.core.records.fromarrays(arr, dtype=types)
-                        del arr
-                    yield axis_name, Series(values)
-
-            # structure composition
-            else:
-                for name in channel.dtype.names:
-                    values = channel[name]
-
-                    if values.dtype.names:
-                        yield from components(
-                            values, name, unique_names, prefix=f"{prefix}.{name}"
-                        )
-
-                    else:
-                        name_ = unique_names.get_unique_name(f"{prefix}.{name}")
-                        if len(values.shape) > 1:
-                            arr = [values]
-                            types = [("", values.dtype, values.shape[1:])]
-                            values = np.core.records.fromarrays(arr, dtype=types)
-                            del arr
-                        yield name_, Series(values)
-
-        from time import perf_counter as pc
-
         df = DataFrame()
         masters = [self.get_master(i) for i in range(len(self.groups))]
         self._master_channel_cache.clear()
@@ -3159,18 +3167,18 @@ class MDF(object):
         else:
             df["time"] = Series(master, index=np.arange(len(master)))
 
+        df.set_index('time', inplace=True)
+
         used_names = UniqueDB()
         used_names.get_unique_name("time")
 
-        start__ = pc()
 
         for i, grp in enumerate(self.groups):
-            #            if i == 971:
-            #                break
             if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
 
             included_channels = self._included_channels(i)
+            channels = grp.channels
 
             data = self._load_data(grp)
             parents, dtypes = self._prepare_record(grp)
@@ -3197,10 +3205,10 @@ class MDF(object):
                 timestamps = np.concatenate(timestamps)
 
             signals = [
-                Signal(samples, timestamps, name="_").interp(
+                Signal(samples, timestamps, name=channels[idx].name).interp(
                     master, self._integer_interpolation
                 )
-                for samples in signals
+                for samples, idx in zip(signals, included_channels)
             ]
 
             for sig in signals:
@@ -3213,9 +3221,6 @@ class MDF(object):
             signals = [sig for sig in signals if len(sig)]
 
             for k, sig in enumerate(signals):
-                #                if pc() - start__ > 120:
-                #                    print(pc() - start__, i, k)
-                #                    return
                 # byte arrays
                 if len(sig.samples.shape) > 1:
                     arr = [sig.samples]

@@ -824,10 +824,11 @@ try:
                 else:
                     super(Plot, self).keyPressEvent(event)
 
-        def xrange_changed_handle(self):
-            (start, stop), _ = self.viewbox.viewRange()
-            width = self.width()
-            for sig in self.signals:
+#        from numba import jit
+#
+#        @jit
+        def trim(self, width, start, stop, signals):
+            for sig in signals:
                 dim = len(sig.original_samples)
                 if dim:
 
@@ -883,6 +884,13 @@ try:
                             sig.timestamps = sig.original_timestamps[start_:stop_]
                             if sig.texts is not None:
                                 sig.texts = sig.original_texts[start_:stop_]
+
+        def xrange_changed_handle(self):
+            (start, stop), _ = self.viewbox.viewRange()
+
+            width = self.width()
+            self.trim(width, start, stop, self.signals)
+
 
             self.update_lines(force=True)
 
