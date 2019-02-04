@@ -7,28 +7,6 @@ from datetime import datetime
 from threading import Lock
 
 from .mdf import MDF
-from .blocks.utils import (
-    CHANNEL_COUNT,
-    MERGE,
-    MdfException,
-    matlab_compatible,
-    validate_version_argument,
-    MDF2_VERSIONS,
-    MDF3_VERSIONS,
-    MDF4_VERSIONS,
-    SUPPORTED_VERSIONS,
-    randomized_string,
-    is_file_like,
-    count_channel_groups,
-    UINT16_u,
-    UINT64_u,
-    debug_channel,
-    UniqueDB,
-    cut_video_stream,
-    get_video_stream_duration,
-    components,
-)
-
 from .blocks.conversion_utils import from_dict
 
 
@@ -36,31 +14,7 @@ logger = logging.getLogger("asammdf")
 WRITE_SIZE = 512 * 1024
 
 
-__all__ = ["MDF", "SUPPORTED_VERSIONS"]
-
-
-
-def check_mask(mask):
-    bit_count = 0
-    bit_offset = 0
-    while mask:
-        mask, r = divmod(mask, 2)
-        if r == 1:
-            bit_count += 1
-            break
-        else:
-            bit_offset += 1
-
-    while mask:
-        mask, r = divmod(mask, 2)
-        if r == 0:
-            break
-        else:
-            bit_count += 1
-
-    byte_offset, bit_offset = divmod(bit_offset, 8)
-
-    return bit_count, byte_offset, bit_offset
+__all__ = ["SignalDescription", "Recorder"]
 
 
 class SignalDescription:
