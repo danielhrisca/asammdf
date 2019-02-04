@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>260</width>
+    <width>334</width>
     <height>30</height>
    </rect>
   </property>
@@ -19,7 +19,7 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0">
+  <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0,0,0">
    <property name="spacing">
     <number>5</number>
    </property>
@@ -126,8 +126,23 @@
      </property>
     </widget>
    </item>
+   <item>
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="ylink">
+     <property name="toolTip">
+      <string>enable common Y axis</string>
+     </property>
+     <property name="text">
+      <string>↥</string>
+     </property>
+    </widget>
+   </item>
   </layout>
  </widget>
- <resources/>
- <connections/>
 </ui>

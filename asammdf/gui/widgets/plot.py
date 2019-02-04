@@ -289,6 +289,12 @@ try:
 
             self.axes[index].setPen(color)
 
+        def setCommonAxis(self, index, state):
+            if state in (Qt.Checked, True, 1):
+                self.view_boxes[index].setYLink(self.viewbox)
+            else:
+                self.view_boxes[index].setYLink(None)
+
         def setSignalEnable(self, index, state):
             if state in (Qt.Checked, True, 1):
                 self.signals[index].enable = True

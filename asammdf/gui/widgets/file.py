@@ -1363,6 +1363,7 @@ class FileWidget(QWidget):
 
             it.color_changed.connect(self.plot.setColor)
             it.enable_changed.connect(self.plot.setSignalEnable)
+            it.ylink_changed.connect(self.plot.setCommonAxis)
 
         if self.splitter.count() > 1:
             old_plot = self.splitter.widget(1)

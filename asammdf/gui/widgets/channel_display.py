@@ -29,6 +29,7 @@ class ChannelDisplay(base_1, form_1):
 
     color_changed = pyqtSignal(int, str)
     enable_changed = pyqtSignal(int, int)
+    ylink_changed = pyqtSignal(int, int)
 
     __slots__ = (
         'color',
@@ -59,6 +60,7 @@ class ChannelDisplay(base_1, form_1):
 
         self.color_btn.clicked.connect(self.select_color)
         self.display.stateChanged.connect(self.display_changed)
+        self.ylink.stateChanged.connect(self.ylink_change)
 
     def mouseDoubleClickEvent(self, event):
         return
@@ -70,6 +72,10 @@ class ChannelDisplay(base_1, form_1):
     def display_changed(self, state):
         state = self.display.checkState()
         self.enable_changed.emit(self.index, state)
+
+    def ylink_change(self, state):
+        state = self.ylink.checkState()
+        self.ylink_changed.emit(self.index, state)
 
     def select_color(self):
         color = QColorDialog.getColor(QColor(self.color)).name()
