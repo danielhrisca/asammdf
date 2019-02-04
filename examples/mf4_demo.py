@@ -173,7 +173,7 @@ conversion = {
 }
 conversion.update(
     {
-        'upper_{}'.format(i): (i + 1) * 10
+        'upper_{}'.format(i): (i + 1) * 10 - 1
         for i in range(vals)
     }
 )

@@ -2575,19 +2575,13 @@ class ChannelConversion(_ChannelConversionBase):
 
             all_values = phys + [default]
 
-            if values.dtype.kind == "f":
-                idx1 = np.searchsorted(lower, values, side="right") - 1
-                idx2 = np.searchsorted(upper, values, side="right")
-            else:
-                idx1 = np.searchsorted(lower, values, side="right") - 1
-                idx2 = np.searchsorted(upper, values, side="right") - 1
+            idx1 = np.searchsorted(lower, values, side="right") - 1
+            idx2 = np.searchsorted(upper, values, side="right")
 
             idx_ne = np.nonzero(idx1 != idx2)[0]
             idx_eq = np.nonzero(idx1 == idx2)[0]
 
-            cls = bytes
-
-            if all(isinstance(val, cls) for val in all_values):
+            if all(isinstance(val, bytes) for val in all_values):
                 phys = np.array(phys)
                 all_values = np.array(all_values)
 

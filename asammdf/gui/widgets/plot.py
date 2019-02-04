@@ -89,13 +89,14 @@ try:
 
                 if sig.conversion:
                     vals = sig.conversion.convert(sig.samples)
-                    nans = np.isnan(vals)
-                    samples = np.where(
-                        nans,
-                        sig.samples,
-                        vals,
-                    )
-                    sig.samples = samples
+                    if vals.dtype.kind != 'S':
+                        nans = np.isnan(vals)
+                        samples = np.where(
+                            nans,
+                            sig.samples,
+                            vals,
+                        )
+                        sig.samples = samples
 
                 sig.original_samples = sig.samples
                 sig.original_timestamps = sig.timestamps

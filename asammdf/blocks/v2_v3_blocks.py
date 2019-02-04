@@ -1295,12 +1295,8 @@ address: {hex(self.address)}
             lower = np.array([self[f"lower_{i}"] for i in range(nr)])
             upper = np.array([self[f"upper_{i}"] for i in range(nr)])
 
-            if values.dtype.kind == "f":
-                idx1 = np.searchsorted(lower, values, side="right") - 1
-                idx2 = np.searchsorted(upper, values, side="right")
-            else:
-                idx1 = np.searchsorted(lower, values, side="right") - 1
-                idx2 = np.searchsorted(upper, values, side="right") - 1
+            idx1 = np.searchsorted(lower, values, side="right") - 1
+            idx2 = np.searchsorted(upper, values, side="right")
 
             idx = np.argwhere(idx1 != idx2).flatten()
 
