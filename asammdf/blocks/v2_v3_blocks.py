@@ -2727,6 +2727,10 @@ class TextBlock:
             self.block_len = len(text) + 5
             self.text = text + b'\0'
 
+            if self.block_len > 65535:
+                self.block_len = 65535
+                self.text = self.text[:65534] + b'\0'
+
     def __getitem__(self, item):
         return self.__getattribute__(item)
 
