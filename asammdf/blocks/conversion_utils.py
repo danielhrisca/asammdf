@@ -242,3 +242,59 @@ def conversion_transfer(conversion, version=3):
             conversion.unit = unit
 
     return conversion
+
+
+def from_dict(conversion):
+    if not conversion:
+        conversion = None
+
+    elif "a" in conversion:
+        conversion["conversion_type"] = v4c.CONVERSION_TYPE_LIN
+        conversion = v4b.ChannelConversion(**conversion)
+
+    elif "formula" in conversion:
+        conversion["conversion_type"] = v4c.CONVERSION_TYPE_ALG
+        conversion = v4b.ChannelConversion(**conversion)
+
+    elif all(key in conversion for key in [f"P{i}" for i in range(1, 7)]):
+        conversion["conversion_type"] = v4c.CONVERSION_TYPE_RAT
+        conversion = v4b.ChannelConversion(**conversion)
+
+    elif "raw_0" in conversion and "phys_0" in conversion:
+        conversion["conversion_type"] = v4c.CONVERSION_TYPE_TAB
+        nr = 0
+        while f"phys_{nr}" in conversion:
+            nr += 1
+        conversion["val_param_nr"] = nr * 2
+        conversion = v4b.ChannelConversion(**conversion)
+
+    elif "upper_0" in conversion and "phys_0" in conversion:
+        conversion["conversion_type"] = v4c.CONVERSION_TYPE_RTAB
+        nr = 0
+        while f"phys_{nr}" in conversion:
+            nr += 1
+        conversion["val_param_nr"] = nr * 3 + 1
+        conversion = v4b.ChannelConversion(**conversion)
+
+    elif "val_0" in conversion and "text_0" in conversion:
+        conversion["conversion_type"] = v4c.CONVERSION_TYPE_TABX
+        nr = 0
+        while f"text_{nr}" in conversion:
+            nr += 1
+        conversion["ref_param_nr"] = nr + 1
+        conversion = v4b.ChannelConversion(**conversion)
+
+    elif "upper_0" in conversion and "text_0" in conversion:
+        conversion["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
+        nr = 0
+        while f"text_{nr}" in conversion:
+            nr += 1
+        conversion["ref_param_nr"] = nr + 1
+        conversion = v4b.ChannelConversion(**conversion)
+
+    else:
+        conversion = v4b.ChannelConversion(
+            conversion_type=v4c.CONVERSION_TYPE_NON
+        )
+
+    return conversion

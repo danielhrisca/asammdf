@@ -2520,8 +2520,6 @@ class ChannelConversion(_ChannelConversionBase):
             except TypeError:
                 default = b""
 
-            cls = bytes
-
             phys.insert(0, default)
             raw_vals = np.insert(raw_vals, 0, raw_vals[0] - 1)
             indexes = np.searchsorted(raw_vals, values)
@@ -2529,7 +2527,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             all_values = list(phys) + [default]
 
-            if all(isinstance(val, cls) for val in all_values):
+            if all(isinstance(val, bytes) for val in all_values):
                 phys = np.array(phys)
                 values = phys[indexes]
             else:
@@ -2537,16 +2535,16 @@ class ChannelConversion(_ChannelConversionBase):
                 for i, idx in enumerate(indexes):
                     item = phys[idx]
 
-                    if isinstance(item, cls):
+                    if isinstance(item, bytes):
                         new_values.append(item)
                     else:
                         new_values.append(item.convert(values[i : i + 1])[0])
 
-                if all(isinstance(v, cls) for v in new_values):
+                if all(isinstance(v, bytes) for v in new_values):
                     values = np.array(new_values)
                 else:
                     values = np.array(
-                        [np.nan if isinstance(v, cls) else v for v in new_values]
+                        [np.nan if isinstance(v, bytes) else v for v in new_values]
                     )
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
@@ -2601,16 +2599,16 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         item = phys[idx1[i]]
 
-                    if isinstance(item, cls):
+                    if isinstance(item, bytes):
                         new_values.append(item)
                     else:
                         new_values.append(item.convert(values[i : i + 1])[0])
 
-                if all(isinstance(v, cls) for v in new_values):
+                if all(isinstance(v, bytes) for v in new_values):
                     values = np.array(new_values)
                 else:
                     values = np.array(
-                        [np.nan if isinstance(v, cls) else v for v in new_values]
+                        [np.nan if isinstance(v, bytes) else v for v in new_values]
                     )
 
         elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
