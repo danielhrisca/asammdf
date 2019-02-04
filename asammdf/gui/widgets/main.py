@@ -146,6 +146,13 @@ class MainWindow(QMainWindow):
         action.setShortcut(Qt.Key_O)
         plot_actions.addAction(action)
 
+        icon = QIcon()
+        icon.addPixmap(QPixmap(":/zoom-out.png"), QIcon.Normal, QIcon.Off)
+        action = QAction(icon, "{: <20}\tO".format("Insert computation"), menu)
+        action.triggered.connect(partial(self.plot_action, key=Qt.Key_Insert))
+        action.setShortcut(Qt.Key_Insert)
+        plot_actions.addAction(action)
+
         # values display
 
         display_format_actions = QActionGroup(self)

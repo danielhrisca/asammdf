@@ -34,6 +34,7 @@ try:
     from ..utils import COLORS
     from .cursor import Cursor
     from .formated_axis import FormatedAxis
+    from ..dialogs.define_channel import DefineChannel
     from ...version import __version__ as libversion
 
     if not hasattr(pg.InfiniteLine, "addMarker"):
@@ -846,6 +847,12 @@ try:
                         self.viewbox.disableAutoRange()
                         if self.cursor1:
                             self.cursor_moved.emit()
+
+                elif key == Qt.Key_Insert:
+                    dlg = DefineChannel(self.signals, self)
+                    dlg.setModal(True)
+                    dlg.exec_()
+                    result = dlg.result
 
                 else:
                     super(Plot, self).keyPressEvent(event)
