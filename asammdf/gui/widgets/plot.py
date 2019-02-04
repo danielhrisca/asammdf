@@ -371,7 +371,7 @@ try:
 
                     for i, sig in enumerate(self.signals):
                         if sig.enable and not self.curves[i].isVisible():
-                            # self.axes[i].show()
+                            self.axes[i].setGrid(125)
                             self.view_boxes[i].setYLink(None)
                             self.view_boxes[i].setXLink(self.viewbox)
                             self.curves[i].show()
@@ -629,10 +629,15 @@ try:
                         self.cursor_moved.emit()
 
                 elif key == Qt.Key_G:
-                    if self.plotItem.ctrl.xGridCheck.isChecked():
-                        self.showGrid(x=False, y=False)
+                    if self.plotItem.ctrl.yGridCheck.isChecked():
+                        self.showGrid(x=True, y=False)
                     else:
                         self.showGrid(x=True, y=True)
+                    for axis in self.axes:
+                        if axis.grid is False:
+                            axis.setGrid(80)
+                        else:
+                            axis.setGrid(False)
 
                 elif key in (Qt.Key_I, Qt.Key_O):
                     x_range, _ = self.viewbox.viewRange()
