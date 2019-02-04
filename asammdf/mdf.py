@@ -1142,9 +1142,9 @@ class MDF(object):
             name = name.with_suffix(".hdf")
 
             if single_time_base:
-                with HDF5(name, "w") as hdf:
+                with HDF5(str(name), "w") as hdf:
                     # header information
-                    group = hdf.create_group(name.parent)
+                    group = hdf.create_group(str(name))
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
@@ -1155,10 +1155,13 @@ class MDF(object):
                     # each HDF5 group will have a string attribute "master"
                     # that will hold the name of the master channel
 
-                    for channel in mdict:
-                        samples = mdict[channel]
+                    for channel in df:
+                        samples = df[channel]
                         unit = units[channel]
                         comment = comments[channel]
+
+                        if samples.dtype.kind == 'O':
+                            continue
 
                         dataset = group.create_dataset(channel, data=samples)
                         unit = unit.replace("\0", "")
@@ -1169,9 +1172,9 @@ class MDF(object):
                             dataset.attrs["comment"] = comment
 
             else:
-                with HDF5(name, "w") as hdf:
+                with HDF5(str(name), "w") as hdf:
                     # header information
-                    group = hdf.create_group(name.parent)
+                    group = hdf.create_group(str(name))
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
@@ -1182,6 +1185,7 @@ class MDF(object):
                     # each HDF5 group will have a string attribute "master"
                     # that will hold the name of the master channel
                     for i, grp in enumerate(self.groups):
+                        names = UniqueDB()
                         if self._terminate:
                             return
                         group_name = r"/" + f"DataGroup_{i+1}"
@@ -1197,10 +1201,11 @@ class MDF(object):
                         for j, _ in enumerate(grp.channels):
                             sig = self.get(group=i, index=j, data=data)
                             name = sig.name
+                            name = names.get_unique_name(name)
                             if j == master_index:
                                 group.attrs["master"] = name
                             dataset = group.create_dataset(name, data=sig.samples)
-                            unit = sig.unit.replace("\0", "")
+                            unit = sig.unit
                             if unit:
                                 dataset.attrs["unit"] = unit
                             comment = sig.comment.replace("\0", "")
@@ -1216,13 +1221,13 @@ class MDF(object):
                 message = f'Writing excel export to file "{name}"'
                 logger.info(message)
 
-                workbook = xlsxwriter.Workbook(name)
+                workbook = xlsxwriter.Workbook(str(name))
                 sheet = workbook.add_worksheet("Channels")
 
                 for col, (channel_name, channel_unit) in enumerate(units.items()):
                     if self._terminate:
                         return
-                    samples = mdict[channel_name]
+                    samples = df[channel_name]
                     sig_description = f"{channel_name} [{channel_unit}]"
                     sheet.write(0, col, sig_description)
                     try:
@@ -1270,7 +1275,7 @@ class MDF(object):
 
                     group_name = f"DataGroup_{i+1}"
                     wb_name = Path(f"{name.stem}_{group_name}.xlsx")
-                    workbook = xlsxwriter.Workbook(wb_name)
+                    workbook = xlsxwriter.Workbook(str(wb_name))
 
                     sheet = workbook.add_worksheet(group_name)
 
@@ -1322,7 +1327,7 @@ class MDF(object):
                     ]
                     writer.writerow(names_row)
 
-                    vals = [samples for samples in mdict.values()]
+                    vals = [df[name] for name in df]
 
                     if self._terminate:
                         return
@@ -1483,7 +1488,7 @@ class MDF(object):
             if format == "7.3":
 
                 savemat(
-                    name,
+                    str(name),
                     mdict,
                     long_field_names=True,
                     format="7.3",
@@ -1491,7 +1496,7 @@ class MDF(object):
                     oned_as=oned_as,
                 )
             else:
-                savemat(name, mdict, long_field_names=True, oned_as=oned_as)
+                savemat(str(name), mdict, long_field_names=True, oned_as=oned_as)
 
         elif fmt in ("pandas", "parquet"):
             if fmt == "pandas":
