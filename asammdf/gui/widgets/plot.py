@@ -72,6 +72,7 @@ try:
             self.cursor1 = None
             self.cursor2 = None
             self.signals = signals
+            self.common_axis_items = set()
 
             self.disabled_keys = set()
             for sig in self.signals:
@@ -292,8 +293,19 @@ try:
         def setCommonAxis(self, index, state):
             if state in (Qt.Checked, True, 1):
                 self.view_boxes[index].setYLink(self.viewbox)
+                self.common_axis_items.add(index)
             else:
                 self.view_boxes[index].setYLink(None)
+                self.common_axis_items.remove(index)
+
+            if self.common_axis_items:
+                axis_text = ', '.join(
+                    self.signals[i].name
+                    for i in sorted(self.common_axis_items)
+                )
+
+                for index in self.common_axis_items:
+                    self.axes[index].labelText = axis_text
 
         def setSignalEnable(self, index, state):
             if state in (Qt.Checked, True, 1):
@@ -318,7 +330,6 @@ try:
                     ):
                         if curve.isVisible():
                             axis.hide()
-                            viewbox.setYLink(None)
                             viewbox.setXLink(None)
                             curve.hide()
 
@@ -378,7 +389,10 @@ try:
                     for i, sig in enumerate(self.signals):
                         if sig.enable and not self.curves[i].isVisible():
                             self.axes[i].setGrid(125)
-                            self.view_boxes[i].setYLink(None)
+                            if i in self.common_axis_items:
+                                self.view_boxes[i].setYLink(self.viewbox)
+                            else:
+                                self.view_boxes[i].setyLink(None)
                             self.view_boxes[i].setXLink(self.viewbox)
                             self.curves[i].show()
                         elif not sig.enable and self.curves[i].isVisible():
