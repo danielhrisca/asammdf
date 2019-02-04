@@ -53,7 +53,7 @@ from pandas import DataFrame
 
 from . import v4_constants as v4c
 from ..signal import Signal
-from .conversion_utils import conversion_transfer
+from .conversion_utils import conversion_transfer, from_dict
 from .utils import (
     UINT8_u,
     UINT16_u,
@@ -80,6 +80,7 @@ from .utils import (
     is_file_like,
     sanitize_xml,
     Group,
+    parse_bit_mask,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -5908,3 +5909,325 @@ class MDF4(object):
         channel = grp.channels[ch_nr]
 
         return extract_cncomment_xml(channel.comment)
+
+    def _register_channels(self, channels, source_info="", source_comment=""):
+        """
+        Appends a new data group.
+
+        For channel dependencies type Signals, the *samples* attribute must be
+        a numpy.recarray
+
+        Parameters
+        ----------
+        signals : list | Signal | pandas.DataFrame
+            list of *Signal* objects, or a single *Signal* object, or a pandas
+            *DataFrame* object. All bytes columns in the pandas *DataFrame*
+            must be *utf-8* encoded
+        source_info : str
+            source information; default 'Python'
+        common_timebase : bool
+            flag to hint that the signals have the same timebase. Only set this
+            if you know for sure that all appended channels share the same
+            time base
+        units : dict
+            will contain the signal units mapped to the singal names when
+            appending a pandas DataFrame
+
+        Examples
+        --------
+        >>> # case 1 conversion type None
+        >>> s1 = np.array([1, 2, 3, 4, 5])
+        >>> s2 = np.array([-1, -2, -3, -4, -5])
+        >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
+        >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
+        >>> names = ['Positive', 'Negative', 'Float']
+        >>> units = ['+', '-', '.f']
+        >>> info = {}
+        >>> s1 = Signal(samples=s1, timstamps=t, unit='+', name='Positive')
+        >>> s2 = Signal(samples=s2, timstamps=t, unit='-', name='Negative')
+        >>> s3 = Signal(samples=s3, timstamps=t, unit='flts', name='Floats')
+        >>> mdf = MDF4('new.mdf')
+        >>> mdf.append([s1, s2, s3], 'created by asammdf v4.0.0')
+        >>> # case 2: VTAB conversions from channels inside another file
+        >>> mdf1 = MDF4('in.mf4')
+        >>> ch1 = mdf1.get("Channel1_VTAB")
+        >>> ch2 = mdf1.get("Channel2_VTABR")
+        >>> sigs = [ch1, ch2]
+        >>> mdf2 = MDF4('out.mf4')
+        >>> mdf2.append(sigs, 'created by asammdf v4.0.0')
+        >>> mdf2.append(ch1, 'just a single channel')
+        >>> df = pd.DataFrame.from_dict({'s1': np.array([1, 2, 3, 4, 5]), 's2': np.array([-1, -2, -3, -4, -5])})
+        >>> units = {'s1': 'V', 's2': 'A'}
+        >>> mdf2.append(df, units=units)
+
+        """
+
+
+        if not channels:
+            return
+
+        dg_cntr = len(self.groups)
+
+        gp = Group(None)
+        gp.signal_data = gp_sdata = []
+        gp.signal_data_size = gp_sdata_size = []
+        gp.channels = gp_channels = []
+        gp.channel_dependencies = gp_dep = []
+        gp.signal_types = gp_sig_types = []
+        gp.logging_channels = []
+
+        # channel group
+        kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
+        gp.channel_group = ChannelGroup(**kwargs)
+        gp.channel_group.name = source_info
+
+
+        self.groups.append(gp)
+
+        cycles_nr = 0
+        fields = []
+        types = []
+        parents = {}
+        ch_cntr = 0
+        offset = 0
+        field_names = UniqueDB()
+
+        defined_texts = {}
+        # setup all blocks related to the time master channel
+
+        file = self._tempfile
+        tell = file.tell
+        seek = file.seek
+
+        seek(0, 2)
+
+        source_block = SourceInformation()
+        source_block.name = source_info
+        source_block.comment = source_comment
+
+        for signal in channels:
+            samples = array([], dtype=signal.dtype)
+            sig_dtype = samples.dtype
+            sig_shape = samples.shape
+            names = sig_dtype.names
+            name = signal.name
+
+            if names is None:
+                sig_type = v4c.SIGNAL_TYPE_SCALAR
+                if sig_dtype.kind in "SV":
+                    sig_type = v4c.SIGNAL_TYPE_STRING
+            else:
+                if names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
+                    sig_type = v4c.SIGNAL_TYPE_CANOPEN
+                else:
+                    sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
+
+            gp_sig_types.append(sig_type)
+
+            # first add the signals in the simple signal list
+            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
+
+                # compute additional byte offset for large records size
+                s_type, s_size = fmt_to_datatype_v4(sig_dtype, sig_shape)
+
+                byte_size = max(s_size // 8, 1)
+
+                if sig_dtype.kind == "u" and signal.bit_count <= 4:
+                    s_size = signal.bit_count
+
+                channel_type = v4c.CHANNEL_TYPE_MASTER if signal.master else v4c.CHANNEL_TYPE_VALUE
+
+                data_block_addr = 0
+                sync_type = v4c.SYNC_TYPE_NONE
+
+                kwargs = {
+                    "channel_type": channel_type,
+                    "sync_type": sync_type,
+                    "bit_count": s_size,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": s_type,
+                    "data_block_addr": data_block_addr,
+                    "flags": 0,
+                }
+
+                if signal.bit_mask is not None:
+                    bit_count, byte_offset, bit_offset = parse_bit_mask(signal.bit_mask)
+                    kwargs['byte_offset'] += byte_offset
+                    kwargs['bit_offset'] = bit_offset
+                    kwargs['bit_count'] = bit_count
+
+                ch = Channel(**kwargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
+
+                ch.conversion = signal.conversion
+
+                ch.source = source_block
+
+                gp_channels.append(ch)
+
+                offset += byte_size
+
+                gp_sdata.append(None)
+                gp_sdata_size.append(0)
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
+
+                # update the parents as well
+                field_name = field_names.get_unique_name(name)
+                parents[ch_cntr] = field_name, 0
+
+                types.append((field_name, sig_dtype, sig_shape[1:]))
+
+                ch_cntr += 1
+
+                # simple channels don't have channel dependencies
+                gp_dep.append(None)
+
+            elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
+
+                field_name = field_names.get_unique_name(name)
+
+                if names == v4c.CANOPEN_TIME_FIELDS:
+
+                    types.append((field_name, "V6"))
+                    byte_size = 6
+                    s_type = v4c.DATA_TYPE_CANOPEN_TIME
+
+                else:
+                    types.append((field_name, "V7"))
+                    byte_size = 7
+                    s_type = v4c.DATA_TYPE_CANOPEN_DATE
+
+                s_size = byte_size << 3
+
+                # there is no channel dependency
+                gp_dep.append(None)
+
+                # add channel block
+                kwargs = {
+                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "bit_count": s_size,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": s_type,
+                    "flags": 0,
+                }
+
+                ch = Channel(**kwargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
+
+                ch.source = source_block
+
+                gp_channels.append(ch)
+
+                offset += byte_size
+
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
+
+                # update the parents as well
+                parents[ch_cntr] = field_name, 0
+
+                gp_sdata.append(0)
+                gp_sdata_size.append(0)
+
+                ch_cntr += 1
+
+            elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
+                offset, dg_cntr, ch_cntr, struct_self, new_fields, new_types, inval_cntr = self._append_structure_composition(
+                    gp,
+                    signal,
+                    field_names,
+                    offset,
+                    dg_cntr,
+                    ch_cntr,
+                    parents,
+                    defined_texts,
+                )
+                fields.extend(new_fields)
+                types.extend(new_types)
+
+            else:
+                samples = signal.samples
+                sig_dtype = samples.dtype
+
+                data_type = v4c.DATA_TYPE_STRING_UTF_8
+
+                data_addr = 0
+                gp_sdata.append([])
+                gp_sdata_size.append([])
+
+                # compute additional byte offset for large records size
+                byte_size = 8
+                kwargs = {
+                    "channel_type": v4c.CHANNEL_TYPE_VLSD,
+                    "bit_count": 64,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": data_type,
+                    "data_block_addr": data_addr,
+                    "flags": 0,
+                }
+
+                ch = Channel(**kwargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
+
+                ch.conversion = signal.conversion
+
+                ch.source = source_block
+
+                gp_channels.append(ch)
+
+                offset += byte_size
+
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
+
+                # update the parents as well
+                field_name = field_names.get_unique_name(name)
+                parents[ch_cntr] = field_name, 0
+
+                types.append((field_name, uint64))
+
+                ch_cntr += 1
+
+                # simple channels don't have channel dependencies
+                gp_dep.append(None)
+
+        gp.channel_group.cycles_nr = cycles_nr
+        gp.channel_group.samples_byte_nr = offset
+        gp.size = 0
+
+        # data group
+        gp.data_group = DataGroup()
+
+        # data block
+        types = dtype(types)
+
+        gp.sorted = True
+        gp.types = types
+        gp.parents = parents
+
+        gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+        gp.data_block = []
+        gp.data_block_type = v4c.DT_BLOCK
+        gp.param = 0
+        gp.data_size = []
+        gp.data_block_size = []
+        gp.data_block_addr = []

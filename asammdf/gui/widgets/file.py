@@ -524,6 +524,7 @@ class FileWidget(QWidget):
             if count > 1 and item in selected_items:
                 if self.plot.signals[i].enable and not self.plot.axes[i].isVisible():
                     self.plot.axes[i].show()
+                    self.plot.axes[i].showLabel()
                 if self.info:
                     self.info.clear()
             else:

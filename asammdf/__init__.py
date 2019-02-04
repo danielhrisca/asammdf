@@ -11,6 +11,10 @@ from .blocks.mdf_v4 import MDF4
 from .mdf import MDF, SUPPORTED_VERSIONS
 from .signal import Signal
 from .version import __version__
+from .recorder import SignalDescription, Recorder
 
 
-__all__ = ["__version__", "MDF", "MDF2", "MDF3", "MDF4", "Signal", "SUPPORTED_VERSIONS"]
+__all__ = [
+    "__version__", "MDF", "MDF2", "MDF3", "MDF4", "Signal", "SUPPORTED_VERSIONS",
+    "SignalDescription", "Recorder"
+]

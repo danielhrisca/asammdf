@@ -7,6 +7,7 @@ from textwrap import fill
 import numpy as np
 
 from .blocks.utils import MdfException, extract_cncomment_xml, SignalSource
+from .blocks.conversion_utils import from_dict
 from .blocks import v2_v3_blocks as v3b
 from .blocks import v4_constants as v4c
 from .blocks import v4_blocks as v4b
@@ -129,57 +130,7 @@ class Signal(object):
             if not isinstance(
                 conversion, (v4b.ChannelConversion, v3b.ChannelConversion)
             ):
-                if conversion is None:
-                    pass
-
-                elif "a" in conversion:
-                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_LIN
-                    conversion = v4b.ChannelConversion(**conversion)
-
-                elif "formula" in conversion:
-                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_ALG
-                    conversion = v4b.ChannelConversion(**conversion)
-
-                elif all(key in conversion for key in [f"P{i}" for i in range(1, 7)]):
-                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_RAT
-                    conversion = v4b.ChannelConversion(**conversion)
-
-                elif "raw_0" in conversion and "phys_0" in conversion:
-                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_TAB
-                    nr = 0
-                    while f"phys_{nr}" in conversion:
-                        nr += 1
-                    conversion["val_param_nr"] = nr * 2
-                    conversion = v4b.ChannelConversion(**conversion)
-
-                elif "upper_0" in conversion and "phys_0" in conversion:
-                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_RTAB
-                    nr = 0
-                    while f"phys_{nr}" in conversion:
-                        nr += 1
-                    conversion["val_param_nr"] = nr * 3 + 1
-                    conversion = v4b.ChannelConversion(**conversion)
-
-                elif "val_0" in conversion and "text_0" in conversion:
-                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_TABX
-                    nr = 0
-                    while f"text_{nr}" in conversion:
-                        nr += 1
-                    conversion["ref_param_nr"] = nr + 1
-                    conversion = v4b.ChannelConversion(**conversion)
-
-                elif "upper_0" in conversion and "text_0" in conversion:
-                    conversion["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
-                    nr = 0
-                    while f"text_{nr}" in conversion:
-                        nr += 1
-                    conversion["ref_param_nr"] = nr + 1
-                    conversion = v4b.ChannelConversion(**conversion)
-
-                else:
-                    conversion = v4b.ChannelConversion(
-                        conversion_type=v4c.CONVERSION_TYPE_NON
-                    )
+                conversion = from_dict(conversion)
 
             self.conversion = conversion
 
@@ -423,7 +374,7 @@ class Signal(object):
             except Exception as err:
                 print(err)
 
-    def cut(self, start=None, stop=None, include_ends=True):
+    def cut(self, start=None, stop=None, include_ends=True, interpolation_mode=0):
         """
         Cuts the signal according to the *start* and *stop* values, by using
         the insertion indexes in the signal's *time* axis.
@@ -438,6 +389,11 @@ class Signal(object):
             include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are found in the original timestamps, then
             the new samples will be computed using interpolation. Default *True*
+        interpolation_mode : int
+            interpolation mode for integer signals; default 0
+
+                * 0 - repeat previous samples
+                * 1 - linear interpolation
 
         Returns
         -------
@@ -520,7 +476,7 @@ class Signal(object):
                         and ends[-1] not in self.timestamps
                         and ends[-1] < self.timestamps[-1]
                     ):
-                        interpolated = self.interp([ends[1]])
+                        interpolated = self.interp([ends[1]], interpolation_mode=interpolation_mode)
                         samples = np.append(
                             self.samples[:stop], interpolated.samples, axis=0
                         )
@@ -584,7 +540,7 @@ class Signal(object):
                         and ends[0] not in self.timestamps
                         and ends[0] > self.timestamps[0]
                     ):
-                        interpolated = self.interp([ends[0]])
+                        interpolated = self.interp([ends[0]], interpolation_mode=interpolation_mode)
                         samples = np.append(
                             interpolated.samples, self.samples[start:], axis=0
                         )
@@ -646,7 +602,7 @@ class Signal(object):
 
                     if start == stop:
                         if include_ends:
-                            interpolated = self.interp(np.unique(ends))
+                            interpolated = self.interp(np.unique(ends), interpolation_mode=interpolation_mode)
                             samples = interpolated.samples
                             timestamps = np.array(
                                 np.unique(ends), dtype=self.timestamps.dtype
@@ -674,7 +630,7 @@ class Signal(object):
                             and ends[-1] not in self.timestamps
                             and ends[-1] < self.timestamps[-1]
                         ):
-                            interpolated = self.interp([ends[1]])
+                            interpolated = self.interp([ends[1]], interpolation_mode=interpolation_mode)
                             samples = np.append(samples, interpolated.samples, axis=0)
                             timestamps = np.append(timestamps, ends[1])
                             if invalidation_bits is not None:
@@ -687,7 +643,7 @@ class Signal(object):
                             and ends[0] not in self.timestamps
                             and ends[0] > self.timestamps[0]
                         ):
-                            interpolated = self.interp([ends[0]])
+                            interpolated = self.interp([ends[0]], interpolation_mode=interpolation_mode)
                             samples = np.append(interpolated.samples, samples, axis=0)
                             timestamps = np.append(ends[0], timestamps)
 
@@ -777,14 +733,14 @@ class Signal(object):
 
         return result
 
-    def interp(self, new_timestamps, mode=0):
+    def interp(self, new_timestamps, interpolation_mode=0):
         """ returns a new *Signal* interpolated using the *new_timestamps*
 
         Parameters
         ----------
         new_timestamps : np.array
             timestamps used for interpolation
-        mode : int
+        interpolation_mode : int
             interpolation mode for integer signals; default 0
 
                 * 0 - repeat previous samples
@@ -842,7 +798,7 @@ class Signal(object):
                     else:
                         invalidation_bits = None
                 elif kind in "ui":
-                    if mode == 1:
+                    if interpolation_mode == 1:
                         s = np.interp(
                             new_timestamps, self.timestamps, self.samples
                         ).astype(self.samples.dtype)

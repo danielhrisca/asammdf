@@ -2474,7 +2474,7 @@ class ChannelConversion(_ChannelConversionBase):
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
             nr = (self.val_param_nr - 1) // 3
-            lower = np.array([self[f"lower{i}"] for i in range(nr)])
+            lower = np.array([self[f"lower_{i}"] for i in range(nr)])
             upper = np.array([self[f"upper_{i}"] for i in range(nr)])
             phys = np.array([self[f"phys_{i}"] for i in range(nr)])
             default = self.default
@@ -2520,8 +2520,6 @@ class ChannelConversion(_ChannelConversionBase):
             except TypeError:
                 default = b""
 
-            cls = bytes
-
             phys.insert(0, default)
             raw_vals = np.insert(raw_vals, 0, raw_vals[0] - 1)
             indexes = np.searchsorted(raw_vals, values)
@@ -2529,7 +2527,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             all_values = list(phys) + [default]
 
-            if all(isinstance(val, cls) for val in all_values):
+            if all(isinstance(val, bytes) for val in all_values):
                 phys = np.array(phys)
                 values = phys[indexes]
             else:
@@ -2537,16 +2535,16 @@ class ChannelConversion(_ChannelConversionBase):
                 for i, idx in enumerate(indexes):
                     item = phys[idx]
 
-                    if isinstance(item, cls):
+                    if isinstance(item, bytes):
                         new_values.append(item)
                     else:
                         new_values.append(item.convert(values[i : i + 1])[0])
 
-                if all(isinstance(v, cls) for v in new_values):
+                if all(isinstance(v, bytes) for v in new_values):
                     values = np.array(new_values)
                 else:
                     values = np.array(
-                        [np.nan if isinstance(v, cls) else v for v in new_values]
+                        [np.nan if isinstance(v, bytes) else v for v in new_values]
                     )
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
@@ -2575,19 +2573,13 @@ class ChannelConversion(_ChannelConversionBase):
 
             all_values = phys + [default]
 
-            if values.dtype.kind == "f":
-                idx1 = np.searchsorted(lower, values, side="right") - 1
-                idx2 = np.searchsorted(upper, values, side="right")
-            else:
-                idx1 = np.searchsorted(lower, values, side="right") - 1
-                idx2 = np.searchsorted(upper, values, side="right") - 1
+            idx1 = np.searchsorted(lower, values, side="right") - 1
+            idx2 = np.searchsorted(upper, values, side="right")
 
             idx_ne = np.nonzero(idx1 != idx2)[0]
             idx_eq = np.nonzero(idx1 == idx2)[0]
 
-            cls = bytes
-
-            if all(isinstance(val, cls) for val in all_values):
+            if all(isinstance(val, bytes) for val in all_values):
                 phys = np.array(phys)
                 all_values = np.array(all_values)
 
@@ -2607,16 +2599,16 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         item = phys[idx1[i]]
 
-                    if isinstance(item, cls):
+                    if isinstance(item, bytes):
                         new_values.append(item)
                     else:
                         new_values.append(item.convert(values[i : i + 1])[0])
 
-                if all(isinstance(v, cls) for v in new_values):
+                if all(isinstance(v, bytes) for v in new_values):
                     values = np.array(new_values)
                 else:
                     values = np.array(
-                        [np.nan if isinstance(v, cls) else v for v in new_values]
+                        [np.nan if isinstance(v, bytes) else v for v in new_values]
                     )
 
         elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
@@ -2828,7 +2820,11 @@ formula: {self.formula}
         return "\n".join(metadata)
 
     def __getitem__(self, item):
-        return self.__getattribute__(item)
+        try:
+            return self.__getattribute__(item)
+        except:
+            print(self)
+            raise
 
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
