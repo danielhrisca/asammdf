@@ -2096,7 +2096,6 @@ class MDF(object):
                                 signals.append(sig)
 
                                 if version < "4.00":
-                                    # print(k, len(encodings[mdf_index]), len(included_channels))
                                     encoding = encodings[i][k]
                                     samples = sig[0]
                                     if encoding:

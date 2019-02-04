@@ -1067,7 +1067,10 @@ def components(channel, channel_name, unique_names, prefix=""):
     if names[0] == channel_name:
         name = names[0]
 
-        name_ = unique_names.get_unique_name(f"{prefix}.{name}")
+        if prefix:
+            name_ = unique_names.get_unique_name(f"{prefix}.{name}")
+        else:
+            name_ = unique_names.get_unique_name(name)
 
         values = channel[name]
         if len(values.shape) > 1:
@@ -1085,7 +1088,7 @@ def components(channel, channel_name, unique_names, prefix=""):
                 types = [("", values.dtype, values.shape[1:])]
                 values = fromarrays(arr, dtype=types)
                 del arr
-            yield axis_name, Series(values)
+            yield axis_name, Series(values, dtype="O")
 
     # structure composition
     else:
@@ -1094,11 +1097,14 @@ def components(channel, channel_name, unique_names, prefix=""):
 
             if values.dtype.names:
                 yield from components(
-                    values, name, unique_names, prefix=f"{prefix}.{name}"
+                    values, name, unique_names,
+                    prefix=f"{prefix}.{channel_name}" if prefix else f"{channel_name}",
                 )
 
             else:
-                name_ = unique_names.get_unique_name(f"{prefix}.{name}")
+                name_ = unique_names.get_unique_name(
+                    f"{prefix}.{channel_name}.{name}" if prefix else f"{channel_name}.{name}"
+                )
                 if len(values.shape) > 1:
                     arr = [values]
                     types = [("", values.dtype, values.shape[1:])]

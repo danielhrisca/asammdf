@@ -2474,7 +2474,7 @@ class ChannelConversion(_ChannelConversionBase):
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
             nr = (self.val_param_nr - 1) // 3
-            lower = np.array([self[f"lower{i}"] for i in range(nr)])
+            lower = np.array([self[f"lower_{i}"] for i in range(nr)])
             upper = np.array([self[f"upper_{i}"] for i in range(nr)])
             phys = np.array([self[f"phys_{i}"] for i in range(nr)])
             default = self.default
@@ -2828,7 +2828,11 @@ formula: {self.formula}
         return "\n".join(metadata)
 
     def __getitem__(self, item):
-        return self.__getattribute__(item)
+        try:
+            return self.__getattribute__(item)
+        except:
+            print(self)
+            raise
 
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
