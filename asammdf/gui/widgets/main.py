@@ -148,7 +148,7 @@ class MainWindow(QMainWindow):
 
         icon = QIcon()
         icon.addPixmap(QPixmap(":/plus.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tO".format("Insert computation"), menu)
+        action = QAction(icon, "{: <20}\tIns".format("Insert computation"), menu)
         action.triggered.connect(partial(self.plot_action, key=Qt.Key_Insert))
         action.setShortcut(Qt.Key_Insert)
         plot_actions.addAction(action)
