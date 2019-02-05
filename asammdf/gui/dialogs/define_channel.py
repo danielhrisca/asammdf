@@ -55,6 +55,9 @@ class DefineChannel(QDialog):
         self.op2_type = None
         self.op2_value = None
 
+        self.func_arg1 = None
+        self.func_arg2 = None
+
         self.operand1.addItems(sorted(self.channels))
         self.operand1.insertItem(0, 'CONSTANT')
         self.operand1.setCurrentIndex(-1)
@@ -81,10 +84,52 @@ class DefineChannel(QDialog):
             ]
         )
 
+        self.function.addItems(
+            sorted(
+                [
+                    'arccos',
+                    'arcsin',
+                    'arctan',
+                    'cos',
+                    'deg2rad',
+                    'degrees',
+                    'rad2deg',
+                    'radians',
+                    'sin',
+                    'tan',
+                    'ceil',
+                    'floor',
+                    'rint',
+                    'around',
+                    'fix',
+                    'trunc',
+                    'cumprod',
+                    'cumsum',
+                    'diff',
+                    'gradient',
+                    'exp',
+                    'log10',
+                    'log',
+                    'log2',
+                    'absolute',
+                    'cbrt',
+                    'clip',
+                    'sqrt',
+                    'square',
+                ]
+            )
+        )
+        self.function.setCurrentIndex(-1)
+        self.channel.addItems(sorted(self.channels))
+        self.channel.setCurrentIndex(-1)
+
         self.apply_btn.clicked.connect(self.apply)
         self.cancel_btn.clicked.connect(self.cancel)
         self.operand1.currentIndexChanged.connect(self.op1_changed)
         self.operand2.currentIndexChanged.connect(self.op2_changed)
+
+        self.apply_function_btn.clicked.connect(self.apply_function)
+        self.function.currentIndexChanged.connect(self.function_changed)
 
     def op1_changed(self, index):
         if self.operand1.currentText() == 'CONSTANT':
@@ -216,22 +261,169 @@ class DefineChannel(QDialog):
 
         op = self.op.currentText().split(' ')[0]
 
-        self.result = eval(f'operand1 {op} operand2')
-        if not hasattr(self.result, 'name'):
-            self.result = AsamSignal(
-                name='_',
-                samples=np.ones(len(self.all_timebase))*self.result,
-                timestamps=self.all_timebase,
+        try:
+            self.result = eval(f'operand1 {op} operand2')
+            if not hasattr(self.result, 'name'):
+                self.result = AsamSignal(
+                    name='_',
+                    samples=np.ones(len(self.all_timebase))*self.result,
+                    timestamps=self.all_timebase,
+                )
+
+            name = self.name.text()
+
+            if not name:
+                name = f'COMP_{operand1_str}{OPS_TO_STR[op]}{operand2_str}'
+
+            self.result.name = name
+            self.result.unit = self.unit.text()
+            self.result.enabled = True
+        except:
+            self.result = None
+
+        self.pressed_button = "apply"
+        self.close()
+
+    def function_changed(self, index):
+        function = self.function.currentText()
+        if function in [
+            'arccos',
+            'arcsin',
+            'arctan',
+            'cos',
+            'deg2rad',
+            'degrees',
+            'rad2deg',
+            'radians',
+            'sin',
+            'tan',
+            'floor',
+            'rint',
+            'fix',
+            'trunc',
+            'cumprod',
+            'cumsum',
+            'diff',
+            'exp',
+            'log10',
+            'log',
+            'log2',
+            'absolute',
+            'cbrt',
+            'sqrt',
+            'square',
+        ]:
+            if self.func_arg1 is not None:
+                self.func_arg1.setParent(None)
+                self.func_arg1 = None
+                self.func_arg2.setParent(None)
+                self.func_arg2 = None
+        else:
+            if self.func_arg1 is None:
+                self.func_arg1 = QDoubleSpinBox()
+                self.func_arg1.setRange(-2**64, 2**64-1)
+                self.gridLayout_2.addWidget(self.func_arg1, 0, 2)
+
+                self.func_arg2 = QDoubleSpinBox()
+                self.func_arg2.setRange(-2**64, 2**64-1)
+                self.gridLayout_2.addWidget(self.func_arg2, 0, 3)
+
+            if function == 'round':
+                self.func_arg2.setEnabled(False)
+            else:
+                self.func_arg2.setEnabled(True)
+
+
+    def apply_function(self, event):
+        if self.function.currentIndex() == -1:
+            QMessageBox.warning(
+                None,
+                "Can't compute new channel",
+                "Must select a function first",
             )
+            return
 
-        name = self.name.text()
+        if self.channel.currentIndex() == -1:
+            QMessageBox.warning(
+                None,
+                "Can't compute new channel",
+                "Must select a channel first",
+            )
+            return
 
-        if not name:
-            name = f'COMP_{operand1_str}{OPS_TO_STR[op]}{operand2_str}'
+        function = self.function.currentText()
+        channel_name = self.channel.currentText()
 
-        self.result.name = name
-        self.result.unit = self.unit.text()
-        self.result.enabled = True
+        channel = self.channels[channel_name]
+        func = getattr(np, function)
+
+        try:
+
+            if function in [
+                'arccos',
+                'arcsin',
+                'arctan',
+                'cos',
+                'deg2rad',
+                'degrees',
+                'rad2deg',
+                'radians',
+                'sin',
+                'tan',
+                'floor',
+                'rint',
+                'fix',
+                'trunc',
+                'cumprod',
+                'cumsum',
+                'diff',
+                'exp',
+                'log10',
+                'log',
+                'log2',
+                'absolute',
+                'cbrt',
+                'sqrt',
+                'square',
+            ]:
+
+                samples = func(channel.samples)
+                if function == 'diff':
+                    timestamps = channel.timestamps[1:]
+                else:
+                    timestamps = channel.timestamps
+                name = f'{function}_{channel.name}'
+
+            elif function == 'around':
+                decimals = int(self.func_arg1.value())
+                samples = func(channel.samples, decimals)
+                timestamps = channel.timestamps
+                name = f'{function}_{channel.name}_{decimals}'
+            elif function == 'clip':
+                lower = float(self.func_arg1.value())
+                upper = float(self.func_arg2.value())
+                samples = func(channel.samples, lower, upper)
+                timestamps = channel.timestamps
+                name = f'{function}_{channel.name}_{lower}_{upper}'
+
+            name = self.function_name.text() or name
+            unit = self.function_unit.text() or channel.unit
+
+            self.result = AsamSignal(
+                samples=samples,
+                timestamps=timestamps,
+                name=name,
+                unit=unit,
+            )
+            self.result.enabled = True
+
+        except Exception as err:
+            QMessageBox.critical(
+                None,
+                "Function error",
+                str(err),
+            )
+            self.result = None
 
         self.pressed_button = "apply"
         self.close()

@@ -394,7 +394,7 @@ try:
                             if i in self.common_axis_items:
                                 self.view_boxes[i].setYLink(self.viewbox)
                             else:
-                                self.view_boxes[i].setyLink(None)
+                                self.view_boxes[i].setYLink(None)
                             self.view_boxes[i].setXLink(self.viewbox)
                             self.curves[i].show()
                         elif not sig.enable and self.curves[i].isVisible():
