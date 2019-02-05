@@ -1404,6 +1404,10 @@ class FileWidget(QWidget):
         it.enable_changed.connect(self.plot.setSignalEnable)
         it.ylink_changed.connect(self.plot.setCommonAxis)
 
+        it.enable_changed.emit(index, 1)
+        it.enable_changed.emit(index, 0)
+        it.enable_changed.emit(index, 1)
+
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(self.filter_tree)
 

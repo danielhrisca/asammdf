@@ -310,6 +310,7 @@ try:
                     self.axes[index].labelText = axis_text
 
         def setSignalEnable(self, index, state):
+            print(index, state)
             if state in (Qt.Checked, True, 1):
                 self.signals[index].enable = True
             else:
@@ -390,7 +391,6 @@ try:
 
                     for i, sig in enumerate(self.signals):
                         if sig.enable and not self.curves[i].isVisible():
-                            self.axes[i].setGrid(125)
                             if i in self.common_axis_items:
                                 self.view_boxes[i].setYLink(self.viewbox)
                             else:
@@ -942,18 +942,13 @@ try:
                         view_box.setXRange(start, stop, padding=0, update=True)
                         axis.showLabel()
                         axis.show()
-                        self.update_lines(force=True)
-                        #                view_box.sigResized.connect(self.update_views)
+                        QApplication.processEvents()
 
                         self.computation_channel_inserted.emit()
-#                        self.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_H, Qt.NoModifier))
 
                 else:
                     super(Plot, self).keyPressEvent(event)
 
-#        from numba import jit
-#
-#        @jit
         def trim(self, width, start, stop, signals):
             for sig in signals:
                 dim = len(sig.original_samples)

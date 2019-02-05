@@ -385,6 +385,7 @@ class DefineChannel(QDialog):
                 'cbrt',
                 'sqrt',
                 'square',
+                'gradient',
             ]:
 
                 samples = func(channel.samples)
