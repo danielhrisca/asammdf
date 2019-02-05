@@ -55,6 +55,7 @@ try:
         range_modified_finished = pyqtSignal()
         cursor_move_finished = pyqtSignal()
         xrange_changed = pyqtSignal()
+        computation_channel_inserted = pyqtSignal()
 
         def __init__(self, signals, with_dots, *args, **kwargs):
             super(Plot, self).__init__(*args, **kwargs)
@@ -849,10 +850,103 @@ try:
                             self.cursor_moved.emit()
 
                 elif key == Qt.Key_Insert:
-                    dlg = DefineChannel(self.signals, self)
+                    dlg = DefineChannel(self.signals, self.all_timebase, self)
                     dlg.setModal(True)
                     dlg.exec_()
-                    result = dlg.result
+                    sig = dlg.result
+                    if sig is not None:
+                        index = len(self.signals)
+
+                        self.signals.append(sig)
+
+                        if sig.samples.dtype.kind == "f":
+                            sig.format = "{:.6f}"
+                            sig.texts = None
+                        else:
+                            sig.format = "phys"
+                            if sig.samples.dtype.kind in "SV":
+                                sig.texts = sig.original_texts = sig.samples
+                                sig.samples = np.zeros(len(sig.samples))
+                            else:
+                                sig.texts = None
+                        sig.enable = True
+
+                        if sig.conversion:
+                            vals = sig.conversion.convert(sig.samples)
+                            if vals.dtype.kind != 'S':
+                                nans = np.isnan(vals)
+                                samples = np.where(
+                                    nans,
+                                    sig.samples,
+                                    vals,
+                                )
+                                sig.samples = samples
+
+                        sig.original_samples = sig.samples
+                        sig.original_timestamps = sig.timestamps
+
+                        sig._stats = {
+                            "range": (0, -1),
+                            "range_stats": {},
+                            "visible": (0, -1),
+                            "visible_stats": {},
+                        }
+
+                        color = COLORS[index % 10]
+                        sig.color = color
+
+                        if len(sig.samples):
+                            sig.min = np.amin(sig.samples)
+                            sig.max = np.amax(sig.samples)
+                            sig.empty = False
+                        else:
+                            sig.empty = True
+
+                        axis = FormatedAxis("right", pen=color)
+                        if sig.conversion and "text_0" in sig.conversion:
+                            axis.text_conversion = sig.conversion
+
+                        view_box = pg.ViewBox(enableMenu=False)
+
+                        axis.linkToView(view_box)
+                        axis.labelText = sig.name
+                        axis.labelUnits = sig.unit
+                        axis.labelStyle = {"color": color}
+                        axis.hide()
+
+                        self.layout.addItem(axis, 2, index + 2)
+
+                        self.scene_.addItem(view_box)
+
+                        t = sig.timestamps
+
+                        curve = self.curvetype(
+                            t,
+                            sig.samples,
+                            pen=color,
+                            symbolBrush=color,
+                            symbolPen=color,
+                            symbol="o",
+                            symbolSize=4,
+                        )
+
+                        view_box.addItem(curve)
+
+                        view_box.setXLink(self.viewbox)
+                        self.view_boxes.append(view_box)
+                        self.curves.append(curve)
+                        self.axes.append(axis)
+
+                        view_box.setYRange(sig.min, sig.max, padding=0, update=True)
+                        (start, stop), _ = self.viewbox.viewRange()
+                        view_box.setXRange(start, stop, padding=0, update=True)
+                        axis.showLabel()
+                        axis.show()
+                        self.update_lines(force=True)
+                        #                view_box.sigResized.connect(self.update_views)
+
+                        self.computation_channel_inserted.emit()
+#                        self.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_H, Qt.NoModifier))
 
                 else:
                     super(Plot, self).keyPressEvent(event)
@@ -924,12 +1018,11 @@ try:
             width = self.width()
             self.trim(width, start, stop, self.signals)
 
-
             self.update_lines(force=True)
 
         def _resizeEvent(self, ev):
             self.xrange_changed_handle()
-            super(Plot, self).resizeEvent(ev)
+            super().resizeEvent(ev)
 
 
 except ImportError:

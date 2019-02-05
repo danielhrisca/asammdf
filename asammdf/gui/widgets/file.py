@@ -1342,6 +1342,7 @@ class FileWidget(QWidget):
         self.plot.cursor_moved.connect(self.cursor_moved)
         self.plot.cursor_move_finished.connect(self.cursor_move_finished)
         self.plot.xrange_changed.connect(self.xrange_changed)
+        self.plot.computation_channel_inserted.connect(self.computation_channel_inserted)
         self.plot.show()
 
         for i, sig in enumerate(self.plot.signals):
@@ -1379,6 +1380,29 @@ class FileWidget(QWidget):
         QApplication.processEvents()
 
         self.plot.update_lines(force=True)
+
+    def computation_channel_inserted(self):
+        sig = self.plot.signals[-1]
+        index = self.channel_selection.count()
+        if sig.empty:
+            name = f"{sig.name} [has no samples]"
+        else:
+            name = f"{sig.name} ({sig.unit})"
+        is_float = sig.samples.dtype.kind == "f"
+        item = QListWidgetItem(self.channel_selection)
+        it = ChannelDisplay(index, sig.unit, self)
+        it.setAttribute(Qt.WA_StyledBackground)
+
+        it.setName(name)
+        it.setValue("")
+        it.setColor(sig.color)
+        item.setSizeHint(it.sizeHint())
+        self.channel_selection.addItem(item)
+        self.channel_selection.setItemWidget(item, it)
+
+        it.color_changed.connect(self.plot.setColor)
+        it.enable_changed.connect(self.plot.setSignalEnable)
+        it.ylink_changed.connect(self.plot.setCommonAxis)
 
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(self.filter_tree)
