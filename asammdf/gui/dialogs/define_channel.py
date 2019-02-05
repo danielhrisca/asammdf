@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
 
+import numpy as np
+
+from ...signal import Signal as AsamSignal
+
 try:
     from PyQt5.QtGui import *
     from PyQt5.QtWidgets import *
@@ -21,13 +25,29 @@ except ImportError:
 HERE = os.path.dirname(os.path.realpath(__file__))
 
 
+OPS_TO_STR = {
+    '+': '__add__',
+    '-': '__sub__',
+    '/': '__div__',
+    '//': '__floordiv__',
+    '*': '__mul__',
+    '%': '__mod__',
+    '**': '__pow__',
+    '^': '__xor__',
+    '>>': '__rshift__',
+    '<<': '__lsift__',
+    '&': '__and__',
+    '|': '__or__',
+}
+
+
 class DefineChannel(QDialog):
-    def __init__(self, channels, *args, **kwargs):
+    def __init__(self, channels, all_timebase, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi(os.path.join(HERE, "..", "ui", "define_channel_dialog.ui"), self)
 
         self.channels = {ch.name: ch for ch in channels}
-        self.result = {}
+        self.result = None
         self.pressed_button = None
 
         self.op1_type = None
@@ -42,9 +62,23 @@ class DefineChannel(QDialog):
         self.operand2.addItems(sorted(self.channels))
         self.operand2.insertItem(0, 'CONSTANT')
         self.operand2.setCurrentIndex(-1)
+        self.all_timebase = all_timebase
 
         self.op.addItems(
-            ['+', '-', '/', '//', '*', '>>', '<<', '**', '^']
+            [
+                '+ (add)',
+                '- (substract)',
+                '/ (divide)',
+                '// (floor divide)',
+                '* (multiply)',
+                '% (modulo)',
+                '** (power)',
+                '^ (xor)',
+                '& (and)',
+                '| (or)',
+                '>> (right shift)',
+                '<< (left shift)',
+            ]
         )
 
         self.apply_btn.clicked.connect(self.apply)
@@ -119,21 +153,90 @@ class DefineChannel(QDialog):
             self.gridLayout.addWidget(self.op2_value, 2, 3)
 
     def apply(self, event):
+        if self.operand1.currentIndex() == -1:
+            QMessageBox.warning(
+                None,
+                "Can't compute new channel",
+                "Must select operand 1 first",
+            )
+            return
 
-        for row in range(100):
-            try:
-                start = self.table.cellWidget(row, 0).value()
-                stop = self.table.cellWidget(row, 1).value()
-                button = self.table.cellWidget(row, 2)
-                color = button.palette().button().color().name()
-            except:
-                continue
+        if self.operand2.currentIndex() == -1:
+            QMessageBox.warning(
+                None,
+                "Can't compute new channel",
+                "Must select operand 2 first",
+            )
+            return
+
+        if self.op1_type is not None and self.op1_type.currentIndex() == -1:
+            QMessageBox.warning(
+                None,
+                "Can't compute new channel",
+                "Must select operand 1 type first",
+            )
+            return
+
+        if self.op2_type is not None and self.op2_type.currentIndex() == -1:
+            QMessageBox.warning(
+                None,
+                "Can't compute new channel",
+                "Must select operand 2 type first",
+            )
+
+        if self.op.currentIndex() == -1:
+            QMessageBox.warning(
+                None,
+                "Can't compute new channel",
+                "Must select operator",
+            )
+
+        operand1 = self.operand1.currentText()
+        operand2 = self.operand2.currentText()
+
+        if operand1 == 'CONSTANT':
+            if self.op1_type.currentText() == 'int':
+                operand1 = int(self.op1_value.value())
             else:
-                self.result[(start, stop)] = color
+                operand1 = float(self.op1_value.value())
+            operand1_str = str(operand1)
+        else:
+            operand1 = self.channels[operand1]
+            operand1_str = operand1.name
+
+        if operand2 == 'CONSTANT':
+            if self.op2_type.currentText() == 'int':
+                operand2 = int(self.op2_value.value())
+            else:
+                operand2 = float(self.op2_value.value())
+            operand2_str = str(operand2)
+        else:
+            operand2 = self.channels[operand2]
+            operand2_str = operand2.name
+
+        op = self.op.currentText().split(' ')[0]
+
+        self.result = eval(f'operand1 {op} operand2')
+        if not hasattr(self.result, 'name'):
+            self.result = AsamSignal(
+                name='_',
+                samples=np.ones(len(self.all_timebase))*self.result,
+                timestamps=self.all_timebase,
+            )
+
+        name = self.name.text()
+
+        if not name:
+            name = f'COMP_{operand1_str}{OPS_TO_STR[op]}{operand2_str}'
+
+        self.result.name = name
+        self.result.unit = self.unit.text()
+        self.result.enabled = True
+
         self.pressed_button = "apply"
         self.close()
 
     def cancel(self, event):
-        self.result = {}
+        self.result = None
         self.pressed_button = "cancel"
         self.close()

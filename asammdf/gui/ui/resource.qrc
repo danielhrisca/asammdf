@@ -30,5 +30,6 @@
     <file alias="search.png">images/search.png</file>
     <file alias="checkmark.png">images/checkmark.png</file>
     <file alias="scramble.png">images/scramble.png</file>
+    <file alias="plus.png">images/plus.png</file>
 </qresource>
 </RCC>

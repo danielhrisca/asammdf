@@ -2796,6 +2796,7 @@ class MDF3(object):
                 if not raw:
                     try:
                         vals = conversion.convert(vals)
+                        conversion = None
                     except:
                         print(channel, conversion)
                         raise

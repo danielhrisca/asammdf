@@ -4568,6 +4568,7 @@ class MDF4(object):
                     vals = fromarrays(arrays, names=names)
 
                     del arrays
+                    conversion = None
 
                 # CANopen time
                 elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
@@ -4584,17 +4585,19 @@ class MDF4(object):
                     vals = fromarrays(arrays, names=names)
 
                     del arrays
+                    conversion = None
 
                 if conversion_type == v4c.CONVERSION_TYPE_TRANS:
                     if not raw:
                         vals = conversion.convert(vals)
+                        conversion = None
                 if conversion_type == v4c.CONVERSION_TYPE_TTAB:
                     raw = True
 
             elif conversion_type in v4c.CONVERSION_GROUP_2:
                 if not raw:
                     vals = conversion.convert(vals)
-
+                    conversion = None
             else:
                 raw = True
 
