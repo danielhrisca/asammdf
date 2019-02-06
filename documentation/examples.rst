@@ -27,7 +27,6 @@ Working with MDF
 
 .. code-block:: python
 
-    from __future__ import print_function, division
     from asammdf import MDF, Signal
     import numpy as np
 
@@ -63,8 +62,8 @@ Working with MDF
         # save new file
         mdf4.save('my_new_file.mf4', overwrite=True)
 
-        # convert new file to mdf version 3.10 with lowest possible RAM usage
-        mdf3 = mdf4.convert(version='3.10', memory='minimum')
+        # convert new file to mdf version 3.10
+        mdf3 = mdf4.convert(version='3.10')
         print(mdf3.version)
 
         # get the float signal
@@ -93,7 +92,6 @@ Working with Signal
 
 .. code-block:: python
 
-    from __future__ import print_function, division
     from asammdf import Signal
     import numpy as np
 

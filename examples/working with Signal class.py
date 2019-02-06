@@ -2,7 +2,6 @@
 """
 *asammdf* Signal usage example
 """
-from __future__ import print_function, division
 from asammdf import Signal
 import numpy as np
 
