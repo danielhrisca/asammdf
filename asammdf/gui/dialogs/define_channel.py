@@ -4,7 +4,7 @@ import os
 import numpy as np
 
 from ...signal import Signal as AsamSignal
-
+from ..ui import resource_qt5 as resource_rc
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *

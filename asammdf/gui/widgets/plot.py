@@ -9,6 +9,8 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
+from ..ui import resource_qt5 as resource_rc
+
 try:
     import pyqtgraph as pg
 

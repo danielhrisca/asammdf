@@ -12,6 +12,8 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
 
+from ..ui import resource_qt5 as resource_rc
+
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .channel_display import ChannelDisplay
@@ -1253,7 +1255,9 @@ class FileWidget(QWidget):
 
                 if item.checkState(0) == Qt.Checked:
                     group, index = item.entry
-                    signals.append((None, group, index))
+                    ch = self.mdf.groups[group].channels[index]
+                    if not ch.component_addr:
+                        signals.append((None, group, index))
 
                 index += 1
                 iterator += 1
