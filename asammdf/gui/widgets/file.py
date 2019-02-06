@@ -146,6 +146,7 @@ class FileWidget(QWidget):
         )
 
         vbox = QVBoxLayout(channel_and_search)
+        vbox.setSpacing(2)
         self.advanced_search_btn = QPushButton("", channel_and_search)
         icon = QIcon()
         icon.addPixmap(QPixmap(":/search.png"), QIcon.Normal, QIcon.Off)
@@ -218,6 +219,8 @@ class FileWidget(QWidget):
         selection_list = QWidget(splitter)
         self.channel_selection = ListWidget(selection_list)
         self.channel_selection.setAlternatingRowColors(False)
+        self.channel_selection.setSpacing(0)
+        self.channel_selection.setStyleSheet("QListWidget {padding: 0px;} QListWidget::item { margin: 0px; }")
 
         vbox = QVBoxLayout(selection_list)
 
@@ -1291,11 +1294,11 @@ class FileWidget(QWidget):
 
         for i, sig in enumerate(self.plot.signals):
             if sig.empty:
-                name = f"{sig.name} [has no samples]"
+                name, unit = sig.name, "[has no samples]"
             else:
-                name = f"{sig.name} ({sig.unit})"
+                name, unit = sig.name, sig.unit
             item = QListWidgetItem(self.channel_selection)
-            it = ChannelDisplay(i, sig.unit, self)
+            it = ChannelDisplay(i, unit, self)
             it.setAttribute(Qt.WA_StyledBackground)
 
             it.setName(name)
@@ -1328,11 +1331,11 @@ class FileWidget(QWidget):
         sig = self.plot.signals[-1]
         index = self.channel_selection.count()
         if sig.empty:
-            name = f"{sig.name} [has no samples]"
+            name, unit = sig.name, "[has no samples]"
         else:
-            name = f"{sig.name} ({sig.unit})"
+            name, unit = sig.name, sig.unit
         item = QListWidgetItem(self.channel_selection)
-        it = ChannelDisplay(index, sig.unit, self)
+        it = ChannelDisplay(index, unit, self)
         it.setAttribute(Qt.WA_StyledBackground)
 
         it.setName(name)

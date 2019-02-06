@@ -23,10 +23,13 @@
      <number>2</number>
     </property>
     <property name="margin">
-     <number>2</number>
+     <number>0</number>
     </property>
     <item>
      <widget class="QStackedWidget" name="stackedWidget">
+      <property name="frameShape">
+       <enum>QFrame::NoFrame</enum>
+      </property>
       <widget class="QWidget" name="stackedWidgetPage1" native="true">
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <property name="spacing">
@@ -37,6 +40,12 @@
         </property>
         <item>
          <widget class="QTabWidget" name="files">
+          <property name="font">
+           <font>
+            <pointsize>9</pointsize>
+            <italic>true</italic>
+           </font>
+          </property>
           <property name="currentIndex">
            <number>-1</number>
           </property>

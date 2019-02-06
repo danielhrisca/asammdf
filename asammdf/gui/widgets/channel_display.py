@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 
 
 uifile_1 = os.path.join(HERE, "..", "ui", "channel_display_widget.ui")
-form_1, base_1 = uic.loadUiType(uifile_1)
+form_1, base_1 = uic.loadUiType(uifile_1, resource_suffix='')
 
 
 class ChannelDisplay(base_1, form_1):
@@ -52,6 +52,8 @@ class ChannelDisplay(base_1, form_1):
         self.display.stateChanged.connect(self.display_changed)
         self.ylink.stateChanged.connect(self.ylink_change)
 
+        self.setToolTip(self._name)
+
     def display_changed(self, state):
         state = self.display.checkState()
         self.enable_changed.emit(self.index, state)
@@ -83,10 +85,16 @@ class ChannelDisplay(base_1, form_1):
         self.color_btn.setStyleSheet(f"background-color: {color};")
 
     def setName(self, text=""):
+        self.setToolTip(text)
         self._name = text
-        self.name.setText(
-            f'<html><head/><body><p><span style=" color:{self.color};">{self._name}</span></p></body></html>'
-        )
+        if len(text) <= 32:
+            self.name.setText(
+                f'<html><head/><body><p><span style=" color:{self.color};">{self._name} ({self.unit})</span></p></body></html>'
+            )
+        else:
+            self.name.setText(
+                f'<html><head/><body><p><span style=" color:{self.color};">{self._name[:29]}... ({self.unit})</span></p></body></html>'
+            )
 
     def setPrefix(self, text=""):
         self._value_prefix = text

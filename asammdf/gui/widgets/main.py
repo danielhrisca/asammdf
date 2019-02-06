@@ -56,16 +56,16 @@ class MainWindow(QMainWindow):
         mode_actions = QActionGroup(self)
 
         icon = QIcon()
-        icon.addPixmap(QPixmap(":/left.png"), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(QPixmap(":/file.png"), QIcon.Normal, QIcon.Off)
         action = QAction(icon, "{: <20}".format("Single files"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_Right))
+        action.triggered.connect(partial(self.stackedWidget.setCurrentIndex, 0))
         action.setShortcut(Qt.Key_Right)
         mode_actions.addAction(action)
 
         icon = QIcon()
-        icon.addPixmap(QPixmap(":/range.png"), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(QPixmap(":/list.png"), QIcon.Normal, QIcon.Off)
         action = QAction(icon, "{: <20}".format("Multiple files"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_R))
+        action.triggered.connect(partial(self.stackedWidget.setCurrentIndex, 1))
         action.setShortcut(Qt.Key_R)
         mode_actions.addAction(action)
 

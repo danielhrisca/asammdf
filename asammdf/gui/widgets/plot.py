@@ -160,7 +160,10 @@ try:
                 view_box = pg.ViewBox(enableMenu=False)
 
                 axis.linkToView(view_box)
-                axis.labelText = sig.name
+                if len(sig.name) <= 32:
+                    axis.labelText = sig.name
+                else:
+                    axis.labelText = f"{sig.name[:29]}..."
                 axis.labelUnits = sig.unit
                 axis.labelStyle = {"color": color}
 
