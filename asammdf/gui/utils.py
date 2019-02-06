@@ -131,5 +131,4 @@ class WorkerThread(Thread):
         try:
             self.output = self._target(*self._args, **self._kwargs)
         except Exception as err:
-            raise
             self.error = err

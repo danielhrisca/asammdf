@@ -346,10 +346,7 @@ class MDF(object):
                     raise MdfException("CAN_DataFrame not found in group " + str(index))
                 channel = channels[ch_cntr]
                 excluded_channels.add(ch_cntr)
-                if group.data_location == v4c.LOCATION_ORIGINAL_FILE:
-                    stream = self._file
-                else:
-                    stream = self._tempfile
+
                 frame_bytes = range(
                     channel.byte_offset, channel.byte_offset + channel.bit_count // 8
                 )
@@ -1079,8 +1076,6 @@ class MDF(object):
             used_names = UniqueDB()
             used_names.get_unique_name("time")
 
-            start__ = pc()
-
             for i, grp in enumerate(self.groups):
                 if self._terminate:
                     return
@@ -1327,7 +1322,7 @@ class MDF(object):
                     if self._terminate:
                         return
 
-                    for idx, row in enumerate(zip(*vals)):
+                    for row in zip(*vals):
                         writer.writerow(row)
 
             else:
@@ -1660,7 +1655,7 @@ class MDF(object):
             group = self.groups[group_index]
 
             data = self._load_data(group)
-            parents, dtypes = self._prepare_record(group)
+            _, dtypes = self._prepare_record(group)
 
             for idx, fragment in enumerate(data):
 
@@ -2225,7 +2220,7 @@ class MDF(object):
                 else:
                     continue
 
-                parents, dtypes = mdf._prepare_record(group)
+                _, dtypes = mdf._prepare_record(group)
 
                 data = mdf._load_data(group)
 
@@ -2380,7 +2375,7 @@ class MDF(object):
 
         """
 
-        for i, group in enumerate(self.groups):
+        for i, _ in enumerate(self.groups):
             yield self.get_group(i)
 
     def resample(self, raster, version=None):
@@ -2798,7 +2793,6 @@ class MDF(object):
         count = len(mdf.groups)
 
         if mdf.version >= "4.00":
-            Channel = ChannelV4
             ChannelConversion = ChannelConversionV4
 
             stream = mdf._file
@@ -2923,7 +2917,6 @@ class MDF(object):
                 callback(100, 100)
 
         else:
-            Channel = ChannelV3
             ChannelConversion = ChannelConversionV3
 
             stream = mdf._file
@@ -3072,7 +3065,7 @@ class MDF(object):
                 for sig in signals
             ]
 
-        for k, sig in enumerate(signals):
+        for sig in signals:
             # byte arrays
             if len(sig.samples.shape) > 1:
                 arr = [sig.samples]
@@ -3180,7 +3173,7 @@ class MDF(object):
             channels = grp.channels
 
             data = self._load_data(grp)
-            parents, dtypes = self._prepare_record(grp)
+            _, dtypes = self._prepare_record(grp)
 
             signals = [[] for _ in included_channels]
             timestamps = []

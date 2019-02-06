@@ -389,7 +389,7 @@ try:
 
         def update_views(self):
             geometry = self.viewbox.sceneBoundingRect()
-            for i, view_box in enumerate(self.view_boxes):
+            for view_box in self.view_boxes:
                 view_box.setGeometry(geometry)
 
         def get_stats(self, index):
@@ -460,7 +460,7 @@ try:
                                 if vals.dtype.kind == 'S':
                                     try:
                                         vals = [s.decode("utf-8") for s in vals]
-                                    except:
+                                    except UnicodeDecodeError:
                                         vals = [s.decode("latin-1") for s in vals]
                                     val = f"{val:.6f}= {vals[0]}"
                                 else:
@@ -1014,5 +1014,4 @@ try:
 
 
 except ImportError:
-    raise
     PYQTGRAPH_AVAILABLE = False

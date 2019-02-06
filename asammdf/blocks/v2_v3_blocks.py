@@ -170,7 +170,6 @@ class Channel:
             stream = kwargs["stream"]
             self.address = address = kwargs["address"]
             mapped = kwargs.get("mapped", False)
-            load_metadata = kwargs.get("load_metadata", True)
 
             if mapped:
                 (size,) = UINT16_uf(stream, address + 2)
@@ -1069,7 +1068,7 @@ class ChannelConversion(_ChannelConversionBase):
                 try:
                     self.formula = formula.decode("latin-1")
                     formula += b"\0"
-                except:
+                except AttributeError:
                     self.formula = formula
                     formula = formula.encode("latin-1") + b"\0"
                 self.block_len = 46 + formula_len + 1

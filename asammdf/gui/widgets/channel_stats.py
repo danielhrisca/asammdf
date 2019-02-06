@@ -34,7 +34,7 @@ class ChannelStats(QWidget):
                             value = f"{sign}{value}"
                     else:
                         value = f"{value:.6f}"
-                except:
+                except AttributeError:
                     if isinstance(value, int):
                         sign = "-" if value < 0 else ""
                         value = abs(value)

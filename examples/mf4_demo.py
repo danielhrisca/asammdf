@@ -1,4 +1,4 @@
-from asammdf import MDF, SUPPORTED_VERSIONS, Signal
+from asammdf import MDF, Signal
 import numpy as np
 
 cycles = 100

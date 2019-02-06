@@ -154,12 +154,7 @@ class Signal(object):
             from .gui.utils import COLORS
             from .gui.widgets.plot_standalone import StandalonePlot
 
-            try:
-                from PyQt5.QtWidgets import QApplication
-                from PyQt5.QtGui import QIcon, QPixmap
-            except ImportError:
-                from PyQt4.QtGui import QApplication
-                from PyQt4.QtGui import QIcon, QPixmap
+            from PyQt5.QtWidgets import QApplication
 
             app = QApplication([])
 

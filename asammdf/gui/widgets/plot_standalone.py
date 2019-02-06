@@ -235,5 +235,4 @@ try:
 
 
 except ImportError:
-    raise
     PYQTGRAPH_AVAILABLE = False

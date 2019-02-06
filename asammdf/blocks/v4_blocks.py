@@ -736,7 +736,7 @@ class Channel:
                         )
                         if display_name is not None:
                             self.display_name = display_name.text
-                    except:
+                    except ET.ParseError:
                         self.display_name = ""
                 else:
                     self.display_name = ""

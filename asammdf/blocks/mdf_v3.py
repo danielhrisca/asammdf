@@ -1053,7 +1053,6 @@ class MDF3(object):
             channel_size = v23c.CN_SHORT_BLOCK_SIZE
 
         file = self._tempfile
-        write = file.write
         tell = file.tell
 
         kargs = {
@@ -1075,8 +1074,6 @@ class MDF3(object):
             "summer_time",
             "day_of_week",
         )
-
-        defined_texts, cc_map, si_map = {}, {}, {}
 
         dg_cntr = len(self.groups)
 
@@ -1214,7 +1211,6 @@ class MDF3(object):
                 )
 
                 name = signal.name
-                comment = signal.comment
                 display_name = signal.display_name
 
                 if signal.samples.dtype.kind == "u" and signal.bit_count <= 4:

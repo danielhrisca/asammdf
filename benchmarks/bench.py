@@ -1,7 +1,6 @@
 """
 benchmark asammdf vs mdfreader
 """
-from __future__ import print_function, division
 import argparse
 import multiprocessing
 import os
@@ -10,7 +9,6 @@ import sys
 import traceback
 
 from io import StringIO
-from functools import partial
 
 try:
     import resource
@@ -28,7 +26,6 @@ import asammdf.blocks.v2_v3_constants as v3c
 import asammdf.blocks.v2_v3_blocks as v3b
 from mdfreader import Mdf as MDFreader
 from mdfreader import __version__ as mdfreader_version
-import numpy as np
 
 
 PYVERSION = sys.version_info[0]
@@ -358,19 +355,7 @@ def get_all_mdf4(output, fmt):
                 x.get(group=i, index=j, samples_only=True)
                 counter += 1
     output.send([timer.output, timer.error])
-
-
-def get_all_iter_mdf4(output, fmt):
-
-    x = MDF(r'test.mf4')
-    with Timer('Get all channels',
-               f'asammdf {asammdf_version} mdfv4',
-               fmt) as timer:
-        for i, gp in enumerate(x.groups):
-            for j in range(len(gp['channels'])):
-                for k in x.iter_get(group=i, index=j, samples_only=True):
-                    z = k
-    output.send([timer.output, timer.error])
+    
 
 def convert_v3_v4(output, fmt):
 
@@ -380,7 +365,6 @@ def convert_v3_v4(output, fmt):
                    fmt) as timer:
             x.convert('4.10')
     output.send([timer.output, timer.error])
-
 
 def convert_v4_v3(output, fmt):
 
@@ -770,12 +754,10 @@ def filter_reader4(output, fmt):
         x = MDFreader(r'test.mf4', channel_list=[f'Channel_{i}_{j}5' for i in range(10) for j in range(1, 20)])
         t = perf_counter()
         counter = 0
-        to_break = False
         for s in x:
             t2 = perf_counter()
             if t2 - t > 60:
                 timer.message += ' {}/s'.format(counter/(t2-t))
-                to_break = True
                 break
             x.get_channel_data(s)
             counter += 1
@@ -789,12 +771,10 @@ def filter_reader4_compression(output, fmt):
         x = MDFreader(r'test.mf4', compression='blosc', channel_list=[f'Channel_{i}_{j}5' for i in range(10) for j in range(1, 20)])
         t = perf_counter()
         counter = 0
-        to_break = False
         for s in x:
             t2 = perf_counter()
             if t2 - t > 60:
                 timer.message += ' {}/s'.format(counter/(t2-t))
-                to_break = True
                 break
             x.get_channel_data(s)
             counter += 1
@@ -808,12 +788,10 @@ def filter_reader4_nodata(output, fmt):
         x = MDFreader(r'test.mf4', no_data_loading=True, channel_list=[f'Channel_{i}_{j}5' for i in range(10) for j in range(1, 20)])
         t = perf_counter()
         counter = 0
-        to_break = False
         for s in x:
             t2 = perf_counter()
             if t2 - t > 60:
                 timer.message += ' {}/s'.format(counter/(t2-t))
-                to_break = True
                 break
             x.get_channel_data(s)
             counter += 1

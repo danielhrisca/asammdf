@@ -20,7 +20,6 @@ from numpy import (
     arange,
     array,
     array_equal,
-    bool,
     concatenate,
     dtype,
     flip,
@@ -805,7 +804,7 @@ class MDF4(object):
                     if grp.CAN_id is not None and grp.message_id is not None:
                         try:
                             addr = channel.attachment_addr
-                        except:
+                        except AttributeError:
                             addr = 0
                         if addr:
                             attachment_addr = self._attachments_map[addr]
@@ -3010,7 +3009,6 @@ class MDF4(object):
         gp.channel_group.acq_name = source_info
 
         invalidation_bytes_nr = 0
-        inval_bits = []
 
         self.groups.append(gp)
 
@@ -3022,16 +3020,9 @@ class MDF4(object):
         offset = 0
         field_names = UniqueDB()
 
-        defined_texts = {}
-        si_map = self._si_map
-        file_si_map = self._file_si_map
-        cc_map = self._cc_map
-        file_cc_map = self._file_cc_map
-
         # setup all blocks related to the time master channel
 
         file = self._tempfile
-        write = file.write
         tell = file.tell
         seek = file.seek
 
@@ -5164,10 +5155,6 @@ class MDF4(object):
         )
         info["groups"] = len(self.groups)
         for i, gp in enumerate(self.groups):
-            if gp.data_location == v4c.LOCATION_ORIGINAL_FILE:
-                stream = self._file
-            elif gp.data_location == v4c.LOCATION_TEMPORARY_FILE:
-                stream = self._tempfile
             inf = {}
             info[f"group {i}"] = inf
             inf["cycles"] = gp.channel_group.cycles_nr
@@ -5177,7 +5164,7 @@ class MDF4(object):
                 name = channel.name
 
                 ch_type = v4c.CHANNEL_TYPE_TO_DESCRIPTION[channel.channel_type]
-                inf[f"channel {i}"] = f'name="{name}" type={ch_type}'
+                inf[f"channel {j}"] = f'name="{name}" type={ch_type}'
 
         return info
 
@@ -5794,11 +5781,6 @@ class MDF4(object):
 
         grp = self.groups[gp_nr]
 
-        if grp.data_location == v4c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-
         if ch_nr >= 0:
             channel = grp.channels[ch_nr]
         else:
@@ -5846,12 +5828,7 @@ class MDF4(object):
 
         grp = self.groups[gp_nr]
 
-        if grp.data_location == v4c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-
-        channel = grp.channels[ch_nr].conversion
+        channel = grp.channels[ch_nr]
 
         conversion = channel.conversion
 
@@ -6137,7 +6114,7 @@ class MDF4(object):
                 ch_cntr += 1
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
-                offset, dg_cntr, ch_cntr, struct_self, new_fields, new_types, inval_cntr = self._append_structure_composition(
+                offset, dg_cntr, ch_cntr, _, new_fields, new_types, inval_cntr = self._append_structure_composition(
                     gp,
                     signal,
                     field_names,

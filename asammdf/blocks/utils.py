@@ -141,8 +141,8 @@ def extract_cncomment_xml(comment):
             comment = match.text or ""
     except ET.ParseError:
         pass
-    finally:
-        return comment
+    
+    return comment
 
 
 def matlab_compatible(name):
