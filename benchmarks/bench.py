@@ -28,6 +28,7 @@ import asammdf.blocks.v2_v3_constants as v3c
 import asammdf.blocks.v2_v3_blocks as v3b
 from mdfreader import Mdf as MDFreader
 from mdfreader import __version__ as mdfreader_version
+import numpy as np
 
 
 PYVERSION = sys.version_info[0]
@@ -894,54 +895,55 @@ def table_end(fmt='rst'):
 def main(text_output, fmt):
     if os.path.dirname(__file__):
         os.chdir(os.path.dirname(__file__))
-    # for version in ('3.30', '4.10'):
-    #     generate_test_files(version)
+    for version in ('3.30', '4.10'):
+        generate_test_files(version)
 
-    # mdf = MDF('test.mdf', 'minimum')
-    # v3_size = os.path.getsize('test.mdf') // 1024 // 1024
-    # v3_groups = len(mdf.groups)
-    # v3_channels = sum (
-    #     len(gp['channels'])
-    #     for gp in mdf.groups
-    # )
-    # v3_version = mdf.version
+    mdf = MDF('test.mdf', 'minimum')
+    v3_size = os.path.getsize('test.mdf') // 1024 // 1024
+    v3_groups = len(mdf.groups)
+    v3_channels = sum (
+        len(gp['channels'])
+        for gp in mdf.groups
+    )
+    v3_version = mdf.version
 
-    # mdf = MDF('test.mf4', 'minimum')
-    # v4_size = os.path.getsize('test.mf4') // 1024 // 1024
-    # v4_groups = len(mdf.groups)
-    # v4_channels = sum(
-    #     len(gp['channels'])
-    #     for gp in mdf.groups
-    # )
-    # v4_version = mdf.version
+    mdf = MDF('test.mf4', 'minimum')
+    v4_size = os.path.getsize('test.mf4') // 1024 // 1024
+    v4_groups = len(mdf.groups)
+    v4_channels = sum(
+        len(gp['channels'])
+        for gp in mdf.groups
+    )
+    v4_version = mdf.version
 
     listen, send = multiprocessing.Pipe()
     output = MyList()
     errors = []
 
-    # installed_ram = round(psutil.virtual_memory().total / 1024 / 1024 / 1024)
+    installed_ram = round(psutil.virtual_memory().total / 1024 / 1024 / 1024)
 
-    # output.append('\n\nBenchmark environment\n')
-    # output.append('* {}'.format(sys.version))
-    # output.append('* {}'.format(platform.platform()))
-    # output.append('* {}'.format(platform.processor()))
-    # output.append('* {}GB installed RAM\n'.format(installed_ram))
-    # output.append('Notations used in the results\n')
-    # output.append(('* compress = mdfreader mdf object created with '
-    #                'compression=blosc'))
-    # output.append(('* nodata = mdfreader mdf object read with '
-    #                'no_data_loading=True'))
-    # output.append('\nFiles used for benchmark:\n')
-    # output.append('* mdf version {}'.format(v3_version))
-    # output.append('    * {} MB file size'.format(v3_size))
-    # output.append('    * {} groups'.format(v3_groups))
-    # output.append('    * {} channels'.format(v3_channels))
-    # output.append('* mdf version {}'.format(v4_version))
-    # output.append('    * {} MB file size'.format(v4_size))
-    # output.append('    * {} groups'.format(v4_groups))
-    # output.append('    * {} channels\n\n'.format(v4_channels))
+    output.append('\n\nBenchmark environment\n')
+    output.append('* {}'.format(sys.version))
+    output.append('* {}'.format(platform.platform()))
+    output.append('* {}'.format(platform.processor()))
+    output.append('* numpy {}'.format(np.__version__))
+    output.append('* {}GB installed RAM\n'.format(installed_ram))
+    output.append('Notations used in the results\n')
+    output.append(('* compress = mdfreader mdf object created with '
+                   'compression=blosc'))
+    output.append(('* nodata = mdfreader mdf object read with '
+                   'no_data_loading=True'))
+    output.append('\nFiles used for benchmark:\n')
+    output.append('* mdf version {}'.format(v3_version))
+    output.append('    * {} MB file size'.format(v3_size))
+    output.append('    * {} groups'.format(v3_groups))
+    output.append('    * {} channels'.format(v3_channels))
+    output.append('* mdf version {}'.format(v4_version))
+    output.append('    * {} MB file size'.format(v4_size))
+    output.append('    * {} groups'.format(v4_groups))
+    output.append('    * {} channels\n\n'.format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 1, 1, 1
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 1, 0, 0
 
     tests = (
           open_mdf3,
