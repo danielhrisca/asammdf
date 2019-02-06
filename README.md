@@ -20,7 +20,7 @@
 
 ! | Travis CI  | Coverage  |  Codacy  | ReadTheDocs
 --|--|--|--|--
-Py3 | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=Py3)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=Py3)](http://asammdf.readthedocs.io/en/master/?badge=stable) |
+Py3 | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=Py3)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=Py3)](http://asammdf.readthedocs.io/en/Py3) |
 
 PyPI| conda-forge
 --|--
@@ -116,7 +116,7 @@ Check the *examples* folder for extended usage demo, or the documentation
 http://asammdf.readthedocs.io/en/master/examples.html
 
 # Documentation
-http://asammdf.readthedocs.io/en/master
+http://asammdf.readthedocs.io/en/Py3
 
 # Contributing & Support
 Please have a look over the [contributing guidelines](CONTRIBUTING.md)
@@ -175,4 +175,4 @@ other optional dependencies
 
 # Benchmarks
 
-http://asammdf.readthedocs.io/en/master/benchmarks.html
+http://asammdf.readthedocs.io/en/Py3/benchmarks.html
