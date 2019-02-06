@@ -109,6 +109,6 @@ class ChannelDisplay(base_1, form_1):
             template = template.format("{}")
         try:
             self.value.setText(template.format(self.color, self._value_prefix, value))
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             template = '<html><head/><body><p><span style=" color:{};">{}{}</span></p></body></html>'
             self.value.setText(template.format(self.color, self._value_prefix, value))

@@ -236,7 +236,7 @@ try:
                         self.view_boxes[i].addItem(curve)
                     else:
                         curve = self.curves[i]
-                        curve.setData(x=t, y=sig.samples)
+                        curve.setData(x=t, y=sig.plot_samples)
 
                     if sig.enable and self.singleton is None:
                         curve.show()
