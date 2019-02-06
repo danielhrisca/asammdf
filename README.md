@@ -175,4 +175,4 @@ other optional dependencies
 
 # Benchmarks
 
-http://asammdf.readthedocs.io/en/Py3/benchmarks.html
+http://asammdf.readthedocs.io/en/py3/benchmarks.html
