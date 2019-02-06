@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
-try:
-    from PyQt5.QtWidgets import QTreeWidgetItem
-except ImportError:
-    from PyQt4.QtGui import QTreeWidgetItem
+from PyQt5.QtWidgets import QTreeWidgetItem
 
 
 class TreeItem(QTreeWidgetItem):

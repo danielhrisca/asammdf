@@ -6,7 +6,7 @@ import pyqtgraph as pg
 class Cursor(pg.InfiniteLine):
     def __init__(self, *args, **kwargs):
 
-        super(Cursor, self).__init__(
+        super().__init__(
             *args, label="{value:.6f}s", labelOpts={"position": 0.04}, **kwargs
         )
 

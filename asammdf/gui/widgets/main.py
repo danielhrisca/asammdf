@@ -3,22 +3,11 @@ import os
 from functools import partial
 from pathlib import Path
 
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
-    from PyQt5 import uic
-    from ..ui import resource_qt5 as resource_rc
-
-    QT = 5
-
-except ImportError:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
-    from PyQt4 import uic
-    from ..ui import resource_qt4 as resource_rc
-
-    QT = 4
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5 import uic
+from ..ui import resource_qt5 as resource_rc
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...version import __version__ as libversion
@@ -33,7 +22,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
 
-        super(MainWindow, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         uic.loadUi(os.path.join(HERE, "..", "ui", "main_window.ui"), self)
 
         self.progress = None
@@ -151,6 +140,13 @@ class MainWindow(QMainWindow):
         action = QAction(icon, "{: <20}\tIns".format("Insert computation"), menu)
         action.triggered.connect(partial(self.plot_action, key=Qt.Key_Insert))
         action.setShortcut(Qt.Key_Insert)
+        plot_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(QPixmap(":/save.png"), QIcon.Normal, QIcon.Off)
+        action = QAction(icon, "{: <20}\tCtrl+S".format("Save plot channels"), menu)
+        action.triggered.connect(partial(self.plot_action, key=Qt.Key_S, modifier=Qt.ControlModifier))
+        action.setShortcut(QKeySequence("Ctrl+S"))
         plot_actions.addAction(action)
 
         # values display
@@ -317,15 +313,9 @@ class MainWindow(QMainWindow):
 
         files = [self.files_list.item(row).text() for row in range(count)]
 
-        if QT > 4:
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, "Select output measurement file", "", filter
-            )
-        else:
-            file_name = QFileDialog.getSaveFileName(
-                self, "Select output measurement file", "", filter
-            )
-            file_name = Path(file_name)
+        file_name, _ = QFileDialog.getSaveFileName(
+            self, "Select output measurement file", "", filter
+        )
 
         if file_name:
 
@@ -377,15 +367,9 @@ class MainWindow(QMainWindow):
             progress.cancel()
 
     def open_multiple_files(self, event):
-        if QT > 4:
-            file_names, _ = QFileDialog.getOpenFileNames(
-                self, "Select measurement file", "", "MDF files (*.dat *.mdf *.mf4)"
-            )
-        else:
-            file_names = QFileDialog.getOpenFileNames(
-                self, "Select measurement file", "", "MDF files (*.dat *.mdf *.mf4)"
-            )
-            file_names = [Path(file_name) for file_name in file_names]
+        file_names, _ = QFileDialog.getOpenFileNames(
+            self, "Select measurement file", "", "MDF files (*.dat *.mdf *.mf4)"
+        )
 
         if file_names:
             self.files_list.addItems(file_names)
@@ -404,21 +388,12 @@ class MainWindow(QMainWindow):
             self.open_multiple_files(event)
 
     def open_file(self, event):
-        if QT > 4:
-            file_name, _ = QFileDialog.getOpenFileName(
-                self,
-                "Select measurement file",
-                "",
-                "MDF/DL3/ERG files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
-            )
-        else:
-            file_name = QFileDialog.getOpenFileName(
-                self,
-                "Select measurement file",
-                "",
-                "MDF/DL3/ERG files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
-            )
-            file_name = Path(file_name)
+        file_name, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select measurement file",
+            "",
+            "MDF/DL3/ERG files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
+        )
 
         if file_name:
             file_name = Path(file_name)

@@ -14,28 +14,18 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 try:
     import pyqtgraph as pg
 
-    try:
-        from PyQt5.QtGui import *
-        from PyQt5.QtWidgets import *
-        from PyQt5.QtCore import *
-        from PyQt5 import uic
-        from ..ui import resource_qt5 as resource_rc
-
-        QT = 5
-
-    except ImportError:
-        from PyQt4.QtCore import *
-        from PyQt4.QtGui import *
-        from PyQt4 import uic
-        from ..ui import resource_qt4 as resource_rc
-
-        QT = 4
+    from PyQt5.QtGui import *
+    from PyQt5.QtWidgets import *
+    from PyQt5.QtCore import *
+    from PyQt5 import uic
+    from ..ui import resource_qt5 as resource_rc
 
     from ..utils import COLORS
     from .cursor import Cursor
     from .formated_axis import FormatedAxis
     from ..dialogs.define_channel import DefineChannel
     from ...version import __version__ as libversion
+    from ...mdf import MDF
 
     if not hasattr(pg.InfiniteLine, "addMarker"):
         logger = logging.getLogger("asammdf")
@@ -58,7 +48,7 @@ try:
         computation_channel_inserted = pyqtSignal()
 
         def __init__(self, signals, with_dots, *args, **kwargs):
-            super(Plot, self).__init__(*args, **kwargs)
+            super().__init__(*args, **kwargs)
             self.xrange_changed.connect(self.xrange_changed_handle)
             self.with_dots = with_dots
             if self.with_dots:
@@ -80,14 +70,14 @@ try:
             for sig in self.signals:
                 if sig.samples.dtype.kind == "f":
                     sig.format = "{:.6f}"
-                    sig.texts = None
+                    sig.plot_texts = None
                 else:
                     sig.format = "phys"
                     if sig.samples.dtype.kind in "SV":
-                        sig.texts = sig.original_texts = sig.samples
+                        sig.plot_texts = sig.texts = sig.samples
                         sig.samples = np.zeros(len(sig.samples))
                     else:
-                        sig.texts = None
+                        sig.plot_texts = None
                 sig.enable = True
 
                 if sig.conversion:
@@ -101,8 +91,8 @@ try:
                         )
                         sig.samples = samples
 
-                sig.original_samples = sig.samples
-                sig.original_timestamps = sig.timestamps
+                sig.plot_samples = sig.samples
+                sig.plot_timestamps = sig.timestamps
 
                 sig._stats = {
                     "range": (0, -1),
@@ -181,11 +171,9 @@ try:
 
                 self.scene_.addItem(view_box)
 
-                t = sig.timestamps
-
                 curve = self.curvetype(
-                    t,
-                    sig.samples,
+                    sig.plot_timestamps,
+                    sig.plot_samples,
                     pen=color,
                     symbolBrush=color,
                     symbolPen=color,
@@ -196,8 +184,6 @@ try:
                 view_box.addItem(curve)
 
                 view_box.setXLink(self.viewbox)
-                #                view_box.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
-                #                view_box.sigResized.connect(self.update_views)
 
                 self.view_boxes.append(view_box)
                 self.curves.append(curve)
@@ -226,13 +212,13 @@ try:
             if with_dots_changed or force:
                 for i, sig in enumerate(self.signals):
                     color = sig.color
-                    t = sig.timestamps
+                    t = sig.plot_timestamps
 
                     if not force:
                         try:
                             curve = self.curvetype(
                                 t,
-                                sig.samples,
+                                sig.plot_samples,
                                 pen=color,
                                 symbolBrush=color,
                                 symbolPen=color,
@@ -266,11 +252,11 @@ try:
                     sig = self.signals[self.singleton]
                     if sig.enable:
                         color = sig.color
-                        t = sig.timestamps
+                        t = sig.plot_timestamps
 
                         curve = self.curvetype(
                             t,
-                            sig.samples,
+                            sig.plot_samples,
                             pen=color,
                             symbolBrush=color,
                             symbolPen=color,
@@ -310,7 +296,7 @@ try:
                     self.axes[index].labelText = axis_text
 
         def setSignalEnable(self, index, state):
-            print(index, state)
+
             if state in (Qt.Checked, True, 1):
                 self.signals[index].enable = True
             else:
@@ -351,12 +337,12 @@ try:
 
                     viewbox.setYLink(axis.linkedView())
 
-                    t = sig.timestamps
+                    t = sig.plot_timestamps
 
                     if isinstance(self.curve, pg.PlotCurveItem):
                         self.curve.updateData(
                             t,
-                            sig.samples,
+                            sig.plot_samples,
                             pen=color,
                             symbolBrush=color,
                             symbolPen=color,
@@ -366,7 +352,7 @@ try:
                     else:
                         self.curve.setData(
                             t,
-                            sig.samples,
+                            sig.plot_samples,
                             pen=color,
                             symbolBrush=color,
                             symbolPen=color,
@@ -414,16 +400,16 @@ try:
         def get_stats(self, index):
             stats = {}
             sig = self.signals[index]
-            x = sig.original_timestamps
+            x = sig.timestamps
             size = len(x)
 
             if size:
 
-                if sig.texts is not None:
+                if sig.plot_texts is not None:
                     stats["overall_min"] = ""
                     stats["overall_max"] = ""
-                    stats["overall_start"] = sig.original_timestamps[0]
-                    stats["overall_stop"] = sig.original_timestamps[-1]
+                    stats["overall_start"] = sig.timestamps[0]
+                    stats["overall_stop"] = sig.timestamps[-1]
                     stats["unit"] = ""
                     stats["color"] = sig.color
                     stats["name"] = sig.name
@@ -434,7 +420,7 @@ try:
 
                         if x[0] <= position <= x[-1]:
                             idx = np.searchsorted(x, position)
-                            text = sig.original_texts[idx]
+                            text = sig.texts[idx]
                             try:
                                 text = text.decode("utf-8")
                             except:
@@ -460,8 +446,8 @@ try:
                 else:
                     stats["overall_min"] = sig.min
                     stats["overall_max"] = sig.max
-                    stats["overall_start"] = sig.original_timestamps[0]
-                    stats["overall_stop"] = sig.original_timestamps[-1]
+                    stats["overall_start"] = sig.timestamps[0]
+                    stats["overall_stop"] = sig.timestamps[-1]
                     stats["unit"] = sig.unit
                     stats["color"] = sig.color
                     stats["name"] = sig.name
@@ -472,7 +458,7 @@ try:
 
                         if x[0] <= position <= x[-1]:
                             idx = np.searchsorted(x, position)
-                            val = sig.original_samples[idx]
+                            val = sig.samples[idx]
                             if sig.conversion and hasattr(sig.conversion,"text_0"):
                                 vals = np.array([val])
                                 vals = sig.conversion.convert(vals)
@@ -617,7 +603,7 @@ try:
             modifier = event.modifiers()
 
             if key in self.disabled_keys:
-                super(Plot, self).keyPressEvent(event)
+                super().keyPressEvent(event)
             else:
 
                 if key == Qt.Key_C:
@@ -640,10 +626,10 @@ try:
 
                 elif key == Qt.Key_F:
                     for viewbox, signal in zip(self.view_boxes, self.signals):
-                        if len(signal.samples):
+                        if len(signal.plot_samples):
                             min_, max_ = (
-                                np.amin(signal.samples),
-                                np.amax(signal.samples),
+                                np.amin(signal.plot_samples),
+                                np.amax(signal.plot_samples),
                             )
                             viewbox.setYRange(min_, max_, padding=0)
 
@@ -696,6 +682,18 @@ try:
                         self.region.hide()
                         self.region = None
                         self.range_removed.emit()
+
+                elif key == Qt.Key_S and modifier == Qt.ControlModifier:
+                    file_name, _ = QFileDialog.getSaveFileName(
+                        self,
+                        "Select output measurement file", "",
+                        "MDF version 4 files (*.mf4)",
+                    )
+
+                    if file_name:
+                        mdf = MDF()
+                        mdf.append(self.signals)
+                        mdf.save(file_name, overwrite=True)
 
                 elif key == Qt.Key_S:
                     count = len(
@@ -829,15 +827,15 @@ try:
 
                 elif key == Qt.Key_H:
                     start_ts = [
-                        sig.original_timestamps[0]
+                        sig.timestamps[0]
                         for sig in self.signals
-                        if len(sig.original_timestamps)
+                        if len(sig.timestamps)
                     ]
 
                     stop_ts = [
-                        sig.original_timestamps[-1]
+                        sig.timestamps[-1]
                         for sig in self.signals
-                        if len(sig.original_timestamps)
+                        if len(sig.timestamps)
                     ]
 
                     if start_ts:
@@ -861,14 +859,14 @@ try:
 
                         if sig.samples.dtype.kind == "f":
                             sig.format = "{:.6f}"
-                            sig.texts = None
+                            sig.plot_texts = None
                         else:
                             sig.format = "phys"
                             if sig.samples.dtype.kind in "SV":
-                                sig.texts = sig.original_texts = sig.samples
+                                sig.plot_texts = sig.texts = sig.samples
                                 sig.samples = np.zeros(len(sig.samples))
                             else:
-                                sig.texts = None
+                                sig.plot_texts = None
                         sig.enable = True
 
                         if sig.conversion:
@@ -882,8 +880,8 @@ try:
                                 )
                                 sig.samples = samples
 
-                        sig.original_samples = sig.samples
-                        sig.original_timestamps = sig.timestamps
+                        sig.plot_samples = sig.samples
+                        sig.plot_timestamps = sig.timestamps
 
                         sig._stats = {
                             "range": (0, -1),
@@ -918,11 +916,11 @@ try:
 
                         self.scene_.addItem(view_box)
 
-                        t = sig.timestamps
+                        t = sig.plot_timestamps
 
                         curve = self.curvetype(
                             t,
-                            sig.samples,
+                            sig.plot_samples,
                             pen=color,
                             symbolBrush=color,
                             symbolPen=color,
@@ -947,22 +945,22 @@ try:
                         self.computation_channel_inserted.emit()
 
                 else:
-                    super(Plot, self).keyPressEvent(event)
+                    super().keyPressEvent(event)
 
         def trim(self, width, start, stop, signals):
             for sig in signals:
-                dim = len(sig.original_samples)
+                dim = len(sig.samples)
                 if dim:
 
                     start_t, stop_t = (
-                        sig.original_timestamps[0],
-                        sig.original_timestamps[-1],
+                        sig.timestamps[0],
+                        sig.timestamps[-1],
                     )
                     if start > stop_t or stop < start_t:
-                        sig.samples = sig.original_samples[:0]
-                        sig.timestamps = sig.original_timestamps[:0]
-                        if sig.texts is not None:
-                            sig.texts = sig.original_texts[:0]
+                        sig.plot_samples = sig.samples[:0]
+                        sig.plot_timestamps = sig.timestamps[:0]
+                        if sig.plot_texts is not None:
+                            sig.plot_texts = sig.texts[:0]
                     else:
                         start_ = max(start, start_t)
                         stop_ = min(stop, stop_t)
@@ -970,10 +968,10 @@ try:
                         visible = int((stop_ - start_) / (stop - start) * width)
 
                         start_ = np.searchsorted(
-                            sig.original_timestamps, start_, side="right"
+                            sig.timestamps, start_, side="right"
                         )
                         stop_ = np.searchsorted(
-                            sig.original_timestamps, stop_, side="right"
+                            sig.timestamps, stop_, side="right"
                         )
 
                         if visible:
@@ -982,30 +980,30 @@ try:
                             raster = 1
                         if raster >= 10:
                             samples = np.array_split(
-                                sig.original_samples[start_:stop_], visible
+                                sig.samples[start_:stop_], visible
                             )
                             max_ = np.array([np.amax(s) for s in samples])
                             min_ = np.array([np.amin(s) for s in samples])
                             samples = np.dstack((min_, max_)).ravel()
                             timestamps = np.array_split(
-                                sig.original_timestamps[start_:stop_], visible
+                                sig.timestamps[start_:stop_], visible
                             )
                             timestamps1 = np.array([s[0] for s in timestamps])
                             timestamps2 = np.array([s[1] for s in timestamps])
                             timestamps = np.dstack((timestamps1, timestamps2)).ravel()
 
-                            sig.samples = samples
-                            sig.timestamps = timestamps
-                            if sig.texts is not None:
-                                sig.texts = sig.original_texts[start_:stop_:raster]
+                            sig.plot_samples = samples
+                            sig.plot_timestamps = timestamps
+                            if sig.plot_texts is not None:
+                                sig.plot_texts = sig.texts[start_:stop_:raster]
                         else:
                             start_ = max(0, start_ - 2)
                             stop_ += 2
 
-                            sig.samples = sig.original_samples[start_:stop_]
-                            sig.timestamps = sig.original_timestamps[start_:stop_]
-                            if sig.texts is not None:
-                                sig.texts = sig.original_texts[start_:stop_]
+                            sig.plot_samples = sig.samples[start_:stop_]
+                            sig.plot_timestamps = sig.timestamps[start_:stop_]
+                            if sig.plot_texts is not None:
+                                sig.plot_texts = sig.texts[start_:stop_]
 
         def xrange_changed_handle(self):
             (start, stop), _ = self.viewbox.viewRange()

@@ -7,22 +7,11 @@ from pathlib import Path
 
 import numpy as np
 
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
-    from PyQt5 import uic
-    from ..ui import resource_qt5 as resource_rc
-
-    QT = 5
-
-except ImportError:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
-    from PyQt4 import uic
-    from ..ui import resource_qt4 as resource_rc
-
-    QT = 4
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5 import uic
+from ..ui import resource_qt5 as resource_rc
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
@@ -46,7 +35,7 @@ class FileWidget(QWidget):
     file_scrambled = pyqtSignal(str)
 
     def __init__(self, file_name, with_dots, *args, **kwargs):
-        super(FileWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         uic.loadUi(os.path.join(HERE, "..", "ui", "file_widget.ui"), self)
         file_name = Path(file_name)
 
@@ -463,7 +452,7 @@ class FileWidget(QWidget):
             dlg.exec_()
 
         else:
-            super(FileWidget, self).keyPressEvent(event)
+            super().keyPressEvent(event)
 
     def search(self):
         dlg = AdvancedSearch(self.mdf.channels_db, self)
@@ -544,15 +533,9 @@ class FileWidget(QWidget):
                 self.info.set_stats(stats)
 
     def save_channel_list(self):
-        if QT > 4:
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, "Select output channel list file", "", "TXT files (*.txt)"
-            )
-        else:
-            file_name = QFileDialog.getSaveFileName(
-                self, "Select output channel list file", "", "TXT files (*.txt)"
-            )
-            file_name = str(file_name)
+        file_name, _ = QFileDialog.getSaveFileName(
+            self, "Select output channel list file", "", "TXT files (*.txt)"
+        )
         if file_name:
             with open(file_name, "w") as output:
                 iterator = QTreeWidgetItemIterator(self.channels_tree)
@@ -572,15 +555,9 @@ class FileWidget(QWidget):
                 output.write("\n".join(signals))
 
     def load_channel_list(self):
-        if QT > 4:
-            file_name, _ = QFileDialog.getOpenFileName(
-                self, "Select channel list file", "", "TXT files (*.txt)"
-            )
-        else:
-            file_name = QFileDialog.getOpenFileName(
-                self, "Select channel list file", "", "TXT files (*.txt)"
-            )
-            file_name = str(file_name)
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, "Select channel list file", "", "TXT files (*.txt)"
+        )
 
         if file_name:
             with open(file_name, "r") as infile:
@@ -605,15 +582,9 @@ class FileWidget(QWidget):
                 iterator += 1
 
     def save_filter_list(self):
-        if QT > 4:
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, "Select output filter list file", "", "TXT files (*.txt)"
-            )
-        else:
-            file_name = QFileDialog.getSaveFileName(
-                self, "Select output filter list file", "", "TXT files (*.txt)"
-            )
-            file_name = str(file_name)
+        file_name, _ = QFileDialog.getSaveFileName(
+            self, "Select output filter list file", "", "TXT files (*.txt)"
+        )
 
         if file_name:
             with open(file_name, "w") as output:
@@ -634,15 +605,9 @@ class FileWidget(QWidget):
                 output.write("\n".join(signals))
 
     def load_filter_list(self):
-        if QT > 4:
-            file_name, _ = QFileDialog.getOpenFileName(
-                self, "Select filter list file", "", "TXT files (*.txt)"
-            )
-        else:
-            file_name = QFileDialog.getOpenFileName(
-                self, "Select filter list file", "", "TXT files (*.txt)"
-            )
-            file_name = str(file_name)
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, "Select filter list file", "", "TXT files (*.txt)"
+        )
 
         if file_name:
             with open(file_name, "r") as infile:
@@ -1019,15 +984,9 @@ class FileWidget(QWidget):
 
         compression = self.convert_compression.currentIndex()
 
-        if QT > 4:
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, "Select output measurement file", "", filter
-            )
-        else:
-            file_name = QFileDialog.getSaveFileName(
-                self, "Select output measurement file", "", filter
-            )
-            file_name = str(file_name)
+        file_name, _ = QFileDialog.getSaveFileName(
+            self, "Select output measurement file", "", filter
+        )
 
         if file_name:
 
@@ -1091,15 +1050,9 @@ class FileWidget(QWidget):
 
         compression = self.resample_compression.currentIndex()
 
-        if QT > 4:
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, "Select output measurement file", "", filter
-            )
-        else:
-            file_name = QFileDialog.getSaveFileName(
-                self, "Select output measurement file", "", filter
-            )
-            file_name = str(file_name)
+        file_name, _ = QFileDialog.getSaveFileName(
+            self, "Select output measurement file", "", filter
+        )
 
         if file_name:
             progress = setup_progress(
@@ -1168,15 +1121,9 @@ class FileWidget(QWidget):
 
         compression = self.cut_compression.currentIndex()
 
-        if QT > 4:
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, "Select output measurement file", "", filter
-            )
-        else:
-            file_name = QFileDialog.getSaveFileName(
-                self, "Select output measurement file", "", filter
-            )
-            file_name = str(file_name)
+        file_name, _ = QFileDialog.getSaveFileName(
+            self, "Select output measurement file", "", filter
+        )
 
         if file_name:
             progress = setup_progress(
@@ -1244,15 +1191,9 @@ class FileWidget(QWidget):
             "parquet": "Apache Parquet files (*.parquet)",
         }
 
-        if QT > 4:
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, "Select export file", "", filters[export_type]
-            )
-        else:
-            file_name = QFileDialog.getSaveFileName(
-                self, "Select export file", "", filters[export_type]
-            )
-            file_name = str(file_name)
+        file_name, _ = QFileDialog.getSaveFileName(
+            self, "Select export file", "", filters[export_type]
+        )
 
         if file_name:
             thr = Thread(
@@ -1445,15 +1386,9 @@ class FileWidget(QWidget):
 
         compression = self.filter_compression.currentIndex()
 
-        if QT > 4:
-            file_name, _ = QFileDialog.getSaveFileName(
-                self, "Select output measurement file", "", filter
-            )
-        else:
-            file_name = QFileDialog.getSaveFileName(
-                self, "Select output measurement file", "", filter
-            )
-            file_name = str(file_name)
+        file_name, _ = QFileDialog.getSaveFileName(
+            self, "Select output measurement file", "", filter
+        )
 
         if file_name:
             progress = setup_progress(

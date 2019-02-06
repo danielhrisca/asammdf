@@ -1,28 +1,16 @@
 # -*- coding: utf-8 -*-
 
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
-    from PyQt5 import uic
-    from ..ui import resource_qt5 as resource_rc
-
-    QT = 5
-
-except ImportError:
-
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
-    from PyQt4 import uic
-    from ..ui import resource_qt4 as resource_rc
-
-    QT = 4
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5 import uic
+from ..ui import resource_qt5 as resource_rc
 
 
 class TreeWidget(QTreeWidget):
     def __init__(self, *args, **kwargs):
 
-        super(TreeWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
@@ -47,4 +35,4 @@ class TreeWidget(QTreeWidget):
                 for item in selected_items:
                     item.setCheckState(0, checked)
         else:
-            super(TreeWidget, self).keyPressEvent(event)
+            super().keyPressEvent(event)

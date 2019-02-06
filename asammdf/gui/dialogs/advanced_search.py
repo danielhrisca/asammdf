@@ -2,22 +2,11 @@
 import re
 import os
 
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
-    from PyQt5 import uic
-    from ..ui import resource_qt5 as resource_rc
-
-    QT = 5
-
-except ImportError:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
-    from PyQt4 import uic
-    from ..ui import resource_qt4 as resource_rc
-
-    QT = 4
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5 import uic
+from ..ui import resource_qt5 as resource_rc
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
@@ -25,7 +14,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 class AdvancedSearch(QDialog):
     def __init__(self, channels_db, *args, **kwargs):
 
-        super(AdvancedSearch, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         uic.loadUi(os.path.join(HERE, "..", "ui", "search_dialog.ui"), self)
 
         self.result = set()

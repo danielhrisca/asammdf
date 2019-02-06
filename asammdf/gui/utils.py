@@ -7,18 +7,9 @@ from io import StringIO
 from time import sleep
 from threading import Thread
 
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
-
-    QT = 5
-
-except ImportError:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
-
-    QT = 4
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
 
 from ..mdf import MDF, MDF2, MDF3, MDF4
 

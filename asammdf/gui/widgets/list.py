@@ -1,22 +1,10 @@
 # -*- coding: utf-8 -*-
 
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
-    from PyQt5 import uic
-    from ..ui import resource_qt5 as resource_rc
-
-    QT = 5
-
-except ImportError:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
-    from PyQt4 import uic
-    from ..ui import resource_qt4 as resource_rc
-
-    QT = 4
-
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5 import uic
+from ..ui import resource_qt5 as resource_rc
 
 class ListWidget(QListWidget):
 
@@ -24,7 +12,7 @@ class ListWidget(QListWidget):
 
     def __init__(self, *args, **kwargs):
 
-        super(ListWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
@@ -63,4 +51,4 @@ class ListWidget(QListWidget):
             except:
                 pass
         else:
-            super(ListWidget, self).keyPressEvent(event)
+            super().keyPressEvent(event)

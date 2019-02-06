@@ -1,29 +1,18 @@
 # -*- coding: utf-8 -*-
 import os
 
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
-    from PyQt5 import uic
-    from ..ui import resource_qt5 as resource_rc
-
-    QT = 5
-
-except ImportError:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
-    from PyQt4 import uic
-    from ..ui import resource_qt4 as resource_rc
-
-    QT = 4
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5 import uic
+from ..ui import resource_qt5 as resource_rc
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
 
 class TabularValuesDialog(QDialog):
     def __init__(self, signals, ranges, *args, **kwargs):
-        super(QDialog, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.setWindowFlags(Qt.Window)
 

@@ -1,22 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
 
-try:
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
-    from PyQt5 import uic
-    from ..ui import resource_qt5 as resource_rc
-
-    QT = 5
-
-except ImportError:
-    from PyQt4.QtCore import *
-    from PyQt4.QtGui import *
-    from PyQt4 import uic
-    from ..ui import resource_qt4 as resource_rc
-
-    QT = 4
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5 import uic
+from ..ui import resource_qt5 as resource_rc
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
@@ -26,7 +15,7 @@ class SearchWidget(QWidget):
     selectionChanged = pyqtSignal()
 
     def __init__(self, channels_db, *args, **kwargs):
-        super(SearchWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         uic.loadUi(os.path.join(HERE, "..", "ui", "search_widget.ui"), self)
         self.channels_db = channels_db
 
@@ -37,8 +26,7 @@ class SearchWidget(QWidget):
         completer = QCompleter(sorted(self.channels_db, key=lambda x: x.lower()), self)
         completer.setCaseSensitivity(Qt.CaseInsensitive)
         completer.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
-        if QT == 5:
-            completer.setFilterMode(Qt.MatchContains)
+        completer.setFilterMode(Qt.MatchContains)
         self.search.setCompleter(completer)
 
         self.search.textChanged.connect(self.display_results)
@@ -63,11 +51,10 @@ class SearchWidget(QWidget):
             self.selectionChanged.emit()
 
     def set_search_option(self, option):
-        if QT == 5:
-            if option == "Match start":
-                self.search.completer().setFilterMode(Qt.MatchStartsWith)
-            elif option == "Match contains":
-                self.search.completer().setFilterMode(Qt.MatchContains)
+        if option == "Match start":
+            self.search.completer().setFilterMode(Qt.MatchStartsWith)
+        elif option == "Match contains":
+            self.search.completer().setFilterMode(Qt.MatchContains)
 
     def display_results(self, text):
         channel_name = text.strip()
