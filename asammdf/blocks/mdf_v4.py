@@ -5,7 +5,6 @@ ASAM MDF version 4 file format module
 import logging
 import xml.etree.ElementTree as ET
 import os
-from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
 from hashlib import md5
@@ -28,15 +27,12 @@ from numpy import (
     float32,
     float64,
     frombuffer,
-    interp,
     linspace,
     nonzero,
-    ones,
     packbits,
     roll,
     transpose,
     uint8,
-    uint16,
     uint64,
     union1d,
     unpackbits,
@@ -53,7 +49,7 @@ from pandas import DataFrame
 
 from . import v4_constants as v4c
 from ..signal import Signal
-from .conversion_utils import conversion_transfer, from_dict
+from .conversion_utils import conversion_transfer
 from .utils import (
     UINT8_u,
     UINT16_u,
@@ -61,7 +57,6 @@ from .utils import (
     UINT32_uf,
     UINT64_u,
     UINT64_uf,
-    FLOAT64_u,
     CHANNEL_COUNT,
     CONVERT,
     ChannelsDB,
@@ -71,7 +66,6 @@ from .utils import (
     fmt_to_datatype_v4,
     get_fmt_v4,
     UniqueDB,
-    get_text_v4,
     debug_channel,
     extract_cncomment_xml,
     validate_version_argument,
@@ -1542,9 +1536,6 @@ class MDF4(object):
     ):
 
         si_map = self._si_map
-        file_si_map = self._file_si_map
-        cc_map = self._cc_map
-        file_cc_map = self._file_cc_map
 
         fields = []
         types = []
@@ -1558,7 +1549,6 @@ class MDF4(object):
         gp_sdata_size = gp.signal_data_size
         gp_channels = gp.channels
         gp_dep = gp.channel_dependencies
-        gp_sig_types = gp.signal_types
 
         name = signal.name
         names = signal.samples.dtype.names
@@ -2292,7 +2282,7 @@ class MDF4(object):
                 if different:
                     times = [s.timestamps for s in signals]
                     t = reduce(union1d, times).flatten().astype(float64)
-                    signals = [s.interp(t, mode=interp_mode) for s in signals]
+                    signals = [s.interp(t, interpolation_mode=interp_mode) for s in signals]
                     times = None
                 else:
                     t = t_
@@ -3931,7 +3921,7 @@ class MDF4(object):
 
                     vals = (
                         Signal(vals, timestamps, name="_")
-                        .interp(t, mode=interp_mode)
+                        .interp(t, interpolation_mode=interp_mode)
                     )
 
                     vals, timestamps, invalidation_bits = (
@@ -4169,7 +4159,7 @@ class MDF4(object):
 
                     vals = (
                         Signal(vals, timestamps, name="_")
-                        .interp(t, mode=interp_mode)
+                        .interp(t, interpolation_mode=interp_mode)
                     )
 
                     vals, timestamps, invalidation_bits = (
@@ -4250,7 +4240,7 @@ class MDF4(object):
 
                     vals = (
                         Signal(vals, timestamps, name="_")
-                        .interp(t, mode=interp_mode)
+                        .interp(t, interpolation_mode=interp_mode)
                     )
 
                     vals, timestamps, invalidation_bits = (
@@ -4416,7 +4406,7 @@ class MDF4(object):
 
                     vals = (
                         Signal(vals, timestamps, name="_")
-                        .interp(t, mode=interp_mode)
+                        .interp(t, interpolation_mode=interp_mode)
                     )
 
                     vals, timestamps, invalidation_bits = (
@@ -5999,7 +5989,6 @@ class MDF4(object):
         # setup all blocks related to the time master channel
 
         file = self._tempfile
-        tell = file.tell
         seek = file.seek
 
         seek(0, 2)
@@ -6157,6 +6146,9 @@ class MDF4(object):
                     ch_cntr,
                     parents,
                     defined_texts,
+                    0,
+                    [],
+                    0,
                 )
                 fields.extend(new_fields)
                 types.extend(new_types)

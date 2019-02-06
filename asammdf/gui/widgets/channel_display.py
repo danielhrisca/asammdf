@@ -5,7 +5,6 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
-from ..ui import resource_qt5 as resource_rc
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
@@ -50,13 +49,6 @@ class ChannelDisplay(base_1, form_1):
         self.color_btn.clicked.connect(self.select_color)
         self.display.stateChanged.connect(self.display_changed)
         self.ylink.stateChanged.connect(self.ylink_change)
-
-    def mouseDoubleClickEvent(self, event):
-        return
-        dlg = RangeEditor(self.unit, self.ranges)
-        dlg.exec_()
-        if dlg.pressed_button == "apply":
-            self.ranges = dlg.result
 
     def display_changed(self, state):
         state = self.display.checkState()

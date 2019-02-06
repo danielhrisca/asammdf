@@ -18,7 +18,7 @@ class MDF2(MDF3):
     def __init__(self, name=None, version="2.14", **kwargs):
         version = validate_version_argument(version, hint=2)
 
-        super(MDF2, self).__init__(name, version, **kwargs)
+        super().__init__(name, version, **kwargs)
 
 
 if __name__ == "__main__":

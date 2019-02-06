@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
-import sys
 import os
-
-bin_ = bin
 import logging
-from functools import reduce, partial
 
 import numpy as np
 
+
 HERE = os.path.dirname(os.path.realpath(__file__))
+bin_ = bin
 
 try:
     import pyqtgraph as pg
@@ -16,8 +14,6 @@ try:
     from PyQt5.QtGui import *
     from PyQt5.QtWidgets import *
     from PyQt5.QtCore import *
-    from PyQt5 import uic
-    from ..ui import resource_qt5 as resource_rc
 
     from .channel_stats import ChannelStats
     from .plot import Plot
@@ -88,7 +84,6 @@ try:
 
         def keyPressEvent(self, event):
             key = event.key()
-            modifier = event.modifiers()
 
             if key == Qt.Key_M:
                 if self.info is None:
@@ -101,7 +96,7 @@ try:
                     self.info.hide()
                     self.info = None
             else:
-                super(StandalonePlot, self).keyPressEvent(event)
+                super().keyPressEvent(event)
 
         def cursor_moved(self):
             position = self.plot.cursor1.value()

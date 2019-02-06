@@ -11,7 +11,6 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
-from ..ui import resource_qt5 as resource_rc
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
@@ -90,7 +89,7 @@ class FileWidget(QWidget):
                         datalyser.DCOM_set_datalyser_visibility(False)
                     except:
                         pass
-                    ret = datalyser.DCOM_convert_file_mdf_dl3(file_name, mdf_name, 0)
+                    datalyser.DCOM_convert_file_mdf_dl3(file_name, mdf_name, 0)
                     datalyser.DCOM_TerminateDAS()
                     file_name = mdf_name
                 except Exception as err:
@@ -714,7 +713,7 @@ class FileWidget(QWidget):
             self.cursor_info.setText(f"t = {position:.6f}s")
             for i, signal in enumerate(self.plot.signals):
                 cut_sig = signal.cut(position, position)
-                if signal.texts is None or len(cut_sig) == 0:
+                if signal.plot_texts is None or len(cut_sig) == 0:
                     samples = cut_sig.samples
                     if signal.conversion and hasattr(signal.conversion, "text_0"):
                         samples = signal.conversion.convert(samples)
@@ -726,11 +725,11 @@ class FileWidget(QWidget):
                         else:
                             samples = samples.tolist()
                 else:
-                    t = np.argwhere(signal.timestamps == cut_sig.timestamps).flatten()
+                    t = np.argwhere(signal.plot_timestamps == cut_sig.timestamps).flatten()
                     try:
-                        samples = [e.decode("utf-8") for e in signal.texts[t]]
+                        samples = [e.decode("utf-8") for e in signal.plot_texts[t]]
                     except:
-                        samples = [e.decode("latin-1") for e in signal.texts[t]]
+                        samples = [e.decode("latin-1") for e in signal.plot_texts[t]]
 
                 item = self.channel_selection.item(i)
                 item = self.channel_selection.itemWidget(item)
@@ -1291,7 +1290,6 @@ class FileWidget(QWidget):
                 name = f"{sig.name} [has no samples]"
             else:
                 name = f"{sig.name} ({sig.unit})"
-            is_float = sig.samples.dtype.kind == "f"
             item = QListWidgetItem(self.channel_selection)
             it = ChannelDisplay(i, sig.unit, self)
             it.setAttribute(Qt.WA_StyledBackground)
@@ -1329,7 +1327,6 @@ class FileWidget(QWidget):
             name = f"{sig.name} [has no samples]"
         else:
             name = f"{sig.name} ({sig.unit})"
-        is_float = sig.samples.dtype.kind == "f"
         item = QListWidgetItem(self.channel_selection)
         it = ChannelDisplay(index, sig.unit, self)
         it.setAttribute(Qt.WA_StyledBackground)

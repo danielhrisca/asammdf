@@ -7,12 +7,10 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
-from ..ui import resource_qt5 as resource_rc
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...version import __version__ as libversion
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
-from ..dialogs.advanced_search import AdvancedSearch
 from .list import ListWidget
 from .file import FileWidget
 

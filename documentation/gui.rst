@@ -32,7 +32,7 @@ After you pip install asammdf there will be a new script called *asammdf.exe* in
 
 The following dependencies are required by the GUI
 
-* PyQt4 or PyQt5
+* PyQt5
 * pyqtgraph
 
 
@@ -73,24 +73,26 @@ Plot
 
 There are several keyboard shortcuts for handling the plots:
 
-======== ================= ================================================================================================================
-Shortcut Action            Desctiption
-======== ================= ================================================================================================================
-C        Cursor            Displays a movable cursor that will trigger the display of the current value for all plot channels
-F        Fit               Y-axis fit all active channels on the screen, keeping the current X-axis range
-G        Grid              Toggle grid lines
-H        Home              XY-axis fit all active channels
-I        Zoom-in           X-axis zoom-in [#f1]_
-O        Zoom-out          X-axis zoom-out [#f1]_
-M        Statistics        Toggle the display of the statistic panel
-R        Range             Display a movable range that will trigger the display of the delta values for all plot channels
-S        Stack             Y Stack all active channels so that they don't overlap, keeping the X-axis range
-←        Move cursor left  Moves the cursor to the next sample on the left
-→        Move cursor right Moves the cursor to the next sample on the right
-Ctrl+B   Bin               Toggle binary representation of integer channels
-Ctrl+H   Hex               Toggle hex representation of integer channels
-Ctrl+P   Physical          Toggle physical representation of integer channels
-======== ================= ================================================================================================================
+======== ================== ================================================================================================================
+Shortcut Action             Desctiption
+======== ================== ================================================================================================================
+C        Cursor             Displays a movable cursor that will trigger the display of the current value for all plot channels
+F        Fit                Y-axis fit all active channels on the screen, keeping the current X-axis range
+G        Grid               Toggle grid lines
+H        Home               XY-axis fit all active channels
+I        Zoom-in            X-axis zoom-in [#f1]_
+O        Zoom-out           X-axis zoom-out [#f1]_
+M        Statistics         Toggle the display of the statistic panel
+R        Range              Display a movable range that will trigger the display of the delta values for all plot channels
+S        Stack              Y Stack all active channels so that they don't overlap, keeping the X-axis range
+←        Move cursor left   Moves the cursor to the next sample on the left
+→        Move cursor right  Moves the cursor to the next sample on the right
+Ins      Insert computation Insert new channel in the plot using functions and operations
+Ctrl+B   Bin                Toggle binary representation of integer channels
+Ctrl+H   Hex                Toggle hex representation of integer channels
+Ctrl+P   Physical           Toggle physical representation of integer channels
+Ctrl+S   Save plot channels Save all plotted channel in a new MF4 file
+======== ================== ================================================================================================================
 
 
 .. rubric:: Footnotes

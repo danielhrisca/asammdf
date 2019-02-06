@@ -4,8 +4,6 @@ import os
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5 import uic
-from ..ui import resource_qt5 as resource_rc
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 
@@ -41,7 +39,6 @@ class TabularValuesDialog(QDialog):
         self.table.cellEntered.connect(self.hover)
 
         for i, sig in enumerate(signals):
-            range_ = ranges[i]
             size = len(sig)
             for j in range(size):
                 # self.table.setCellWidget(

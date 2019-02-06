@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-import sys
 import os
 
 bin_ = bin
 import logging
-from functools import reduce, partial
+from functools import reduce
 
 import numpy as np
 
@@ -16,14 +15,11 @@ try:
     from PyQt5.QtGui import *
     from PyQt5.QtWidgets import *
     from PyQt5.QtCore import *
-    from PyQt5 import uic
-    from ..ui import resource_qt5 as resource_rc
 
     from ..utils import COLORS
     from .cursor import Cursor
     from .formated_axis import FormatedAxis
     from ..dialogs.define_channel import DefineChannel
-    from ...version import __version__ as libversion
     from ...mdf import MDF
 
     if not hasattr(pg.InfiniteLine, "addMarker"):

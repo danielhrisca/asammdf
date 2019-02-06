@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 import sys
 
 try:
@@ -10,7 +9,7 @@ except ImportError:
 from asammdf.gui.widgets.main import MainWindow
 from asammdf.gui.utils import excepthook
 
-# sys.excepthook = excepthook
+sys.excepthook = excepthook
 
 
 def main():

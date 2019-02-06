@@ -3,8 +3,6 @@
 
 import csv
 import logging
-import os
-import sys
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
 from copy import deepcopy
@@ -36,10 +34,7 @@ from .blocks.utils import (
     count_channel_groups,
     UINT16_u,
     UINT64_u,
-    debug_channel,
     UniqueDB,
-    cut_video_stream,
-    get_video_stream_duration,
     components,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3

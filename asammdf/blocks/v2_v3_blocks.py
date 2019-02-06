@@ -2,7 +2,6 @@
 """ classes that implement the blocks for MDF versions 2 and 3 """
 
 import logging
-import sys
 import time
 from datetime import datetime
 from getpass import getuser
@@ -13,7 +12,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v2_v3_constants as v23c
-from .utils import MdfException, get_text_v3, SignalSource, UINT16_u, UINT16_uf, UINT32_u, UINT32_uf
+from .utils import MdfException, get_text_v3, SignalSource, UINT16_u, UINT16_uf
 from ..version import __version__
 
 

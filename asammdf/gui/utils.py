@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import traceback
-import sys
 
 from datetime import datetime
 from io import StringIO

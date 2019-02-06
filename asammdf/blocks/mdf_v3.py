@@ -2,12 +2,9 @@
 """ ASAM MDF version 3 file format module """
 
 import logging
-import os
-import sys
 import time
 import xml.etree.ElementTree as ET
 import mmap
-from collections import defaultdict
 from copy import deepcopy
 from functools import reduce
 from itertools import product
@@ -25,7 +22,6 @@ from numpy import (
     flip,
     float32,
     float64,
-    interp,
     linspace,
     packbits,
     roll,
@@ -63,7 +59,6 @@ from .v2_v3_blocks import (
     ChannelDependency,
     ChannelExtension,
     ChannelGroup,
-    DataBlock,
     DataGroup,
     FileIdentificationBlock,
     HeaderBlock,
@@ -1038,7 +1033,7 @@ class MDF3(object):
                 if different:
                     times = [s.timestamps for s in signals]
                     timestamps = reduce(union1d, times).flatten().astype(float64)
-                    signals = [s.interp(timestamps, mode=interp_mode) for s in signals]
+                    signals = [s.interp(timestamps, interpolation_mode=interp_mode) for s in signals]
                     times = None
         else:
             timestamps = array([])
@@ -1865,7 +1860,6 @@ class MDF3(object):
         t = df.index
         index_name = df.index.name
         time_name = index_name or "time"
-        time_unit = "s"
 
         version = self.version
 
@@ -1886,7 +1880,6 @@ class MDF3(object):
             channel_size = v23c.CN_SHORT_BLOCK_SIZE
 
         file = self._tempfile
-        write = file.write
         tell = file.tell
 
         kargs = {
@@ -1896,8 +1889,6 @@ class MDF3(object):
             "description": b"Channel inserted by Python Script",
         }
         ce_block = ChannelExtension(**kargs)
-
-        defined_texts, cc_map, si_map = {}, {}, {}
 
         dg_cntr = len(self.groups)
 
@@ -2658,7 +2649,7 @@ class MDF3(object):
 
                     vals = (
                         Signal(vals, timestamps, name="_")
-                        .interp(t, mode=self._integer_interpolation)
+                        .interp(t, interpolation_mode=self._integer_interpolation)
                         .samples
                     )
 
@@ -2768,7 +2759,7 @@ class MDF3(object):
 
                     vals = (
                         Signal(vals, timestamps, name="_")
-                        .interp(t, mode=self._integer_interpolation)
+                        .interp(t, interpolation_mode=self._integer_interpolation)
                         .samples
                     )
 

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
+from functools import partial
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
-from ..ui import resource_qt5 as resource_rc
+
 
 HERE = os.path.dirname(os.path.realpath(__file__))
 

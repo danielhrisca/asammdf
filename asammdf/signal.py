@@ -9,7 +9,6 @@ import numpy as np
 from .blocks.utils import MdfException, extract_cncomment_xml, SignalSource
 from .blocks.conversion_utils import from_dict
 from .blocks import v2_v3_blocks as v3b
-from .blocks import v4_constants as v4c
 from .blocks import v4_blocks as v4b
 
 from .version import __version__
