@@ -2,6 +2,7 @@
 import os
 from functools import partial
 from pathlib import Path
+import webbrowser
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -42,8 +43,6 @@ class MainWindow(QMainWindow):
         self.files_layout.addWidget(self.files_list, 0, 0, 1, 2)
         self.files_list.itemDoubleClicked.connect(self.delete_item)
 
-        self.statusbar.addPermanentWidget(QLabel(f"asammdf {libversion}"))
-
         menu = self.menubar.addMenu("File")
         open_group = QActionGroup(self)
         icon = QIcon()
@@ -52,6 +51,27 @@ class MainWindow(QMainWindow):
         action.triggered.connect(self.open)
         open_group.addAction(action)
         menu.addActions(open_group.actions())
+
+        # mode_actions
+        mode_actions = QActionGroup(self)
+
+        icon = QIcon()
+        icon.addPixmap(QPixmap(":/left.png"), QIcon.Normal, QIcon.Off)
+        action = QAction(icon, "{: <20}".format("Single files"), menu)
+        action.triggered.connect(partial(self.plot_action, key=Qt.Key_Right))
+        action.setShortcut(Qt.Key_Right)
+        mode_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(QPixmap(":/range.png"), QIcon.Normal, QIcon.Off)
+        action = QAction(icon, "{: <20}".format("Multiple files"), menu)
+        action.triggered.connect(partial(self.plot_action, key=Qt.Key_R))
+        action.setShortcut(Qt.Key_R)
+        mode_actions.addAction(action)
+
+        menu = QMenu("Mode", self.menubar)
+        menu.addActions(mode_actions.actions())
+        self.menubar.addMenu(menu)
 
         menu = QMenu("Settings", self.menubar)
         self.menubar.addMenu(menu)
@@ -236,12 +256,13 @@ class MainWindow(QMainWindow):
         self.match = "Match start"
         self.with_dots = False
         self.step_mode = True
-        self.toolBox.setCurrentIndex(0)
+        self.stackedWidget.setCurrentIndex(0)
+        self.setWindowTitle(f'asammdf {libversion}')
 
         self.show()
 
     def help(self, event):
-        os.system(r'start "" http://asammdf.readthedocs.io/en/development/gui.html')
+        webbrowser.open_new(r'http://asammdf.readthedocs.io/en/development/gui.html')
 
     def file_action(self, key, modifier=Qt.NoModifier):
         event = QKeyEvent(QEvent.KeyPress, key, modifier)
@@ -382,7 +403,7 @@ class MainWindow(QMainWindow):
                 self.files_list.item(row).setIcon(icon)
 
     def open(self, event):
-        if self.toolBox.currentIndex() == 0:
+        if self.stackedWidget.currentIndex() == 0:
             self.open_file(event)
         else:
             self.open_multiple_files(event)
