@@ -2,7 +2,6 @@
 import sys
 import os
 
-PYVERSION = sys.version_info[0]
 bin_ = bin
 import logging
 from functools import reduce, partial
