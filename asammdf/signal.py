@@ -151,6 +151,7 @@ class Signal(object):
         """ plot Signal samples. Pyqtgraph is used if it is available; in this
         case see the GUI plot documentation to see the available commands"""
         try:
+            import pyqtgraph
             from .gui.utils import COLORS
             from .gui.widgets.plot_standalone import StandalonePlot
 
@@ -178,7 +179,7 @@ class Signal(object):
             app.exec_()
             return
 
-        except:
+        except ImportError:
             try:
                 import matplotlib.pyplot as plt
                 from mpl_toolkits.mplot3d import axes3d

@@ -38,7 +38,7 @@ try:
             self.splitter.setOrientation(Qt.Horizontal)
             self.info = None
 
-            self.plot = Plot(signals, with_dots, step_mode, standalone=True)
+            self.plot = Plot(signals, with_dots, standalone=True)
             self.splitter.addWidget(self.plot)
 
             self.plot.range_modified.connect(self.range_modified)
