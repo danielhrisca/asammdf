@@ -22,7 +22,16 @@
     <property name="spacing">
      <number>2</number>
     </property>
-    <property name="margin">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
      <number>0</number>
     </property>
     <item>
@@ -30,22 +39,25 @@
       <property name="frameShape">
        <enum>QFrame::NoFrame</enum>
       </property>
-      <widget class="QWidget" name="stackedWidgetPage1" native="true">
+      <widget class="QWidget" name="stackedWidgetPage1">
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <property name="spacing">
          <number>2</number>
         </property>
-        <property name="margin">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
          <number>0</number>
         </property>
         <item>
          <widget class="QTabWidget" name="files">
-          <property name="font">
-           <font>
-            <pointsize>9</pointsize>
-            <italic>true</italic>
-           </font>
-          </property>
           <property name="currentIndex">
            <number>-1</number>
           </property>
@@ -59,7 +71,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="stackedWidgetPage2" native="true">
+      <widget class="QWidget" name="stackedWidgetPage2">
        <layout class="QGridLayout" name="files_layout" rowstretch="1,0">
         <item row="1" column="0">
          <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,0,0,0,0,0,0,0">
@@ -191,7 +203,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>25</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

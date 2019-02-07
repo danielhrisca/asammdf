@@ -12,7 +12,11 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 
 
 uifile_1 = os.path.join(HERE, "..", "ui", "channel_display_widget.ui")
-form_1, base_1 = uic.loadUiType(uifile_1, resource_suffix='')
+
+cwd = os.getcwd()
+os.chdir(os.path.join(HERE, "..", "ui"))
+form_1, base_1 = uic.loadUiType(uifile_1, resource_suffix='_qt5', from_imports=True)
+os.chdir(cwd)
 
 
 class ChannelDisplay(base_1, form_1):

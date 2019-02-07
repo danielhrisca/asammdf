@@ -132,18 +132,11 @@
       <string>enable common Y axis</string>
      </property>
      <property name="text">
-      <string/>
-     </property>
-     <property name="icon">
-      <iconset resource="resource.qrc">
-       <normaloff>:/graph.png</normaloff>:/graph.png</iconset>
+      <string>|</string>
      </property>
     </widget>
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="resource.qrc"/>
- </resources>
  <connections/>
 </ui>
