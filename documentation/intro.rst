@@ -35,7 +35,7 @@ Features
         * 2 - look-up
         
 * add and extract attachments for mdf version 4
-* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi)
+* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi) using *memory* = *minimum* argument
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
 * time domain operation using the *Signal* class
 
@@ -86,8 +86,8 @@ optional dependencies needed for exports
 
 other optional dependencies
 
-* cChardet : to detect non-standard unicode encodings
-* PyQt5 : for GUI tool
+* chardet : to detect non-standard unicode encodings
+* PyQt4 or PyQt5 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting
 * matplotlib : as fallback for Signal plotting
 
@@ -126,4 +126,7 @@ Thanks to all who contributed with commits to *asammdf*
 * Stanislav Frolov `stanifrolov <https://github.com/stanifrolov>`_.
 * Thomas Kastl `kasuteru <https://github.com/kasuteru>`_.
 * venden `venden <https://github.com/venden>`_.
+* Marat K. `kopytjuk` <https://github.com/kopytjuk>`_.
+* freakatzz `freakatzz` <https://github.com/freakatzz>`_.
+
 

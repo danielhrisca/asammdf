@@ -7,7 +7,7 @@
 
 *asammdf* supports MDF versions 2 (.dat), 3 (.mdf) and 4 (.mf4).
 
-*asammdf* works on Python >= 3.6 (for Python 2.7 and Python 3.5 support install *asammdf* version 4.x.x)
+*asammdf* works on Python 2.7, and Python >= 3.4
 
 *asammdf* was tested succesfully on both Linux and Windows
 
@@ -20,7 +20,8 @@
 
 ! | Travis CI  | Coverage  |  Codacy  | ReadTheDocs
 --|--|--|--|--
-Py3 | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=Py3)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=py3)](http://asammdf.readthedocs.io/en/py3) |
+master | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=master)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=master)](http://asammdf.readthedocs.io/en/master/?badge=stable) |
+development| [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=development)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=development)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=development)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) | [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=development)](http://asammdf.readthedocs.io/en/development/?badge=stable) |
 
 PyPI| conda-forge
 --|--
@@ -59,7 +60,7 @@ The main goals for this library are:
         * 2 - look-up
 
 * add and extract attachments for mdf version 4
-* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi)
+* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi) using *memory* = *minimum* argument
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
 * time domain operation using the *Signal* class
 
@@ -107,7 +108,7 @@ short = mdf.filter(important_signals).cut(start=10, stop=12)
 short.convert('4.10').save('important signals.mf4')
 
 # plot some channels from a huge file
-efficient = MDF('huge.mf4')
+efficient = MDF('huge.mf4', , memory='minimum')
 for signal in efficient.select(['Sensor1', 'Voltage3']):
    signal.plot()
 ```
@@ -116,7 +117,7 @@ Check the *examples* folder for extended usage demo, or the documentation
 http://asammdf.readthedocs.io/en/master/examples.html
 
 # Documentation
-http://asammdf.readthedocs.io/en/py3
+http://asammdf.readthedocs.io/en/master
 
 # Contributing & Support
 Please have a look over the [contributing guidelines](CONTRIBUTING.md)
@@ -135,6 +136,8 @@ Thanks to all who contributed with commits to *asammdf*:
 * Stanislav Frolov [stanifrolov](https://github.com/stanifrolov)
 * Thomas Kastl [kasuteru](https://github.com/kasuteru)
 * venden [venden](https://github.com/venden)
+* Marat K. [kopytjuk](https://github.com/kopytjuk>)
+* freakatzz [freakatzz](https://github.com/freakatzz)
 
 # Installation
 *asammdf* is available on
@@ -169,10 +172,10 @@ optional dependencies needed for exports
 other optional dependencies
 
 * cChardet : to detect non-standard unicode encodings
-* PyQt5 : for GUI tool
+* PyQt4 or PyQt5 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting
 * matplotlib : as fallback for Signal plotting
 
 # Benchmarks
 
-http://asammdf.readthedocs.io/en/py3/benchmarks.html
+http://asammdf.readthedocs.io/en/master/benchmarks.html
