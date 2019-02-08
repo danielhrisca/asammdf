@@ -387,7 +387,11 @@ class MainWindow(QMainWindow):
 
     def open_multiple_files(self, event):
         file_names, _ = QFileDialog.getOpenFileNames(
-            self, "Select measurement file", "", "MDF files (*.dat *.mdf *.mf4)"
+            self,
+            "Select measurement file",
+            "",
+            "MDF v3 (*.dat *.mdf);;MDF v4(*.mf4);;DL3/ERG files (*.dl3 *.erg);;All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
+            "All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
         )
 
         if file_names:
@@ -411,7 +415,8 @@ class MainWindow(QMainWindow):
             self,
             "Select measurement file",
             "",
-            "MDF/DL3/ERG files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
+            "MDF v3 (*.dat *.mdf);;MDF v4(*.mf4);;DL3/ERG files (*.dl3 *.erg);;All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
+            "All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
         )
 
         for file_name in file_names:
