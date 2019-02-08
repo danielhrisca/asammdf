@@ -407,14 +407,14 @@ class MainWindow(QMainWindow):
             self.open_multiple_files(event)
 
     def open_file(self, event):
-        file_name, _ = QFileDialog.getOpenFileName(
+        file_names, _ = QFileDialog.getOpenFileNames(
             self,
             "Select measurement file",
             "",
             "MDF/DL3/ERG files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
         )
 
-        if file_name:
+        for file_name in file_names:
             file_name = Path(file_name)
             index = self.files.count()
 
