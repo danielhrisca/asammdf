@@ -400,12 +400,9 @@ class MDF(object):
         return excluded_channels
 
     def _included_channels(self, index):
-        """ get the indexes list of channels that are excluded when processing
-        teh channel group. The candidates for exclusion are the master channel
-        (since it is retrieved as `Signal` timestamps), structure channel
-        composition component channels (since they are retrieved as fields in
-        the `Signal` samples recarray) and channel dependencies (mdf version 3)
-        / channel array axes
+        """ get the minimum channels needed to extract all information from the
+        channel group (for example keep onl the structure channel and exclude the
+        strucutre fields channels)
 
         Parameters
         ----------
