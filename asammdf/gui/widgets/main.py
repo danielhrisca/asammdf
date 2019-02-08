@@ -59,14 +59,12 @@ class MainWindow(QMainWindow):
         icon.addPixmap(QPixmap(":/file.png"), QIcon.Normal, QIcon.Off)
         action = QAction(icon, "{: <20}".format("Single files"), menu)
         action.triggered.connect(partial(self.stackedWidget.setCurrentIndex, 0))
-        action.setShortcut(Qt.Key_Right)
         mode_actions.addAction(action)
 
         icon = QIcon()
         icon.addPixmap(QPixmap(":/list.png"), QIcon.Normal, QIcon.Off)
         action = QAction(icon, "{: <20}".format("Multiple files"), menu)
         action.triggered.connect(partial(self.stackedWidget.setCurrentIndex, 1))
-        action.setShortcut(Qt.Key_R)
         mode_actions.addAction(action)
 
         menu = QMenu("Mode", self.menubar)
