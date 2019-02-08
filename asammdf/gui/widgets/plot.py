@@ -283,17 +283,27 @@ try:
                 self.view_boxes[index].setYLink(self.viewbox)
                 self.common_axis_items.add(index)
             else:
+                sig = self.signals[index]
+
                 self.view_boxes[index].setYLink(None)
+                self.axes[index].labelUnits = sig.unit
+                self.axes[index].setLabel(sig.name)
                 self.common_axis_items.remove(index)
 
             if self.common_axis_items:
-                axis_text = ', '.join(
-                    self.signals[i].name
-                    for i in sorted(self.common_axis_items)
-                )
-
-                for index in self.common_axis_items:
-                    self.axes[index].labelText = axis_text
+                if len(self.common_axis_items) == 1:
+                    index = list(self.common_axis_items)[0]
+                    sig = self.signals[index]
+                    self.axes[index].labelUnits = sig.unit
+                    self.axes[index].setLabel(sig.name)
+                else:
+                    axis_text = ', '.join(
+                        self.signals[i].name
+                        for i in sorted(self.common_axis_items)
+                    )
+                    for index in self.common_axis_items:
+                        self.axes[index].labelUnits = ''
+                        self.axes[index].setLabel(axis_text)
 
         def setSignalEnable(self, index, state):
 
