@@ -2512,6 +2512,10 @@ class TextBlock(dict):
             self["block_len"] = len(text) + 4 + 1
             self["text"] = text + b"\0"
 
+            if self["block_len"] > 65000:
+                self["text"] = self["text"][:65000] + b'\0'
+                self["block_len"] = 65000 + 5
+
     def __bytes__(self):
         result = pack(
             "<2sH{}s".format(self["block_len"] - 4),
