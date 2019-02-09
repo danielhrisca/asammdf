@@ -3,7 +3,13 @@
 
 import logging
 
-logging.getLogger('asammdf').addHandler(logging.NullHandler())
+logger = logging.getLogger("asammdf")
+formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+console = logging.StreamHandler()
+console.setFormatter(formatter)
+console.setLevel(logging.DEBUG)
+logger.addHandler(console)
+logger.setLevel(logging.WARNING)
 
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
