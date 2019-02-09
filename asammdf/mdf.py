@@ -1911,35 +1911,6 @@ class MDF(object):
 
             offsets = [0 for _ in files]
 
-        sizes = set()
-        for file in files:
-            if isinstance(file, MDF):
-                if file.version < "4.00":
-                    ch_count = sum(len(group.channels) for group in file.groups)
-                else:
-                    ch_count = sum(
-                        len(group.channels)
-                        - sum(
-                            len(dep)
-                            for dep in group.channel_dependencies
-                            if dep and not isinstance(dep[0], ChannelArrayBlock)
-                        )
-                        for group in file.groups
-                    )
-                info = len(file.groups), ch_count
-            else:
-                with open(file, "rb") as mdf:
-                    info = count_channel_groups(mdf, include_channels=True)
-            sizes.add(info)
-
-        if len(sizes) > 1:
-            message = "Can't merge files: difference in number of data groups"
-            raise MdfException(message)
-
-        groups_nr, _ = sizes.pop()
-
-        last_timestamps = [None for _ in range(groups_nr)]
-
         version = validate_version_argument(version)
 
         merged = MDF(version=version, callback=callback)
@@ -1952,9 +1923,19 @@ class MDF(object):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf)
 
+            if mdf_index == 0:
+                last_timestamps = [None for gp in mdf.groups]
+                chans = [
+                    [ch.name for ch in gp.channels]
+                    for gp in mdf.groups
+                ]
+
             cg_nr = -1
 
             for i, group in enumerate(mdf.groups):
+                channel_names = [ch.name for ch in group.channels]
+                if channel_names != chans[i]:
+                    raise MdfException(f"internal structure of file {i} is different")
                 included_channels = mdf._included_channels(i)
                 if included_channels:
                     cg_nr += 1
