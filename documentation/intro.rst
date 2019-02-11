@@ -87,7 +87,7 @@ optional dependencies needed for exports
 other optional dependencies
 
 * chardet : to detect non-standard unicode encodings
-* PyQt4 or PyQt5 : for GUI tool
+* PyQt5 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting
 * matplotlib : as fallback for Signal plotting
 
