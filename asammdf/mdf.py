@@ -1933,10 +1933,10 @@ class MDF(object):
                 included_channels = mdf._included_channels(i)
                 if mdf_index == 0:
                     included_channel_names.append(
-                        [group.channels[k] for k in included_channels]
+                        [group.channels[k].name for k in included_channels]
                     )
                 else:
-                    names = [group.channels[k] for k in included_channels]
+                    names = [group.channels[k].name for k in included_channels]
                     if names != included_channel_names[i]:
                         if sorted(names) != sorted(included_channel_names[i]):
                             raise MdfException(f"internal structure of file {mdf_index} is different")
