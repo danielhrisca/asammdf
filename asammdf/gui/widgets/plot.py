@@ -79,7 +79,7 @@ try:
 
                 if sig.conversion:
                     vals = sig.conversion.convert(sig.samples)
-                    if vals.dtype.kind != 'S':
+                    if vals.dtype.kind not in 'SV':
                         nans = np.isnan(vals)
                         samples = np.where(
                             nans,
