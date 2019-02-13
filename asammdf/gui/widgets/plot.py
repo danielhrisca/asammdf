@@ -96,12 +96,15 @@ try:
 
                 if sig.conversion:
                     vals = sig.conversion.convert(sig.samples)
-                    nans = np.isnan(vals)
-                    samples = np.where(
-                        nans,
-                        sig.samples,
-                        vals,
-                    )
+                    if vals.dtype.kind in 'uif':
+                        nans = np.isnan(vals)
+                        samples = np.where(
+                            nans,
+                            sig.samples,
+                            vals,
+                        )
+                    else:
+                        samples = vals
                     sig.samples = samples
 
                 sig.enable = True

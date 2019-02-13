@@ -747,7 +747,7 @@ class FileWidget(QWidget):
             self.cursor_info.setText("t = {:.6f}s".format(position))
             for i, signal in enumerate(self.plot.signals):
                 cut_sig = signal.cut(position, position)
-                if signal.texts is None or len(cut_sig) == 0:
+                if signal.texts is None or len(cut_sig) == 0 and signal.conversion:
                     samples = signal.conversion.convert(samples)
                     if samples.dtype.kind == 'S':
                         try:
