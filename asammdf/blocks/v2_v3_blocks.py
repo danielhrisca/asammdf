@@ -1283,6 +1283,8 @@ address: {}
             X1 = values
             values = evaluate(formula)
 
+        if not isinstance(values, np.ndarray):
+            raise Exception("unexpected type after conversion: {}".format(type(values)))
         return values
 
     def __bytes__(self):

@@ -169,8 +169,12 @@ try:
                 sig.color = color
 
                 if len(sig.samples):
-                    sig.min = np.amin(sig.samples)
-                    sig.max = np.amax(sig.samples)
+                    if samples.dtype.kind not in 'SV':
+                        sig.min = np.amin(sig.samples)
+                        sig.max = np.amax(sig.samples)
+                    else:
+                        sig.min = 'n.a.'
+                        sig.max = 'n.a.'
                     sig.empty = False
                 else:
                     sig.empty = True

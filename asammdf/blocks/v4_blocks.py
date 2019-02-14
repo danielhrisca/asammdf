@@ -2543,6 +2543,9 @@ class ChannelConversion(dict):
 
             values = np.array(new_values)
 
+        if not isinstance(values, np.ndarray):
+            raise Exception("unexpected type after conversion: {}".format(type(values)))
+
         return values
 
     def metadata(self, indent=""):
