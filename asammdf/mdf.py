@@ -530,6 +530,9 @@ class MDF(object):
             memory = validate_memory_argument(memory)
 
         out = MDF(version=version, memory=memory)
+        name, _ = os.path.splitext(self.name)
+        _, ext = os.path.splitext(out.name)
+        out.name = '{}.converted_to_{}{}'.format(name, version, ext)
 
         out.header.start_time = self.header.start_time
 
@@ -712,6 +715,9 @@ class MDF(object):
             version = validate_version_argument(version)
 
         out = MDF(version=version, memory=memory)
+        name, _ = os.path.splitext(self.name)
+        _, ext = os.path.splitext(out.name)
+        out.name = '{}.cut_to_{}{}'.format(name, version, ext)
 
         out.header.start_time = self.header.start_time
 
@@ -1657,6 +1663,9 @@ class MDF(object):
             gps[group_index] = included_channels
 
         mdf = MDF(version=version, memory=memory)
+        name, _ = os.path.splitext(self.name)
+        _, ext = os.path.splitext(mdf.name)
+        mdf.name = '{}.filtered_to_{}{}'.format(name, version, ext)
 
         mdf.header.start_time = self.header.start_time
 
@@ -1964,6 +1973,8 @@ class MDF(object):
         memory = validate_memory_argument(memory)
 
         merged = MDF(version=version, memory=memory, callback=callback)
+        _, ext = os.path.splitext(merged.name)
+        merged.name = 'Concatenated_to_{}{}'.format(version, ext)
 
         merged.header.start_time = oldest
 
@@ -2204,6 +2215,8 @@ class MDF(object):
         callback = kwargs.get("callback", None)
 
         stacked = MDF(version=version, memory=memory, callback=callback)
+        _, ext = os.path.splitext(stacked.name)
+        stacked.name = 'Stacked_to_{}{}'.format(version, ext)
 
         files_nr = len(files)
 
@@ -2429,6 +2442,9 @@ class MDF(object):
             version = validate_version_argument(version)
 
         mdf = MDF(version=version, memory=memory)
+        name, _ = os.path.splitext(self.name)
+        _, ext = os.path.splitext(mdf.name)
+        mdf.name = '{}.resampled_with_raster_{}s_to_{}{}'.format(name, raster, version, ext)
 
         mdf.header.start_time = self.header.start_time
 

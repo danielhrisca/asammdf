@@ -263,6 +263,7 @@ class MDF4(object):
 
         else:
             self._from_filelike = False
+            self.name = "From_Scratch.mf4"
             version = validate_version_argument(version)
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)

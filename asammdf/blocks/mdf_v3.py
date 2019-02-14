@@ -194,7 +194,7 @@ class MDF3(object):
         if name:
             if is_file_like(name):
                 self._file = name
-                self.name = "From_FileLike.mf4"
+                self.name = "From_FileLike.mdf"
                 self._from_filelike = True
             else:
                 self._file = open(self.name, "rb")
@@ -202,6 +202,7 @@ class MDF3(object):
             self._read()
         else:
             self._from_filelike = False
+            self.name = "From_Scratch.mdf"
             version = validate_version_argument(version, hint=3)
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
