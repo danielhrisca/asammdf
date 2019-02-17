@@ -6,8 +6,9 @@ import logging
 from functools import reduce
 
 import numpy as np
+from pathlib import Path
 
-HERE = os.path.dirname(os.path.realpath(__file__))
+HERE = Path(__file__).resolve().parent
 
 from ..ui import resource_qt5 as resource_rc
 

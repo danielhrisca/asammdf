@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os
+from pathlib import Path
 
 import numpy as np
 
@@ -11164,18 +11164,18 @@ def get_test_data(filename=""):
     """
     Utility functions needed by all test scripts.
     """
-    return os.path.dirname(__file__) + "/data/" + filename
+    return Path(__file__).resolve().parent.joinpath("/data/", filename)
 
 
 def generate_test_file(tmpdir, version="4.10"):
-    mdf = MDF(version=version, memory="minimum")
+    mdf = MDF(version=version)
 
     if version <= "3.30":
-        filename = os.path.join(tmpdir, "big_test_{}.mdf".format(version))
+        filename = Path(tmpdir) / f"big_test_{version}.mdf"
     else:
-        filename = os.path.join(tmpdir, "big_test_{}.mf4".format(version))
+        filename = Path(tmpdir) / f"big_test_{version}.mf4"
 
-    if os.path.exists(filename):
+    if filename.exists():
         return filename
 
     t = np.arange(cycles, dtype=np.float64)
@@ -11338,10 +11338,10 @@ def generate_test_file(tmpdir, version="4.10"):
 
 def generate_arrays_test_file(tmpdir):
     version = "4.10"
-    mdf = MDF(version=version, memory="minimum")
-    filename = os.path.join(tmpdir, "arrays_test_{}.mf4".format(version))
+    mdf = MDF(version=version)
+    filename = Path(tmpdir) / f"arrays_test_{version}.mf4"
 
-    if os.path.exists(filename):
+    if filename.exists():
         return filename
 
     t = np.arange(cycles, dtype=np.float64)

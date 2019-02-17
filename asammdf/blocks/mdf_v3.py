@@ -187,7 +187,7 @@ class MDF3(object):
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
             self.header = HeaderBlock(version=self.version)
-            self.name = Path("new.mf4")
+            self.name = Path("new.mdf")
 
     def _load_data(self, group, record_offset=0, record_count=None):
         """ get group's data block bytes"""

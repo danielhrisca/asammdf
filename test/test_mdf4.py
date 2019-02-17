@@ -2,7 +2,7 @@
 from __future__ import print_function
 import unittest
 import tempfile
-import os
+from pathlib import Path
 
 import numpy as np
 
@@ -49,7 +49,7 @@ class TestMDF4(unittest.TestCase):
 
         with MDF(version="4.00") as mdf:
             mdf.append([sig_int, sig_float], common_timebase=True)
-            outfile = mdf.save(os.path.join(TestMDF4.tempdir.name, "tmp"), overwrite=True)
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "tmp", overwrite=True)
 
         with MDF(outfile) as mdf:
             ret_sig_int = mdf.get(sig_int.name)
@@ -81,7 +81,7 @@ class TestMDF4(unittest.TestCase):
 
         with MDF(version="4.10") as mdf:
             mdf.append([sig_int, sig_float], common_timebase=True)
-            outfile = mdf.save(os.path.join(TestMDF4.tempdir.name, "tmp"), overwrite=True)
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "tmp", overwrite=True)
 
         with MDF(outfile) as mdf:
             ret_sig_int = mdf.get(sig_int.name)

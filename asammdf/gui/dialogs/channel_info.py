@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
-
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -8,8 +6,6 @@ from PyQt5.QtCore import *
 from ..ui import resource_qt5 as resource_rc
 
 from ..widgets.channel_info import ChannelInfoWidget
-
-HERE = os.path.dirname(os.path.realpath(__file__))
 
 
 class ChannelInfoDialog(QDialog):
