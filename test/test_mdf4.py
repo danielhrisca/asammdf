@@ -90,6 +90,50 @@ class TestMDF4(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
+    def test_attachment_blocks_wo_filename(self):
+        original_data = b'Testing attachemnt block\nTest line 1'
+        mdf = MDF()
+        mdf.attach(
+            original_data,
+            file_name=None,
+            comment=None,
+            compression=True,
+            mime=r"text/plain",
+            embedded=True,
+        )
+        outfile = mdf.save(
+            Path(TestMDF4.tempdir.name) / "attachment.mf4",
+            overwrite=True,
+        )
+
+        with MDF(outfile) as attachment_mdf:
+            data, filename = attachment_mdf.extract_attachment(index=0)
+            self.assertEqual(data, original_data)
+            self.assertEqual(filename, Path('bin.bin'))
+
+    def test_attachment_blocks_w_filename(self):
+        original_data = b'Testing attachemnt block\nTest line 1'
+        original_file_name = 'file.txt'
+
+        mdf = MDF()
+        mdf.attach(
+            original_data,
+            file_name=original_file_name,
+            comment=None,
+            compression=True,
+            mime=r"text/plain",
+            embedded=True,
+        )
+        outfile = mdf.save(
+            Path(TestMDF4.tempdir.name) / "attachment.mf4",
+            overwrite=True,
+        )
+
+        with MDF(outfile) as attachment_mdf:
+            data, filename = attachment_mdf.extract_attachment(index=0)
+            self.assertEqual(data, original_data)
+            self.assertEqual(filename, Path(original_file_name))
+
 
 if __name__ == "__main__":
     unittest.main()
