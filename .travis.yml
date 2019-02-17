@@ -12,7 +12,6 @@ script:
   - python --version
   - python -m coverage run --source=asammdf test/run_all.py
   - python -m coverage xml -i --include */asammdf/*
-  - if [[ "$TRAVIS_PULL_REQUEST" = "false" ]]; then python-codacy-coverage -r coverage.xml; fi
   - python -m sphinx -nW -b html documentation documentation/_build/html
 
 after_success:
