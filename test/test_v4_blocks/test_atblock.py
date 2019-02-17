@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 import unittest
-import tempfile
 from io import BytesIO
 
 from asammdf.blocks.utils import MdfException
 from asammdf.blocks.v4_blocks import AttachmentBlock
 
 
-class TestMDF(unittest.TestCase):
+class TestATBLOCK(unittest.TestCase):
 
     tempdir = None
     data = b'\n'.join(f'line {i}'.encode('ascii') for i in range(50))
@@ -16,7 +15,6 @@ class TestMDF(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.tempdir = tempfile.TemporaryDirectory()
 
         cls.compressed = BytesIO()
         cls.compressed.write(
@@ -27,10 +25,6 @@ class TestMDF(unittest.TestCase):
         cls.uncompressed.write(
             b'\x00##TX\x00\x00\x00\x00(\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00embedded.txt\x00\x00\x00\x00##TX\x00\x00\x00\x008\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00example of embedded attachment\x00\x00##AT\x00\x00\x00\x00\xe5\x01\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00)\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00\x00\x00\x00\x00\xeb\x825\x1a\x0cri\xb9\xca\xfb\xde\xb6pT\x17k\x85\x01\x00\x00\x00\x00\x00\x00\x85\x01\x00\x00\x00\x00\x00\x00line 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\nline 39\nline 40\nline 41\nline 42\nline 43\nline 44\nline 45\nline 46\nline 47\nline 48\nline 49\x00\x00'
         )
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
 
     def test_read_compressed(self):
         self.compressed.seek(0)
