@@ -18,9 +18,9 @@
 
 # Status
 
-! | Travis CI  | Coverage  |  Codacy  | ReadTheDocs | CoverAlls
---|--|--|--|--|--
-Py3 | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=Py3)](https://travis-ci.org/danielhrisca/asammdf) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=py3)](http://asammdf.readthedocs.io/en/py3/?badge=stable) | [![Coverage Status](https://coveralls.io/repos/github/danielhrisca/asammdf/badge.svg?branch=Py3)](https://coveralls.io/github/danielhrisca/asammdf?branch=Py3)|
+! | Travis CI  | Appveyor | Coverage  |  Codacy  | ReadTheDocs | CoverAlls
+--|--|--|--|--|--|--
+Py3 | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=Py3)](https://travis-ci.org/danielhrisca/asammdf) | [![Build status](https://ci.appveyor.com/api/projects/status/racx048r4cnwa2lg/branch/Py3?svg=true)](https://ci.appveyor.com/project/danielhrisca/asammdf/branch/Py3) | [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=Badge_Coverage) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=py3)](http://asammdf.readthedocs.io/en/py3/?badge=stable) | [![Coverage Status](https://coveralls.io/repos/github/danielhrisca/asammdf/badge.svg?branch=Py3)](https://coveralls.io/github/danielhrisca/asammdf?branch=Py3)|
 
 PyPI| conda-forge
 --|--
