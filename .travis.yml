@@ -3,6 +3,7 @@ python:
   - "3.6"
 # command to install dependencies
 install:
+  - pip install coveralls
   - pip install -r pip_requirements_readthedocs.txt
   - pip install -r pip_requirements_tests.txt
 # command to run tests
@@ -15,3 +16,4 @@ script:
   - python -m sphinx -nW -b html documentation documentation/_build/html
 
 after_success:
+    coveralls
