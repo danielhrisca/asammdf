@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-from __future__ import print_function
 import random
-import sys
 import unittest
 import urllib
 import numexpr
@@ -38,31 +36,27 @@ class TestMDF(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        PYVERSION = sys.version_info[0]
 
         url = "https://github.com/danielhrisca/asammdf/files/1834464/test.demo.zip"
-        if PYVERSION == 3:
-            urllib.request.urlretrieve(url, "test.zip")
-        else:
-            urllib.urlretrieve(url, "test.zip")
+        urllib.request.urlretrieve(url, "test.zip")
 
-        TestMDF.tempdir_demo = tempfile.TemporaryDirectory()
-        TestMDF.tempdir_general = tempfile.TemporaryDirectory()
-        TestMDF.tempdir= tempfile.TemporaryDirectory()
-        TestMDF.tempdir_array = tempfile.TemporaryDirectory()
+        cls.tempdir_demo = tempfile.TemporaryDirectory()
+        cls.tempdir_general = tempfile.TemporaryDirectory()
+        cls.tempdir= tempfile.TemporaryDirectory()
+        cls.tempdir_array = tempfile.TemporaryDirectory()
 
-        ZipFile(r"test.zip").extractall(TestMDF.tempdir_demo.name)
+        ZipFile(r"test.zip").extractall(cls.tempdir_demo.name)
         for version in ("3.30", "4.10"):
-            generate_test_file(TestMDF.tempdir_general.name, version)
+            generate_test_file(cls.tempdir_general.name, version)
 
-        generate_arrays_test_file(TestMDF.tempdir_array.name)
+        generate_arrays_test_file(cls.tempdir_array.name)
 
     @classmethod
     def tearDownClass(cls):
-        TestMDF.tempdir_demo.cleanup()
-        TestMDF.tempdir.cleanup()
-        TestMDF.tempdir_general.cleanup()
-        TestMDF.tempdir_array.cleanup()
+        cls.tempdir_demo.cleanup()
+        cls.tempdir.cleanup()
+        cls.tempdir_general.cleanup()
+        cls.tempdir_array.cleanup()
         Path("test.zip").unlink()
 
     def test_read(self):

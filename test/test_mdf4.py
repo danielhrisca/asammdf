@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 import unittest
 import tempfile
 from pathlib import Path
@@ -17,11 +16,11 @@ class TestMDF4(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        TestMDF4.tempdir = tempfile.TemporaryDirectory()
+        cls.tempdir = tempfile.TemporaryDirectory()
 
     @classmethod
     def tearDownClass(cls):
-        TestMDF4.tempdir.cleanup()
+        cls.tempdir.cleanup()
 
     def test_measurement(self):
         self.assertTrue(MDF4)
