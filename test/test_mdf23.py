@@ -18,10 +18,6 @@ class TestMDF23(unittest.TestCase):
     def setUpClass(cls):
         cls.tempdir = tempfile.TemporaryDirectory()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
-
     def test_measurement(self):
         self.assertTrue(MDF2)
         self.assertTrue(MDF3)

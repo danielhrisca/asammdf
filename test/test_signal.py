@@ -386,6 +386,141 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal([], res.samples))
         self.assertTrue(np.array_equal(np.array([], dtype='<f8'), res.timestamps))
 
+    def test_add(self):
+        s = Signal(
+            np.arange(5, dtype='<f4'),
+            np.arange(5, dtype='<f8'),
+            name='S',
+        )
+
+        target = np.arange(0, 10, 2, dtype='<f4')
+
+        res = s + s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        s += s
+        res = s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        # + 2
+        s = Signal(
+            np.arange(5, dtype='<f4'),
+            np.arange(5, dtype='<f8'),
+            name='S',
+        )
+
+        target = np.arange(2, 7, dtype='<f4')
+
+        res = s + 2
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        res = 2 + s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        s += 2
+        res = s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+    def test_sub(self):
+        s = Signal(
+            np.arange(5, dtype='<f4'),
+            np.arange(5, dtype='<f8'),
+            name='S',
+        )
+
+        target = np.zeros(5, dtype='<f4')
+
+        res = s - s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        s -= s
+        res = s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+
+        # - 2
+        s = Signal(
+            np.arange(5, dtype='<f4'),
+            np.arange(5, dtype='<f8'),
+            name='S',
+        )
+
+        target = np.arange(-2, 3, dtype='<f4')
+
+        res = s - 2
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        res = - (2 - s)
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        s -= 2
+        res = s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+    def test_mul(self):
+        s = Signal(
+            np.arange(5, dtype='<f4'),
+            np.arange(5, dtype='<f8'),
+            name='S',
+        )
+
+        target = np.arange(5, dtype='<f4') ** 2
+
+        res = s * s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        s *= s
+        res = s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+
+        s = Signal(
+            np.arange(5, dtype='<f4'),
+            np.arange(5, dtype='<f8'),
+            name='S',
+        )
+        target = np.arange(0, 10, 2, dtype='<f4')
+
+        res = s * 2
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        res = 2 * s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        s *= 2
+        res = s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+    def test_div(self):
+        s = Signal(
+            np.arange(1, 5, dtype='<f4'),
+            np.arange(1, 5, dtype='<f8'),
+            name='S',
+        )
+
+        target = np.ones(4, dtype='<f4')
+
+        res = s / s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        s /= s
+        res = s
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        s = Signal(
+            np.arange(1, 5, dtype='<f4'),
+            np.arange(1, 5, dtype='<f8'),
+            name='S',
+        )
+        target = np.arange(2, 10, 2, dtype='<f4')
+
+        res = 1 / (0.5 / s)
+        self.assertTrue(np.array_equal(res.samples, target))
+
+        s /= 0.5
+        res = s
+        self.assertTrue(np.array_equal(res.samples, target))
+
 
 if __name__ == "__main__":
     unittest.main()

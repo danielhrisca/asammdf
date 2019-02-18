@@ -300,74 +300,6 @@ class MDF(object):
                     event.scopes.append(group)
                     self.events.append(event)
 
-    def _excluded_channels(self, index):
-        """ get the indexes list of channels that are excluded when processing
-        teh channel group. The candiates for exlusion are the master channel
-        (since it is retrieved as `Signal` timestamps), structure channel
-        composition component channels (since they are retrieved as fields in
-        the `Signal` samples recarray) and channel dependecies (mdf version 3)
-        / channel array axes
-
-        Parameters
-        ----------
-        index : int
-            channel group index
-
-        Returns
-        -------
-        excluded_channels : set
-            set of excluded channels
-
-        """
-
-        group = self.groups[index]
-
-        excluded_channels = set()
-        master_index = self.masters_db.get(index, -1)
-        excluded_channels.add(master_index)
-
-        channels = group.channels
-        channel_group = group.channel_group
-
-        if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-            for dep in group.channel_dependencies:
-                if dep is None:
-                    continue
-                for gp_nr, ch_nr in dep.referenced_channels:
-                    if gp_nr == index:
-                        excluded_channels.add(ch_nr)
-        else:
-            if channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                where = self.whereis("CAN_DataFrame")
-                for dg_cntr, ch_cntr in where:
-                    if dg_cntr == index:
-                        break
-                else:
-                    raise MdfException("CAN_DataFrame not found in group " + str(index))
-                channel = channels[ch_cntr]
-                excluded_channels.add(ch_cntr)
-
-                frame_bytes = range(
-                    channel.byte_offset, channel.byte_offset + channel.bit_count // 8
-                )
-                for i, channel in enumerate(channels):
-                    if channel.byte_offset in frame_bytes:
-                        excluded_channels.add(i)
-
-            for dependencies in group.channel_dependencies:
-                if dependencies is None:
-                    continue
-                if all(not isinstance(dep, ChannelArrayBlock) for dep in dependencies):
-                    for channel in dependencies:
-                        excluded_channels.add(channels.index(channel))
-                else:
-                    for dep in dependencies:
-                        for gp_nr, ch_nr in dep.referenced_channels:
-                            if gp_nr == index:
-                                excluded_channels.add(ch_nr)
-
-        return excluded_channels
-
     def _included_channels(self, index):
         """ get the minimum channels needed to extract all information from the
         channel group (for example keep onl the structure channel and exclude the
@@ -2771,8 +2703,13 @@ class MDF(object):
 
         Parameters
         ----------
-        name : str
+        name : str | pathlib.Path
             file name
+
+        Returns
+        -------
+        name : str
+            scrambled file name
 
         """
 
@@ -3000,12 +2937,14 @@ class MDF(object):
                 for index, (addr, bts) in enumerate(texts.items()):
                     mdf.seek(addr)
                     mdf.write(bts)
-                    if index % chunk == 0:
+                    if chunk and index % chunk == 0:
                         if callback:
                             callback(66 + idx, 100)
 
             if callback:
                 callback(100, 100)
+
+        return dst
 
     def get_group(self, index, raster=None, time_from_zero=False, use_display_names=False):
         """ get channel group as pandas DataFrames. If there are multiple

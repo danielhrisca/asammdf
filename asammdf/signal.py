@@ -950,8 +950,8 @@ class Signal(object):
     def __itruediv__(self, other):
         return self.__truediv__(other)
 
-    def __rdiv__(self, other):
-        return 1 / self.__truediv__(other)
+    def __rtruediv__(self, other):
+        return self.__apply_func(other, "__rtruediv__")
 
     def __mul__(self, other):
         return self.__apply_func(other, "__mul__")
