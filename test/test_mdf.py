@@ -730,8 +730,6 @@ class TestMDF(unittest.TestCase):
     def test_cut_demo(self):
         print("MDF cut absolute tests")
 
-        cntr = 0
-
         for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
 
             if "2.00" in input_file.name:
@@ -817,11 +815,11 @@ class TestMDF(unittest.TestCase):
                     self.assertTrue(name in mdf)
 
                 names = [name + '_' for name in names]
-                for name in channel_list:
+                for name in names:
                     self.assertFalse(name in mdf)
 
                 names = [name[:-1] for name in names]
-                for name in channel_list:
+                for name in names:
                     self.assertFalse(name in mdf)
 
                 for name in channel_list:
