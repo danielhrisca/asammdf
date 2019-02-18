@@ -4,7 +4,8 @@
 import logging
 from pathlib import Path
 from datetime import datetime
-from threading import Lock
+from threading import Lock, Thread
+from time import sleep
 
 from .mdf import MDF
 from .blocks.conversion_utils import from_dict
@@ -47,6 +48,8 @@ class SignalDescription:
         self.bit_mask = bit_mask
         self.master = master
 
+        self.recording_thread = None
+
 
 class Recorder(object):
     """ MF4 recorder
@@ -65,11 +68,12 @@ class Recorder(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, plugin):
         self.frozen = False
         self.mdf = MDF()
         self.lock = Lock()
         self.buffers = []
+        self.plugin = plugin
 
     def register_channels(self, channels, source="", comment=""):
         """ registers the channels and creates a new channel group in the underlying
@@ -113,7 +117,7 @@ class Recorder(object):
 
             return index
 
-    def start_recording(self, timestamp=None):
+    def start(self, timestamp=None):
         """ start recording and freezes measurement (no new channels can be registered
         until the measurement is saved)
 
@@ -127,8 +131,25 @@ class Recorder(object):
             timestamp = datetime.now()
         self.frozen = True
         self.mdf.header.start_time = timestamp
+        self.plugin.start()
+        self.thread = Thread(target=self._acquire, args=())
+        self.thread.start()
+        self.recording = True
 
-    def update(self, index, data):
+    def stop(self):
+        """ stop recording
+
+        Parameters
+        ----------
+        timestamp : datetime
+            start of measurement time stamp; default *None*
+
+        """
+        self.recording = False
+        while self.thread.is_alive():
+            sleep(0.005)
+
+    def _acquire(self):
         """ update channel group samples
 
         Parameters
@@ -143,51 +164,109 @@ class Recorder(object):
         write = self.mdf._tempfile.write
         tell = self.mdf._tempfile.tell
 
-        self.lock.acquire()
-        group = self.mdf.groups[index]
+        while 1:
 
-        buffer_limit = self.record_size[index]
+            if not self.recording:
+                self.plugin.stop()
+                break
 
-        size = len(data)
-        cycles = size // group.channel_group.samples_bytes_nr
+            self.lock.acquire()
 
-        while size:
-            address = group.data_block_addr[-1]
-            current_size = group.data_size[-1]
+            if not self.plugin.queue.empty():
+                index, data = self.plugin.queue.get()
+                group = self.mdf.groups[index]
 
-            if buffer_limit - current_size <= size:
-                # fill the current block
-                seek(address + current_size)
+                buffer_limit = self.record_size[index]
 
-                write(data[:buffer_limit - current_size])
-                data = data[buffer_limit - current_size:]
-                group.data_size[-1] = buffer_limit
-                group.data_block_size[-1] = buffer_limit
+                size = len(data)
+                cycles = size // group.channel_group.samples_bytes_nr
 
-                # allocate a new block
-                seek(0, 2)
-                address = tell()
-                write(b'\0' * buffer_limit)
+                while size:
+                    address = group.data_block_addr[-1]
+                    current_size = group.data_size[-1]
 
-                group.data_block_addr.append(address)
-                group.data_block.append(address)
-                group.data_size.append(0)
-                group.data_block_size.append(0)
+                    if buffer_limit - current_size <= size:
+                        # fill the current block
+                        seek(address + current_size)
 
-                size -= buffer_limit - current_size
+                        write(data[:buffer_limit - current_size])
+                        data = data[buffer_limit - current_size:]
+                        group.data_size[-1] = buffer_limit
+                        group.data_block_size[-1] = buffer_limit
 
+                        # allocate a new block
+                        seek(0, 2)
+                        address = tell()
+                        write(b'\0' * buffer_limit)
+
+                        group.data_block_addr.append(address)
+                        group.data_block.append(address)
+                        group.data_size.append(0)
+                        group.data_block_size.append(0)
+
+                        size -= buffer_limit - current_size
+
+                    else:
+                        seek(address + current_size)
+
+                        write(data)
+                        group.data_size[-1] += size
+                        group.data_block_size[-1] += size
+
+                        size = 0
+
+                group.channel_group.cycles_nr += cycles
+
+                self.lock.release()
             else:
-                seek(address + current_size)
+                sleep(0.005)
 
-                write(data)
-                group.data_size[-1] += size
-                group.data_block_size[-1] += size
+        while not self.plugin.queue.empty():
+            index, data = self.plugin.queue.get()
+            group = self.mdf.groups[index]
 
-                size = 0
+            buffer_limit = self.record_size[index]
 
-        group.channel_group.cycles_nr += cycles
+            size = len(data)
+            cycles = size // group.channel_group.samples_bytes_nr
 
-        self.lock.release()
+            while size:
+                address = group.data_block_addr[-1]
+                current_size = group.data_size[-1]
+
+                if buffer_limit - current_size <= size:
+                    # fill the current block
+                    seek(address + current_size)
+
+                    write(data[:buffer_limit - current_size])
+                    data = data[buffer_limit - current_size:]
+                    group.data_size[-1] = buffer_limit
+                    group.data_block_size[-1] = buffer_limit
+
+                    # allocate a new block
+                    seek(0, 2)
+                    address = tell()
+                    write(b'\0' * buffer_limit)
+
+                    group.data_block_addr.append(address)
+                    group.data_block.append(address)
+                    group.data_size.append(0)
+                    group.data_block_size.append(0)
+
+                    size -= buffer_limit - current_size
+
+                else:
+                    seek(address + current_size)
+
+                    write(data)
+                    group.data_size[-1] += size
+                    group.data_block_size[-1] += size
+
+                    size = 0
+
+            group.channel_group.cycles_nr += cycles
+
+            self.lock.release()
 
     def select(self, channels, record_offset=0):
         """ select Signals from the underlying measurement object
