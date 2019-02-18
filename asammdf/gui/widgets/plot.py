@@ -148,14 +148,19 @@ try:
                 sig.color = color
 
                 if len(sig.samples):
-                    sig.min = np.amin(sig.samples)
-                    sig.max = np.amax(sig.samples)
+                    if sig.samples.dtype.kind not in 'SV':
+                        sig.min = np.amin(sig.samples)
+                        sig.max = np.amax(sig.samples)
+                    else:
+                        sig.min = 'n.a.'
+                        sig.max = 'n.a.'
+
                     sig.empty = False
                 else:
                     sig.empty = True
 
                 axis = FormatedAxis("right", pen=color)
-                if sig.conversion and "text_0" in sig.conversion:
+                if sig.conversion and hasattr(sig.conversion, "text_0"):
                     axis.text_conversion = sig.conversion
 
                 view_box = pg.ViewBox(enableMenu=False)
@@ -912,7 +917,7 @@ try:
                             sig.empty = True
 
                         axis = FormatedAxis("right", pen=color)
-                        if sig.conversion and "text_0" in sig.conversion:
+                        if sig.conversion and hasattr(sig.conversion, "text_0"):
                             axis.text_conversion = sig.conversion
 
                         view_box = pg.ViewBox(enableMenu=False)

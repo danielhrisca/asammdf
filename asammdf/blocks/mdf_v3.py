@@ -383,7 +383,7 @@ class MDF3(object):
             sortedchannels = sorted(enumerate(grp.channels), key=lambda i: i[1])
             for original_index, new_ch in sortedchannels:
                 # skip channels with channel dependencies from the numpy record
-                if new_ch.ch_depend_addr:
+                if new_ch.component_addr:
                     continue
 
                 start_offset = new_ch.start_offset
@@ -755,9 +755,9 @@ class MDF3(object):
                     )
 
                     # check if it has channel dependencies
-                    if new_ch.ch_depend_addr:
+                    if new_ch.component_addr:
                         dep = ChannelDependency(
-                            address=new_ch.ch_depend_addr, stream=stream,
+                            address=new_ch.component_addr, stream=stream,
                         )
                         grp.channel_dependencies.append(dep)
                     else:
@@ -3230,11 +3230,11 @@ class MDF3(object):
 
                 for channel, dep in zip(gp.channels, gp.channel_dependencies):
                     if dep:
-                        channel.ch_depend_addr = dep.address = address
+                        channel.component_addr = dep.address = address
                         blocks.append(dep)
                         address += dep.block_len
                     else:
-                        channel.ch_depend_addr = 0
+                        channel.component_addr = 0
                     address = channel.to_blocks(
                         address, blocks, defined_texts, cc_map, si_map
                     )

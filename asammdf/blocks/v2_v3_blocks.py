@@ -69,7 +69,7 @@ class Channel:
     * ``next_ch_addr`` - int : next CNBLOCK address
     * ``conversion_addr`` - int : address of channel conversion block
     * ``source_addr`` - int : address of channel source block
-    * ``ch_depend_addr`` - int : address of dependency block (CDBLOCK) of this
+    * ``component_addr`` - int : address of dependency block (CDBLOCK) of this
       channel
     * ``comment_addr`` - int : address of TXBLOCK that contains the
       channel comment
@@ -143,7 +143,7 @@ class Channel:
         "next_ch_addr",
         "conversion_addr",
         "source_addr",
-        "ch_depend_addr",
+        "component_addr",
         "comment_addr",
         "channel_type",
         "short_name",
@@ -181,7 +181,7 @@ class Channel:
                         self.next_ch_addr,
                         self.conversion_addr,
                         self.source_addr,
-                        self.ch_depend_addr,
+                        self.component_addr,
                         self.comment_addr,
                         self.channel_type,
                         self.short_name,
@@ -215,7 +215,7 @@ class Channel:
                         self.next_ch_addr,
                         self.conversion_addr,
                         self.source_addr,
-                        self.ch_depend_addr,
+                        self.component_addr,
                         self.comment_addr,
                         self.channel_type,
                         self.short_name,
@@ -243,7 +243,7 @@ class Channel:
                         self.next_ch_addr,
                         self.conversion_addr,
                         self.source_addr,
-                        self.ch_depend_addr,
+                        self.component_addr,
                         self.comment_addr,
                         self.channel_type,
                         self.short_name,
@@ -309,7 +309,7 @@ class Channel:
                         self.next_ch_addr,
                         self.conversion_addr,
                         self.source_addr,
-                        self.ch_depend_addr,
+                        self.component_addr,
                         self.comment_addr,
                         self.channel_type,
                         self.short_name,
@@ -343,7 +343,7 @@ class Channel:
                         self.next_ch_addr,
                         self.conversion_addr,
                         self.source_addr,
-                        self.ch_depend_addr,
+                        self.component_addr,
                         self.comment_addr,
                         self.channel_type,
                         self.short_name,
@@ -371,7 +371,7 @@ class Channel:
                         self.next_ch_addr,
                         self.conversion_addr,
                         self.source_addr,
-                        self.ch_depend_addr,
+                        self.component_addr,
                         self.comment_addr,
                         self.channel_type,
                         self.short_name,
@@ -441,7 +441,7 @@ class Channel:
             self.next_ch_addr = kwargs.get("next_ch_addr", 0)
             self.conversion_addr = kwargs.get("conversion_addr", 0)
             self.source_addr = kwargs.get("source_addr", 0)
-            self.ch_depend_addr = kwargs.get("ch_depend_addr", 0)
+            self.component_addr = kwargs.get("component_addr", 0)
             self.comment_addr = kwargs.get("comment_addr", 0)
             self.channel_type = kwargs.get("channel_type", 0)
             self.short_name = kwargs.get("short_name", (b"\0" * 32))
@@ -576,7 +576,7 @@ comment: {self.comment}
                 self.next_ch_addr,
                 self.conversion_addr,
                 self.source_addr,
-                self.ch_depend_addr,
+                self.component_addr,
                 self.comment_addr,
                 self.channel_type,
                 self.short_name,
@@ -599,7 +599,7 @@ comment: {self.comment}
                 self.next_ch_addr,
                 self.conversion_addr,
                 self.source_addr,
-                self.ch_depend_addr,
+                self.component_addr,
                 self.comment_addr,
                 self.channel_type,
                 self.short_name,
@@ -620,7 +620,7 @@ comment: {self.comment}
                 self.next_ch_addr,
                 self.conversion_addr,
                 self.source_addr,
-                self.ch_depend_addr,
+                self.component_addr,
                 self.comment_addr,
                 self.channel_type,
                 self.short_name,
@@ -1260,9 +1260,31 @@ address: {hex(self.address)}
             phys = [self[f"text_{i}"] for i in range(nr)]
             phys = np.array(phys)
 
-            indexes = np.searchsorted(raw_vals, values)
+            x = sorted(zip(raw_vals, phys))
+            raw_vals = np.array(
+                [e[0] for e in x], dtype='<i8'
+            )
+            phys = np.array(
+                [e[1] for e in x]
+            )
 
-            values = phys[indexes]
+            default = b'unknown'
+
+            idx1 = np.searchsorted(raw_vals, values, side="right") - 1
+            idx2 = np.searchsorted(raw_vals, values, side="left")
+
+            idx = np.argwhere(idx1 != idx2).flatten()
+
+            new_values = np.zeros(
+                len(values), dtype=max(phys.dtype, np.array([default]).dtype)
+            )
+
+            new_values[idx] = default
+            idx = np.argwhere(idx1 == idx2).flatten()
+            if len(idx):
+                new_values[idx] = phys[idx1[idx]]
+
+            values = new_values
 
         elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
             nr = self.ref_param_nr - 1
@@ -1283,6 +1305,7 @@ address: {hex(self.address)}
                 default = default.text
             else:
                 default = b""
+            default = default.strip(b'\0\r\n\t') or b'unknown'
 
             if b"{X}" in default:
                 default = default.decode("latin-1").replace("{X}", "X").split('"')[1]
@@ -1317,8 +1340,7 @@ address: {hex(self.address)}
 
                     idx = np.argwhere(idx1 == idx2).flatten()
                     if len(idx):
-                        print(values[idx], type(values[idx]))
-                        new_values[idx] = phys[values[idx]]
+                        new_values[idx] = phys[idx1[idx]]
                     values = new_values
                 else:
                     values = phys[idx1]
