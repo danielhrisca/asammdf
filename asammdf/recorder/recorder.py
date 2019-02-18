@@ -7,8 +7,8 @@ from datetime import datetime
 from threading import Lock, Thread
 from time import sleep
 
-from .mdf import MDF
-from .blocks.conversion_utils import from_dict
+from ..mdf import MDF
+from ..blocks.conversion_utils import from_dict
 
 
 logger = logging.getLogger("asammdf")
