@@ -2388,11 +2388,11 @@ class ChannelConversion(dict):
 
             default = self.referenced_blocks.get("default_addr", {})
             try:
-                default = default["text"]
+                default = default["text"] or b"unknown"
             except KeyError:
                 pass
             except TypeError:
-                default = b""
+                default = b"unknown"
 
             if PYVERSION < 3:
                 cls = str
@@ -2436,28 +2436,25 @@ class ChannelConversion(dict):
                 except KeyError:
                     value = self.referenced_blocks["text_{}".format(i)]
                 except TypeError:
-                    value = b""
+                    value = b"unknown"
                 phys.append(value)
 
             default = self.referenced_blocks.get("default_addr", {})
+
             try:
-                default = default["text"]
+                default = default["text"].strip(b'\0\r\n\t') or b"unknown"
             except KeyError:
                 pass
             except TypeError:
-                default = b""
+                default = b"unknown"
 
             lower = np.array([self["lower_{}".format(i)] for i in range(nr)])
             upper = np.array([self["upper_{}".format(i)] for i in range(nr)])
 
             all_values = phys + [default]
 
-            if values.dtype.kind == "f":
-                idx1 = np.searchsorted(lower, values, side="right") - 1
-                idx2 = np.searchsorted(upper, values, side="right")
-            else:
-                idx1 = np.searchsorted(lower, values, side="right") - 1
-                idx2 = np.searchsorted(upper, values, side="right") - 1
+            idx1 = np.searchsorted(lower, values, side="right") - 1
+            idx2 = np.searchsorted(upper, values, side="right")
 
             idx_ne = np.nonzero(idx1 != idx2)[0]
             idx_eq = np.nonzero(idx1 == idx2)[0]

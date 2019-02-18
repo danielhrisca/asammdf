@@ -747,8 +747,9 @@ class FileWidget(QWidget):
             self.cursor_info.setText("t = {:.6f}s".format(position))
             for i, signal in enumerate(self.plot.signals):
                 cut_sig = signal.cut(position, position)
+                samples = cut_sig.samples
                 if signal.texts is None or len(cut_sig) == 0 and signal.conversion:
-                    samples = signal.conversion.convert(samples)
+                    samples = cut_sig.conversion.convert(samples)
                     if samples.dtype.kind == 'S':
                         try:
                             samples = [s.decode("utf-8") for s in samples]

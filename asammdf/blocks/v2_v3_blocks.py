@@ -1127,13 +1127,33 @@ address: {}
         elif conversion_type == v23c.CONVERSION_TYPE_TABX:
             nr = self["ref_param_nr"]
             raw_vals = [self["param_val_{}".format(i)] for i in range(nr)]
-            raw_vals = np.array(raw_vals)
             phys = [self["text_{}".format(i)] for i in range(nr)]
-            phys = np.array(phys)
 
-            indexes = np.searchsorted(raw_vals, values)
+            x = sorted(zip(raw_vals, phys))
+            raw_vals = np.array(
+                [e[0] for e in x], dtype='<i8'
+            )
+            phys = np.array(
+                [e[1] for e in x]
+            )
 
-            values = phys[indexes]
+            default = b'unknown'
+
+            idx1 = np.searchsorted(raw_vals, values, side="right") - 1
+            idx2 = np.searchsorted(raw_vals, values, side="left")
+
+            idx = np.argwhere(idx1 != idx2).flatten()
+
+            new_values = np.zeros(
+                len(values), dtype=max(phys.dtype, np.array([default]).dtype)
+            )
+
+            new_values[idx] = default
+            idx = np.argwhere(idx1 == idx2).flatten()
+            if len(idx):
+                new_values[idx] = phys[idx1[idx]]
+
+            values = new_values
 
         elif conversion_type == v23c.CONVERSION_TYPE_RTABX:
             nr = self["ref_param_nr"] - 1

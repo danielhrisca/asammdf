@@ -103,9 +103,7 @@ try:
                             sig.samples,
                             vals,
                         )
-                    else:
-                        samples = vals
-                    sig.samples = samples
+                        sig.samples = samples
 
                 sig.enable = True
                 sig.original_samples = sig.samples
@@ -169,7 +167,7 @@ try:
                 sig.color = color
 
                 if len(sig.samples):
-                    if samples.dtype.kind not in 'SV':
+                    if sig.samples.dtype.kind not in 'SV':
                         sig.min = np.amin(sig.samples)
                         sig.max = np.amax(sig.samples)
                     else:
