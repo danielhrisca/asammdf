@@ -55,7 +55,7 @@ class PluginBase(ABC):
         while self.thread.is_alive():
             sleep(0.005)
             
-    @@abstractmethod
+    @abstractmethod
     def _acquire(self):
         """ setup acquisition and start receiving data by starting
         the acquisition thread
