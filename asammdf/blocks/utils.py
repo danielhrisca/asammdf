@@ -666,6 +666,7 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
         integer_array &= (
             (1 << bit_length) - 1
         )  # Zero out the unwanted bits
+        truncated_integers = integer_array
     else:
         truncated_integers = integer_array & (
             (1 << bit_length) - 1
