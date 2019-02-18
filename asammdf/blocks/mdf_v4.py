@@ -813,7 +813,7 @@ class MDF4(object):
                                     index=attachment_addr
                                 )
                                 if (
-                                    not at_name.lower().endswith(("dbc", "arxml"))
+                                    not at_name.name.lower().endswith(("dbc", "arxml"))
                                     or not attachment
                                 ):
                                     message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
@@ -822,7 +822,7 @@ class MDF4(object):
                                 else:
                                     import_type = (
                                         "dbc"
-                                        if at_name.lower().endswith("dbc")
+                                        if at_name.name.lower().endswith("dbc")
                                         else "arxml"
                                     )
                                     try:

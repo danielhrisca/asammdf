@@ -520,6 +520,7 @@ class Channel:
                         self.attachment = at_map.get(links[8], 0)
                         self.links_nr -= params[10] - 1
                         self.block_len -= (params[10] - 1) * 8
+                        params = list(params)
                         params[10] = 1
 
                     if params[6] & v4c.FLAG_CN_DEFAULT_X:
