@@ -479,6 +479,7 @@ class TestMDF(unittest.TestCase):
                     outfile = MDF.concatenate(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
                         version=MDF(input_file).version,
+                        sync=whence,
                     ).save(Path(TestMDF.tempdir.name) / "tmp_cut", overwrite=True,
                         compression=compression,)
 
@@ -811,6 +812,17 @@ class TestMDF(unittest.TestCase):
 
             with MDF(input_file) as mdf:
                 print(input_file)
+                names = list(channel_list)
+                for name in channel_list:
+                    self.assertTrue(name in mdf)
+
+                names = [name + '_' for name in names]
+                for name in channel_list:
+                    self.assertFalse(name in mdf)
+
+                names = [name[:-1] for name in names]
+                for name in channel_list:
+                    self.assertFalse(name in mdf)
 
                 for name in channel_list:
                     original = mdf.get(name)
@@ -860,6 +872,12 @@ class TestMDF(unittest.TestCase):
 
             self.assertTrue(equal)
 
+    def test_scramble(self):
+        print("MDF scramble tests")
+
+        for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
+
+            self.assertTrue(MDF.scramble(input_file))
 
 if __name__ == "__main__":
     unittest.main()
