@@ -18,10 +18,6 @@ class TestMDF4(unittest.TestCase):
     def setUpClass(cls):
         cls.tempdir = tempfile.TemporaryDirectory()
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir.cleanup()
-
     def test_measurement(self):
         self.assertTrue(MDF4)
 
@@ -110,7 +106,9 @@ class TestMDF4(unittest.TestCase):
             self.assertEqual(data, original_data)
             self.assertEqual(filename, Path('bin.bin'))
 
-    def test_attachment_blocks_w_filename(self):
+        mdf.close()
+
+    def etest_attachment_blocks_w_filename(self):
         original_data = b'Testing attachemnt block\nTest line 1'
         original_file_name = 'file.txt'
 
@@ -132,6 +130,8 @@ class TestMDF4(unittest.TestCase):
             data, filename = attachment_mdf.extract_attachment(index=0)
             self.assertEqual(data, original_data)
             self.assertEqual(filename, Path(original_file_name))
+
+        mdf.close()
 
 
 if __name__ == "__main__":

@@ -231,15 +231,14 @@ class MDF4(object):
                 self._read(mapped=False)
             else:
                 self.name = Path(name)
-                x = open(self.name, "r+b")
-                self._file = mmap.mmap(x.fileno(), 0)
-                self._from_filelike = False
-                self._read(mapped=True)
+                with open(self.name, "r+b") as x:
+                    self._file = mmap.mmap(x.fileno(), 0)
+                    self._from_filelike = False
+                    self._read(mapped=True)
 
-                self._file.close()
-                x.close()
+                    self._file.close()
 
-                self._file = open(self.name, "r+b")
+                self._file = open(self.name, "rb")
 
         else:
             self._from_filelike = False
@@ -3497,7 +3496,7 @@ class MDF4(object):
         object is not used anymore to clean-up the temporary file"""
         if self._tempfile is not None:
             self._tempfile.close()
-        if self._file is not None and not self._from_filelike:
+        if self._file is not None:
             self._file.close()
 
     def extract_attachment(self, address=None, index=None):

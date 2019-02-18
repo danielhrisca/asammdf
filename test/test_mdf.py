@@ -46,18 +46,11 @@ class TestMDF(unittest.TestCase):
         cls.tempdir_array = tempfile.TemporaryDirectory()
 
         ZipFile(r"test.zip").extractall(cls.tempdir_demo.name)
+        Path("test.zip").unlink()
         for version in ("3.30", "4.10"):
             generate_test_file(cls.tempdir_general.name, version)
 
         generate_arrays_test_file(cls.tempdir_array.name)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tempdir_demo.cleanup()
-        cls.tempdir.cleanup()
-        cls.tempdir_general.cleanup()
-        cls.tempdir_array.cleanup()
-        Path("test.zip").unlink()
 
     def test_read(self):
         print("MDF read big files")
