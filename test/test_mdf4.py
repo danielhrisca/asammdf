@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-from __future__ import print_function
 import unittest
 import tempfile
-import os
+from pathlib import Path
 
 import numpy as np
 
@@ -17,11 +16,11 @@ class TestMDF4(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        TestMDF4.tempdir = tempfile.TemporaryDirectory()
+        cls.tempdir = tempfile.TemporaryDirectory()
 
     @classmethod
     def tearDownClass(cls):
-        TestMDF4.tempdir.cleanup()
+        cls.tempdir.cleanup()
 
     def test_measurement(self):
         self.assertTrue(MDF4)
@@ -49,7 +48,7 @@ class TestMDF4(unittest.TestCase):
 
         with MDF(version="4.00") as mdf:
             mdf.append([sig_int, sig_float], common_timebase=True)
-            outfile = mdf.save(os.path.join(TestMDF4.tempdir.name, "tmp"), overwrite=True)
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "tmp", overwrite=True)
 
         with MDF(outfile) as mdf:
             ret_sig_int = mdf.get(sig_int.name)
@@ -81,7 +80,7 @@ class TestMDF4(unittest.TestCase):
 
         with MDF(version="4.10") as mdf:
             mdf.append([sig_int, sig_float], common_timebase=True)
-            outfile = mdf.save(os.path.join(TestMDF4.tempdir.name, "tmp"), overwrite=True)
+            outfile = mdf.save(Path(TestMDF4.tempdir.name) / "tmp", overwrite=True)
 
         with MDF(outfile) as mdf:
             ret_sig_int = mdf.get(sig_int.name)
@@ -89,6 +88,50 @@ class TestMDF4(unittest.TestCase):
 
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
+
+    def test_attachment_blocks_wo_filename(self):
+        original_data = b'Testing attachemnt block\nTest line 1'
+        mdf = MDF()
+        mdf.attach(
+            original_data,
+            file_name=None,
+            comment=None,
+            compression=True,
+            mime=r"text/plain",
+            embedded=True,
+        )
+        outfile = mdf.save(
+            Path(TestMDF4.tempdir.name) / "attachment.mf4",
+            overwrite=True,
+        )
+
+        with MDF(outfile) as attachment_mdf:
+            data, filename = attachment_mdf.extract_attachment(index=0)
+            self.assertEqual(data, original_data)
+            self.assertEqual(filename, Path('bin.bin'))
+
+    def test_attachment_blocks_w_filename(self):
+        original_data = b'Testing attachemnt block\nTest line 1'
+        original_file_name = 'file.txt'
+
+        mdf = MDF()
+        mdf.attach(
+            original_data,
+            file_name=original_file_name,
+            comment=None,
+            compression=True,
+            mime=r"text/plain",
+            embedded=True,
+        )
+        outfile = mdf.save(
+            Path(TestMDF4.tempdir.name) / "attachment.mf4",
+            overwrite=True,
+        )
+
+        with MDF(outfile) as attachment_mdf:
+            data, filename = attachment_mdf.extract_attachment(index=0)
+            self.assertEqual(data, original_data)
+            self.assertEqual(filename, Path(original_file_name))
 
 
 if __name__ == "__main__":

@@ -1,16 +1,11 @@
 #!/usr/bin/env python
-from __future__ import print_function
-import os
 import random
-import sys
 import unittest
-import shutil
 import urllib
 import numexpr
-from itertools import product
 from zipfile import ZipFile
 import tempfile
-
+from pathlib import Path
 
 import numpy as np
 
@@ -41,37 +36,32 @@ class TestMDF(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        PYVERSION = sys.version_info[0]
 
         url = "https://github.com/danielhrisca/asammdf/files/1834464/test.demo.zip"
-        if PYVERSION == 3:
-            urllib.request.urlretrieve(url, "test.zip")
-        else:
-            urllib.urlretrieve(url, "test.zip")
+        urllib.request.urlretrieve(url, "test.zip")
 
-        TestMDF.tempdir_demo = tempfile.TemporaryDirectory()
-        TestMDF.tempdir_general = tempfile.TemporaryDirectory()
-        TestMDF.tempdir= tempfile.TemporaryDirectory()
-        TestMDF.tempdir_array = tempfile.TemporaryDirectory()
+        cls.tempdir_demo = tempfile.TemporaryDirectory()
+        cls.tempdir_general = tempfile.TemporaryDirectory()
+        cls.tempdir= tempfile.TemporaryDirectory()
+        cls.tempdir_array = tempfile.TemporaryDirectory()
 
-        ZipFile(r"test.zip").extractall(TestMDF.tempdir_demo.name)
+        ZipFile(r"test.zip").extractall(cls.tempdir_demo.name)
         for version in ("3.30", "4.10"):
-            generate_test_file(TestMDF.tempdir_general.name, version)
+            generate_test_file(cls.tempdir_general.name, version)
 
-        generate_arrays_test_file(TestMDF.tempdir_array.name)
+        generate_arrays_test_file(cls.tempdir_array.name)
 
     @classmethod
     def tearDownClass(cls):
-        TestMDF.tempdir_demo.cleanup()
-        TestMDF.tempdir.cleanup()
-        TestMDF.tempdir_general.cleanup()
-        TestMDF.tempdir_array.cleanup()
-        os.remove("test.zip")
+        cls.tempdir_demo.cleanup()
+        cls.tempdir.cleanup()
+        cls.tempdir_general.cleanup()
+        cls.tempdir_array.cleanup()
+        Path("test.zip").unlink()
 
     def test_read(self):
         print("MDF read big files")
-        for mdfname in os.listdir(TestMDF.tempdir_general.name):
-            input_file = os.path.join(TestMDF.tempdir_general.name, mdfname)
+        for input_file in Path(TestMDF.tempdir_general.name).iterdir():
             print(input_file)
 
             equal = True
@@ -154,8 +144,7 @@ class TestMDF(unittest.TestCase):
 
     def test_read_arrays(self):
         print("MDF read big array files")
-        for mdfname in os.listdir(TestMDF.tempdir_array.name):
-            input_file = os.path.join(TestMDF.tempdir_array.name, mdfname)
+        for input_file in Path(TestMDF.tempdir_array.name).iterdir():
             print(input_file)
 
             equal = True
@@ -258,10 +247,9 @@ class TestMDF(unittest.TestCase):
         ret = True
 
         for enable in (True, False):
-            for mdf in os.listdir(TestMDF.tempdir_demo.name):
-                with MDF(
-                    os.path.join(TestMDF.tempdir_demo.name, mdf)
-                ) as input_file:
+            for mdf in Path(TestMDF.tempdir_demo.name).iterdir():
+
+                with MDF(mdf) as input_file:
                     if input_file.version == "2.00":
                         continue
                     print(mdf)
@@ -293,16 +281,14 @@ class TestMDF(unittest.TestCase):
         t = np.arange(cycles, dtype=np.float64)
 
         for out in SUPPORTED_VERSIONS:
-            for mdfname in os.listdir(TestMDF.tempdir_general.name):
+            for input_file in Path(TestMDF.tempdir_general.name).iterdir():
                 for compression in range(3):
-
-                    input_file = os.path.join(TestMDF.tempdir_general.name, mdfname)
                     print(input_file, out)
 
                     with MDF(input_file) as mdf:
                         mdf.configure(read_fragment_size=8000)
                         outfile = mdf.convert(out).save(
-                            os.path.join(TestMDF.tempdir.name, "tmp_convert_{}".format(out)),
+                            Path(TestMDF.tempdir.name) / f"tmp_convert_{out}",
                             overwrite=True,
                             compression=compression,
                         )
@@ -417,22 +403,19 @@ class TestMDF(unittest.TestCase):
         print("MDF convert tests")
 
         for out in SUPPORTED_VERSIONS:
-            for mdfname in os.listdir(TestMDF.tempdir_demo.name):
-                input_file = os.path.join(TestMDF.tempdir_demo.name, mdfname)
-                print(input_file)
+            for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
                 if MDF(input_file).version == "2.00":
                     continue
                 print(input_file, out)
                 with MDF(input_file) as mdf:
                     outfile = mdf.convert(out).save(
-                        os.path.join(TestMDF.tempdir_demo.name, "tmp"), overwrite=True
+                        Path(TestMDF.tempdir_demo.name) / "tmp",
+                        overwrite=True,
                     )
 
                 equal = True
 
-                with MDF(input_file) as mdf, MDF(
-                    outfile
-                ) as mdf2:
+                with MDF(input_file) as mdf, MDF(outfile) as mdf2:
 
                     for name in set(mdf2.channels_db) - {"t", "time"}:
                         original = mdf.get(name)
@@ -454,9 +437,7 @@ class TestMDF(unittest.TestCase):
 
         t = np.arange(cycles, dtype=np.float64)
 
-        for mdfname in os.listdir(TestMDF.tempdir_general.name):
-
-            input_file = os.path.join(TestMDF.tempdir_general.name, mdfname)
+        for input_file in Path(TestMDF.tempdir_general.name).iterdir():
             for whence in (0, 1):
                 for compression in range(3):
                     print(input_file)
@@ -464,41 +445,41 @@ class TestMDF(unittest.TestCase):
                     outfile0 = MDF(input_file)
                     outfile0.configure(read_fragment_size=8000)
                     outfile0 = outfile0.cut(stop=-1, whence=whence, include_ends=False).save(
-                        os.path.join(TestMDF.tempdir.name, "tmp0"), overwrite=True,
+                        Path(TestMDF.tempdir.name) / "tmp0", overwrite=True,
                         compression=compression,
                     )
 
                     outfile1 = MDF(input_file)
                     outfile1.configure(read_fragment_size=8000)
                     outfile1 = outfile1.cut(stop=105, whence=whence, include_ends=False).save(
-                        os.path.join(TestMDF.tempdir.name, "tmp1"), overwrite=True,
+                        Path(TestMDF.tempdir.name) / "tmp1", overwrite=True,
                         compression=compression,
                     )
 
                     outfile2 = MDF(input_file)
                     outfile2.configure(read_fragment_size=8000)
                     outfile2 = outfile2.cut(start=105.1, stop=201, whence=whence, include_ends=False).save(
-                        os.path.join(TestMDF.tempdir.name, "tmp2"), overwrite=True,
+                        Path(TestMDF.tempdir.name) / "tmp2", overwrite=True,
                         compression=compression,
                     )
 
                     outfile3 = MDF(input_file)
                     outfile3.configure(read_fragment_size=8000)
                     outfile3 = outfile3.cut(start=201.1, whence=whence, include_ends=False).save(
-                        os.path.join(TestMDF.tempdir.name, "tmp3"), overwrite=True
+                        Path(TestMDF.tempdir.name) / "tmp3", overwrite=True
                     )
 
                     outfile4 = MDF(input_file)
                     outfile4.configure(read_fragment_size=8000)
                     outfile4 = outfile4.cut(start=7000, whence=whence, include_ends=False).save(
-                        os.path.join(TestMDF.tempdir.name, "tmp4"), overwrite=True,
+                        Path(TestMDF.tempdir.name) / "tmp4", overwrite=True,
                         compression=compression,
                     )
 
                     outfile = MDF.concatenate(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
                         version=MDF(input_file).version,
-                    ).save(os.path.join(TestMDF.tempdir.name, "tmp_cut"), overwrite=True,
+                    ).save(Path(TestMDF.tempdir.name) / "tmp_cut", overwrite=True,
                         compression=compression,)
 
                     with MDF(outfile) as mdf:
@@ -608,31 +589,30 @@ class TestMDF(unittest.TestCase):
 
     def test_cut_arrays(self):
         print("MDF cut big array files")
-        for mdfname in os.listdir(TestMDF.tempdir_array.name):
+        for input_file in Path(TestMDF.tempdir_array.name).iterdir():
             for whence in (0, 1):
-                input_file = os.path.join(TestMDF.tempdir_array.name, mdfname)
                 print(input_file, whence)
 
                 outfile1 = MDF(input_file)
                 outfile1.configure(read_fragment_size=8000)
                 outfile1 = outfile1.cut(stop=105.5, whence=whence, include_ends=False).save(
-                    os.path.join(TestMDF.tempdir.name, "tmp1"), overwrite=True
+                    Path(TestMDF.tempdir.name) / "tmp1", overwrite=True
                 )
                 outfile2 = MDF(input_file)
                 outfile2.configure(read_fragment_size=8000)
                 outfile2 = outfile2.cut(
                     start=105.5, stop=201.5, whence=whence, include_ends=False
-                ).save(os.path.join(TestMDF.tempdir.name, "tmp2"), overwrite=True)
+                ).save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
                 outfile3 = MDF(input_file)
                 outfile3.configure(read_fragment_size=8000)
                 outfile3 = outfile3.cut(start=201.5, whence=whence, include_ends=False).save(
-                    os.path.join(TestMDF.tempdir.name, "tmp3"), overwrite=True
+                    Path(TestMDF.tempdir.name) / "tmp3", overwrite=True
                 )
 
                 outfile = MDF.concatenate(
                     [outfile1, outfile2, outfile3],
                     MDF(input_file).version
-                ).save(os.path.join(TestMDF.tempdir.name, "tmp_cut"), overwrite=True)
+                ).save(Path(TestMDF.tempdir.name) / "tmp_cut", overwrite=True)
 
                 equal = True
 
@@ -751,11 +731,9 @@ class TestMDF(unittest.TestCase):
 
         cntr = 0
 
-        for mdfname in os.listdir(TestMDF.tempdir_demo.name):
+        for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
 
-            input_file = os.path.join(TestMDF.tempdir_demo.name, mdfname)
-
-            if "2.00" in input_file:
+            if "2.00" in input_file.name:
                 continue
             for whence in (0, 1):
                 print(input_file, whence)
@@ -763,23 +741,23 @@ class TestMDF(unittest.TestCase):
                 outfile1 = (
                     MDF(input_file)
                     .cut(stop=2, whence=whence, include_ends=False)
-                    .save(os.path.join(TestMDF.tempdir.name, "tmp1"), overwrite=True)
+                    .save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
                 )
                 outfile2 = (
                     MDF(input_file)
                     .cut(start=2, stop=6, whence=whence, include_ends=False)
-                    .save(os.path.join(TestMDF.tempdir.name, "tmp2"), overwrite=True)
+                    .save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
                 )
                 outfile3 = (
                     MDF(input_file)
                     .cut(start=6, whence=whence, include_ends=False)
-                    .save(os.path.join(TestMDF.tempdir.name, "tmp3"), overwrite=True)
+                    .save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
                 )
 
                 outfile = MDF.concatenate(
                     [outfile1, outfile2, outfile3],
                     vedrsion=MDF(input_file).version
-                ).save(os.path.join(TestMDF.tempdir.name, "tmp"), overwrite=True)
+                ).save(Path(TestMDF.tempdir.name) / "tmp", overwrite=True)
 
                 print("OUT", outfile)
 
@@ -806,8 +784,7 @@ class TestMDF(unittest.TestCase):
     def test_filter(self):
         print("MDF filter tests")
 
-        for mdfname in os.listdir(TestMDF.tempdir_demo.name):
-            input_file = os.path.join(TestMDF.tempdir_demo.name, mdfname)
+        for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
 
             if MDF(input_file).version <= "2.00":
                 # if MDF(input_file, memory=memory).version < '4.00':
@@ -848,9 +825,7 @@ class TestMDF(unittest.TestCase):
     def test_select(self):
         print("MDF select tests")
 
-        for mdfname in os.listdir(TestMDF.tempdir_demo.name):
-
-            input_file = os.path.join(TestMDF.tempdir_demo.name, mdfname)
+        for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
 
             if MDF(input_file).version == "2.00":
                 continue

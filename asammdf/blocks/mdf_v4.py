@@ -3519,7 +3519,7 @@ class MDF4(object):
 
         """
         if address is None and index is None:
-            return b"", ""
+            return b"", Path("")
 
         if address is not None:
             index = self._attachments_map[address]

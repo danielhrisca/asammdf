@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 import logging
 
 import numpy as np
@@ -7,7 +6,6 @@ import numpy as np
 from ..ui import resource_qt5 as resource_rc
 
 
-HERE = os.path.dirname(os.path.realpath(__file__))
 bin_ = bin
 
 try:

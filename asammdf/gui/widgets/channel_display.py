@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+from pathlib import Path
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -8,13 +9,12 @@ from PyQt5 import uic
 
 from ..ui import resource_qt5 as resource_rc
 
-HERE = os.path.dirname(os.path.realpath(__file__))
+HERE = Path(__file__).resolve().parent
 
+uifile_1 = HERE.joinpath("..", "ui", "channel_display_widget.ui")
 
-uifile_1 = os.path.join(HERE, "..", "ui", "channel_display_widget.ui")
-
-cwd = os.getcwd()
-os.chdir(os.path.join(HERE, "..", "ui"))
+cwd = Path.cwd()
+os.chdir(HERE.joinpath("..", "ui"))
 form_1, base_1 = uic.loadUiType(uifile_1, resource_suffix='_qt5', from_imports=True)
 os.chdir(cwd)
 

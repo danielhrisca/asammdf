@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 from functools import partial
 from threading import Thread
 from time import sleep
@@ -28,7 +27,7 @@ from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.tabular import TabularValuesDialog
 
-HERE = os.path.dirname(os.path.realpath(__file__))
+HERE = Path(__file__).resolve().parent
 
 
 class FileWidget(QWidget):
@@ -37,7 +36,8 @@ class FileWidget(QWidget):
 
     def __init__(self, file_name, with_dots, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(os.path.join(HERE, "..", "ui", "file_widget.ui"), self)
+        uic.loadUi(HERE.joinpath("..", "ui", "file_widget.ui"), self)
+
         file_name = Path(file_name)
 
         self.plot = None
@@ -80,8 +80,8 @@ class FileWidget(QWidget):
 
                     index = 0
                     while True:
-                        mdf_name = f"{file_name}.{index}.mdf"
-                        if os.path.exists(mdf_name):
+                        mdf_name = file_name.with_suffix(f".{index}.mdf")
+                        if mdf_name.exists():
                             index += 1
                         else:
                             break
@@ -91,7 +91,7 @@ class FileWidget(QWidget):
                         datalyser.DCOM_set_datalyser_visibility(False)
                     except:
                         pass
-                    datalyser.DCOM_convert_file_mdf_dl3(file_name, mdf_name, 0)
+                    datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
                     datalyser.DCOM_TerminateDAS()
                     file_name = mdf_name
                 except Exception as err:
@@ -968,7 +968,7 @@ class FileWidget(QWidget):
         mdf_name = self.mdf.name
         self.mdf.close()
         if self.file_name.suffix.lower() == ".dl3":
-            os.remove(mdf_name)
+            mdf_name.unlink()
 
     def convert(self, event):
         version = self.convert_format.currentText()

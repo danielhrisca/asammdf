@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os
+from pathlib import Path
 
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
@@ -8,7 +8,7 @@ from PyQt5 import uic
 
 from ..ui import resource_qt5 as resource_rc
 
-HERE = os.path.dirname(os.path.realpath(__file__))
+HERE = Path(__file__).resolve().parent
 
 
 class SearchWidget(QWidget):
@@ -17,7 +17,7 @@ class SearchWidget(QWidget):
 
     def __init__(self, channels_db, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(os.path.join(HERE, "..", "ui", "search_widget.ui"), self)
+        uic.loadUi(HERE.joinpath("..", "ui", "search_widget.ui"), self)
         self.channels_db = channels_db
 
         self.matches = 0

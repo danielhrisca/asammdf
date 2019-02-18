@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-from __future__ import print_function
 import unittest
-import tempfile, os
+import tempfile
+from pathlib import Path
 
 import numpy as np
 
@@ -16,11 +16,11 @@ class TestMDF23(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        TestMDF23.tempdir = tempfile.TemporaryDirectory()
+        cls.tempdir = tempfile.TemporaryDirectory()
 
     @classmethod
     def tearDownClass(cls):
-        TestMDF23.tempdir.cleanup()
+        cls.tempdir.cleanup()
 
     def test_measurement(self):
         self.assertTrue(MDF2)
@@ -49,7 +49,7 @@ class TestMDF23(unittest.TestCase):
 
         with MDF(version="2.00") as mdf:
             mdf.append([sig_int, sig_float], common_timebase=True)
-            outfile = mdf.save(os.path.join(TestMDF23.tempdir.name, "tmp"), overwrite=True)
+            outfile = mdf.save(Path(TestMDF23.tempdir.name) / "tmp", overwrite=True)
 
         with MDF(outfile) as mdf:
             ret_sig_int = mdf.get(sig_int.name)
@@ -81,7 +81,7 @@ class TestMDF23(unittest.TestCase):
 
         with MDF(version="2.14") as mdf:
             mdf.append([sig_int, sig_float], common_timebase=True)
-            outfile = mdf.save(os.path.join(TestMDF23.tempdir.name, "tmp"), overwrite=True)
+            outfile = mdf.save(Path(TestMDF23.tempdir.name) / "tmp", overwrite=True)
 
         with MDF(outfile) as mdf:
             ret_sig_int = mdf.get(sig_int.name)
@@ -113,7 +113,7 @@ class TestMDF23(unittest.TestCase):
 
         with MDF(version="3.00") as mdf:
             mdf.append([sig_int, sig_float], common_timebase=True)
-            outfile = mdf.save(os.path.join(TestMDF23.tempdir.name, "tmp"), overwrite=True)
+            outfile = mdf.save(Path(TestMDF23.tempdir.name) / "tmp", overwrite=True)
 
         with MDF(outfile) as mdf:
             ret_sig_int = mdf.get(sig_int.name)
@@ -145,7 +145,7 @@ class TestMDF23(unittest.TestCase):
 
         with MDF(version="3.10") as mdf:
             mdf.append([sig_int, sig_float], common_timebase=True)
-            outfile = mdf.save(os.path.join(TestMDF23.tempdir.name, "tmp"), overwrite=True)
+            outfile = mdf.save(Path(TestMDF23.tempdir.name) / "tmp", overwrite=True)
 
         with MDF(outfile) as mdf:
             ret_sig_int = mdf.get(sig_int.name)

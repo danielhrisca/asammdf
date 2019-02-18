@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os
+from pathlib import Path
 
 import numpy as np
 
@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
 
-HERE = os.path.dirname(os.path.realpath(__file__))
+HERE = Path(__file__).resolve().parent
 
 
 OPS_TO_STR = {
@@ -32,7 +32,7 @@ OPS_TO_STR = {
 class DefineChannel(QDialog):
     def __init__(self, channels, all_timebase, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(os.path.join(HERE, "..", "ui", "define_channel_dialog.ui"), self)
+        uic.loadUi(HERE.joinpath("..", "ui", "define_channel_dialog.ui"), self)
 
         self.channels = {ch.name: ch for ch in channels}
         self.result = None

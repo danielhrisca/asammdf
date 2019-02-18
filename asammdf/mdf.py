@@ -1918,6 +1918,7 @@ class MDF(object):
         merged.header.start_time = oldest
 
         encodings = []
+        included_channel_names = []
 
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
@@ -1925,18 +1926,34 @@ class MDF(object):
 
             if mdf_index == 0:
                 last_timestamps = [None for gp in mdf.groups]
-                chans = [
-                    [ch.name for ch in gp.channels]
-                    for gp in mdf.groups
-                ]
 
             cg_nr = -1
 
             for i, group in enumerate(mdf.groups):
-                channel_names = [ch.name for ch in group.channels]
-                if channel_names != chans[i]:
-                    raise MdfException(f"internal structure of file {i} is different")
                 included_channels = mdf._included_channels(i)
+                if mdf_index == 0:
+                    included_channel_names.append(
+                        [group.channels[k].name for k in included_channels]
+                    )
+                else:
+                    names = [group.channels[k].name for k in included_channels]
+                    if names != included_channel_names[i]:
+                        if sorted(names) != sorted(included_channel_names[i]):
+                            raise MdfException(f"internal structure of file {mdf_index} is different")
+                        else:
+                            logger.warning(
+                                f'Different channel order in channel group {i} of file {mdf_index}.'
+                                ' Data can be corrupted if the there are channels with the same '
+                                'name in this channel group'
+                            )
+                            included_channels = [
+                                mdf._validate_channel_selection(
+                                    name=name_,
+                                    group=i,
+                                )[1]
+                                for name_ in included_channel_names[i]
+                            ]
+
                 if included_channels:
                     cg_nr += 1
                 else:

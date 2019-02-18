@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 from functools import partial
 from pathlib import Path
 import webbrowser
@@ -17,14 +16,14 @@ from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .list import ListWidget
 from .file import FileWidget
 
-HERE = os.path.dirname(os.path.realpath(__file__))
+HERE = Path(__file__).resolve().parent
 
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-        uic.loadUi(os.path.join(HERE, "..", "ui", "main_window.ui"), self)
+        uic.loadUi(HERE.joinpath("..", "ui", "main_window.ui"), self)
 
         self.progress = None
 
@@ -430,13 +429,13 @@ class MainWindow(QMainWindow):
             except:
                 raise
             else:
-                self.files.addTab(widget, os.path.basename(file_name))
+                self.files.addTab(widget, file_name.name)
                 self.files.setTabToolTip(index, str(file_name))
                 self.files.setCurrentIndex(index)
                 widget.file_scrambled.connect(self.open_scrambled_file)
 
     def open_scrambled_file(self, name):
-        name = Path(name)
+        filename = Path(name)
         index = self.files.count()
 
         try:
@@ -446,8 +445,8 @@ class MainWindow(QMainWindow):
         except:
             raise
         else:
-            self.files.addTab(widget, os.path.basename(name))
-            self.files.setTabToolTip(index, str(name))
+            self.files.addTab(widget, filename.name)
+            self.files.setTabToolTip(index, str(filename))
             self.files.setCurrentIndex(index)
             widget.file_scrambled.connect(self.open_scrambled_file)
 

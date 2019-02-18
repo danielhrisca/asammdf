@@ -201,6 +201,8 @@ class AttachmentBlock:
             compression = kwargs.get("compression", False)
             embedded = kwargs.get("embedded", False)
 
+            md5_sum = md5(data).digest()
+
             flags = v4c.FLAG_AT_MD5_VALID
             if embedded:
                 flags |= v4c.FLAG_AT_EMBEDDED
@@ -214,8 +216,6 @@ class AttachmentBlock:
                 self.file_name.write_bytes(data)
                 embedded_size = 0
                 data = b""
-
-            md5_sum = md5(data).digest()
 
             self.id = b"##AT"
             self.reserved0 = 0
@@ -234,6 +234,12 @@ class AttachmentBlock:
             self.embedded_data = data
 
     def extract(self):
+        """extract attachment data
+
+        Returns
+        -------
+        data : bytes
+        """
         if self.flags & v4c.FLAG_AT_EMBEDDED:
             if self.flags & v4c.FLAG_AT_COMPRESSED_EMBEDDED:
                 data = decompress(self.embedded_data)
@@ -248,6 +254,8 @@ class AttachmentBlock:
                 else:
                     message = f"ATBLOCK md5sum={self.md5_sum} and embedded data md5sum={md5_sum}"
                     logger.warning(message)
+            else:
+                return data
         else:
             logger.warning("external attachments not supported")
 

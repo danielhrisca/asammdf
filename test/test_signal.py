@@ -6,8 +6,6 @@ import numpy as np
 
 from asammdf import Signal
 from asammdf.blocks.utils import MdfException
-import asammdf
-print(asammdf.__path__)
 
 
 class TestSignal(unittest.TestCase):
