@@ -403,6 +403,11 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal(res.samples, target))
 
         # + 2
+        s = Signal(
+            np.arange(5, dtype='<f4'),
+            np.arange(5, dtype='<f8'),
+            name='S',
+        )
 
         target = np.arange(2, 7, dtype='<f4')
 
@@ -434,6 +439,11 @@ class TestSignal(unittest.TestCase):
 
 
         # - 2
+        s = Signal(
+            np.arange(5, dtype='<f4'),
+            np.arange(5, dtype='<f8'),
+            name='S',
+        )
 
         target = np.arange(-2, 3, dtype='<f4')
 
@@ -464,6 +474,11 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal(res.samples, target))
 
 
+        s = Signal(
+            np.arange(5, dtype='<f4'),
+            np.arange(5, dtype='<f8'),
+            name='S',
+        )
         target = np.arange(0, 10, 2, dtype='<f4')
 
         res = s * 2
@@ -488,11 +503,15 @@ class TestSignal(unittest.TestCase):
         res = s / s
         self.assertTrue(np.array_equal(res.samples, target))
 
-        s += s
+        s /= s
         res = s
         self.assertTrue(np.array_equal(res.samples, target))
 
-
+        s = Signal(
+            np.arange(1, 5, dtype='<f4'),
+            np.arange(1, 5, dtype='<f8'),
+            name='S',
+        )
         target = np.arange(2, 10, 2, dtype='<f4')
 
         res = 1 / (0.5 / s)

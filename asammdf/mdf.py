@@ -2703,8 +2703,13 @@ class MDF(object):
 
         Parameters
         ----------
-        name : str
+        name : str | pathlib.Path
             file name
+
+        Returns
+        -------
+        name : str
+            scrambled file name
 
         """
 
@@ -2932,12 +2937,14 @@ class MDF(object):
                 for index, (addr, bts) in enumerate(texts.items()):
                     mdf.seek(addr)
                     mdf.write(bts)
-                    if index % chunk == 0:
+                    if chunk and index % chunk == 0:
                         if callback:
                             callback(66 + idx, 100)
 
             if callback:
                 callback(100, 100)
+
+        return dst
 
     def get_group(self, index, raster=None, time_from_zero=False, use_display_names=False):
         """ get channel group as pandas DataFrames. If there are multiple

@@ -818,7 +818,7 @@ class TestMDF(unittest.TestCase):
                 for name in names:
                     self.assertFalse(name in mdf)
 
-                names = [name[:-1] for name in names]
+                names = [name[:-3] for name in names]
                 for name in names:
                     self.assertFalse(name in mdf)
 
@@ -874,8 +874,11 @@ class TestMDF(unittest.TestCase):
         print("MDF scramble tests")
 
         for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
+            scrambled = MDF.scramble(input_file)
+            self.assertTrue(scrambled)
+            Path(scrambled).unlink()
 
-            self.assertTrue(MDF.scramble(input_file))
+
 
 if __name__ == "__main__":
     unittest.main()
