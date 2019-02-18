@@ -1164,12 +1164,8 @@ address: {}
             lower = np.array([self["lower_{}".format(i)] for i in range(nr)])
             upper = np.array([self["upper_{}".format(i)] for i in range(nr)])
 
-            if values.dtype.kind == "f":
-                idx1 = np.searchsorted(lower, values, side="right") - 1
-                idx2 = np.searchsorted(upper, values, side="right")
-            else:
-                idx1 = np.searchsorted(lower, values, side="right") - 1
-                idx2 = np.searchsorted(upper, values, side="right") - 1
+            idx1 = np.searchsorted(lower, values, side="right") - 1
+            idx2 = np.searchsorted(upper, values, side="right")
 
             idx = np.argwhere(idx1 != idx2).flatten()
 
@@ -1192,8 +1188,7 @@ address: {}
 
                     idx = np.argwhere(idx1 == idx2).flatten()
                     if len(idx):
-                        print(values[idx], type(values[idx]))
-                        new_values[idx] = phys[values[idx]]
+                        new_values[idx] = phys[idx1[idx]]
                     values = new_values
                 else:
                     values = phys[idx1]
