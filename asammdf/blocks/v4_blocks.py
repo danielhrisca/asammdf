@@ -802,7 +802,7 @@ class Channel:
             self.unit_addr = 0
             self.comment_addr = 0
             try:
-                self.attachment_0_addr = kwargs["attachment_addr"]
+                self.attachment_addr = kwargs["attachment_addr"]
                 self.block_len += 8
                 self.links_nr += 1
                 attachments = 1
