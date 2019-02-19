@@ -2359,12 +2359,15 @@ class MDF(object):
                 if idx == 0:
                     master = self.get_master(i, data=fragment)
                     if len(master) > 1:
-                        num = float(np.float32((master[-1] - master[0]) / raster))
-                        if int(num) == num:
-                            master = np.linspace(master[0], master[-1], int(num))
+                        if raster:
+                            num = float(np.float32((master[-1] - master[0]) / raster))
+                            if int(num) == num:
+                                master = np.linspace(master[0], master[-1], int(num))
+                            else:
+                                master = np.arange(master[0], master[-1], raster)
+                            last = master[-1] + raster
                         else:
-                            master = np.arange(master[0], master[-1], raster)
-                        last = master[-1] + raster
+                            last = master[-1]
                     elif len(master) == 1:
                         last = master[-1] + raster
                     else:
@@ -2375,12 +2378,15 @@ class MDF(object):
                     if len(master):
                         if last is None:
                             last = master[0] + raster
-                        num = float(np.float32((master[-1] - last) / raster))
-                        if int(num) == num:
-                            master = np.linspace(master[0], master[-1], int(num))
+                        if raster:
+                            num = float(np.float32((master[-1] - last) / raster))
+                            if int(num) == num:
+                                master = np.linspace(master[0], master[-1], int(num))
+                            else:
+                                master = np.arange(last, master[-1], raster)
+                            last = master[-1] + raster
                         else:
-                            master = np.arange(last, master[-1], raster)
-                        last = master[-1] + raster
+                            last = master[-1]
 
                 if idx == 0:
                     sigs = []

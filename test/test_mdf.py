@@ -18,7 +18,9 @@ from utils import (
     generate_test_file,
     generate_arrays_test_file,
 )
-from asammdf import MDF, SUPPORTED_VERSIONS
+from asammdf import MDF, Signal, SUPPORTED_VERSIONS
+from asammdf.blocks.utils import MdfException
+from pandas import DataFrame
 
 SUPPORTED_VERSIONS = [version for version in SUPPORTED_VERSIONS if version >= "4.00"]
 
@@ -52,6 +54,16 @@ class TestMDF(unittest.TestCase):
             generate_test_file(cls.tempdir_general.name, version)
 
         generate_arrays_test_file(cls.tempdir_array.name)
+
+    def test_mdf_header(self):
+        mdf = BytesIO(b'M' * 100)
+        with self.assertRaises(MdfException):
+            MDF(mdf)
+
+    def test_wrong_header_version(self):
+        mdf = BytesIO(b'MDF     AAAA    amdf500d\x00\x00\x00\x00\x9f\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+        with self.assertRaises(MdfException):
+            MDF(mdf)
 
     def test_read(self):
         print("MDF read big files")
@@ -877,6 +889,66 @@ class TestMDF(unittest.TestCase):
             scrambled = MDF.scramble(input_file)
             self.assertTrue(scrambled)
             Path(scrambled).unlink()
+
+    def test_iter_groups(self):
+        dfs = [
+            DataFrame({f'df_{i}_column_0': np.ones(5) * i, f'df_{i}_column_1': np.arange(5) * i})
+            for i in range(5)
+        ]
+
+        mdf = MDF()
+        for df in dfs:
+            mdf.append(df)
+
+        for i, mdf_df in enumerate(mdf.iter_groups()):
+            self.assertTrue(mdf_df.equals(dfs[i]))
+
+    def test_resample_raster_0(self):
+        sigs = [
+            Signal(
+                samples=np.ones(1000) * i,
+                timestamps=np.arange(1000),
+                name=f'Signal_{i}',
+            )
+            for i in range(20)
+        ]
+
+        mdf = MDF()
+        mdf.append(sigs)
+        mdf.configure(read_fragment_size=1)
+        mdf = mdf.resample(raster=0)
+
+        for i, sig in enumerate(mdf.iter_channels(skip_master=True)):
+            self.assertTrue(np.array_equal(sig.samples, sigs[i].samples))
+            self.assertTrue(np.array_equal(sig.timestamps, sigs[i].timestamps))
+
+    def test_resample(self):
+        raster = 1.33
+        sigs = [
+            Signal(
+                samples=np.arange(1000, dtype='f8'),
+                timestamps=np.concatenate([np.arange(500), np.arange(1000, 1500)]),
+                name=f'Signal_{i}',
+            )
+            for i in range(20)
+        ]
+
+        mdf = MDF()
+        mdf.append(sigs)
+        mdf = mdf.resample(raster=raster)
+
+        target_timestamps = np.arange(0, 1500, 1.33)
+        target_samples = np.concatenate([
+             np.arange(0, 500, 1.33),
+             np.linspace(499.00215568862274, 499.9976646706587, 376),
+             np.arange(500.1600000000001, 1000, 1.33)
+             ]
+        )
+
+        for i, sig in enumerate(mdf.iter_channels(skip_master=True)):
+            self.assertTrue(np.array_equal(sig.timestamps, target_timestamps))
+            self.assertTrue(np.allclose(sig.samples, target_samples))
+
 
 
 
