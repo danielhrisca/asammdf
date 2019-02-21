@@ -5949,17 +5949,14 @@ class MDF4(object):
         kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
         gp.channel_group.name = source_info
-
+        
+        field_names = UniqueDB()
+        parents = {}
 
         self.groups.append(gp)
 
-        cycles_nr = 0
-        fields = []
-        types = []
-        parents = {}
         ch_cntr = 0
         offset = 0
-        field_names = UniqueDB()
 
         defined_texts = {}
         # setup all blocks related to the time master channel
@@ -6012,7 +6009,7 @@ class MDF4(object):
                     "channel_type": channel_type,
                     "sync_type": sync_type,
                     "bit_count": s_size,
-                    "byte_offset": offset,
+                    "byte_offset": signal.byte_offset,
                     "bit_offset": 0,
                     "data_type": s_type,
                     "data_block_addr": data_block_addr,
@@ -6047,10 +6044,6 @@ class MDF4(object):
                     self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
-                field_name = field_names.get_unique_name(name)
-                parents[ch_cntr] = field_name, 0
-
-                types.append((field_name, sig_dtype, sig_shape[1:]))
 
                 ch_cntr += 1
 
@@ -6059,16 +6052,12 @@ class MDF4(object):
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
 
-                field_name = field_names.get_unique_name(name)
-
                 if names == v4c.CANOPEN_TIME_FIELDS:
 
-                    types.append((field_name, "V6"))
                     byte_size = 6
                     s_type = v4c.DATA_TYPE_CANOPEN_TIME
 
                 else:
-                    types.append((field_name, "V7"))
                     byte_size = 7
                     s_type = v4c.DATA_TYPE_CANOPEN_DATE
 
@@ -6081,7 +6070,7 @@ class MDF4(object):
                 kwargs = {
                     "channel_type": v4c.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
-                    "byte_offset": offset,
+                    "byte_offset": signal.byte_offset,
                     "bit_offset": 0,
                     "data_type": s_type,
                     "flags": 0,
@@ -6105,7 +6094,6 @@ class MDF4(object):
                     self.channels_db.add(ch.display_name, entry)
 
                 # update the parents as well
-                parents[ch_cntr] = field_name, 0
 
                 gp_sdata.append(0)
                 gp_sdata_size.append(0)
@@ -6117,7 +6105,7 @@ class MDF4(object):
                     gp,
                     signal,
                     field_names,
-                    offset,
+                    signal.byte_offset,
                     dg_cntr,
                     ch_cntr,
                     parents,
@@ -6126,8 +6114,6 @@ class MDF4(object):
                     [],
                     0,
                 )
-                fields.extend(new_fields)
-                types.extend(new_types)
 
             else:
                 samples = signal.samples
@@ -6144,7 +6130,7 @@ class MDF4(object):
                 kwargs = {
                     "channel_type": v4c.CHANNEL_TYPE_VLSD,
                     "bit_count": 64,
-                    "byte_offset": offset,
+                    "byte_offset": signal.byte_offset,
                     "bit_offset": 0,
                     "data_type": data_type,
                     "data_block_addr": data_addr,
@@ -6174,26 +6160,27 @@ class MDF4(object):
                 field_name = field_names.get_unique_name(name)
                 parents[ch_cntr] = field_name, 0
 
-                types.append((field_name, uint64))
-
                 ch_cntr += 1
 
                 # simple channels don't have channel dependencies
                 gp_dep.append(None)
+                
+        samples_byte_nr = max(
+            sig.byte_offset + sig.dtype.itemsize
+            for sig in channels
+        )
 
-        gp.channel_group.cycles_nr = cycles_nr
-        gp.channel_group.samples_byte_nr = offset
+        gp.channel_group.cycles_nr = 0
+        gp.channel_group.samples_byte_nr = samples_byte_nr
         gp.size = 0
 
         # data group
         gp.data_group = DataGroup()
 
         # data block
-        types = dtype(types)
 
         gp.sorted = True
-        gp.types = types
-        gp.parents = parents
+        self._prepare_record(gp)
 
         gp.data_location = v4c.LOCATION_TEMPORARY_FILE
         gp.data_block = []

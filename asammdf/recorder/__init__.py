@@ -12,9 +12,9 @@ logger.addHandler(console)
 logger.setLevel(logging.WARNING)
 
 from .recorder import SignalDescription, Recorder
-from .plugin import PluginBase
+from .device import DeviceBase
 
 
 __all__ = [
-    "SignalDescription", "Recorder", "PluginBase",
+    "SignalDescription", "Recorder", "DeviceBase",
 ]

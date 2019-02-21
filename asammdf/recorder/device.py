@@ -12,25 +12,10 @@ from abc import ABC, abstractmethod
 
 logger = logging.getLogger("asammdf")
 
-__all__ = ["PluginBase", ]
+__all__ = ["DeviceBase", ]
 
 
-class PluginBase(ABC):
-    """ MF4 recorder
-
-    Attributes
-    ----------
-    frozen : bool
-        the recorder is frozen and cannot register new channels from the moment the
-        recording is started until the measurement is saved
-    mdf : asammdf.MDF
-        measurement object
-    lock : threading.Lock
-        allows safe update of samples and channels selection
-    buffers : list
-        list of buffer size for each registered channel group
-
-    """
+class DeviceBase(ABC):
 
     def __init__(self, plugin):
         self.queue = Queue()
