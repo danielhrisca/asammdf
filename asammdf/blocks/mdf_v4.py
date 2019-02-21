@@ -4868,26 +4868,50 @@ class MDF4(object):
                                 data_bytes, grp, ch_nr
                             )
                         else:
-                            if dtype_.byteorder == '>':
-                                if bit_offset or bit_count != size << 3:
-                                    vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
-                            else:
-                                if bit_offset:
-                                    if kind_ == "i":
-                                        vals = vals.astype(dtype("{}u{}".format(dtype_.byteorder, size)))
-                                        vals >>= bit_offset
-                                    else:
-                                        vals = vals >> bit_offset
+                            if data_type in (v4c.DATA_TYPE_REAL_INTEL, v4c.DATA_TYPE_REAL_MOTOROLA):
+                                if bit_count != size * 8:
+                                    vals = self._get_not_byte_aligned_data(
+                                        data_bytes, grp, ch_nr
+                                    )
+                                else:
+                                    if kind_ in "ui":
+                                        if not channel.dtype_fmt:
+                                            channel.dtype_fmt = get_fmt_v4(data_type, bit_count, channel_type)
+                                        channel_dtype = dtype(channel.dtype_fmt.split(')')[-1])
+                                        vals = vals.view(channel_dtype)
 
-                                if bit_count != size << 3:
-                                    if data_type in v4c.SIGNED_INT:
-                                        vals = as_non_byte_sized_signed_int(vals, bit_count)
+                            else:
+                                if kind_ == "f":
+                                    if bit_count != size * 8:
+                                        vals = self._get_not_byte_aligned_data(
+                                            data_bytes, grp, ch_nr
+                                        )
                                     else:
-                                        mask = (1 << bit_count) - 1
-                                        if vals.flags.writeable:
-                                            vals &= mask
-                                        else:
-                                            vals = vals & mask
+                                        if not channel.dtype_fmt:
+                                            channel.dtype_fmt = get_fmt_v4(data_type, bit_count, channel_type)
+                                        channel_dtype = dtype(channel.dtype_fmt.split(')')[-1])
+                                        vals = vals.view(channel_dtype)
+                                else:
+                                    if dtype_.byteorder == '>':
+                                        if bit_offset or bit_count != size << 3:
+                                            vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
+                                    else:
+                                        if bit_offset:
+                                            if kind_ == "i":
+                                                vals = vals.astype(dtype("{}u{}".format(dtype_.byteorder, size)))
+                                                vals >>= bit_offset
+                                            else:
+                                                vals = vals >> bit_offset
+        
+                                        if bit_count != size << 3:
+                                            if data_type in v4c.SIGNED_INT:
+                                                vals = as_non_byte_sized_signed_int(vals, bit_count)
+                                            else:
+                                                mask = (1 << bit_count) - 1
+                                                if vals.flags.writeable:
+                                                    vals &= mask
+                                                else:
+                                                    vals = vals & mask
 
                     else:
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
