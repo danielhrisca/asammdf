@@ -2698,9 +2698,8 @@ class MDF3(object):
                                         data_bytes, grp, ch_nr
                                     )
                                 else:
-                                    if not channel.dtype_fmt:
-                                        channel.dtype_fmt = get_fmt_v3(data_type, bits)
-                                    channel_dtype = dtype(channel.dtype_fmt.split(')')[-1])
+                                    dtype_fmt = get_fmt_v3(data_type, bits)
+                                    channel_dtype = dtype(dtype_fmt.split(')')[-1])
                                     vals = vals.view(channel_dtype)
                             else:
 
@@ -2735,9 +2734,8 @@ class MDF3(object):
                                 )
                             else:
                                 if kind_ in "ui":
-                                    if not channel.dtype_fmt:
-                                        channel.dtype_fmt = get_fmt_v3(data_type, bits)
-                                    channel_dtype = dtype(channel.dtype_fmt.split(')')[-1])
+                                    dtype_fmt = get_fmt_v3(data_type, bits)
+                                    channel_dtype = dtype(dtype_fmt.split(')')[-1])
                                     vals = vals.view(channel_dtype)
 
                 else:
