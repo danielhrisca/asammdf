@@ -2689,30 +2689,56 @@ class MDF3(object):
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                     else:
                         dtype_ = vals.dtype
-                        if dtype_.byteorder == ">":
-                            if bit_offset or bits != size << 3:
+                        kind_ = dtype_.kind
+                        
+                        if data_type in v23c.INT_TYPES:
+                            if kind_ == 'f':
+                                if bits != size * 8:
+                                    vals = self._get_not_byte_aligned_data(
+                                        data_bytes, grp, ch_nr
+                                    )
+                                else:
+                                    if not channel.dtype_fmt:
+                                        channel.dtype_fmt = get_fmt_v3(data_type, bits)
+                                    channel_dtype = dtype(channel.dtype_fmt.split(')')[-1])
+                                    vals = vals.view(channel_dtype)
+                            else:
+
+                                if dtype_.byteorder == ">":
+                                    if bit_offset or bits != size << 3:
+                                        vals = self._get_not_byte_aligned_data(
+                                            data_bytes, grp, ch_nr
+                                        )
+                                else:
+                                    if bit_offset:
+                                        if dtype_.kind == "i":
+                                            vals = vals.astype(
+                                                dtype(f"{dtype_.byteorder}u{size}")
+                                            )
+                                            vals >>= bit_offset
+                                        else:
+                                            vals = vals >> bit_offset
+        
+                                    if bits != size << 3:
+                                        if data_type in v23c.SIGNED_INT:
+                                            vals = as_non_byte_sized_signed_int(vals, bits)
+                                        else:
+                                            mask = (1 << bits) - 1
+                                            if vals.flags.writeable:
+                                                vals &= mask
+                                            else:
+                                                vals = vals & mask
+                        else:
+                            if bits != size * 8:
                                 vals = self._get_not_byte_aligned_data(
                                     data_bytes, grp, ch_nr
                                 )
-                        else:
-                            if bit_offset:
-                                if dtype_.kind == "i":
-                                    vals = vals.astype(
-                                        dtype(f"{dtype_.byteorder}u{size}")
-                                    )
-                                    vals >>= bit_offset
-                                else:
-                                    vals = vals >> bit_offset
-
-                            if bits != size << 3:
-                                if data_type in v23c.SIGNED_INT:
-                                    vals = as_non_byte_sized_signed_int(vals, bits)
-                                else:
-                                    mask = (1 << bits) - 1
-                                    if vals.flags.writeable:
-                                        vals &= mask
-                                    else:
-                                        vals = vals & mask
+                            else:
+                                if kind_ in "ui":
+                                    if not channel.dtype_fmt:
+                                        channel.dtype_fmt = get_fmt_v3(data_type, bits)
+                                    channel_dtype = dtype(channel.dtype_fmt.split(')')[-1])
+                                    vals = vals.view(channel_dtype)
 
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
