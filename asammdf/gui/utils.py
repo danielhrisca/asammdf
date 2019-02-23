@@ -130,5 +130,5 @@ class WorkerThread(Thread):
     def run(self):
         try:
             self.output = self._target(*self._args, **self._kwargs)
-        except Exception as err:
-            self.error = err
+        except:
+            self.error = traceback.format_exc()
