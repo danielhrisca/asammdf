@@ -13,7 +13,7 @@
 
 </p>
 
-<img align=left src="https://raw.githubusercontent.com/danielhrisca/asammdf/development/gui.png"/>
+<img align=left src="https://raw.githubusercontent.com/danielhrisca/asammdf/Py3/gui.png"/>
 
 
 # Status
