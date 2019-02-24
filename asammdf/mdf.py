@@ -1787,6 +1787,8 @@ class MDF(object):
         if callback:
             callback(0, 100)
 
+        mdf_nr = len(files)
+
         versions = []
         if sync:
             timestamps = []
@@ -1858,6 +1860,7 @@ class MDF(object):
 
             if mdf_index == 0:
                 last_timestamps = [None for gp in mdf.groups]
+                groups_nr = len(mdf.groups)
 
             cg_nr = -1
 
@@ -2061,7 +2064,7 @@ class MDF(object):
                     ].channel_group.comment += f'there were no samples in channel group {i} of "{mdf.name.name}"\n'
 
             if callback:
-                callback(i + 1, groups_nr)
+                callback(i + 1 + mdf_index * groups_nr, groups_nr * mdf_nr)
 
             if MDF._terminate:
                 return
