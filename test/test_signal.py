@@ -521,6 +521,18 @@ class TestSignal(unittest.TestCase):
         res = s
         self.assertTrue(np.array_equal(res.samples, target))
 
+    def test_pow(self):
+        s = Signal(
+            np.arange(1, 5, dtype='<f4'),
+            np.arange(1, 5, dtype='<f8'),
+            name='S',
+        )
+
+        target = np.arange(1, 5, dtype='<f4') ** 3
+
+        res = s ** 3
+        self.assertTrue(np.array_equal(res.samples, target))
+
 
 if __name__ == "__main__":
     unittest.main()
