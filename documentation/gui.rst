@@ -53,20 +53,12 @@ The following settings are available
       * ``Simple``: a simple line is used to join the channel samples. It is the default option because it gives the best performance for high sample count
       * ``With dots``: a simple line joins the channels sample, and the actual samples are marked by a dot. This allows for better visualization, but at the
         expense of lower performance
-     
-* **Integer line style**: controls how integer type channels are displayed
-
-      * ``Step mode``: the line that joins the channel samples is a step line
-      * ``Direct connect mode``: the samples are joined using straight lines 
       
 * **Search**: controls how the matching is done for the quick search field. Mathing is always done case insensitive.
 
       * ``Match start``: the channel name must start with the input string
       * ``Match contains``: the channel name must contain the input string
       
-.. note::
-
-    * Changing the *Memory* option does not affect already opened files; it will only apply later when opening a new file.
       
 Plot
 ----
@@ -97,12 +89,12 @@ Ctrl+S   Save plot channels Save all plotted channel in a new MF4 file
 
 .. rubric:: Footnotes
 
-.. [#f1] If the cursor is present the zooming will center on it.
+.. [#f1] If the cursor is present then zooming will center on it.
 
 
 Single files
 ============
-The *Single files* toolbox page is used to open multiple single files for visualization and processing (for example exporting to csv or hdf5).
+The *Single files* page is used to open several files individually for visualization and processing (for example exporting to csv or hdf5).
 
 
 .. image:: images/single_files.png
@@ -167,12 +159,13 @@ It also necessary to select a single item when the *Statistics* panel is active 
 
 .. image:: images/display_list.png
    
-Each item has four elements
+Each item has five elements
 
 1. display enable checkbox
 2. color select button
 3. channel name and unit label
 4. channel value label 
+5. common axis checkbox
 
     * the value is only displayed if the cursor or range are active. For the cursor is will show the current value, and for the range it will
       show the value delta between the range start and stop timestamps
@@ -216,6 +209,11 @@ enabled, using the *H* keyboard shortcut will not home to the whole time range, 
 The *Statistics* panel is toggle using the *M* keyboard shortcut
 
 .. image:: images/statistics.png
+
+You can insert new computed channels by pressing the *insert* key. This will allow either to compute basic operations using the plot channels, or to 
+apply a function on one of the plot channels.
+
+The plot channels can be saved to a new file by pressing *Ctrl+S*.
 
 Multiple files
 ==============
