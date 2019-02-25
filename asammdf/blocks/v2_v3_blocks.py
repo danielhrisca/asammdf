@@ -62,7 +62,7 @@ class Channel:
     If the `load_metadata` keyword argument is not provided or is False,
     then the conversion, source and display name information is not processed.
 
-    *Channel* has the following key-value pairs
+    CNBLOCK fields
 
     * ``id`` - bytes : block ID; always b'CN'
     * ``block_len`` - int : block bytes size
@@ -91,6 +91,17 @@ class Channel:
       channel's display name
     * ``aditional_byte_offset`` - int : additional Byte offset of the channel
       in the data recor
+      
+    Other attributes
+    
+    * ``address`` - int : block address inside mdf file
+    * ``comment`` - str : channel comment
+    * ``conversion`` - ChannelConversion : channel conversion; *None* if the channel has 
+      no conversion
+    * ``display_name`` - str : channel display name
+    * ``name`` - str : full channel name
+    * ``source`` - SourceInformation : channel source information; *None* if the channel 
+      has no source information
 
     Parameters
     ----------
@@ -102,22 +113,6 @@ class Channel:
         option to load conversion, source and display_name; default *True*
     for dynamically created objects :
         see the key-value pairs
-
-    Attributes
-    ----------
-    address : int
-        block address inside mdf file
-    comment : str
-        channel comment
-    conversion : ChannelConversion
-        channel conversion; *None* if the channel has no conversion
-    display_name : str
-        channel display name
-    name : str
-        full channel name
-    source : SourceInformation
-        channel source information; *None* if the channel has no source
-        information
 
     Examples
     --------
@@ -727,9 +722,7 @@ class _ChannelConversionBase:
 class ChannelConversion(_ChannelConversionBase):
     """ CCBLOCK class
 
-    The ChannelConversion object can be created in two modes:
-
-    *ChannelConversion* has the following common key-value pairs
+    *ChannelConversion* has the following common fields
 
     * ``id`` - bytes : block ID; always b'CC'
     * ``block_len`` - int : block bytes size
@@ -740,7 +733,7 @@ class ChannelConversion(_ChannelConversionBase):
     * ``conversion_type`` - int : integer code for conversion type
     * ``ref_param_nr`` - int : number of referenced parameters
 
-    *ChannelConversion* has the following specific key-value pairs
+    *ChannelConversion* has the following specific fields
 
     * linear conversion
 
@@ -779,6 +772,13 @@ class ChannelConversion(_ChannelConversionBase):
         * ``lower_<N>`` - float : N-th lower raw value
         * ``upper_<N>`` - float : N-th upper raw value
         * ``text_<N>`` - int : address of N-th text physical value
+        
+    Other attributes
+    
+    * ``address`` - int : block address inside mdf file
+    * ``formula`` - str : formula string in case of algebraic conversion
+    * ``referenced_blocks`` - list : list of CCBLOCK/TXBLOCK referenced by the conversion
+    * ``unit`` - str : physical unit
 
     Parameters
     ----------
@@ -790,17 +790,6 @@ class ChannelConversion(_ChannelConversionBase):
         mdf file handle
     for dynamically created objects :
         see the key-value pairs
-
-    Attributes
-    ----------
-    address : int
-        block address inside mdf file
-    formula : str
-        formula string in case of algebraic conversion
-    referenced_blocks : list
-        list of CCBLOCK/TXBLOCK referenced by the conversion
-    unit : str
-        physical unit
 
     Examples
     --------
@@ -1520,7 +1509,7 @@ address: {hex(self.address)}
 class ChannelDependency:
     """ CDBLOCK class
 
-    *ChannelDependency* has the following key-value pairs
+    CDBLOCK fields
 
     * ``id`` - bytes : block ID; always b'CD'
     * ``block_len`` - int : block bytes size
@@ -1534,6 +1523,10 @@ class ChannelDependency:
       signal dependency
     * ``dim_<K>`` - int : Optional size of dimension *K* for N-dimensional
       dependency
+      
+    Other attributes
+    * ``address`` - int : block address inside mdf file
+    * ``referenced_channels`` - list : list of (group index, channel index) pairs
 
     Parameters
     ----------
@@ -1544,12 +1537,7 @@ class ChannelDependency:
     for dynamically created objects :
         see the key-value pairs
 
-    Attributes
-    ----------
-    address : int
-        block address inside mdf file
-    referenced_channels : list
-        list of (group index, channel index) pairs
+    
 
     """
 
@@ -1633,13 +1621,13 @@ class ChannelDependency:
 class ChannelExtension:
     """ CEBLOCK class
 
-    *Channel* has the following common key-value pairs
+    CEBLOCK has the following common fields
 
     * ``id`` - bytes : block ID; always b'CE'
     * ``block_len`` - int : block bytes size
     * ``type`` - int : extension type identifier
 
-    *Channel* has the following specific key-value pairs
+    CEBLOCK has the following specific fields
 
     * for DIM block
 
@@ -1656,6 +1644,13 @@ class ChannelExtension:
         * ``message_name`` - bytes : message name
         * ``sender_name`` - btyes : sender name
         * ``reserved0`` - bytes : reserved bytes
+        
+    Other attributes
+    
+    * ``address`` - int : block address inside mdf file
+    * ``comment`` - str : extension comment
+    * ``name`` - str : extension name
+    * ``path`` - str : extension path
 
     Parameters
     ----------
@@ -1665,17 +1660,6 @@ class ChannelExtension:
         block address inside mdf file
     for dynamically created objects :
         see the key-value pairs
-
-    Attributes
-    ----------
-    address : int
-        block address inside mdf file
-    comment : str
-        extension comment
-    name : str
-        extension name
-    path : str
-        extension path
 
     """
 
@@ -1919,7 +1903,7 @@ address: {hex(self.address)}
 class ChannelGroup:
     """ CGBLOCK class
 
-    *ChannelGroup* has the following key-value pairs
+    CGBLOCK fields
 
     * ``id`` - bytes : block ID; always b'CG'
     * ``block_len`` - int : block bytes size
@@ -1936,6 +1920,11 @@ class ChannelGroup:
       block
     * ``sample_reduction_addr`` - int : addresss to first sample reduction
       block
+      
+    Other attributes
+    
+    * ``address`` - int : block address inside mdf file
+    * ``comment`` - str : channel group comment
 
     Parameters
     ----------
@@ -1946,13 +1935,7 @@ class ChannelGroup:
     for dynamically created objects :
         see the key-value pairs
 
-    Attributes
-    ----------
-    address : int
-        block address inside mdf file
-    comment : str
-        channel group comment
-
+    
     Examples
     --------
     >>> with open('test.mdf', 'rb') as mdf:
@@ -2100,14 +2083,10 @@ class ChannelGroup:
 class DataBlock:
     """Data Block class (pseudo block not defined by the MDF 3 standard)
 
-    *DataBlock* has the following key-value pairs
+    *DataBlock* attributes
 
     * ``data`` - bytes : raw samples bytes
-
-    Attributes
-    ----------
-    address : int
-        block address
+    * ``address`` - int : block address
 
     Parameters
     ----------
@@ -2150,7 +2129,7 @@ class DataBlock:
 class DataGroup:
     """ DGBLOCK class
 
-    *Channel* has the following key-value pairs
+    DGBLOCK fields
 
     * ``id`` - bytes : block ID; always b'DG'
     * ``block_len`` - int : block bytes size
@@ -2161,6 +2140,10 @@ class DataGroup:
     * ``cg_nr`` - int : number of channel groups
     * ``record_id_len`` - int : number of record IDs in the data block
     * ``reserved0`` - bytes : reserved bytes
+    
+    Other attributes
+    
+    * ``address`` - int : block address inside mdf file
 
     Parameters
     ----------
@@ -2171,10 +2154,6 @@ class DataGroup:
     for dynamically created objects :
         see the key-value pairs
 
-    Attributes
-    ----------
-    address : int
-        block address inside mdf file
 
     """
 
@@ -2271,7 +2250,7 @@ class DataGroup:
 class FileIdentificationBlock:
     """ IDBLOCK class
 
-    *FileIdentificationBlock* has the following key-value pairs
+    IDBLOCK fields
 
     * ``file_identification`` -  bytes : file identifier
     * ``version_str`` - bytes : format identifier
@@ -2284,6 +2263,10 @@ class FileIdentificationBlock:
     * ``reserved1`` - bytes : reserved bytes
     * ``unfinalized_standard_flags`` - int : standard flags for unfinalized MDF
     * ``unfinalized_custom_flags`` - int : custom flags for unfinalized MDF
+    
+    Other attributes
+    
+    * ``address`` - int : block address inside mdf file; should be 0 always
 
     Parameters
     ----------
@@ -2292,10 +2275,6 @@ class FileIdentificationBlock:
     version : int
         mdf version in case of new file (dynamically created)
 
-    Attributes
-    ----------
-    address : int
-        block address inside mdf file; should be 0 always
 
     """
 
@@ -2366,7 +2345,7 @@ class FileIdentificationBlock:
 class HeaderBlock:
     """ HDBLOCK class
 
-    *HeaderBlock* has the following key-value pairs
+    HDBLOCK fields
 
     * ``id`` - bytes : block ID; always b'HD'
     * ``block_len`` - int : block bytes size
@@ -2391,6 +2370,16 @@ class HeaderBlock:
     * ``tz_offset`` - int : UTC time offset in hours (= GMT time zone)
     * ``time_quality`` - int : time quality class
     * ``timer_identification`` - bytes : timer identification (time source)
+    
+    Other attributes
+    
+    * ``address`` - int : block address inside mdf file; should be 64 always
+    * ``comment`` - int : file comment
+    * ``program `` - ProgramBlock : program block
+    * ``author`` - str : measurement author
+    * ``department`` - str : author's department
+    * ``project`` - str : working project
+    * ``subject `` - str : measurement subject
 
     Parameters
     ----------
@@ -2398,23 +2387,6 @@ class HeaderBlock:
         mdf file handle
     version : int
         mdf version in case of new file (dynamically created)
-
-    Attributes
-    ----------
-    address : int
-        block address inside mdf file; should be 64 always
-    comment : int
-        file comment
-    program : ProgramBlock
-        program block
-    author : str
-        measurement author
-    department : str
-        author's department
-    project : str
-        working project
-    subject : str
-        measurement subject
 
     """
 
@@ -2618,21 +2590,19 @@ class HeaderBlock:
 class ProgramBlock:
     """ PRBLOCK class
 
-    *ProgramBlock* has the following key-value pairs
+    PRBLOCK fields
 
     * ``id`` - bytes : block ID; always b'PR'
     * ``block_len`` - int : block bytes size
     * ``data`` - btyes : creator program free format data
+    
+    Other attributes
+    * ``address`` - int : block address inside mdf file
 
     Parameters
     ----------
     stream : file handle
         mdf file handle
-    address : int
-        block address inside mdf file
-
-    Attributes
-    ----------
     address : int
         block address inside mdf file
 
@@ -2677,11 +2647,15 @@ class ProgramBlock:
 class TextBlock:
     """ TXBLOCK class
 
-    *TextBlock* has the following key-value pairs
+    TXBLOCK fields
 
     * ``id`` - bytes : block ID; always b'TX'
     * ``block_len`` - int : block bytes size
     * ``text`` - bytes : text content
+    
+    Other attributes
+    
+    * ``address`` - int : block address inside mdf file
 
     Parameters
     ----------
@@ -2692,10 +2666,6 @@ class TextBlock:
     text : bytes | str
         bytes or str for creating a new TextBlock
 
-    Attributes
-    ----------
-    address : int
-        block address inside mdf file
 
     Examples
     --------
@@ -2763,7 +2733,7 @@ class TextBlock:
 class TriggerBlock:
     """ TRBLOCK class
 
-    *Channel* has the following key-value pairs
+    TRBLOCK fields
 
     * ``id`` - bytes : block ID; always b'TR'
     * ``block_len`` - int : block bytes size
@@ -2775,6 +2745,11 @@ class TriggerBlock:
       event
     * ``trigger_<N>_posttime`` - float : post trigger time [s] of trigger's
       N-th event
+      
+    Other attributes
+    
+    * ``address`` - int : block address inside mdf file
+    * ``comment `` - str : trigger comment
 
     Parameters
     ----------
@@ -2782,13 +2757,7 @@ class TriggerBlock:
         mdf file handle
     address : int
         block address inside mdf file
-
-    Attributes
-    ----------
-    address : int
-        block address inside mdf file
-    comment : str
-        trigger comment
+    
 
     """
 

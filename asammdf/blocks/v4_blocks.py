@@ -1691,7 +1691,7 @@ class ChannelConversion(_ChannelConversionBase):
     """*ChannelConversion* has the following attributes, that are also available as
     dict like key-value pairs
 
-    CNBLOCK common fields
+    CCBLOCK common fields
 
     * ``id`` - bytes : block ID; always b'##CG'
     * ``reserved0`` - int : reserved bytes
@@ -1713,7 +1713,7 @@ class ChannelConversion(_ChannelConversionBase):
     * ``min_phy_value`` - float : minimum physical channel value
     * ``max_phy_value`` - float : maximum physical channel value
 
-    CNBLOCK specific fields
+    CCBLOCK specific fields
 
     * linear conversion
 
