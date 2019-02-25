@@ -561,7 +561,7 @@ class MDF(object):
                     group["record"] = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
                     )
-                    group["record"].flags.writeable = False
+                    group["record"].setflags(write=False)
                 else:
                     group["record"] = None
 
@@ -767,7 +767,7 @@ class MDF(object):
                     group["record"] = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
                     )
-                    group["record"].flags.writeable = False
+                    group["record"].setflags(write=False)
                 else:
                     group["record"] = None
                 master = self.get_master(i, fragment)
@@ -1698,7 +1698,7 @@ class MDF(object):
                     group["record"] = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
                     )
-                    group["record"].flags.writeable = False
+                    group["record"].setflags(write=False)
                 else:
                     group["record"] = None
 
@@ -2024,7 +2024,7 @@ class MDF(object):
                         group["record"] = np.core.records.fromstring(
                             fragment[0], dtype=dtypes
                         )
-                        group["record"].flags.writeable = False
+                        group["record"].setflags(write=False)
                     else:
                         group["record"] = None
 
@@ -2284,7 +2284,7 @@ class MDF(object):
                         group["record"] = np.core.records.fromstring(
                             fragment[0], dtype=dtypes
                         )
-                        group["record"].flags.writeable = False
+                        group["record"].setflags(write=False)
                     else:
                         group["record"] = None
                     if idx == 0:
@@ -2669,7 +2669,7 @@ class MDF(object):
                     grp["record"] = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
                     )
-                    group["record"].flags.writeable = False
+                    group["record"].setflags(write=False)
                 else:
                     grp["record"] = None
                 for index in gps[group]:

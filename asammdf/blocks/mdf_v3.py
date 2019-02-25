@@ -2906,7 +2906,6 @@ class MDF3(object):
                             record = None
 
                         if memory == "full":
-                            record.flags.writeable = False
                             grp["record"] = record
                     else:
                         record = grp["record"]
