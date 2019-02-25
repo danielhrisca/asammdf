@@ -949,7 +949,24 @@ class TestMDF(unittest.TestCase):
             self.assertTrue(np.array_equal(sig.timestamps, target_timestamps))
             self.assertTrue(np.allclose(sig.samples, target_samples))
 
+    def test_to_dataframe(self):
+        dfs = [
+            DataFrame({f'df_{i}_column_0': np.ones(5) * i, f'df_{i}_column_1': np.arange(5) * i})
+            for i in range(5)
+        ]
 
+        mdf = MDF()
+        for df in dfs:
+            mdf.append(df)
+            
+        target = {}
+        for i in range(5):
+            target[f'df_{i}_column_0'] = np.ones(5) * i
+            target[f'df_{i}_column_1'] = np.arange(5) * i
+            
+        target = DataFrame(target)
+
+        self.assertTrue(target.equals(mdf.to_dataframe()))
 
 
 if __name__ == "__main__":

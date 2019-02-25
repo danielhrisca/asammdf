@@ -763,7 +763,7 @@ def validate_version_argument(version, hint=4):
 class ChannelsDB(dict):
     def __init__(self, version=4):
 
-        super(ChannelsDB, self).__init__()
+        super().__init__()
         if version == 4:
             self.encoding = "utf-8"
         else:
@@ -1112,25 +1112,3 @@ def components(channel, channel_name, unique_names, prefix=""):
                     values = fromarrays(arr, dtype=types)
                     del arr
                 yield name_, Series(values)
-
-def parse_bit_mask(mask):
-    bit_count = 0
-    bit_offset = 0
-    while mask:
-        mask, r = divmod(mask, 2)
-        if r == 1:
-            bit_count += 1
-            break
-        else:
-            bit_offset += 1
-
-    while mask:
-        mask, r = divmod(mask, 2)
-        if r == 0:
-            break
-        else:
-            bit_count += 1
-
-    byte_offset, bit_offset = divmod(bit_offset, 8)
-
-    return bit_count, byte_offset, bit_offset

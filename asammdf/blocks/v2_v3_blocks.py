@@ -2363,7 +2363,7 @@ class HeaderBlock:
     * ``project`` - bytes : project name
     * ``subject`` - bytes : subject
 
-    Since version 3.2 the following extra keys were added:
+    Since version 3.2 the following extra keys were added
 
     * ``abs_time`` - int : time stamp at which recording was started in
       nanoseconds.
