@@ -4498,6 +4498,7 @@ class MDF4(object):
                                 record = None
 
                             if self.memory == "full":
+                                record.flags.writeable = False
                                 grp["record"] = record
                         else:
                             record = grp["record"]
@@ -4838,9 +4839,11 @@ class MDF4(object):
                     if parent is not None:
                         if "record" not in grp:
                             record = fromstring(data_bytes, dtype=dtypes)
-
+                            
                             if memory == "full":
+                                record.flags.writeable = False
                                 grp["record"] = record
+                                
                         else:
                             record = grp["record"]
 
