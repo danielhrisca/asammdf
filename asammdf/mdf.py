@@ -2669,7 +2669,7 @@ class MDF(object):
                     grp["record"] = np.core.records.fromstring(
                         fragment[0], dtype=dtypes
                     )
-                    group["record"].setflags(write=False)
+                    grp["record"].setflags(write=False)
                 else:
                     grp["record"] = None
                 for index in gps[group]:
