@@ -106,7 +106,7 @@ short = mdf.filter(important_signals).cut(start=10, stop=12)
 short.convert('4.10').save('important signals.mf4')
 
 # plot some channels from a huge file
-efficient = MDF('huge.mf4', , memory='minimum')
+efficient = MDF('huge.mf4')
 for signal in efficient.select(['Sensor1', 'Voltage3']):
    signal.plot()
 ```
