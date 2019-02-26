@@ -2370,16 +2370,16 @@ class HeaderBlock:
     * ``tz_offset`` - int : UTC time offset in hours (= GMT time zone)
     * ``time_quality`` - int : time quality class
     * ``timer_identification`` - bytes : timer identification (time source)
-    
+
     Other attributes
-    
+
     * ``address`` - int : block address inside mdf file; should be 64 always
     * ``comment`` - int : file comment
-    * ``program `` - ProgramBlock : program block
+    * ``program`` - ProgramBlock : program block
     * ``author`` - str : measurement author
-    * ``department`` - str : author's department
+    * ``department`` - str : author department
     * ``project`` - str : working project
-    * ``subject `` - str : measurement subject
+    * ``subject`` - str : measurement subject
 
     Parameters
     ----------
@@ -2745,11 +2745,11 @@ class TriggerBlock:
       event
     * ``trigger_<N>_posttime`` - float : post trigger time [s] of trigger's
       N-th event
-      
+
     Other attributes
-    
+
     * ``address`` - int : block address inside mdf file
-    * ``comment `` - str : trigger comment
+    * ``comment`` - str : trigger comment
 
     Parameters
     ----------

@@ -27,11 +27,11 @@ Files used for benchmark:
 ================================================== ========= ========
 Open file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 5.0.0dev mdfv3                                   329      111
+asammdf 5.0.0    mdfv3                                   329      111
 mdfreader 3.0 mdfv3                                     1942      425
 mdfreader 3.0 compress mdfv3                            1667      293
 mdfreader 3.0 no_data_loading mdfv3                      864      171
-asammdf 5.0.0dev mdfv4                                   455      123
+asammdf 5.0.0    mdfv4                                   455      123
 mdfreader 3.0 mdfv4                                     5217      448
 mdfreader 3.0 compress mdfv4                            4999      320
 mdfreader 3.0 no_data_loading mdfv4                     3644      178
@@ -41,11 +41,11 @@ mdfreader 3.0 no_data_loading mdfv4                     3644      178
 ================================================== ========= ========
 Save file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 5.0.0dev mdfv3                                   544      110
+asammdf 5.0.0    mdfv3                                   544      110
 mdfreader 3.0 mdfv3                                     6017      453
 mdfreader 3.0 no_data_loading mdfv3                     6808      513
 mdfreader 3.0 compress mdfv3                            6124      452
-asammdf 5.0.0dev mdfv4                                   449      124
+asammdf 5.0.0    mdfv4                                   449      124
 mdfreader 3.0 mdfv4                                     3409      467
 mdfreader 3.0 no_data_loading mdfv4                     4841      485
 mdfreader 3.0 compress mdfv4                            3597      465
@@ -55,11 +55,11 @@ mdfreader 3.0 compress mdfv4                            3597      465
 ================================================== ========= ========
 Get all channels (36424 calls)                     Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 5.0.0dev mdfv3                                  4783      111
+asammdf 5.0.0    mdfv3                                  4783      111
 mdfreader 3.0 mdfv3                                       59      425
 mdfreader 3.0 nodata mdfv3                             15259      207
 mdfreader 3.0 compress mdfv3                             200      292
-asammdf 5.0.0dev mdfv4                                  8210      123
+asammdf 5.0.0    mdfv4                                  8210      123
 mdfreader 3.0 mdfv4                                       80      448
 mdfreader 3.0 compress mdfv4                             226      322
 mdfreader 3.0 nodata mdfv4                             22078      208
@@ -69,19 +69,19 @@ mdfreader 3.0 nodata mdfv4                             22078      208
 ================================================== ========= ========
 Convert file                                       Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 5.0.0dev v3 to v4                               3090      157
-asammdf 5.0.0dev v4 to v3                               2665      151
+asammdf 5.0.0    v3 to v4                               3090      157
+asammdf 5.0.0    v4 to v3                               2665      151
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Merge 3 files                                      Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 5.0.0dev v3                                     8409      173
+asammdf 5.0.0    v3                                     8409      173
 mdfreader 3.0 v3                                       18133     1329
 mdfreader 3.0 compress v3                              18285     1277
 mdfreader 3.0 nodata v3                                17846     1432
-asammdf 5.0.0dev v4                                     8902      174
+asammdf 5.0.0    v4                                     8902      174
 mdfreader 3.0 v4                                       29391     1356
 mdfreader 3.0 nodata v4                                28493     1334
 mdfreader 3.0 compress v4                              29109     1298

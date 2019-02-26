@@ -12,14 +12,14 @@
 
 </p>
 
-<img align=left src="https://raw.githubusercontent.com/danielhrisca/asammdf/Py3/gui.png"/>
+<img align=left src="https://raw.githubusercontent.com/danielhrisca/asammdf/master/gui.png"/>
 
 
 # Status
 
 ! | Travis CI  | Appveyor | CoverAlls  |  Codacy  | ReadTheDocs 
 --|--|--|--|--|--
-Py3 | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=Py3)](https://travis-ci.org/danielhrisca/asammdf) | [![Build status](https://ci.appveyor.com/api/projects/status/racx048r4cnwa2lg/branch/Py3?svg=true)](https://ci.appveyor.com/project/danielhrisca/asammdf/branch/Py3) | [![Coverage Status](https://coveralls.io/repos/github/danielhrisca/asammdf/badge.svg?branch=Py3)](https://coveralls.io/github/danielhrisca/asammdf?branch=Py3) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=Py3)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=py3)](http://asammdf.readthedocs.io/en/py3/?badge=stable) | 
+master | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=)](https://travis-ci.org/danielhrisca/asammdf) | [![Build status](https://ci.appveyor.com/api/projects/status/racx048r4cnwa2lg/branch/master?svg=true)](https://ci.appveyor.com/project/danielhrisca/asammdf/branch/master) | [![Coverage Status](https://coveralls.io/repos/github/danielhrisca/asammdf/badge.svg?branch=master)](https://coveralls.io/github/danielhrisca/asammdf?branch=master) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=master)](http://asammdf.readthedocs.io/en/master/?badge=stable) | 
 
 PyPI| conda-forge
 --|--
@@ -112,10 +112,10 @@ for signal in efficient.select(['Sensor1', 'Voltage3']):
 ```
 
 Check the *examples* folder for extended usage demo, or the documentation
-http://asammdf.readthedocs.io/en/py3/examples.html
+http://asammdf.readthedocs.io/en/master/examples.html
 
 # Documentation
-http://asammdf.readthedocs.io/en/py3
+http://asammdf.readthedocs.io/en/master
 
 # Contributing & Support
 Please have a look over the [contributing guidelines](CONTRIBUTING.md)
@@ -176,4 +176,4 @@ other optional dependencies
 
 # Benchmarks
 
-http://asammdf.readthedocs.io/en/py3/benchmarks.html
+http://asammdf.readthedocs.io/en/master/benchmarks.html
