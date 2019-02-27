@@ -532,13 +532,15 @@ class MDF4(object):
 
                 _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
 
+                print(_sig)
+
                 attachment = _sig.attachment
-                if attachment and attachment[1].lower().endswith(("dbc", "arxml")):
+                if attachment and attachment[1].name.lower().endswith(("dbc", "arxml")):
                     attachment, at_name = attachment
 
                     raw_can.append(i)
 
-                    import_type = "dbc" if at_name.lower().endswith("dbc") else "arxml"
+                    import_type = "dbc" if at_name.name.lower().endswith("dbc") else "arxml"
                     db = loads(
                         attachment.decode("utf-8"), importType=import_type, key="db"
                     )["db"]
@@ -803,6 +805,7 @@ class MDF4(object):
                         try:
                             addr = channel.attachment_addr
                         except AttributeError:
+                            raise
                             addr = 0
                         if addr:
                             attachment_addr = self._attachments_map[addr]
@@ -4308,7 +4311,7 @@ class MDF4(object):
                                             channel.dtype_fmt = get_fmt_v4(data_type, bit_count, channel_type)
                                         channel_dtype = dtype(channel.dtype_fmt.split(')')[-1])
                                         vals = vals.view(channel_dtype)
-                                    
+
                         else:
                             if data_type <= 3:
                                 if dtype_.byteorder == ">":
@@ -4325,7 +4328,7 @@ class MDF4(object):
                                             vals >>= bit_offset
                                         else:
                                             vals = vals >> bit_offset
-    
+
                                     if bit_count != size << 3:
                                         if data_type in v4c.SIGNED_INT:
                                             vals = as_non_byte_sized_signed_int(
@@ -4633,8 +4636,9 @@ class MDF4(object):
             else:
                 source = None
 
-            if channel.attachment:
-                attachment = self.extract_attachment(index=channel.attachments[0])
+            if hasattr(channel, "attachment_addr"):
+                index = self._attachments_map[channel.attachment_addr]
+                attachment = self.extract_attachment(index=index)
             elif channel_type == v4c.CHANNEL_TYPE_SYNC:
                 index = self._attachments_map[channel.data_block_addr]
                 attachment = self.extract_attachment(index=index)
@@ -4959,7 +4963,7 @@ class MDF4(object):
                     f'CAN id "{can_id_str}" of signal name "{name}" is not recognised by this library'
                 )
             else:
-                can_id = f'CAN{an_id.group("id")}'
+                can_id = f'CAN{can_id.group("id")}'
 
             message_id = v4c.CAN_DATA_FRAME_PATTERN.search(message_id_str)
             if message_id is None:
@@ -5118,7 +5122,7 @@ class MDF4(object):
         else:
             types = [("vals", fmt)]
 
-        vals = vals.view(dtype=dtype(types))
+        vals = frombuffer(vals.tobytes(), dtype=dtype(types))
 
         if signed:
             vals = as_non_byte_sized_signed_int(vals["vals"], bit_count)
