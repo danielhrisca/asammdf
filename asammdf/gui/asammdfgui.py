@@ -23,12 +23,12 @@ def _cmd_line_parser():
 
 
 def main(measurements=None):
+    parser = _cmd_line_parser()
+    args = parser.parse_args(sys.argv[1:])
     app = QApplication(sys.argv)
-    main = MainWindow(measurements)
+    main = MainWindow(args.measurements)
     app.exec_()
 
 
 if __name__ == "__main__":
-    parser = _cmd_line_parser()
-    args = parser.parse_args(sys.argv[1:])
-    main(args.measurements)
+    main()
