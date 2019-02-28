@@ -1043,7 +1043,7 @@ def block_fields(obj):
     return fields
 
 
-def components(channel, channel_name, unique_names, prefix=""):
+def components(channel, channel_name, unique_names, prefix="", master=None):
     """ yield pandas Series and unique name based on the ndarray object
 
     Parameters
@@ -1079,7 +1079,7 @@ def components(channel, channel_name, unique_names, prefix=""):
             types = [("", values.dtype, values.shape[1:])]
             values = fromarrays(arr, dtype=types)
             del arr
-        yield name_, Series(values, dtype="O")
+        yield name_, Series(values, index=master, dtype="O")
 
         for name in names[1:]:
             values = channel[name]
@@ -1089,7 +1089,7 @@ def components(channel, channel_name, unique_names, prefix=""):
                 types = [("", values.dtype, values.shape[1:])]
                 values = fromarrays(arr, dtype=types)
                 del arr
-            yield axis_name, Series(values, dtype="O")
+            yield axis_name, Series(values, index=master, dtype="O")
 
     # structure composition
     else:
@@ -1100,6 +1100,7 @@ def components(channel, channel_name, unique_names, prefix=""):
                 yield from components(
                     values, name, unique_names,
                     prefix=f"{prefix}.{channel_name}" if prefix else f"{channel_name}",
+                    master=master
                 )
 
             else:
@@ -1111,4 +1112,4 @@ def components(channel, channel_name, unique_names, prefix=""):
                     types = [("", values.dtype, values.shape[1:])]
                     values = fromarrays(arr, dtype=types)
                     del arr
-                yield name_, Series(values)
+                yield name_, Series(values, index=master)

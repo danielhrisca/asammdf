@@ -2998,9 +2998,13 @@ class MDF(object):
         included_channels = self._included_channels(index)
 
         signals = [
-                self.get(group=index, index=idx, copy_master=False)
-                for idx in included_channels
-            ]
+            self.get(group=index, index=idx, copy_master=False)
+            for idx in included_channels
+        ]
+
+        for i, sig in enumerate(signals):
+            if sig.conversion:
+                signals[i] = sig.physical()
 
         if raster and len(master):
             signals = [
@@ -3022,11 +3026,11 @@ class MDF(object):
 
                 channel_name = used_names.get_unique_name(channel_name)
 
-                df[channel_name] = Series(sig.samples, dtype="O")
+                df[channel_name] = Series(sig.samples, index=master, dtype="O")
 
             # arrays and structures
             elif sig.samples.dtype.names:
-                for name, series in components(sig.samples, sig.name, used_names):
+                for name, series in components(sig.samples, sig.name, used_names, master):
                     df[name] = series
 
             # scalars
@@ -3038,7 +3042,7 @@ class MDF(object):
 
                 channel_name = used_names.get_unique_name(channel_name)
 
-                df[channel_name] = Series(sig.samples)
+                df[channel_name] = Series(sig.samples, index=master)
 
             if use_display_names:
                 channel_name = sig.display_name or sig.name
@@ -3146,6 +3150,10 @@ class MDF(object):
                 for samples, idx in zip(signals, included_channels)
             ]
 
+            for i, sig in enumerate(signals):
+                if sig.conversion:
+                    signals[i] = sig.physical()
+
             for sig in signals:
                 if len(sig) == 0:
                     if empty_channels == "zeros":
@@ -3169,11 +3177,11 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    df[channel_name] = Series(sig.samples, dtype="O")
+                    df[channel_name] = Series(sig.samples, index=master, dtype="O")
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
-                    for name, series in components(sig.samples, sig.name, used_names):
+                    for name, series in components(sig.samples, sig.name, used_names, master):
                         df[name] = series
 
                 # scalars
@@ -3185,7 +3193,7 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    df[channel_name] = Series(sig.samples)
+                    df[channel_name] = Series(sig.samples, index=master)
 
                 if use_display_names:
                     channel_name = sig.display_name or sig.name
