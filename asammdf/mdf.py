@@ -2507,7 +2507,7 @@ class MDF(object):
         return mdf
 
     def select(self, channels, dataframe=False, record_offset=0):
-        """ retreiv the channels listed in *channels* argument as *Signal*
+        """ retrieve the channels listed in *channels* argument as *Signal*
         objects
 
         Parameters
