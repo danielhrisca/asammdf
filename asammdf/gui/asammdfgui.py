@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import argparse
 import sys
 
 try:
@@ -11,12 +12,23 @@ from asammdf.gui.utils import excepthook
 
 sys.excepthook = excepthook
 
+def _cmd_line_parser():
+    '''
+    return a command line parser. It is used when generating the documentation
+    '''
 
-def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--measurements', nargs='*', help='list of measurement files')
+    return parser
+
+
+def main(measurements=None):
     app = QApplication(sys.argv)
-    main = MainWindow()
+    main = MainWindow(measurements)
     app.exec_()
 
 
 if __name__ == "__main__":
-    main()
+    parser = _cmd_line_parser()
+    args = parser.parse_args(sys.argv[1:])
+    main(args.measurements)

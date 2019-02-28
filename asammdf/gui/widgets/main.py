@@ -20,7 +20,7 @@ HERE = Path(__file__).resolve().parent
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, files=None, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "main_window.ui"), self)
@@ -256,6 +256,10 @@ class MainWindow(QMainWindow):
         self.stackedWidget.setCurrentIndex(0)
         self.setWindowTitle(f'asammdf {libversion}')
 
+        if files:
+            for name in files:
+                self._open_file(name)
+
         self.show()
 
     def help(self, event):
@@ -409,6 +413,23 @@ class MainWindow(QMainWindow):
         else:
             self.open_multiple_files(event)
 
+
+    def _open_file(self, file_name):
+        file_name = Path(file_name)
+        index = self.files.count()
+
+        try:
+            widget = FileWidget(file_name, self.with_dots, self)
+            widget.search_field.set_search_option(self.match)
+            widget.filter_field.set_search_option(self.match)
+        except:
+            raise
+        else:
+            self.files.addTab(widget, file_name.name)
+            self.files.setTabToolTip(index, str(file_name))
+            self.files.setCurrentIndex(index)
+            widget.file_scrambled.connect(self.open_scrambled_file)
+
     def open_file(self, event):
         file_names, _ = QFileDialog.getOpenFileNames(
             self,
@@ -419,20 +440,7 @@ class MainWindow(QMainWindow):
         )
 
         for file_name in file_names:
-            file_name = Path(file_name)
-            index = self.files.count()
-
-            try:
-                widget = FileWidget(file_name, self.with_dots, self)
-                widget.search_field.set_search_option(self.match)
-                widget.filter_field.set_search_option(self.match)
-            except:
-                raise
-            else:
-                self.files.addTab(widget, file_name.name)
-                self.files.setTabToolTip(index, str(file_name))
-                self.files.setCurrentIndex(index)
-                widget.file_scrambled.connect(self.open_scrambled_file)
+            self._open_file(file_name)
 
     def open_scrambled_file(self, name):
         filename = Path(name)
