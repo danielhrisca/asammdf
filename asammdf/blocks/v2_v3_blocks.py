@@ -91,16 +91,16 @@ class Channel:
       channel's display name
     * ``aditional_byte_offset`` - int : additional Byte offset of the channel
       in the data recor
-      
+
     Other attributes
-    
+
     * ``address`` - int : block address inside mdf file
     * ``comment`` - str : channel comment
-    * ``conversion`` - ChannelConversion : channel conversion; *None* if the channel has 
+    * ``conversion`` - ChannelConversion : channel conversion; *None* if the channel has
       no conversion
     * ``display_name`` - str : channel display name
     * ``name`` - str : full channel name
-    * ``source`` - SourceInformation : channel source information; *None* if the channel 
+    * ``source`` - SourceInformation : channel source information; *None* if the channel
       has no source information
 
     Parameters
@@ -542,7 +542,33 @@ comment: {self.comment}
 
 """.split("\n")
 
-        for key, val in self.items():
+        keys = (
+            "id",
+            "block_len",
+            "next_ch_addr",
+            "conversion_addr",
+            "source_addr",
+            "component_addr",
+            "comment_addr",
+            "channel_type",
+            "short_name",
+            "description",
+            "start_offset",
+            "bit_count",
+            "data_type",
+            "range_flag",
+            "min_raw_value",
+            "max_raw_value",
+            "sampling_rate",
+            "long_name_addr",
+            "display_name_addr",
+            "additional_byte_offset",
+        )
+
+        for key in keys:
+            if not hasattr(self, key):
+                continue
+            val = getattr(self, key)
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
@@ -772,9 +798,9 @@ class ChannelConversion(_ChannelConversionBase):
         * ``lower_<N>`` - float : N-th lower raw value
         * ``upper_<N>`` - float : N-th upper raw value
         * ``text_<N>`` - int : address of N-th text physical value
-        
+
     Other attributes
-    
+
     * ``address`` - int : block address inside mdf file
     * ``formula`` - str : formula string in case of algebraic conversion
     * ``referenced_blocks`` - list : list of CCBLOCK/TXBLOCK referenced by the conversion
@@ -1171,15 +1197,50 @@ class ChannelConversion(_ChannelConversionBase):
         return address
 
     def metadata(self, indent=""):
-        max_len = max(len(key) for key in self)
-        template = "{{: <{max_len}}}: {{}}"
+        conv = self.conversion_type
+        if conv == v23c.CONVERSION_TYPE_NONE:
+            keys = v23c.KEYS_CONVESION_NONE
+        elif conv == v23c.CONVERSION_TYPE_FORMULA:
+            keys = v23c.KEYS_CONVESION_FORMULA
+        elif conv == v23c.CONVERSION_TYPE_LINEAR:
+            keys = v23c.KEYS_CONVESION_LINEAR
+            if not self.block_len == v23c.CC_LIN_BLOCK_SIZE:
+                keys += ("CANapeHiddenExtra",)
+        elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
+            keys = v23c.KEYS_CONVESION_POLY_RAT
+        elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
+            keys = v23c.KEYS_CONVESION_EXPO_LOGH
+        elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
+            nr = self.ref_param_nr
+            keys = list(v23c.KEYS_CONVESION_NONE)
+            for i in range(nr):
+                keys.append(f"raw_{i}")
+                keys.append(f"phys_{i}")
+        elif conv == v23c.CONVERSION_TYPE_RTABX:
+            nr = self.ref_param_nr
+            keys = list(v23c.KEYS_CONVESION_NONE)
+            keys += ["default_lower", "default_upper", "default_addr"]
+            for i in range(nr - 1):
+                keys.append(f"lower_{i}")
+                keys.append(f"upper_{i}")
+                keys.append(f"text_{i}")
+        elif conv == v23c.CONVERSION_TYPE_TABX:
+            nr = self.ref_param_nr
+            keys = list(v23c.KEYS_CONVESION_NONE)
+            for i in range(nr):
+                keys.append(f"param_val_{i}")
+                keys.append(f"text_{i}")
+
+        max_len = max(len(key) for key in keys)
+        template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
         lines = """
 address: {hex(self.address)}
 
 """.split("\n")
-        for key, val in self.items():
+        for key in keys:
+            val = getattr(self, key)
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
@@ -1523,7 +1584,7 @@ class ChannelDependency:
       signal dependency
     * ``dim_<K>`` - int : Optional size of dimension *K* for N-dimensional
       dependency
-      
+
     Other attributes
     * ``address`` - int : block address inside mdf file
     * ``referenced_channels`` - list : list of (group index, channel index) pairs
@@ -1537,7 +1598,7 @@ class ChannelDependency:
     for dynamically created objects :
         see the key-value pairs
 
-    
+
 
     """
 
@@ -1644,9 +1705,9 @@ class ChannelExtension:
         * ``message_name`` - bytes : message name
         * ``sender_name`` - btyes : sender name
         * ``reserved0`` - bytes : reserved bytes
-        
+
     Other attributes
-    
+
     * ``address`` - int : block address inside mdf file
     * ``comment`` - str : extension comment
     * ``name`` - str : extension name
@@ -1833,7 +1894,29 @@ class ChannelExtension:
         return source
 
     def metadata(self):
-        max_len = max(len(key) for key in self)
+        if self.type == v23c.SOURCE_ECU:
+            keys = (
+                "id",
+                "block_len",
+                "type",
+                "module_nr",
+                "module_address",
+                "description",
+                "ECU_identification",
+                "reserved0",
+            )
+        else:
+            keys = (
+                "id",
+                "block_len",
+                "type",
+                "CAN_id",
+                "CAN_ch_index",
+                "message_name",
+                "sender_name",
+                "reserved0",
+            )
+        max_len = max(len(key) for key in keys)
         template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
@@ -1842,7 +1925,8 @@ address: {hex(self.address)}
 
 """.split("\n")
 
-        for key, val in self.items():
+        for key in keys:
+            val = getattr(self, key)
             if key.endswith("addr") or key.startswith("text_"):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
@@ -1920,9 +2004,9 @@ class ChannelGroup:
       block
     * ``sample_reduction_addr`` - int : addresss to first sample reduction
       block
-      
+
     Other attributes
-    
+
     * ``address`` - int : block address inside mdf file
     * ``comment`` - str : channel group comment
 
@@ -1935,7 +2019,7 @@ class ChannelGroup:
     for dynamically created objects :
         see the key-value pairs
 
-    
+
     Examples
     --------
     >>> with open('test.mdf', 'rb') as mdf:
@@ -2140,9 +2224,9 @@ class DataGroup:
     * ``cg_nr`` - int : number of channel groups
     * ``record_id_len`` - int : number of record IDs in the data block
     * ``reserved0`` - bytes : reserved bytes
-    
+
     Other attributes
-    
+
     * ``address`` - int : block address inside mdf file
 
     Parameters
@@ -2263,9 +2347,9 @@ class FileIdentificationBlock:
     * ``reserved1`` - bytes : reserved bytes
     * ``unfinalized_standard_flags`` - int : standard flags for unfinalized MDF
     * ``unfinalized_custom_flags`` - int : custom flags for unfinalized MDF
-    
+
     Other attributes
-    
+
     * ``address`` - int : block address inside mdf file; should be 0 always
 
     Parameters
@@ -2595,7 +2679,7 @@ class ProgramBlock:
     * ``id`` - bytes : block ID; always b'PR'
     * ``block_len`` - int : block bytes size
     * ``data`` - btyes : creator program free format data
-    
+
     Other attributes
     * ``address`` - int : block address inside mdf file
 
@@ -2652,9 +2736,9 @@ class TextBlock:
     * ``id`` - bytes : block ID; always b'TX'
     * ``block_len`` - int : block bytes size
     * ``text`` - bytes : text content
-    
+
     Other attributes
-    
+
     * ``address`` - int : block address inside mdf file
 
     Parameters
@@ -2757,7 +2841,7 @@ class TriggerBlock:
         mdf file handle
     address : int
         block address inside mdf file
-    
+
 
     """
 
