@@ -73,23 +73,6 @@ class MainWindow(QMainWindow):
         menu = QMenu("Settings", self.menubar)
         self.menubar.addMenu(menu)
 
-        # graph option menu
-        memory_option = QActionGroup(self)
-
-        for option in ("Simple", "With dots"):
-
-            action = QAction(option, menu)
-            action.setCheckable(True)
-            memory_option.addAction(action)
-            action.triggered.connect(partial(self.set_with_dots, option))
-
-            if option == "Simple":
-                action.setChecked(True)
-
-        submenu = QMenu("Plot lines", self.menubar)
-        submenu.addActions(memory_option.actions())
-        menu.addMenu(submenu)
-
         # search mode menu
         search_option = QActionGroup(self)
 
@@ -150,6 +133,11 @@ class MainWindow(QMainWindow):
         action = QAction(icon, "{: <20}\tO".format("Zoom out"), menu)
         action.triggered.connect(partial(self.plot_action, key=Qt.Key_O))
         action.setShortcut(Qt.Key_O)
+        plot_actions.addAction(action)
+
+        action = QAction("{: <20}\t.".format("Toggle dots"), menu)
+        action.triggered.connect(partial(self.toggle_dots, key=Qt.Key_O))
+        action.setShortcut(Qt.Key_Period)
         plot_actions.addAction(action)
 
         icon = QIcon()
@@ -278,8 +266,8 @@ class MainWindow(QMainWindow):
             widget.plot.keyPressEvent(event)
             widget.keyPressEvent(event)
 
-    def set_with_dots(self, option):
-        self.with_dots = True if option == "With dots" else False
+    def toggle_dots(self, key):
+        self.with_dots = not self.with_dots
 
         count = self.files.count()
 
