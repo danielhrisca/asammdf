@@ -1269,9 +1269,9 @@ class MDF(object):
                     data = b"".join(d[0] for d in data)
                     data = (data, 0, -1)
 
-                    group_name = f"DataGroup_{i+1}"
-                    group_csv_name = Path(f"{name.stem}_{group_name}.csv")
-                    with open(group_csv_name, "w") as csvfile:
+                    group_csv_name = name.parent / f"{name.stem}_DataGroup_{i+1}.csv"
+
+                    with open(group_csv_name, "w", newline="") as csvfile:
                         writer = csv.writer(csvfile)
 
                         master_index = self.masters_db.get(i, None)

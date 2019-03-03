@@ -3252,7 +3252,7 @@ class DataZippedBlock(object):
             self.original_size = original_size
 
             if self.zip_type == v4c.FLAG_DZ_DEFLATE:
-                data = compress(data)
+                data = compress(data, 1)
             else:
                 cols = self.param
                 lines = original_size // cols
