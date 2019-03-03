@@ -471,6 +471,11 @@ class Channel:
 
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(stream, address)
 
+                if self.id != b"##CN":
+                    message = f'Expected "##CN" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
+
                 if self.block_len == CN_BLOCK_SIZE:
 
                     (
@@ -565,11 +570,6 @@ class Channel:
                         self.upper_ext_limit,
                     ) = params
 
-                if self.id != b"##CN":
-                    message = f'Expected "##CN" block @{hex(address)} but found "{self.id}"'
-                    logger.exception(message)
-                    raise MdfException(message)
-
                 self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
                 self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped)
                 self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
@@ -636,6 +636,11 @@ class Channel:
                 block = stream.read(CN_BLOCK_SIZE)
 
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(block)
+
+                if self.id != b"##CN":
+                    message = f'Expected "##CN" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
 
                 if self.block_len == CN_BLOCK_SIZE:
 
@@ -728,11 +733,6 @@ class Channel:
                         self.lower_ext_limit,
                         self.upper_ext_limit,
                     ) = params
-
-                if self.id != b"##CN":
-                    message = f'Expected "##CN" block @{hex(address)} but found "{self.id}"'
-                    logger.exception(message)
-                    raise MdfException(message)
 
                 self.name = get_text_v4(self.name_addr, stream)
                 self.unit = get_text_v4(self.unit_addr, stream)
@@ -1156,6 +1156,11 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     stream, address
                 )
 
+                if self.id != b"##CA":
+                    message = f'Expected "##CA" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
+
                 nr = self.links_nr
                 address += COMMON_SIZE
                 links = unpack_from(f"<{nr}Q", stream, address)
@@ -1210,6 +1215,11 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                     "<4sI2Q", stream.read(24)
                 )
 
+                if self.id != b"##CA":
+                    message = f'Expected "##CA" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
+
                 nr = self.links_nr
                 links = unpack(f"<{nr}Q", stream.read(8 * nr))
                 self.composition_addr = links[0]
@@ -1253,12 +1263,6 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                         for j in range(self[f"dim_size_{i}"]):
                             (value,) = FLOAT64_u(stream.read(8))
                             self[f"axis_{i}_value_{j}"] = value
-
-            if self.id != b"##CA":
-                message = f'Expected "##CA" block @{hex(address)} but found "{self.id}"'
-
-                logger.exception(message)
-                raise MdfException(message)
 
         except KeyError:
             self.id = b"##CA"
@@ -1795,14 +1799,18 @@ class ChannelConversion(_ChannelConversionBase):
 
             stream = kwargs["stream"]
             try:
+                self.address = address = kwargs.get("address", 0)
                 block = kwargs["raw_bytes"]
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
                     block
                 )
 
-                block = block[COMMON_SIZE:]
+                if self.id != b"##CC":
+                    message = f'Expected "##CC" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
 
-                self.address = kwargs.get("address", 0)
+                block = block[COMMON_SIZE:]
 
             except KeyError:
                 self.address = address = kwargs["address"]
@@ -1811,6 +1819,11 @@ class ChannelConversion(_ChannelConversionBase):
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
                     stream.read(COMMON_SIZE)
                 )
+
+                if self.id != b"##CC":
+                    message = f'Expected "##CC" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
 
                 block = stream.read(self.block_len - COMMON_SIZE)
 
@@ -2052,12 +2065,6 @@ class ChannelConversion(_ChannelConversionBase):
                     self.min_phy_value,
                     self.max_phy_value,
                 ) = unpack_from("<2B3H2d", block, 32 + links_nr * 8)
-
-            if self.id != b"##CC":
-                message = f'Expected "##CC" block @{hex(address)} but found "{self.id}"'
-
-                logger.exception(message)
-                raise MdfException(message)
 
             self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
             self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped)
@@ -3100,6 +3107,10 @@ class DataBlock:
                     stream, address
                 )
                 address += COMMON_SIZE
+                if self.id not in (b"##DT", b"##RD", b"##SD"):
+                    message = f'Expected "##DT", "##RD" or "##SD" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
                 self.data = stream[address: address + self.block_len]
             else:
 
@@ -3108,13 +3119,13 @@ class DataBlock:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
                     stream.read(COMMON_SIZE)
                 )
+
+                if self.id not in (b"##DT", b"##RD", b"##SD"):
+                    message = f'Expected "##DT", "##RD" or "##SD" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
+
                 self.data = stream.read(self.block_len - COMMON_SIZE)
-
-            if self.id not in (b"##DT", b"##RD", b"##SD"):
-                message = f'Expected "##DT", "##RD" or "##SD" block @{hex(address)} but found "{self.id}"'
-
-                logger.exception(message)
-                raise MdfException(message)
 
         except KeyError:
             self.address = 0
@@ -3212,13 +3223,13 @@ class DataZippedBlock(object):
                 self.zip_size,
             ) = unpack(v4c.FMT_DZ_COMMON, stream.read(v4c.DZ_COMMON_SIZE))
 
-            self.data = stream.read(self.zip_size)
-
             if self.id != b"##DZ":
                 message = f'Expected "##DZ" block @{hex(address)} but found "{self.id}"'
 
                 logger.exception(message)
                 raise MdfException(message)
+
+            self.data = stream.read(self.zip_size)
 
         except KeyError:
             self._prevent_data_setitem = False
@@ -3562,6 +3573,12 @@ class DataList(_DataListBase):
                     stream, address
                 )
 
+                if self.id != b"##DL":
+                    message = f'Expected "##DL" block @{hex(address)} but found "{self.id}"'
+
+                    logger.exception(message)
+                    raise MdfException(message)
+
                 address += COMMON_SIZE
 
                 links = unpack_from(
@@ -3596,6 +3613,12 @@ class DataList(_DataListBase):
                     stream.read(COMMON_SIZE)
                 )
 
+                if self.id != b"##DL":
+                    message = f'Expected "##DL" block @{hex(address)} but found "{self.id}"'
+
+                    logger.exception(message)
+                    raise MdfException(message)
+
                 links = unpack(
                     f"<{self.links_nr}Q", stream.read(self.links_nr * 8)
                 )
@@ -3618,12 +3641,6 @@ class DataList(_DataListBase):
                     )
                     for i, offset in enumerate(offsets):
                         self[f"offset_{i}"] = offset
-
-            if self.id != b"##DL":
-                message = f'Expected "##DL" block @{hex(address)} but found "{self.id}"'
-
-                logger.exception(message)
-                raise MdfException(message)
 
         except KeyError:
 
@@ -4733,6 +4750,11 @@ class TextBlock:
 
                 size = self.block_len - COMMON_SIZE
 
+                if self.id not in (b"##TX", b"##MD"):
+                    message = f'Expected "##TX" or "##MD" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
+
                 self.text = text = stream[address + COMMON_SIZE: address + self.block_len]
 
             else:
@@ -4743,12 +4765,12 @@ class TextBlock:
 
                 size = self.block_len - COMMON_SIZE
 
-                self.text = text = stream.read(size)
+                if self.id not in (b"##TX", b"##MD"):
+                    message = f'Expected "##TX" or "##MD" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
 
-            if self.id not in (b"##TX", b"##MD"):
-                message = f'Expected "##TX" or "##MD" block @{hex(address)} but found "{self.id}"'
-                logger.exception(message)
-                raise MdfException(message)
+                self.text = text = stream.read(size)
 
             align = size % 8
             if align:
