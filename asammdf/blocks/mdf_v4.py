@@ -1258,6 +1258,9 @@ class MDF4(object):
                     position = 0
                     while address:
                         dl = DataList(address=address, stream=stream)
+                        if address == DL_ADDRESS:
+                            print('DL', dict(dl))
+
                         for i in range(dl["links_nr"] - 1):
                             addr = dl["data_block_addr{}".format(i)]
                             stream.seek(addr)
@@ -1274,6 +1277,10 @@ class MDF4(object):
                                     position += dim
                             elif id_string == b"##DZ":
                                 block = DataZippedBlock(stream=stream, address=addr)
+                                if address == DL_ADDRESS:
+                                    dct = dict(block)
+                                    dct['data'] = len(dct['data'])
+                                    print('DZ', i, dct)
                                 uncompressed_size = block["original_size"]
                                 view[position : position + uncompressed_size] = block[
                                     "data"
@@ -4839,11 +4846,11 @@ class MDF4(object):
                     if parent is not None:
                         if "record" not in grp:
                             record = fromstring(data_bytes, dtype=dtypes)
-                            
+
                             if memory == "full":
                                 record.setflags(write=False)
                                 grp["record"] = record
-                                
+
                         else:
                             record = grp["record"]
 
@@ -4905,7 +4912,7 @@ class MDF4(object):
                                                 vals >>= bit_offset
                                             else:
                                                 vals = vals >> bit_offset
-        
+
                                         if bit_count != size << 3:
                                             if data_type in v4c.SIGNED_INT:
                                                 vals = as_non_byte_sized_signed_int(vals, bit_count)
