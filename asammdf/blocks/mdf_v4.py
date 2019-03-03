@@ -1258,8 +1258,6 @@ class MDF4(object):
                     position = 0
                     while address:
                         dl = DataList(address=address, stream=stream)
-                        if address == DL_ADDRESS:
-                            print('DL', dict(dl))
 
                         for i in range(dl["links_nr"] - 1):
                             addr = dl["data_block_addr{}".format(i)]
@@ -1277,15 +1275,13 @@ class MDF4(object):
                                     position += dim
                             elif id_string == b"##DZ":
                                 block = DataZippedBlock(stream=stream, address=addr)
-                                if address == DL_ADDRESS:
-                                    dct = dict(block)
-                                    dct['data'] = len(dct['data'])
-                                    print('DZ', i, dct)
                                 uncompressed_size = block["original_size"]
                                 view[position : position + uncompressed_size] = block[
                                     "data"
                                 ]
                                 position += uncompressed_size
+                            else:
+                                raise MdfException("Expected b'##DT' or b'##DZ' @0x{} but found {}".format(hex(addr), id_string))
                         address = dl["next_dl_addr"]
                     count += 1
                     yield data

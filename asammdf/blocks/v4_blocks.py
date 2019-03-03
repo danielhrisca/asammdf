@@ -2780,13 +2780,14 @@ class DataBlock(dict):
                 self["block_len"],
                 self["links_nr"],
             ) = COMMON_u(stream.read(COMMON_SIZE))
-            self["data"] = stream.read(self["block_len"] - COMMON_SIZE)
 
             if self["id"] not in (b"##DT", b"##RD", b"##SD"):
                 message = 'Expected "##DT", "##RD" or "##SD" block @{} but found "{}"'
                 message = message.format(hex(address), self["id"])
                 logger.exception(message)
                 raise MdfException(message)
+
+            self["data"] = stream.read(self["block_len"] - COMMON_SIZE)
 
         except KeyError:
             self.address = 0
@@ -2865,13 +2866,13 @@ class DataZippedBlock(dict):
                 self["zip_size"],
             ) = unpack(v4c.FMT_DZ_COMMON, stream.read(v4c.DZ_COMMON_SIZE))
 
-            self["data"] = stream.read(self["zip_size"])
-
             if self["id"] != b"##DZ":
                 message = 'Expected "##DZ" block @{} but found "{}"'
                 message = message.format(hex(address), self["id"])
                 logger.exception(message)
                 raise MdfException(message)
+
+            self["data"] = stream.read(self["zip_size"])
 
         except KeyError:
             self._prevent_data_setitem = False
