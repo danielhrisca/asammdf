@@ -231,8 +231,8 @@ class MDF4(object):
                 self._read(mapped=False)
             else:
                 self.name = Path(name)
-                with open(self.name, "r+b") as x:
-                    self._file = mmap.mmap(x.fileno(), 0)
+                with open(self.name, "rb") as x:
+                    self._file = mmap.mmap(x.fileno(), 0, access=mmap.ACCESS_READ)
                     self._from_filelike = False
                     self._read(mapped=True)
 

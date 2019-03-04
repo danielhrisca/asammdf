@@ -173,8 +173,8 @@ class MDF3(object):
                 self._read(mapped=False)
             else:
                 self.name = Path(name)
-                x = open(self.name, "r+b")
-                self._file = mmap.mmap(x.fileno(), 0)
+                x = open(self.name, "rb")
+                self._file = mmap.mmap(x.fileno(), 0, access=mmap.ACCESS_READ)
                 self._from_filelike = False
                 self._read(mapped=True)
 
