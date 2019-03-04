@@ -960,7 +960,6 @@ class Group:
     __slots__ = (
         "channels",
         "logging_channels",
-        "data_block",
         "channel_dependencies",
         "signal_data_size",
         "signal_data",
@@ -969,11 +968,8 @@ class Group:
         "sorted",
         "data_group",
         "data_location",
-        "data_block_addr",
-        "data_block_type",
-        "data_size",
-        "data_block_size",
-        "param",
+        "data_blocks",
+        "data_blocks_flags",
         "record_size",
         "CAN_logging",
         "CAN_id",
@@ -996,7 +992,6 @@ class Group:
         self.data_group = data_group
         self.channels = []
         self.logging_channels = []
-        self.data_block = None
         self.channel_dependencies = []
         self.signal_data = []
         self.CAN_logging = False
@@ -1013,6 +1008,8 @@ class Group:
         self.record = None
         self.trigger = None
         self.string_dtypes = None
+        self.data_blocks = []
+        self.data_blocks_flags = 0
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -1020,9 +1017,9 @@ class Group:
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
 
-    def set_blocks_info(self, info):
-        for key, value in info.items():
-            self[key] = value
+    def set_blocks_info(self, info, flags):
+        self.data_blocks = info
+        self.data_blocks_flags = flags
 
     def __contains__(self, item):
         return hasattr(self, item)
@@ -1113,3 +1110,21 @@ def components(channel, channel_name, unique_names, prefix="", master=None):
                     values = fromarrays(arr, dtype=types)
                     del arr
                 yield name_, Series(values, index=master)
+
+
+class DataBlockInfo:
+
+    __slots__ = (
+        'address',
+        'block_type',
+        'raw_size',
+        'size',
+        'param',
+    )
+
+    def __init__(self, address, block_type, raw_size, size, param):
+        self.address = address
+        self.block_type = block_type
+        self.raw_size = raw_size
+        self.size = size
+        self.param = param
