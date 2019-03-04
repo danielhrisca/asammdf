@@ -52,6 +52,7 @@ from .utils import (
     count_channel_groups,
     is_file_like,
     Group,
+    DataBlockInfo,
 )
 from .v2_v3_blocks import (
     Channel,
@@ -230,14 +231,15 @@ class MDF3(object):
                 if split_size == 0:
                     split_size = samples_size
 
-                blocks = zip(group.data_block_addr, group.data_block_size)
+                blocks = iter(group.data_blocks)
 
                 cur_size = 0
                 data = []
 
                 while True:
                     try:
-                        address, size = next(blocks)
+                        info = next(blocks)
+                        address, size = info.address, info.size
                         current_address = address
                     except StopIteration:
                         break
@@ -296,10 +298,10 @@ class MDF3(object):
                 record_id_nr = 0
             cg_data = []
 
-            blocks = zip(group.data_block_addr, group.data_block_size)
+            blocks = group.data_blocks
 
-            for address, size in blocks:
-
+            for info in blocks:
+                address, size = info.address, info.size
                 stream.seek(address)
                 data = stream.read(size)
 
@@ -718,7 +720,6 @@ class MDF3(object):
                 new_groups.append(Group(None))
                 grp = new_groups[-1]
                 grp.channels = []
-                grp.data_block = None
                 grp.trigger = trigger
                 grp.channel_dependencies = []
 
@@ -813,9 +814,16 @@ class MDF3(object):
 
             for grp in new_groups:
                 grp.data_location = v23c.LOCATION_ORIGINAL_FILE
-                grp.data_group.data_block_addr = data_group.data_block_addr
-                grp.data_block_addr = [data_group.data_block_addr]
-                grp.data_block_size = [total_size]
+                grp.data_blocks.append(
+                    DataBlockInfo(
+                        address=data_group.data_block_addr,
+                        block_type=0,
+                        raw_size=total_size,
+                        size=total_size,
+                        param=0,
+                    )
+                )
+                grp.data_blocks_flags = 0x1
 
             self.groups.extend(new_groups)
 
@@ -1835,13 +1843,22 @@ class MDF3(object):
         if cycles_nr:
             data_address = tell()
             gp.data_group.data_block_addr = data_address
-            gp.data_block_addr = [data_address]
-            gp.data_block_size = [len(block)]
+            size = len(block)
             self._tempfile.write(block)
+
+            gp.data_blocks.append(
+                DataBlockInfo(
+                    address=data_address,
+                    block_type=0,
+                    raw_size=size,
+                    size=size,
+                    param=0,
+                )
+            )
+            gp.data_blocks_flags = 0x1
+
         else:
-            gp.data_group.data_block_addr = 0
-            gp.data_block_addr = [0]
-            gp.data_block_size = [0]
+            gp.data_location = v23c.LOCATION_TEMPORARY_FILE
 
         # data group trigger
         gp.trigger = None
@@ -2067,14 +2084,21 @@ class MDF3(object):
         if cycles_nr:
             data_address = tell()
             gp.data_group.data_block_addr = data_address
-            gp.data_block_addr = [data_address]
-            gp.data_block_size = [len(block)]
+            size = len(block)
             self._tempfile.write(block)
-        else:
-            gp.data_group.data_block_addr = 0
-            gp.data_block_addr = [0]
-            gp.data_block_size = [0]
 
+            gp.data_blocks.append(
+                DataBlockInfo(
+                    address=data_address,
+                    block_type=0,
+                    raw_size=size,
+                    size=size,
+                    param=0,
+                )
+            )
+            gp.data_blocks_flags = 0x1
+        else:
+            gp.data_location = v23c.LOCATION_TEMPORARY_FILE
         # data group trigger
         gp.trigger = None
 
@@ -2255,10 +2279,19 @@ class MDF3(object):
         if cycles_nr:
             stream.seek(0, 2)
             data_address = stream.tell()
-            gp.data_block_addr.append(data_address)
-            gp.data_block_size.append(extended_size)
             stream.write(samples)
             gp.channel_group.cycles_nr += cycles_nr
+
+            gp.data_blocks.append(
+                DataBlockInfo(
+                    address=data_address,
+                    block_type=0,
+                    raw_size=extended_size,
+                    size=extended_size,
+                    param=0,
+                )
+            )
+            gp.data_blocks_flags = 0x1
 
     def get_channel_name(self, group, index):
         """Gets channel name.
@@ -2690,7 +2723,7 @@ class MDF3(object):
                     else:
                         dtype_ = vals.dtype
                         kind_ = dtype_.kind
-                        
+
                         if data_type in v23c.INT_TYPES:
                             if kind_ == 'f':
                                 if bits != size * 8:
@@ -2717,7 +2750,7 @@ class MDF3(object):
                                             vals >>= bit_offset
                                         else:
                                             vals = vals >> bit_offset
-        
+
                                     if bits != size << 3:
                                         if data_type in v23c.SIGNED_INT:
                                             vals = as_non_byte_sized_signed_int(vals, bits)

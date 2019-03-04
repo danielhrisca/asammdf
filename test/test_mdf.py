@@ -321,6 +321,8 @@ class TestMDF(unittest.TestCase):
                                         equal = False
                                         print(vals, len(vals))
                                         print(v * (j - 1), len(v))
+
+                                        input(outfile)
                                         1 / 0
                             elif i == 1:
                                 v = np.ones(cycles, dtype=np.int64)
@@ -958,12 +960,12 @@ class TestMDF(unittest.TestCase):
         mdf = MDF()
         for df in dfs:
             mdf.append(df)
-            
+
         target = {}
         for i in range(5):
             target[f'df_{i}_column_0'] = np.ones(5) * i
             target[f'df_{i}_column_1'] = np.arange(5) * i
-            
+
         target = DataFrame(target)
 
         self.assertTrue(target.equals(mdf.to_dataframe()))

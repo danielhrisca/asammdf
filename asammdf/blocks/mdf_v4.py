@@ -533,8 +533,6 @@ class MDF4(object):
 
                 _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
 
-                print(_sig)
-
                 attachment = _sig.attachment
                 if attachment and attachment[1].name.lower().endswith(("dbc", "arxml")):
                     attachment, at_name = attachment
@@ -1138,10 +1136,10 @@ class MDF4(object):
                 if split_size == 0:
                     split_size = samples_size
 
-            blocks = iter(self.data_blocks)
-            flags = self.data_blocks_flags
+            blocks = iter(group.data_blocks)
+            flags = group.data_blocks_flags
 
-            if self.data_blocks:
+            if group.data_blocks:
 
                 if group.sorted:
 
@@ -1152,7 +1150,7 @@ class MDF4(object):
                         while True:
                             try:
                                 info = next(blocks)
-                                address, size, block_size = info.addres, info.raw_size, info.size
+                                address, size, block_size = info.address, info.raw_size, info.size
                                 current_address = address
                             except StopIteration:
                                 break
@@ -1220,7 +1218,6 @@ class MDF4(object):
                                 yield data_, offset, _count
                                 has_yielded = True
                     else:
-
                         extra_bytes = b""
                         for info in blocks:
                             address, block_type, size, block_size, param = (
@@ -1992,10 +1989,10 @@ class MDF4(object):
                             param = temp["param"]
                         info.append(
                             DataBlockInfo(
-                                address=address + COMMON_SIZE,
+                                address=address + v4c.DZ_COMMON_SIZE,
                                 block_type=block_type_,
-                                raw_size=temp["zip_size"],
-                                size=temp["original_size"],
+                                raw_size=temp["original_size"],
+                                size=temp["zip_size"],
                                 param=param,
                             )
                         )
@@ -2046,10 +2043,10 @@ class MDF4(object):
                                         param = temp["param"]
                                     info.append(
                                         DataBlockInfo(
-                                            address=addr + COMMON_SIZE,
+                                            address=addr + v4c.DZ_COMMON_SIZE,
                                             block_type=block_type_,
-                                            raw_size=temp["zip_size"],
-                                            size=temp["original_size"],
+                                            raw_size=temp["original_size"],
+                                            size=temp["zip_size"],
                                             param=param,
                                         )
                                     )
@@ -2104,17 +2101,16 @@ class MDF4(object):
                             param = temp["param"]
                         info.append(
                             DataBlockInfo(
-                                address=address + COMMON_SIZE,
+                                address=address + v4c.DZ_COMMON_SIZE,
                                 block_type=block_type_,
-                                raw_size=temp["zip_size"],
-                                size=temp["original_size"],
+                                raw_size=temp["original_size"],
+                                size=temp["zip_size"],
                                 param=param,
                             )
                         )
 
                 # or a DataList
                 elif id_string == b"##DL":
-                    info["data_block_type"] = v4c.DT_BLOCK
                     while address:
                         dl = DataList(address=address, stream=stream)
                         for i in range(dl.data_block_nr):
@@ -2160,10 +2156,10 @@ class MDF4(object):
                                         param = temp["param"]
                                     info.append(
                                         DataBlockInfo(
-                                            address=addr + COMMON_SIZE,
+                                            address=addr + v4c.DZ_COMMON_SIZE,
                                             block_type=block_type_,
-                                            raw_size=temp["zip_size"],
-                                            size=temp["original_size"],
+                                            raw_size=temp["original_size"],
+                                            size=temp["zip_size"],
                                             param=param,
                                         )
                                     )
@@ -3058,6 +3054,8 @@ class MDF4(object):
                 )
             )
             gp.data_blocks_flags |= 0x1
+        else:
+            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
     def _append_dataframe(self, df, source_info="", units=None):
         """
@@ -3306,6 +3304,8 @@ class MDF4(object):
                 )
             )
             gp.data_blocks_flags |= 0x1
+        else:
+            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
     def extend(self, index, signals):
         """

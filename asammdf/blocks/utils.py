@@ -1128,3 +1128,17 @@ class DataBlockInfo:
         self.raw_size = raw_size
         self.size = size
         self.param = param
+
+
+def get_fields(obj):
+    fields = []
+    for attr in dir(obj):
+        if attr[:2] + attr[-2:] == "____":
+            continue
+        try:
+            if callable(getattr(obj, attr)):
+                continue
+            fields.append(attr)
+        except AttributeError:
+            continue
+    return fields

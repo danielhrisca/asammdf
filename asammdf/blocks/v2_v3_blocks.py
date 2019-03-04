@@ -12,7 +12,7 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v2_v3_constants as v23c
-from .utils import MdfException, get_text_v3, SignalSource, UINT16_u, UINT16_uf
+from .utils import MdfException, get_text_v3, SignalSource, UINT16_u, UINT16_uf, get_fields
 from ..version import __version__
 
 
@@ -938,7 +938,9 @@ class ChannelConversion(_ChannelConversionBase):
                     )
                     conversion.block_len = size
 
-                    self.update(conversion)
+                    for attr in get_fields(conversion):
+                        setattr(self, attr, getattr(conversion, attr))
+
                     self.referenced_blocks = conversion.referenced_blocks
 
                 else:
@@ -967,7 +969,8 @@ class ChannelConversion(_ChannelConversionBase):
                     )
                     conversion.block_len = size
 
-                    self.update(conversion)
+                    for attr in get_fields(conversion):
+                        setattr(self, attr, getattr(conversion, attr))
                     self.referenced_blocks = conversion.referenced_blocks
 
                 else:
