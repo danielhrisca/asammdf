@@ -2775,7 +2775,9 @@ class TextBlock:
             if mapped:
                 (self.id, self.block_len) = COMMON_uf(stream, address)
                 if self.id != b"TX":
-                    message = f'Expected "TX" block @{hex(address)} but found "{self.id}"'
+                    message = f'Expected "TX" block @{hex(address)} but found "{self.id}"
+                    logger.exception(message)
+                    raise MdfException(message)'
 
                 self.text = stream[address + 4: address + self.block_len]
             else:
@@ -2783,12 +2785,11 @@ class TextBlock:
                 (self.id, self.block_len) = COMMON_u(stream.read(4))
                 if self.id != b"TX":
                     message = f'Expected "TX" block @{hex(address)} but found "{self.id}"'
+                    logger.exception(message)
+                    raise MdfException(message)
 
                 size = self.block_len - 4
                 self.text = stream.read(size)
-
-                logger.exception(message)
-                raise MdfException(message)
 
         except KeyError:
             self.address = 0
