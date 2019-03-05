@@ -4788,8 +4788,8 @@ class TextBlock:
             text = kwargs["text"]
 
             try:
-                text = text.encode("utf-8")
-            except (AttributeError, UnicodeDecodeError):
+                text = text.encode("utf-8", "replace")
+            except AttributeError:
                 pass
 
             size = len(text)
