@@ -2,7 +2,7 @@
 """ common MDF file format module """
 
 import csv
-import datetime
+from datetime import datetime
 import logging
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
@@ -636,7 +636,8 @@ class MDF(object):
 
         if time_from_zero:
             delta = start
-            t_epoch = datetime.timestamp(self.header.start_time) + delta
+            print(delta)
+            t_epoch = self.header.start_time.timestamp() + delta
             out.header.start_time = datetime.fromtimestamp(t_epoch)
         else:
             delta = 0
