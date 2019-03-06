@@ -1104,6 +1104,7 @@ class FileWidget(QWidget):
         version = self.cut_format.currentText()
         start = self.cut_start.value()
         stop = self.cut_stop.value()
+        time_from_zero = self.cut_time_from_zero.checkState() == Qt.Checked
 
         if self.whence.checkState() == Qt.Checked:
             whence = 1
@@ -1144,6 +1145,7 @@ class FileWidget(QWidget):
                 "stop": stop,
                 "whence": whence,
                 "version": version,
+                "time_from_zero": time_from_zero,
             }
 
             mdf = run_thread_with_progress(
