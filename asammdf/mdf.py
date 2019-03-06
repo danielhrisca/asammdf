@@ -636,7 +636,6 @@ class MDF(object):
 
         if time_from_zero:
             delta = start
-            print(delta)
             t_epoch = self.header.start_time.timestamp() + delta
             out.header.start_time = datetime.fromtimestamp(t_epoch)
         else:
