@@ -1154,7 +1154,6 @@ class MDF4(object):
 
             blocks = iter(group.data_blocks)
 
-
             if group.data_blocks:
 
                 cur_size = 0
@@ -1175,7 +1174,6 @@ class MDF4(object):
                         break
 
                     if group.sorted:
-
                         if offset + size < record_offset + 1:
                             offset += size
                             continue
@@ -1192,12 +1190,6 @@ class MDF4(object):
                         nd = fromstring(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
                         new_data = nd.T.tostring() + new_data[lines * cols :]
-
-                    if offset < record_offset:
-                        delta = record_offset - offset
-                        new_data = new_data[delta:]
-                        size -= delta
-                        offset = record_offset
 
                     if not group.sorted:
                         rec_data = []
@@ -1221,6 +1213,12 @@ class MDF4(object):
                         new_data = b"".join(rec_data)
 
                         size = len(new_data)
+
+                    if offset < record_offset:
+                        delta = record_offset - offset
+                        new_data = new_data[delta:]
+                        size -= delta
+                        offset = record_offset
 
                     while size >= split_size - cur_size:
                         if data:
@@ -5200,26 +5198,41 @@ class MDF4(object):
             path to saved file
 
         """
-        dst = Path(dst).with_suffix(".mf4")
 
-        destination_dir = dst.parent
-        destination_dir.mkdir(parents=True, exist_ok=True)
+        if is_file_like(dst):
+            dst_ = dst
+            file_like = True
+            dst = Path("__file_like.mf4")
+            dst_.seek(0)
+        else:
+            file_like = False
+            dst = Path(dst).with_suffix(".mf4")
 
-        if overwrite is False:
-            if dst.is_file():
-                cntr = 0
-                while True:
-                    name = dst.with_suffix(f".{cntr}.mf4")
-                    if not name.exists():
-                        break
-                    else:
-                        cntr += 1
-                message = (
-                    f'Destination file "{dst}" already exists '
-                    f'and "overwrite" is False. Saving MDF file as "{name}"'
-                )
-                logger.warning(message)
-                dst = name
+            destination_dir = dst.parent
+            destination_dir.mkdir(parents=True, exist_ok=True)
+
+            if overwrite is False:
+                if dst.is_file():
+                    cntr = 0
+                    while True:
+                        name = dst.with_suffix(f".{cntr}.mf4")
+                        if not name.exists():
+                            break
+                        else:
+                            cntr += 1
+                    message = (
+                        f'Destination file "{dst}" already exists '
+                        f'and "overwrite" is False. Saving MDF file as "{name}"'
+                    )
+                    logger.warning(message)
+                    dst = name
+
+            if dst == self.name:
+                destination = dst.with_suffix(".savetemp")
+            else:
+                destination = dst
+
+            dst_ = open(destination, "wb+")
 
         if not self.file_history:
             comment = "created"
@@ -5236,12 +5249,7 @@ class MDF4(object):
 
         self.file_history.append(fh)
 
-        if dst == self.name:
-            destination = dst.with_suffix(".savetemp")
-        else:
-            destination = dst
-
-        with open(destination, "wb+") as dst_:
+        try:
             defined_texts = {}
             cc_map = {}
             si_map = {}
@@ -5281,71 +5289,32 @@ class MDF4(object):
                     + gp.channel_group.invalidation_bytes_nr
                 ) * gp.channel_group.cycles_nr
 
-                if self._write_fragment_size:
+                if total_size:
 
-                    samples_size = (
-                        gp.channel_group.samples_byte_nr
-                        + gp.channel_group.invalidation_bytes_nr
-                    )
-                    if samples_size:
-                        split_size = self._write_fragment_size // samples_size
-                        split_size *= samples_size
-                        if split_size == 0:
-                            split_size = samples_size
-                        chunks = float(total_size) / split_size
-                        chunks = int(ceil(chunks))
+                    if self._write_fragment_size:
+
+                        samples_size = (
+                            gp.channel_group.samples_byte_nr
+                            + gp.channel_group.invalidation_bytes_nr
+                        )
+                        if samples_size:
+                            split_size = self._write_fragment_size // samples_size
+                            split_size *= samples_size
+                            if split_size == 0:
+                                split_size = samples_size
+                            chunks = float(total_size) / split_size
+                            chunks = int(ceil(chunks))
+                        else:
+                            chunks = 1
                     else:
                         chunks = 1
-                else:
-                    chunks = 1
 
-                self.configure(read_fragment_size=split_size)
-                data = self._load_data(gp)
+                    self.configure(read_fragment_size=split_size)
+                    data = self._load_data(gp)
 
-                if chunks == 1:
-                    data_ = next(data)[0]
-                    if compression and self.version > "4.00":
-                        if compression == 1:
-                            param = 0
-                        else:
-                            param = (
-                                gp.channel_group.samples_byte_nr
-                                + gp.channel_group.invalidation_bytes_nr
-                            )
-                        kwargs = {"data": data_, "zip_type": zip_type, "param": param}
-                        data_block = DataZippedBlock(**kwargs)
-                    else:
-                        data_block = DataBlock(data=data_)
-                    write(bytes(data_block))
-
-                    align = data_block.block_len % 8
-                    if align:
-                        write(b"\0" * (8 - align))
-
-                    if gp.channel_group.cycles_nr:
-                        gp.data_group.data_block_addr = address
-                    else:
-                        gp.data_group.data_block_addr = 0
-                else:
-                    kwargs = {"flags": v4c.FLAG_DL_EQUAL_LENGHT, "zip_type": zip_type}
-                    hl_block = HeaderList(**kwargs)
-
-                    kwargs = {
-#                        "flags": v4c.FLAG_DL_EQUAL_LENGHT,
-                        "links_nr": chunks + 1,
-                        "data_block_nr": chunks,
-                        "data_block_len": split_size,
-                    }
-                    dl_block = DataList(**kwargs)
-
-                    for i, data__ in enumerate(data):
-                        data_ = data__[0]
-
+                    if chunks == 1:
+                        data_ = next(data)[0]
                         if compression and self.version > "4.00":
-                            if compression == 1:
-                                zip_type = v4c.FLAG_DZ_DEFLATE
-                            else:
-                                zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
                             if compression == 1:
                                 param = 0
                             else:
@@ -5353,35 +5322,78 @@ class MDF4(object):
                                     gp.channel_group.samples_byte_nr
                                     + gp.channel_group.invalidation_bytes_nr
                                 )
-                            kwargs = {
-                                "data": data_,
-                                "zip_type": zip_type,
-                                "param": param,
-                            }
-                            block = DataZippedBlock(**kwargs)
+                            kwargs = {"data": data_, "zip_type": zip_type, "param": param}
+                            data_block = DataZippedBlock(**kwargs)
                         else:
-                            block = DataBlock(data=data_)
-                        address = tell()
-                        block.address = address
+                            data_block = DataBlock(data=data_)
+                        write(bytes(data_block))
 
-                        write(bytes(block))
-
-                        align = block.block_len % 8
+                        align = data_block.block_len % 8
                         if align:
                             write(b"\0" * (8 - align))
-                        dl_block[f"data_block_addr{i}"] = address
 
-                    address = tell()
-                    dl_block.address = address
-                    write(bytes(dl_block))
+                        if gp.channel_group.cycles_nr:
+                            gp.data_group.data_block_addr = address
+                        else:
+                            gp.data_group.data_block_addr = 0
+                    else:
+                        kwargs = {"flags": v4c.FLAG_DL_EQUAL_LENGHT, "zip_type": zip_type}
+                        hl_block = HeaderList(**kwargs)
 
-                    if compression and self.version != "4.00":
-                        hl_block.first_dl_addr = address
+                        kwargs = {
+                            "flags": v4c.FLAG_DL_EQUAL_LENGHT,
+                            "links_nr": chunks + 1,
+                            "data_block_nr": chunks,
+                            "data_block_len": split_size,
+                        }
+                        dl_block = DataList(**kwargs)
+
+                        for i, data__ in enumerate(data):
+                            data_ = data__[0]
+
+                            if compression and self.version > "4.00":
+                                if compression == 1:
+                                    zip_type = v4c.FLAG_DZ_DEFLATE
+                                else:
+                                    zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                                if compression == 1:
+                                    param = 0
+                                else:
+                                    param = (
+                                        gp.channel_group.samples_byte_nr
+                                        + gp.channel_group.invalidation_bytes_nr
+                                    )
+                                kwargs = {
+                                    "data": data_,
+                                    "zip_type": zip_type,
+                                    "param": param,
+                                }
+                                block = DataZippedBlock(**kwargs)
+                            else:
+                                block = DataBlock(data=data_)
+                            address = tell()
+                            block.address = address
+
+                            write(bytes(block))
+
+                            align = block.block_len % 8
+                            if align:
+                                write(b"\0" * (8 - align))
+                            dl_block[f"data_block_addr{i}"] = address
+
                         address = tell()
-                        hl_block.address = address
-                        write(bytes(hl_block))
+                        dl_block.address = address
+                        write(bytes(dl_block))
 
-                    gp.data_group.data_block_addr = address
+                        if compression and self.version != "4.00":
+                            hl_block.first_dl_addr = address
+                            address = tell()
+                            hl_block.address = address
+                            write(bytes(hl_block))
+
+                        gp.data_group.data_block_addr = address
+                else:
+                    gp.data_group.data_block_addr = 0
 
                 if self._callback:
                     self._callback(int(50 * (gp_nr + 1) / groups_nr), 100)
@@ -5735,6 +5747,13 @@ class MDF4(object):
                     key = f"attachment_{i}_addr"
                     addr = event[key]
                     event[key] = at_map[addr]
+
+        except:
+            if not file_like:
+                dst_.close()
+
+        if not file_like:
+            dst_.close()
 
         if dst == self.name:
             self.close()
