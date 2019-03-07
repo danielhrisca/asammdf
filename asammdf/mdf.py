@@ -2506,7 +2506,7 @@ class MDF(object):
             mdf._callback = mdf._mdf._callback = self._callback
         return mdf
 
-    def select(self, channels, dataframe=False, record_offset=0):
+    def select(self, channels, dataframe=False, record_offset=0, raw=False):
         """ retrieve the channels listed in *channels* argument as *Signal*
         objects
 
@@ -2614,7 +2614,7 @@ class MDF(object):
                     grp.record = None
                 for index in gps[group]:
                     signal = self.get(
-                        group=group, index=index, data=fragment, copy_master=False
+                        group=group, index=index, data=fragment, copy_master=False, raw=raw,
                     )
                     if (group, index) not in signal_parts:
                         signal_parts[(group, index)] = [signal]
