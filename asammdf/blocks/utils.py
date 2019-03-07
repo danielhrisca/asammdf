@@ -1014,9 +1014,8 @@ class Group:
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
 
-    def set_blocks_info(self, info, flags):
+    def set_blocks_info(self, info):
         self.data_blocks = info
-        self.data_blocks_flags = flags
 
     def __contains__(self, item):
         return hasattr(self, item)

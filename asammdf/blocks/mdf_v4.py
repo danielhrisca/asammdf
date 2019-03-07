@@ -469,13 +469,13 @@ class MDF4(object):
 
             address = group.data_block_addr
 
-            info, flags = self._get_data_blocks_info(
+            info = self._get_data_blocks_info(
                 address=address, stream=stream, block_type=b"##DT", mapped=mapped
             )
 
             for grp in new_groups:
                 grp.data_location = v4c.LOCATION_ORIGINAL_FILE
-                grp.set_blocks_info(info, flags)
+                grp.set_blocks_info(info)
 
             self.groups.extend(new_groups)
 
@@ -1961,7 +1961,12 @@ class MDF4(object):
                     hl = HeaderList(address=address, stream=stream, mapped=mapped)
                     address = hl.first_dl_addr
 
-                    info, _ = self._get_data_blocks_info(address, stream, block_type, mapped)
+                    info = self._get_data_blocks_info(
+                        address,
+                        stream,
+                        block_type,
+                        mapped,
+                    )
         else:
 
             if address:
@@ -2022,7 +2027,9 @@ class MDF4(object):
                             addr = dl[f"data_block_addr{i}"]
 
                             stream.seek(addr)
-                            id_string, _, block_len, __ = COMMON_u(stream.read(COMMON_SIZE))
+                            id_string, _, block_len, __ = COMMON_u(
+                                stream.read(COMMON_SIZE)
+                            )
                             # can be a DataBlock
                             if id_string == block_type:
                                 size = block_len - 24
@@ -2074,18 +2081,14 @@ class MDF4(object):
                     hl = HeaderList(address=address, stream=stream)
                     address = hl.first_dl_addr
 
-                    info, _ = self._get_data_blocks_info(address, stream, block_type, mapped)
+                    info = self._get_data_blocks_info(
+                        address,
+                        stream,
+                        block_type,
+                        mapped,
+                    )
 
-        flags = 0
-        has_dz = any(d.block_type != v4c.DT_BLOCK for d in info)
-        if has_dz:
-            flags |= 0x2
-
-        has_dt = any(d.block_type == v4c.DT_BLOCK for d in info)
-        if has_dt:
-            flags |= 0x1
-
-        return info, flags
+        return info
 
     def get_invalidation_bits(self, group_index, channel, fragment):
         """ get invalidation indexes for the channel
