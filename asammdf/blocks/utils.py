@@ -1007,7 +1007,6 @@ class Group:
         self.trigger = None
         self.string_dtypes = None
         self.data_blocks = []
-        self.data_blocks_flags = 0
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
