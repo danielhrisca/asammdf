@@ -814,15 +814,16 @@ class MDF3(object):
 
             for grp in new_groups:
                 grp.data_location = v23c.LOCATION_ORIGINAL_FILE
-                grp.data_blocks.append(
-                    DataBlockInfo(
-                        address=data_group.data_block_addr,
-                        block_type=0,
-                        raw_size=total_size,
-                        size=total_size,
-                        param=0,
+                if total_size:
+                    grp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_group.data_block_addr,
+                            block_type=0,
+                            raw_size=total_size,
+                            size=total_size,
+                            param=0,
+                        )
                     )
-                )
 
             self.groups.extend(new_groups)
 
