@@ -1116,256 +1116,161 @@ class MDF4(object):
             yield b"", offset, _count
         else:
 
-            if group.sorted:
-                if self._read_fragment_size:
-                    split_size = self._read_fragment_size // samples_size
-                    split_size *= samples_size
+            if self._read_fragment_size:
+                split_size = self._read_fragment_size // samples_size
+                split_size *= samples_size
+            else:
+                channels_nr = len(group.channels)
+
+                y_axis = CONVERT
+
+                idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
+                if idx < 0:
+                    idx = 0
+                split_size = y_axis[idx]
+
+                split_size = split_size // samples_size
+                split_size *= samples_size
+
+            if split_size == 0:
+                split_size = samples_size
+
+            if not group.sorted:
+                cg_size = group.record_size
+                record_id = channel_group.record_id
+                record_id_nr = data_group.record_id_len
+
+                if record_id_nr == 1:
+                    _unpack_stuct = UINT8_u
+                elif record_id_nr == 2:
+                    _unpack_stuct = UINT16_u
+                elif record_id_nr == 4:
+                    _unpack_stuct = UINT32_u
+                elif record_id_nr == 8:
+                    _unpack_stuct = UINT64_u
                 else:
-                    channels_nr = len(group.channels)
-
-                    y_axis = CONVERT
-
-                    idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
-                    if idx < 0:
-                        idx = 0
-                    split_size = y_axis[idx]
-
-                    split_size = split_size // samples_size
-                    split_size *= samples_size
-
-                if split_size == 0:
-                    split_size = samples_size
+                    message = f"invalid record id size {record_id_nr}"
+                    raise MdfException(message)
 
             blocks = iter(group.data_blocks)
-            flags = group.data_blocks_flags
 
             if group.data_blocks:
 
-                if group.sorted:
+                cur_size = 0
+                data = []
 
-                    if flags == 0x1:
-                        cur_size = 0
-                        data = []
-
-                        while True:
-                            try:
-                                info = next(blocks)
-                                address, size, block_size = info.address, info.raw_size, info.size
-                                current_address = address
-                            except StopIteration:
-                                break
-
-                            if offset + size < record_offset + 1:
-                                offset += size
-                                continue
-
-                            if offset < record_offset:
-                                delta = record_offset - offset
-                                current_address += delta
-                                size -= delta
-                                offset = record_offset
-
-                            while size >= split_size - cur_size:
-                                seek(current_address)
-                                if data:
-                                    data.append(read(split_size - cur_size))
-                                    data_ = b"".join(data)
-                                    if record_count is not None:
-                                        yield data_[:record_count], offset, _count
-                                        has_yielded = True
-                                        record_count -= len(data_)
-                                        if record_count <= 0:
-                                            finished = True
-                                            break
-                                    else:
-                                        yield data_, offset, _count
-                                        has_yielded = True
-                                    current_address += split_size - cur_size
-                                else:
-                                    data_ = read(split_size)
-                                    if record_count is not None:
-                                        yield data_[:record_count], offset, _count
-                                        has_yielded = True
-                                        record_count -= len(data_)
-                                        if record_count <= 0:
-                                            finished = True
-                                            break
-                                    else:
-                                        yield data_, offset, _count
-                                        has_yielded = True
-                                    current_address += split_size
-                                offset += split_size
-
-                                size -= split_size - cur_size
-                                data = []
-                                cur_size = 0
-
-                            if finished:
-                                data = []
-                                break
-
-                            if size:
-                                seek(current_address)
-                                data.append(read(size))
-                                cur_size += size
-                        if data:
-                            data_ = b"".join(data)
-                            if record_count is not None:
-                                yield data_[:record_count], offset, _count
-                                has_yielded = True
-                                record_count -= len(data_)
-                            else:
-                                yield data_, offset, _count
-                                has_yielded = True
-                    else:
-                        extra_bytes = b""
-                        for info in blocks:
-                            address, block_type, size, block_size, param = (
-                                info.address,
-                                info.block_type,
-                                info.raw_size,
-                                info.size,
-                                info.param,
-                            )
-
-                            if offset + size < record_offset + 1:
-                                offset += size
-                                continue
-
-                            seek(address)
-                            data = read(block_size)
-
-                            if block_type == v4c.DZ_BLOCK_DEFLATE:
-                                data = decompress(data, 0, size)
-                            elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                                data = decompress(data, 0, size)
-                                cols = param
-                                lines = size // cols
-
-                                nd = fromstring(data[: lines * cols], dtype=uint8)
-                                nd = nd.reshape((cols, lines))
-                                data = nd.T.tostring() + data[lines * cols :]
-
-                            if offset < record_offset:
-                                delta = record_offset - offset
-                                offset = record_offset
-                                data = data[delta:]
-
-                            if extra_bytes:
-                                data = extra_bytes + data
-
-                            dim = len(data)
-                            new_extra_bytes = dim % samples_size
-                            if new_extra_bytes:
-                                extra_bytes = data[-new_extra_bytes:]
-                                data = data[:-new_extra_bytes]
-                                offset_increase = dim - new_extra_bytes
-                            else:
-                                extra_bytes = b""
-                                offset_increase = dim
-
-                            if record_count is not None:
-                                yield data[:record_count], offset, _count
-                                has_yielded = True
-                                record_count -= len(data)
-                                if record_count <= 0:
-                                    finished = True
-                                    break
-                            else:
-                                yield data, offset, _count
-                                has_yielded = True
-                            offset += offset_increase
-
-                        if extra_bytes:
-                            if record_count is not None:
-                                if not finished:
-                                    yield extra_bytes[:record_count], offset, _count
-                                    has_yielded = True
-                            else:
-                                yield extra_bytes, offset, _count
-                                has_yielded = True
-                else:
-                    for info in blocks:
-                        address, block_type, size, block_size, param = (
+                while True:
+                    try:
+                        info = next(blocks)
+                        address, size, block_size, block_type, param = (
                             info.address,
-                            info.block_type,
                             info.raw_size,
                             info.size,
+                            info.block_type,
                             info.param,
                         )
-                        seek(address)
-                        data = read(block_size)
+                        current_address = address
+                    except StopIteration:
+                        break
 
-                        if block_type == v4c.DZ_BLOCK_DEFLATE:
-                            data = decompress(data, 0, size)
-                        elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                            data = decompress(data, 0, size)
-                            cols = param
-                            lines = size // cols
+                    if group.sorted:
+                        if offset + size < record_offset + 1:
+                            offset += size
+                            continue
 
-                            nd = fromstring(data[: lines * cols], dtype=uint8)
-                            nd = nd.reshape((cols, lines))
-                            data = nd.T.tostring() + data[lines * cols :]
+                    seek(address)
+                    new_data = read(block_size)
+                    if block_type == v4c.DZ_BLOCK_DEFLATE:
+                        new_data = decompress(new_data, 0, size)
+                    elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                        new_data = decompress(new_data, 0, size)
+                        cols = param
+                        lines = size // cols
 
+                        nd = fromstring(new_data[: lines * cols], dtype=uint8)
+                        nd = nd.reshape((cols, lines))
+                        new_data = nd.T.tostring() + new_data[lines * cols :]
+
+                    if not group.sorted:
                         rec_data = []
 
-                        cg_size = group.record_size
-                        record_id = channel_group.record_id
-                        record_id_nr = data_group.record_id_len
-
-                        if record_id_nr == 1:
-                            _unpack_stuct = UINT8_u
-                        elif record_id_nr == 2:
-                            _unpack_stuct = UINT16_u
-                        elif record_id_nr == 4:
-                            _unpack_stuct = UINT32_u
-                        elif record_id_nr == 8:
-                            _unpack_stuct = UINT64_u
-                        else:
-                            message = f"invalid record id size {record_id_nr}"
-                            raise MdfException(message)
-
                         i = 0
-                        size = len(data)
+                        size = len(new_data)
                         while i < size:
-                            (rec_id,) = _unpack_stuct(data[i : i + record_id_nr])
+                            (rec_id,) = _unpack_stuct(new_data[i : i + record_id_nr])
                             # skip record id
                             i += record_id_nr
                             rec_size = cg_size[rec_id]
                             if rec_size:
                                 if rec_id == record_id:
-                                    rec_data.append(data[i : i + rec_size])
+                                    rec_data.append(new_data[i : i + rec_size])
                             else:
-                                (rec_size,) = UINT32_u(data[i : i + 4])
+                                (rec_size,) = UINT32_u(new_data[i : i + 4])
                                 if rec_id == record_id:
-                                    rec_data.append(data[i : i + 4 + rec_size])
+                                    rec_data.append(new_data[i : i + 4 + rec_size])
                                 i += 4
                             i += rec_size
-                        rec_data = b"".join(rec_data)
+                        new_data = b"".join(rec_data)
 
-                        size = len(rec_data)
+                        size = len(new_data)
 
-                        if size:
+                    if offset < record_offset:
+                        delta = record_offset - offset
+                        new_data = new_data[delta:]
+                        size -= delta
+                        offset = record_offset
 
-                            if offset + size < record_offset + 1:
-                                offset += size
-                                continue
-
-                            if offset < record_offset:
-                                delta = record_offset - offset
-                                size -= delta
-                                offset = record_offset
-
+                    while size >= split_size - cur_size:
+                        if data:
+                            data.append(new_data[:split_size - cur_size])
+                            new_data = new_data[split_size - cur_size:]
+                            data_ = b"".join(data)
                             if record_count is not None:
-                                yield rec_data[:record_count], offset, _count
+                                yield data_[:record_count], offset, _count
                                 has_yielded = True
-                                record_count -= len(rec_data)
+                                record_count -= len(data_)
                                 if record_count <= 0:
+                                    finished = True
                                     break
                             else:
-                                yield rec_data, offset, _count
+                                yield data_, offset, _count
                                 has_yielded = True
-                            offset += size
+                            current_address += split_size - cur_size
+                        else:
+                            data_, new_data = new_data[:split_size], new_data[split_size:]
+                            if record_count is not None:
+                                yield data_[:record_count], offset, _count
+                                has_yielded = True
+                                record_count -= len(data_)
+                                if record_count <= 0:
+                                    finished = True
+                                    break
+                            else:
+                                yield data_, offset, _count
+                                has_yielded = True
+                            current_address += split_size
+                        offset += split_size
+
+                        size -= split_size - cur_size
+                        data = []
+                        cur_size = 0
+
+                    if finished:
+                        data = []
+                        break
+
+                    if size:
+                        data.append(new_data)
+                        cur_size += size
+                if data:
+                    data_ = b"".join(data)
+                    if record_count is not None:
+                        yield data_[:record_count], offset, _count
+                        has_yielded = True
+                        record_count -= len(data_)
+                    else:
+                        yield data_, offset, _count
+                        has_yielded = True
 
                 if not has_yielded:
                     yield b"", 0, _count
@@ -5293,26 +5198,41 @@ class MDF4(object):
             path to saved file
 
         """
-        dst = Path(dst).with_suffix(".mf4")
 
-        destination_dir = dst.parent
-        destination_dir.mkdir(parents=True, exist_ok=True)
+        if is_file_like(dst):
+            dst_ = dst
+            file_like = True
+            dst = Path("__file_like.mf4")
+            dst_.seek(0)
+        else:
+            file_like = False
+            dst = Path(dst).with_suffix(".mf4")
 
-        if overwrite is False:
-            if dst.is_file():
-                cntr = 0
-                while True:
-                    name = dst.with_suffix(f".{cntr}.mf4")
-                    if not name.exists():
-                        break
-                    else:
-                        cntr += 1
-                message = (
-                    f'Destination file "{dst}" already exists '
-                    f'and "overwrite" is False. Saving MDF file as "{name}"'
-                )
-                logger.warning(message)
-                dst = name
+            destination_dir = dst.parent
+            destination_dir.mkdir(parents=True, exist_ok=True)
+
+            if overwrite is False:
+                if dst.is_file():
+                    cntr = 0
+                    while True:
+                        name = dst.with_suffix(f".{cntr}.mf4")
+                        if not name.exists():
+                            break
+                        else:
+                            cntr += 1
+                    message = (
+                        f'Destination file "{dst}" already exists '
+                        f'and "overwrite" is False. Saving MDF file as "{name}"'
+                    )
+                    logger.warning(message)
+                    dst = name
+
+            if dst == self.name:
+                destination = dst.with_suffix(".savetemp")
+            else:
+                destination = dst
+
+            dst_ = open(destination, "wb+")
 
         if not self.file_history:
             comment = "created"
@@ -5329,12 +5249,7 @@ class MDF4(object):
 
         self.file_history.append(fh)
 
-        if dst == self.name:
-            destination = dst.with_suffix(".savetemp")
-        else:
-            destination = dst
-
-        with open(destination, "wb+") as dst_:
+        try:
             defined_texts = {}
             cc_map = {}
             si_map = {}
@@ -5374,71 +5289,32 @@ class MDF4(object):
                     + gp.channel_group.invalidation_bytes_nr
                 ) * gp.channel_group.cycles_nr
 
-                if self._write_fragment_size:
+                if total_size:
 
-                    samples_size = (
-                        gp.channel_group.samples_byte_nr
-                        + gp.channel_group.invalidation_bytes_nr
-                    )
-                    if samples_size:
-                        split_size = self._write_fragment_size // samples_size
-                        split_size *= samples_size
-                        if split_size == 0:
-                            split_size = samples_size
-                        chunks = float(total_size) / split_size
-                        chunks = int(ceil(chunks))
+                    if self._write_fragment_size:
+
+                        samples_size = (
+                            gp.channel_group.samples_byte_nr
+                            + gp.channel_group.invalidation_bytes_nr
+                        )
+                        if samples_size:
+                            split_size = self._write_fragment_size // samples_size
+                            split_size *= samples_size
+                            if split_size == 0:
+                                split_size = samples_size
+                            chunks = float(total_size) / split_size
+                            chunks = int(ceil(chunks))
+                        else:
+                            chunks = 1
                     else:
                         chunks = 1
-                else:
-                    chunks = 1
 
-                self.configure(read_fragment_size=split_size)
-                data = self._load_data(gp)
+                    self.configure(read_fragment_size=split_size)
+                    data = self._load_data(gp)
 
-                if chunks == 1:
-                    data_ = next(data)[0]
-                    if compression and self.version > "4.00":
-                        if compression == 1:
-                            param = 0
-                        else:
-                            param = (
-                                gp.channel_group.samples_byte_nr
-                                + gp.channel_group.invalidation_bytes_nr
-                            )
-                        kwargs = {"data": data_, "zip_type": zip_type, "param": param}
-                        data_block = DataZippedBlock(**kwargs)
-                    else:
-                        data_block = DataBlock(data=data_)
-                    write(bytes(data_block))
-
-                    align = data_block.block_len % 8
-                    if align:
-                        write(b"\0" * (8 - align))
-
-                    if gp.channel_group.cycles_nr:
-                        gp.data_group.data_block_addr = address
-                    else:
-                        gp.data_group.data_block_addr = 0
-                else:
-                    kwargs = {"flags": v4c.FLAG_DL_EQUAL_LENGHT, "zip_type": zip_type}
-                    hl_block = HeaderList(**kwargs)
-
-                    kwargs = {
-                        "flags": v4c.FLAG_DL_EQUAL_LENGHT,
-                        "links_nr": chunks + 1,
-                        "data_block_nr": chunks,
-                        "data_block_len": split_size,
-                    }
-                    dl_block = DataList(**kwargs)
-
-                    for i in range(chunks):
+                    if chunks == 1:
                         data_ = next(data)[0]
-
                         if compression and self.version > "4.00":
-                            if compression == 1:
-                                zip_type = v4c.FLAG_DZ_DEFLATE
-                            else:
-                                zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
                             if compression == 1:
                                 param = 0
                             else:
@@ -5446,35 +5322,78 @@ class MDF4(object):
                                     gp.channel_group.samples_byte_nr
                                     + gp.channel_group.invalidation_bytes_nr
                                 )
-                            kwargs = {
-                                "data": data_,
-                                "zip_type": zip_type,
-                                "param": param,
-                            }
-                            block = DataZippedBlock(**kwargs)
+                            kwargs = {"data": data_, "zip_type": zip_type, "param": param}
+                            data_block = DataZippedBlock(**kwargs)
                         else:
-                            block = DataBlock(data=data_)
-                        address = tell()
-                        block.address = address
+                            data_block = DataBlock(data=data_)
+                        write(bytes(data_block))
 
-                        write(bytes(block))
-
-                        align = block.block_len % 8
+                        align = data_block.block_len % 8
                         if align:
                             write(b"\0" * (8 - align))
-                        dl_block[f"data_block_addr{i}"] = address
 
-                    address = tell()
-                    dl_block.address = address
-                    write(bytes(dl_block))
+                        if gp.channel_group.cycles_nr:
+                            gp.data_group.data_block_addr = address
+                        else:
+                            gp.data_group.data_block_addr = 0
+                    else:
+                        kwargs = {"flags": v4c.FLAG_DL_EQUAL_LENGHT, "zip_type": zip_type}
+                        hl_block = HeaderList(**kwargs)
 
-                    if compression and self.version != "4.00":
-                        hl_block.first_dl_addr = address
+                        kwargs = {
+                            "flags": v4c.FLAG_DL_EQUAL_LENGHT,
+                            "links_nr": chunks + 1,
+                            "data_block_nr": chunks,
+                            "data_block_len": split_size,
+                        }
+                        dl_block = DataList(**kwargs)
+
+                        for i, data__ in enumerate(data):
+                            data_ = data__[0]
+
+                            if compression and self.version > "4.00":
+                                if compression == 1:
+                                    zip_type = v4c.FLAG_DZ_DEFLATE
+                                else:
+                                    zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                                if compression == 1:
+                                    param = 0
+                                else:
+                                    param = (
+                                        gp.channel_group.samples_byte_nr
+                                        + gp.channel_group.invalidation_bytes_nr
+                                    )
+                                kwargs = {
+                                    "data": data_,
+                                    "zip_type": zip_type,
+                                    "param": param,
+                                }
+                                block = DataZippedBlock(**kwargs)
+                            else:
+                                block = DataBlock(data=data_)
+                            address = tell()
+                            block.address = address
+
+                            write(bytes(block))
+
+                            align = block.block_len % 8
+                            if align:
+                                write(b"\0" * (8 - align))
+                            dl_block[f"data_block_addr{i}"] = address
+
                         address = tell()
-                        hl_block.address = address
-                        write(bytes(hl_block))
+                        dl_block.address = address
+                        write(bytes(dl_block))
 
-                    gp.data_group.data_block_addr = address
+                        if compression and self.version != "4.00":
+                            hl_block.first_dl_addr = address
+                            address = tell()
+                            hl_block.address = address
+                            write(bytes(hl_block))
+
+                        gp.data_group.data_block_addr = address
+                else:
+                    gp.data_group.data_block_addr = 0
 
                 if self._callback:
                     self._callback(int(50 * (gp_nr + 1) / groups_nr), 100)
@@ -5828,6 +5747,13 @@ class MDF4(object):
                     key = f"attachment_{i}_addr"
                     addr = event[key]
                     event[key] = at_map[addr]
+
+        except:
+            if not file_like:
+                dst_.close()
+
+        if not file_like:
+            dst_.close()
 
         if dst == self.name:
             self.close()

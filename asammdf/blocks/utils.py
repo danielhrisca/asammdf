@@ -1129,6 +1129,15 @@ class DataBlockInfo:
         self.size = size
         self.param = param
 
+    def __repr__(self):
+        return (
+            f"DataBlockInfo(address=0x{self.address:X}, "
+            f"block_type={self.block_type}, "
+            f"raw_size={self.raw_size}, "
+            f"size={self.size}, "
+            f"param={self.param})"
+        )
+
 
 def get_fields(obj):
     fields = []
