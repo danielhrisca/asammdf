@@ -1682,7 +1682,7 @@ class MDF(object):
                         )
                     ]
 
-                    for k, j in enumerate(included_channels):
+                    for k, j in enumerate(indexes):
                         sig = self.get(
                             group=group_index,
                             index=j,
