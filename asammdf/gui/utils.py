@@ -121,22 +121,6 @@ def setup_progress(parent, title, message, icon_name):
     return progress
 
 
-def update_progress_information(progress, **kwargs):
-    title = kwargs.get("title", None)
-    if title is not None:
-        progress.setWindowTitle(title)
-
-    message = kwargs.get("message", None)
-    if message is not None:
-        progress.setLabel(QLabel(message))
-
-    icon_name = kwargs.get("icon_name", None)
-    if icon_name is not None:
-        icon = QIcon()
-        icon.addPixmap(QPixmap(f":/{icon_name}.png"), QIcon.Normal, QIcon.Off)
-        progress.setWindowIcon(icon)
-
-
 class WorkerThread(Thread):
     def __init__(self, *args, **kargs):
         super().__init__(*args, **kargs)
