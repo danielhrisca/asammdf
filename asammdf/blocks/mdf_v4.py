@@ -2922,7 +2922,6 @@ class MDF4(object):
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
-        gp.size = cycles_nr * (offset + invalidation_bytes_nr)
 
         # data group
         gp.data_group = DataGroup()
@@ -3174,7 +3173,6 @@ class MDF4(object):
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
-        gp.size = cycles_nr * (offset + invalidation_bytes_nr)
 
         # data group
         gp.data_group = DataGroup()
