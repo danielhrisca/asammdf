@@ -734,6 +734,7 @@ class MDF3(object):
                 else:
                     kargs["block_len"] = v23c.DG_PRE_320_BLOCK_SIZE
                 kargs["record_id_len"] = record_id_nr
+                kargs["address"] = data_group.address
 
                 grp.data_group = DataGroup(**kargs)
 

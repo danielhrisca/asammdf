@@ -2305,7 +2305,7 @@ class DataGroup:
                 raise MdfException(message)
 
         except KeyError:
-            self.address = 0
+            self.address = kwargs.get("address", 0)
             self.id = b"DG"
             self.block_len = kwargs.get("block_len", v23c.DG_PRE_320_BLOCK_SIZE)
             self.next_dg_addr = kwargs.get("next_dg_addr", 0)
