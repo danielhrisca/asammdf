@@ -810,7 +810,6 @@ class MDF3(object):
                 total_size += record_size * cycles_nr
 
                 grp.record_size = cg_size
-                grp.size = total_size
 
             for grp in new_groups:
                 grp.data_location = v23c.LOCATION_ORIGINAL_FILE
@@ -823,7 +822,6 @@ class MDF3(object):
                         param=0,
                     )
                 )
-                grp.data_blocks_flags = 0x1
 
             self.groups.extend(new_groups)
 
@@ -1855,7 +1853,6 @@ class MDF3(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags = 0x1
 
         else:
             gp.data_location = v23c.LOCATION_TEMPORARY_FILE
@@ -2096,7 +2093,6 @@ class MDF3(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags = 0x1
         else:
             gp.data_location = v23c.LOCATION_TEMPORARY_FILE
         # data group trigger
@@ -2291,7 +2287,6 @@ class MDF3(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags = 0x1
 
     def get_channel_name(self, group, index):
         """Gets channel name.

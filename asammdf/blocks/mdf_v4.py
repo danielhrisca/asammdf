@@ -2958,7 +2958,6 @@ class MDF4(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags |= 0x1
         else:
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
@@ -3208,7 +3207,6 @@ class MDF4(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags |= 0x1
         else:
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
@@ -3396,7 +3394,6 @@ class MDF4(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags |= 0x1
 
             record_size = gp.channel_group.samples_byte_nr
             record_size += gp.data_group.record_id_len

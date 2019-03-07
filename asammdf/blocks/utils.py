@@ -969,7 +969,6 @@ class Group:
         "data_group",
         "data_location",
         "data_blocks",
-        "data_blocks_flags",
         "record_size",
         "CAN_logging",
         "CAN_id",
@@ -983,7 +982,6 @@ class Group:
         "parents",
         "types",
         "signal_types",
-        "size",
         "trigger",
         "string_dtypes",
     )
