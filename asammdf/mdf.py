@@ -2,6 +2,7 @@
 """ common MDF file format module """
 
 import csv
+from datetime import datetime
 import logging
 import xml.etree.ElementTree as ET
 from collections import OrderedDict
@@ -563,7 +564,15 @@ class MDF(object):
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def cut(self, start=None, stop=None, whence=0, version=None, include_ends=True):
+    def cut(
+        self,
+        start=None,
+        stop=None,
+        whence=0,
+        version=None,
+        include_ends=True,
+        time_from_zero=False,
+    ):
         """cut *MDF* file. *start* and *stop* limits are absolute values
         or values relative to the first timestamp depending on the *whence*
         argument.
@@ -588,7 +597,9 @@ class MDF(object):
         include_ends : bool
             include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are found in the original timestamps, then
-            the new samples will be computed using interpolation. Default *True*\
+            the new samples will be computed using interpolation. Default *True*
+        time_from_zero : bool
+            start time stamps from 0s in the cut measurement
 
         Returns
         -------
@@ -604,8 +615,6 @@ class MDF(object):
 
         out = MDF(version=version)
 
-        out.header.start_time = self.header.start_time
-
         if whence == 1:
             timestamps = []
             for i, group in enumerate(self.groups):
@@ -619,12 +628,19 @@ class MDF(object):
                 first_timestamp = np.amin(timestamps)
             else:
                 first_timestamp = 0
+
             if start is not None:
                 start += first_timestamp
             if stop is not None:
                 stop += first_timestamp
 
-        out.header.start_time = self.header.start_time
+        if time_from_zero:
+            delta = start
+            t_epoch = self.header.start_time.timestamp() + delta
+            out.header.start_time = datetime.fromtimestamp(t_epoch)
+        else:
+            delta = 0
+            out.header.start_time = self.header.start_time
 
         groups_nr = len(self.groups)
 
@@ -756,6 +772,10 @@ class MDF(object):
                         sigs.append(sig)
 
                     if sigs:
+                        if time_from_zero:
+                            new_timestamps = cut_timebase - delta
+                            for sig in sigs:
+                                sig.timestamps = new_timestamps
                         if start:
                             start_ = f"{start}s"
                         else:
@@ -776,9 +796,14 @@ class MDF(object):
                 # samples records to the data block
                 else:
                     if needs_cutting:
-                        sigs = [(cut_timebase, None)]
+                        timestamps = cut_timebase
                     else:
-                        sigs = [(master, None)]
+                        timestamps = master
+
+                    if time_from_zero:
+                        timestamps = timestamps - delta
+
+                    sigs = [(timestamps, None)]
 
                     for j in included_channels:
                         sig = self.get(
