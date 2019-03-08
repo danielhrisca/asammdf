@@ -4420,173 +4420,161 @@ class MDF4(object):
             else:
                 conversion_type = conversion.conversion_type
 
-            if conversion_type in v4c.CONVERSION_GROUP_1:
+            if channel_type == v4c.CHANNEL_TYPE_VLSD:
+                signal_data = self._load_signal_data(group=grp, index=ch_nr)
+                if signal_data:
+                    values = []
 
-                if channel_type == v4c.CHANNEL_TYPE_VLSD:
-                    signal_data = self._load_signal_data(group=grp, index=ch_nr)
-                    if signal_data:
-                        values = []
+                    vals = vals.tolist()
 
-                        vals = vals.tolist()
+                    for offset in vals:
+                        (str_size,) = UINT32_uf(signal_data, offset)
+                        offset += 4
+                        values.append(signal_data[offset : offset + str_size])
 
-                        for offset in vals:
-                            (str_size,) = UINT32_uf(signal_data, offset)
-                            offset += 4
-                            values.append(signal_data[offset : offset + str_size])
+                    if data_type == v4c.DATA_TYPE_BYTEARRAY:
 
-                        if data_type == v4c.DATA_TYPE_BYTEARRAY:
+                        vals = array(values)
+                        vals = vals.view(dtype=f"({vals.itemsize},)u1")
 
-                            vals = array(values)
-                            vals = vals.view(dtype=f"({vals.itemsize},)u1")
+                    else:
+
+                        vals = array(values)
+
+                        if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                            encoding = "utf-16-be"
+
+                        elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                            encoding = "utf-16-le"
+
+                        elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                            encoding = "utf-8"
+
+                        elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                            encoding = "latin-1"
 
                         else:
+                            raise MdfException(
+                                f'wrong data type "{data_type}" for vlsd channel'
+                            )
 
-                            vals = array(values)
+                else:
+                    # no VLSD signal data samples
+                    vals = array([], dtype="S")
+                    if data_type != v4c.DATA_TYPE_BYTEARRAY:
 
-                            if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                                encoding = "utf-16-be"
+                        if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                            encoding = "utf-16-be"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                                encoding = "utf-16-le"
+                        elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                            encoding = "utf-16-le"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                                encoding = "utf-8"
+                        elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                            encoding = "utf-8"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                                encoding = "latin-1"
+                        elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                            encoding = "latin-1"
 
-                            else:
-                                raise MdfException(
-                                    f'wrong data type "{data_type}" for vlsd channel'
-                                )
+                        else:
+                            raise MdfException(
+                                f'wrong data type "{data_type}" for vlsd channel'
+                            )
 
-                    else:
-                        # no VLSD signal data samples
-                        vals = array([], dtype="S")
-                        if data_type != v4c.DATA_TYPE_BYTEARRAY:
+            elif channel_type in {
+                v4c.CHANNEL_TYPE_VALUE,
+                v4c.CHANNEL_TYPE_MLSD,
+            } and (
+                v4c.DATA_TYPE_STRING_LATIN_1
+                <= data_type
+                <= v4c.DATA_TYPE_STRING_UTF_16_BE
+            ):
 
-                            if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                                encoding = "utf-16-be"
+                if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                    encoding = "utf-16-be"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                                encoding = "utf-16-le"
+                elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                    encoding = "utf-16-le"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                                encoding = "utf-8"
+                elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                    encoding = "utf-8"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                                encoding = "latin-1"
+                elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                    encoding = "latin-1"
 
-                            else:
-                                raise MdfException(
-                                    f'wrong data type "{data_type}" for vlsd channel'
-                                )
-
-                elif channel_type in {
-                    v4c.CHANNEL_TYPE_VALUE,
-                    v4c.CHANNEL_TYPE_MLSD,
-                } and (
-                    v4c.DATA_TYPE_STRING_LATIN_1
-                    <= data_type
-                    <= v4c.DATA_TYPE_STRING_UTF_16_BE
-                ):
-
-                    if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                        encoding = "utf-16-be"
-
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                        encoding = "utf-16-le"
-
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                        encoding = "utf-8"
-
-                    elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                        encoding = "latin-1"
-
-                    else:
-                        raise MdfException(
-                            f'wrong data type "{data_type}" for string channel'
-                        )
-
-                # CANopen date
-                if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
-
-                    vals = vals.tostring()
-
-                    types = dtype(
-                        [
-                            ("ms", "<u2"),
-                            ("min", "<u1"),
-                            ("hour", "<u1"),
-                            ("day", "<u1"),
-                            ("month", "<u1"),
-                            ("year", "<u1"),
-                        ]
+                else:
+                    raise MdfException(
+                        f'wrong data type "{data_type}" for string channel'
                     )
-                    vals = vals.view(types)
 
-                    arrays = []
-                    arrays.append(vals["ms"])
-                    # bit 6 and 7 of minutes are reserved
-                    arrays.append(vals["min"] & 0x3F)
-                    # only firt 4 bits of hour are used
-                    arrays.append(vals["hour"] & 0xF)
-                    # the first 4 bits are the day number
-                    arrays.append(vals["day"] & 0xF)
-                    # bit 6 and 7 of month are reserved
-                    arrays.append(vals["month"] & 0x3F)
-                    # bit 7 of year is reserved
-                    arrays.append(vals["year"] & 0x7F)
-                    # add summer or standard time information for hour
-                    arrays.append((vals["hour"] & 0x80) >> 7)
-                    # add day of week information
-                    arrays.append((vals["day"] & 0xF0) >> 4)
+            # CANopen date
+            if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
 
-                    names = [
-                        "ms",
-                        "min",
-                        "hour",
-                        "day",
-                        "month",
-                        "year",
-                        "summer_time",
-                        "day_of_week",
+                vals = vals.tostring()
+
+                types = dtype(
+                    [
+                        ("ms", "<u2"),
+                        ("min", "<u1"),
+                        ("hour", "<u1"),
+                        ("day", "<u1"),
+                        ("month", "<u1"),
+                        ("year", "<u1"),
                     ]
-                    vals = fromarrays(arrays, names=names)
+                )
+                vals = vals.view(types)
 
-                    del arrays
-                    conversion = None
+                arrays = []
+                arrays.append(vals["ms"])
+                # bit 6 and 7 of minutes are reserved
+                arrays.append(vals["min"] & 0x3F)
+                # only firt 4 bits of hour are used
+                arrays.append(vals["hour"] & 0xF)
+                # the first 4 bits are the day number
+                arrays.append(vals["day"] & 0xF)
+                # bit 6 and 7 of month are reserved
+                arrays.append(vals["month"] & 0x3F)
+                # bit 7 of year is reserved
+                arrays.append(vals["year"] & 0x7F)
+                # add summer or standard time information for hour
+                arrays.append((vals["hour"] & 0x80) >> 7)
+                # add day of week information
+                arrays.append((vals["day"] & 0xF0) >> 4)
 
-                # CANopen time
-                elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
+                names = [
+                    "ms",
+                    "min",
+                    "hour",
+                    "day",
+                    "month",
+                    "year",
+                    "summer_time",
+                    "day_of_week",
+                ]
+                vals = fromarrays(arrays, names=names)
 
-                    types = dtype([("ms", "<u4"), ("days", "<u2")])
-                    vals = vals.view(types)
+                del arrays
+                conversion = None
 
-                    arrays = []
-                    # bits 28 to 31 are reserverd for ms
-                    arrays.append(vals["ms"] & 0xFFFFFFF)
-                    arrays.append(vals["days"] & 0x3F)
+            # CANopen time
+            elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
 
-                    names = ["ms", "days"]
-                    vals = fromarrays(arrays, names=names)
+                types = dtype([("ms", "<u4"), ("days", "<u2")])
+                vals = vals.view(types)
 
-                    del arrays
-                    conversion = None
+                arrays = []
+                # bits 28 to 31 are reserverd for ms
+                arrays.append(vals["ms"] & 0xFFFFFFF)
+                arrays.append(vals["days"] & 0x3F)
 
-                if conversion_type == v4c.CONVERSION_TYPE_TRANS:
-                    if not raw:
-                        vals = conversion.convert(vals)
-                        conversion = None
-                if conversion_type == v4c.CONVERSION_TYPE_TTAB:
-                    raw = True
+                names = ["ms", "days"]
+                vals = fromarrays(arrays, names=names)
 
-            elif conversion_type in v4c.CONVERSION_GROUP_2:
-                if not raw:
+                del arrays
+
+            if not raw:
+                if conversion:
                     vals = conversion.convert(vals)
                     conversion = None
-            else:
-                raw = True
 
         if samples_only:
             if not channel_invalidation_present or not ignore_invalidation_bits:

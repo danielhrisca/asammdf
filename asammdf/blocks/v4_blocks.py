@@ -2529,12 +2529,15 @@ class ChannelConversion(_ChannelConversionBase):
                 phys.append(value)
 
             default = self.referenced_blocks.get("default_addr", {})
-            try:
-                default = default.text
-            except AttributeError:
-                pass
-            except TypeError:
+            if default is None:
                 default = b""
+            else:
+                try:
+                    default = default.text
+                except AttributeError:
+                    pass
+                except TypeError:
+                    default = b""
 
             phys.insert(0, default)
             raw_vals = np.insert(raw_vals, 0, raw_vals[0] - 1)
@@ -2577,12 +2580,15 @@ class ChannelConversion(_ChannelConversionBase):
                 phys.append(value)
 
             default = self.referenced_blocks.get("default_addr", {})
-            try:
-                default = default.text
-            except AttributeError:
-                pass
-            except TypeError:
+            if default is None:
                 default = b""
+            else:
+                try:
+                    default = default.text
+                except AttributeError:
+                    pass
+                except TypeError:
+                    default = b"unknown default"
 
             lower = np.array([self[f"lower_{i}"] for i in range(nr)])
             upper = np.array([self[f"upper_{i}"] for i in range(nr)])
@@ -2618,7 +2624,11 @@ class ChannelConversion(_ChannelConversionBase):
                     if isinstance(item, bytes):
                         new_values.append(item)
                     else:
-                        new_values.append(item.convert(values[i : i + 1])[0])
+                        try:
+                            new_values.append(item.convert(values[i : i + 1])[0])
+                        except:
+                            print(item, default, phys)
+                            1/0
 
                 if all(isinstance(v, bytes) for v in new_values):
                     values = np.array(new_values)

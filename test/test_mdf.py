@@ -137,9 +137,8 @@ class TestMDF(unittest.TestCase):
                                 self.assertTrue(cond)
 
                         elif i == 6:
-                            v = np.ones(cycles, dtype=np.uint64)
                             for j in range(1, 20):
-                                target = v * j
+                                target = np.array([b'Value %d' % j for _ in range(cycles)])
                                 vals = mdf.get(group=i, index=j + 1, samples_only=True)[
                                     0
                                 ]
@@ -397,9 +396,8 @@ class TestMDF(unittest.TestCase):
                                     self.assertTrue(cond)
 
                             elif i == 6:
-                                v = np.ones(cycles, dtype=np.uint64)
                                 for j in range(1, 20):
-                                    target = v * j
+                                    target = np.array([b'Value %d' % j for _ in range(cycles)])
                                     vals = mdf.get(
                                         group=i, index=j + 1, samples_only=True
                                     )[0]
@@ -589,9 +587,8 @@ class TestMDF(unittest.TestCase):
                                     self.assertTrue(cond)
 
                             elif i == 6:
-                                v = np.ones(cycles, dtype=np.uint64)
                                 for j in range(1, 20):
-                                    target = v * j
+                                    target = np.array([b'Value %d' % j for _ in range(cycles)])
                                     vals = mdf.get(
                                         group=i, index=j + 1, samples_only=True
                                     )[0]

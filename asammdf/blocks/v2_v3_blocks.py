@@ -1321,7 +1321,7 @@ address: {hex(self.address)}
                 [e[1] for e in x]
             )
 
-            default = b'unknown'
+            default = b''
 
             idx1 = np.searchsorted(raw_vals, values, side="right") - 1
             idx2 = np.searchsorted(raw_vals, values, side="left")
@@ -1358,7 +1358,7 @@ address: {hex(self.address)}
                 default = default.text
             else:
                 default = b""
-            default = default.strip(b'\0\r\n\t') or b'unknown'
+            default = default.strip(b'\0\r\n\t')
 
             if b"{X}" in default:
                 default = default.decode("latin-1").replace("{X}", "X").split('"')[1]
