@@ -537,8 +537,6 @@ class MDF4(object):
                 if attachment and attachment[1].name.lower().endswith(("dbc", "arxml")):
                     attachment, at_name = attachment
 
-                    raw_can.append(i)
-
                     import_type = "dbc" if at_name.name.lower().endswith("dbc") else "arxml"
                     db = loads(
                         attachment.decode("utf-8"), importType=import_type, key="db"
@@ -548,6 +546,7 @@ class MDF4(object):
 
                     cg_source = group.channel_group.acq_source
 
+                    all_message_info_extracted = True
                     for message_id in all_can_ids:
                         self.can_logging_db[group.CAN_id][message_id] = i
                         sigs = []
@@ -607,6 +606,11 @@ class MDF4(object):
                             processed_can.append(
                                 [sigs, message_id, message_name, cg_source, group.CAN_id]
                             )
+                        else:
+                            all_message_info_extracted = False
+
+                    if all_message_info_extracted:
+                        raw_can.append(i)
                 else:
                     at_name = attachment[1] if attachment else ""
                     message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
