@@ -34,7 +34,7 @@ class TestMDF(unittest.TestCase):
     tempdir_general = None
     tempdir = None
 
-    def test_measurement(self):
+    def etest_measurement(self):
         self.assertTrue(MDF)
 
     @classmethod
@@ -55,17 +55,17 @@ class TestMDF(unittest.TestCase):
 
         generate_arrays_test_file(cls.tempdir_array.name)
 
-    def test_mdf_header(self):
+    def etest_mdf_header(self):
         mdf = BytesIO(b'M' * 100)
         with self.assertRaises(MdfException):
             MDF(mdf)
 
-    def test_wrong_header_version(self):
+    def etest_wrong_header_version(self):
         mdf = BytesIO(b'MDF     AAAA    amdf500d\x00\x00\x00\x00\x9f\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
         with self.assertRaises(MdfException):
             MDF(mdf)
 
-    def test_read(self):
+    def etest_read(self):
         print("MDF read big files")
         for input_file in Path(TestMDF.tempdir_general.name).iterdir():
             print(input_file)
@@ -150,7 +150,7 @@ class TestMDF(unittest.TestCase):
             self.assertTrue(equal)
 
 
-    def test_read_arrays(self):
+    def etest_read_arrays(self):
         print("MDF read big array files")
         for input_file in Path(TestMDF.tempdir_array.name).iterdir():
             print(input_file)
@@ -274,6 +274,9 @@ class TestMDF(unittest.TestCase):
                             ):
                                 continue
                             signal = input_file.get(name)
+                            if name == 'ASAM.M.SCALAR.UBYTE.VTAB_RANGE_DEFAULT_VALUE':
+                                print(repr(signal.conversion.convert(signal.samples)))
+                                1/0
                             try:
                                 original_samples = CHANNELS_DEMO[name.split("\\")[0]]
                             except:
@@ -287,7 +290,7 @@ class TestMDF(unittest.TestCase):
 
         self.assertTrue(ret)
 
-    def test_convert(self):
+    def etest_convert(self):
         print("MDF convert big files tests")
 
         t = np.arange(cycles, dtype=np.float64)
@@ -413,7 +416,7 @@ class TestMDF(unittest.TestCase):
 
                     self.assertTrue(equal)
 
-    def test_convert_demo(self):
+    def etest_convert_demo(self):
         print("MDF convert tests")
 
         for out in SUPPORTED_VERSIONS:
@@ -446,7 +449,7 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-    def test_cut(self):
+    def etest_cut(self):
         print("MDF cut big files tests")
 
         t = np.arange(cycles, dtype=np.float64)
@@ -602,7 +605,7 @@ class TestMDF(unittest.TestCase):
                                         )
                                     self.assertTrue(cond)
 
-    def test_cut_arrays(self):
+    def etest_cut_arrays(self):
         print("MDF cut big array files")
         for input_file in Path(TestMDF.tempdir_array.name).iterdir():
             for whence in (0, 1):
@@ -741,7 +744,7 @@ class TestMDF(unittest.TestCase):
 
             self.assertTrue(equal)
 
-    def test_cut_demo(self):
+    def etest_cut_demo(self):
         print("MDF cut absolute tests")
 
         for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
@@ -794,7 +797,7 @@ class TestMDF(unittest.TestCase):
 
                 self.assertTrue(equal)
 
-    def test_filter(self):
+    def etest_filter(self):
         print("MDF filter tests")
 
         for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
@@ -846,7 +849,7 @@ class TestMDF(unittest.TestCase):
 
             self.assertTrue(equal)
 
-    def test_select(self):
+    def etest_select(self):
         print("MDF select tests")
 
         for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
@@ -884,7 +887,7 @@ class TestMDF(unittest.TestCase):
 
             self.assertTrue(equal)
 
-    def test_scramble(self):
+    def etest_scramble(self):
         print("MDF scramble tests")
 
         for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
@@ -892,7 +895,7 @@ class TestMDF(unittest.TestCase):
             self.assertTrue(scrambled)
             Path(scrambled).unlink()
 
-    def test_iter_groups(self):
+    def etest_iter_groups(self):
         dfs = [
             DataFrame({f'df_{i}_column_0': np.ones(5) * i, f'df_{i}_column_1': np.arange(5) * i})
             for i in range(5)
@@ -905,7 +908,7 @@ class TestMDF(unittest.TestCase):
         for i, mdf_df in enumerate(mdf.iter_groups()):
             self.assertTrue(mdf_df.equals(dfs[i]))
 
-    def test_resample_raster_0(self):
+    def etest_resample_raster_0(self):
         sigs = [
             Signal(
                 samples=np.ones(1000) * i,
@@ -924,7 +927,7 @@ class TestMDF(unittest.TestCase):
             self.assertTrue(np.array_equal(sig.samples, sigs[i].samples))
             self.assertTrue(np.array_equal(sig.timestamps, sigs[i].timestamps))
 
-    def test_resample(self):
+    def etest_resample(self):
         raster = 1.33
         sigs = [
             Signal(
@@ -951,7 +954,7 @@ class TestMDF(unittest.TestCase):
             self.assertTrue(np.array_equal(sig.timestamps, target_timestamps))
             self.assertTrue(np.allclose(sig.samples, target_samples))
 
-    def test_to_dataframe(self):
+    def etest_to_dataframe(self):
         dfs = [
             DataFrame({f'df_{i}_column_0': np.ones(5) * i, f'df_{i}_column_1': np.arange(5) * i})
             for i in range(5)
