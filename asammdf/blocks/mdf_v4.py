@@ -553,59 +553,60 @@ class MDF4(object):
                         sigs = []
                         can_msg = db.frameById(message_id)
 
-                        for transmitter in can_msg.transmitters:
-                            if transmitter in board_units:
-                                break
-                        else:
-                            transmitter = ""
-                        message_name = can_msg.name
+                        if can_msg:
+                            for transmitter in can_msg.transmitters:
+                                if transmitter in board_units:
+                                    break
+                            else:
+                                transmitter = ""
+                            message_name = can_msg.name
 
-                        source = SignalSource(
-                            transmitter,
-                            can_msg.name,
-                            "",
-                            v4c.SOURCE_BUS,
-                            v4c.BUS_TYPE_CAN,
-                        )
-
-                        idx = nonzero(can_ids.samples == message_id)[0]
-                        data = payload[idx]
-                        t = can_ids.timestamps[idx].copy()
-                        if can_ids.invalidation_bits is not None:
-                            invalidation_bits = can_ids.invalidation_bits[idx]
-                        else:
-                            invalidation_bits = None
-
-                        for signal in sorted(can_msg.signals, key=lambda x: x.name):
-
-                            sig_vals = self.get_can_signal(
-                                f"CAN{group.CAN_id}.{can_msg.name}.{signal.name}",
-                                db=db,
-                                ignore_invalidation_bits=True,
-                            ).samples
-
-                            conversion = ChannelConversion(
-                                a=float(signal.factor),
-                                b=float(signal.offset),
-                                conversion_type=v4c.CONVERSION_TYPE_LIN,
+                            source = SignalSource(
+                                transmitter,
+                                can_msg.name,
+                                "",
+                                v4c.SOURCE_BUS,
+                                v4c.BUS_TYPE_CAN,
                             )
-                            conversion.unit = signal.unit or ""
-                            sigs.append(
-                                Signal(
-                                    sig_vals,
-                                    t,
-                                    name=signal.name,
-                                    conversion=conversion,
-                                    source=source,
-                                    unit=signal.unit,
-                                    raw=True,
-                                    invalidation_bits=invalidation_bits,
+
+                            idx = nonzero(can_ids.samples == message_id)[0]
+                            data = payload[idx]
+                            t = can_ids.timestamps[idx].copy()
+                            if can_ids.invalidation_bits is not None:
+                                invalidation_bits = can_ids.invalidation_bits[idx]
+                            else:
+                                invalidation_bits = None
+
+                            for signal in sorted(can_msg.signals, key=lambda x: x.name):
+
+                                sig_vals = self.get_can_signal(
+                                    f"CAN{group.CAN_id}.{can_msg.name}.{signal.name}",
+                                    db=db,
+                                    ignore_invalidation_bits=True,
+                                ).samples
+
+                                conversion = ChannelConversion(
+                                    a=float(signal.factor),
+                                    b=float(signal.offset),
+                                    conversion_type=v4c.CONVERSION_TYPE_LIN,
                                 )
-                            )
+                                conversion.unit = signal.unit or ""
+                                sigs.append(
+                                    Signal(
+                                        sig_vals,
+                                        t,
+                                        name=signal.name,
+                                        conversion=conversion,
+                                        source=source,
+                                        unit=signal.unit,
+                                        raw=True,
+                                        invalidation_bits=invalidation_bits,
+                                    )
+                                )
 
-                        processed_can.append(
-                            [sigs, message_id, message_name, cg_source, group.CAN_id]
-                        )
+                            processed_can.append(
+                                [sigs, message_id, message_name, cg_source, group.CAN_id]
+                            )
                 else:
                     at_name = attachment[1] if attachment else ""
                     message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
