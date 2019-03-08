@@ -2002,10 +2002,11 @@ class ChannelConversion(_ChannelConversionBase):
                 values = unpack_from(
                     "<{}d".format((links_nr - 1) * 2), block, 32 + links_nr * 8 + 24
                 )
-                for i in range(self.val_param_nr // 2):
+                self.default_lower = self.default_upper = 0
+                for i in range(1, self.val_param_nr // 2):
                     j = 2 * i
-                    self[f"lower_{i}"] = values[j]
-                    self[f"upper_{i}"] = values[j + 1]
+                    self[f"lower_{i-1}"] = values[j]
+                    self[f"upper_{i-1}"] = values[j + 1]
 
             elif conv == v4c.CONVERSION_TYPE_TTAB:
                 (
@@ -2292,6 +2293,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self[key] = 0
                     self.referenced_blocks[key] = TextBlock(text=kwargs[key])
                 self.default_addr = 0
+                self.default_lower = self.default_upper = 0
                 if "default_addr" in kwargs:
                     default = kwargs["default_addr"]
                 else:
@@ -2567,7 +2569,7 @@ class ChannelConversion(_ChannelConversionBase):
                     )
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-            nr = self.val_param_nr // 2
+            nr = self.val_param_nr // 2 - 1
 
             phys = []
             for i in range(nr):
@@ -2588,7 +2590,7 @@ class ChannelConversion(_ChannelConversionBase):
                 except AttributeError:
                     pass
                 except TypeError:
-                    default = b"unknown default"
+                    default = b""
 
             lower = np.array([self[f"lower_{i}"] for i in range(nr)])
             upper = np.array([self[f"upper_{i}"] for i in range(nr)])
@@ -2596,7 +2598,7 @@ class ChannelConversion(_ChannelConversionBase):
             all_values = phys + [default]
 
             idx1 = np.searchsorted(lower, values, side="right") - 1
-            idx2 = np.searchsorted(upper, values, side="right")
+            idx2 = np.searchsorted(upper, values, side="left")
 
             idx_ne = np.nonzero(idx1 != idx2)[0]
             idx_eq = np.nonzero(idx1 == idx2)[0]
@@ -3003,8 +3005,10 @@ formula: {self.formula}
                 "val_param_nr",
                 "min_phy_value",
                 "max_phy_value",
+                "default_lower",
+                "default_upper",
             )
-            for i in range(self.val_param_nr // 2):
+            for i in range(self.val_param_nr // 2 - 1):
                 keys += (f"lower_{i}", f"upper_{i}")
             result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_TTAB:
