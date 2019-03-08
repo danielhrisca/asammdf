@@ -2577,6 +2577,8 @@ class ChannelConversion(_ChannelConversionBase):
                 phys.append(value)
 
             default = self.referenced_blocks.get("default_addr", {})
+            if default is None:
+                default = b''
             try:
                 default = default.text
             except AttributeError:
