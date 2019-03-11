@@ -493,6 +493,7 @@ class MDF(object):
                     source_info = f"Converted from {self.version} to {version}"
 
                     if sigs:
+                        print(i)
                         out.append(sigs, source_info, common_timebase=True)
                         new_group = out.groups[-1]
                         new_channel_group = new_group.channel_group
@@ -2531,7 +2532,7 @@ class MDF(object):
             mdf._callback = mdf._mdf._callback = self._callback
         return mdf
 
-    def select(self, channels, dataframe=False, record_offset=0, raw=False):
+    def select(self, channels, dataframe=False, record_offset=0, raw=False, copy_master=True):
         """ retrieve the channels listed in *channels* argument as *Signal*
         objects
 
@@ -2544,6 +2545,15 @@ class MDF(object):
                 * (channel name, group index, channel index) list or tuple
                 * (channel name, group index) list or tuple
                 * (None, group index, channel index) lsit or tuple
+        dataframe : bool
+            return pandas dataframe instead of list of Signals; default *False*
+        record_offset : int
+            record number offset; optimization to get the last part of signal samples
+        raw : bool
+            get raw channel samples; default *False*
+        copy_master : bool
+            option to get a new timestamps array for each selected Signal or to
+            use a shared array for channels of the same channel group; default *False*
 
         dataframe: bool
             return a pandas DataFrame instead of a list of *Signals*; in this
@@ -2637,10 +2647,12 @@ class MDF(object):
                     grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     grp.record = None
-                for index in gps[group]:
+                for i, index in enumerate(gps[group]):
+
                     signal = self.get(
                         group=group, index=index, data=fragment, copy_master=False, raw=raw,
                     )
+
                     if (group, index) not in signal_parts:
                         signal_parts[(group, index)] = [signal]
                     else:
@@ -2648,11 +2660,22 @@ class MDF(object):
                 grp.record = None
 
         signals = []
-        for pair in indexes:
+        if not copy_master:
+            masters = {}
+        for i, pair in enumerate(indexes):
             parts = signal_parts[pair]
+            samples = np.concatenate([part.samples for part in parts])
+            if not copy_master:
+                if pair[0] not in masters:
+                    timestamps = np.concatenate([part.timestamps for part in parts])
+                    masters[pair[0]] = timestamps
+                else:
+                    timestamps = masters[pair[0]]
+            else:
+                timestamps = np.concatenate([part.timestamps for part in parts])
             signal = Signal(
-                np.concatenate([part.samples for part in parts]),
-                np.concatenate([part.timestamps for part in parts]),
+                samples,
+                timestamps,
                 unit=parts[0].unit,
                 name=parts[0].name,
                 comment=parts[0].comment,
