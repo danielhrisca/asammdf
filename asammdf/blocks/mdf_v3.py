@@ -2833,29 +2833,10 @@ class MDF3(object):
                 if vals.dtype.kind == "S":
                     encoding = "latin-1"
 
-            elif conversion_type in (
-                v23c.CONVERSION_TYPE_LINEAR,
-                v23c.CONVERSION_TYPE_TABI,
-                v23c.CONVERSION_TYPE_TAB,
-                v23c.CONVERSION_TYPE_EXPO,
-                v23c.CONVERSION_TYPE_LOGH,
-                v23c.CONVERSION_TYPE_RAT,
-                v23c.CONVERSION_TYPE_POLY,
-                v23c.CONVERSION_TYPE_FORMULA,
-            ):
-                if not raw:
-                    try:
-                        vals = conversion.convert(vals)
-                        conversion = None
-                    except:
-                        print(channel, conversion)
-                        raise
-
-            elif conversion_type in (
-                v23c.CONVERSION_TYPE_TABX,
-                v23c.CONVERSION_TYPE_RTABX,
-            ):
-                raw = True
+            if not raw:
+                if conversion:
+                    vals = conversion.convert(vals)
+                    conversion = None
 
         if samples_only:
             res = vals, None

@@ -992,6 +992,7 @@ class ChannelConversion(_ChannelConversionBase):
                     values = unpack_from(
                         "<" + "2dI" * nr, block, v23c.CC_COMMON_SHORT_SIZE + 20
                     )
+
                     for i in range(nr):
                         (self[f"lower_{i}"], self[f"upper_{i}"], self[f"text_{i}"]) = (
                             values[i * 3],
@@ -1321,7 +1322,7 @@ address: {hex(self.address)}
                 [e[1] for e in x]
             )
 
-            default = b'unknown'
+            default = b''
 
             idx1 = np.searchsorted(raw_vals, values, side="right") - 1
             idx2 = np.searchsorted(raw_vals, values, side="left")
@@ -1358,7 +1359,7 @@ address: {hex(self.address)}
                 default = default.text
             else:
                 default = b""
-            default = default.strip(b'\0\r\n\t') or b'unknown'
+            default = default.strip(b'\0\r\n\t')
 
             if b"{X}" in default:
                 default = default.decode("latin-1").replace("{X}", "X").split('"')[1]
@@ -1370,7 +1371,7 @@ address: {hex(self.address)}
             upper = np.array([self[f"upper_{i}"] for i in range(nr)])
 
             idx1 = np.searchsorted(lower, values, side="right") - 1
-            idx2 = np.searchsorted(upper, values, side="right")
+            idx2 = np.searchsorted(upper, values, side="left")
 
             idx = np.argwhere(idx1 != idx2).flatten()
 
@@ -1394,6 +1395,7 @@ address: {hex(self.address)}
                     idx = np.argwhere(idx1 == idx2).flatten()
                     if len(idx):
                         new_values[idx] = phys[idx1[idx]]
+
                     values = new_values
                 else:
                     values = phys[idx1]
