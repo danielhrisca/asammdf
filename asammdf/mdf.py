@@ -2699,11 +2699,12 @@ class MDF(object):
                 master = np.concatenate(master_parts)
             else:
                 master = master_parts[0]
+            master_parts = None
             pairs = list(signal_parts.keys())
             for pair in pairs:
                 group, index = pair
                 parts = signal_parts.pop(pair)
-                sig = sigs[index]
+                sig = sigs.pop(index)
 
                 if pieces > 1:
                     samples = np.concatenate(
@@ -2745,7 +2746,7 @@ class MDF(object):
             for pair in indexes
         ]
 
-        if not copy_master:
+        if copy_master:
             for signal in signals:
                 signal.timestamps = signal.timestamps.copy()
 
