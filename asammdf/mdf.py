@@ -2750,6 +2750,14 @@ class MDF(object):
             for signal in signals:
                 signal.timestamps = signal.timestamps.copy()
 
+        if not raw:
+            for signal in signals:
+                conversion = signal.conversion
+                if conversion:
+                    signal.samples = conversion.convert(signal.samples)
+                raw = False
+                signal.conversion = None
+
         if dataframe:
 
             interpolation_mode = self._integer_interpolation
