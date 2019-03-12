@@ -4415,11 +4415,6 @@ class MDF4(object):
             # get the channel conversion
             conversion = channel.conversion
 
-            if conversion is None:
-                conversion_type = v4c.CONVERSION_TYPE_NON
-            else:
-                conversion_type = conversion.conversion_type
-
             if channel_type == v4c.CHANNEL_TYPE_VLSD:
                 signal_data = self._load_signal_data(group=grp, index=ch_nr)
                 if signal_data:
