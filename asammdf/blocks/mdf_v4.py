@@ -651,7 +651,7 @@ class MDF4(object):
         # delete the groups that contain raw CAN bus logging and also
         # delete the channel entries from the channels_db. Update data group
         # index for the remaining channel entries. Append new data groups
-        if raw_can:
+        if processed_can:
             for index in reversed(raw_can):
                 self.groups.pop(index)
 
