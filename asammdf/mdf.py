@@ -5,7 +5,7 @@ import csv
 from datetime import datetime
 import logging
 import xml.etree.ElementTree as ET
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from copy import deepcopy
 from functools import reduce
 from struct import unpack
@@ -2636,53 +2636,115 @@ class MDF(object):
                 else:
                     gps[group].add(index)
 
-        signal_parts = {}
+        signals = {}
+
         for group in gps:
             grp = self.groups[group]
             data = self._load_data(grp, record_offset=record_offset)
             parents, dtypes = self._prepare_record(grp)
 
-            for fragment in data:
+            channel_indexes = gps[group]
+
+            signal_parts = defaultdict(list)
+            master_parts = []
+
+            sigs = {}
+
+            for i, fragment in enumerate(data):
                 if dtypes.itemsize:
                     grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     grp.record = None
-                for i, index in enumerate(gps[group]):
 
-                    signal = self.get(
-                        group=group, index=index, data=fragment, copy_master=False, raw=raw,
-                    )
+                if i == 0:
+                    for index in channel_indexes:
+                        signal = self.get(
+                            group=group,
+                            index=index,
+                            data=fragment,
+                            copy_master=False,
+                            raw=True,
+                        )
 
-                    if (group, index) not in signal_parts:
-                        signal_parts[(group, index)] = [signal]
-                    else:
+                        sigs[index] = signal
+                        signal_parts[(group, index)].append(signal.samples)
+
+                    master_parts.append(signal.timestamps)
+                else:
+                    for index in channel_indexes:
+                        signal = self.get(
+                            group=group,
+                            index=index,
+                            data=fragment,
+                            copy_master=False,
+                            raw=True,
+                            samples_only=True,
+                        )
+
                         signal_parts[(group, index)].append(signal)
+
+                    master_parts.append(
+                        self.get_master(
+                            group,
+                            data=fragment,
+                            copy_master=False,
+                        )
+                    )
                 grp.record = None
 
-        signals = []
-        if not copy_master:
-            masters = {}
-        for i, pair in enumerate(indexes):
-            parts = signal_parts[pair]
-            samples = np.concatenate([part.samples for part in parts])
-            if not copy_master:
-                if pair[0] not in masters:
-                    timestamps = np.concatenate([part.timestamps for part in parts])
-                    masters[pair[0]] = timestamps
-                else:
-                    timestamps = masters[pair[0]]
+            pieces = len(master_parts)
+            if pieces > 1:
+                master = np.concatenate(master_parts)
             else:
-                timestamps = np.concatenate([part.timestamps for part in parts])
-            signal = Signal(
-                samples,
-                timestamps,
-                unit=parts[0].unit,
-                name=parts[0].name,
-                comment=parts[0].comment,
-                raw=parts[0].raw,
-                conversion=parts[0].conversion,
-            )
-            signals.append(signal)
+                master = master_parts[0]
+            pairs = list(signal_parts.keys())
+            for pair in pairs:
+                group, index = pair
+                parts = signal_parts.pop(pair)
+                sig = sigs[index]
+
+                if pieces > 1:
+                    samples = np.concatenate(
+                        [part[0] for part in parts]
+                    )
+                    if sig.invalidation_bits is not None:
+                        invalidation_bits = np.concatenate(
+                            [part[0] for part in parts]
+                        )
+                    else:
+                        invalidation_bits = None
+                else:
+                    samples = parts[0][0]
+                    if sig.invalidation_bits is not None:
+                        invalidation_bits = parts[0][1]
+                    else:
+                        invalidation_bits = None
+
+                signals[pair] = Signal(
+                    samples=samples,
+                    timestamps=master,
+                    unit=sig.unit,
+                    bit_count=sig.bit_count,
+                    attachment=sig.attachment,
+                    comment=sig.comment,
+                    conversion=sig.conversion,
+                    display_name=sig.display_name,
+                    encoding=sig.encoding,
+                    master_metadata=sig.master_metadata,
+                    raw=True,
+                    source=sig.source,
+                    stream_sync=sig.stream_sync,
+                    invalidation_bits=invalidation_bits,
+                )
+
+        signals = [
+            signals[pair]
+            for pair in indexes
+        ]
+
+        if not copy_master:
+            for signal in signals:
+                signal.timestamps = signal.timestamps.copy()
 
         if dataframe:
 
