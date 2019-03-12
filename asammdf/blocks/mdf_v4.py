@@ -534,7 +534,7 @@ class MDF4(object):
                 _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
 
                 attachment = _sig.attachment
-                if attachment and attachment[1].name.lower().endswith(("dbc", "arxml")):
+                if attachment and attachment[0] and attachment[1].name.lower().endswith(("dbc", "arxml")):
                     attachment, at_name = attachment
 
                     import_type = "dbc" if at_name.name.lower().endswith("dbc") else "arxml"
