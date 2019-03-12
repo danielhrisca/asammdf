@@ -534,7 +534,7 @@ class MDF4(object):
                 _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
 
                 attachment = _sig.attachment
-                if attachment and attachment[1].name.lower().endswith(("dbc", "arxml")):
+                if attachment and attachment[0] and attachment[1].name.lower().endswith(("dbc", "arxml")):
                     attachment, at_name = attachment
 
                     import_type = "dbc" if at_name.name.lower().endswith("dbc") else "arxml"
@@ -611,47 +611,11 @@ class MDF4(object):
 
                     if all_message_info_extracted:
                         raw_can.append(i)
-                else:
-                    at_name = attachment[1] if attachment else ""
-                    message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
-                    logger.warning(message)
-                    grp.CAN_database = False
-                    raw_can.append(i)
-                    sigs = []
-                    cg_source = group.channel_group.acq_source
-
-                    for message_id in all_can_ids:
-
-                        source = SignalSource(
-                            "", "", "", v4c.SOURCE_BUS, v4c.BUS_TYPE_CAN
-                        )
-
-                        idx = nonzero(can_ids.samples == message_id)[0]
-                        data = payload[idx]
-                        t = can_ids.timestamps[idx]
-                        if can_ids.invalidation_bits is not None:
-                            invalidation_bits = can_ids.invalidation_bits[idx]
-                        else:
-                            invalidation_bits = None
-
-                        sigs.append(
-                            Signal(
-                                data,
-                                t,
-                                name="CAN_DataFrame.DataBytes",
-                                source=source,
-                                raw=True,
-                                invalidation_bits=invalidation_bits,
-                            )
-                        )
-                        processed_can.append(
-                            [sigs, message_id, "", cg_source, group.CAN_id]
-                        )
 
         # delete the groups that contain raw CAN bus logging and also
         # delete the channel entries from the channels_db. Update data group
         # index for the remaining channel entries. Append new data groups
-        if raw_can:
+        if processed_can:
             for index in reversed(raw_can):
                 self.groups.pop(index)
 
