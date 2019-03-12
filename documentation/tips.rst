@@ -36,6 +36,9 @@ Optimized methods
 =================
 The *MDF* methods (*cut*, *filter*, *select*) are optimized and should be used instead of calling *get* for several channels.
 
+Each *get* call will read all channel group raw samples from disk. If you need to extract multiple channels it is strongly advised to use the *select* method:
+for each channel group that contains channels submited for selection, the raw samples will only be read once.
+
 
 Faster file loading
 ===================
