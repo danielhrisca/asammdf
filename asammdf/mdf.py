@@ -2667,7 +2667,9 @@ class MDF(object):
                         )
 
                         sigs[index] = signal
-                        signal_parts[(group, index)].append(signal.samples)
+                        signal_parts[(group, index)].append(
+                            (signal.samples, signal.invalidation_bits)
+                        )
 
                     master_parts.append(signal.timestamps)
                 else:
@@ -2723,6 +2725,7 @@ class MDF(object):
                 signals[pair] = Signal(
                     samples=samples,
                     timestamps=master,
+                    name=sig.name,
                     unit=sig.unit,
                     bit_count=sig.bit_count,
                     attachment=sig.attachment,
