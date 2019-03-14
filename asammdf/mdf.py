@@ -1448,7 +1448,7 @@ class MDF(object):
                 return df
             else:
                 name = name.with_suffix(".parquet")
-                write_parquet(name, DataFrame.from_dict(mdict))
+                write_parquet(name, df)
 
         else:
             message = (

@@ -24,8 +24,8 @@ import asammdf.blocks.v4_constants as v4c
 import asammdf.blocks.v4_blocks as v4b
 import asammdf.blocks.v2_v3_constants as v3c
 import asammdf.blocks.v2_v3_blocks as v3b
-#from mdfreader import Mdf as MDFreader
-#from mdfreader import __version__ as mdfreader_version
+from mdfreader import Mdf as MDFreader
+from mdfreader import __version__ as mdfreader_version
 
 
 PYVERSION = sys.version_info[0]
@@ -925,13 +925,13 @@ def main(text_output, fmt):
 
     tests = (
           open_mdf3,
-#          open_reader3,
-#          open_reader3_compression,
-#          open_reader3_nodata,
+          open_reader3,
+          open_reader3_compression,
+          open_reader3_nodata,
          open_mdf4,
-#          open_reader4,
-#          open_reader4_compression,
-#          open_reader4_nodata,
+          open_reader4,
+          open_reader4_compression,
+          open_reader4_nodata,
     )
 
     if tests and OPEN:
@@ -947,13 +947,13 @@ def main(text_output, fmt):
 
     tests = (
          save_mdf3,
-#        save_reader3,
-#        save_reader3_nodata,
-#        save_reader3_compression,
+        save_reader3,
+        save_reader3_nodata,
+        save_reader3_compression,
          save_mdf4,
-#        save_reader4,
-#        save_reader4_nodata,
-#        save_reader4_compression,
+        save_reader4,
+        save_reader4_nodata,
+        save_reader4_compression,
     )
 
     if tests and SAVE:
