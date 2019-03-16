@@ -509,6 +509,7 @@ class Channel:
         else:
             self[key] = 0
 
+
         conversion = self.conversion
         if conversion:
             address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
@@ -1196,7 +1197,8 @@ class ChannelConversion(_ChannelConversionBase):
             blocks.append(bts)
             self.address = address
             cc_map[bts] = address
-            address += self.block_len
+            size = self.block_len
+            address += len(bts)
 
         return address
 

@@ -4825,3 +4825,12 @@ class TextBlock:
         return v4c.COMMON_p(
             self.id, self.reserved0, self.block_len, self.links_nr
         ) + pack(f"{self.block_len - COMMON_SIZE}s", self.text)
+
+    def __repr__(self):
+        return (
+            f"TextBlock(id={self.id},"
+            f"reserved0={self.reserved0}, "
+            f"block_len={self.block_len}, "
+            f"links_nr={self.links_nr} "
+            f"text={self.text})"
+        )

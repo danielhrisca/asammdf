@@ -493,7 +493,6 @@ class MDF(object):
                     source_info = f"Converted from {self.version} to {version}"
 
                     if sigs:
-                        print(i)
                         out.append(sigs, source_info, common_timebase=True)
                         new_group = out.groups[-1]
                         new_channel_group = new_group.channel_group
