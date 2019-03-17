@@ -2087,24 +2087,38 @@ class ChannelConversion(_ChannelConversionBase):
                 for i in range(tabs):
                     address = self[f"text_{i}"]
                     if address:
-                        try:
+                        stream.seek(address)
+                        _id = stream.read(4)
+                        
+                        if _id == b'##TX':
                             block = TextBlock(address=address, stream=stream, mapped=mapped)
                             refs[f"text_{i}"] = block
-                        except MdfException:
+                        elif _if == b'##CC':
                             block = ChannelConversion(address=address, stream=stream, mapped=mapped)
                             refs[f"text_{i}"] = block
+                        else:
+                            message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
+                            logger.exception(message)
+                            raise MdfException(message)
 
                     else:
                         refs[f"text_{i}"] = None
                 if conv_type != v4c.CONVERSION_TYPE_TTAB:
                     address = self.default_addr
                     if address:
-                        try:
+                        stream.seek(address)
+                        _id = stream.read(4)
+                        
+                        if _id == b'##TX':
                             block = TextBlock(address=address, stream=stream, mapped=mapped)
                             refs["default_addr"] = block
-                        except MdfException:
+                        elif _if == b'##CC':
                             block = ChannelConversion(address=address, stream=stream, mapped=mapped)
                             refs["default_addr"] = block
+                        else:
+                            message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
+                            logger.exception(message)
+                            raise MdfException(message)
                     else:
                         refs["default_addr"] = None
 
