@@ -2089,11 +2089,11 @@ class ChannelConversion(_ChannelConversionBase):
                     if address:
                         stream.seek(address)
                         _id = stream.read(4)
-                        
+
                         if _id == b'##TX':
                             block = TextBlock(address=address, stream=stream, mapped=mapped)
                             refs[f"text_{i}"] = block
-                        elif _if == b'##CC':
+                        elif _id == b'##CC':
                             block = ChannelConversion(address=address, stream=stream, mapped=mapped)
                             refs[f"text_{i}"] = block
                         else:
@@ -2108,11 +2108,11 @@ class ChannelConversion(_ChannelConversionBase):
                     if address:
                         stream.seek(address)
                         _id = stream.read(4)
-                        
+
                         if _id == b'##TX':
                             block = TextBlock(address=address, stream=stream, mapped=mapped)
                             refs["default_addr"] = block
-                        elif _if == b'##CC':
+                        elif _id == b'##CC':
                             block = ChannelConversion(address=address, stream=stream, mapped=mapped)
                             refs["default_addr"] = block
                         else:
