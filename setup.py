@@ -85,6 +85,7 @@ setup(
                       'numexpr',
                       'wheel',
                       'canmatrix',
+                      'natsort',
                      ],
 
     # List additional groups of dependencies here (e.g. development

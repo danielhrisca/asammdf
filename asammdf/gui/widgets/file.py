@@ -4,6 +4,8 @@ from threading import Thread
 from time import sleep
 from pathlib import Path
 
+import psutil
+from natsort import natsorted
 import numpy as np
 
 from PyQt5.QtGui import *
@@ -75,6 +77,12 @@ class FileWidget(QWidget):
 
             if file_name.suffix.lower() == ".dl3":
                 progress.setLabelText("Converting from dl3 to mdf")
+                datalyser_active = any(
+                    proc.name() == 'Datalyser3.exe'
+                    for proc in psutil.process_iter()
+                )
+                for proc in psutil.process_iter(attrs=['pid', 'name', 'username']):
+                        print(proc.info)
                 try:
                     import win32com.client
 
@@ -92,7 +100,8 @@ class FileWidget(QWidget):
                     except:
                         pass
                     datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
-                    datalyser.DCOM_TerminateDAS()
+                    if not datalyser_active:
+                        datalyser.DCOM_TerminateDAS()
                     file_name = mdf_name
                 except Exception as err:
                     print(err)
@@ -1274,6 +1283,8 @@ class FileWidget(QWidget):
                 for sig in signals
                 if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
             ]
+
+            signals = natsorted(signals, key=lambda x: x.name)
 
         count = self.channel_selection.count()
         for i in range(count):

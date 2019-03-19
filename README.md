@@ -158,6 +158,7 @@ asammdf uses the following libraries
 * wheel : for installation in virtual environments
 * pandas : for DataFrame export
 * canmatrix : to handle CAN bus logging measurements
+* natsort
 
 optional dependencies needed for exports
 
