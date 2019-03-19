@@ -81,8 +81,6 @@ class FileWidget(QWidget):
                     proc.name() == 'Datalyser3.exe'
                     for proc in psutil.process_iter()
                 )
-                for proc in psutil.process_iter(attrs=['pid', 'name', 'username']):
-                        print(proc.info)
                 try:
                     import win32com.client
 
@@ -94,11 +92,13 @@ class FileWidget(QWidget):
                         else:
                             break
 
+                    
                     datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
-                    try:
-                        datalyser.DCOM_set_datalyser_visibility(False)
-                    except:
-                        pass
+                    if not datalyser_active:
+                        try:
+                            datalyser.DCOM_set_datalyser_visibility(False)
+                        except:
+                            pass
                     datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
                     if not datalyser_active:
                         datalyser.DCOM_TerminateDAS()
