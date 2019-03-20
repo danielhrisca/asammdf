@@ -903,7 +903,9 @@ class MDF(object):
               master will be renamed to 'DM<cntr>_<channel name>'
               ( *<cntr>* is the data group index starting from 0)
 
-            * `pandas` : export all channels as a single pandas DataFrame
+            * `pandas` : export all channels as a single pandas DataFrame; use
+              *to_dataframe* method since this export option will be removed
+              in the future
 
             * `parquet` : export to Apache parquet format
 
@@ -998,6 +1000,11 @@ class MDF(object):
                     logger.warning("scipy not found; export to mat is unavailable")
                     return
 
+        if fmt == 'pandas':
+            logger.warning(
+                "This export option will be removed in the future; use "
+                "to_dataframe method instead"
+            )
         if single_time_base or fmt in ("pandas", "parquet"):
             df = DataFrame()
             units = OrderedDict()

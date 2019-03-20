@@ -8,7 +8,7 @@ from . import v2_v3_blocks as v3b
 from . import v4_constants as v4c
 from . import v4_blocks as v4b
 
-__all__ = ["conversion_transfer"]
+__all__ = ["conversion_transfer", "from_dict"]
 
 
 def conversion_transfer(conversion, version=3):

@@ -459,7 +459,7 @@ class MDF3(object):
                 if next_byte_aligned_position > record_size:
                     break
 
-            gap = (record_size - next_byte_aligned_position) >> 3
+            gap = (record_size - next_byte_aligned_position) // 8
             if gap:
                 dtype_pair = ("", f"V{gap}")
                 types.append(dtype_pair)
@@ -488,9 +488,9 @@ class MDF3(object):
 
         byte_count = bit_offset + bit_count
         if byte_count % 8:
-            byte_count = (byte_count >> 3) + 1
+            byte_count = (byte_count // 8) + 1
         else:
-            byte_count >>= 3
+            byte_count //= 8
 
         types = [
             ("", f"V{byte_offset}"),
@@ -1393,7 +1393,7 @@ class MDF3(object):
 
                     # compute additional byte offset for large records size
                     if new_offset > v23c.MAX_UINT16:
-                        additional_byte_offset = (new_offset - v23c.MAX_UINT16) >> 3
+                        additional_byte_offset = (new_offset - v23c.MAX_UINT16) // 8
                         start_bit_offset = new_offset - additional_byte_offset << 3
                     else:
                         start_bit_offset = new_offset
@@ -1438,7 +1438,7 @@ class MDF3(object):
                 # channel group
                 kargs = {
                     "cycles_nr": cycles_nr,
-                    "samples_byte_nr": new_offset >> 3,
+                    "samples_byte_nr": new_offset // 8,
                     "ch_nr": new_ch_cntr,
                 }
                 new_gp.channel_group = ChannelGroup(**kargs)
@@ -1539,7 +1539,7 @@ class MDF3(object):
                 s_type, s_size = fmt_to_datatype_v3(samples.dtype, (), True)
                 # compute additional byte offset for large records size
                 if offset > v23c.MAX_UINT16:
-                    additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
+                    additional_byte_offset = (offset - v23c.MAX_UINT16) // 8
                     start_bit_offset = offset - additional_byte_offset << 3
                 else:
                     start_bit_offset = offset
@@ -1605,7 +1605,7 @@ class MDF3(object):
 
                     # compute additional byte offset for large records size
                     if offset > v23c.MAX_UINT16:
-                        additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
+                        additional_byte_offset = (offset - v23c.MAX_UINT16) // 8
                         start_bit_offset = offset - additional_byte_offset << 3
                     else:
                         start_bit_offset = offset
@@ -1699,7 +1699,7 @@ class MDF3(object):
                     s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
                     # compute additional byte offset for large records size
                     if offset > v23c.MAX_UINT16:
-                        additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
+                        additional_byte_offset = (offset - v23c.MAX_UINT16) // 8
                         start_bit_offset = offset - additional_byte_offset << 3
                     else:
                         start_bit_offset = offset
@@ -1766,7 +1766,7 @@ class MDF3(object):
 
                         # compute additional byte offset for large records size
                         if offset > v23c.MAX_UINT16:
-                            additional_byte_offset = (offset - v23c.MAX_UINT16) >> 3
+                            additional_byte_offset = (offset - v23c.MAX_UINT16) // 8
                             start_bit_offset = offset - additional_byte_offset << 3
                         else:
                             start_bit_offset = offset
@@ -1812,7 +1812,7 @@ class MDF3(object):
         # channel group
         kargs = {
             "cycles_nr": cycles_nr,
-            "samples_byte_nr": offset >> 3,
+            "samples_byte_nr": offset // 8,
             "ch_nr": ch_cntr,
         }
         if self.version >= "3.30":
@@ -2051,7 +2051,7 @@ class MDF3(object):
         # channel group
         kargs = {
             "cycles_nr": cycles_nr,
-            "samples_byte_nr": offset >> 3,
+            "samples_byte_nr": offset // 8,
             "ch_nr": ch_cntr,
         }
         if self.version >= "3.30":

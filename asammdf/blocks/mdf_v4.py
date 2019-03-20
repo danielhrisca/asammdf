@@ -1531,7 +1531,7 @@ class MDF4(object):
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
-                byte_size = s_size >> 3
+                byte_size = s_size // 8
 
                 fields.append(samples)
                 types.append((field_name, samples.dtype, samples.shape[1:]))
@@ -1626,7 +1626,7 @@ class MDF4(object):
         if dependencies and isinstance(dependencies[0], ChannelArrayBlock):
             ca_block = dependencies[0]
 
-            size = bit_count >> 3
+            size = bit_count // 8
             shape = tuple(ca_block[f"dim_size_{i}"] for i in range(ca_block.dims))
             if ca_block.byte_offset_base // size > 1 and len(shape) == 1:
                 shape += (ca_block.byte_offset_base // size,)
@@ -1638,9 +1638,9 @@ class MDF4(object):
 
         byte_count = bit_offset + bit_count
         if byte_count % 8:
-            byte_count = (byte_count >> 3) + 1
+            byte_count = (byte_count // 8) + 1
         else:
-            byte_count >>= 3
+            byte_count //= 8
 
         types = [
             ("", f"a{byte_offset}"),
@@ -2687,7 +2687,7 @@ class MDF4(object):
 
                 gp_channels.append(ch)
 
-                size = s_size >> 3
+                size = s_size // 8
                 for dim in shape:
                     size *= dim
                 offset += size
@@ -4987,7 +4987,7 @@ class MDF4(object):
 
         byte_count = bit_offset + bit_count
         if byte_count % 8:
-            byte_count = (byte_count >> 3) + 1
+            byte_count = (byte_count // 8) + 1
         else:
             byte_count //= 8
 
