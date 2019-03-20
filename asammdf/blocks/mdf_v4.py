@@ -469,13 +469,13 @@ class MDF4(object):
 
             address = group.data_block_addr
 
-            info, flags = self._get_data_blocks_info(
+            info = self._get_data_blocks_info(
                 address=address, stream=stream, block_type=b"##DT", mapped=mapped
             )
 
             for grp in new_groups:
                 grp.data_location = v4c.LOCATION_ORIGINAL_FILE
-                grp.set_blocks_info(info, flags)
+                grp.set_blocks_info(info)
 
             self.groups.extend(new_groups)
 
@@ -534,10 +534,8 @@ class MDF4(object):
                 _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
 
                 attachment = _sig.attachment
-                if attachment and attachment[1].name.lower().endswith(("dbc", "arxml")):
+                if attachment and attachment[0] and attachment[1].name.lower().endswith(("dbc", "arxml")):
                     attachment, at_name = attachment
-
-                    raw_can.append(i)
 
                     import_type = "dbc" if at_name.name.lower().endswith("dbc") else "arxml"
                     db = loads(
@@ -548,105 +546,76 @@ class MDF4(object):
 
                     cg_source = group.channel_group.acq_source
 
+                    all_message_info_extracted = True
                     for message_id in all_can_ids:
                         self.can_logging_db[group.CAN_id][message_id] = i
                         sigs = []
                         can_msg = db.frameById(message_id)
 
-                        for transmitter in can_msg.transmitters:
-                            if transmitter in board_units:
-                                break
-                        else:
-                            transmitter = ""
-                        message_name = can_msg.name
+                        if can_msg:
+                            for transmitter in can_msg.transmitters:
+                                if transmitter in board_units:
+                                    break
+                            else:
+                                transmitter = ""
+                            message_name = can_msg.name
 
-                        source = SignalSource(
-                            transmitter,
-                            can_msg.name,
-                            "",
-                            v4c.SOURCE_BUS,
-                            v4c.BUS_TYPE_CAN,
-                        )
-
-                        idx = nonzero(can_ids.samples == message_id)[0]
-                        data = payload[idx]
-                        t = can_ids.timestamps[idx].copy()
-                        if can_ids.invalidation_bits is not None:
-                            invalidation_bits = can_ids.invalidation_bits[idx]
-                        else:
-                            invalidation_bits = None
-
-                        for signal in sorted(can_msg.signals, key=lambda x: x.name):
-
-                            sig_vals = self.get_can_signal(
-                                f"CAN{group.CAN_id}.{can_msg.name}.{signal.name}",
-                                db=db,
-                                ignore_invalidation_bits=True,
-                            ).samples
-
-                            conversion = ChannelConversion(
-                                a=float(signal.factor),
-                                b=float(signal.offset),
-                                conversion_type=v4c.CONVERSION_TYPE_LIN,
+                            source = SignalSource(
+                                transmitter,
+                                can_msg.name,
+                                "",
+                                v4c.SOURCE_BUS,
+                                v4c.BUS_TYPE_CAN,
                             )
-                            conversion.unit = signal.unit or ""
-                            sigs.append(
-                                Signal(
-                                    sig_vals,
-                                    t,
-                                    name=signal.name,
-                                    conversion=conversion,
-                                    source=source,
-                                    unit=signal.unit,
-                                    raw=True,
-                                    invalidation_bits=invalidation_bits,
+
+                            idx = nonzero(can_ids.samples == message_id)[0]
+                            data = payload[idx]
+                            t = can_ids.timestamps[idx].copy()
+                            if can_ids.invalidation_bits is not None:
+                                invalidation_bits = can_ids.invalidation_bits[idx]
+                            else:
+                                invalidation_bits = None
+
+                            for signal in sorted(can_msg.signals, key=lambda x: x.name):
+
+                                sig_vals = self.get_can_signal(
+                                    f"CAN{group.CAN_id}.{can_msg.name}.{signal.name}",
+                                    db=db,
+                                    ignore_invalidation_bits=True,
+                                ).samples
+
+                                conversion = ChannelConversion(
+                                    a=float(signal.factor),
+                                    b=float(signal.offset),
+                                    conversion_type=v4c.CONVERSION_TYPE_LIN,
                                 )
+                                conversion.unit = signal.unit or ""
+                                sigs.append(
+                                    Signal(
+                                        sig_vals,
+                                        t,
+                                        name=signal.name,
+                                        conversion=conversion,
+                                        source=source,
+                                        unit=signal.unit,
+                                        raw=True,
+                                        invalidation_bits=invalidation_bits,
+                                    )
+                                )
+
+                            processed_can.append(
+                                [sigs, message_id, message_name, cg_source, group.CAN_id]
                             )
-
-                        processed_can.append(
-                            [sigs, message_id, message_name, cg_source, group.CAN_id]
-                        )
-                else:
-                    at_name = attachment[1] if attachment else ""
-                    message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
-                    logger.warning(message)
-                    grp.CAN_database = False
-                    raw_can.append(i)
-                    sigs = []
-                    cg_source = group.channel_group.acq_source
-
-                    for message_id in all_can_ids:
-
-                        source = SignalSource(
-                            "", "", "", v4c.SOURCE_BUS, v4c.BUS_TYPE_CAN
-                        )
-
-                        idx = nonzero(can_ids.samples == message_id)[0]
-                        data = payload[idx]
-                        t = can_ids.timestamps[idx]
-                        if can_ids.invalidation_bits is not None:
-                            invalidation_bits = can_ids.invalidation_bits[idx]
                         else:
-                            invalidation_bits = None
+                            all_message_info_extracted = False
 
-                        sigs.append(
-                            Signal(
-                                data,
-                                t,
-                                name="CAN_DataFrame.DataBytes",
-                                source=source,
-                                raw=True,
-                                invalidation_bits=invalidation_bits,
-                            )
-                        )
-                        processed_can.append(
-                            [sigs, message_id, "", cg_source, group.CAN_id]
-                        )
+                    if all_message_info_extracted:
+                        raw_can.append(i)
 
         # delete the groups that contain raw CAN bus logging and also
         # delete the channel entries from the channels_db. Update data group
         # index for the remaining channel entries. Append new data groups
-        if raw_can:
+        if processed_can:
             for index in reversed(raw_can):
                 self.groups.pop(index)
 
@@ -1961,7 +1930,12 @@ class MDF4(object):
                     hl = HeaderList(address=address, stream=stream, mapped=mapped)
                     address = hl.first_dl_addr
 
-                    info, _ = self._get_data_blocks_info(address, stream, block_type, mapped)
+                    info = self._get_data_blocks_info(
+                        address,
+                        stream,
+                        block_type,
+                        mapped,
+                    )
         else:
 
             if address:
@@ -2022,7 +1996,9 @@ class MDF4(object):
                             addr = dl[f"data_block_addr{i}"]
 
                             stream.seek(addr)
-                            id_string, _, block_len, __ = COMMON_u(stream.read(COMMON_SIZE))
+                            id_string, _, block_len, __ = COMMON_u(
+                                stream.read(COMMON_SIZE)
+                            )
                             # can be a DataBlock
                             if id_string == block_type:
                                 size = block_len - 24
@@ -2074,18 +2050,14 @@ class MDF4(object):
                     hl = HeaderList(address=address, stream=stream)
                     address = hl.first_dl_addr
 
-                    info, _ = self._get_data_blocks_info(address, stream, block_type, mapped)
+                    info = self._get_data_blocks_info(
+                        address,
+                        stream,
+                        block_type,
+                        mapped,
+                    )
 
-        flags = 0
-        has_dz = any(d.block_type != v4c.DT_BLOCK for d in info)
-        if has_dz:
-            flags |= 0x2
-
-        has_dt = any(d.block_type == v4c.DT_BLOCK for d in info)
-        if has_dt:
-            flags |= 0x1
-
-        return info, flags
+        return info
 
     def get_invalidation_bits(self, group_index, channel, fragment):
         """ get invalidation indexes for the channel
@@ -2922,7 +2894,6 @@ class MDF4(object):
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
-        gp.size = cycles_nr * (offset + invalidation_bytes_nr)
 
         # data group
         gp.data_group = DataGroup()
@@ -2958,7 +2929,6 @@ class MDF4(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags |= 0x1
         else:
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
@@ -3175,7 +3145,6 @@ class MDF4(object):
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
-        gp.size = cycles_nr * (offset + invalidation_bytes_nr)
 
         # data group
         gp.data_group = DataGroup()
@@ -3208,7 +3177,6 @@ class MDF4(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags |= 0x1
         else:
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
@@ -3396,7 +3364,6 @@ class MDF4(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags |= 0x1
 
             record_size = gp.channel_group.samples_byte_nr
             record_size += gp.data_group.record_id_len
@@ -4412,178 +4379,161 @@ class MDF4(object):
             # get the channel conversion
             conversion = channel.conversion
 
-            if conversion is None:
-                conversion_type = v4c.CONVERSION_TYPE_NON
-            else:
-                conversion_type = conversion.conversion_type
+            if channel_type == v4c.CHANNEL_TYPE_VLSD:
+                signal_data = self._load_signal_data(group=grp, index=ch_nr)
+                if signal_data:
+                    values = []
 
-            if conversion_type in v4c.CONVERSION_GROUP_1:
+                    vals = vals.tolist()
 
-                if channel_type == v4c.CHANNEL_TYPE_VLSD:
-                    signal_data = self._load_signal_data(group=grp, index=ch_nr)
-                    if signal_data:
-                        values = []
+                    for offset in vals:
+                        (str_size,) = UINT32_uf(signal_data, offset)
+                        offset += 4
+                        values.append(signal_data[offset : offset + str_size])
 
-                        vals = vals.tolist()
+                    if data_type == v4c.DATA_TYPE_BYTEARRAY:
 
-                        for offset in vals:
-                            (str_size,) = UINT32_uf(signal_data, offset)
-                            offset += 4
-                            values.append(signal_data[offset : offset + str_size])
+                        vals = array(values)
+                        vals = vals.view(dtype=f"({vals.itemsize},)u1")
 
-                        if data_type == v4c.DATA_TYPE_BYTEARRAY:
+                    else:
 
-                            vals = array(values)
-                            vals = vals.view(dtype=f"({vals.itemsize},)u1")
+                        vals = array(values)
+
+                        if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                            encoding = "utf-16-be"
+
+                        elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                            encoding = "utf-16-le"
+
+                        elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                            encoding = "utf-8"
+
+                        elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                            encoding = "latin-1"
 
                         else:
+                            raise MdfException(
+                                f'wrong data type "{data_type}" for vlsd channel'
+                            )
 
-                            vals = array(values)
+                else:
+                    # no VLSD signal data samples
+                    vals = array([], dtype="S")
+                    if data_type != v4c.DATA_TYPE_BYTEARRAY:
 
-                            if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                                encoding = "utf-16-be"
+                        if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                            encoding = "utf-16-be"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                                encoding = "utf-16-le"
+                        elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                            encoding = "utf-16-le"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                                encoding = "utf-8"
+                        elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                            encoding = "utf-8"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                                encoding = "latin-1"
+                        elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                            encoding = "latin-1"
 
-                            else:
-                                raise MdfException(
-                                    f'wrong data type "{data_type}" for vlsd channel'
-                                )
+                        else:
+                            raise MdfException(
+                                f'wrong data type "{data_type}" for vlsd channel'
+                            )
 
-                    else:
-                        # no VLSD signal data samples
-                        vals = array([], dtype="S")
-                        if data_type != v4c.DATA_TYPE_BYTEARRAY:
+            elif channel_type in {
+                v4c.CHANNEL_TYPE_VALUE,
+                v4c.CHANNEL_TYPE_MLSD,
+            } and (
+                v4c.DATA_TYPE_STRING_LATIN_1
+                <= data_type
+                <= v4c.DATA_TYPE_STRING_UTF_16_BE
+            ):
 
-                            if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                                encoding = "utf-16-be"
+                if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                    encoding = "utf-16-be"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                                encoding = "utf-16-le"
+                elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                    encoding = "utf-16-le"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                                encoding = "utf-8"
+                elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                    encoding = "utf-8"
 
-                            elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                                encoding = "latin-1"
+                elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                    encoding = "latin-1"
 
-                            else:
-                                raise MdfException(
-                                    f'wrong data type "{data_type}" for vlsd channel'
-                                )
-
-                elif channel_type in {
-                    v4c.CHANNEL_TYPE_VALUE,
-                    v4c.CHANNEL_TYPE_MLSD,
-                } and (
-                    v4c.DATA_TYPE_STRING_LATIN_1
-                    <= data_type
-                    <= v4c.DATA_TYPE_STRING_UTF_16_BE
-                ):
-
-                    if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                        encoding = "utf-16-be"
-
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                        encoding = "utf-16-le"
-
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                        encoding = "utf-8"
-
-                    elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                        encoding = "latin-1"
-
-                    else:
-                        raise MdfException(
-                            f'wrong data type "{data_type}" for string channel'
-                        )
-
-                # CANopen date
-                if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
-
-                    vals = vals.tostring()
-
-                    types = dtype(
-                        [
-                            ("ms", "<u2"),
-                            ("min", "<u1"),
-                            ("hour", "<u1"),
-                            ("day", "<u1"),
-                            ("month", "<u1"),
-                            ("year", "<u1"),
-                        ]
+                else:
+                    raise MdfException(
+                        f'wrong data type "{data_type}" for string channel'
                     )
-                    vals = vals.view(types)
 
-                    arrays = []
-                    arrays.append(vals["ms"])
-                    # bit 6 and 7 of minutes are reserved
-                    arrays.append(vals["min"] & 0x3F)
-                    # only firt 4 bits of hour are used
-                    arrays.append(vals["hour"] & 0xF)
-                    # the first 4 bits are the day number
-                    arrays.append(vals["day"] & 0xF)
-                    # bit 6 and 7 of month are reserved
-                    arrays.append(vals["month"] & 0x3F)
-                    # bit 7 of year is reserved
-                    arrays.append(vals["year"] & 0x7F)
-                    # add summer or standard time information for hour
-                    arrays.append((vals["hour"] & 0x80) >> 7)
-                    # add day of week information
-                    arrays.append((vals["day"] & 0xF0) >> 4)
+            # CANopen date
+            if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
 
-                    names = [
-                        "ms",
-                        "min",
-                        "hour",
-                        "day",
-                        "month",
-                        "year",
-                        "summer_time",
-                        "day_of_week",
+                vals = vals.tostring()
+
+                types = dtype(
+                    [
+                        ("ms", "<u2"),
+                        ("min", "<u1"),
+                        ("hour", "<u1"),
+                        ("day", "<u1"),
+                        ("month", "<u1"),
+                        ("year", "<u1"),
                     ]
-                    vals = fromarrays(arrays, names=names)
+                )
+                vals = vals.view(types)
 
-                    del arrays
-                    conversion = None
+                arrays = []
+                arrays.append(vals["ms"])
+                # bit 6 and 7 of minutes are reserved
+                arrays.append(vals["min"] & 0x3F)
+                # only firt 4 bits of hour are used
+                arrays.append(vals["hour"] & 0xF)
+                # the first 4 bits are the day number
+                arrays.append(vals["day"] & 0xF)
+                # bit 6 and 7 of month are reserved
+                arrays.append(vals["month"] & 0x3F)
+                # bit 7 of year is reserved
+                arrays.append(vals["year"] & 0x7F)
+                # add summer or standard time information for hour
+                arrays.append((vals["hour"] & 0x80) >> 7)
+                # add day of week information
+                arrays.append((vals["day"] & 0xF0) >> 4)
 
-                # CANopen time
-                elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
+                names = [
+                    "ms",
+                    "min",
+                    "hour",
+                    "day",
+                    "month",
+                    "year",
+                    "summer_time",
+                    "day_of_week",
+                ]
+                vals = fromarrays(arrays, names=names)
 
-                    types = dtype([("ms", "<u4"), ("days", "<u2")])
-                    vals = vals.view(types)
+                del arrays
+                conversion = None
 
-                    arrays = []
-                    # bits 28 to 31 are reserverd for ms
-                    arrays.append(vals["ms"] & 0xFFFFFFF)
-                    arrays.append(vals["days"] & 0x3F)
+            # CANopen time
+            elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
 
-                    names = ["ms", "days"]
-                    vals = fromarrays(arrays, names=names)
+                types = dtype([("ms", "<u4"), ("days", "<u2")])
+                vals = vals.view(types)
 
-                    del arrays
-                    conversion = None
+                arrays = []
+                # bits 28 to 31 are reserverd for ms
+                arrays.append(vals["ms"] & 0xFFFFFFF)
+                arrays.append(vals["days"] & 0x3F)
 
-                if conversion_type == v4c.CONVERSION_TYPE_TRANS:
-                    if not raw:
-                        vals = conversion.convert(vals)
-                        conversion = None
-                if conversion_type == v4c.CONVERSION_TYPE_TTAB:
-                    raw = True
+                names = ["ms", "days"]
+                vals = fromarrays(arrays, names=names)
 
-            elif conversion_type in v4c.CONVERSION_GROUP_2:
-                if not raw:
+                del arrays
+
+            if not raw:
+                if conversion:
                     vals = conversion.convert(vals)
                     conversion = None
-            else:
-                raw = True
 
         if samples_only:
             if not channel_invalidation_present or not ignore_invalidation_bits:

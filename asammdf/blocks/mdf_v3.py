@@ -734,6 +734,7 @@ class MDF3(object):
                 else:
                     kargs["block_len"] = v23c.DG_PRE_320_BLOCK_SIZE
                 kargs["record_id_len"] = record_id_nr
+                kargs["address"] = data_group.address
 
                 grp.data_group = DataGroup(**kargs)
 
@@ -810,20 +811,19 @@ class MDF3(object):
                 total_size += record_size * cycles_nr
 
                 grp.record_size = cg_size
-                grp.size = total_size
 
             for grp in new_groups:
                 grp.data_location = v23c.LOCATION_ORIGINAL_FILE
-                grp.data_blocks.append(
-                    DataBlockInfo(
-                        address=data_group.data_block_addr,
-                        block_type=0,
-                        raw_size=total_size,
-                        size=total_size,
-                        param=0,
+                if total_size:
+                    grp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_group.data_block_addr,
+                            block_type=0,
+                            raw_size=total_size,
+                            size=total_size,
+                            param=0,
+                        )
                     )
-                )
-                grp.data_blocks_flags = 0x1
 
             self.groups.extend(new_groups)
 
@@ -1443,7 +1443,6 @@ class MDF3(object):
                 }
                 new_gp.channel_group = ChannelGroup(**kargs)
                 new_gp.channel_group.comment = channel_group_comment
-                new_gp.size = cycles_nr * (new_offset >> 3)
 
                 # data group
                 if self.version >= "3.20":
@@ -1467,13 +1466,19 @@ class MDF3(object):
                 if cycles_nr:
                     data_address = tell()
                     new_gp.data_group.data_block_addr = data_address
-                    new_gp.data_block_addr = [data_address]
-                    new_gp.data_block_size = [new_gp.size]
                     self._tempfile.write(block)
+                    size = len(block)
+                    new_gp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_address,
+                            raw_size=size,
+                            size=size,
+                            block_type=0,
+                            param=0,
+                        )
+                    )
                 else:
                     new_gp.data_group.data_block_addr = 0
-                    new_gp.data_block_addr = [0]
-                    new_gp.data_block_size = [0]
 
                 # data group trigger
                 new_gp.trigger = None
@@ -1816,7 +1821,6 @@ class MDF3(object):
             kargs["block_len"] = v23c.CG_PRE_330_BLOCK_SIZE
         gp.channel_group = ChannelGroup(**kargs)
         gp.channel_group.comment = acquisition_info
-        gp.size = cycles_nr * (offset >> 3)
 
         # data group
         if self.version >= "3.20":
@@ -1855,7 +1859,6 @@ class MDF3(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags = 0x1
 
         else:
             gp.data_location = v23c.LOCATION_TEMPORARY_FILE
@@ -2057,7 +2060,6 @@ class MDF3(object):
             kargs["block_len"] = v23c.CG_PRE_330_BLOCK_SIZE
         gp.channel_group = ChannelGroup(**kargs)
         gp.channel_group.comment = source_info
-        gp.size = cycles_nr * (offset >> 3)
 
         # data group
         if self.version >= "3.20":
@@ -2096,7 +2098,6 @@ class MDF3(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags = 0x1
         else:
             gp.data_location = v23c.LOCATION_TEMPORARY_FILE
         # data group trigger
@@ -2228,14 +2229,21 @@ class MDF3(object):
 
                 record_size = new_gp.channel_group.samples_byte_nr
                 extended_size = cycles_nr * record_size
-                new_gp.size += extended_size
 
                 if samples:
                     stream.seek(0, 2)
                     data_address = stream.tell()
-                    new_gp.data_block_addr.append(data_address)
-                    new_gp.data_block_size.append(extended_size)
                     stream.write(samples)
+
+                    new_gp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_address,
+                            raw_size=extended_size,
+                            size=extended_size,
+                            block_type=0,
+                            param=0,
+                        )
+                    )
 
             else:
 
@@ -2268,7 +2276,6 @@ class MDF3(object):
 
         record_size = gp.channel_group.samples_byte_nr
         extended_size = cycles_nr * record_size
-        gp.size += extended_size
 
         # data block
         types = dtype(types)
@@ -2291,7 +2298,6 @@ class MDF3(object):
                     param=0,
                 )
             )
-            gp.data_blocks_flags = 0x1
 
     def get_channel_name(self, group, index):
         """Gets channel name.
@@ -2827,29 +2833,10 @@ class MDF3(object):
                 if vals.dtype.kind == "S":
                     encoding = "latin-1"
 
-            elif conversion_type in (
-                v23c.CONVERSION_TYPE_LINEAR,
-                v23c.CONVERSION_TYPE_TABI,
-                v23c.CONVERSION_TYPE_TAB,
-                v23c.CONVERSION_TYPE_EXPO,
-                v23c.CONVERSION_TYPE_LOGH,
-                v23c.CONVERSION_TYPE_RAT,
-                v23c.CONVERSION_TYPE_POLY,
-                v23c.CONVERSION_TYPE_FORMULA,
-            ):
-                if not raw:
-                    try:
-                        vals = conversion.convert(vals)
-                        conversion = None
-                    except:
-                        print(channel, conversion)
-                        raise
-
-            elif conversion_type in (
-                v23c.CONVERSION_TYPE_TABX,
-                v23c.CONVERSION_TYPE_RTABX,
-            ):
-                raw = True
+            if not raw:
+                if conversion:
+                    vals = conversion.convert(vals)
+                    conversion = None
 
         if samples_only:
             res = vals, None
@@ -3248,14 +3235,16 @@ class MDF3(object):
                 dg.record_id_len = 0
 
                 # DataBlock
+                dim = 0
                 for (data_bytes, _, __) in self._load_data(gp):
+                    dim += len(data_bytes)
                     write(data_bytes)
 
-                if gp.size:
+                if gp.data_blocks:
                     gp.data_group.data_block_addr = address
                 else:
                     gp.data_group.data_block_addr = 0
-                address += gp.size - gp_rec_ids[idx] * gp.channel_group.cycles_nr
+                address += dim
 
                 if self._callback:
                     self._callback(int(33 * (idx + 1) / groups_nr), 100)

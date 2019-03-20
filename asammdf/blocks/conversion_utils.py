@@ -131,7 +131,7 @@ def conversion_transfer(conversion, version=3):
                     conversion = v3b.ChannelConversion(**kargs)
 
                 elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-                    nr = conversion.val_param_nr // 2
+                    nr = conversion.val_param_nr // 2 - 1
                     kargs = {
                         "ref_param_nr": nr + 1,
                         "unit": unit,
@@ -149,6 +149,7 @@ def conversion_transfer(conversion, version=3):
                     new_conversion.referenced_blocks["default_addr"] = v3b.TextBlock(
                         text=conversion.referenced_blocks["default_addr"].text
                     )
+                    new_conversion
 
                     conversion = new_conversion
 

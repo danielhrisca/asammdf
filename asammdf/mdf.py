@@ -5,7 +5,7 @@ import csv
 from datetime import datetime
 import logging
 import xml.etree.ElementTree as ET
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from copy import deepcopy
 from functools import reduce
 from struct import unpack
@@ -1447,7 +1447,7 @@ class MDF(object):
                 return df
             else:
                 name = name.with_suffix(".parquet")
-                write_parquet(name, DataFrame.from_dict(mdict))
+                write_parquet(name, df)
 
         else:
             message = (
@@ -1682,7 +1682,7 @@ class MDF(object):
                         )
                     ]
 
-                    for k, j in enumerate(included_channels):
+                    for k, j in enumerate(indexes):
                         sig = self.get(
                             group=group_index,
                             index=j,
@@ -2531,7 +2531,7 @@ class MDF(object):
             mdf._callback = mdf._mdf._callback = self._callback
         return mdf
 
-    def select(self, channels, dataframe=False, record_offset=0, raw=False):
+    def select(self, channels, dataframe=False, record_offset=0, raw=False, copy_master=True):
         """ retrieve the channels listed in *channels* argument as *Signal*
         objects
 
@@ -2544,6 +2544,15 @@ class MDF(object):
                 * (channel name, group index, channel index) list or tuple
                 * (channel name, group index) list or tuple
                 * (None, group index, channel index) lsit or tuple
+        dataframe : bool
+            return pandas dataframe instead of list of Signals; default *False*
+        record_offset : int
+            record number offset; optimization to get the last part of signal samples
+        raw : bool
+            get raw channel samples; default *False*
+        copy_master : bool
+            option to get a new timestamps array for each selected Signal or to
+            use a shared array for channels of the same channel group; default *False*
 
         dataframe: bool
             return a pandas DataFrame instead of a list of *Signals*; in this
@@ -2626,40 +2635,127 @@ class MDF(object):
                 else:
                     gps[group].add(index)
 
-        signal_parts = {}
+        signals = {}
+
         for group in gps:
             grp = self.groups[group]
             data = self._load_data(grp, record_offset=record_offset)
             parents, dtypes = self._prepare_record(grp)
 
-            for fragment in data:
+            channel_indexes = gps[group]
+
+            signal_parts = defaultdict(list)
+            master_parts = []
+
+            sigs = {}
+
+            for i, fragment in enumerate(data):
                 if dtypes.itemsize:
                     grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     grp.record = None
-                for index in gps[group]:
-                    signal = self.get(
-                        group=group, index=index, data=fragment, copy_master=False, raw=raw,
-                    )
-                    if (group, index) not in signal_parts:
-                        signal_parts[(group, index)] = [signal]
-                    else:
+
+                if i == 0:
+                    for index in channel_indexes:
+                        signal = self.get(
+                            group=group,
+                            index=index,
+                            data=fragment,
+                            copy_master=False,
+                            raw=True,
+                        )
+
+                        sigs[index] = signal
+                        signal_parts[(group, index)].append(
+                            (signal.samples, signal.invalidation_bits)
+                        )
+
+                    master_parts.append(signal.timestamps)
+                else:
+                    for index in channel_indexes:
+                        signal = self.get(
+                            group=group,
+                            index=index,
+                            data=fragment,
+                            copy_master=False,
+                            raw=True,
+                            samples_only=True,
+                        )
+
                         signal_parts[(group, index)].append(signal)
+
+                    master_parts.append(
+                        self.get_master(
+                            group,
+                            data=fragment,
+                            copy_master=False,
+                        )
+                    )
                 grp.record = None
 
-        signals = []
-        for pair in indexes:
-            parts = signal_parts[pair]
-            signal = Signal(
-                np.concatenate([part.samples for part in parts]),
-                np.concatenate([part.timestamps for part in parts]),
-                unit=parts[0].unit,
-                name=parts[0].name,
-                comment=parts[0].comment,
-                raw=parts[0].raw,
-                conversion=parts[0].conversion,
-            )
-            signals.append(signal)
+            pieces = len(master_parts)
+            if pieces > 1:
+                master = np.concatenate(master_parts)
+            else:
+                master = master_parts[0]
+            master_parts = None
+            pairs = list(signal_parts.keys())
+            for pair in pairs:
+                group, index = pair
+                parts = signal_parts.pop(pair)
+                sig = sigs.pop(index)
+
+                if pieces > 1:
+                    samples = np.concatenate(
+                        [part[0] for part in parts]
+                    )
+                    if sig.invalidation_bits is not None:
+                        invalidation_bits = np.concatenate(
+                            [part[0] for part in parts]
+                        )
+                    else:
+                        invalidation_bits = None
+                else:
+                    samples = parts[0][0]
+                    if sig.invalidation_bits is not None:
+                        invalidation_bits = parts[0][1]
+                    else:
+                        invalidation_bits = None
+
+                signals[pair] = Signal(
+                    samples=samples,
+                    timestamps=master,
+                    name=sig.name,
+                    unit=sig.unit,
+                    bit_count=sig.bit_count,
+                    attachment=sig.attachment,
+                    comment=sig.comment,
+                    conversion=sig.conversion,
+                    display_name=sig.display_name,
+                    encoding=sig.encoding,
+                    master_metadata=sig.master_metadata,
+                    raw=True,
+                    source=sig.source,
+                    stream_sync=sig.stream_sync,
+                    invalidation_bits=invalidation_bits,
+                )
+
+        signals = [
+            signals[pair]
+            for pair in indexes
+        ]
+
+        if copy_master:
+            for signal in signals:
+                signal.timestamps = signal.timestamps.copy()
+
+        if not raw:
+            for signal in signals:
+                conversion = signal.conversion
+                if conversion:
+                    signal.samples = conversion.convert(signal.samples)
+                raw = False
+                signal.conversion = None
 
         if dataframe:
 

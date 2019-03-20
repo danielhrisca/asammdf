@@ -2002,10 +2002,11 @@ class ChannelConversion(_ChannelConversionBase):
                 values = unpack_from(
                     "<{}d".format((links_nr - 1) * 2), block, 32 + links_nr * 8 + 24
                 )
-                for i in range(self.val_param_nr // 2):
+                self.default_lower = self.default_upper = 0
+                for i in range(1, self.val_param_nr // 2):
                     j = 2 * i
-                    self[f"lower_{i}"] = values[j]
-                    self[f"upper_{i}"] = values[j + 1]
+                    self[f"lower_{i-1}"] = values[j]
+                    self[f"upper_{i-1}"] = values[j + 1]
 
             elif conv == v4c.CONVERSION_TYPE_TTAB:
                 (
@@ -2086,24 +2087,38 @@ class ChannelConversion(_ChannelConversionBase):
                 for i in range(tabs):
                     address = self[f"text_{i}"]
                     if address:
-                        try:
+                        stream.seek(address)
+                        _id = stream.read(4)
+
+                        if _id == b'##TX':
                             block = TextBlock(address=address, stream=stream, mapped=mapped)
                             refs[f"text_{i}"] = block
-                        except MdfException:
+                        elif _id == b'##CC':
                             block = ChannelConversion(address=address, stream=stream, mapped=mapped)
                             refs[f"text_{i}"] = block
+                        else:
+                            message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
+                            logger.exception(message)
+                            raise MdfException(message)
 
                     else:
                         refs[f"text_{i}"] = None
                 if conv_type != v4c.CONVERSION_TYPE_TTAB:
                     address = self.default_addr
                     if address:
-                        try:
+                        stream.seek(address)
+                        _id = stream.read(4)
+
+                        if _id == b'##TX':
                             block = TextBlock(address=address, stream=stream, mapped=mapped)
                             refs["default_addr"] = block
-                        except MdfException:
+                        elif _id == b'##CC':
                             block = ChannelConversion(address=address, stream=stream, mapped=mapped)
                             refs["default_addr"] = block
+                        else:
+                            message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
+                            logger.exception(message)
+                            raise MdfException(message)
                     else:
                         refs["default_addr"] = None
 
@@ -2292,6 +2307,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self[key] = 0
                     self.referenced_blocks[key] = TextBlock(text=kwargs[key])
                 self.default_addr = 0
+                self.default_lower = self.default_upper = 0
                 if "default_addr" in kwargs:
                     default = kwargs["default_addr"]
                 else:
@@ -2529,12 +2545,15 @@ class ChannelConversion(_ChannelConversionBase):
                 phys.append(value)
 
             default = self.referenced_blocks.get("default_addr", {})
-            try:
-                default = default.text
-            except AttributeError:
-                pass
-            except TypeError:
+            if default is None:
                 default = b""
+            else:
+                try:
+                    default = default.text
+                except AttributeError:
+                    pass
+                except TypeError:
+                    default = b""
 
             phys.insert(0, default)
             raw_vals = np.insert(raw_vals, 0, raw_vals[0] - 1)
@@ -2564,7 +2583,7 @@ class ChannelConversion(_ChannelConversionBase):
                     )
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-            nr = self.val_param_nr // 2
+            nr = self.val_param_nr // 2 - 1
 
             phys = []
             for i in range(nr):
@@ -2578,13 +2597,14 @@ class ChannelConversion(_ChannelConversionBase):
 
             default = self.referenced_blocks.get("default_addr", {})
             if default is None:
-                default = b''
-            try:
-                default = default.text
-            except AttributeError:
-                pass
-            except TypeError:
                 default = b""
+            else:
+                try:
+                    default = default.text
+                except AttributeError:
+                    pass
+                except TypeError:
+                    default = b""
 
             lower = np.array([self[f"lower_{i}"] for i in range(nr)])
             upper = np.array([self[f"upper_{i}"] for i in range(nr)])
@@ -2592,7 +2612,7 @@ class ChannelConversion(_ChannelConversionBase):
             all_values = phys + [default]
 
             idx1 = np.searchsorted(lower, values, side="right") - 1
-            idx2 = np.searchsorted(upper, values, side="right")
+            idx2 = np.searchsorted(upper, values, side="left")
 
             idx_ne = np.nonzero(idx1 != idx2)[0]
             idx_eq = np.nonzero(idx1 == idx2)[0]
@@ -2620,7 +2640,11 @@ class ChannelConversion(_ChannelConversionBase):
                     if isinstance(item, bytes):
                         new_values.append(item)
                     else:
-                        new_values.append(item.convert(values[i : i + 1])[0])
+                        try:
+                            new_values.append(item.convert(values[i : i + 1])[0])
+                        except:
+                            print(item, default, phys)
+                            1/0
 
                 if all(isinstance(v, bytes) for v in new_values):
                     values = np.array(new_values)
@@ -2995,8 +3019,10 @@ formula: {self.formula}
                 "val_param_nr",
                 "min_phy_value",
                 "max_phy_value",
+                "default_lower",
+                "default_upper",
             )
-            for i in range(self.val_param_nr // 2):
+            for i in range(self.val_param_nr // 2 - 1):
                 keys += (f"lower_{i}", f"upper_{i}")
             result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_TTAB:
@@ -4813,3 +4839,12 @@ class TextBlock:
         return v4c.COMMON_p(
             self.id, self.reserved0, self.block_len, self.links_nr
         ) + pack(f"{self.block_len - COMMON_SIZE}s", self.text)
+
+    def __repr__(self):
+        return (
+            f"TextBlock(id={self.id},"
+            f"reserved0={self.reserved0}, "
+            f"block_len={self.block_len}, "
+            f"links_nr={self.links_nr} "
+            f"text={self.text})"
+        )

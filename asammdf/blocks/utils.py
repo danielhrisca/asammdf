@@ -969,7 +969,6 @@ class Group:
         "data_group",
         "data_location",
         "data_blocks",
-        "data_blocks_flags",
         "record_size",
         "CAN_logging",
         "CAN_id",
@@ -983,7 +982,6 @@ class Group:
         "parents",
         "types",
         "signal_types",
-        "size",
         "trigger",
         "string_dtypes",
     )
@@ -1009,7 +1007,6 @@ class Group:
         self.trigger = None
         self.string_dtypes = None
         self.data_blocks = []
-        self.data_blocks_flags = 0
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -1017,9 +1014,8 @@ class Group:
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
 
-    def set_blocks_info(self, info, flags):
+    def set_blocks_info(self, info):
         self.data_blocks = info
-        self.data_blocks_flags = flags
 
     def __contains__(self, item):
         return hasattr(self, item)
