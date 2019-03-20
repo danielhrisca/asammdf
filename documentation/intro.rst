@@ -83,6 +83,7 @@ optional dependencies needed for exports
 * scipy : for Matlab v4 and v5 .mat export
 * hdf5storage : for Matlab v7.3 .mat export
 * fastparquet : for parquet export
+* natsort
 
 other optional dependencies
 
