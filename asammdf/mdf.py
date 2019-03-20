@@ -14,7 +14,7 @@ from pathlib import Path
 
 import numpy as np
 from numpy.core.defchararray import encode, decode
-from pandas import DataFrame, Series
+import pandas as pd
 
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
@@ -1006,7 +1006,7 @@ class MDF(object):
                 "to_dataframe method instead"
             )
         if single_time_base or fmt in ("pandas", "parquet"):
-            df = DataFrame()
+            df = pd.DataFrame()
             units = OrderedDict()
             comments = OrderedDict()
             masters = [self.get_master(i) for i in range(len(self.groups))]
@@ -1027,9 +1027,9 @@ class MDF(object):
 
             if time_from_zero and len(master):
                 df = df.assign(time=master)
-                df["time"] = Series(master - master[0], index=np.arange(len(master)))
+                df["time"] = pd.Series(master - master[0], index=np.arange(len(master)))
             else:
-                df["time"] = Series(master, index=np.arange(len(master)))
+                df["time"] = pd.Series(master, index=np.arange(len(master)))
 
             units["time"] = "s"
             comments["time"] = ""
@@ -1070,9 +1070,9 @@ class MDF(object):
                             # df = df.assign(**{channel_name: sig.samples})
                             if sig.samples.dtype.names:
 
-                                df[channel_name] = Series(sig.samples, dtype="O")
+                                df[channel_name] = pd.Series(sig.samples, dtype="O")
                             else:
-                                df[channel_name] = Series(sig.samples)
+                                df[channel_name] = pd.Series(sig.samples)
                         except:
                             print(sig.samples.dtype, sig.samples.shape, sig.name)
                             print(list(df), len(df))
@@ -2774,9 +2774,9 @@ class MDF(object):
                 for s in signals
             ]
 
-            df = DataFrame()
+            df = pd.DataFrame()
 
-            df["time"] = Series(master, index=np.arange(len(master)))
+            df["time"] = pd.Series(master, index=np.arange(len(master)))
 
             df.set_index('time', inplace=True)
 
@@ -2791,7 +2791,7 @@ class MDF(object):
                     sig.samples = np.core.records.fromarrays(arr, dtype=types)
 
                     channel_name = used_names.get_unique_name(sig.name)
-                    df[channel_name] = Series(sig.samples, dtype="O")
+                    df[channel_name] = pd.Series(sig.samples, dtype="O")
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
@@ -2801,7 +2801,7 @@ class MDF(object):
                 # scalars
                 else:
                     channel_name = used_names.get_unique_name(sig.name)
-                    df[channel_name] = Series(sig.samples)
+                    df[channel_name] = pd.Series(sig.samples)
 
             return df
         else:
@@ -3101,7 +3101,7 @@ class MDF(object):
 
         interpolation_mode = self._integer_interpolation
 
-        df = DataFrame()
+        df = pd.DataFrame()
         master = self.get_master(index)
 
         if raster and len(master):
@@ -3114,9 +3114,9 @@ class MDF(object):
 
         if time_from_zero and len(master):
             df = df.assign(time=master)
-            df["time"] = Series(master - master[0], index=np.arange(len(master)))
+            df["time"] = pd.Series(master - master[0], index=np.arange(len(master)))
         else:
-            df["time"] = Series(master, index=np.arange(len(master)))
+            df["time"] = pd.Series(master, index=np.arange(len(master)))
 
         df.set_index('time', inplace=True)
 
@@ -3154,7 +3154,7 @@ class MDF(object):
 
                 channel_name = used_names.get_unique_name(channel_name)
 
-                df[channel_name] = Series(sig.samples, index=master, dtype="O")
+                df[channel_name] = pd.Series(sig.samples, index=master, dtype="O")
 
             # arrays and structures
             elif sig.samples.dtype.names:
@@ -3170,7 +3170,7 @@ class MDF(object):
 
                 channel_name = used_names.get_unique_name(channel_name)
 
-                df[channel_name] = Series(sig.samples, index=master)
+                df[channel_name] = pd.Series(sig.samples, index=master)
 
             if use_display_names:
                 channel_name = sig.display_name or sig.name
@@ -3187,6 +3187,7 @@ class MDF(object):
         empty_channels="skip",
         keep_arrays=False,
         use_display_names=False,
+        time_as_date=False,
     ):
         """ generate pandas DataFrame
 
@@ -3208,6 +3209,10 @@ class MDF(object):
             component channels. If *True* this can be very slow. If *False*
             only the component channels are saved, and their names will be
             prefixed with the parent channel.
+        * time_as_date : bool
+            the dataframe index will contain the datetime timestamps
+            according to the measurement start time; default *False*. If
+            *True* then the argument ``time_from_zero`` will be ignored.
 
         Returns
         -------
@@ -3215,7 +3220,7 @@ class MDF(object):
 
         """
 
-        df = DataFrame()
+        df = pd.DataFrame()
         masters = [self.get_master(i) for i in range(len(self.groups))]
         self._master_channel_cache.clear()
         master = reduce(np.union1d, masters)
@@ -3228,11 +3233,11 @@ class MDF(object):
                 else:
                     master = np.arange(master[0], master[-1], raster, dtype=np.float64)
 
-        if time_from_zero and len(master):
+        if time_from_zero and len(master) and not time_as_date:
             df = df.assign(time=master)
-            df["time"] = Series(master - master[0], index=np.arange(len(master)))
+            df["time"] = pd.Series(master - master[0], index=np.arange(len(master)))
         else:
-            df["time"] = Series(master, index=np.arange(len(master)))
+            df["time"] = pd.Series(master, index=np.arange(len(master)))
 
         df.set_index('time', inplace=True)
 
@@ -3305,7 +3310,7 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    df[channel_name] = Series(sig.samples, index=master, dtype="O")
+                    df[channel_name] = pd.Series(sig.samples, index=master, dtype="O")
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
@@ -3321,13 +3326,18 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    df[channel_name] = Series(sig.samples, index=master)
+                    df[channel_name] = pd.Series(sig.samples, index=master)
 
                 if use_display_names:
                     channel_name = sig.display_name or sig.name
                 else:
                     channel_name = sig.name
 
+        if time_as_date:
+            new_index = np.array(df.index) + self.header.start_time.timestamp()
+            new_index = pd.to_datetime(new_index, unit='s')
+
+            df.set_index(new_index, inplace=True)
         return df
 
 
