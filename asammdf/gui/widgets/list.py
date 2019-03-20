@@ -48,4 +48,9 @@ class ListWidget(QListWidget):
                 wid.display.setCheckState(state)
 
         else:
-            super().keyPressEvent(event)
+            selected_items = self.selectedItems()
+            if len(selected_items) == 1:
+                widget = self.itemWidget(selected_items[0])
+                widget.keyPressEvent(event)
+            else:
+                super().keyPressEvent(event)

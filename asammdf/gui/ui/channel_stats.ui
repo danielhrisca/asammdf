@@ -34,16 +34,7 @@
         <bool>false</bool>
        </property>
        <layout class="QGridLayout" name="gridLayout_4" columnstretch="0,1,0">
-        <property name="leftMargin">
-         <number>4</number>
-        </property>
-        <property name="topMargin">
-         <number>4</number>
-        </property>
-        <property name="rightMargin">
-         <number>4</number>
-        </property>
-        <property name="bottomMargin">
+        <property name="margin">
          <number>4</number>
         </property>
         <property name="spacing">
@@ -106,16 +97,7 @@
         <string>Selected range</string>
        </property>
        <layout class="QGridLayout" name="gridLayout_5" columnstretch="0,1,0">
-        <property name="leftMargin">
-         <number>4</number>
-        </property>
-        <property name="topMargin">
-         <number>4</number>
-        </property>
-        <property name="rightMargin">
-         <number>4</number>
-        </property>
-        <property name="bottomMargin">
+        <property name="margin">
          <number>4</number>
         </property>
         <property name="spacing">
@@ -274,16 +256,7 @@
         <string>Visible range</string>
        </property>
        <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,1,0">
-        <property name="leftMargin">
-         <number>4</number>
-        </property>
-        <property name="topMargin">
-         <number>4</number>
-        </property>
-        <property name="rightMargin">
-         <number>4</number>
-        </property>
-        <property name="bottomMargin">
+        <property name="margin">
          <number>4</number>
         </property>
         <property name="spacing">
@@ -442,16 +415,7 @@
         <string>Overall</string>
        </property>
        <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1,0">
-        <property name="leftMargin">
-         <number>4</number>
-        </property>
-        <property name="topMargin">
-         <number>4</number>
-        </property>
-        <property name="rightMargin">
-         <number>4</number>
-        </property>
-        <property name="bottomMargin">
+        <property name="margin">
          <number>4</number>
         </property>
         <property name="spacing">
@@ -563,6 +527,12 @@
        </property>
        <property name="textFormat">
         <enum>Qt::RichText</enum>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
        </property>
       </widget>
      </item>

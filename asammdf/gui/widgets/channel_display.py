@@ -126,3 +126,12 @@ class ChannelDisplay(base_1, form_1):
         except (ValueError, TypeError):
             template = '<html><head/><body><p><span style=" color:{};">{}{}</span></p></body></html>'
             self.value.setText(template.format(self.color, self._value_prefix, value))
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        modifier = event.modifiers()
+        if modifier == Qt.ControlModifier and key == Qt.Key_C:
+            QApplication.instance().clipboard().setText(self._name)
+
+        else:
+            super().keyPressEvent(event)
