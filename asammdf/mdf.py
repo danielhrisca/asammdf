@@ -1012,7 +1012,7 @@ class MDF(object):
             masters = [self.get_master(i) for i in range(len(self.groups))]
             for i in range(len(self.groups)):
                 self._master_channel_cache[(i, 0, -1)] = self._master_channel_cache[i]
-            self.masters_db.clear()
+            self._master_channel_cache.clear()
             master = reduce(np.union1d, masters)
 
             if raster and len(master):
