@@ -8,6 +8,7 @@ from PyQt5.QtCore import *
 from PyQt5 import uic
 
 from ..ui import resource_qt5 as resource_rc
+from ..dialogs.range_editor import RangeEditor
 
 HERE = Path(__file__).resolve().parent
 
@@ -66,6 +67,12 @@ class ChannelDisplay(base_1, form_1):
         state = self.ylink.checkState()
         self.ylink_changed.emit(self.index, state)
 
+    def mouseDoubleClickEvent(self, event):
+        dlg = RangeEditor(self.unit, self.ranges)
+        dlg.exec_()
+        if dlg.pressed_button == "apply":
+            self.ranges = dlg.result
+
     def select_color(self):
         color = QColorDialog.getColor(QColor(self.color)).name()
         self.setColor(color)
@@ -93,11 +100,11 @@ class ChannelDisplay(base_1, form_1):
         self._name = text
         if len(text) <= 32:
             self.name.setText(
-                f'<html><head/><body><p><span style=" color:{self.color};">{self._name} ({self.unit})</span></p></body></html>'
+                f'{self._name} ({self.unit})'
             )
         else:
             self.name.setText(
-                f'<html><head/><body><p><span style=" color:{self.color};">{self._name[:29]}... ({self.unit})</span></p></body></html>'
+                f'{self._name[:29]}... ({self.unit})'
             )
 
     def setPrefix(self, text=""):
@@ -109,23 +116,21 @@ class ChannelDisplay(base_1, form_1):
             for (start, stop), color in self.ranges.items():
                 if start <= value < stop:
                     self.setStyleSheet(f"background-color: {color};")
-                    self._transparent = False
                     break
             else:
-                self._transparent = True
                 self.setStyleSheet("background-color: transparent;")
         elif not self._transparent:
             self.setStyleSheet("background-color: transparent;")
-        template = '<html><head/><body><p><span style=" color:{{}};">{{}}{}</span></p></body></html>'
+        template = '{{}}{}'
         if value not in ("", "n.a."):
             template = template.format(self.fmt)
         else:
             template = template.format("{}")
         try:
-            self.value.setText(template.format(self.color, self._value_prefix, value))
+            self.value.setText(template.format(self._value_prefix, value))
         except (ValueError, TypeError):
-            template = '<html><head/><body><p><span style=" color:{};">{}{}</span></p></body></html>'
-            self.value.setText(template.format(self.color, self._value_prefix, value))
+            template = '{}{}'
+            self.value.setText(template.format(self._value_prefix, value))
 
     def keyPressEvent(self, event):
         key = event.key()
