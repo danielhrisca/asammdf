@@ -51,7 +51,7 @@ class ChannelStats(QWidget):
                         value = value
 
                 if name == "unit":
-                    for i in range(1, 10):
+                    for i in range(1, 16):
                         label = self.findChild(QLabel, f"unit{i}")
                         label.setText(f" {value}")
                 elif name == "name":
@@ -70,17 +70,21 @@ class ChannelStats(QWidget):
         self._name = "Please select a single channel"
         self.color = "#000000"
         self.name.setText(self.name_template.format(self.color, self._name))
-        for group in (
+        for k, group in enumerate((
             self.cursor_group,
             self.range_group,
             self.visible_group,
             self.overall_group,
-        ):
+        )):
             layout = group.layout()
             rows = layout.rowCount()
             for i in range(rows):
-                label = layout.itemAtPosition(i, 1).widget()
-                label.setText("")
-            for i in range(rows // 2, rows):
-                label = layout.itemAtPosition(i, 2).widget()
-                label.setText("")
+                label = layout.itemAtPosition(i, 1)
+                if label is not None:
+                    label = label.widget()
+                    label.setText("")
+                label = layout.itemAtPosition(i, 2)
+                if label is not None:
+                    label = label.widget()
+                    if label.objectName().startswith('unit'):
+                        label.setText("")

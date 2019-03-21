@@ -152,9 +152,13 @@ try:
                     if sig.samples.dtype.kind not in 'SV':
                         sig.min = np.amin(sig.samples)
                         sig.max = np.amax(sig.samples)
+                        sig.avg = np.mean(sig.samples)
+                        sig.rms = np.sqrt(np.mean(np.square(sig.samples)))
                     else:
                         sig.min = 'n.a.'
                         sig.max = 'n.a.'
+                        sig.avg = 'n.a.'
+                        sig.rms = 'n.a.'
 
                     sig.empty = False
                 else:
@@ -425,6 +429,8 @@ try:
                 if sig.plot_texts is not None:
                     stats["overall_min"] = ""
                     stats["overall_max"] = ""
+                    stats["overall_average"] = ""
+                    stats["overall_rms"] = ""
                     stats["overall_start"] = sig.timestamps[0]
                     stats["overall_stop"] = sig.timestamps[-1]
                     stats["unit"] = ""
@@ -456,13 +462,19 @@ try:
                     stats["selected_delta_t"] = ""
                     stats["selected_min"] = ""
                     stats["selected_max"] = ""
+                    stats["selected_average"] = ""
+                    stats["selected_rms"] = ""
                     stats["selected_delta"] = ""
                     stats["visible_min"] = ""
                     stats["visible_max"] = ""
+                    stats["visible_average"] = ""
+                    stats["visible_rms"] = ""
                     stats["visible_delta"] = ""
                 else:
                     stats["overall_min"] = sig.min
                     stats["overall_max"] = sig.max
+                    stats["overall_average"] = sig.avg
+                    stats["overall_rms"] = sig.rms
                     stats["overall_start"] = sig.timestamps[0]
                     stats["overall_stop"] = sig.timestamps[-1]
                     stats["unit"] = sig.unit
@@ -511,6 +523,10 @@ try:
                             if len(cut):
                                 new_stats["selected_min"] = np.amin(cut.samples)
                                 new_stats["selected_max"] = np.amax(cut.samples)
+                                new_stats["selected_average"] = np.mean(cut.samples)
+                                new_stats["selected_rms"] = (
+                                     np.sqrt(np.mean(np.square(cut.samples)))
+                                )
                                 if cut.samples.dtype.kind in "ui":
                                     new_stats["selected_delta"] = int(
                                         float(cut.samples[-1]) - (cut.samples[0])
@@ -523,6 +539,8 @@ try:
                             else:
                                 new_stats["selected_min"] = "n.a."
                                 new_stats["selected_max"] = "n.a."
+                                new_stats["selected_average"] = "n.a."
+                                new_stats["selected_rms"] = "n.a."
                                 new_stats["selected_delta"] = "n.a."
 
                             sig._stats["range"] = (start, stop)
@@ -536,6 +554,8 @@ try:
                         stats["selected_delta_t"] = ""
                         stats["selected_min"] = ""
                         stats["selected_max"] = ""
+                        stats["selected_average"] = ""
+                        stats["selected_rms"] = ""
                         stats["selected_delta"] = ""
 
                     (start, stop), _ = self.viewbox.viewRange()
@@ -551,6 +571,10 @@ try:
                         if len(cut):
                             new_stats["visible_min"] = np.amin(cut.samples)
                             new_stats["visible_max"] = np.amax(cut.samples)
+                            new_stats["visible_average"] = np.mean(cut.samples)
+                            new_stats["visible_rms"] = (
+                                 np.sqrt(np.mean(np.square(cut.samples)))
+                            )
                             new_stats["visible_delta"] = (
                                 cut.samples[-1] - cut.samples[0]
                             )
@@ -558,6 +582,8 @@ try:
                         else:
                             new_stats["visible_min"] = "n.a."
                             new_stats["visible_max"] = "n.a."
+                            new_stats["visible_average"] = "n.a."
+                            new_stats["visible_rms"] = "n.a."
                             new_stats["visible_delta"] = "n.a."
 
                         sig._stats["visible"] = (start, stop)
@@ -568,6 +594,8 @@ try:
             else:
                 stats["overall_min"] = "n.a."
                 stats["overall_max"] = "n.a."
+                stats["overall_average"] = "n.a."
+                stats["overall_rms"] = "n.a."
                 stats["overall_start"] = "n.a."
                 stats["overall_stop"] = "n.a."
                 stats["unit"] = sig.unit
@@ -593,6 +621,8 @@ try:
 
                     stats["selected_min"] = "n.a."
                     stats["selected_max"] = "n.a."
+                    stats["selected_average"] = "n.a."
+                    stats["selected_rms"] = "n.a."
                     stats["selected_delta"] = "n.a."
 
                 else:
@@ -601,6 +631,8 @@ try:
                     stats["selected_delta_t"] = ""
                     stats["selected_min"] = ""
                     stats["selected_max"] = ""
+                    stats["selected_average"] = "n.a."
+                    stats["selected_rms"] = "n.a."
                     stats["selected_delta"] = ""
 
                 (start, stop), _ = self.viewbox.viewRange()
@@ -611,6 +643,8 @@ try:
 
                 stats["visible_min"] = "n.a."
                 stats["visible_max"] = "n.a."
+                stats["visible_average"] = "n.a."
+                stats["visible_rms"] = "n.a."
                 stats["visible_delta"] = "n.a."
 
             return stats
