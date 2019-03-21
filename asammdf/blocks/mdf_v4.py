@@ -368,60 +368,64 @@ class MDF4(object):
                         message_name = channel_group.acq_name
 
                         comment = channel_group.acq_source.comment
-                        comment_xml = ET.fromstring(comment)
-                        common_properties = comment_xml.find(".//common_properties")
-                        for e in common_properties:
-                            name = e.get("name")
-                            if name == "ChannelNo":
-                                grp.CAN_id = f"CAN{e.text}"
-                                break
-
-                        if message_name == "CAN_DataFrame":
-                            # this is a raw CAN bus logging channel group
-                            # it will be later processed to extract all
-                            # signals to new groups (one group per CAN message)
-                            grp.raw_can = True
-
-                        elif message_name in ("CAN_ErrorFrame", "CAN_RemoteFrame"):
-                            # for now ignore bus logging flag
-                            pass
+                        if comment:
+                            comment_xml = ET.fromstring(comment)
+                            common_properties = comment_xml.find(".//common_properties")
+                            for e in common_properties:
+                                name = e.get("name")
+                                if name == "ChannelNo":
+                                    grp.CAN_id = f"CAN{e.text}"
+                                    break
+                        if grp.CAN_id is None:
+                            grp.CAN_logging = False
                         else:
-                            comment = channel_group.comment
-                            if comment:
 
-                                comment_xml = ET.fromstring(sanitize_xml(comment))
-                                can_msg_type = comment_xml.find(".//TX").text
-                                if can_msg_type is not None:
-                                    can_msg_type = can_msg_type.strip(" \t\r\n")
-                                else:
-                                    can_msg_type = "CAN_DataFrame"
-                                if can_msg_type == "CAN_DataFrame":
-                                    common_properties = comment_xml.find(
-                                        ".//common_properties"
-                                    )
-                                    message_id = -1
-                                    for e in common_properties:
-                                        name = e.get("name")
-                                        if name == "MessageID":
-                                            message_id = int(e.text)
-                                            break
+                            if message_name == "CAN_DataFrame":
+                                # this is a raw CAN bus logging channel group
+                                # it will be later processed to extract all
+                                # signals to new groups (one group per CAN message)
+                                grp.raw_can = True
 
-                                    if message_id > 0:
-                                        if message_id > 0x80000000:
-                                            message_id -= 0x80000000
-                                            grp.extended_id = True
-                                        grp.message_name = message_name
-                                        grp.message_id = message_id
-
-                                else:
-                                    message = f"Invalid bus logging channel group metadata: {comment}"
-                                    logger.warning(message)
+                            elif message_name in ("CAN_ErrorFrame", "CAN_RemoteFrame"):
+                                # for now ignore bus logging flag
+                                pass
                             else:
-                                message = (
-                                    f"Unable to get CAN message information "
-                                    f"since channel group @{hex(channel_group.address)} has no metadata"
-                                )
-                                logger.warning(message)
+                                comment = channel_group.comment
+                                if comment:
+
+                                    comment_xml = ET.fromstring(sanitize_xml(comment))
+                                    can_msg_type = comment_xml.find(".//TX").text
+                                    if can_msg_type is not None:
+                                        can_msg_type = can_msg_type.strip(" \t\r\n")
+                                    else:
+                                        can_msg_type = "CAN_DataFrame"
+                                    if can_msg_type == "CAN_DataFrame":
+                                        common_properties = comment_xml.find(
+                                            ".//common_properties"
+                                        )
+                                        message_id = -1
+                                        for e in common_properties:
+                                            name = e.get("name")
+                                            if name == "MessageID":
+                                                message_id = int(e.text)
+                                                break
+
+                                        if message_id > 0:
+                                            if message_id > 0x80000000:
+                                                message_id -= 0x80000000
+                                                grp.extended_id = True
+                                            grp.message_name = message_name
+                                            grp.message_id = message_id
+
+                                    else:
+                                        message = f"Invalid bus logging channel group metadata: {comment}"
+                                        logger.warning(message)
+                                else:
+                                    message = (
+                                        f"Unable to get CAN message information "
+                                        f"since channel group @{hex(channel_group.address)} has no metadata"
+                                    )
+                                    logger.warning(message)
                     else:
                         # only CAN bus logging is supported
                         pass
