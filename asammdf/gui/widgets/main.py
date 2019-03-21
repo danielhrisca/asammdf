@@ -305,6 +305,7 @@ class MainWindow(QMainWindow):
         version = self.cs_format.currentText()
 
         sync = self.sync.checkState() == Qt.Checked
+        add_samples_origin = self.add_samples_origin.checkState() == Qt.Checked
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
@@ -342,6 +343,7 @@ class MainWindow(QMainWindow):
                 "outversion": version,
                 "callback": self.update_progress,
                 "sync": sync,
+                "add_samples_origin": add_samples_origin,
             }
 
             mdf = run_thread_with_progress(

@@ -16,6 +16,7 @@ import numpy as np
 from numpy.core.defchararray import encode, decode
 import pandas as pd
 
+from .blocks.conversion_utils import from_dict
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
 from .blocks.mdf_v4 import MDF4
@@ -1788,7 +1789,7 @@ class MDF(object):
             )
 
     @staticmethod
-    def concatenate(files, version="4.10", sync=True, **kwargs):
+    def concatenate(files, version="4.10", sync=True, add_samples_origin=False, **kwargs):
         """ concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group)
@@ -1801,6 +1802,9 @@ class MDF(object):
             merged file version
         sync : bool
             sync the files based on the start of measurement, default *True*
+        add_samples_origin : bool
+            option to create a new "__samples_origin" channel that will hold
+            the index of the measurement from where each timestamp originated
 
         Returns
         -------
@@ -1885,6 +1889,16 @@ class MDF(object):
 
         encodings = []
         included_channel_names = []
+
+        if add_samples_origin:
+            origin_conversion = {}
+            for i, mdf in enumerate(files):
+                origin_conversion[f'val_{i}'] = i
+                if isinstance(mdf, MDF):
+                    origin_conversion[f'text_{i}'] = str(mdf.name)
+                else:
+                    origin_conversion[f'text_{i}'] = str(mdf)
+            origin_conversion = from_dict(origin_conversion)
 
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
@@ -2013,6 +2027,19 @@ class MDF(object):
                             first_timestamp = signals[0].timestamps[0]
                             original_first_timestamp = first_timestamp
 
+                        if add_samples_origin:
+                            if signals:
+                                _s = signals[-1]
+                                signals.append(
+                                    Signal(
+                                        samples=np.ones(len(_s), dtype='<u2')*mdf_index,
+                                        timestamps=_s.timestamps,
+                                        conversion=origin_conversion,
+                                        name='__samples_origin',
+                                    )
+                                )
+                                _s = None
+
                         if signals:
                             merged.append(signals, common_timebase=True)
                         else:
@@ -2074,7 +2101,14 @@ class MDF(object):
                                                 )
                                             sig.samples = samples
 
+
                             if signals:
+                                if add_samples_origin:
+                                    _s = signals[-1][0]
+                                    signals.append(
+                                        (np.ones(len(_s), dtype='<u2')*mdf_index, None)
+                                    )
+                                    _s = None
                                 merged.extend(cg_nr, signals)
 
                             if first_timestamp is None:
@@ -2084,16 +2118,6 @@ class MDF(object):
                     group.record = None
 
                 last_timestamps[i] = last_timestamp
-                if first_timestamp is not None:
-                    merged.groups[-1].channel_group.comment += (
-                        f"{first_timestamp:.6f}s-{last_timestamp:.6f}s "
-                        f'from CG {i} of "{mdf.name.name}"'
-                        f"start @ {original_first_timestamp:.6f}s\n"
-                    )
-                else:
-                    merged.groups[
-                        -1
-                    ].channel_group.comment += f'there were no samples in channel group {i} of "{mdf.name.name}"\n'
 
             if callback:
                 callback(i + 1 + mdf_index * groups_nr, groups_nr * mdf_nr)
