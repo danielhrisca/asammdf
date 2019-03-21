@@ -47,6 +47,7 @@ try:
 
         def __init__(self, signals, with_dots, *args, **kwargs):
             super().__init__(*args, **kwargs)
+            self.setContentsMargins(0, 0, 0, 0)
             self.xrange_changed.connect(self.xrange_changed_handle)
             self.with_dots = with_dots
             if self.with_dots:
@@ -659,7 +660,7 @@ try:
                         self.showGrid(x=True, y=True)
                     for axis in self.axes:
                         if axis.grid is False:
-                            axis.setGrid(80)
+                            axis.setGrid(255)
                         else:
                             axis.setGrid(False)
 
