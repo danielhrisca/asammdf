@@ -721,6 +721,9 @@ try:
                         self.region.sigRegionChangeFinished.connect(
                             self.range_modified_finished.emit
                         )
+                        for line in self.region.lines:
+                            line.addMarker("^", 0)
+                            line.addMarker("v", 1)
                         start, stop = self.viewbox.viewRange()[0]
                         start, stop = (
                             start + 0.1 * (stop - start),
