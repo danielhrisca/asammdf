@@ -881,6 +881,9 @@ class MDF(object):
         """ export *MDF* to other formats. The *MDF* file name is used is
         available, else the *filename* argument must be provided.
 
+        The *pandas* export option was removed. you should use the method
+        *to_dataframe* instead.
+
         Parameters
         ----------
         fmt : string
