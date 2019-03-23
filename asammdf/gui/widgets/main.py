@@ -471,8 +471,9 @@ class MainWindow(QMainWindow):
 
     def dropEvent(self, e):
         try:
-            path = Path(e.mimeData().text().replace(r'file:///', ''))
-            if path.suffix.lower() in ('.erg', '.dl3', '.dat', '.mdf', '.mf4'):
-                self._open_file(path)
+            for path in e.mimeData().text().splitlines():
+                path = Path(path.replace(r'file:///', ''))
+                if path.suffix.lower() in ('.mdf', '.mf4'):
+                    self._open_file(path)
         except:
             pass
