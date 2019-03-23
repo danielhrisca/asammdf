@@ -904,10 +904,6 @@ class MDF(object):
               master will be renamed to 'DM<cntr>_<channel name>'
               ( *<cntr>* is the data group index starting from 0)
 
-            * `pandas` : export all channels as a single pandas DataFrame; use
-              *to_dataframe* method since this export option will be removed
-              in the future
-
             * `parquet` : export to Apache parquet format
 
         filename : string | pathlib.Path
@@ -916,10 +912,9 @@ class MDF(object):
         **kwargs
 
             * `single_time_base`: resample all channels to common time base,
-              default *False* (pandas export is by default single based)
+              default *False*
             * `raster`: float time raster for resampling. Valid if
-              *single_time_base* is *True* and for *pandas*
-              export
+              *single_time_base* is *True*
             * `time_from_zero`: adjust time channel to start from 0
             * `use_display_names`: use display name instead of standard channel
               name, if available.
@@ -932,11 +927,6 @@ class MDF(object):
               component channels. If *True* this can be very slow. If *False*
               only the component channels are saved, and their names will be
               prefixed with the parent channel.
-
-        Returns
-        -------
-        dataframe : pandas.DataFrame
-            only in case of *pandas* export
 
         """
 
@@ -1001,12 +991,7 @@ class MDF(object):
                     logger.warning("scipy not found; export to mat is unavailable")
                     return
 
-        if fmt == 'pandas':
-            logger.warning(
-                "This export option will be removed in the future; use "
-                "to_dataframe method instead"
-            )
-        if single_time_base or fmt in ("pandas", "parquet"):
+        if single_time_base or fmt == "parquet":
             df = pd.DataFrame()
             units = OrderedDict()
             comments = OrderedDict()
@@ -1450,12 +1435,9 @@ class MDF(object):
             else:
                 savemat(str(name), mdict, long_field_names=True, oned_as=oned_as)
 
-        elif fmt in ("pandas", "parquet"):
-            if fmt == "pandas":
-                return df
-            else:
-                name = name.with_suffix(".parquet")
-                write_parquet(name, df)
+        elif fmt == "parquet":
+            name = name.with_suffix(".parquet")
+            write_parquet(name, df)
 
         else:
             message = (
