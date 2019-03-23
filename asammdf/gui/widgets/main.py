@@ -473,7 +473,7 @@ class MainWindow(QMainWindow):
         try:
             for path in e.mimeData().text().splitlines():
                 path = Path(path.replace(r'file:///', ''))
-                if path.suffix.lower() in ('.mdf', '.mf4'):
+                if path.suffix.lower() in ('.dat', '.mdf', '.mf4'):
                     self._open_file(path)
         except:
             pass
