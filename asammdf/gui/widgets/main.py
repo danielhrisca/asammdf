@@ -248,6 +248,8 @@ class MainWindow(QMainWindow):
             for name in files:
                 self._open_file(name)
 
+        self.setAcceptDrops(True)
+
         self.show()
 
     def help(self, event):
@@ -462,3 +464,15 @@ class MainWindow(QMainWindow):
         for i in range(count):
             self.files.widget(i).close()
         event.accept()
+
+    def dragEnterEvent(self, e):
+
+        e.accept()
+
+    def dropEvent(self, e):
+        try:
+            path = Path(e.mimeData().text().replace(r'file:///', ''))
+            if path.suffix.lower() in ('.erg', '.dl3', '.dat', '.mdf', '.mf4'):
+                self._open_file(path)
+        except:
+            pass
