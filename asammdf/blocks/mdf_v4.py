@@ -202,6 +202,7 @@ class MDF4(object):
         self._master_channel_cache = {}
         self._master_channel_metadata = {}
         self._invalidation_cache = {}
+        self._external_dbc_cache = {}
         self._si_map = {}
         self._file_si_map = {}
         self._cc_map = {}
@@ -4940,7 +4941,10 @@ class MDF4(object):
 
         if can_id is None:
             for _can_id, messages in self.can_logging_db.items():
-                if message.id in messages:
+                message_id = message.id
+                if message_id > 0x80000000:
+                    message_id -= 0x80000000
+                if message_id in messages:
                     index = messages[message.id]
                     break
             else:
