@@ -18,6 +18,8 @@ class ListWidget(QListWidget):
 
         self.can_delete_items = True
 
+        self.show()
+
     def keyPressEvent(self, event):
         key = event.key()
         if key == Qt.Key_Delete and self.can_delete_items:

@@ -248,6 +248,8 @@ class MainWindow(QMainWindow):
             for name in files:
                 self._open_file(name)
 
+        self.setAcceptDrops(True)
+
         self.show()
 
     def help(self, event):
@@ -262,8 +264,8 @@ class MainWindow(QMainWindow):
     def plot_action(self, key, modifier=Qt.NoModifier):
         event = QKeyEvent(QEvent.KeyPress, key, modifier)
         widget = self.files.currentWidget()
-        if widget and widget.plot:
-            widget.plot.keyPressEvent(event)
+        if widget and widget.get_current_plot():
+            widget.get_current_plot().keyPressEvent(event)
             widget.keyPressEvent(event)
 
     def toggle_dots(self, key):
@@ -462,3 +464,16 @@ class MainWindow(QMainWindow):
         for i in range(count):
             self.files.widget(i).close()
         event.accept()
+
+    def dragEnterEvent(self, e):
+
+        e.accept()
+
+    def dropEvent(self, e):
+        try:
+            for path in e.mimeData().text().splitlines():
+                path = Path(path.replace(r'file:///', ''))
+                if path.suffix.lower() in ('.dat', '.mdf', '.mf4'):
+                    self._open_file(path)
+        except:
+            pass
