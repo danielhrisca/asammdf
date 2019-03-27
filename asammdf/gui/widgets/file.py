@@ -382,10 +382,9 @@ class FileWidget(QWidget):
 
             self.with_dots = with_dots
 
-            if self.plot:
-                self.plot.update_lines(with_dots=with_dots)
-
-
+            current_plot = self.get_current_plot()
+            if current_plot:
+                current_plot.plot.update_lines(with_dots=with_dots)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -638,7 +637,9 @@ class FileWidget(QWidget):
 
     def get_current_plot(self):
         if self.active_plot:
-            return self.dock_area.docks[self.active_plot]
+            return self.dock_area.docks[self.active_plot].widgets[0]
+        else:
+            return None
 
     def new_search_result(self, tree, search):
         group_index, channel_index = search.entries[search.current_index]
@@ -990,19 +991,16 @@ class FileWidget(QWidget):
             self.dock_area.hide()
             dock_name = self._dock_names.get_unique_name('Plot')
             dock = Dock(dock_name, closable=True)
-            w1 = LayoutWidget()
             self.dock_area.addDock(dock)
 
             dock.label.sigClicked.connect(partial(self.mark_active_plot, dock_name))
             self.mark_active_plot(dock_name)
             dock.sigClosed.connect(self.close_plot)
 
-            self.plot = Plot(signals, self.with_dots)
-            self.plot.plot.update_lines(force=True)
+            plot = Plot(signals, self.with_dots)
+            plot.plot.update_lines(force=True)
 
-            w1.addWidget(self.plot)
-
-            dock.addWidget(w1)
+            dock.addWidget(plot)
 
             self.dock_area.show()
 
@@ -1028,7 +1026,6 @@ class FileWidget(QWidget):
         self.active_plot = plot_name
 
         for dock in self.dock_area.docks.values():
-            print(dock.label.text(), plot_name)
             if dock.label.text() == plot_name:
                 dock.label.setStyleSheet("""DockLabel {
                 background-color : rgb(94, 178, 226);

@@ -268,8 +268,6 @@ try:
 
         def range_modified(self):
             start, stop = self.plot.region.getRegion()
-            self.cut_start.setValue(start)
-            self.cut_stop.setValue(stop)
 
             self.cursor_info.setText(
                 (
@@ -341,6 +339,9 @@ try:
                 stop = next_pos
 
                 self.plot.region.setRegion((start, stop))
+
+        def keyPressEvent(self, event):
+            self.plot.keyPressEvent(event)
 
         def range_removed(self):
             for i, signal in enumerate(self.plot.signals):
@@ -879,6 +880,7 @@ try:
         def keyPressEvent(self, event):
             key = event.key()
             modifier = event.modifiers()
+            print(self, event, key, modifier)
 
             if key in self.disabled_keys:
                 super().keyPressEvent(event)

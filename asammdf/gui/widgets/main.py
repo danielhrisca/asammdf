@@ -265,6 +265,7 @@ class MainWindow(QMainWindow):
         event = QKeyEvent(QEvent.KeyPress, key, modifier)
         widget = self.files.currentWidget()
         if widget and widget.get_current_plot():
+            print(widget.get_current_plot())
             widget.get_current_plot().keyPressEvent(event)
             widget.keyPressEvent(event)
 

@@ -377,10 +377,10 @@ class MDF4(object):
                                 if name == "ChannelNo":
                                     grp.CAN_id = f"CAN{e.text}"
                                     break
+
                         if grp.CAN_id is None:
                             grp.CAN_logging = False
                         else:
-
                             if message_name == "CAN_DataFrame":
                                 # this is a raw CAN bus logging channel group
                                 # it will be later processed to extract all
