@@ -11,6 +11,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 from ..ui import resource_qt5 as resource_rc
+from .list import ListWidget
 
 try:
     import pyqtgraph as pg
@@ -24,6 +25,9 @@ try:
     from .formated_axis import FormatedAxis
     from ..dialogs.define_channel import DefineChannel
     from ...mdf import MDF
+    from .list import ListWidget
+    from .channel_display import ChannelDisplay
+    from .channel_stats import ChannelStats
 
     if not hasattr(pg.InfiniteLine, "addMarker"):
         logger = logging.getLogger("asammdf")
@@ -35,7 +39,352 @@ try:
         )
         logger.warning(message)
 
-    class Plot(pg.PlotWidget):
+    class Plot(QWidget):
+
+        close_request = pyqtSignal()
+
+        def __init__(self, signals, with_dots=False, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.setContentsMargins(0, 0, 0, 0)
+
+            main_layout = QVBoxLayout(self)
+            self.setLayout(main_layout)
+
+            vbox = QVBoxLayout()
+            widget = QWidget()
+            self.channel_selection = ListWidget()
+            hbox = QHBoxLayout()
+            hbox.addWidget(QLabel("Cursor/Range information"))
+            self.cursor_info = QLabel("")
+            self.cursor_info.setTextFormat(Qt.RichText)
+            self.cursor_info.setAlignment(
+                Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter
+            )
+            hbox.addWidget(self.cursor_info)
+            vbox.addLayout(hbox)
+            vbox.addWidget(self.channel_selection)
+            widget.setLayout(vbox)
+
+            self.splitter = QSplitter()
+            self.splitter.addWidget(widget)
+
+            self.plot = _Plot(signals, with_dots, self)
+            self.plot.range_modified.connect(self.range_modified)
+            self.plot.range_removed.connect(self.range_removed)
+            self.plot.range_modified_finished.connect(self.range_modified_finished)
+            self.plot.cursor_removed.connect(self.cursor_removed)
+            self.plot.cursor_moved.connect(self.cursor_moved)
+            self.plot.cursor_move_finished.connect(self.cursor_move_finished)
+            self.plot.xrange_changed.connect(self.xrange_changed)
+            self.plot.computation_channel_inserted.connect(self.computation_channel_inserted)
+            self.plot.show()
+            self.channel_selection.show()
+            self.splitter.addWidget(self.plot)
+
+            for i, sig in enumerate(self.plot.signals):
+                if sig.empty:
+                    name, unit = sig.name, "[has no samples]"
+                else:
+                    name, unit = sig.name, sig.unit
+                item = QListWidgetItem(self.channel_selection)
+                it = ChannelDisplay(i, unit, self)
+                it.setAttribute(Qt.WA_StyledBackground)
+
+                it.setName(name)
+                it.setValue("")
+                it.setColor(sig.color)
+                item.setSizeHint(it.sizeHint())
+                self.channel_selection.addItem(item)
+                self.channel_selection.setItemWidget(item, it)
+
+                it.color_changed.connect(self.plot.setColor)
+                it.enable_changed.connect(self.plot.setSignalEnable)
+                it.ylink_changed.connect(self.plot.setCommonAxis)
+
+            self.info = ChannelStats()
+            self.splitter.addWidget(self.info)
+            self.info.hide()
+
+            self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
+            self.channel_selection.itemSelectionChanged.connect(
+                self.channel_selection_modified
+            )
+
+            main_layout.addWidget(self.splitter)
+
+        def mousePressEvent(self, event):
+            print('clicked', self)
+            super().mousePressEvent(event)
+
+        def channel_selection_modified(self):
+            selected_items = list(self.channel_selection.selectedItems())
+            if selected_items:
+                self.info_index = self.channel_selection.row(selected_items[0])
+
+                if self.plot.signals[self.info_index].enable:
+
+                    self.plot.set_current_index(self.info_index)
+                    stats = self.plot.get_stats(self.info_index)
+                    self.info.set_stats(stats)
+
+        def channel_selection_reduced(self, deleted):
+
+            if len(deleted) == self.channel_selection.count():
+                self.close_request.emit()
+            else:
+                for i in sorted(deleted, reverse=True):
+                    item = self.plot.curves.pop(i)
+                    item.hide()
+                    item.setParent(None)
+
+                    self.plot.signals.pop(i)
+
+                rows = self.channel_selection.count()
+
+                for i in range(rows):
+                    item = self.channel_selection.item(i)
+                    wid = self.channel_selection.itemWidget(item)
+                    wid.index = i
+
+                if self.info_index in deleted:
+                    self.info_index = 0
+                    self.plot.set_current_index(0)
+                    stats = self.plot.get_stats(self.info_index)
+                    self.info.set_stats(stats)
+
+        def cursor_move_finished(self):
+            x = self.plot.timebase
+
+            if x is not None and len(x):
+                dim = len(x)
+                position = self.plot.cursor1.value()
+
+                right = np.searchsorted(x, position, side="right")
+                if right == 0:
+                    next_pos = x[0]
+                elif right == dim:
+                    next_pos = x[-1]
+                else:
+                    if position - x[right - 1] < x[right] - position:
+                        next_pos = x[right - 1]
+                    else:
+                        next_pos = x[right]
+                self.plot.cursor1.setPos(next_pos)
+
+            self.plot.cursor_hint.setData(x=[], y=[])
+
+        def cursor_moved(self):
+            position = self.plot.cursor1.value()
+
+            x = self.plot.timebase
+
+            if x is not None and len(x):
+                dim = len(x)
+                position = self.plot.cursor1.value()
+
+                right = np.searchsorted(x, position, side="right")
+                if right == 0:
+                    next_pos = x[0]
+                elif right == dim:
+                    next_pos = x[-1]
+                else:
+                    if position - x[right - 1] < x[right] - position:
+                        next_pos = x[right - 1]
+                    else:
+                        next_pos = x[right]
+
+                y = []
+
+                _, (hint_min, hint_max) = self.plot.viewbox.viewRange()
+
+                for viewbox, sig, curve in zip(
+                    self.plot.view_boxes, self.plot.signals, self.plot.curves
+                ):
+                    if curve.isVisible():
+                        index = np.argwhere(sig.timestamps == next_pos).flatten()
+                        if len(index):
+                            _, (y_min, y_max) = viewbox.viewRange()
+
+                            sample = sig.samples[index[0]]
+                            sample = (sample - y_min) / (y_max - y_min) * (
+                                hint_max - hint_min
+                            ) + hint_min
+
+                            y.append(sample)
+
+                self.plot.viewbox.setYRange(hint_min, hint_max, padding=0)
+                self.plot.cursor_hint.setData(x=[next_pos] * len(y), y=y)
+                self.plot.cursor_hint.show()
+
+            if not self.plot.region:
+                self.cursor_info.setText(f"t = {position:.6f}s")
+                for i, signal in enumerate(self.plot.signals):
+                    cut_sig = signal.cut(position, position)
+                    if signal.plot_texts is None or len(cut_sig) == 0:
+                        samples = cut_sig.samples
+                        if signal.conversion and hasattr(signal.conversion, "text_0"):
+                            samples = signal.conversion.convert(samples)
+                            if samples.dtype.kind == 'S':
+                                try:
+                                    samples = [s.decode("utf-8") for s in samples]
+                                except:
+                                    samples = [s.decode("latin-1") for s in samples]
+                            else:
+                                samples = samples.tolist()
+                    else:
+                        t = np.argwhere(signal.plot_timestamps == cut_sig.timestamps).flatten()
+                        try:
+                            samples = [e.decode("utf-8") for e in signal.plot_texts[t]]
+                        except:
+                            samples = [e.decode("latin-1") for e in signal.plot_texts[t]]
+
+                    item = self.channel_selection.item(i)
+                    item = self.channel_selection.itemWidget(item)
+
+                    item.setPrefix("= ")
+                    item.setFmt(signal.format)
+
+                    if len(samples):
+                        item.setValue(samples[0])
+                    else:
+                        item.setValue("n.a.")
+
+            if self.info.isVisible():
+                stats = self.plot.get_stats(self.info_index)
+                self.info.set_stats(stats)
+
+        def cursor_removed(self):
+            for i, signal in enumerate(self.plot.signals):
+                item = self.channel_selection.item(i)
+                item = self.channel_selection.itemWidget(item)
+
+                if not self.plot.region:
+                    self.cursor_info.setText("")
+                    item.setPrefix("")
+                    item.setValue("")
+            if self.info.isVisible():
+                stats = self.plot.get_stats(self.info_index)
+                self.info.set_stats(stats)
+
+        def range_modified(self):
+            start, stop = self.plot.region.getRegion()
+            self.cut_start.setValue(start)
+            self.cut_stop.setValue(stop)
+
+            self.cursor_info.setText(
+                (
+                    "< html > < head / > < body >"
+                    f"< p >t1 = {start:.6f}s< / p > "
+                    f"< p >t2 = {stop:.6f}s< / p > "
+                    f"< p >Δt = {stop - start:.6f}s< / p > "
+                    "< / body > < / html >"
+                )
+            )
+
+            for i, signal in enumerate(self.plot.signals):
+                samples = signal.cut(start, stop).samples
+                item = self.channel_selection.item(i)
+                item = self.channel_selection.itemWidget(item)
+
+                item.setPrefix("Δ = ")
+                item.setFmt(signal.format)
+
+                if len(samples):
+                    if samples.dtype.kind in "ui":
+                        delta = np.int64(np.float64(samples[-1]) - np.float64(samples[0]))
+                    else:
+                        delta = samples[-1] - samples[0]
+
+                    item.setValue(delta)
+
+                else:
+                    item.setValue("n.a.")
+
+            if self.info.isVisible():
+                stats = self.plot.get_stats(self.info_index)
+                self.info.set_stats(stats)
+
+        def xrange_changed(self):
+            if self.info.isVisible():
+                stats = self.plot.get_stats(self.info_index)
+                self.info.set_stats(stats)
+
+        def range_modified_finished(self):
+            start, stop = self.plot.region.getRegion()
+
+            if self.plot.timebase is not None and len(self.plot.timebase):
+                timebase = self.plot.timebase
+                dim = len(timebase)
+
+                right = np.searchsorted(timebase, start, side="right")
+                if right == 0:
+                    next_pos = timebase[0]
+                elif right == dim:
+                    next_pos = timebase[-1]
+                else:
+                    if start - timebase[right - 1] < timebase[right] - start:
+                        next_pos = timebase[right - 1]
+                    else:
+                        next_pos = timebase[right]
+                start = next_pos
+
+                right = np.searchsorted(timebase, stop, side="right")
+                if right == 0:
+                    next_pos = timebase[0]
+                elif right == dim:
+                    next_pos = timebase[-1]
+                else:
+                    if stop - timebase[right - 1] < timebase[right] - stop:
+                        next_pos = timebase[right - 1]
+                    else:
+                        next_pos = timebase[right]
+                stop = next_pos
+
+                self.plot.region.setRegion((start, stop))
+
+        def range_removed(self):
+            for i, signal in enumerate(self.plot.signals):
+                item = self.channel_selection.item(i)
+                item = self.channel_selection.itemWidget(item)
+
+                item.setPrefix("")
+                item.setValue("")
+                self.cursor_info.setText("")
+
+            if self.plot.cursor1:
+                self.plot.cursor_moved.emit()
+            if self.info.isVisible():
+                stats = self.plot.get_stats(self.info_index)
+                self.info.set_stats(stats)
+
+        def computation_channel_inserted(self):
+            sig = self.plot.signals[-1]
+            index = self.channel_selection.count()
+            if sig.empty:
+                name, unit = sig.name, "[has no samples]"
+            else:
+                name, unit = sig.name, sig.unit
+            item = QListWidgetItem(self.channel_selection)
+            it = ChannelDisplay(index, unit, self)
+            it.setAttribute(Qt.WA_StyledBackground)
+
+            it.setName(name)
+            it.setValue("")
+            it.setColor(sig.color)
+            item.setSizeHint(it.sizeHint())
+            self.channel_selection.addItem(item)
+            self.channel_selection.setItemWidget(item, it)
+
+            it.color_changed.connect(self.plot.setColor)
+            it.enable_changed.connect(self.plot.setSignalEnable)
+            it.ylink_changed.connect(self.plot.setCommonAxis)
+
+            it.enable_changed.emit(index, 1)
+            it.enable_changed.emit(index, 0)
+            it.enable_changed.emit(index, 1)
+
+
+    class _Plot(pg.PlotWidget):
         cursor_moved = pyqtSignal()
         cursor_removed = pyqtSignal()
         range_removed = pyqtSignal()
@@ -46,7 +395,7 @@ try:
         computation_channel_inserted = pyqtSignal()
 
         def __init__(self, signals, with_dots, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+            super().__init__()
             self.setContentsMargins(0, 0, 0, 0)
             self.xrange_changed.connect(self.xrange_changed_handle)
             self.with_dots = with_dots
@@ -55,10 +404,10 @@ try:
             else:
                 self.curvetype = pg.PlotCurveItem
             self.info = None
+            self.current_index = 0
 
             self.standalone = kwargs.get("standalone", False)
 
-            self.singleton = None
             self.region = None
             self.cursor1 = None
             self.cursor2 = None
@@ -116,8 +465,6 @@ try:
             self.viewbox = self.plot_item.vb
             self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
 
-            self.curve = self.curvetype([], [])
-
             axis = self.layout.itemAt(2, 0)
             axis.setParent(None)
             self.axis = FormatedAxis("left")
@@ -125,9 +472,6 @@ try:
             self.layout.addItem(self.axis, 2, 0)
             self.axis.linkToView(axis.linkedView())
             self.plot_item.axes["left"]["item"] = self.axis
-            self.plot_item.hideAxis("left")
-
-            self.viewbox.addItem(self.curve)
 
             self.cursor_hint = pg.PlotDataItem(
                 [],
@@ -142,7 +486,6 @@ try:
 
             self.view_boxes = []
             self.curves = []
-            self.axes = []
 
             for i, sig in enumerate(self.signals):
                 color = COLORS[i % 10]
@@ -164,21 +507,7 @@ try:
                 else:
                     sig.empty = True
 
-                axis = FormatedAxis("right", pen=color)
-                if sig.conversion and hasattr(sig.conversion, "text_0"):
-                    axis.text_conversion = sig.conversion
-
                 view_box = pg.ViewBox(enableMenu=False)
-
-                axis.linkToView(view_box)
-                if len(sig.name) <= 32:
-                    axis.labelText = sig.name
-                else:
-                    axis.labelText = f"{sig.name[:29]}..."
-                axis.labelUnits = sig.unit
-                axis.labelStyle = {"color": color}
-
-                self.layout.addItem(axis, 2, i + 2)
 
                 self.scene_.addItem(view_box)
 
@@ -198,11 +527,8 @@ try:
 
                 self.view_boxes.append(view_box)
                 self.curves.append(curve)
-                self.axes.append(axis)
-                axis.hide()
 
-            if len(signals) == 1:
-                self.setSignalEnable(0, 1)
+            self.set_current_index(0)
 
             #            self.update_views()
             self.viewbox.sigResized.connect(self.update_views)
@@ -254,31 +580,10 @@ try:
                         curve = self.curves[i]
                         curve.setData(x=t, y=sig.plot_samples)
 
-                    if sig.enable and self.singleton is None:
+                    if sig.enable:
                         curve.show()
                     else:
                         curve.hide()
-
-                if self.singleton is not None:
-                    sig = self.signals[self.singleton]
-                    if sig.enable:
-                        color = sig.color
-                        t = sig.plot_timestamps
-
-                        curve = self.curvetype(
-                            t,
-                            sig.plot_samples,
-                            pen=color,
-                            symbolBrush=color,
-                            symbolPen=color,
-                            symbol="o",
-                            symbolSize=4,
-                        )
-                        self.viewbox.removeItem(self.curve)
-
-                        self.curve = curve
-
-                        self.viewbox.addItem(curve)
 
         def setColor(self, index, color):
             self.signals[index].color = color
@@ -287,129 +592,51 @@ try:
                 self.curves[index].setSymbolPen(color)
                 self.curves[index].setSymbolBrush(color)
 
-            self.axes[index].setPen(color)
+            if index == self.current_index:
+                self.axis.setPen(color)
 
         def setCommonAxis(self, index, state):
             if state in (Qt.Checked, True, 1):
-                self.view_boxes[index].setYLink(self.viewbox)
-                self.common_axis_items.add(index)
+                if self.common_axis_items:
+                    self.view_boxes[index].setYLink(self.viewbox)
+                    self.common_axis_items.add(index)
             else:
                 sig = self.signals[index]
 
                 self.view_boxes[index].setYLink(None)
-                self.axes[index].labelUnits = sig.unit
-                self.axes[index].setLabel(sig.name)
+                self.axis.labelUnits = sig.unit
+                self.axis.setLabel(sig.name)
                 self.common_axis_items.remove(index)
 
             if self.common_axis_items:
                 if len(self.common_axis_items) == 1:
                     index = list(self.common_axis_items)[0]
                     sig = self.signals[index]
-                    self.axes[index].labelUnits = sig.unit
-                    self.axes[index].setLabel(sig.name)
+                    self.axis.labelUnits = sig.unit
+                    self.axis.setLabel(sig.name)
                 else:
                     axis_text = ', '.join(
                         self.signals[i].name
                         for i in sorted(self.common_axis_items)
                     )
                     for index in self.common_axis_items:
-                        self.axes[index].labelUnits = ''
-                        self.axes[index].setLabel(axis_text)
+                        self.axis.labelUnits = ''
+                        self.axis.setLabel(axis_text)
 
         def setSignalEnable(self, index, state):
 
             if state in (Qt.Checked, True, 1):
                 self.signals[index].enable = True
+                self.curves[index].show()
+                self.view_boxes[index].setXLink(self.viewbox)
             else:
                 self.signals[index].enable = False
+                self.curves[index].hide()
+                self.view_boxes[index].setXLink(None)
 
-            selected_items = [
-                index for index, sig in enumerate(self.signals) if sig.enable
-            ]
+            if self.current_index == index:
+                self.set_current_index(0)
 
-            if len(selected_items) == 1:
-                row = selected_items[0]
-                if self.singleton != row:
-                    self.singleton = row
-                    sig = self.signals[row]
-                    color = sig.color
-
-                    self.plotItem.showAxis("left")
-                    for axis, viewbox, curve in zip(
-                        self.axes, self.view_boxes, self.curves
-                    ):
-                        if curve.isVisible():
-                            axis.hide()
-                            viewbox.setXLink(None)
-                            curve.hide()
-
-                    sig_axis = self.axes[row]
-                    viewbox = self.view_boxes[row]
-                    viewbox.setXLink(self.viewbox)
-                    axis = self.axis
-
-                    if sig.conversion and hasattr(sig.conversion, "text_0"):
-                        axis.text_conversion = sig.conversion
-                    else:
-                        axis.text_conversion = None
-
-                    axis.setRange(*sig_axis.range)
-                    axis.linkedView().setYRange(*sig_axis.range)
-
-                    viewbox.setYLink(axis.linkedView())
-
-                    t = sig.plot_timestamps
-
-                    if isinstance(self.curve, pg.PlotCurveItem):
-                        self.curve.updateData(
-                            t,
-                            sig.plot_samples,
-                            pen=color,
-                            symbolBrush=color,
-                            symbolPen=color,
-                            symbol="o",
-                            symbolSize=4,
-                        )
-                    else:
-                        self.curve.setData(
-                            t,
-                            sig.plot_samples,
-                            pen=color,
-                            symbolBrush=color,
-                            symbolPen=color,
-                            symbol="o",
-                            symbolSize=4,
-                        )
-
-                    axis.setLabel(sig.name, sig.unit, color=color)
-
-                self.curve.show()
-                self.plotItem.showAxis("left")
-                self.showGrid(x=False, y=False)
-                self.showGrid(x=True, y=True)
-                self.timebase = self.curve.xData
-
-            else:
-                self.plotItem.hideAxis("left")
-                self.curve.hide()
-
-                if len(selected_items):
-                    self.singleton = None
-
-                    for i, sig in enumerate(self.signals):
-                        if sig.enable and not self.curves[i].isVisible():
-                            if i in self.common_axis_items:
-                                self.view_boxes[i].setYLink(self.viewbox)
-                            else:
-                                self.view_boxes[i].setYLink(None)
-                            self.view_boxes[i].setXLink(self.viewbox)
-                            self.curves[i].show()
-                        elif not sig.enable and self.curves[i].isVisible():
-                            self.view_boxes[i].setXLink(None)
-                            self.axes[i].hide()
-                            self.curves[i].hide()
-
-                self.timebase = self.all_timebase
             if self.cursor1:
                 self.cursor_move_finished.emit()
 
@@ -676,7 +903,7 @@ try:
                         self.cursor_removed.emit()
 
                 elif key == Qt.Key_F:
-                    for viewbox, signal in zip(self.view_boxes, self.signals):
+                    for i, (viewbox, signal) in enumerate(zip(self.view_boxes, self.signals)):
                         if len(signal.plot_samples):
                             min_, max_ = (
                                 np.amin(signal.plot_samples),
@@ -692,11 +919,6 @@ try:
                         self.showGrid(x=True, y=False)
                     else:
                         self.showGrid(x=True, y=True)
-                    for axis in self.axes:
-                        if axis.grid is False:
-                            axis.setGrid(255)
-                        else:
-                            axis.setGrid(False)
 
                 elif key in (Qt.Key_I, Qt.Key_O):
                     x_range, _ = self.viewbox.viewRange()
@@ -745,9 +967,9 @@ try:
                     )
 
                     if file_name:
-                        mdf = MDF()
-                        mdf.append(self.signals)
-                        mdf.save(file_name, overwrite=True)
+                        with MDF() as mdf:
+                            mdf.append(self.signals)
+                            mdf.save(file_name, overwrite=True)
 
                 elif key == Qt.Key_S:
                     count = len(
@@ -791,56 +1013,35 @@ try:
                         self.cursor_moved.emit()
 
                 elif key == Qt.Key_H and modifier == Qt.ControlModifier:
-                    for axis, signal in zip(self.axes, self.signals):
-                        if axis.isVisible() and signal.samples.dtype.kind in "ui":
-                            axis.format = "hex"
+                    for i, signal in enumerate(self.signals):
+                        if signal.samples.dtype.kind in "ui":
                             signal.format = "hex"
-                            axis.hide()
-                            axis.show()
-                    if (
-                        self.axis.isVisible()
-                        and self.signals[self.singleton].samples.dtype.kind in "ui"
-                    ):
-                        self.axis.format = "hex"
-                        self.signals[self.singleton].format = "hex"
-                        self.axis.hide()
-                        self.axis.show()
+                        if self.current_index == i:
+                            self.axis.format = "hex"
+                            self.axis.hide()
+                            self.axis.show()
                     if self.cursor1:
                         self.cursor_moved.emit()
 
                 elif key == Qt.Key_B and modifier == Qt.ControlModifier:
-                    for axis, signal in zip(self.axes, self.signals):
-                        if axis.isVisible() and signal.samples.dtype.kind in "ui":
-                            axis.format = "bin"
+                    for i, signal in enumerate(self.signals):
+                        if signal.samples.dtype.kind in "ui":
                             signal.format = "bin"
-                            axis.hide()
-                            axis.show()
-                    if (
-                        self.axis.isVisible()
-                        and self.signals[self.singleton].samples.dtype.kind in "ui"
-                    ):
-                        self.axis.format = "bin"
-                        self.signals[self.singleton].format = "bin"
-                        self.axis.hide()
-                        self.axis.show()
+                        if self.current_index == i:
+                            self.axis.format = "bin"
+                            self.axis.hide()
+                            self.axis.show()
                     if self.cursor1:
                         self.cursor_moved.emit()
 
                 elif key == Qt.Key_P and modifier == Qt.ControlModifier:
-                    for axis, signal in zip(self.axes, self.signals):
-                        if axis.isVisible() and signal.samples.dtype.kind in "ui":
-                            axis.format = "phys"
+                    for i, signal in enumerate(self.signals):
+                        if signal.samples.dtype.kind in "ui":
                             signal.format = "phys"
-                            axis.hide()
-                            axis.show()
-                    if (
-                        self.axis.isVisible()
-                        and self.signals[self.singleton].samples.dtype.kind in "ui"
-                    ):
-                        self.axis.format = "phys"
-                        self.signals[self.singleton].format = "phys"
-                        self.axis.hide()
-                        self.axis.show()
+                        if self.current_index == i:
+                            self.axis.format = "phys"
+                            self.axis.hide()
+                            self.axis.show()
                     if self.cursor1:
                         self.cursor_moved.emit()
 
@@ -987,7 +1188,6 @@ try:
                         view_box.setXLink(self.viewbox)
                         self.view_boxes.append(view_box)
                         self.curves.append(curve)
-                        self.axes.append(axis)
 
                         view_box.setYRange(sig.min, sig.max, padding=0, update=True)
                         (start, stop), _ = self.viewbox.viewRange()
@@ -1070,6 +1270,25 @@ try:
         def _resizeEvent(self, ev):
             self.xrange_changed_handle()
             super().resizeEvent(ev)
+
+        def set_current_index(self, index):
+            self.current_index = index
+            sig = self.signals[index]
+            axis = self.axis
+            if sig.conversion and hasattr(sig.conversion, "text_0"):
+                axis.text_conversion = sig.conversion
+            else:
+                axis.text_conversion = None
+            axis.format = sig.format
+            axis.linkToView(self.view_boxes[index])
+            if len(sig.name) <= 32:
+                axis.labelText = sig.name
+            else:
+                labelText = f"{sig.name[:29]}..."
+            axis.labelUnits = sig.unit
+            axis.labelStyle = {"color": sig.color}
+            axis.setPen(sig.color)
+            axis.show()
 
 
 except ImportError:

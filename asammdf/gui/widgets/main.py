@@ -264,8 +264,8 @@ class MainWindow(QMainWindow):
     def plot_action(self, key, modifier=Qt.NoModifier):
         event = QKeyEvent(QEvent.KeyPress, key, modifier)
         widget = self.files.currentWidget()
-        if widget and widget.plot:
-            widget.plot.keyPressEvent(event)
+        if widget and widget.get_current_plot():
+            widget.get_current_plot().keyPressEvent(event)
             widget.keyPressEvent(event)
 
     def toggle_dots(self, key):
