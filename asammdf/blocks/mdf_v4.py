@@ -4858,7 +4858,7 @@ class MDF4(object):
                 import_type = "dbc" if database.lower().endswith("dbc") else "arxml"
                 with open(database, "rb") as db:
                     db_string = db.read()
-                md5_sum = md5().update(db_string).digest()
+                md5_sum = md5(db_string).digest()
 
                 if md5_sum in self._external_dbc_cache:
                     db = self._external_dbc_cache[md5_sum]
