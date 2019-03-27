@@ -43,6 +43,9 @@ class FileWidget(QWidget):
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "file_widget.ui"), self)
 
+        self._timer = QTimer()
+        self._timer.timeout.connect(self._mark_active_plot)
+
         file_name = Path(file_name)
 
         self.file_name = file_name
@@ -386,68 +389,7 @@ class FileWidget(QWidget):
             if current_plot:
                 current_plot.plot.update_lines(with_dots=with_dots)
 
-    def keyPressEvent(self, event):
-        key = event.key()
-        modifier = event.modifiers()
 
-        if key == Qt.Key_M:
-
-            if self.info is None:
-
-                self.info = ChannelStats(parent=self.splitter)
-                if self.info_index is None:
-                    self.info.clear()
-                else:
-                    stats = self.plot.get_stats(self.info_index)
-                    self.info.set_stats(stats)
-
-                self.splitter.setStretchFactor(0, 0)
-                self.splitter.setStretchFactor(1, 1)
-                self.splitter.setStretchFactor(2, 0)
-
-            else:
-                self.info.setParent(None)
-                self.info.hide()
-                self.info = None
-
-                self.splitter.setStretchFactor(0, 0)
-                self.splitter.setStretchFactor(1, 1)
-
-        elif modifier == Qt.ControlModifier and key in (Qt.Key_B, Qt.Key_H, Qt.Key_P):
-            if key == Qt.Key_B:
-                fmt = "bin"
-            elif key == Qt.Key_H:
-                fmt = "hex"
-            else:
-                fmt = "phys"
-            if self.info and self.info_index is not None:
-                self.info.fmt = fmt
-                stats = self.plot.get_stats(self.info_index)
-                self.info.set_stats(stats)
-
-        elif modifier == Qt.ControlModifier and key == Qt.Key_T:
-            selected_items = self.channel_selection.selectedItems()
-            rows = self.channel_selection.count()
-
-            indexes = [
-                i
-                for i in range(rows)
-                if self.channel_selection.item(i) in selected_items
-            ]
-
-            ranges = [
-                self.channel_selection.itemWidget(item).ranges
-                for item in selected_items
-            ]
-
-            signals = [self.plot.signals[i] for i in indexes]
-
-            dlg = TabularValuesDialog(signals, ranges, self)
-            dlg.setModal(True)
-            dlg.exec_()
-
-        else:
-            super().keyPressEvent(event)
 
     def search(self):
         dlg = AdvancedSearch(self.mdf.channels_db, self)
@@ -999,6 +941,7 @@ class FileWidget(QWidget):
 
             plot = Plot(signals, self.with_dots)
             plot.plot.update_lines(force=True)
+            plot.clicked.connect(partial(self.mark_active_plot, dock_name))
 
             dock.addWidget(plot)
 
@@ -1022,8 +965,11 @@ class FileWidget(QWidget):
             self.active_plot = ""
 
     def mark_active_plot(self, plot_name):
-        print('dock', plot_name)
         self.active_plot = plot_name
+        self._timer.start(20)
+
+    def _mark_active_plot(self):
+        plot_name = self.active_plot
 
         for dock in self.dock_area.docks.values():
             if dock.label.text() == plot_name:

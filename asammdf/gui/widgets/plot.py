@@ -42,6 +42,7 @@ try:
     class Plot(QWidget):
 
         close_request = pyqtSignal()
+        clicked = pyqtSignal()
 
         def __init__(self, signals, with_dots=False, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -113,7 +114,7 @@ try:
             main_layout.addWidget(self.splitter)
 
         def mousePressEvent(self, event):
-            print('clicked', self)
+            self.clicked.emit()
             super().mousePressEvent(event)
 
         def channel_selection_modified(self):
@@ -341,7 +342,15 @@ try:
                 self.plot.region.setRegion((start, stop))
 
         def keyPressEvent(self, event):
-            self.plot.keyPressEvent(event)
+            if event.key() == Qt.Key_M and event.modifiers() == Qt.NoModifier:
+
+                if self.info.isVisible():
+                    self.info.hide()
+                else:
+                    self.info.show()
+
+            else:
+                self.plot.keyPressEvent(event)
 
         def range_removed(self):
             for i, signal in enumerate(self.plot.signals):
@@ -880,7 +889,6 @@ try:
         def keyPressEvent(self, event):
             key = event.key()
             modifier = event.modifiers()
-            print(self, event, key, modifier)
 
             if key in self.disabled_keys:
                 super().keyPressEvent(event)

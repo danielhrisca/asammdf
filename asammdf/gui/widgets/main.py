@@ -186,7 +186,7 @@ class MainWindow(QMainWindow):
         icon = QIcon()
         icon.addPixmap(QPixmap(":/info.png"), QIcon.Normal, QIcon.Off)
         action = QAction(icon, "{: <20}\tM".format("Statistics"), menu)
-        action.triggered.connect(partial(self.file_action, key=Qt.Key_M))
+        action.triggered.connect(partial(self.plot_action, key=Qt.Key_M))
         action.setShortcut(QKeySequence("M"))
         info.addAction(action)
 
@@ -255,19 +255,11 @@ class MainWindow(QMainWindow):
     def help(self, event):
         webbrowser.open_new(r'http://asammdf.readthedocs.io/en/development/gui.html')
 
-    def file_action(self, key, modifier=Qt.NoModifier):
-        event = QKeyEvent(QEvent.KeyPress, key, modifier)
-        widget = self.files.currentWidget()
-        if widget and widget.plot:
-            widget.keyPressEvent(event)
-
     def plot_action(self, key, modifier=Qt.NoModifier):
         event = QKeyEvent(QEvent.KeyPress, key, modifier)
         widget = self.files.currentWidget()
         if widget and widget.get_current_plot():
-            print(widget.get_current_plot())
             widget.get_current_plot().keyPressEvent(event)
-            widget.keyPressEvent(event)
 
     def toggle_dots(self, key):
         self.with_dots = not self.with_dots
