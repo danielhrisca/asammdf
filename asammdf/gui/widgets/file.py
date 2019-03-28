@@ -966,7 +966,7 @@ class FileWidget(QWidget):
 
     def mark_active_plot(self, plot_name):
         self.active_plot = plot_name
-        self._timer.start(20)
+        self._timer.start(5)
 
     def _mark_active_plot(self):
         plot_name = self.active_plot

@@ -427,7 +427,7 @@ try:
             self.disabled_keys = set()
             for sig in self.signals:
                 if sig.samples.dtype.kind == "f":
-                    sig.format = "{:.6f}"
+                    sig.format = "phys"
                     sig.plot_texts = None
                 else:
                     sig.format = "phys"
@@ -1123,7 +1123,7 @@ try:
                         self.signals.append(sig)
 
                         if sig.samples.dtype.kind == "f":
-                            sig.format = "{:.6f}"
+                            sig.format = "phys"
                             sig.plot_texts = None
                         else:
                             sig.format = "phys"
@@ -1282,6 +1282,8 @@ try:
             super().resizeEvent(ev)
 
         def set_current_index(self, index):
+            for i, viewbox in enumerate(self.view_boxes):
+                viewbox.setYLink(None)
             self.current_index = index
             sig = self.signals[index]
             axis = self.axis
@@ -1290,15 +1292,15 @@ try:
             else:
                 axis.text_conversion = None
             axis.format = sig.format
-            axis.linkToView(self.view_boxes[index])
+            axis.linkedView().setYRange(*self.view_boxes[index].viewRange()[1], padding=0)
+            self.view_boxes[index].setYLink(self.viewbox)
             if len(sig.name) <= 32:
                 axis.labelText = sig.name
             else:
-                labelText = f"{sig.name[:29]}..."
-            axis.labelUnits = sig.unit
-            axis.labelStyle = {"color": sig.color}
+                axis.labelText = f"{sig.name[:29]}..."
             axis.setPen(sig.color)
-            axis.show()
+            axis.setLabel(sig.name, sig.unit)
+
 
 
 except ImportError:
