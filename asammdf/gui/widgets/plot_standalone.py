@@ -16,7 +16,7 @@ try:
     from PyQt5.QtCore import *
 
     from .channel_stats import ChannelStats
-    from .plot import Plot
+    from .plot import _Plot
 
     if not hasattr(pg.InfiniteLine, "addMarker"):
         logger = logging.getLogger("asammdf")
@@ -36,7 +36,7 @@ try:
             self.splitter.setOrientation(Qt.Horizontal)
             self.info = None
 
-            self.plot = Plot(signals, with_dots, standalone=True)
+            self.plot = _Plot(signals, with_dots, standalone=True)
             self.splitter.addWidget(self.plot)
 
             self.plot.range_modified.connect(self.range_modified)
@@ -137,9 +137,9 @@ try:
 
                             y.append(sample)
 
-                if self.plot.curve.isVisible():
-                    timestamps = self.plot.curve.xData
-                    samples = self.plot.curve.yData
+                if self.plot.curves[0].isVisible():
+                    timestamps = self.plot.curves[0].xData
+                    samples = self.plot.curves[0].yData
                     index = np.argwhere(timestamps == next_pos).flatten()
                     if len(index):
                         _, (y_min, y_max) = self.plot.viewbox.viewRange()

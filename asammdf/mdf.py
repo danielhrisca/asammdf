@@ -3242,24 +3242,29 @@ class MDF(object):
                 else:
                     master = np.arange(master[0], master[-1], raster, dtype=np.float64)
 
-        if time_from_zero and len(master) and not time_as_date:
-            df = df.assign(time=master)
-            df["time"] = pd.Series(master - master[0], index=np.arange(len(master)))
-        else:
-            df["time"] = pd.Series(master, index=np.arange(len(master)))
+        df["time"] = pd.Series(master, index=np.arange(len(master)))
 
         df.set_index('time', inplace=True)
 
         used_names = UniqueDB()
         used_names.get_unique_name("time")
 
+        channels_to_keep = channels
 
         for i, grp in enumerate(self.groups):
             if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
 
             included_channels = self._included_channels(i)
+
             channels = grp.channels
+
+            if channels_to_keep:
+                to_skip = set()
+                for i_ in included_channels:
+                    if channels[i_].name not in channels_to_keep:
+                        to_skip.add(i_)
+                included_channels = included_channels - to_skip
 
             data = self._load_data(grp)
             _, dtypes = self._prepare_record(grp)
@@ -3347,6 +3352,8 @@ class MDF(object):
             new_index = pd.to_datetime(new_index, unit='s')
 
             df.set_index(new_index, inplace=True)
+        elif time_from_zero and len(master):
+            df.set_index(df.index - df.index[0], inplace=True)
         return df
 
 
