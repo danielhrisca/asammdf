@@ -416,12 +416,14 @@ class MDF4(object):
                                                 message_id -= 0x80000000
                                                 grp.extended_id = True
                                             grp.message_name = message_name
-                                            grp.message_id = message_id
+                                            grp.message_id = {message_id}
 
                                     else:
+                                        grp.raw_can = True
                                         message = f"Invalid bus logging channel group metadata: {comment}"
                                         logger.warning(message)
                                 else:
+                                    grp.raw_can = True
                                     message = (
                                         f"Unable to get CAN message information "
                                         f"since channel group @{hex(channel_group.address)} has no metadata"
@@ -520,15 +522,28 @@ class MDF4(object):
                     self.can_logging_db[group.CAN_id] = {}
                 message_id = group.message_id
                 if message_id is not None:
-                    self.can_logging_db[group.CAN_id][message_id] = i
+                    for id_ in message_id:
+                        self.can_logging_db[group.CAN_id][id_] = i
             else:
                 continue
 
             if group.raw_can:
+
                 can_ids = self.get(
                     "CAN_DataFrame.ID", group=i, ignore_invalidation_bits=True
                 )
                 all_can_ids = sorted(set(can_ids.samples))
+
+                if all_can_ids:
+                    group.message_id = set()
+
+                    for message_id in all_can_ids:
+                        if message_id > 0x80000000:
+                            message_id -= 0x80000000
+
+                        self.can_logging_db[group.CAN_id][message_id] = i
+                        group.message_id.add(message_id)
+
                 payload = self.get(
                     "CAN_DataFrame.DataBytes",
                     group=i,
@@ -659,7 +674,7 @@ class MDF4(object):
                     else:
                         group.extended_id = False
                     group.message_name = message_name
-                    group.message_id = message_id
+                    group.message_id = {message_id}
                 group.channel_group.acq_source = cg_source
                 group.data_group.comment = (
                     f'From message {hex(message_id)}="{message_name}"'
@@ -673,7 +688,8 @@ class MDF4(object):
             if not group.CAN_id in self.can_logging_db:
                 self.can_logging_db[group.CAN_id] = {}
             if group.message_id is not None:
-                self.can_logging_db[group.CAN_id][group.message_id] = i
+                for id_ in group.message_id:
+                    self.can_logging_db[group.CAN_id][id_] = i
 
         # read events
         addr = self.header.first_event_addr
@@ -774,7 +790,7 @@ class MDF4(object):
                     channel.dtype_fmt = ret_composition_dtype
                     composition_dtype.append((channel.name, channel.dtype_fmt))
 
-                    if grp.CAN_id is not None and grp.message_id is not None:
+                    if grp.CAN_id is not None and grp.message_id is not None and len(grp.message_id) == 1:
                         try:
                             addr = channel.attachment_addr
                         except AttributeError:
@@ -845,7 +861,7 @@ class MDF4(object):
 
                             grp.dbc_addr = attachment_addr
 
-                            message_id = grp.message_id
+                            message_id = next(iter(grp.message_id))
                             message_name = grp.message_name
                             can_id = grp.CAN_id
 
@@ -4919,7 +4935,7 @@ class MDF4(object):
             if message_id is None:
                 message_id = message_id_str
             else:
-                message_id = int(message_id)
+                message_id = int(message_id.group('id'))
 
         else:
             can_id = message_id = None
@@ -4942,8 +4958,10 @@ class MDF4(object):
         if can_id is None:
             for _can_id, messages in self.can_logging_db.items():
                 message_id = message.id
+
                 if message_id > 0x80000000:
                     message_id -= 0x80000000
+
                 if message_id in messages:
                     index = messages[message.id]
                     break
