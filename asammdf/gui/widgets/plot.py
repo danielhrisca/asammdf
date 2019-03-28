@@ -422,7 +422,7 @@ try:
             self.cursor1 = None
             self.cursor2 = None
             self.signals = signals
-            self.common_axis_items = set()
+
 
             self.disabled_keys = set()
             for sig in self.signals:
@@ -475,6 +475,12 @@ try:
             self.viewbox = self.plot_item.vb
             self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
 
+            self.common_axis_items = set()
+            self.common_axis_label = ""
+            self.common_viewbox = pg.ViewBox(enableMenu=True)
+            self.scene_.addItem(self.common_viewbox)
+            self.common_viewbox.setXLink(self.viewbox)
+
             axis = self.layout.itemAt(2, 0)
             axis.setParent(None)
             self.axis = FormatedAxis("left")
@@ -517,7 +523,7 @@ try:
                 else:
                     sig.empty = True
 
-                view_box = pg.ViewBox(enableMenu=False)
+                view_box = pg.ViewBox(enableMenu=True)
 
                 self.scene_.addItem(view_box)
 
@@ -606,32 +612,21 @@ try:
                 self.axis.setPen(color)
 
         def setCommonAxis(self, index, state):
+            viewbox = self.view_boxes[index]
             if state in (Qt.Checked, True, 1):
-                if self.common_axis_items:
-                    self.view_boxes[index].setYLink(self.viewbox)
-                    self.common_axis_items.add(index)
+                viewbox.setYRange(*self.common_viewbox.viewRange()[1], padding=0)
+                viewbox.setYLink(self.common_viewbox)
+                self.common_axis_items.add(index)
             else:
-                sig = self.signals[index]
-
                 self.view_boxes[index].setYLink(None)
-                self.axis.labelUnits = sig.unit
-                self.axis.setLabel(sig.name)
                 self.common_axis_items.remove(index)
 
-            if self.common_axis_items:
-                if len(self.common_axis_items) == 1:
-                    index = list(self.common_axis_items)[0]
-                    sig = self.signals[index]
-                    self.axis.labelUnits = sig.unit
-                    self.axis.setLabel(sig.name)
-                else:
-                    axis_text = ', '.join(
-                        self.signals[i].name
-                        for i in sorted(self.common_axis_items)
-                    )
-                    for index in self.common_axis_items:
-                        self.axis.labelUnits = ''
-                        self.axis.setLabel(axis_text)
+            self.common_axis_label = ', '.join(
+                self.signals[i].name
+                for i in sorted(self.common_axis_items)
+            )
+
+            self.set_current_index(self.current_index, True)
 
         def setSignalEnable(self, index, state):
 
@@ -643,9 +638,6 @@ try:
                 self.signals[index].enable = False
                 self.curves[index].hide()
                 self.view_boxes[index].setXLink(None)
-
-            if self.current_index == index:
-                self.set_current_index(0)
 
             if self.cursor1:
                 self.cursor_move_finished.emit()
@@ -1281,26 +1273,49 @@ try:
             self.xrange_changed_handle()
             super().resizeEvent(ev)
 
-        def set_current_index(self, index):
-            for i, viewbox in enumerate(self.view_boxes):
-                viewbox.setYLink(None)
-            self.current_index = index
-            sig = self.signals[index]
+        def set_current_index(self, index, force=False):
             axis = self.axis
+            viewbox = self.viewbox
+
+
+            sig = self.signals[index]
+
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
             else:
                 axis.text_conversion = None
             axis.format = sig.format
-            axis.linkedView().setYRange(*self.view_boxes[index].viewRange()[1], padding=0)
-            self.view_boxes[index].setYLink(self.viewbox)
-            if len(sig.name) <= 32:
-                axis.labelText = sig.name
-            else:
-                axis.labelText = f"{sig.name[:29]}..."
-            axis.setPen(sig.color)
-            axis.setLabel(sig.name, sig.unit)
 
+            if index in self.common_axis_items:
+                if self.current_index not in self.common_axis_items or force:
+                    for i, vbox in enumerate(self.view_boxes):
+                        if i not in self.common_axis_items:
+                            vbox.setYLink(None)
+
+                    vbox = self.view_boxes[index]
+                    viewbox.setYRange(*vbox.viewRange()[1], padding=0)
+                    self.common_viewbox.setYRange(*vbox.viewRange()[1], padding=0)
+                    self.common_viewbox.setYLink(viewbox)
+
+                    axis.setPen("#FFFFFF")
+                    axis.setLabel(self.common_axis_label)
+
+            else:
+                self.common_viewbox.setYLink(None)
+                for i, vbox in enumerate(self.view_boxes):
+                    if i not in self.common_axis_items:
+                        vbox.setYLink(None)
+
+                viewbox.setYRange(*self.view_boxes[index].viewRange()[1], padding=0)
+                self.view_boxes[index].setYLink(viewbox)
+                if len(sig.name) <= 32:
+                    axis.labelText = sig.name
+                else:
+                    axis.labelText = f"{sig.name[:29]}..."
+                axis.setPen(sig.color)
+                axis.update()
+
+            self.current_index = index
 
 
 except ImportError:
