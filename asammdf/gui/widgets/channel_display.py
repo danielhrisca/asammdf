@@ -76,10 +76,11 @@ class ChannelDisplay(base_1, form_1):
             self.ranges = dlg.result
 
     def select_color(self):
-        color = QColorDialog.getColor(QColor(self.color)).name()
-        self.setColor(color)
+        color = QColorDialog.getColor(QColor(self.color))
+        if color.isValid():
+            self.setColor(color.name())
 
-        self.color_changed.emit(self.index, color)
+            self.color_changed.emit(self.index, color.name())
 
     def setFmt(self, fmt):
         if fmt == "hex":
