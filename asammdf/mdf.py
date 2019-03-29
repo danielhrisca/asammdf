@@ -12,6 +12,7 @@ from struct import unpack
 from shutil import copy
 from pathlib import Path
 
+from canmatrix.formats import loads
 import numpy as np
 from numpy.core.defchararray import encode, decode
 import pandas as pd
@@ -3355,6 +3356,88 @@ class MDF(object):
         elif time_from_zero and len(master):
             df.set_index(df.index - df.index[0], inplace=True)
         return df
+
+    def extract_can_logging(self, dbc_files):
+        """ extract all possible CAN signal using the provided databases.
+
+        Parameters
+        ----------
+        dbc_files : iterable
+            iterable of str or pathlib.Path objects
+
+        Returns
+        -------
+        mdf : MDF
+            new MDF file that contains the succesfully extracted signals
+
+        """
+        all_ids = set()
+        for can_id, message_ids in self.can_logging_db.items():
+            all_ids = all_ids | set(message_ids)
+
+        out = MDF()
+
+        for dbc_name in dbc_files:
+            dbc_name = Path(dbc_name)
+
+            if dbc_name.exists() and dbc_name.suffix.lower() in ('.dbc', '.arxml'):
+                import_type = dbc_name.suffix.lower().strip('.')
+                contents = dbc_name.read_bytes()
+                try:
+                    dbc = loads(
+                        contents,
+                        importType=import_type,
+                        key="db",
+                    )["db"]
+                except UnicodeDecodeError:
+                    try:
+                        from cchardet import detect
+
+                        encoding = detect(contents)["encoding"]
+                        contents = contents.decode(
+                            encoding
+                        )
+                        dbc = loads(
+                            contents,
+                            importType=import_type,
+                            key="db",
+                            encoding=encoding,
+                        )["db"]
+                    except ImportError:
+                        message = (
+                            "Unicode exception occured while processing the database "
+                            f'attachment "{at_name}" and "cChardet" package is '
+                            'not installed. Mdf version 4 expects "utf-8" '
+                            "strings and this package may detect if a different"
+                            " encoding was used"
+                        )
+                        logger.warning(message)
+                        continue
+                for message in dbc:
+                    if message.id in all_ids:
+                        names = [
+                            f'{message.name}.{signal.name}'
+                            for signal in message.signals
+                        ]
+                        sigs = []
+                        for name in names:
+                            try:
+                                sig = self.get_can_signal(name, db=dbc)
+                                sigs.append(sig)
+                            except:
+                                continue
+                        if sigs:
+                            out.append(
+                                sigs,
+                                'from message ID=0x{:Xmessage.id}',
+                                common_timebase=True,
+                            )
+        if not out.groups:
+            logger.warning(
+                f'No CAN signals could be extracted from "{self.name}". The'
+                'output file will be empty.'
+            )
+        return out
 
 
 if __name__ == "__main__":
