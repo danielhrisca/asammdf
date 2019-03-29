@@ -19,6 +19,7 @@ class ChannelStats(QWidget):
         self.fmt = "phys"
         self.name_template = '<html><head/><body><p><span style=" font-size:11pt; font-weight:600; color:{};">{}</span></p></body></html>'
         self._name = "Please select a single channel"
+        self.name.setStyleSheet("background-color: transparent;")
 
     def set_stats(self, stats):
         if stats:

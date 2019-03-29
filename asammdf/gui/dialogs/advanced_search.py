@@ -2,6 +2,7 @@
 import re
 from pathlib import Path
 
+from natsort import natsorted
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -22,7 +23,7 @@ class AdvancedSearch(QDialog):
         self.channels_db = channels_db
 
         self.apply_btn.clicked.connect(self._apply)
-        self.apply_all_btn.clicked.connect(self._apply_all)
+        self.add_btn.clicked.connect(self._add)
         self.cancel_btn.clicked.connect(self._cancel)
 
         self.search_box.textChanged.connect(self.search_text_changed)
@@ -52,18 +53,29 @@ class AdvancedSearch(QDialog):
                 self.status.setText(str(err))
                 self.matches.clear()
 
-    def _apply(self, event):
-        self.result = set()
-        for item in self.matches.selectedItems():
-            for entry in self.channels_db[item.text()]:
-                self.result.add(entry)
-        self.close()
+    def _add(self, event):
+        count = self.selection.count()
+        names = set(
+            self.selection.item(i).text()
+            for i in range(count)
+        )
 
-    def _apply_all(self, event):
-        count = self.matches.count()
+        to_add = set(
+            item.text()
+            for item in self.matches.selectedItems()
+        )
+
+        names = natsorted(names | to_add)
+
+        self.selection.clear()
+        self.selection.addItems(names)
+
+
+    def _apply(self, event):
+        count = self.selection.count()
         self.result = set()
         for i in range(count):
-            for entry in self.channels_db[self.matches.item(i).text()]:
+            for entry in self.channels_db[self.selection.item(i).text()]:
                 self.result.add(entry)
         self.close()
 

@@ -3,7 +3,7 @@ import os
 
 bin_ = bin
 import logging
-from functools import reduce
+from functools import reduce, partial
 
 import numpy as np
 from pathlib import Path
@@ -78,6 +78,7 @@ try:
             self.plot.cursor_move_finished.connect(self.cursor_move_finished)
             self.plot.xrange_changed.connect(self.xrange_changed)
             self.plot.computation_channel_inserted.connect(self.computation_channel_inserted)
+            self.plot.curve_clicked.connect(self.channel_selection.setCurrentRow)
             self.plot.show()
             self.channel_selection.show()
             self.splitter.addWidget(self.plot)
@@ -403,6 +404,7 @@ try:
         cursor_move_finished = pyqtSignal()
         xrange_changed = pyqtSignal()
         computation_channel_inserted = pyqtSignal()
+        curve_clicked = pyqtSignal(int)
 
         def __init__(self, signals, with_dots, *args, **kwargs):
             super().__init__()
@@ -422,6 +424,7 @@ try:
             self.cursor1 = None
             self.cursor2 = None
             self.signals = signals
+
 
 
             self.disabled_keys = set()
@@ -472,6 +475,7 @@ try:
             self.plot_item.hideAxis("left")
             self.layout = self.plot_item.layout
             self.scene_ = self.plot_item.scene()
+            self.scene_.sigMouseClicked.connect(self._clicked)
             self.viewbox = self.plot_item.vb
             self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
 
@@ -537,6 +541,8 @@ try:
                     symbolSize=4,
                 )
 
+                curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
+
                 view_box.addItem(curve)
 
                 view_box.setXLink(self.viewbox)
@@ -578,6 +584,8 @@ try:
                                 symbol="o",
                                 symbolSize=4,
                             )
+
+                            curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
                         except:
                             message = (
                                 "Can't show dots due to old pyqtgraph package: "
@@ -1316,6 +1324,23 @@ try:
                 axis.update()
 
             self.current_index = index
+
+        def _clicked(self, event):
+            x = self.plot_item.vb.mapSceneToView(event.scenePos())
+            print('X', x)
+
+            if self.cursor1 is not None:
+                self.plotItem.removeItem(self.cursor1)
+                self.cursor1.setParent(None)
+                self.cursor1 = None
+
+            self.cursor1 = Cursor(pos=x, angle=90, movable=True)
+            self.plotItem.addItem(self.cursor1, ignoreBounds=True)
+            self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
+            self.cursor1.sigPositionChangeFinished.connect(
+                self.cursor_move_finished.emit
+            )
+            self.cursor_move_finished.emit()
 
 
 except ImportError:
