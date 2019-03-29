@@ -57,6 +57,8 @@ class ChannelDisplay(base_1, form_1):
         self.display.stateChanged.connect(self.display_changed)
         self.ylink.stateChanged.connect(self.ylink_change)
 
+        self.fm = QFontMetrics(self.name.font())
+
         self.setToolTip(self._name)
 
     def display_changed(self, state):
@@ -98,14 +100,14 @@ class ChannelDisplay(base_1, form_1):
     def setName(self, text=""):
         self.setToolTip(text)
         self._name = text
-        if len(text) <= 32:
-            self.name.setText(
-                f'{self._name} ({self.unit})'
-            )
-        else:
-            self.name.setText(
-                f'{self._name[:29]}... ({self.unit})'
-            )
+#        if len(text) <= 32:
+#            self.name.setText(
+#                f'{self._name} ({self.unit})'
+#            )
+#        else:
+#            self.name.setText(
+#                f'{self._name[:29]}... ({self.unit})'
+#            )
 
     def setPrefix(self, text=""):
         self._value_prefix = text
@@ -140,3 +142,7 @@ class ChannelDisplay(base_1, form_1):
 
         else:
             super().keyPressEvent(event)
+
+    def resizeEvent(self, event):
+        width = self.name.size().width()
+        self.name.setText(self.fm.elidedText(f'{self._name} ({self.unit})', Qt.ElideMiddle, width))
