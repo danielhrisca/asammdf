@@ -3198,6 +3198,7 @@ class MDF(object):
         keep_arrays=False,
         use_display_names=False,
         time_as_date=False,
+        reduce_memory_usage=False,
     ):
         """ generate pandas DataFrame
 
@@ -3223,6 +3224,10 @@ class MDF(object):
             the dataframe index will contain the datetime timestamps
             according to the measurement start time; default *False*. If
             *True* then the argument ``time_from_zero`` will be ignored.
+        * reduce_memory_usage : bool
+            reduce memory usage by converting all float columns to float32 and
+            searching for minimum dtype that can reprezent the values found
+            in integer columns; default *False*
 
         Returns
         -------
@@ -3356,6 +3361,33 @@ class MDF(object):
                         channel_name = sig.name
 
                     channel_name = used_names.get_unique_name(channel_name)
+
+                    # code snippet taken from https://www.kaggle.com/arjanso/reducing-dataframe-memory-size-by-65
+                    if reduce_memory_usage:
+                        kind = sig.samples.dtype.kind
+                        if kind == 'f':
+                            sig.samples = sig.samples.astype(np.float32)
+                        elif kind in 'ui':
+                            min_ = sig.samples.min()
+                            max_ = sig.samples.max()
+                            if min_ >= 0:
+                                if max_ < 255:
+                                    sig.samples = sig.samples.astype(np.uint8)
+                                elif max_ < 65535:
+                                    sig.samples = sig.samples.astype(np.uint16)
+                                elif max_ < 4294967295:
+                                    sig.samples = sig.samples.astype(np.uint32)
+                                else:
+                                    sig.samples = sig.samples.astype(np.uint64)
+                            else:
+                                if min_ > np.iinfo(np.int8).min and max_ < np.iinfo(np.int8).max:
+                                    sig.samples = sig.samples.astype(np.int8)
+                                elif min_ > np.iinfo(np.int16).min and max_ < np.iinfo(np.int16).max:
+                                    sig.samples = sig.samples.astype(np.int16)
+                                elif min_ > np.iinfo(np.int32).min and max_ < np.iinfo(np.int32).max:
+                                    sig.samples = sig.samples.astype(np.int32)
+                                elif min_ > np.iinfo(np.int64).min and max_ < np.iinfo(np.int64).max:
+                                    sig.samples = sig.samples.astype(np.int64)
 
                     df[channel_name] = pd.Series(sig.samples, index=master)
 
