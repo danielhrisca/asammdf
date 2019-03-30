@@ -39,6 +39,7 @@ from .blocks.utils import (
     UINT64_u,
     UniqueDB,
     components,
+    downcast,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -931,6 +932,16 @@ class MDF(object):
               component channels. If *True* this can be very slow. If *False*
               only the component channels are saved, and their names will be
               prefixed with the parent channel.
+            * reduce_memory_usage : bool
+              reduce memory usage by converting all float columns to float32 and
+              searching for minimum dtype that can reprezent the values found
+              in integer columns; default *False*
+            * compression : str
+              compression to be used
+
+              * for ``parquet`` : "GZIP" or "SANPPY"
+              * for ``hfd5`` : "gzip", "lzf" or "szip"
+              * for ``mat`` : bool
 
         """
 
@@ -953,6 +964,8 @@ class MDF(object):
         empty_channels = kargs.get("empty_channels", "skip")
         format = kargs.get("format", "5")
         oned_as = kargs.get("oned_as", "row")
+        reduce_memory_usage = kargs.get("reduce_memory_usage", False)
+        compression = kargs.get("compression", "")
 
         name = Path(filename) if filename else self.name
 
@@ -996,36 +1009,16 @@ class MDF(object):
                     return
 
         if single_time_base or fmt == "parquet":
-            df = pd.DataFrame()
+            df = self.to_dataframe(
+                raster=raster,
+                time_from_zero=time_from_zero,
+                use_display_names=use_display_names,
+                empty_channels=empty_channels,
+                reduce_memory_usage=reduce_memory_usage,
+            )
             units = OrderedDict()
             comments = OrderedDict()
-            masters = [self.get_master(i) for i in range(len(self.groups))]
-            for i in range(len(self.groups)):
-                self._master_channel_cache[(i, 0, -1)] = self._master_channel_cache[i]
-            self._master_channel_cache.clear()
-            master = reduce(np.union1d, masters)
-
-            if raster and len(master):
-                if len(master) > 1:
-                    num = float(np.float32((master[-1] - master[0]) / raster))
-                    if num.is_integer():
-                        master = np.linspace(master[0], master[-1], int(num))
-                    else:
-                        master = np.arange(
-                            master[0], master[-1], raster, dtype=np.float64
-                        )
-
-            if time_from_zero and len(master):
-                df = df.assign(time=master)
-                df["time"] = pd.Series(master - master[0], index=np.arange(len(master)))
-            else:
-                df["time"] = pd.Series(master, index=np.arange(len(master)))
-
-            units["time"] = "s"
-            comments["time"] = ""
-
             used_names = UniqueDB()
-            used_names.get_unique_name("time")
 
             for i, grp in enumerate(self.groups):
                 if self._terminate:
@@ -1039,45 +1032,23 @@ class MDF(object):
                 data = (data, 0, -1)
 
                 for j in included_channels:
-                    sig = self.get(group=i, index=j, data=data).interp(
-                        master, self._integer_interpolation
-                    )
-
-                    if len(sig.samples.shape) > 1:
-                        arr = [sig.samples]
-                        types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
-                        sig.samples = np.core.records.fromarrays(arr, dtype=types)
+                    ch = grp.channels[j]
 
                     if use_display_names:
-                        channel_name = sig.display_name or sig.name
+                        channel_name = ch.display_name or ch.name
                     else:
-                        channel_name = sig.name
+                        channel_name = ch.name
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    if len(sig):
-                        try:
-                            # df = df.assign(**{channel_name: sig.samples})
-                            if sig.samples.dtype.names:
+                    if hasattr(ch, 'unit'):
+                        unit = ch.unit
+                        if ch.conversion:
+                            unit = unit or ch.conversion.unit
+                    comment = ch.comment
 
-                                df[channel_name] = pd.Series(sig.samples, dtype="O")
-                            else:
-                                df[channel_name] = pd.Series(sig.samples)
-                        except:
-                            print(sig.samples.dtype, sig.samples.shape, sig.name)
-                            print(list(df), len(df))
-                            raise
-                        units[channel_name] = sig.unit
-                        comments[channel_name] = sig.comment
-                    else:
-                        if empty_channels == "zeros":
-                            df[channel_name] = np.zeros(
-                                len(master), dtype=sig.samples.dtype
-                            )
-                            units[channel_name] = sig.unit
-                            comments[channel_name] = sig.comment
-
-                del self._master_channel_cache[(i, 0, -1)]
+                    units[channel_name] = unit
+                    comments[channel_name] = comment
 
         if fmt == "hdf5":
             name = name.with_suffix(".hdf")
@@ -1104,7 +1075,14 @@ class MDF(object):
                         if samples.dtype.kind == 'O':
                             continue
 
-                        dataset = group.create_dataset(channel, data=samples)
+                        if compression:
+                            dataset = group.create_dataset(
+                                channel,
+                                data=samples,
+                                compression=compression,
+                            )
+                        else:
+                            dataset = group.create_dataset(channel, data=samples)
                         unit = unit.replace("\0", "")
                         if unit:
                             dataset.attrs["unit"] = unit
@@ -1145,7 +1123,14 @@ class MDF(object):
                             name = names.get_unique_name(name)
                             if j == master_index:
                                 group.attrs["master"] = name
-                            dataset = group.create_dataset(name, data=sig.samples)
+                            if compression:
+                                dataset = group.create_dataset(
+                                    name,
+                                    data=sig.samples,
+                                    compression=compression,
+                                )
+                            else:
+                                dataset = group.create_dataset(name, data=sig.samples)
                             unit = sig.unit
                             if unit:
                                 dataset.attrs["unit"] = unit
@@ -1437,11 +1422,20 @@ class MDF(object):
                     oned_as=oned_as,
                 )
             else:
-                savemat(str(name), mdict, long_field_names=True, oned_as=oned_as)
+                savemat(
+                    str(name),
+                    mdict,
+                    long_field_names=True,
+                    oned_as=oned_as,
+                    do_compression=bool(compression),
+                )
 
         elif fmt == "parquet":
             name = name.with_suffix(".parquet")
-            write_parquet(name, df)
+            if compression:
+                write_parquet(name, df, compression=compression)
+            else:
+                write_parquet(name, df)
 
         else:
             message = (
@@ -3364,30 +3358,7 @@ class MDF(object):
 
                     # code snippet taken from https://www.kaggle.com/arjanso/reducing-dataframe-memory-size-by-65
                     if reduce_memory_usage:
-                        kind = sig.samples.dtype.kind
-                        if kind == 'f':
-                            sig.samples = sig.samples.astype(np.float32)
-                        elif kind in 'ui':
-                            min_ = sig.samples.min()
-                            max_ = sig.samples.max()
-                            if min_ >= 0:
-                                if max_ < 255:
-                                    sig.samples = sig.samples.astype(np.uint8)
-                                elif max_ < 65535:
-                                    sig.samples = sig.samples.astype(np.uint16)
-                                elif max_ < 4294967295:
-                                    sig.samples = sig.samples.astype(np.uint32)
-                                else:
-                                    sig.samples = sig.samples.astype(np.uint64)
-                            else:
-                                if min_ > np.iinfo(np.int8).min and max_ < np.iinfo(np.int8).max:
-                                    sig.samples = sig.samples.astype(np.int8)
-                                elif min_ > np.iinfo(np.int16).min and max_ < np.iinfo(np.int16).max:
-                                    sig.samples = sig.samples.astype(np.int16)
-                                elif min_ > np.iinfo(np.int32).min and max_ < np.iinfo(np.int32).max:
-                                    sig.samples = sig.samples.astype(np.int32)
-                                elif min_ > np.iinfo(np.int64).min and max_ < np.iinfo(np.int64).max:
-                                    sig.samples = sig.samples.astype(np.int64)
+                        sig.samples = downcast(sig.samples)
 
                     df[channel_name] = pd.Series(sig.samples, index=master)
 

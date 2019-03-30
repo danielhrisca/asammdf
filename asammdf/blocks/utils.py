@@ -16,6 +16,7 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 
 from numpy import where, arange, interp
+import numpy as np
 from numpy.core.records import fromarrays
 from pandas import Series
 
@@ -1147,3 +1148,32 @@ def get_fields(obj):
         except AttributeError:
             continue
     return fields
+
+
+def downcast(array):
+    kind = array.dtype.kind
+    if kind == 'f':
+        array = array.astype(np.float32)
+    elif kind in 'ui':
+        min_ = array.min()
+        max_ = array.max()
+        if min_ >= 0:
+            if max_ < 255:
+                array = array.astype(np.uint8)
+            elif max_ < 65535:
+                array = array.astype(np.uint16)
+            elif max_ < 4294967295:
+                array = array.astype(np.uint32)
+            else:
+                array = array.astype(np.uint64)
+        else:
+            if min_ > np.iinfo(np.int8).min and max_ < np.iinfo(np.int8).max:
+                array = array.astype(np.int8)
+            elif min_ > np.iinfo(np.int16).min and max_ < np.iinfo(np.int16).max:
+                array = array.astype(np.int16)
+            elif min_ > np.iinfo(np.int32).min and max_ < np.iinfo(np.int32).max:
+                array = array.astype(np.int32)
+            elif min_ > np.iinfo(np.int64).min and max_ < np.iinfo(np.int64).max:
+                array = array.astype(np.int64)
+
+    return array
