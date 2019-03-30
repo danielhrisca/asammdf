@@ -361,6 +361,7 @@ class FileWidget(QWidget):
         self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat", "parquet"))
         self.export_btn.clicked.connect(self.export)
         self.export_type.currentTextChanged.connect(self.export_changed)
+        self.export_type.setCurrentIndex(-1)
 
         # self.channels_tree.itemChanged.connect(self.select)
         self.plot_btn.clicked.connect(self.plot_pyqtgraph)
