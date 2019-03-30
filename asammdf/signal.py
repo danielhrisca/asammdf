@@ -1123,6 +1123,48 @@ class Signal(object):
             encoding=self.encoding,
         )
 
+    def validate(self):
+        if self.invalidation_bits is None:
+            result = Signal(
+                self.samples.copy(),
+                self.timestamps.copy(),
+                self.unit,
+                self.name,
+                self.conversion,
+                self.comment,
+                self.raw,
+                self.master_metadata,
+                self.display_name,
+                self.attachment,
+                self.source,
+                self.bit_count,
+                self.stream_sync,
+                invalidation_bits=None,
+                encoding=self.encoding,
+            )
+
+        else:
+            idx = np.nonzero(~self.invalidation_bits)[0]
+            result = Signal(
+                self.samples[idx],
+                self.timestamps[idx],
+                self.unit,
+                self.name,
+                self.conversion,
+                self.comment,
+                self.raw,
+                self.master_metadata,
+                self.display_name,
+                self.attachment,
+                self.source,
+                self.bit_count,
+                self.stream_sync,
+                invalidation_bits=None,
+                encoding=self.encoding,
+            )
+        return result
+
+
 
 if __name__ == "__main__":
     pass

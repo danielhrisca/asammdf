@@ -3252,11 +3252,11 @@ class MDF(object):
 
         channels_to_keep = channels
 
-        for i, grp in enumerate(self.groups):
+        for group_index, grp in enumerate(self.groups):
             if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
 
-            included_channels = self._included_channels(i)
+            included_channels = self._included_channels(group_index)
 
             channels = grp.channels
 
@@ -3271,6 +3271,7 @@ class MDF(object):
             _, dtypes = self._prepare_record(grp)
 
             signals = [[] for _ in included_channels]
+            invalidation_bits = [[] for _ in included_channels]
             timestamps = []
 
             for fragment in data:
@@ -3280,22 +3281,37 @@ class MDF(object):
                     grp.record = None
                 for k, index in enumerate(included_channels):
                     signal = self.get(
-                        group=i, index=index, data=fragment, samples_only=True
+                        group=group_index, index=index, data=fragment, samples_only=True, ignore_invalidation_bits=True
                     )
                     signals[k].append(signal[0])
-                timestamps.append(self.get_master(i, data=fragment, copy_master=False))
+                    invalidation_bits[k].append(signal[1])
+                timestamps.append(self.get_master(group_index, data=fragment, copy_master=False))
 
                 grp.record = None
 
             if len(timestamps):
                 signals = [np.concatenate(parts) for parts in signals]
+
                 timestamps = np.concatenate(timestamps)
+                for idx, parts in enumerate(invalidation_bits):
+                    if parts[0] is None:
+                        invalidation_bits[idx] = None
+                    else:
+                        invalidation_bits[idx] = np.concatenate(parts)
 
             signals = [
-                Signal(samples, timestamps, name=channels[idx].name).interp(
-                    master, self._integer_interpolation
+                Signal(
+                    samples,
+                    timestamps,
+                    name=channels[idx].name,
+                    invalidation_bits=invalidation,
                 )
-                for samples, idx in zip(signals, included_channels)
+                .validate()
+                .interp(
+                    master,
+                    self._integer_interpolation,
+                )
+                for samples, invalidation, idx in zip(signals, invalidation_bits, included_channels)
             ]
 
             for i, sig in enumerate(signals):
