@@ -3238,6 +3238,18 @@ class MDF(object):
 
         """
 
+        if channels:
+            mdf = self.filter(channels)
+            return mdf.to_dataframe(
+                raster=raster,
+                time_from_zero=time_from_zero,
+                empty_channels=empty_channels,
+                keep_arrays=keep_arrays,
+                use_display_names=use_display_names,
+                time_as_date=time_as_date,
+                reduce_memory_usage=reduce_memory_usage,
+            )
+
         df = pd.DataFrame()
         masters = [self.get_master(i) for i in range(len(self.groups))]
         self._master_channel_cache.clear()
@@ -3258,8 +3270,6 @@ class MDF(object):
         used_names = UniqueDB()
         used_names.get_unique_name("time")
 
-        channels_to_keep = channels
-
         for group_index, grp in enumerate(self.groups):
             if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
@@ -3267,13 +3277,6 @@ class MDF(object):
             included_channels = self._included_channels(group_index)
 
             channels = grp.channels
-
-            if channels_to_keep:
-                to_skip = set()
-                for i_ in included_channels:
-                    if channels[i_].name not in channels_to_keep:
-                        to_skip.add(i_)
-                included_channels = included_channels - to_skip
 
             data = self._load_data(grp)
             _, dtypes = self._prepare_record(grp)
