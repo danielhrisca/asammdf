@@ -360,6 +360,7 @@ class FileWidget(QWidget):
         self.oned_as.insertItems(0, ("row", "column"))
         self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat", "parquet"))
         self.export_btn.clicked.connect(self.export)
+        self.export_type.currentTextChanged.connect(self.export_changed)
 
         # self.channels_tree.itemChanged.connect(self.select)
         self.plot_btn.clicked.connect(self.plot_pyqtgraph)
@@ -379,6 +380,26 @@ class FileWidget(QWidget):
 
         self._dock_names = UniqueDB()
         self.active_plot = ""
+
+    def export_changed(self, name):
+        if name == 'parquet':
+            self.export_compression.setEnabled(True)
+            self.export_compression.clear()
+            self.export_compression.addItems(['GZIP', 'SNAPPY'])
+            self.export_compression.setCurrentIndex(-1)
+        elif name == 'hdf5':
+            self.export_compression.setEnabled(True)
+            self.export_compression.clear()
+            self.export_compression.addItems(["gzip", "lzf", "szip"])
+            self.export_compression.setCurrentIndex(-1)
+        elif name == 'mat':
+            self.export_compression.setEnabled(True)
+            self.export_compression.clear()
+            self.export_compression.addItems(["enabled", "disabled"])
+            self.export_compression.setCurrentIndex(-1)
+        else:
+            self.export_compression.clear()
+            self.export_compression.setEnabled(False)
 
     def set_line_style(self, with_dots=None):
         if with_dots is not None:
@@ -839,6 +860,8 @@ class FileWidget(QWidget):
         mat_format = self.mat_format.currentText()
         raster = self.export_raster.value()
         oned_as = self.oned_as.currentText()
+        reduce_memory_usage = self.reduce_memory_usage.checkState() == Qt.Checked
+        compression = self.export_compression.currentText()
 
         filters = {
             "csv": "CSV files (*.csv)",
@@ -865,6 +888,8 @@ class FileWidget(QWidget):
                     "format": mat_format,
                     "raster": raster,
                     "oned_as": oned_as,
+                    "reduce_memory_usage": reduce_memory_usage,
+                    "compression": compression,
                 },
             )
 

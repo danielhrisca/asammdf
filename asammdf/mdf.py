@@ -967,6 +967,15 @@ class MDF(object):
         reduce_memory_usage = kargs.get("reduce_memory_usage", False)
         compression = kargs.get("compression", "")
 
+        if compression == 'SNAPPY':
+            try:
+                import snappy
+            except ImportError:
+                logger.warning(
+                    "snappy compressor is not installed; compression will be set to GZIP"
+                )
+                compression = "GZIP"
+
         name = Path(filename) if filename else self.name
 
         if fmt == "parquet":
@@ -3162,7 +3171,7 @@ class MDF(object):
 
             # arrays and structures
             elif sig.samples.dtype.names:
-                for name, series in components(sig.samples, sig.name, used_names, master):
+                for name, series in components(sig.samples, sig.name, used_names, master=master):
                     df[name] = series
 
             # scalars
@@ -3344,7 +3353,7 @@ class MDF(object):
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
-                    for name, series in components(sig.samples, sig.name, used_names, master):
+                    for name, series in components(sig.samples, sig.name, used_names, master=master):
                         df[name] = series
 
                 # scalars
