@@ -425,6 +425,14 @@ class MDF(object):
 
         out.header.start_time = self.header.start_time
 
+        try:
+            for can_id, info in self.can_logging_db.items():
+                if can_id not in out.can_logging_db:
+                    out.can_logging_db[can_id] = {}
+                out.can_logging_db[can_id].update(info)
+        except AttributeError:
+            pass
+
         groups_nr = len(self.groups)
 
         if self._callback:
@@ -1907,6 +1915,14 @@ class MDF(object):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf)
 
+            try:
+                for can_id, info in mdf.can_logging_db.items():
+                    if can_id not in merged.can_logging_db:
+                        merged.can_logging_db[can_id] = {}
+                    merged.can_logging_db[can_id].update(info)
+            except AttributeError:
+                pass
+
             if mdf_index == 0:
                 last_timestamps = [None for gp in mdf.groups]
                 groups_nr = len(mdf.groups)
@@ -2207,6 +2223,8 @@ class MDF(object):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf)
 
+            cg_offset = cg_nr + 1
+
             for i, group in enumerate(mdf.groups):
                 idx = 0
                 if version < "4.00":
@@ -2216,6 +2234,19 @@ class MDF(object):
                     cg_nr += 1
                 else:
                     continue
+
+                try:
+                    for can_id, info in mdf.can_logging_db.items():
+                        if can_id not in mdf.can_logging_db:
+                            mdf.can_logging_db[can_id] = {}
+                        mdf.can_logging_db[can_id].update(
+                            {
+                                message_id: cg_index + cg_offset
+                                for message_id, cg_index in info.items()
+                            }
+                        )
+                except AttributeError:
+                    pass
 
                 _, dtypes = mdf._prepare_record(group)
 
