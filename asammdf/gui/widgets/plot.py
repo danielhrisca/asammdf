@@ -1325,7 +1325,6 @@ try:
 
         def _clicked(self, event):
             x = self.plot_item.vb.mapSceneToView(event.scenePos())
-            print('X', x)
 
             if self.cursor1 is not None:
                 self.plotItem.removeItem(self.cursor1)

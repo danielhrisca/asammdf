@@ -40,6 +40,7 @@ class FileWidget(QWidget):
     file_scrambled = pyqtSignal(str)
 
     def __init__(self, file_name, with_dots, subplots=False, subplots_link=False, *args, **kwargs):
+
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "file_widget.ui"), self)
 
@@ -427,6 +428,21 @@ class FileWidget(QWidget):
             for dock in self.dock_area.docks.values():
                 for plt in dock.widgets:
                     plt.plot.viewbox.setXLink(None)
+
+    def save_all_subplots(self):
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Select output measurement file", "",
+            "MDF version 4 files (*.mf4)",
+        )
+
+        if file_name:
+            with MDF() as mdf:
+                for dock in self.dock_area.docks.values():
+                    for plt in dock.widgets:
+
+                        mdf.append(plt.plot.signals)
+                mdf.save(file_name, overwrite=True)
 
     def search(self):
         dlg = AdvancedSearch(self.mdf.channels_db, self)
