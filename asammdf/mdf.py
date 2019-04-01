@@ -3438,16 +3438,10 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    # code snippet taken from https://www.kaggle.com/arjanso/reducing-dataframe-memory-size-by-65
                     if reduce_memory_usage:
                         sig.samples = downcast(sig.samples)
 
                     df[channel_name] = pd.Series(sig.samples, index=master)
-
-                if use_display_names:
-                    channel_name = sig.display_name or sig.name
-                else:
-                    channel_name = sig.name
 
         if time_as_date:
             new_index = np.array(df.index) + self.header.start_time.timestamp()

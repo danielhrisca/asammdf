@@ -1150,6 +1150,7 @@ def get_fields(obj):
     return fields
 
 
+# code snippet taken from https://www.kaggle.com/arjanso/reducing-dataframe-memory-size-by-65
 def downcast(array):
     kind = array.dtype.kind
     if kind == 'f':
