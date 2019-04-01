@@ -356,9 +356,12 @@ class MDF(object):
                 frame_bytes = range(
                     channel.byte_offset, channel.byte_offset + channel.bit_count // 8
                 )
+
                 for i, channel in enumerate(channels):
                     if channel.byte_offset in frame_bytes:
                         included_channels.remove(i)
+
+                included_channels.add(ch_cntr)
 
                 if group.CAN_database:
                     dbc_addr = group.dbc_addr
@@ -497,17 +500,14 @@ class MDF(object):
 
                     if sigs:
                         out.append(sigs, source_info, common_timebase=True)
-                        new_group = out.groups[-1]
-                        new_channel_group = new_group.channel_group
-                        old_channel_group = group.channel_group
-                        new_channel_group.comment = old_channel_group.comment
-                        if version >= "4.00":
-                            new_channel_group["path_separator"] = ord(".")
-                            if self.version >= "4.00":
-                                new_channel_group.acq_name = old_channel_group.acq_name
-                                new_channel_group.acq_source = (
-                                    old_channel_group.acq_source
-                                )
+                        try:
+                            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                                out.groups[-1].channel_group.flags = group.channel_group.flags
+                                out.groups[-1].channel_group.acq_name = group.channel_group.acq_name
+                                out.groups[-1].channel_group.acq_source = group.channel_group.acq_source
+                                out.groups[-1].channel_group.comment = group.channel_group.comment
+                        except AttributeError:
+                            pass
                     else:
                         break
 
@@ -790,6 +790,14 @@ class MDF(object):
                         out.append(
                             sigs, f"Cut from {start_} to {stop_}", common_timebase=True
                         )
+                        try:
+                            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                                out.groups[-1].channel_group.flags = group.channel_group.flags
+                                out.groups[-1].channel_group.acq_name = group.channel_group.acq_name
+                                out.groups[-1].channel_group.acq_source = group.channel_group.acq_source
+                                out.groups[-1].channel_group.comment = group.channel_group.comment
+                        except AttributeError:
+                            pass
                     else:
                         break
 
@@ -1662,6 +1670,14 @@ class MDF(object):
 
                     if sigs:
                         mdf.append(sigs, source_info, common_timebase=True)
+                        try:
+                            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                                mdf.groups[-1].channel_group.flags = group.channel_group.flags
+                                mdf.groups[-1].channel_group.acq_name = group.channel_group.acq_name
+                                mdf.groups[-1].channel_group.acq_source = group.channel_group.acq_source
+                                mdf.groups[-1].channel_group.comment = group.channel_group.comment
+                        except AttributeError:
+                            pass
                     else:
                         break
 
@@ -2029,6 +2045,14 @@ class MDF(object):
 
                         if signals:
                             merged.append(signals, common_timebase=True)
+                            try:
+                                if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                                    merged.groups[-1].channel_group.flags = group.channel_group.flags
+                                    merged.groups[-1].channel_group.acq_name = group.channel_group.acq_name
+                                    merged.groups[-1].channel_group.acq_source = group.channel_group.acq_source
+                                    merged.groups[-1].channel_group.comment = group.channel_group.comment
+                            except AttributeError:
+                                pass
                         else:
                             break
                         idx += 1
@@ -2258,6 +2282,14 @@ class MDF(object):
                                 for sig in signals:
                                     sig.timestamps = timestamps
                             stacked.append(signals, common_timebase=True)
+                            try:
+                                if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                                    stacked.groups[-1].channel_group.flags = group.channel_group.flags
+                                    stacked.groups[-1].channel_group.acq_name = group.channel_group.acq_name
+                                    stacked.groups[-1].channel_group.acq_source = group.channel_group.acq_source
+                                    stacked.groups[-1].channel_group.comment = group.channel_group.comment
+                            except AttributeError:
+                                pass
                         idx += 1
                     else:
                         master = mdf.get_master(i, fragment)
@@ -2484,6 +2516,14 @@ class MDF(object):
                         mdf.append(
                             sigs, f"Resampled to {raster}s", common_timebase=True
                         )
+                        try:
+                            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                                mdf.groups[-1].channel_group.flags = group.channel_group.flags
+                                mdf.groups[-1].channel_group.acq_name = group.channel_group.acq_name
+                                mdf.groups[-1].channel_group.acq_source = group.channel_group.acq_source
+                                mdf.groups[-1].channel_group.comment = group.channel_group.comment
+                        except AttributeError:
+                            pass
                     else:
                         break
 

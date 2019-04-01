@@ -1596,6 +1596,9 @@ class MDF4(object):
                 ch_cntr += 1
                 gp_dep.append(None)
 
+            elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
+                pass
+
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 struct = Signal(
                     samples,
@@ -4440,8 +4443,8 @@ class MDF4(object):
 
                 else:
                     # no VLSD signal data samples
-                    vals = array([], dtype="S")
                     if data_type != v4c.DATA_TYPE_BYTEARRAY:
+                        vals = array([], dtype="S")
 
                         if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
                             encoding = "utf-16-be"
@@ -4459,6 +4462,8 @@ class MDF4(object):
                             raise MdfException(
                                 f'wrong data type "{data_type}" for vlsd channel'
                             )
+                    else:
+                        vals = array([], dtype=get_fmt_v4(data_type, bit_count, v4c.CHANNEL_TYPE_VALUE))
 
             elif channel_type in {
                 v4c.CHANNEL_TYPE_VALUE,
@@ -4995,6 +5000,8 @@ class MDF4(object):
         )[0]
 
         idx = nonzero(can_ids.samples == message.id)[0]
+
+
         vals = payload[idx]
         t = can_ids.timestamps[idx].copy()
         if can_ids.invalidation_bits is not None:
