@@ -90,6 +90,43 @@ class MainWindow(QMainWindow):
         submenu.addActions(search_option.actions())
         menu.addMenu(submenu)
 
+        # search mode menu
+        search_option = QActionGroup(self)
+
+        for option in ("Disabled", "Enabled"):
+
+            action = QAction(option, menu)
+            action.setCheckable(True)
+            search_option.addAction(action)
+            action.triggered.connect(partial(self.set_subplot_option, option))
+
+            if option == "Disabled":
+                action.setChecked(True)
+                self.subplots = False
+
+        submenu = QMenu("Sub-plots", self.menubar)
+        submenu.addActions(search_option.actions())
+        menu.addMenu(submenu)
+
+
+        # search mode menu
+        search_option = QActionGroup(self)
+
+        for option in ("Disabled", "Enabled"):
+
+            action = QAction(option, menu)
+            action.setCheckable(True)
+            search_option.addAction(action)
+            action.triggered.connect(partial(self.set_subplot_link_option, option))
+
+            if option == "Disabled":
+                action.setChecked(True)
+                self.subplots_link = False
+
+        submenu = QMenu("Link sub-plots X-axis", self.menubar)
+        submenu.addActions(search_option.actions())
+        menu.addMenu(submenu)
+
         # plot option menu
         plot_actions = QActionGroup(self)
 
@@ -276,6 +313,16 @@ class MainWindow(QMainWindow):
             self.files.widget(i).search_field.set_search_option(option)
             self.files.widget(i).filter_field.set_search_option(option)
 
+    def set_subplot_option(self, option):
+        self.subplots = option == 'Enabled'
+
+    def set_subplot_link_option(self, option):
+        self.subplots_link = option == 'Enabled'
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).set_subplots_link(self.subplots_link)
+
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
 
@@ -404,7 +451,7 @@ class MainWindow(QMainWindow):
         index = self.files.count()
 
         try:
-            widget = FileWidget(file_name, self.with_dots, self)
+            widget = FileWidget(file_name, self.with_dots, self.subplots, self.subplots_link, self)
             widget.search_field.set_search_option(self.match)
             widget.filter_field.set_search_option(self.match)
         except:

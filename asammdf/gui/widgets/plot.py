@@ -425,8 +425,6 @@ try:
             self.cursor2 = None
             self.signals = signals
 
-
-
             self.disabled_keys = set()
             for sig in self.signals:
                 if sig.samples.dtype.kind == "f":

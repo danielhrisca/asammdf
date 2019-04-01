@@ -39,7 +39,7 @@ class FileWidget(QWidget):
 
     file_scrambled = pyqtSignal(str)
 
-    def __init__(self, file_name, with_dots, *args, **kwargs):
+    def __init__(self, file_name, with_dots, subplots=False, subplots_link=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "file_widget.ui"), self)
 
@@ -47,6 +47,8 @@ class FileWidget(QWidget):
         self._timer.timeout.connect(self._mark_active_plot)
 
         file_name = Path(file_name)
+        self.subplots = subplots
+        self.subplots_link = subplots_link
 
         self.file_name = file_name
         self.progress = None
@@ -411,7 +413,20 @@ class FileWidget(QWidget):
             if current_plot:
                 current_plot.plot.update_lines(with_dots=with_dots)
 
-
+    def set_subplots_link(self, subplots_link):
+        self.subplots_link = subplots_link
+        if subplots_link:
+            viewbox = None
+            for dock in self.dock_area.docks.values():
+                for plt in dock.widgets:
+                    if viewbox is None:
+                        viewbox = plt.plot.viewbox
+                    else:
+                        plt.plot.viewbox.setXLink(viewbox)
+        else:
+            for dock in self.dock_area.docks.values():
+                for plt in dock.widgets:
+                    plt.plot.viewbox.setXLink(None)
 
     def search(self):
         dlg = AdvancedSearch(self.mdf.channels_db, self)
@@ -955,6 +970,12 @@ class FileWidget(QWidget):
             signals = natsorted(signals, key=lambda x: x.name)
 
         if signals:
+            if not self.subplots:
+                wid = self.splitter.widget(1)
+                wid.setParent(None)
+                self.dock_area = DockArea(self.splitter)
+                self.splitter.addWidget(self.dock_area)
+
             count = len(self.dock_area.docks)
             self.dock_area.hide()
             dock_name = self._dock_names.get_unique_name('Plot')
@@ -962,7 +983,6 @@ class FileWidget(QWidget):
             self.dock_area.addDock(dock)
 
             dock.label.sigClicked.connect(partial(self.mark_active_plot, dock_name))
-            self.mark_active_plot(dock_name)
             dock.sigClosed.connect(self.close_plot)
 
             plot = Plot(signals, self.with_dots)
@@ -973,10 +993,15 @@ class FileWidget(QWidget):
 
             self.dock_area.show()
 
+            if count and self.subplots_link:
+                plot.plot.viewbox.setXLink(self.get_current_plot().plot.viewbox)
+
             width = sum(self.splitter.sizes())
             self.splitter.setSizes((0.2 * width, 0.8 * width))
             self.splitter.setStretchFactor(0, 0)
             self.splitter.setStretchFactor(1, 1)
+
+            self.mark_active_plot(dock_name)
 
         QApplication.processEvents()
 
