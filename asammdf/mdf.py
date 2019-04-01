@@ -1035,11 +1035,6 @@ class MDF(object):
 
                 included_channels = self._included_channels(i)
 
-                data = self._load_data(grp)
-
-                data = b"".join(d[0] for d in data)
-                data = (data, 0, -1)
-
                 for j in included_channels:
                     ch = grp.channels[j]
 
