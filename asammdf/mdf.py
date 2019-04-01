@@ -1121,17 +1121,21 @@ class MDF(object):
 
                         master_index = self.masters_db.get(i, -1)
 
-                        data = self._load_data(grp)
+                        if master_index:
+                            group.attrs["master"] = grp.channels[master_index].name
 
-                        data = b"".join(d[0] for d in data)
-                        data = (data, 0, -1)
+                        channels = self.select(
+                            [(ch.name, i, None) for ch in grp.channels]
+                        )
 
-                        for j, _ in enumerate(grp.channels):
-                            sig = self.get(group=i, index=j, data=data)
-                            name = sig.name
+                        for j, sig in enumerate(channels):
+                            if use_display_names:
+                                name = sig.display_name or sig.name
+                            else:
+                                name = sig.name
                             name = names.get_unique_name(name)
-                            if j == master_index:
-                                group.attrs["master"] = name
+                            if reduce_memory_usage:
+                                sig.samples = downcast(sig.samples)
                             if compression:
                                 dataset = group.create_dataset(
                                     name,
@@ -1139,15 +1143,13 @@ class MDF(object):
                                     compression=compression,
                                 )
                             else:
-                                dataset = group.create_dataset(name, data=sig.samples)
+                                dataset = group.create_dataset(name, data=sig.samples, dtype=sig.samples.dtype)
                             unit = sig.unit
                             if unit:
                                 dataset.attrs["unit"] = unit
                             comment = sig.comment.replace("\0", "")
                             if comment:
                                 dataset.attrs["comment"] = comment
-
-                        del self._master_channel_cache[(i, 0, -1)]
 
         elif fmt == "excel":
 
@@ -1382,13 +1384,13 @@ class MDF(object):
 
                     if master_index >= 0:
                         included_channels.add(master_index)
-                    data = self._load_data(grp)
 
-                    data = b"".join(d[0] for d in data)
-                    data = (data, 0, -1)
+                    channels = self.select(
+                        [(None, i, idx) for idx in included_channels]
+                    )
 
-                    for j in included_channels:
-                        sig = self.get(group=i, index=j, data=data)
+                    for j, sig in zip(included_channels, channels):
+
                         if j == master_index:
                             channel_name = master_name_template.format(i, sig.name)
                         else:
@@ -1409,16 +1411,17 @@ class MDF(object):
 
                         mdict[channel_name] = sig.samples
 
-                    del self._master_channel_cache[(i, 0, -1)]
             else:
                 used_names = UniqueDB()
-                new_mdict = {}
-                for channel_name, samples in mdict.items():
-                    channel_name = matlab_compatible(channel_name)
+                mdict = {}
+
+                for name in df.columns:
+                    channel_name = matlab_compatible(name)
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    new_mdict[channel_name] = samples
-                mdict = new_mdict
+                    mdict[channel_name] = df[name].values
+
+                mdict['time'] = df.index.values
 
             if format == "7.3":
 
@@ -2683,6 +2686,7 @@ class MDF(object):
                             data=fragment,
                             copy_master=False,
                             raw=True,
+                            ignore_invalidation_bits=True,
                         )
 
                         sigs[index] = signal
@@ -2700,6 +2704,7 @@ class MDF(object):
                             copy_master=False,
                             raw=True,
                             samples_only=True,
+                            ignore_invalidation_bits=True,
                         )
 
                         signal_parts[(group, index)].append(signal)
@@ -3125,11 +3130,7 @@ class MDF(object):
                 else:
                     master = np.arange(master[0], master[-1], raster, dtype=np.float64)
 
-        if time_from_zero and len(master):
-            df = df.assign(time=master)
-            df["time"] = pd.Series(master - master[0], index=np.arange(len(master)))
-        else:
-            df["time"] = pd.Series(master, index=np.arange(len(master)))
+        df["time"] = pd.Series(master, index=np.arange(len(master)))
 
         df.set_index('time', inplace=True)
 
@@ -3189,6 +3190,9 @@ class MDF(object):
                 channel_name = sig.display_name or sig.name
             else:
                 channel_name = sig.name
+
+        if time_from_zero and len(master):
+            df.set_index(df.index - df.index[0], inplace=True)
 
         return df
 
