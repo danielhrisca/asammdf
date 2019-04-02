@@ -26,6 +26,9 @@ def main(measurements=None):
     parser = _cmd_line_parser()
     args = parser.parse_args(sys.argv[1:])
     app = QApplication(sys.argv)
+    app.setOrganizationName("py-asammdf")
+    app.setOrganizationDomain("py-asammdf")
+    app.setApplicationName("py-asammdf")
     main = MainWindow(args.measurements)
     app.exec_()
 

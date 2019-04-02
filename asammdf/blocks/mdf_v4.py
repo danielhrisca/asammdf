@@ -202,6 +202,7 @@ class MDF4(object):
         self._master_channel_cache = {}
         self._master_channel_metadata = {}
         self._invalidation_cache = {}
+        self._external_dbc_cache = {}
         self._si_map = {}
         self._file_si_map = {}
         self._cc_map = {}
@@ -376,10 +377,10 @@ class MDF4(object):
                                 if name == "ChannelNo":
                                     grp.CAN_id = f"CAN{e.text}"
                                     break
+
                         if grp.CAN_id is None:
                             grp.CAN_logging = False
                         else:
-
                             if message_name == "CAN_DataFrame":
                                 # this is a raw CAN bus logging channel group
                                 # it will be later processed to extract all
@@ -415,12 +416,14 @@ class MDF4(object):
                                                 message_id -= 0x80000000
                                                 grp.extended_id = True
                                             grp.message_name = message_name
-                                            grp.message_id = message_id
+                                            grp.message_id = {message_id}
 
                                     else:
+                                        grp.raw_can = True
                                         message = f"Invalid bus logging channel group metadata: {comment}"
                                         logger.warning(message)
                                 else:
+                                    grp.raw_can = True
                                     message = (
                                         f"Unable to get CAN message information "
                                         f"since channel group @{hex(channel_group.address)} has no metadata"
@@ -519,15 +522,28 @@ class MDF4(object):
                     self.can_logging_db[group.CAN_id] = {}
                 message_id = group.message_id
                 if message_id is not None:
-                    self.can_logging_db[group.CAN_id][message_id] = i
+                    for id_ in message_id:
+                        self.can_logging_db[group.CAN_id][id_] = i
             else:
                 continue
 
             if group.raw_can:
+
                 can_ids = self.get(
                     "CAN_DataFrame.ID", group=i, ignore_invalidation_bits=True
                 )
                 all_can_ids = sorted(set(can_ids.samples))
+
+                if all_can_ids:
+                    group.message_id = set()
+
+                    for message_id in all_can_ids:
+                        if message_id > 0x80000000:
+                            message_id -= 0x80000000
+
+                        self.can_logging_db[group.CAN_id][message_id] = i
+                        group.message_id.add(message_id)
+
                 payload = self.get(
                     "CAN_DataFrame.DataBytes",
                     group=i,
@@ -658,7 +674,7 @@ class MDF4(object):
                     else:
                         group.extended_id = False
                     group.message_name = message_name
-                    group.message_id = message_id
+                    group.message_id = {message_id}
                 group.channel_group.acq_source = cg_source
                 group.data_group.comment = (
                     f'From message {hex(message_id)}="{message_name}"'
@@ -672,7 +688,8 @@ class MDF4(object):
             if not group.CAN_id in self.can_logging_db:
                 self.can_logging_db[group.CAN_id] = {}
             if group.message_id is not None:
-                self.can_logging_db[group.CAN_id][group.message_id] = i
+                for id_ in group.message_id:
+                    self.can_logging_db[group.CAN_id][id_] = i
 
         # read events
         addr = self.header.first_event_addr
@@ -773,7 +790,7 @@ class MDF4(object):
                     channel.dtype_fmt = ret_composition_dtype
                     composition_dtype.append((channel.name, channel.dtype_fmt))
 
-                    if grp.CAN_id is not None and grp.message_id is not None:
+                    if grp.CAN_id is not None and grp.message_id is not None and len(grp.message_id) == 1:
                         try:
                             addr = channel.attachment_addr
                         except AttributeError:
@@ -844,7 +861,7 @@ class MDF4(object):
 
                             grp.dbc_addr = attachment_addr
 
-                            message_id = grp.message_id
+                            message_id = next(iter(grp.message_id))
                             message_name = grp.message_name
                             can_id = grp.CAN_id
 
@@ -1579,6 +1596,9 @@ class MDF4(object):
                 ch_cntr += 1
                 gp_dep.append(None)
 
+            elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
+                pass
+
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 struct = Signal(
                     samples,
@@ -2084,7 +2104,6 @@ class MDF4(object):
         """
         group = self.groups[group_index]
         dtypes = group.types
-        invalidation_size = group.channel_group.invalidation_bytes_nr
 
         data_bytes, offset, _count = fragment
         try:
@@ -2098,24 +2117,15 @@ class MDF4(object):
                 else:
                     record = None
 
-            invalidation = record["invalidation_bytes"].tostring()
+            invalidation = record["invalidation_bytes"].copy()
             self._invalidation_cache[(group_index, offset, _count)] = invalidation
 
-        ch_invalidation_pos = channel["pos_invalidation_bit"]
+        ch_invalidation_pos = channel.pos_invalidation_bit
         pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
-
-        rec = fromstring(
-            invalidation,
-            dtype=[
-                ("", f"S{pos_byte}"),
-                ("vals", "<u1"),
-                ("", f"S{invalidation_size - pos_byte - 1}"),
-            ],
-        )
 
         mask = 1 << pos_offset
 
-        invalidation_bits = rec["vals"] & mask
+        invalidation_bits = invalidation[:, pos_byte] & mask
         invalidation_bits = invalidation_bits.astype(bool)
 
         return invalidation_bits
@@ -3809,7 +3819,6 @@ class MDF4(object):
                                 group=dg_nr,
                                 index=ch_nr,
                                 samples_only=True,
-                                raw=raw,
                                 data=fragment,
                                 ignore_invalidation_bits=ignore_invalidation_bits,
                                 record_offset=record_offset,
@@ -4328,6 +4337,7 @@ class MDF4(object):
                         invalidation_bits.append(
                             self.get_invalidation_bits(gp_nr, channel, fragment)
                         )
+
                     if vals.flags.writeable:
                         channel_values.append(vals)
                     else:
@@ -4423,8 +4433,8 @@ class MDF4(object):
 
                 else:
                     # no VLSD signal data samples
-                    vals = array([], dtype="S")
                     if data_type != v4c.DATA_TYPE_BYTEARRAY:
+                        vals = array([], dtype="S")
 
                         if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
                             encoding = "utf-16-be"
@@ -4442,6 +4452,8 @@ class MDF4(object):
                             raise MdfException(
                                 f'wrong data type "{data_type}" for vlsd channel'
                             )
+                    else:
+                        vals = array([], dtype=get_fmt_v4(data_type, bit_count, v4c.CHANNEL_TYPE_VALUE))
 
             elif channel_type in {
                 v4c.CHANNEL_TYPE_VALUE,
@@ -4858,7 +4870,7 @@ class MDF4(object):
                 import_type = "dbc" if database.lower().endswith("dbc") else "arxml"
                 with open(database, "rb") as db:
                     db_string = db.read()
-                md5_sum = md5().update(db_string).digest()
+                md5_sum = md5(db_string).digest()
 
                 if md5_sum in self._external_dbc_cache:
                     db = self._external_dbc_cache[md5_sum]
@@ -4918,7 +4930,7 @@ class MDF4(object):
             if message_id is None:
                 message_id = message_id_str
             else:
-                message_id = int(message_id)
+                message_id = int(message_id.group('id'))
 
         else:
             can_id = message_id = None
@@ -4940,7 +4952,12 @@ class MDF4(object):
 
         if can_id is None:
             for _can_id, messages in self.can_logging_db.items():
-                if message.id in messages:
+                message_id = message.id
+
+                if message_id > 0x80000000:
+                    message_id -= 0x80000000
+
+                if message_id in messages:
                     index = messages[message.id]
                     break
             else:
@@ -4973,6 +4990,8 @@ class MDF4(object):
         )[0]
 
         idx = nonzero(can_ids.samples == message.id)[0]
+
+
         vals = payload[idx]
         t = can_ids.timestamps[idx].copy()
         if can_ids.invalidation_bits is not None:

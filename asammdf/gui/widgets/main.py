@@ -20,9 +20,10 @@ HERE = Path(__file__).resolve().parent
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, files=None, *args, **kwargs):
 
+    def __init__(self, files=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._settings = QSettings()
         uic.loadUi(HERE.joinpath("..", "ui", "main_window.ui"), self)
 
         self.progress = None
@@ -83,10 +84,47 @@ class MainWindow(QMainWindow):
             search_option.addAction(action)
             action.triggered.connect(partial(self.set_search_option, option))
 
-            if option == "Match start":
+            if option == self._settings.value('search_match', "Match start"):
                 action.setChecked(True)
 
         submenu = QMenu("Search", self.menubar)
+        submenu.addActions(search_option.actions())
+        menu.addMenu(submenu)
+
+        # search mode menu
+        search_option = QActionGroup(self)
+
+        for option in ("Disabled", "Enabled"):
+
+            action = QAction(option, menu)
+            action.setCheckable(True)
+            search_option.addAction(action)
+            action.triggered.connect(partial(self.set_subplot_option, option))
+
+            if option == self._settings.value('subplots', "Disabled"):
+                action.setChecked(True)
+                self.subplots = False
+
+        submenu = QMenu("Sub-plots", self.menubar)
+        submenu.addActions(search_option.actions())
+        menu.addMenu(submenu)
+
+
+        # search mode menu
+        search_option = QActionGroup(self)
+
+        for option in ("Disabled", "Enabled"):
+
+            action = QAction(option, menu)
+            action.setCheckable(True)
+            search_option.addAction(action)
+            action.triggered.connect(partial(self.set_subplot_link_option, option))
+
+            if option == self._settings.value('subplots_link', "Disabled"):
+                action.setChecked(True)
+                self.subplots_link = False
+
+        submenu = QMenu("Link sub-plots X-axis", self.menubar)
         submenu.addActions(search_option.actions())
         menu.addMenu(submenu)
 
@@ -149,10 +187,18 @@ class MainWindow(QMainWindow):
 
         icon = QIcon()
         icon.addPixmap(QPixmap(":/save.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tCtrl+S".format("Save plot channels"), menu)
+        action = QAction(icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu)
         action.triggered.connect(partial(self.plot_action, key=Qt.Key_S, modifier=Qt.ControlModifier))
         action.setShortcut(QKeySequence("Ctrl+S"))
         plot_actions.addAction(action)
+
+        icon = QIcon()
+        icon.addPixmap(QPixmap(":/save.png"), QIcon.Normal, QIcon.Off)
+        action = QAction(icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu)
+        action.triggered.connect(self.save_all_subplots)
+        action.setShortcut(QKeySequence("Ctrl+Shift+S"))
+        plot_actions.addAction(action)
+
 
         # values display
 
@@ -186,7 +232,7 @@ class MainWindow(QMainWindow):
         icon = QIcon()
         icon.addPixmap(QPixmap(":/info.png"), QIcon.Normal, QIcon.Off)
         action = QAction(icon, "{: <20}\tM".format("Statistics"), menu)
-        action.triggered.connect(partial(self.file_action, key=Qt.Key_M))
+        action.triggered.connect(partial(self.plot_action, key=Qt.Key_M))
         action.setShortcut(QKeySequence("M"))
         info.addAction(action)
 
@@ -238,9 +284,7 @@ class MainWindow(QMainWindow):
         open_group.addAction(action)
         menu.addActions(open_group.actions())
 
-        self.match = "Match start"
-        self.with_dots = False
-        self.step_mode = True
+        self.with_dots = self._settings.value('dots', False, type=bool)
         self.stackedWidget.setCurrentIndex(0)
         self.setWindowTitle(f'asammdf {libversion}')
 
@@ -252,24 +296,26 @@ class MainWindow(QMainWindow):
 
         self.show()
 
+        self.set_search_option(self._settings.value('search_match', "Match start"))
+        self.set_subplot_option(self._settings.value('subplots', "Disabled"))
+        self.set_subplot_link_option(self._settings.value('subplots_link', "Disabled"))
+
     def help(self, event):
         webbrowser.open_new(r'http://asammdf.readthedocs.io/en/development/gui.html')
 
-    def file_action(self, key, modifier=Qt.NoModifier):
-        event = QKeyEvent(QEvent.KeyPress, key, modifier)
+    def save_all_subplots(self, key):
         widget = self.files.currentWidget()
-        if widget and widget.plot:
-            widget.keyPressEvent(event)
+        widget.save_all_subplots()
 
     def plot_action(self, key, modifier=Qt.NoModifier):
         event = QKeyEvent(QEvent.KeyPress, key, modifier)
         widget = self.files.currentWidget()
-        if widget and widget.plot:
-            widget.plot.keyPressEvent(event)
-            widget.keyPressEvent(event)
+        if widget and widget.get_current_plot():
+            widget.get_current_plot().keyPressEvent(event)
 
     def toggle_dots(self, key):
         self.with_dots = not self.with_dots
+        self._settings.setValue('dots', self.with_dots)
 
         count = self.files.count()
 
@@ -278,10 +324,23 @@ class MainWindow(QMainWindow):
 
     def set_search_option(self, option):
         self.match = option
+        self._settings.setValue('search_match', self.match)
         count = self.files.count()
         for i in range(count):
             self.files.widget(i).search_field.set_search_option(option)
             self.files.widget(i).filter_field.set_search_option(option)
+
+    def set_subplot_option(self, option):
+        self.subplots = option == 'Enabled'
+        self._settings.setValue('subplots', option)
+
+    def set_subplot_link_option(self, option):
+        self.subplots_link = option == 'Enabled'
+        self._settings.setValue('subplots_link', option)
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).set_subplots_link(self.subplots_link)
 
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
@@ -411,7 +470,7 @@ class MainWindow(QMainWindow):
         index = self.files.count()
 
         try:
-            widget = FileWidget(file_name, self.with_dots, self)
+            widget = FileWidget(file_name, self.with_dots, self.subplots, self.subplots_link, self)
             widget.search_field.set_search_option(self.match)
             widget.filter_field.set_search_option(self.match)
         except:

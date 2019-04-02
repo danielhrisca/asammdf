@@ -13,7 +13,6 @@ HERE = Path(__file__).resolve().parent
 class RangeEditor(QDialog):
     def __init__(self, unit="", ranges=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "range_editor_dialog.ui"), self)
 
         self.unit = unit

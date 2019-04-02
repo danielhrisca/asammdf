@@ -12,10 +12,13 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
+from pyqtgraph.dockarea import DockArea, Dock
+from pyqtgraph import LayoutWidget
 
 from ..ui import resource_qt5 as resource_rc
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
+from ...blocks.utils import UniqueDB
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .channel_display import ChannelDisplay
 from .channel_stats import ChannelStats
@@ -36,13 +39,17 @@ class FileWidget(QWidget):
 
     file_scrambled = pyqtSignal(str)
 
-    def __init__(self, file_name, with_dots, *args, **kwargs):
+    def __init__(self, file_name, with_dots, subplots=False, subplots_link=False, *args, **kwargs):
+
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "file_widget.ui"), self)
 
-        file_name = Path(file_name)
+        self._timer = QTimer()
+        self._timer.timeout.connect(self._mark_active_plot)
 
-        self.plot = None
+        file_name = Path(file_name)
+        self.subplots = subplots
+        self.subplots_link = subplots_link
 
         self.file_name = file_name
         self.progress = None
@@ -92,7 +99,7 @@ class FileWidget(QWidget):
                         else:
                             break
 
-                    
+
                     datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
                     if not datalyser_active:
                         try:
@@ -225,26 +232,8 @@ class FileWidget(QWidget):
         )
         vbox.addLayout(hbox)
 
-        selection_list = QWidget(splitter)
-        self.channel_selection = ListWidget(selection_list)
-        self.channel_selection.setAlternatingRowColors(False)
-        self.channel_selection.setSpacing(0)
-        self.channel_selection.setStyleSheet("QListWidget {padding: 0px;} QListWidget::item { margin: 0px; }")
-
-        vbox = QVBoxLayout(selection_list)
-
-        hbox = QHBoxLayout(selection_list)
-        hbox.addWidget(QLabel("Selected channels"))
-        self.cursor_info = QLabel("")
-        self.cursor_info.setTextFormat(Qt.RichText)
-        self.cursor_info.setAlignment(
-            Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter
-        )
-        hbox.addWidget(self.cursor_info)
-
-        vbox.addLayout(hbox)
-
-        vbox.addWidget(self.channel_selection)
+        self.dock_area = DockArea(self.splitter)
+        self.splitter.addWidget(self.dock_area)
 
         self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
 
@@ -374,6 +363,8 @@ class FileWidget(QWidget):
         self.oned_as.insertItems(0, ("row", "column"))
         self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat", "parquet"))
         self.export_btn.clicked.connect(self.export)
+        self.export_type.currentTextChanged.connect(self.export_changed)
+        self.export_type.setCurrentIndex(-1)
 
         # self.channels_tree.itemChanged.connect(self.select)
         self.plot_btn.clicked.connect(self.plot_pyqtgraph)
@@ -391,81 +382,67 @@ class FileWidget(QWidget):
 
         self.scramble_btn.clicked.connect(self.scramble)
 
-        self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
-        self.channel_selection.itemSelectionChanged.connect(
-            self.channel_selection_modified
-        )
+        self._dock_names = UniqueDB()
+        self.active_plot = ""
+
+    def export_changed(self, name):
+        if name == 'parquet':
+            self.export_compression.setEnabled(True)
+            self.export_compression.clear()
+            self.export_compression.addItems(['GZIP', 'SNAPPY'])
+            self.export_compression.setCurrentIndex(-1)
+        elif name == 'hdf5':
+            self.export_compression.setEnabled(True)
+            self.export_compression.clear()
+            self.export_compression.addItems(["gzip", "lzf", "szip"])
+            self.export_compression.setCurrentIndex(-1)
+        elif name == 'mat':
+            self.export_compression.setEnabled(True)
+            self.export_compression.clear()
+            self.export_compression.addItems(["enabled", "disabled"])
+            self.export_compression.setCurrentIndex(-1)
+        else:
+            self.export_compression.clear()
+            self.export_compression.setEnabled(False)
 
     def set_line_style(self, with_dots=None):
         if with_dots is not None:
 
             self.with_dots = with_dots
 
-            if self.plot:
-                self.plot.update_lines(with_dots=with_dots)
+            current_plot = self.get_current_plot()
+            if current_plot:
+                current_plot.plot.update_lines(with_dots=with_dots)
 
-    def keyPressEvent(self, event):
-        key = event.key()
-        modifier = event.modifiers()
-
-        if key == Qt.Key_M:
-
-            if self.info is None:
-
-                self.info = ChannelStats(parent=self.splitter)
-                if self.info_index is None:
-                    self.info.clear()
-                else:
-                    stats = self.plot.get_stats(self.info_index)
-                    self.info.set_stats(stats)
-
-                self.splitter.setStretchFactor(0, 0)
-                self.splitter.setStretchFactor(1, 1)
-                self.splitter.setStretchFactor(2, 0)
-
-            else:
-                self.info.setParent(None)
-                self.info.hide()
-                self.info = None
-
-                self.splitter.setStretchFactor(0, 0)
-                self.splitter.setStretchFactor(1, 1)
-
-        elif modifier == Qt.ControlModifier and key in (Qt.Key_B, Qt.Key_H, Qt.Key_P):
-            if key == Qt.Key_B:
-                fmt = "bin"
-            elif key == Qt.Key_H:
-                fmt = "hex"
-            else:
-                fmt = "phys"
-            if self.info and self.info_index is not None:
-                self.info.fmt = fmt
-                stats = self.plot.get_stats(self.info_index)
-                self.info.set_stats(stats)
-
-        elif modifier == Qt.ControlModifier and key == Qt.Key_T:
-            selected_items = self.channel_selection.selectedItems()
-            rows = self.channel_selection.count()
-
-            indexes = [
-                i
-                for i in range(rows)
-                if self.channel_selection.item(i) in selected_items
-            ]
-
-            ranges = [
-                self.channel_selection.itemWidget(item).ranges
-                for item in selected_items
-            ]
-
-            signals = [self.plot.signals[i] for i in indexes]
-
-            dlg = TabularValuesDialog(signals, ranges, self)
-            dlg.setModal(True)
-            dlg.exec_()
-
+    def set_subplots_link(self, subplots_link):
+        self.subplots_link = subplots_link
+        if subplots_link:
+            viewbox = None
+            for dock in self.dock_area.docks.values():
+                for plt in dock.widgets:
+                    if viewbox is None:
+                        viewbox = plt.plot.viewbox
+                    else:
+                        plt.plot.viewbox.setXLink(viewbox)
         else:
-            super().keyPressEvent(event)
+            for dock in self.dock_area.docks.values():
+                for plt in dock.widgets:
+                    plt.plot.viewbox.setXLink(None)
+
+    def save_all_subplots(self):
+        file_name, _ = QFileDialog.getSaveFileName(
+            self,
+            "Select output measurement file", "",
+            "MDF version 4 files (*.mf4)",
+        )
+
+        if file_name:
+            with MDF() as mdf:
+                for dock in self.dock_area.docks.values():
+                    for plt in dock.widgets:
+
+                        mdf.append(plt.plot.signals)
+                mdf.save(file_name, overwrite=True)
 
     def search(self):
         dlg = AdvancedSearch(self.mdf.channels_db, self)
@@ -491,59 +468,6 @@ class FileWidget(QWidget):
 
                 iterator += 1
                 ch_cntr += 1
-
-    def channel_selection_reduced(self, deleted):
-
-        for i in sorted(deleted, reverse=True):
-            item = self.plot.curves.pop(i)
-            item.hide()
-            item.setParent(None)
-
-            item = self.plot.axes.pop(i)
-            item.hide()
-            item.setParent(None)
-
-            item = self.plot.view_boxes.pop(i)
-            item.hide()
-            item.setParent(None)
-
-            self.plot.signals.pop(i)
-
-        rows = self.channel_selection.count()
-
-        for i in range(rows):
-            item = self.channel_selection.item(i)
-            wid = self.channel_selection.itemWidget(item)
-            wid.index = i
-
-    def channel_selection_modified(self):
-        selected_items = self.channel_selection.selectedItems()
-        count = len([sig for sig in self.plot.signals if sig.enable])
-        rows = self.channel_selection.count()
-
-        for i in range(rows):
-            item = self.channel_selection.item(i)
-            if count > 1 and item in selected_items:
-                if self.plot.signals[i].enable and not self.plot.axes[i].isVisible():
-                    self.plot.axes[i].show()
-                    self.plot.axes[i].showLabel()
-                if self.info:
-                    self.info.clear()
-            else:
-                if self.plot.axes[i].isVisible():
-                    self.plot.axes[i].hide()
-
-        if len(selected_items) == 1:
-            self.info_index = self.channel_selection.row(selected_items[0])
-        else:
-            self.info_index = None
-
-        if self.info:
-            if self.info_index is None:
-                self.info.clear()
-            else:
-                stats = self.plot.get_stats(self.info_index)
-                self.info.set_stats(stats)
 
     def save_channel_list(self):
         file_name, _ = QFileDialog.getSaveFileName(
@@ -644,241 +568,6 @@ class FileWidget(QWidget):
 
                 iterator += 1
 
-    def cursor_move_finished(self):
-        x = self.plot.timebase
-
-        if x is not None and len(x):
-            dim = len(x)
-            position = self.plot.cursor1.value()
-
-            right = np.searchsorted(x, position, side="right")
-            if right == 0:
-                next_pos = x[0]
-            elif right == dim:
-                next_pos = x[-1]
-            else:
-                if position - x[right - 1] < x[right] - position:
-                    next_pos = x[right - 1]
-                else:
-                    next_pos = x[right]
-            self.plot.cursor1.setPos(next_pos)
-
-        self.plot.cursor_hint.setData(x=[], y=[])
-
-    def cursor_moved(self):
-        position = self.plot.cursor1.value()
-
-        x = self.plot.timebase
-
-        if x is not None and len(x):
-            dim = len(x)
-            position = self.plot.cursor1.value()
-
-            right = np.searchsorted(x, position, side="right")
-            if right == 0:
-                next_pos = x[0]
-            elif right == dim:
-                next_pos = x[-1]
-            else:
-                if position - x[right - 1] < x[right] - position:
-                    next_pos = x[right - 1]
-                else:
-                    next_pos = x[right]
-
-            y = []
-
-            _, (hint_min, hint_max) = self.plot.viewbox.viewRange()
-
-            for viewbox, sig, curve in zip(
-                self.plot.view_boxes, self.plot.signals, self.plot.curves
-            ):
-                if curve.isVisible():
-                    index = np.argwhere(sig.timestamps == next_pos).flatten()
-                    if len(index):
-                        _, (y_min, y_max) = viewbox.viewRange()
-
-                        sample = sig.samples[index[0]]
-                        sample = (sample - y_min) / (y_max - y_min) * (
-                            hint_max - hint_min
-                        ) + hint_min
-
-                        y.append(sample)
-
-            if self.plot.curve.isVisible():
-                timestamps = self.plot.curve.xData
-                samples = self.plot.curve.yData
-                if len(samples):
-                    index = np.argwhere(timestamps == next_pos).flatten()
-                    if len(index):
-                        _, (y_min, y_max) = self.plot.viewbox.viewRange()
-
-                        sample = samples[index[0]]
-                        sample = (sample - y_min) / (y_max - y_min) * (
-                            hint_max - hint_min
-                        ) + hint_min
-
-                        y.append(sample)
-
-            self.plot.viewbox.setYRange(hint_min, hint_max, padding=0)
-            self.plot.cursor_hint.setData(x=[next_pos] * len(y), y=y)
-            self.plot.cursor_hint.show()
-
-        if not self.plot.region:
-            self.cursor_info.setText(f"t = {position:.6f}s")
-            for i, signal in enumerate(self.plot.signals):
-                cut_sig = signal.cut(position, position)
-                if signal.plot_texts is None or len(cut_sig) == 0:
-                    samples = cut_sig.samples
-                    if signal.conversion and hasattr(signal.conversion, "text_0"):
-                        samples = signal.conversion.convert(samples)
-                        if samples.dtype.kind == 'S':
-                            try:
-                                samples = [s.decode("utf-8") for s in samples]
-                            except:
-                                samples = [s.decode("latin-1") for s in samples]
-                        else:
-                            samples = samples.tolist()
-                else:
-                    t = np.argwhere(signal.plot_timestamps == cut_sig.timestamps).flatten()
-                    try:
-                        samples = [e.decode("utf-8") for e in signal.plot_texts[t]]
-                    except:
-                        samples = [e.decode("latin-1") for e in signal.plot_texts[t]]
-
-                item = self.channel_selection.item(i)
-                item = self.channel_selection.itemWidget(item)
-
-                item.setPrefix("= ")
-                item.setFmt(signal.format)
-
-                if len(samples):
-                    item.setValue(samples[0])
-                else:
-                    item.setValue("n.a.")
-
-        if self.info:
-            if self.info_index is None:
-                self.info.clear()
-            else:
-                stats = self.plot.get_stats(self.info_index)
-                self.info.set_stats(stats)
-
-    def cursor_removed(self):
-        for i, signal in enumerate(self.plot.signals):
-            item = self.channel_selection.item(i)
-            item = self.channel_selection.itemWidget(item)
-
-            if not self.plot.region:
-                self.cursor_info.setText("")
-                item.setPrefix("")
-                item.setValue("")
-        if self.info:
-            if self.info_index is None:
-                self.info.clear()
-            else:
-                stats = self.plot.get_stats(self.info_index)
-                self.info.set_stats(stats)
-
-    def range_modified(self):
-        start, stop = self.plot.region.getRegion()
-        self.cut_start.setValue(start)
-        self.cut_stop.setValue(stop)
-
-        self.cursor_info.setText(
-            (
-                "< html > < head / > < body >"
-                f"< p >t1 = {start:.6f}s< / p > "
-                f"< p >t2 = {stop:.6f}s< / p > "
-                f"< p >Δt = {stop - start:.6f}s< / p > "
-                "< / body > < / html >"
-            )
-        )
-
-        for i, signal in enumerate(self.plot.signals):
-            samples = signal.cut(start, stop).samples
-            item = self.channel_selection.item(i)
-            item = self.channel_selection.itemWidget(item)
-
-            item.setPrefix("Δ = ")
-            item.setFmt(signal.format)
-
-            if len(samples):
-                if samples.dtype.kind in "ui":
-                    delta = np.int64(np.float64(samples[-1]) - np.float64(samples[0]))
-                else:
-                    delta = samples[-1] - samples[0]
-
-                item.setValue(delta)
-
-            else:
-                item.setValue("n.a.")
-
-        if self.info:
-            if self.info_index is None:
-                self.info.clear()
-            else:
-                stats = self.plot.get_stats(self.info_index)
-                self.info.set_stats(stats)
-
-    def xrange_changed(self):
-
-        if self.info:
-            if self.info_index is None:
-                self.info.clear()
-            else:
-                stats = self.plot.get_stats(self.info_index)
-                self.info.set_stats(stats)
-
-    def range_modified_finished(self):
-        start, stop = self.plot.region.getRegion()
-
-        if self.plot.timebase is not None and len(self.plot.timebase):
-            timebase = self.plot.timebase
-            dim = len(timebase)
-
-            right = np.searchsorted(timebase, start, side="right")
-            if right == 0:
-                next_pos = timebase[0]
-            elif right == dim:
-                next_pos = timebase[-1]
-            else:
-                if start - timebase[right - 1] < timebase[right] - start:
-                    next_pos = timebase[right - 1]
-                else:
-                    next_pos = timebase[right]
-            start = next_pos
-
-            right = np.searchsorted(timebase, stop, side="right")
-            if right == 0:
-                next_pos = timebase[0]
-            elif right == dim:
-                next_pos = timebase[-1]
-            else:
-                if stop - timebase[right - 1] < timebase[right] - stop:
-                    next_pos = timebase[right - 1]
-                else:
-                    next_pos = timebase[right]
-            stop = next_pos
-
-            self.plot.region.setRegion((start, stop))
-
-    def range_removed(self):
-        for i, signal in enumerate(self.plot.signals):
-            item = self.channel_selection.item(i)
-            item = self.channel_selection.itemWidget(item)
-
-            item.setPrefix("")
-            item.setValue("")
-            self.cursor_info.setText("")
-        if self.plot.cursor1:
-            self.plot.cursor_moved.emit()
-        if self.info:
-            if self.info_index is None:
-                self.info.clear()
-            else:
-                stats = self.plot.get_stats(self.info_index)
-                self.info.set_stats(stats)
-
     def compute_cut_hints(self):
         # TODO : use master channel physical min and max values
         times = []
@@ -940,6 +629,12 @@ class FileWidget(QWidget):
                 item.setExpanded(False)
 
             iterator += 1
+
+    def get_current_plot(self):
+        if self.active_plot:
+            return self.dock_area.docks[self.active_plot].widgets[0]
+        else:
+            return None
 
     def new_search_result(self, tree, search):
         group_index, channel_index = search.entries[search.current_index]
@@ -1197,6 +892,8 @@ class FileWidget(QWidget):
         mat_format = self.mat_format.currentText()
         raster = self.export_raster.value()
         oned_as = self.oned_as.currentText()
+        reduce_memory_usage = self.reduce_memory_usage.checkState() == Qt.Checked
+        compression = self.export_compression.currentText()
 
         filters = {
             "csv": "CSV files (*.csv)",
@@ -1223,6 +920,8 @@ class FileWidget(QWidget):
                     "format": mat_format,
                     "raster": raster,
                     "oned_as": oned_as,
+                    "reduce_memory_usage": reduce_memory_usage,
+                    "compression": compression,
                 },
             )
 
@@ -1286,85 +985,71 @@ class FileWidget(QWidget):
 
             signals = natsorted(signals, key=lambda x: x.name)
 
-        count = self.channel_selection.count()
-        for i in range(count):
-            self.channel_selection.takeItem(0)
+        if signals:
+            if not self.subplots:
+                wid = self.splitter.widget(1)
+                wid.setParent(None)
+                self.dock_area = DockArea(self.splitter)
+                self.splitter.addWidget(self.dock_area)
 
-        if self.info:
-            self.info.setParent(None)
-            self.info = None
+            count = len(self.dock_area.docks)
+            self.dock_area.hide()
+            dock_name = self._dock_names.get_unique_name('Plot')
+            dock = Dock(dock_name, closable=True)
+            self.dock_area.addDock(dock)
 
-        self.plot = Plot(signals, self.with_dots, self)
-        self.plot.range_modified.connect(self.range_modified)
-        self.plot.range_removed.connect(self.range_removed)
-        self.plot.range_modified_finished.connect(self.range_modified_finished)
-        self.plot.cursor_removed.connect(self.cursor_removed)
-        self.plot.cursor_moved.connect(self.cursor_moved)
-        self.plot.cursor_move_finished.connect(self.cursor_move_finished)
-        self.plot.xrange_changed.connect(self.xrange_changed)
-        self.plot.computation_channel_inserted.connect(self.computation_channel_inserted)
-        self.plot.show()
+            dock.label.sigClicked.connect(partial(self.mark_active_plot, dock_name))
+            dock.sigClosed.connect(self.close_plot)
 
-        for i, sig in enumerate(self.plot.signals):
-            if sig.empty:
-                name, unit = sig.name, "[has no samples]"
-            else:
-                name, unit = sig.name, sig.unit
-            item = QListWidgetItem(self.channel_selection)
-            it = ChannelDisplay(i, unit, self)
-            it.setAttribute(Qt.WA_StyledBackground)
+            plot = Plot(signals, self.with_dots)
+            plot.plot.update_lines(force=True)
+            plot.clicked.connect(partial(self.mark_active_plot, dock_name))
+            plot.close_request.connect(partial(self.close_plot, dock))
 
-            it.setName(name)
-            it.setValue("")
-            it.setColor(sig.color)
-            item.setSizeHint(it.sizeHint())
-            self.channel_selection.addItem(item)
-            self.channel_selection.setItemWidget(item, it)
+            dock.addWidget(plot)
 
-            it.color_changed.connect(self.plot.setColor)
-            it.enable_changed.connect(self.plot.setSignalEnable)
-            it.ylink_changed.connect(self.plot.setCommonAxis)
+            self.dock_area.show()
 
-        if self.splitter.count() > 1:
-            old_plot = self.splitter.widget(1)
-            old_plot.setParent(None)
-            old_plot.hide()
-        self.splitter.addWidget(self.plot)
+            if count and self.subplots_link:
+                plot.plot.viewbox.setXLink(self.get_current_plot().plot.viewbox)
 
-        width = sum(self.splitter.sizes())
+            width = sum(self.splitter.sizes())
+            self.splitter.setSizes((0.2 * width, 0.8 * width))
+            self.splitter.setStretchFactor(0, 0)
+            self.splitter.setStretchFactor(1, 1)
 
-        self.splitter.setSizes((0.2 * width, 0.8 * width))
-        self.splitter.setStretchFactor(0, 0)
-        self.splitter.setStretchFactor(1, 1)
+            self.mark_active_plot(dock_name)
+
         QApplication.processEvents()
 
-        self.plot.update_lines(force=True)
+    def close_plot(self, dock):
+        self.dock_area.hide()
+        dock_name = dock.label.text()
+        self.dock_area.docks.pop(dock_name)
+        if self.active_plot == dock_name:
+            if self.dock_area.docks:
+                new_active_plot = list(self.dock_area.docks)[0]
+                self.mark_active_plot(new_active_plot)
+        if not self.dock_area.docks:
+            self.active_plot = ""
+        self.dock_area.show()
 
-    def computation_channel_inserted(self):
-        sig = self.plot.signals[-1]
-        index = self.channel_selection.count()
-        if sig.empty:
-            name, unit = sig.name, "[has no samples]"
-        else:
-            name, unit = sig.name, sig.unit
-        item = QListWidgetItem(self.channel_selection)
-        it = ChannelDisplay(index, unit, self)
-        it.setAttribute(Qt.WA_StyledBackground)
+    def mark_active_plot(self, plot_name):
+        self.active_plot = plot_name
+        self._timer.start(5)
 
-        it.setName(name)
-        it.setValue("")
-        it.setColor(sig.color)
-        item.setSizeHint(it.sizeHint())
-        self.channel_selection.addItem(item)
-        self.channel_selection.setItemWidget(item, it)
+    def _mark_active_plot(self):
+        plot_name = self.active_plot
 
-        it.color_changed.connect(self.plot.setColor)
-        it.enable_changed.connect(self.plot.setSignalEnable)
-        it.ylink_changed.connect(self.plot.setCommonAxis)
-
-        it.enable_changed.emit(index, 1)
-        it.enable_changed.emit(index, 0)
-        it.enable_changed.emit(index, 1)
+        for dock in self.dock_area.docks.values():
+            if dock.label.text() == plot_name:
+                dock.label.setStyleSheet("""DockLabel {
+                background-color : rgb(94, 178, 226);
+            }""")
+            else:
+                dock.label.setStyleSheet("""DockLabel {
+                background-color : rgb(145, 145, 145);
+            }""")
 
     def filter(self, event):
         iterator = QTreeWidgetItemIterator(self.filter_tree)
