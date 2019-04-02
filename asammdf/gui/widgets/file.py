@@ -1004,6 +1004,7 @@ class FileWidget(QWidget):
             plot = Plot(signals, self.with_dots)
             plot.plot.update_lines(force=True)
             plot.clicked.connect(partial(self.mark_active_plot, dock_name))
+            plot.close_request.connect(partial(self.close_plot, dock))
 
             dock.addWidget(plot)
 
@@ -1022,6 +1023,7 @@ class FileWidget(QWidget):
         QApplication.processEvents()
 
     def close_plot(self, dock):
+        self.dock_area.hide()
         dock_name = dock.label.text()
         self.dock_area.docks.pop(dock_name)
         if self.active_plot == dock_name:
@@ -1030,6 +1032,7 @@ class FileWidget(QWidget):
                 self.mark_active_plot(new_active_plot)
         if not self.dock_area.docks:
             self.active_plot = ""
+        self.dock_area.show()
 
     def mark_active_plot(self, plot_name):
         self.active_plot = plot_name

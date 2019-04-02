@@ -130,29 +130,32 @@ try:
                     self.info.set_stats(stats)
 
         def channel_selection_reduced(self, deleted):
+            for i in sorted(deleted, reverse=True):
+                item = self.plot.curves.pop(i)
+                item.hide()
+                item.setParent(None)
 
-            if len(deleted) == self.channel_selection.count():
+                self.plot.signals.pop(i)
+
+                if self.info_index >= i:
+                    self.info_index -= 1
+
+            rows = self.channel_selection.count()
+
+            if not rows:
                 self.close_request.emit()
             else:
-                for i in sorted(deleted, reverse=True):
-                    item = self.plot.curves.pop(i)
-                    item.hide()
-                    item.setParent(None)
-
-                    self.plot.signals.pop(i)
-
-                rows = self.channel_selection.count()
-
                 for i in range(rows):
                     item = self.channel_selection.item(i)
                     wid = self.channel_selection.itemWidget(item)
                     wid.index = i
 
-                if self.info_index in deleted:
+                if self.info_index < 0:
                     self.info_index = 0
-                    self.plot.set_current_index(0)
-                    stats = self.plot.get_stats(self.info_index)
-                    self.info.set_stats(stats)
+
+                self.plot.set_current_index(self.info_index)
+                stats = self.plot.get_stats(self.info_index)
+                self.info.set_stats(stats)
 
         def cursor_move_finished(self):
             x = self.plot.timebase
@@ -1159,23 +1162,13 @@ try:
                         if len(sig.samples):
                             sig.min = np.amin(sig.samples)
                             sig.max = np.amax(sig.samples)
+                            sig.avg = np.mean(sig.samples)
+                            sig.rms = np.sqrt(np.mean(np.square(sig.samples)))
                             sig.empty = False
                         else:
                             sig.empty = True
 
-                        axis = FormatedAxis("right", pen=color)
-                        if sig.conversion and hasattr(sig.conversion, "text_0"):
-                            axis.text_conversion = sig.conversion
-
                         view_box = pg.ViewBox(enableMenu=False)
-
-                        axis.linkToView(view_box)
-                        axis.labelText = sig.name
-                        axis.labelUnits = sig.unit
-                        axis.labelStyle = {"color": color}
-                        axis.hide()
-
-                        self.layout.addItem(axis, 2, index + 2)
 
                         self.scene_.addItem(view_box)
 
@@ -1200,8 +1193,6 @@ try:
                         view_box.setYRange(sig.min, sig.max, padding=0, update=True)
                         (start, stop), _ = self.viewbox.viewRange()
                         view_box.setXRange(start, stop, padding=0, update=True)
-                        axis.showLabel()
-                        axis.show()
                         QApplication.processEvents()
 
                         self.computation_channel_inserted.emit()
@@ -1282,7 +1273,6 @@ try:
         def set_current_index(self, index, force=False):
             axis = self.axis
             viewbox = self.viewbox
-
 
             sig = self.signals[index]
 
