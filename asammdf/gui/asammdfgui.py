@@ -2,15 +2,13 @@
 import argparse
 import sys
 
-try:
-    from PyQt5.QtWidgets import QApplication
-except ImportError:
-    from PyQt4.QtGui import QApplication
+from PyQt5.QtWidgets import QApplication
 
 from asammdf.gui.widgets.main import MainWindow
 from asammdf.gui.utils import excepthook
 
 sys.excepthook = excepthook
+
 
 def _cmd_line_parser():
     '''
@@ -18,7 +16,11 @@ def _cmd_line_parser():
     '''
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--measurements', nargs='*', help='list of measurement files')
+    parser.add_argument(
+        '--measurements',
+        nargs='*',
+        help='list of measurement files',
+    )
     return parser
 
 
