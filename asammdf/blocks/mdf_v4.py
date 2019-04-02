@@ -3893,7 +3893,6 @@ class MDF4(object):
                                 group=dg_nr,
                                 index=ch_nr,
                                 samples_only=True,
-                                raw=raw,
                                 data=fragment,
                                 ignore_invalidation_bits=ignore_invalidation_bits,
                                 record_offset=record_offset,
