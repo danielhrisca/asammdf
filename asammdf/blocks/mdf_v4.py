@@ -40,7 +40,6 @@ from numpy import (
     fliplr,
     searchsorted,
     full,
-    unpackbits,
 )
 
 from numpy.core.records import fromarrays, fromstring
