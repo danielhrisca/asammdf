@@ -232,7 +232,7 @@ class FileWidget(QWidget):
         )
         vbox.addLayout(hbox)
 
-        self.dock_area = DockArea(self.splitter)
+        self.dock_area = DockArea()
         self.splitter.addWidget(self.dock_area)
 
         self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
@@ -995,7 +995,7 @@ class FileWidget(QWidget):
             count = len(self.dock_area.docks)
             self.dock_area.hide()
             dock_name = self._dock_names.get_unique_name('Plot')
-            dock = Dock(dock_name, closable=True)
+            dock = Dock(dock_name,  size=(1, 1), closable=True)
             self.dock_area.addDock(dock)
 
             dock.label.sigClicked.connect(partial(self.mark_active_plot, dock_name))
