@@ -137,6 +137,7 @@ class Signal(object):
         return f"""<Signal {self.name}:
 \tsamples={self.samples}
 \ttimestamps={self.timestamps}
+\tinvalidation_bits={self.invalidation_bits}
 \tunit="{self.unit}"
 \tconversion={self.conversion}
 \tsource={self.source}

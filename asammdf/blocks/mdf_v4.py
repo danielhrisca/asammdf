@@ -203,7 +203,6 @@ class MDF4(object):
         self._master_channel_cache = {}
         self._master_channel_metadata = {}
         self._invalidation_cache = {}
-        self._invalidation_cache2 = {}
         self._external_dbc_cache = {}
         self._si_map = {}
         self._file_si_map = {}
@@ -2085,68 +2084,6 @@ class MDF4(object):
 
         return info
 
-    def get_invalidation_bits2(self, group_index, channel, fragment):
-        """ get invalidation indexes for the channel
-
-        Parameters
-        ----------
-        group_index : int
-            group index
-        channel : Channel
-            channel object
-        fragment : (bytes, int)
-            (fragment bytes, fragment offset)
-
-        Returns
-        -------
-        invalidation_bits : iterable
-            iterable of valid channel indexes; if all are valid `None` is
-            returned
-
-        """
-        group = self.groups[group_index]
-        dtypes = group.types
-        invalidation_size = group.channel_group.invalidation_bytes_nr
-
-        data_bytes, offset, _count = fragment
-        try:
-            invalidation = self._invalidation_cache[(group_index, offset, _count)]
-        except KeyError:
-            record = group.record
-            if record is None:
-                dtypes = group.types
-                if dtypes.itemsize:
-                    record = fromstring(data_bytes, dtype=dtypes)
-                else:
-                    record = None
-
-            invalidation = unpackbits(record["invalidation_bytes"], axis=1)
-            self._invalidation_cache[(group_index, offset, _count)] = invalidation
-
-        ch_invalidation_pos = channel["pos_invalidation_bit"]
-        pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
-        print(pos_offset)
-
-        ch_invalidation_pos = pos_byte * 8 + pos_offset
-
-        # rec = fromstring(
-        #     invalidation,
-        #     dtype=[
-        #         ("", f"V{pos_byte}"),
-        #         ("vals", "<u1"),
-        #         ("", f"V{invalidation_size - pos_byte - 1}"),
-        #     ],
-        # )
-
-        # mask = 1 << pos_offset
-
-        # invalidation_bits = rec["vals"] & mask
-        # invalidation_bits = invalidation_bits.astype(bool)
-
-        invalidation_bits = invalidation[:, ch_invalidation_pos]
-
-        return invalidation_bits
-
     def get_invalidation_bits(self, group_index, channel, fragment):
         """ get invalidation indexes for the channel
 
@@ -2168,11 +2105,10 @@ class MDF4(object):
         """
         group = self.groups[group_index]
         dtypes = group.types
-        invalidation_size = group.channel_group.invalidation_bytes_nr
 
         data_bytes, offset, _count = fragment
         try:
-            invalidation = self._invalidation_cache2[(group_index, offset, _count)]
+            invalidation = self._invalidation_cache[(group_index, offset, _count)]
         except KeyError:
             record = group.record
             if record is None:
@@ -2182,24 +2118,15 @@ class MDF4(object):
                 else:
                     record = None
 
-            invalidation = record["invalidation_bytes"].tostring()
-            self._invalidation_cache2[(group_index, offset, _count)] = invalidation
+            invalidation = record["invalidation_bytes"].copy()
+            self._invalidation_cache[(group_index, offset, _count)] = invalidation
 
-        ch_invalidation_pos = channel["pos_invalidation_bit"]
+        ch_invalidation_pos = channel.pos_invalidation_bit
         pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
-
-        rec = fromstring(
-            invalidation,
-            dtype=[
-                ("", f"V{pos_byte}"),
-                ("vals", "<u1"),
-                ("", f"V{invalidation_size - pos_byte - 1}"),
-            ],
-        )
 
         mask = 1 << pos_offset
 
-        invalidation_bits = rec["vals"] & mask
+        invalidation_bits = invalidation[:, pos_byte] & mask
         invalidation_bits = invalidation_bits.astype(bool)
 
         return invalidation_bits
@@ -4412,22 +4339,6 @@ class MDF4(object):
                             self.get_invalidation_bits(gp_nr, channel, fragment)
                         )
 
-                        x1 = self.get_invalidation_bits(gp_nr, channel, fragment)
-                        x2 = self.get_invalidation_bits2(gp_nr, channel, fragment)
-                        if x1 is None or x2 is None:
-                            assert x1 is None
-                            assert x2 is None
-                        else:
-                            from numpy import array_equal
-                            if not array_equal(x1, x2.astype('<u1')):
-                                for kk, (v1, v2) in enumerate(zip(x1, x2.astype('<u1'))):
-                                    if v1 != v2:
-                                        print(kk, v1, v2)
-                                1/0
-                                print(*zip(x1, x2.astype('<u1')), sep='\n')
-                                print(len(x1), x1.shape, len(x2), x2.shape)
-                                1/0
-                        # assert self.get_invalidation_bits(gp_nr, channel, fragment) == self.get_invalidation_bits2(gp_nr, channel, fragment)
                     if vals.flags.writeable:
                         channel_values.append(vals)
                     else:

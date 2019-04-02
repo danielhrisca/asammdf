@@ -1892,6 +1892,8 @@ class MDF(object):
 
             offsets = [0 for _ in files]
 
+        print(offsets)
+
         version = validate_version_argument(version)
 
         merged = MDF(version=version, callback=callback)
@@ -1930,6 +1932,7 @@ class MDF(object):
             cg_nr = -1
 
             for i, group in enumerate(mdf.groups):
+                print(mdf_index, i, mdf.get_master(i))
                 included_channels = mdf._included_channels(i)
                 if mdf_index == 0:
                     included_channel_names.append(
@@ -2145,6 +2148,8 @@ class MDF(object):
                     group.record = None
 
                 last_timestamps[i] = last_timestamp
+
+            print(last_timestamps)
 
             if callback:
                 callback(i + 1 + mdf_index * groups_nr, groups_nr * mdf_nr)
