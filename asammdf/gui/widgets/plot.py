@@ -85,7 +85,7 @@ try:
 
             for i, sig in enumerate(self.plot.signals):
                 if sig.empty:
-                    name, unit = sig.name, "[has no samples]"
+                    name, unit = sig.name, sig.unit
                 else:
                     name, unit = sig.name, sig.unit
                 item = QListWidgetItem(self.channel_selection)
@@ -529,6 +529,7 @@ try:
                     sig.empty = True
 
                 view_box = pg.ViewBox(enableMenu=True)
+                view_box.disableAutoRange()
 
                 self.scene_.addItem(view_box)
 
@@ -551,7 +552,8 @@ try:
                 self.view_boxes.append(view_box)
                 self.curves.append(curve)
 
-            self.set_current_index(0)
+            if self.signals:
+                self.set_current_index(0)
 
             #            self.update_views()
             self.viewbox.sigResized.connect(self.update_views)
@@ -1305,29 +1307,30 @@ try:
                 viewbox.setYRange(*self.view_boxes[index].viewRange()[1], padding=0)
                 self.view_boxes[index].setYLink(viewbox)
                 if len(sig.name) <= 32:
-                    axis.labelText = sig.name
+                    axis.setLabel(f'{sig.name} [{sig.unit}]')
                 else:
-                    axis.labelText = f"{sig.name[:29]}..."
+                    axis.setLabel(f"{sig.name[:29]}...  [{sig.unit}]")
                 axis.setPen(sig.color)
                 axis.update()
 
             self.current_index = index
 
         def _clicked(self, event):
-            x = self.plot_item.vb.mapSceneToView(event.scenePos())
+            if Qt.Key_C not in self.disabled_keys:
+                x = self.plot_item.vb.mapSceneToView(event.scenePos())
 
-            if self.cursor1 is not None:
-                self.plotItem.removeItem(self.cursor1)
-                self.cursor1.setParent(None)
-                self.cursor1 = None
+                if self.cursor1 is not None:
+                    self.plotItem.removeItem(self.cursor1)
+                    self.cursor1.setParent(None)
+                    self.cursor1 = None
 
-            self.cursor1 = Cursor(pos=x, angle=90, movable=True)
-            self.plotItem.addItem(self.cursor1, ignoreBounds=True)
-            self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
-            self.cursor1.sigPositionChangeFinished.connect(
-                self.cursor_move_finished.emit
-            )
-            self.cursor_move_finished.emit()
+                self.cursor1 = Cursor(pos=x, angle=90, movable=True)
+                self.plotItem.addItem(self.cursor1, ignoreBounds=True)
+                self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
+                self.cursor1.sigPositionChangeFinished.connect(
+                    self.cursor_move_finished.emit
+                )
+                self.cursor_move_finished.emit()
 
 
 except ImportError:
