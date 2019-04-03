@@ -3032,6 +3032,7 @@ class MDF4(object):
             gp_dep.append(None)
 
             fields.append(t)
+            print(t, array(t))
             types.append((name, t.dtype))
             field_names.get_unique_name(name)
 

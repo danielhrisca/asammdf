@@ -172,7 +172,6 @@ class FileWidget(QWidget):
         vbox.addWidget(self.search_field)
 
         vbox.addWidget(self.channels_tree, 1)
-        channel_and_search.setLayout(vbox)
 
         hbox = QHBoxLayout(channel_and_search)
 
