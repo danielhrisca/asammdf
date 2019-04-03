@@ -445,7 +445,7 @@ class FileWidget(QWidget):
                 mdf.save(file_name, overwrite=True)
 
     def search(self):
-        dlg = AdvancedSearch(self.mdf.channels_db, self)
+        dlg = AdvancedSearch(self.mdf.channels_db, parent=self)
         dlg.setModal(True)
         dlg.exec_()
         result = dlg.result

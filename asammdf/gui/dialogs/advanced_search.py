@@ -14,7 +14,7 @@ HERE = Path(__file__).resolve().parent
 
 
 class AdvancedSearch(QDialog):
-    def __init__(self, channels_db, *args, **kwargs):
+    def __init__(self, channels_db, return_names=False, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "search_dialog.ui"), self)
@@ -28,6 +28,7 @@ class AdvancedSearch(QDialog):
 
         self.search_box.textChanged.connect(self.search_text_changed)
         self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
+        self._return_names = return_names
 
         self.setWindowTitle("Search & select channels")
 
@@ -73,10 +74,17 @@ class AdvancedSearch(QDialog):
 
     def _apply(self, event):
         count = self.selection.count()
-        self.result = set()
-        for i in range(count):
-            for entry in self.channels_db[self.selection.item(i).text()]:
-                self.result.add(entry)
+
+        if self._return_names:
+            self.result = set(
+                self.selection.item(i).text()
+                for i in range(count)
+            )
+        else:
+            self.result = set()
+            for i in range(count):
+                for entry in self.channels_db[self.selection.item(i).text()]:
+                    self.result.add(entry)
         self.close()
 
     def _cancel(self, event):
