@@ -44,9 +44,6 @@ class FileWidget(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "file_widget.ui"), self)
 
-        self._timer = QtCore.QTimer()
-        self._timer.timeout.connect(self._mark_active_plot)
-
         file_name = Path(file_name)
         self.subplots = subplots
         self.subplots_link = subplots_link
@@ -232,6 +229,8 @@ class FileWidget(QtWidgets.QWidget):
         vbox.addLayout(hbox)
 
         self.mdi_area = QtWidgets.QMdiArea()
+        self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.splitter.addWidget(self.mdi_area)
 
         self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
@@ -380,8 +379,6 @@ class FileWidget(QtWidgets.QWidget):
         self.save_filter_list_btn.clicked.connect(self.save_filter_list)
 
         self.scramble_btn.clicked.connect(self.scramble)
-
-        self._dock_names = UniqueDB()
 
     def export_changed(self, name):
         if name == 'parquet':
@@ -999,7 +996,7 @@ class FileWidget(QtWidgets.QWidget):
                 w = self.mdi_area.addSubWindow(plot)
 
                 w.show()
-                self.mdi_area.tileSubWindows()a
+                self.mdi_area.tileSubWindows()
 
         QtWidgets.QApplication.processEvents()
 
