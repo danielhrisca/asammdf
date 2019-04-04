@@ -413,16 +413,16 @@ class FileWidget(QtWidgets.QWidget):
         self.subplots_link = subplots_link
         if subplots_link:
             viewbox = None
-            for dock in self.mdi_area.docks.values():
-                for plt in dock.widgets:
-                    if viewbox is None:
-                        viewbox = plt.plot.viewbox
-                    else:
-                        plt.plot.viewbox.setXLink(viewbox)
+            for mdi in self.mdi_area.subWindowList():
+                plt = mdi.widget()
+                if viewbox is None:
+                    viewbox = plt.plot.viewbox
+                else:
+                    plt.plot.viewbox.setXLink(viewbox)
         else:
-            for dock in self.mdi_area.docks.values():
-                for plt in dock.widgets:
-                    plt.plot.viewbox.setXLink(None)
+            for mdi in self.mdi_area.subWindowList():
+                plt = mdi.widget()
+                plt.plot.viewbox.setXLink(None)
 
     def save_all_subplots(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -433,10 +433,10 @@ class FileWidget(QtWidgets.QWidget):
 
         if file_name:
             with MDF() as mdf:
-                for dock in self.mdi_area.docks.values():
-                    for plt in dock.widgets:
+                for mdi in self.mdi_area.subWindowList():
+                    plt = mdi.widget()
 
-                        mdf.append(plt.plot.signals)
+                    mdf.append(plt.plot.signals)
                 mdf.save(file_name, overwrite=True)
 
     def search(self):
