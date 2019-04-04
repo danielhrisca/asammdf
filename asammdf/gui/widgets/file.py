@@ -231,8 +231,8 @@ class FileWidget(QtWidgets.QWidget):
         )
         vbox.addLayout(hbox)
 
-        self.dock_area = DockArea()
-        self.splitter.addWidget(self.dock_area)
+        self.mdi_area = QtWidgets.QMdiArea()
+        self.splitter.addWidget(self.mdi_area)
 
         self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
 
@@ -382,7 +382,6 @@ class FileWidget(QtWidgets.QWidget):
         self.scramble_btn.clicked.connect(self.scramble)
 
         self._dock_names = UniqueDB()
-        self.active_plot = ""
 
     def export_changed(self, name):
         if name == 'parquet':
@@ -417,14 +416,14 @@ class FileWidget(QtWidgets.QWidget):
         self.subplots_link = subplots_link
         if subplots_link:
             viewbox = None
-            for dock in self.dock_area.docks.values():
+            for dock in self.mdi_area.docks.values():
                 for plt in dock.widgets:
                     if viewbox is None:
                         viewbox = plt.plot.viewbox
                     else:
                         plt.plot.viewbox.setXLink(viewbox)
         else:
-            for dock in self.dock_area.docks.values():
+            for dock in self.mdi_area.docks.values():
                 for plt in dock.widgets:
                     plt.plot.viewbox.setXLink(None)
 
@@ -437,7 +436,7 @@ class FileWidget(QtWidgets.QWidget):
 
         if file_name:
             with MDF() as mdf:
-                for dock in self.dock_area.docks.values():
+                for dock in self.mdi_area.docks.values():
                     for plt in dock.widgets:
 
                         mdf.append(plt.plot.signals)
@@ -630,8 +629,9 @@ class FileWidget(QtWidgets.QWidget):
             iterator += 1
 
     def get_current_plot(self):
-        if self.active_plot:
-            return self.dock_area.docks[self.active_plot].widgets[0]
+        mdi = self.mdi_area.activeSubWindow()
+        if mdi is not None:
+            return mdi.widget()
         else:
             return None
 
@@ -985,67 +985,23 @@ class FileWidget(QtWidgets.QWidget):
             signals = natsorted(signals, key=lambda x: x.name)
 
         if signals:
-            if not self.subplots:
-                wid = self.splitter.widget(1)
-                wid.setParent(None)
-                self.dock_area = DockArea(self.splitter)
-                self.splitter.addWidget(self.dock_area)
-            
-            count = len(self.dock_area.docks)
-            self.dock_area.hide()
-            dock_name = self._dock_names.get_unique_name('Plot')
-            dock = Dock(dock_name,  size=(1, 1), closable=True)
-            self.dock_area.addDock(dock)
-
-            dock.label.sigClicked.connect(partial(self.mark_active_plot, dock_name))
-            dock.sigClosed.connect(self.close_plot)
 
             plot = Plot(signals, self.with_dots)
             plot.plot.update_lines(force=True)
-            plot.clicked.connect(partial(self.mark_active_plot, dock_name))
-            plot.close_request.connect(partial(self.close_plot, dock))
 
-            dock.addWidget(plot)
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(plot)
 
-            self.dock_area.show()
+                w.showMaximized()
+            else:
+                w = self.mdi_area.addSubWindow(plot)
 
-            if count and self.subplots_link:
-                plot.plot.viewbox.setXLink(self.get_current_plot().plot.viewbox)
-                
-            self.splitter.setSizes([100, 100])
-            
-            self.mark_active_plot(dock_name)
+                w.show()
+                self.mdi_area.tileSubWindows()a
 
         QtWidgets.QApplication.processEvents()
-
-    def close_plot(self, dock):
-        self.dock_area.hide()
-        dock_name = dock.label.text()
-        self.dock_area.docks.pop(dock_name)
-        if self.active_plot == dock_name:
-            if self.dock_area.docks:
-                new_active_plot = list(self.dock_area.docks)[0]
-                self.mark_active_plot(new_active_plot)
-        if not self.dock_area.docks:
-            self.active_plot = ""
-        self.dock_area.show()
-
-    def mark_active_plot(self, plot_name):
-        self.active_plot = plot_name
-        self._timer.start(5)
-
-    def _mark_active_plot(self):
-        plot_name = self.active_plot
-
-        for dock in self.dock_area.docks.values():
-            if dock.label.text() == plot_name:
-                dock.label.setStyleSheet("""DockLabel {
-                background-color : rgb(94, 178, 226);
-            }""")
-            else:
-                dock.label.setStyleSheet("""DockLabel {
-                background-color : rgb(145, 145, 145);
-            }""")
 
     def filter(self, event):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)

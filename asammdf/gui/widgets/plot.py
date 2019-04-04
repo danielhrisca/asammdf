@@ -49,7 +49,7 @@ try:
             self.setContentsMargins(0, 0, 0, 0)
 
             main_layout = QtWidgets.QVBoxLayout(self)
-            self.setLayout(main_layout)
+            # self.setLayout(main_layout)
 
             vbox = QtWidgets.QVBoxLayout()
             widget = QtWidgets.QWidget()
@@ -105,7 +105,6 @@ try:
 
             self.info = ChannelStats()
             self.splitter.addWidget(self.info)
-            self.info.hide()
 
             self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
             self.channel_selection.itemSelectionChanged.connect(
@@ -113,6 +112,9 @@ try:
             )
 
             main_layout.addWidget(self.splitter)
+
+            self.show()
+            self.info.hide()
 
         def mousePressEvent(self, event):
             self.clicked.emit()
