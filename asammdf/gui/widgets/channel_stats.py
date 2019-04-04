@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5 import uic
 
 from ..ui import resource_qt5 as resource_rc
 HERE = Path(__file__).resolve().parent
 
 
-class ChannelStats(QWidget):
+class ChannelStats(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "channel_stats.ui"), self)
@@ -53,7 +53,7 @@ class ChannelStats(QWidget):
 
                 if name == "unit":
                     for i in range(1, 16):
-                        label = self.findChild(QLabel, f"unit{i}")
+                        label = self.findChild(QtWidgets.QLabel, f"unit{i}")
                         label.setText(f" {value}")
                 elif name == "name":
                     self._name = value
@@ -62,7 +62,7 @@ class ChannelStats(QWidget):
                     self.color = value
                     self.name.setText(self.name_template.format(self.color, self._name))
                 else:
-                    label = self.findChild(QLabel, name)
+                    label = self.findChild(QtWidgets.QLabel, name)
                     label.setText(value)
         else:
             self.clear()

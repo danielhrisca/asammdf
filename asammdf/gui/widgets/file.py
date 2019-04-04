@@ -8,9 +8,9 @@ import psutil
 from natsort import natsorted
 import numpy as np
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5 import uic
 from pyqtgraph.dockarea import DockArea, Dock
 from pyqtgraph import LayoutWidget
@@ -35,16 +35,16 @@ from ..dialogs.tabular import TabularValuesDialog
 HERE = Path(__file__).resolve().parent
 
 
-class FileWidget(QWidget):
+class FileWidget(QtWidgets.QWidget):
 
-    file_scrambled = pyqtSignal(str)
+    file_scrambled = QtCore.pyqtSignal(str)
 
     def __init__(self, file_name, with_dots, subplots=False, subplots_link=False, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "file_widget.ui"), self)
 
-        self._timer = QTimer()
+        self._timer = QtCore.QTimer()
         self._timer.timeout.connect(self._mark_active_plot)
 
         file_name = Path(file_name)
@@ -58,16 +58,16 @@ class FileWidget(QWidget):
         self.info_index = None
         self.with_dots = with_dots
 
-        progress = QProgressDialog(
+        progress = QtWidgets.QProgressDialog(
             f'Opening "{self.file_name}"', "", 0, 100, self.parent()
         )
 
-        progress.setWindowModality(Qt.ApplicationModal)
+        progress.setWindowModality(QtCore.Qt.ApplicationModal)
         progress.setCancelButton(None)
         progress.setAutoClose(True)
         progress.setWindowTitle("Opening measurement")
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/open.png"), QIcon.Normal, QIcon.Off)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         progress.setWindowIcon(icon)
         progress.show()
 
@@ -137,10 +137,10 @@ class FileWidget(QWidget):
 
         progress.setValue(37)
 
-        splitter = QSplitter(self)
-        splitter.setOrientation(Qt.Vertical)
+        splitter = QtWidgets.QSplitter(self)
+        splitter.setOrientation(QtCore.Qt.Vertical)
 
-        channel_and_search = QWidget(splitter)
+        channel_and_search = QtWidgets.QWidget(splitter)
 
         self.channels_tree = TreeWidget(channel_and_search)
         self.search_field = SearchWidget(
@@ -161,11 +161,11 @@ class FileWidget(QWidget):
             )
         )
 
-        vbox = QVBoxLayout(channel_and_search)
+        vbox = QtWidgets.QVBoxLayout(channel_and_search)
         vbox.setSpacing(2)
-        self.advanced_search_btn = QPushButton("", channel_and_search)
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/search.png"), QIcon.Normal, QIcon.Off)
+        self.advanced_search_btn = QtWidgets.QPushButton("", channel_and_search)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.advanced_search_btn.setIcon(icon)
         self.advanced_search_btn.setToolTip("Advanced search and select channels")
         self.advanced_search_btn.clicked.connect(self.search)
@@ -173,61 +173,61 @@ class FileWidget(QWidget):
 
         vbox.addWidget(self.channels_tree, 1)
 
-        hbox = QHBoxLayout()
+        hbox = QtWidgets.QHBoxLayout()
 
-        self.clear_channels_btn = QPushButton("", channel_and_search)
+        self.clear_channels_btn = QtWidgets.QPushButton("", channel_and_search)
         self.clear_channels_btn.setToolTip("Reset selection")
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/erase.png"), QIcon.Normal, QIcon.Off)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/erase.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.clear_channels_btn.setIcon(icon)
         self.clear_channels_btn.setObjectName("clear_channels_btn")
 
-        self.load_channel_list_btn = QPushButton("", channel_and_search)
+        self.load_channel_list_btn = QtWidgets.QPushButton("", channel_and_search)
         self.load_channel_list_btn.setToolTip("Load channel selection list")
-        icon1 = QIcon()
-        icon1.addPixmap(QPixmap(":/open.png"), QIcon.Normal, QIcon.Off)
+        icon1 = QtGui.QIcon()
+        icon1.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.load_channel_list_btn.setIcon(icon1)
         self.load_channel_list_btn.setObjectName("load_channel_list_btn")
 
-        self.save_channel_list_btn = QPushButton("", channel_and_search)
+        self.save_channel_list_btn = QtWidgets.QPushButton("", channel_and_search)
         self.save_channel_list_btn.setToolTip("Save channel selection list")
-        icon2 = QIcon()
-        icon2.addPixmap(QPixmap(":/save.png"), QIcon.Normal, QIcon.Off)
+        icon2 = QtGui.QIcon()
+        icon2.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.save_channel_list_btn.setIcon(icon2)
         self.save_channel_list_btn.setObjectName("save_channel_list_btn")
 
-        self.select_all_btn = QPushButton("", channel_and_search)
+        self.select_all_btn = QtWidgets.QPushButton("", channel_and_search)
         self.select_all_btn.setToolTip("Select all channels")
-        icon1 = QIcon()
-        icon1.addPixmap(QPixmap(":/checkmark.png"), QIcon.Normal, QIcon.Off)
+        icon1 = QtGui.QIcon()
+        icon1.addPixmap(QtGui.QPixmap(":/checkmark.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.select_all_btn.setIcon(icon1)
 
         hbox.addWidget(self.load_channel_list_btn)
         hbox.addWidget(self.save_channel_list_btn)
-        line = QFrame()
-        line.setFrameShape(QFrame.VLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.VLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
         hbox.addWidget(line)
         hbox.addWidget(self.select_all_btn)
         hbox.addWidget(self.clear_channels_btn)
-        line = QFrame()
-        line.setFrameShape(QFrame.VLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.VLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
         hbox.addWidget(line)
         hbox.addWidget(self.advanced_search_btn)
-        line = QFrame()
-        line.setFrameShape(QFrame.VLine)
-        line.setFrameShadow(QFrame.Sunken)
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.VLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
         hbox.addWidget(line)
-        self.plot_btn = QPushButton("", channel_and_search)
+        self.plot_btn = QtWidgets.QPushButton("", channel_and_search)
         self.plot_btn.setToolTip("Plot selected channels")
-        icon3 = QIcon()
-        icon3.addPixmap(QPixmap(":/graph.png"), QIcon.Normal, QIcon.Off)
+        icon3 = QtGui.QIcon()
+        icon3.addPixmap(QtGui.QPixmap(":/graph.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.plot_btn.setIcon(icon3)
         self.plot_btn.setObjectName("plot_btn")
         hbox.addWidget(self.plot_btn)
         hbox.addSpacerItem(
-            QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+            QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         )
         vbox.addLayout(hbox)
 
@@ -254,15 +254,15 @@ class FileWidget(QWidget):
         flags = None
 
         for i, group in enumerate(self.mdf.groups):
-            channel_group = QTreeWidgetItem()
-            filter_channel_group = QTreeWidgetItem()
+            channel_group = QtWidgets.QTreeWidgetItem()
+            filter_channel_group = QtWidgets.QTreeWidgetItem()
             channel_group.setText(0, f"Channel group {i}")
             filter_channel_group.setText(0, f"Channel group {i}")
             channel_group.setFlags(
-                channel_group.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable
+                channel_group.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable
             )
             filter_channel_group.setFlags(
-                filter_channel_group.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable
+                filter_channel_group.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable
             )
 
             self.channels_tree.addTopLevelItem(channel_group)
@@ -277,16 +277,16 @@ class FileWidget(QWidget):
                 name = self.mdf.get_channel_name(i, j)
                 channel = TreeItem(entry)
                 if flags is None:
-                    flags = channel.flags() | Qt.ItemIsUserCheckable
+                    flags = channel.flags() | QtCore.Qt.ItemIsUserCheckable
                 channel.setFlags(flags)
                 channel.setText(0, name)
-                channel.setCheckState(0, Qt.Unchecked)
+                channel.setCheckState(0, QtCore.Qt.Unchecked)
                 group_children.append(channel)
 
                 channel = TreeItem(entry)
                 channel.setFlags(flags)
                 channel.setText(0, name)
-                channel.setCheckState(0, Qt.Unchecked)
+                channel.setCheckState(0, QtCore.Qt.Unchecked)
                 filter_children.append(channel)
 
             if self.mdf.version >= "4.00":
@@ -297,13 +297,13 @@ class FileWidget(QWidget):
                     channel = TreeItem(entry)
                     channel.setFlags(flags)
                     channel.setText(0, name)
-                    channel.setCheckState(0, Qt.Unchecked)
+                    channel.setCheckState(0, QtCore.Qt.Unchecked)
                     group_children.append(channel)
 
                     channel = TreeItem(entry)
                     channel.setFlags(flags)
                     channel.setText(0, name)
-                    channel.setCheckState(0, Qt.Unchecked)
+                    channel.setCheckState(0, QtCore.Qt.Unchecked)
                     filter_children.append(channel)
 
             channel_group.addChildren(group_children)
@@ -429,7 +429,7 @@ class FileWidget(QWidget):
                     plt.plot.viewbox.setXLink(None)
 
     def save_all_subplots(self):
-        file_name, _ = QFileDialog.getSaveFileName(
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Select output measurement file", "",
             "MDF version 4 files (*.mf4)",
@@ -449,7 +449,7 @@ class FileWidget(QWidget):
         dlg.exec_()
         result = dlg.result
         if result:
-            iterator = QTreeWidgetItemIterator(self.channels_tree)
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
             dg_cntr = -1
             ch_cntr = 0
@@ -463,18 +463,18 @@ class FileWidget(QWidget):
                     continue
 
                 if (dg_cntr, ch_cntr) in result:
-                    item.setCheckState(0, Qt.Checked)
+                    item.setCheckState(0, QtCore.Qt.Checked)
 
                 iterator += 1
                 ch_cntr += 1
 
     def save_channel_list(self):
-        file_name, _ = QFileDialog.getSaveFileName(
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output channel list file", "", "TXT files (*.txt)"
         )
         if file_name:
             with open(file_name, "w") as output:
-                iterator = QTreeWidgetItemIterator(self.channels_tree)
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
                 signals = []
                 while iterator.value():
@@ -483,7 +483,7 @@ class FileWidget(QWidget):
                         iterator += 1
                         continue
 
-                    if item.checkState(0) == Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.Checked:
                         signals.append(item.text(0))
 
                     iterator += 1
@@ -491,7 +491,7 @@ class FileWidget(QWidget):
                 output.write("\n".join(signals))
 
     def load_channel_list(self):
-        file_name, _ = QFileDialog.getOpenFileName(
+        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, "Select channel list file", "", "TXT files (*.txt)"
         )
 
@@ -500,7 +500,7 @@ class FileWidget(QWidget):
                 channels = [line.strip() for line in infile.readlines()]
                 channels = [name for name in channels if name]
 
-            iterator = QTreeWidgetItemIterator(self.channels_tree)
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
             while iterator.value():
                 item = iterator.value()
@@ -510,21 +510,21 @@ class FileWidget(QWidget):
 
                 channel_name = item.text(0)
                 if channel_name in channels:
-                    item.setCheckState(0, Qt.Checked)
+                    item.setCheckState(0, QtCore.Qt.Checked)
                     channels.pop(channels.index(channel_name))
                 else:
-                    item.setCheckState(0, Qt.Unchecked)
+                    item.setCheckState(0, QtCore.Qt.Unchecked)
 
                 iterator += 1
 
     def save_filter_list(self):
-        file_name, _ = QFileDialog.getSaveFileName(
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output filter list file", "", "TXT files (*.txt)"
         )
 
         if file_name:
             with open(file_name, "w") as output:
-                iterator = QTreeWidgetItemIterator(self.filter_tree)
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
                 signals = []
                 while iterator.value():
@@ -533,7 +533,7 @@ class FileWidget(QWidget):
                         iterator += 1
                         continue
 
-                    if item.checkState(0) == Qt.Checked:
+                    if item.checkState(0) == QtCore.Qt.Checked:
                         signals.append(item.text(0))
 
                     iterator += 1
@@ -541,7 +541,7 @@ class FileWidget(QWidget):
                 output.write("\n".join(signals))
 
     def load_filter_list(self):
-        file_name, _ = QFileDialog.getOpenFileName(
+        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, "Select filter list file", "", "TXT files (*.txt)"
         )
 
@@ -550,7 +550,7 @@ class FileWidget(QWidget):
                 channels = [line.strip() for line in infile.readlines()]
                 channels = [name for name in channels if name]
 
-            iterator = QTreeWidgetItemIterator(self.filter_tree)
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
             while iterator.value():
                 item = iterator.value()
@@ -560,10 +560,10 @@ class FileWidget(QWidget):
 
                 channel_name = item.text(0)
                 if channel_name in channels:
-                    item.setCheckState(0, Qt.Checked)
+                    item.setCheckState(0, QtCore.Qt.Checked)
                     channels.pop(channels.index(channel_name))
                 else:
-                    item.setCheckState(0, Qt.Unchecked)
+                    item.setCheckState(0, QtCore.Qt.Unchecked)
 
                 iterator += 1
 
@@ -576,7 +576,7 @@ class FileWidget(QWidget):
             if len(master):
                 times.append(master[0])
                 times.append(master[-1])
-            QApplication.processEvents()
+            QtWidgets.QApplication.processEvents()
 
         if len(times):
             time_range = min(times), max(times)
@@ -606,11 +606,11 @@ class FileWidget(QWidget):
             msg.show()
 
     def clear_filter(self):
-        iterator = QTreeWidgetItemIterator(self.filter_tree)
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
         while iterator.value():
             item = iterator.value()
-            item.setCheckState(0, Qt.Unchecked)
+            item.setCheckState(0, QtCore.Qt.Unchecked)
 
             if item.parent() is None:
                 item.setExpanded(False)
@@ -618,11 +618,11 @@ class FileWidget(QWidget):
             iterator += 1
 
     def clear_channels(self):
-        iterator = QTreeWidgetItemIterator(self.channels_tree)
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
         while iterator.value():
             item = iterator.value()
-            item.setCheckState(0, Qt.Unchecked)
+            item.setCheckState(0, QtCore.Qt.Unchecked)
 
             if item.parent() is None:
                 item.setExpanded(False)
@@ -641,7 +641,7 @@ class FileWidget(QWidget):
         grp = self.mdf.groups[group_index]
         channel_count = len(grp.channels)
 
-        iterator = QTreeWidgetItemIterator(tree)
+        iterator = QtWidgets.QTreeWidgetItemIterator(tree)
 
         group = -1
         index = 0
@@ -661,7 +661,7 @@ class FileWidget(QWidget):
                     or channel_index < 0
                     and index == -channel_index - 1 + channel_count
                 ):
-                    tree.scrollToItem(item, QAbstractItemView.PositionAtTop)
+                    tree.scrollToItem(item, QtWidgets.QAbstractItemView.PositionAtTop)
                     item.setSelected(True)
 
             index += 1
@@ -681,7 +681,7 @@ class FileWidget(QWidget):
         else:
             filter = "MDF version 4 files (*.mf4)"
 
-        split = self.convert_split.checkState() == Qt.Checked
+        split = self.convert_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.convert_split_size.value() * 1024 * 1024)
         else:
@@ -691,7 +691,7 @@ class FileWidget(QWidget):
 
         compression = self.convert_compression.currentIndex()
 
-        file_name, _ = QFileDialog.getSaveFileName(
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output measurement file", "", filter
         )
 
@@ -747,7 +747,7 @@ class FileWidget(QWidget):
         else:
             filter = "MDF version 4 files (*.mf4)"
 
-        split = self.resample_split.checkState() == Qt.Checked
+        split = self.resample_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.resample_split_size.value() * 1024 * 1024)
         else:
@@ -757,7 +757,7 @@ class FileWidget(QWidget):
 
         compression = self.resample_compression.currentIndex()
 
-        file_name, _ = QFileDialog.getSaveFileName(
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output measurement file", "", filter
         )
 
@@ -807,9 +807,9 @@ class FileWidget(QWidget):
         version = self.cut_format.currentText()
         start = self.cut_start.value()
         stop = self.cut_stop.value()
-        time_from_zero = self.cut_time_from_zero.checkState() == Qt.Checked
+        time_from_zero = self.cut_time_from_zero.checkState() == QtCore.Qt.Checked
 
-        if self.whence.checkState() == Qt.Checked:
+        if self.whence.checkState() == QtCore.Qt.Checked:
             whence = 1
         else:
             whence = 0
@@ -819,7 +819,7 @@ class FileWidget(QWidget):
         else:
             filter = "MDF version 4 files (*.mf4)"
 
-        split = self.cut_split.checkState() == Qt.Checked
+        split = self.cut_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.cut_split_size.value() * 1024 * 1024)
         else:
@@ -829,7 +829,7 @@ class FileWidget(QWidget):
 
         compression = self.cut_compression.currentIndex()
 
-        file_name, _ = QFileDialog.getSaveFileName(
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output measurement file", "", filter
         )
 
@@ -884,14 +884,14 @@ class FileWidget(QWidget):
     def export(self, event):
         export_type = self.export_type.currentText()
 
-        single_time_base = self.single_time_base.checkState() == Qt.Checked
-        time_from_zero = self.time_from_zero.checkState() == Qt.Checked
-        use_display_names = self.use_display_names.checkState() == Qt.Checked
+        single_time_base = self.single_time_base.checkState() == QtCore.Qt.Checked
+        time_from_zero = self.time_from_zero.checkState() == QtCore.Qt.Checked
+        use_display_names = self.use_display_names.checkState() == QtCore.Qt.Checked
         empty_channels = self.empty_channels.currentText()
         mat_format = self.mat_format.currentText()
         raster = self.export_raster.value()
         oned_as = self.oned_as.currentText()
-        reduce_memory_usage = self.reduce_memory_usage.checkState() == Qt.Checked
+        reduce_memory_usage = self.reduce_memory_usage.checkState() == QtCore.Qt.Checked
         compression = self.export_compression.currentText()
 
         filters = {
@@ -902,7 +902,7 @@ class FileWidget(QWidget):
             "parquet": "Apache Parquet files (*.parquet)",
         }
 
-        file_name, _ = QFileDialog.getSaveFileName(
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select export file", "", filters[export_type]
         )
 
@@ -924,15 +924,15 @@ class FileWidget(QWidget):
                 },
             )
 
-            progress = QProgressDialog(
+            progress = QtWidgets.QProgressDialog(
                 f"Exporting to {export_type} ...", "Abort export", 0, 100
             )
-            progress.setWindowModality(Qt.ApplicationModal)
+            progress.setWindowModality(QtCore.Qt.ApplicationModal)
             progress.setCancelButton(None)
             progress.setAutoClose(True)
             progress.setWindowTitle("Running export")
-            icon = QIcon()
-            icon.addPixmap(QPixmap(":/export.png"), QIcon.Normal, QIcon.Off)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             progress.setWindowIcon(icon)
 
             thr.start()
@@ -952,7 +952,7 @@ class FileWidget(QWidget):
             signals = event
         except:
 
-            iterator = QTreeWidgetItemIterator(self.channels_tree)
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
             group = -1
             index = 0
@@ -965,7 +965,7 @@ class FileWidget(QWidget):
                     index = 0
                     continue
 
-                if item.checkState(0) == Qt.Checked:
+                if item.checkState(0) == QtCore.Qt.Checked:
                     group, index = item.entry
                     ch = self.mdf.groups[group].channels[index]
                     if not ch.component_addr:
@@ -1016,7 +1016,7 @@ class FileWidget(QWidget):
             
             self.mark_active_plot(dock_name)
 
-        QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
 
     def close_plot(self, dock):
         self.dock_area.hide()
@@ -1048,7 +1048,7 @@ class FileWidget(QWidget):
             }""")
 
     def filter(self, event):
-        iterator = QTreeWidgetItemIterator(self.filter_tree)
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
         group = -1
         index = 0
@@ -1061,7 +1061,7 @@ class FileWidget(QWidget):
                 index = 0
                 continue
 
-            if item.checkState(0) == Qt.Checked:
+            if item.checkState(0) == QtCore.Qt.Checked:
                 channels.append((None, group, index))
 
             index += 1
@@ -1074,7 +1074,7 @@ class FileWidget(QWidget):
         else:
             filter = "MDF version 4 files (*.mf4)"
 
-        split = self.filter_split.checkState() == Qt.Checked
+        split = self.filter_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.filter_split_size.value() * 1024 * 1024)
         else:
@@ -1084,7 +1084,7 @@ class FileWidget(QWidget):
 
         compression = self.filter_compression.currentIndex()
 
-        file_name, _ = QFileDialog.getSaveFileName(
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output measurement file", "", filter
         )
 

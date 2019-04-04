@@ -3,9 +3,9 @@ import re
 from pathlib import Path
 
 from natsort import natsorted
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5 import uic
 
 from ..ui import resource_qt5 as resource_rc
@@ -13,7 +13,7 @@ from ..ui import resource_qt5 as resource_rc
 HERE = Path(__file__).resolve().parent
 
 
-class AdvancedSearch(QDialog):
+class AdvancedSearch(QtWidgets.QDialog):
     def __init__(self, channels_db, return_names=False, *args, **kwargs):
 
         super().__init__(*args, **kwargs)

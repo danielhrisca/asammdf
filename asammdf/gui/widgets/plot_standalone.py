@@ -11,9 +11,9 @@ bin_ = bin
 try:
     import pyqtgraph as pg
 
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
+    from PyQt5 import QtGui
+    from PyQt5 import QtWidgets
+    from PyQt5 import QtCore
 
     from .channel_stats import ChannelStats
     from .plot import _Plot
@@ -28,12 +28,12 @@ try:
         )
         logger.warning(message)
 
-    class StandalonePlot(QWidget):
+    class StandalonePlot(QtWidgets.QWidget):
         def __init__(self, signals, with_dots, step_mode, *args, **kwargs):
             super().__init__(*args, **kwargs)
 
-            self.splitter = QSplitter(self)
-            self.splitter.setOrientation(Qt.Horizontal)
+            self.splitter = QtWidgets.QSplitter(self)
+            self.splitter.setOrientation(QtCore.Qt.Horizontal)
             self.info = None
 
             self.plot = _Plot(signals, with_dots, standalone=True)
@@ -47,11 +47,11 @@ try:
             self.plot.cursor_move_finished.connect(self.cursor_move_finished)
             self.plot.xrange_changed.connect(self.xrange_changed)
 
-            vbox = QVBoxLayout()
+            vbox = QtWidgets.QVBoxLayout()
 
             vbox.addWidget(self.splitter, 1)
 
-            hbox = QHBoxLayout()
+            hbox = QtWidgets.QHBoxLayout()
 
             for icon, description in (
                 (":/cursor.png", "C - Cursor"),
@@ -65,19 +65,19 @@ try:
                 (":/right.png", "← - Move cursor left"),
                 (":/left.png", "→ - Move cursor right"),
             ):
-                label = QLabel("")
-                label.setPixmap(QPixmap(icon).scaled(QSize(16, 16)))
+                label = QtWidgets.QLabel("")
+                label.setPixmap(QtGui.QPixmap(icon).scaled(QtCore.QSize(16, 16)))
 
                 hbox.addWidget(label)
-                label = QLabel(description)
+                label = QtWidgets.QLabel(description)
                 hbox.addWidget(label)
                 hbox.addStretch()
 
             vbox.addLayout(hbox, 0)
             self.setLayout(vbox)
 
-            icon = QIcon()
-            icon.addPixmap(QPixmap(":/info.png"), QIcon.Normal, QIcon.Off)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             self.setWindowIcon(icon)
 
             self.show()
@@ -85,7 +85,7 @@ try:
         def keyPressEvent(self, event):
             key = event.key()
 
-            if key == Qt.Key_M:
+            if key == QtCore.Qt.Key_M:
                 if self.info is None:
                     self.info = ChannelStats()
                     self.splitter.addWidget(self.info)

@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 
-class ListWidget(QListWidget):
+class ListWidget(QtWidgets.QListWidget):
 
-    itemsDeleted = pyqtSignal(list)
+    itemsDeleted = QtCore.pyqtSignal(list)
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
-        self.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
         self.setAlternatingRowColors(True)
 
@@ -22,7 +22,7 @@ class ListWidget(QListWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
-        if key == Qt.Key_Delete and self.can_delete_items:
+        if key == QtCore.Qt.Key_Delete and self.can_delete_items:
             selected_items = self.selectedItems()
             deleted = []
             for item in selected_items:
@@ -31,7 +31,7 @@ class ListWidget(QListWidget):
                 self.takeItem(row)
             if deleted:
                 self.itemsDeleted.emit(deleted)
-        elif key == Qt.Key_Space:
+        elif key == QtCore.Qt.Key_Space:
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -41,10 +41,10 @@ class ListWidget(QListWidget):
                 for item in selected_items
             ]
 
-            if any(state == Qt.Unchecked for state in states):
-                state = Qt.Checked
+            if any(state == QtCore.Qt.Unchecked for state in states):
+                state = QtCore.Qt.Checked
             else:
-                state = Qt.Unchecked
+                state = QtCore.Qt.Unchecked
             for item in selected_items:
                 wid = self.itemWidget(item)
                 wid.display.setCheckState(state)

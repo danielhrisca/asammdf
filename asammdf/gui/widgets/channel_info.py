@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5 import uic
 
 from ..ui import resource_qt5 as resource_rc
@@ -12,7 +12,7 @@ from ..ui import resource_qt5 as resource_rc
 HERE = Path(__file__).resolve().parent
 
 
-class ChannelInfoWidget(QWidget):
+class ChannelInfoWidget(QtWidgets.QWidget):
     def __init__(self, channel, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "channel_info_widget.ui"), self)

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5 import uic
 
 from ..ui import resource_qt5 as resource_rc
@@ -11,9 +11,9 @@ from ..ui import resource_qt5 as resource_rc
 HERE = Path(__file__).resolve().parent
 
 
-class SearchWidget(QWidget):
+class SearchWidget(QtWidgets.QWidget):
 
-    selectionChanged = pyqtSignal()
+    selectionChanged = QtCore.pyqtSignal()
 
     def __init__(self, channels_db, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -24,10 +24,10 @@ class SearchWidget(QWidget):
         self.current_index = 1
         self.entries = []
 
-        completer = QCompleter(sorted(self.channels_db, key=lambda x: x.lower()), self)
-        completer.setCaseSensitivity(Qt.CaseInsensitive)
-        completer.setModelSorting(QCompleter.CaseInsensitivelySortedModel)
-        completer.setFilterMode(Qt.MatchContains)
+        completer = QtWidgets.QCompleter(sorted(self.channels_db, key=lambda x: x.lower()), self)
+        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        completer.setModelSorting(QtWidgets.QCompleter.CaseInsensitivelySortedModel)
+        completer.setFilterMode(QtCore.Qt.MatchContains)
         self.search.setCompleter(completer)
 
         self.search.textChanged.connect(self.display_results)
@@ -53,9 +53,9 @@ class SearchWidget(QWidget):
 
     def set_search_option(self, option):
         if option == "Match start":
-            self.search.completer().setFilterMode(Qt.MatchStartsWith)
+            self.search.completer().setFilterMode(QtCore.Qt.MatchStartsWith)
         elif option == "Match contains":
-            self.search.completer().setFilterMode(Qt.MatchContains)
+            self.search.completer().setFilterMode(QtCore.Qt.MatchContains)
 
     def display_results(self, text):
         channel_name = text.strip()

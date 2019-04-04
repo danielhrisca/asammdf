@@ -2,15 +2,15 @@
 from pathlib import Path
 from functools import partial
 from ..ui import resource_qt5 as resource_rc
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5 import uic
 
 HERE = Path(__file__).resolve().parent
 
 
-class RangeEditor(QDialog):
+class RangeEditor(QtWidgets.QDialog):
     def __init__(self, unit="", ranges=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "range_editor_dialog.ui"), self)
@@ -33,7 +33,7 @@ class RangeEditor(QDialog):
     def cell_pressed(self, row, column, range=(0, 0), color="#000000"):
 
         for col in (0, 1):
-            box = QDoubleSpinBox(self.table)
+            box = QtWidgets.QDoubleSpinBox(self.table)
             box.setSuffix(f" {self.unit}")
             box.setRange(-10 ** 10, 10 ** 10)
             box.setDecimals(6)
@@ -41,12 +41,12 @@ class RangeEditor(QDialog):
 
             self.table.setCellWidget(row, col, box)
 
-        button = QPushButton("", self.table)
+        button = QtWidgets.QPushButton("", self.table)
         button.setStyleSheet(f"background-color: {color};")
         self.table.setCellWidget(row, 2, button)
         button.clicked.connect(partial(self.select_color, button=button))
 
-        button = QPushButton("Delete", self.table)
+        button = QtWidgets.QPushButton("Delete", self.table)
         self.table.setCellWidget(row, 3, button)
         button.clicked.connect(partial(self.delete_row, row=row))
 
@@ -56,7 +56,7 @@ class RangeEditor(QDialog):
 
     def select_color(self, event, button):
         color = button.palette().button().color()
-        color = QColorDialog.getColor(color).name()
+        color = QtWidgets.QColorDialog.getColor(color).name()
         button.setStyleSheet(f"background-color: {color};")
 
     def apply(self, event):

@@ -2,7 +2,7 @@
 import argparse
 import sys
 
-from PyQt5.QtWidgets import QApplication
+from PyQt5 import QtWidgets
 
 from asammdf.gui.widgets.main import MainWindow
 from asammdf.gui.utils import excepthook
@@ -27,7 +27,7 @@ def _cmd_line_parser():
 def main(measurements=None):
     parser = _cmd_line_parser()
     args = parser.parse_args(sys.argv[1:])
-    app = QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     app.setOrganizationName("py-asammdf")
     app.setOrganizationDomain("py-asammdf")
     app.setApplicationName("py-asammdf")

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5.QtWidgets import QTreeWidgetItem
+from PyQt5 import QtWidgets
 
 
-class TreeItem(QTreeWidgetItem):
+class TreeItem(QtWidgets.QTreeWidgetItem):
 
     __slots__ = 'entry',
 

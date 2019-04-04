@@ -158,7 +158,7 @@ class Signal(object):
 
             from PyQt5.QtWidgets import QApplication
 
-            app = QApplication([])
+            app = QtWidgets.QApplication([])
 
             plot = StandalonePlot([self], True, False)
 

@@ -16,9 +16,9 @@ from .list import ListWidget
 try:
     import pyqtgraph as pg
 
-    from PyQt5.QtGui import *
-    from PyQt5.QtWidgets import *
-    from PyQt5.QtCore import *
+    from PyQt5 import QtGui
+    from PyQt5 import QtWidgets
+    from PyQt5 import QtCore
 
     from ..utils import COLORS
     from .cursor import Cursor
@@ -39,34 +39,34 @@ try:
         )
         logger.warning(message)
 
-    class Plot(QWidget):
+    class Plot(QtWidgets.QWidget):
 
-        close_request = pyqtSignal()
-        clicked = pyqtSignal()
+        close_request = QtCore.pyqtSignal()
+        clicked = QtCore.pyqtSignal()
 
         def __init__(self, signals, with_dots=False, *args, **kwargs):
             super().__init__(*args, **kwargs)
             self.setContentsMargins(0, 0, 0, 0)
 
-            main_layout = QVBoxLayout(self)
+            main_layout = QtWidgets.QVBoxLayout(self)
             self.setLayout(main_layout)
 
-            vbox = QVBoxLayout()
-            widget = QWidget()
+            vbox = QtWidgets.QVBoxLayout()
+            widget = QtWidgets.QWidget()
             self.channel_selection = ListWidget()
-            hbox = QHBoxLayout()
-            hbox.addWidget(QLabel("Cursor/Range information"))
-            self.cursor_info = QLabel("")
-            self.cursor_info.setTextFormat(Qt.RichText)
+            hbox = QtWidgets.QHBoxLayout()
+            hbox.addWidget(QtWidgets.QLabel("Cursor/Range information"))
+            self.cursor_info = QtWidgets.QLabel("")
+            self.cursor_info.setTextFormat(QtCore.Qt.RichText)
             self.cursor_info.setAlignment(
-                Qt.AlignRight | Qt.AlignTrailing | Qt.AlignVCenter
+                QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
             )
             hbox.addWidget(self.cursor_info)
             vbox.addLayout(hbox)
             vbox.addWidget(self.channel_selection)
             widget.setLayout(vbox)
 
-            self.splitter = QSplitter()
+            self.splitter = QtWidgets.QSplitter()
             self.splitter.addWidget(widget)
 
             self.plot = _Plot(signals, with_dots, self)
@@ -88,9 +88,9 @@ try:
                     name, unit = sig.name, sig.unit
                 else:
                     name, unit = sig.name, sig.unit
-                item = QListWidgetItem(self.channel_selection)
+                item = QtWidgets.QListWidgetItem(self.channel_selection)
                 it = ChannelDisplay(i, unit, self)
-                it.setAttribute(Qt.WA_StyledBackground)
+                it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
                 it.setName(name)
                 it.setValue("")
@@ -346,7 +346,7 @@ try:
                 self.plot.region.setRegion((start, stop))
 
         def keyPressEvent(self, event):
-            if event.key() == Qt.Key_M and event.modifiers() == Qt.NoModifier:
+            if event.key() == QtCore.Qt.Key_M and event.modifiers() == QtCore.Qt.NoModifier:
 
                 if self.info.isVisible():
                     self.info.hide()
@@ -378,9 +378,9 @@ try:
                 name, unit = sig.name, "[has no samples]"
             else:
                 name, unit = sig.name, sig.unit
-            item = QListWidgetItem(self.channel_selection)
+            item = QtWidgets.QListWidgetItem(self.channel_selection)
             it = ChannelDisplay(index, unit, self)
-            it.setAttribute(Qt.WA_StyledBackground)
+            it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
             it.setName(name)
             it.setValue("")
@@ -399,15 +399,15 @@ try:
 
 
     class _Plot(pg.PlotWidget):
-        cursor_moved = pyqtSignal()
-        cursor_removed = pyqtSignal()
-        range_removed = pyqtSignal()
-        range_modified = pyqtSignal()
-        range_modified_finished = pyqtSignal()
-        cursor_move_finished = pyqtSignal()
-        xrange_changed = pyqtSignal()
-        computation_channel_inserted = pyqtSignal()
-        curve_clicked = pyqtSignal(int)
+        cursor_moved = QtCore.pyqtSignal()
+        cursor_removed = QtCore.pyqtSignal()
+        range_removed = QtCore.pyqtSignal()
+        range_modified = QtCore.pyqtSignal()
+        range_modified_finished = QtCore.pyqtSignal()
+        cursor_move_finished = QtCore.pyqtSignal()
+        xrange_changed = QtCore.pyqtSignal()
+        computation_channel_inserted = QtCore.pyqtSignal()
+        curve_clicked = QtCore.pyqtSignal(int)
 
         def __init__(self, signals, with_dots, *args, **kwargs):
             super().__init__()
@@ -559,7 +559,7 @@ try:
             self.viewbox.sigResized.connect(self.update_views)
 
             #            self.viewbox.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
-            self.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_H, Qt.NoModifier))
+            self.keyPressEvent(QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_H, QtCore.Qt.NoModifier))
 
             self.resizeEvent = self._resizeEvent
 
@@ -624,7 +624,7 @@ try:
 
         def setCommonAxis(self, index, state):
             viewbox = self.view_boxes[index]
-            if state in (Qt.Checked, True, 1):
+            if state in (QtCore.Qt.Checked, True, 1):
                 viewbox.setYRange(*self.common_viewbox.viewRange()[1], padding=0)
                 viewbox.setYLink(self.common_viewbox)
                 self.common_axis_items.add(index)
@@ -641,7 +641,7 @@ try:
 
         def setSignalEnable(self, index, state):
 
-            if state in (Qt.Checked, True, 1):
+            if state in (QtCore.Qt.Checked, True, 1):
                 self.signals[index].enable = True
                 self.curves[index].show()
                 self.view_boxes[index].setXLink(self.viewbox)
@@ -897,7 +897,7 @@ try:
                 super().keyPressEvent(event)
             else:
 
-                if key == Qt.Key_C:
+                if key == QtCore.Qt.Key_C:
                     if self.cursor1 is None:
                         start, stop = self.viewbox.viewRange()[0]
                         self.cursor1 = Cursor(pos=0, angle=90, movable=True)
@@ -915,7 +915,7 @@ try:
                         self.cursor1 = None
                         self.cursor_removed.emit()
 
-                elif key == Qt.Key_F:
+                elif key == QtCore.Qt.Key_F:
                     for i, (viewbox, signal) in enumerate(zip(self.view_boxes, self.signals)):
                         if len(signal.plot_samples):
                             min_, max_ = (
@@ -927,17 +927,17 @@ try:
                     if self.cursor1:
                         self.cursor_moved.emit()
 
-                elif key == Qt.Key_G:
+                elif key == QtCore.Qt.Key_G:
                     if self.plotItem.ctrl.yGridCheck.isChecked():
                         self.showGrid(x=True, y=False)
                     else:
                         self.showGrid(x=True, y=True)
 
-                elif key in (Qt.Key_I, Qt.Key_O):
+                elif key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O):
                     x_range, _ = self.viewbox.viewRange()
                     delta = x_range[1] - x_range[0]
                     step = delta * 0.05
-                    if key == Qt.Key_I:
+                    if key == QtCore.Qt.Key_I:
                         step = -step
                     if self.cursor1:
                         pos = self.cursor1.value()
@@ -946,7 +946,7 @@ try:
                         x_range[0] - step, x_range[1] + step, padding=0
                     )
 
-                elif key == Qt.Key_R:
+                elif key == QtCore.Qt.Key_R:
                     if self.region is None:
 
                         self.region = pg.LinearRegionItem((0, 0))
@@ -972,8 +972,8 @@ try:
                         self.region = None
                         self.range_removed.emit()
 
-                elif key == Qt.Key_S and modifier == Qt.ControlModifier:
-                    file_name, _ = QFileDialog.getSaveFileName(
+                elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ControlModifier:
+                    file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                         self,
                         "Select output measurement file", "",
                         "MDF version 4 files (*.mf4)",
@@ -984,7 +984,7 @@ try:
                             mdf.append(self.signals)
                             mdf.save(file_name, overwrite=True)
 
-                elif key == Qt.Key_S:
+                elif key == QtCore.Qt.Key_S:
                     count = len(
                         [
                             sig
@@ -1025,7 +1025,7 @@ try:
                     if self.cursor1:
                         self.cursor_moved.emit()
 
-                elif key == Qt.Key_H and modifier == Qt.ControlModifier:
+                elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.ControlModifier:
                     for i, signal in enumerate(self.signals):
                         if signal.samples.dtype.kind in "ui":
                             signal.format = "hex"
@@ -1036,7 +1036,7 @@ try:
                     if self.cursor1:
                         self.cursor_moved.emit()
 
-                elif key == Qt.Key_B and modifier == Qt.ControlModifier:
+                elif key == QtCore.Qt.Key_B and modifier == QtCore.Qt.ControlModifier:
                     for i, signal in enumerate(self.signals):
                         if signal.samples.dtype.kind in "ui":
                             signal.format = "bin"
@@ -1047,7 +1047,7 @@ try:
                     if self.cursor1:
                         self.cursor_moved.emit()
 
-                elif key == Qt.Key_P and modifier == Qt.ControlModifier:
+                elif key == QtCore.Qt.Key_P and modifier == QtCore.Qt.ControlModifier:
                     for i, signal in enumerate(self.signals):
                         if signal.samples.dtype.kind in "ui":
                             signal.format = "phys"
@@ -1058,20 +1058,20 @@ try:
                     if self.cursor1:
                         self.cursor_moved.emit()
 
-                elif key in (Qt.Key_Left, Qt.Key_Right):
+                elif key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right):
                     if self.cursor1:
                         prev_pos = pos = self.cursor1.value()
                         dim = len(self.timebase)
                         if dim:
                             pos = np.searchsorted(self.timebase, pos)
-                            if key == Qt.Key_Right:
+                            if key == QtCore.Qt.Key_Right:
                                 pos += 1
                             else:
                                 pos -= 1
                             pos = np.clip(pos, 0, dim - 1)
                             pos = self.timebase[pos]
                         else:
-                            if key == Qt.Key_Right:
+                            if key == QtCore.Qt.Key_Right:
                                 pos += 1
                             else:
                                 pos -= 1
@@ -1093,7 +1093,7 @@ try:
 
                         self.cursor1.setValue(pos)
 
-                elif key == Qt.Key_H:
+                elif key == QtCore.Qt.Key_H:
                     start_ts = [
                         sig.timestamps[0]
                         for sig in self.signals
@@ -1115,7 +1115,7 @@ try:
                         if self.cursor1:
                             self.cursor_moved.emit()
 
-                elif key == Qt.Key_Insert:
+                elif key == QtCore.Qt.Key_Insert:
                     dlg = DefineChannel(self.signals, self.all_timebase, self)
                     dlg.setModal(True)
                     dlg.exec_()
@@ -1195,7 +1195,7 @@ try:
                         view_box.setYRange(sig.min, sig.max, padding=0, update=True)
                         (start, stop), _ = self.viewbox.viewRange()
                         view_box.setXRange(start, stop, padding=0, update=True)
-                        QApplication.processEvents()
+                        QtWidgets.QApplication.processEvents()
 
                         self.computation_channel_inserted.emit()
 
@@ -1316,7 +1316,7 @@ try:
             self.current_index = index
 
         def _clicked(self, event):
-            if Qt.Key_C not in self.disabled_keys:
+            if QtCore.Qt.Key_C not in self.disabled_keys:
                 x = self.plot_item.vb.mapSceneToView(event.scenePos())
 
                 if self.cursor1 is not None:

@@ -2,9 +2,9 @@
 import os
 from pathlib import Path
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5 import uic
 
 from ..ui import resource_qt5 as resource_rc
@@ -22,9 +22,9 @@ os.chdir(cwd)
 
 class ChannelDisplay(base_1, form_1):
 
-    color_changed = pyqtSignal(int, str)
-    enable_changed = pyqtSignal(int, int)
-    ylink_changed = pyqtSignal(int, int)
+    color_changed = QtCore.pyqtSignal(int, str)
+    enable_changed = QtCore.pyqtSignal(int, int)
+    ylink_changed = QtCore.pyqtSignal(int, int)
 
     __slots__ = (
         'color',
@@ -57,7 +57,7 @@ class ChannelDisplay(base_1, form_1):
         self.display.stateChanged.connect(self.display_changed)
         self.ylink.stateChanged.connect(self.ylink_change)
 
-        self.fm = QFontMetrics(self.name.font())
+        self.fm = QtGui.QFontMetrics(self.name.font())
 
         self.setToolTip(self._name)
 
@@ -76,7 +76,7 @@ class ChannelDisplay(base_1, form_1):
             self.ranges = dlg.result
 
     def select_color(self):
-        color = QColorDialog.getColor(QColor(self.color))
+        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
         if color.isValid():
             self.setColor(color.name())
 
@@ -138,12 +138,12 @@ class ChannelDisplay(base_1, form_1):
     def keyPressEvent(self, event):
         key = event.key()
         modifier = event.modifiers()
-        if modifier == Qt.ControlModifier and key == Qt.Key_C:
-            QApplication.instance().clipboard().setText(self._name)
+        if modifier == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_C:
+            QtWidgets.QApplication.instance().clipboard().setText(self._name)
 
         else:
             super().keyPressEvent(event)
 
     def resizeEvent(self, event):
         width = self.name.size().width()
-        self.name.setText(self.fm.elidedText(f'{self._name} ({self.unit})', Qt.ElideMiddle, width))
+        self.name.setText(self.fm.elidedText(f'{self._name} ({self.unit})', QtCore.Qt.ElideMiddle, width))

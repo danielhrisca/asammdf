@@ -3,9 +3,9 @@ from functools import partial
 from pathlib import Path
 import webbrowser
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 from PyQt5 import uic
 
 from ..ui import resource_qt5 as resource_rc
@@ -19,11 +19,11 @@ from .file import FileWidget
 HERE = Path(__file__).resolve().parent
 
 
-class MainWindow(QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, files=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._settings = QSettings()
+        self._settings = QtCore.QSettings()
         uic.loadUi(HERE.joinpath("..", "ui", "main_window.ui"), self)
 
         self.progress = None
@@ -39,47 +39,47 @@ class MainWindow(QMainWindow):
         self.cs_split_size.setValue(10)
 
         self.files_list = ListWidget(self)
-        self.files_list.setDragDropMode(QAbstractItemView.InternalMove)
+        self.files_list.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.files_layout.addWidget(self.files_list, 0, 0, 1, 2)
         self.files_list.itemDoubleClicked.connect(self.delete_item)
 
         menu = self.menubar.addMenu("File")
-        open_group = QActionGroup(self)
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/open.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "Open", menu)
+        open_group = QtWidgets.QActionGroup(self)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "Open", menu)
         action.triggered.connect(self.open)
         open_group.addAction(action)
         menu.addActions(open_group.actions())
 
         # mode_actions
-        mode_actions = QActionGroup(self)
+        mode_actions = QtWidgets.QActionGroup(self)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/file.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}".format("Single files"), menu)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}".format("Single files"), menu)
         action.triggered.connect(partial(self.stackedWidget.setCurrentIndex, 0))
         mode_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/list.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}".format("Multiple files"), menu)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/list.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}".format("Multiple files"), menu)
         action.triggered.connect(partial(self.stackedWidget.setCurrentIndex, 1))
         mode_actions.addAction(action)
 
-        menu = QMenu("Mode", self.menubar)
+        menu = QtWidgets.QMenu("Mode", self.menubar)
         menu.addActions(mode_actions.actions())
         self.menubar.addMenu(menu)
 
-        menu = QMenu("Settings", self.menubar)
+        menu = QtWidgets.QMenu("Settings", self.menubar)
         self.menubar.addMenu(menu)
 
         # search mode menu
-        search_option = QActionGroup(self)
+        search_option = QtWidgets.QActionGroup(self)
 
         for option in ("Match start", "Match contains"):
 
-            action = QAction(option, menu)
+            action = QtWidgets.QAction(option, menu)
             action.setCheckable(True)
             search_option.addAction(action)
             action.triggered.connect(partial(self.set_search_option, option))
@@ -87,16 +87,16 @@ class MainWindow(QMainWindow):
             if option == self._settings.value('search_match', "Match start"):
                 action.setChecked(True)
 
-        submenu = QMenu("Search", self.menubar)
+        submenu = QtWidgets.QMenu("Search", self.menubar)
         submenu.addActions(search_option.actions())
         menu.addMenu(submenu)
 
         # search mode menu
-        search_option = QActionGroup(self)
+        search_option = QtWidgets.QActionGroup(self)
 
         for option in ("Disabled", "Enabled"):
 
-            action = QAction(option, menu)
+            action = QtWidgets.QAction(option, menu)
             action.setCheckable(True)
             search_option.addAction(action)
             action.triggered.connect(partial(self.set_subplot_option, option))
@@ -105,17 +105,17 @@ class MainWindow(QMainWindow):
                 action.setChecked(True)
                 self.subplots = False
 
-        submenu = QMenu("Sub-plots", self.menubar)
+        submenu = QtWidgets.QMenu("Sub-plots", self.menubar)
         submenu.addActions(search_option.actions())
         menu.addMenu(submenu)
 
 
         # search mode menu
-        search_option = QActionGroup(self)
+        search_option = QtWidgets.QActionGroup(self)
 
         for option in ("Disabled", "Enabled"):
 
-            action = QAction(option, menu)
+            action = QtWidgets.QAction(option, menu)
             action.setCheckable(True)
             search_option.addAction(action)
             action.triggered.connect(partial(self.set_subplot_link_option, option))
@@ -124,150 +124,150 @@ class MainWindow(QMainWindow):
                 action.setChecked(True)
                 self.subplots_link = False
 
-        submenu = QMenu("Link sub-plots X-axis", self.menubar)
+        submenu = QtWidgets.QMenu("Link sub-plots X-axis", self.menubar)
         submenu.addActions(search_option.actions())
         menu.addMenu(submenu)
 
         # plot option menu
-        plot_actions = QActionGroup(self)
+        plot_actions = QtWidgets.QActionGroup(self)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/fit.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, f"{'Fit trace': <20}\tF", menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_F))
-        action.setShortcut(Qt.Key_F)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, f"{'Fit trace': <20}\tF", menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_F))
+        action.setShortcut(QtCore.Qt.Key_F)
         plot_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/grid.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tG".format("Grid"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_G))
-        action.setShortcut(Qt.Key_G)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/grid.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tG".format("Grid"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_G))
+        action.setShortcut(QtCore.Qt.Key_G)
         plot_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/home.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tH".format("Home"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_H))
-        action.setShortcut(Qt.Key_H)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tH".format("Home"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_H))
+        action.setShortcut(QtCore.Qt.Key_H)
         plot_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/list2.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tS".format("Stack"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_S))
-        action.setShortcut(Qt.Key_S)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tS".format("Stack"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S))
+        action.setShortcut(QtCore.Qt.Key_S)
         plot_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/zoom-in.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tI".format("Zoom in"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_I))
-        action.setShortcut(Qt.Key_I)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tI".format("Zoom in"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_I))
+        action.setShortcut(QtCore.Qt.Key_I)
         plot_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/zoom-out.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tO".format("Zoom out"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_O))
-        action.setShortcut(Qt.Key_O)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tO".format("Zoom out"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_O))
+        action.setShortcut(QtCore.Qt.Key_O)
         plot_actions.addAction(action)
 
-        action = QAction("{: <20}\t.".format("Toggle dots"), menu)
-        action.triggered.connect(partial(self.toggle_dots, key=Qt.Key_O))
-        action.setShortcut(Qt.Key_Period)
+        action = QtWidgets.QAction("{: <20}\t.".format("Toggle dots"), menu)
+        action.triggered.connect(partial(self.toggle_dots, key=QtCore.Qt.Key_O))
+        action.setShortcut(QtCore.Qt.Key_Period)
         plot_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/plus.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tIns".format("Insert computation"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_Insert))
-        action.setShortcut(Qt.Key_Insert)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/plus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tIns".format("Insert computation"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Insert))
+        action.setShortcut(QtCore.Qt.Key_Insert)
         plot_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/save.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_S, modifier=Qt.ControlModifier))
-        action.setShortcut(QKeySequence("Ctrl+S"))
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.ControlModifier))
+        action.setShortcut(QtGui.QKeySequence("Ctrl+S"))
         plot_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/save.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu)
         action.triggered.connect(self.save_all_subplots)
-        action.setShortcut(QKeySequence("Ctrl+Shift+S"))
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
         plot_actions.addAction(action)
 
 
         # values display
 
-        display_format_actions = QActionGroup(self)
+        display_format_actions = QtWidgets.QActionGroup(self)
 
-        action = QAction("{: <20}\tCtrl+H".format("Hex"), menu)
+        action = QtWidgets.QAction("{: <20}\tCtrl+H".format("Hex"), menu)
         action.triggered.connect(
-            partial(self.plot_action, key=Qt.Key_H, modifier=Qt.ControlModifier)
+            partial(self.plot_action, key=QtCore.Qt.Key_H, modifier=QtCore.Qt.ControlModifier)
         )
-        action.setShortcut(QKeySequence("Ctrl+H"))
+        action.setShortcut(QtGui.QKeySequence("Ctrl+H"))
         display_format_actions.addAction(action)
 
-        action = QAction("{: <20}\tCtrl+B".format("Bin"), menu)
+        action = QtWidgets.QAction("{: <20}\tCtrl+B".format("Bin"), menu)
         action.triggered.connect(
-            partial(self.plot_action, key=Qt.Key_B, modifier=Qt.ControlModifier)
+            partial(self.plot_action, key=QtCore.Qt.Key_B, modifier=QtCore.Qt.ControlModifier)
         )
-        action.setShortcut(QKeySequence("Ctrl+B"))
+        action.setShortcut(QtGui.QKeySequence("Ctrl+B"))
         display_format_actions.addAction(action)
 
-        action = QAction("{: <20}\tCtrl+P".format("Physical"), menu)
+        action = QtWidgets.QAction("{: <20}\tCtrl+P".format("Physical"), menu)
         action.triggered.connect(
-            partial(self.plot_action, key=Qt.Key_P, modifier=Qt.ControlModifier)
+            partial(self.plot_action, key=QtCore.Qt.Key_P, modifier=QtCore.Qt.ControlModifier)
         )
-        action.setShortcut(QKeySequence("Ctrl+P"))
+        action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
         display_format_actions.addAction(action)
 
         # info
 
-        info = QActionGroup(self)
+        info = QtWidgets.QActionGroup(self)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/info.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tM".format("Statistics"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_M))
-        action.setShortcut(QKeySequence("M"))
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tM".format("Statistics"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_M))
+        action.setShortcut(QtGui.QKeySequence("M"))
         info.addAction(action)
 
         # cursors
-        cursors_actions = QActionGroup(self)
+        cursors_actions = QtWidgets.QActionGroup(self)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/cursor.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tC".format("Cursor"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_C))
-        action.setShortcut(Qt.Key_C)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tC".format("Cursor"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_C))
+        action.setShortcut(QtCore.Qt.Key_C)
         cursors_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/right.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\t←".format("Move cursor left"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_Left))
-        action.setShortcut(Qt.Key_Left)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\t←".format("Move cursor left"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Left))
+        action.setShortcut(QtCore.Qt.Key_Left)
         cursors_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/left.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\t→".format("Move cursor right"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_Right))
-        action.setShortcut(Qt.Key_Right)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/left.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\t→".format("Move cursor right"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Right))
+        action.setShortcut(QtCore.Qt.Key_Right)
         cursors_actions.addAction(action)
 
-        icon = QIcon()
-        icon.addPixmap(QPixmap(":/range.png"), QIcon.Normal, QIcon.Off)
-        action = QAction(icon, "{: <20}\tR".format("Range"), menu)
-        action.triggered.connect(partial(self.plot_action, key=Qt.Key_R))
-        action.setShortcut(Qt.Key_R)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "{: <20}\tR".format("Range"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_R))
+        action.setShortcut(QtCore.Qt.Key_R)
         cursors_actions.addAction(action)
 
-        menu = QMenu("Plot", self.menubar)
+        menu = QtWidgets.QMenu("Plot", self.menubar)
         menu.addActions(plot_actions.actions())
         menu.addSeparator()
         menu.addActions(cursors_actions.actions())
@@ -278,8 +278,8 @@ class MainWindow(QMainWindow):
         self.menubar.addMenu(menu)
 
         menu = self.menubar.addMenu("Help")
-        open_group = QActionGroup(self)
-        action = QAction("Online documentation", menu)
+        open_group = QtWidgets.QActionGroup(self)
+        action = QtWidgets.QAction("Online documentation", menu)
         action.triggered.connect(self.help)
         open_group.addAction(action)
         menu.addActions(open_group.actions())
@@ -307,8 +307,8 @@ class MainWindow(QMainWindow):
         widget = self.files.currentWidget()
         widget.save_all_subplots()
 
-    def plot_action(self, key, modifier=Qt.NoModifier):
-        event = QKeyEvent(QEvent.KeyPress, key, modifier)
+    def plot_action(self, key, modifier=QtCore.Qt.NoModifier):
+        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, key, modifier)
         widget = self.files.currentWidget()
         if widget and widget.get_current_plot():
             widget.get_current_plot().keyPressEvent(event)
@@ -365,15 +365,15 @@ class MainWindow(QMainWindow):
 
         version = self.cs_format.currentText()
 
-        sync = self.sync.checkState() == Qt.Checked
-        add_samples_origin = self.add_samples_origin.checkState() == Qt.Checked
+        sync = self.sync.checkState() == QtCore.Qt.Checked
+        add_samples_origin = self.add_samples_origin.checkState() == QtCore.Qt.Checked
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
         else:
             filter = "MDF version 4 files (*.mf4)"
 
-        split = self.cs_split.checkState() == Qt.Checked
+        split = self.cs_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.cs_split_size.value() * 1024 * 1024)
         else:
@@ -385,7 +385,7 @@ class MainWindow(QMainWindow):
 
         files = [self.files_list.item(row).text() for row in range(count)]
 
-        file_name, _ = QFileDialog.getSaveFileName(
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output measurement file", "", filter
         )
 
@@ -440,7 +440,7 @@ class MainWindow(QMainWindow):
             progress.cancel()
 
     def open_multiple_files(self, event):
-        file_names, _ = QFileDialog.getOpenFileNames(
+        file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self,
             "Select measurement file",
             "",
@@ -452,8 +452,8 @@ class MainWindow(QMainWindow):
             self.files_list.addItems(file_names)
             count = self.files_list.count()
 
-            icon = QIcon()
-            icon.addPixmap(QPixmap(":/file.png"), QIcon.Normal, QIcon.Off)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 
             for row in range(count):
                 self.files_list.item(row).setIcon(icon)
@@ -482,7 +482,7 @@ class MainWindow(QMainWindow):
             widget.file_scrambled.connect(self.open_scrambled_file)
 
     def open_file(self, event):
-        file_names, _ = QFileDialog.getOpenFileNames(
+        file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self,
             "Select measurement file",
             "",

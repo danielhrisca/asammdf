@@ -6,9 +6,9 @@ from io import StringIO
 from time import sleep
 from threading import Thread
 
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
+from PyQt5 import QtGui
+from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 
 from ..mdf import MDF, MDF2, MDF3, MDF4
 
@@ -58,7 +58,7 @@ def excepthook(exc_type, exc_value, tracebackobj):
 
     print(msg)
 
-    QMessageBox.warning(None, notice, msg)
+    QtWidgets.QMessageBox.warning(None, notice, msg)
 
 
 def run_thread_with_progress(widget, target, kwargs, factor, offset, progress):
@@ -72,7 +72,7 @@ def run_thread_with_progress(widget, target, kwargs, factor, offset, progress):
         sleep(0.1)
 
     while thr.is_alive():
-        QApplication.processEvents()
+        QtWidgets.QApplication.processEvents()
         termination_request = progress.wasCanceled()
         if termination_request:
             MDF._terminate = True
@@ -107,14 +107,14 @@ def run_thread_with_progress(widget, target, kwargs, factor, offset, progress):
 
 
 def setup_progress(parent, title, message, icon_name):
-    progress = QProgressDialog(message, "", 0, 100, parent)
+    progress = QtWidgets.QProgressDialog(message, "", 0, 100, parent)
 
-    progress.setWindowModality(Qt.ApplicationModal)
+    progress.setWindowModality(QtCore.Qt.ApplicationModal)
     progress.setCancelButton(None)
     progress.setAutoClose(True)
     progress.setWindowTitle(title)
-    icon = QIcon()
-    icon.addPixmap(QPixmap(f":/{icon_name}.png"), QIcon.Normal, QIcon.Off)
+    icon = QtGui.QIcon()
+    icon.addPixmap(QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
     progress.setWindowIcon(icon)
     progress.show()
 
