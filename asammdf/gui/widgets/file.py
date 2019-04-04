@@ -173,7 +173,7 @@ class FileWidget(QWidget):
 
         vbox.addWidget(self.channels_tree, 1)
 
-        hbox = QHBoxLayout(channel_and_search)
+        hbox = QHBoxLayout()
 
         self.clear_channels_btn = QPushButton("", channel_and_search)
         self.clear_channels_btn.setToolTip("Reset selection")
@@ -990,7 +990,7 @@ class FileWidget(QWidget):
                 wid.setParent(None)
                 self.dock_area = DockArea(self.splitter)
                 self.splitter.addWidget(self.dock_area)
-
+            
             count = len(self.dock_area.docks)
             self.dock_area.hide()
             dock_name = self._dock_names.get_unique_name('Plot')
@@ -1011,12 +1011,9 @@ class FileWidget(QWidget):
 
             if count and self.subplots_link:
                 plot.plot.viewbox.setXLink(self.get_current_plot().plot.viewbox)
-
-            width = sum(self.splitter.sizes())
-            self.splitter.setSizes((0.2 * width, 0.8 * width))
-            self.splitter.setStretchFactor(0, 0)
-            self.splitter.setStretchFactor(1, 1)
-
+                
+            self.splitter.setSizes([100, 100])
+            
             self.mark_active_plot(dock_name)
 
         QApplication.processEvents()
