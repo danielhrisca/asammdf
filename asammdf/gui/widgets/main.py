@@ -236,6 +236,20 @@ class MainWindow(QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("M"))
         info.addAction(action)
 
+        # sub_plots
+
+        subs = QtWidgets.QActionGroup(self)
+
+        action = QtWidgets.QAction("{: <20}\tShift+C".format("Cascade sub-plots"), menu)
+        action.triggered.connect(partial(self.show_sub_windows, mode='cascade'))
+        action.setShortcut(QtGui.QKeySequence("Shift+C"))
+        subs.addAction(action)
+
+        action = QtWidgets.QAction("{: <20}\tShift+T".format("Tile sub-plots"), menu)
+        action.triggered.connect(partial(self.show_sub_windows, mode='tile'))
+        action.setShortcut(QtGui.QKeySequence("Shift+T"))
+        subs.addAction(action)
+
         # cursors
         cursors_actions = QtWidgets.QActionGroup(self)
 
@@ -273,6 +287,8 @@ class MainWindow(QtWidgets.QMainWindow):
         menu.addActions(cursors_actions.actions())
         menu.addSeparator()
         menu.addActions(display_format_actions.actions())
+        menu.addSeparator()
+        menu.addActions(subs.actions())
         menu.addSeparator()
         menu.addActions(info.actions())
         self.menubar.addMenu(menu)
@@ -321,6 +337,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for i in range(count):
             self.files.widget(i).set_line_style(with_dots=self.with_dots)
+
+    def show_sub_windows(self, mode):
+
+        widget = self.files.currentWidget()
+        if widget:
+            if mode == 'tile':
+                widget.mdi_area.tileSubWindows()
+            elif mode == 'cascade':
+                widget.mdi_area.cascadeSubWindows()
 
     def set_search_option(self, option):
         self.match = option
