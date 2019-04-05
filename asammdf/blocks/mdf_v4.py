@@ -794,7 +794,6 @@ class MDF4(object):
                         try:
                             addr = channel.attachment_addr
                         except AttributeError:
-                            raise
                             addr = 0
                         if addr:
                             attachment_addr = self._attachments_map[addr]
