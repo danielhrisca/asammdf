@@ -538,16 +538,25 @@ class FileWidget(QtWidgets.QWidget):
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
                 signals = []
-                while iterator.value():
-                    item = iterator.value()
-                    if item.parent() is None:
+                if self.channel_view.currentIndex() == 1:
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.parent() is None:
+                            iterator += 1
+                            continue
+
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            signals.append(item.text(0))
+
                         iterator += 1
-                        continue
+                else:
+                    while iterator.value():
+                        item = iterator.value()
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        signals.append(item.text(0))
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            signals.append(item.text(0))
 
-                    iterator += 1
+                        iterator += 1
 
                 output.write("\n".join(signals))
 
@@ -563,20 +572,33 @@ class FileWidget(QtWidgets.QWidget):
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
-            while iterator.value():
-                item = iterator.value()
-                if item.parent() is None:
+            if self.channel_view.currentIndex() == 1:
+                while iterator.value():
+                    item = iterator.value()
+                    if item.parent() is None:
+                        iterator += 1
+                        continue
+
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
+
                     iterator += 1
-                    continue
+            else:
+                while iterator.value():
+                    item = iterator.value()
 
-                channel_name = item.text(0)
-                if channel_name in channels:
-                    item.setCheckState(0, QtCore.Qt.Checked)
-                    channels.pop(channels.index(channel_name))
-                else:
-                    item.setCheckState(0, QtCore.Qt.Unchecked)
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
 
-                iterator += 1
+                    iterator += 1
 
     def save_filter_list(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
