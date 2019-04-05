@@ -7,7 +7,7 @@ from PyQt5 import QtCore
 class ListWidget(QtWidgets.QListWidget):
 
     itemsDeleted = QtCore.pyqtSignal(list)
-    add_channel = QtCore.pyqtSignal(str)
+    add_channel_request = QtCore.pyqtSignal(str)
 
     def __init__(self, *args, **kwargs):
 
@@ -61,6 +61,6 @@ class ListWidget(QtWidgets.QListWidget):
         data = e.mimeData()
         if data.hasFormat('application/x-qabstractitemmodeldatalist'):
             data = bytes(data.data('application/x-qabstractitemmodeldatalist'))
-            name = data.replace(b'\0', b'')[6:].split(b'\n')[-1][1:].decode('utf-8')
+            name = data.replace(b'\0', b'').split(b'\n')[-1][1:].decode('utf-8')
 
-            self.add_channel.emit(name)
+            self.add_channel_request.emit(name)

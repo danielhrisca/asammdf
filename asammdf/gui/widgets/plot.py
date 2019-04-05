@@ -41,7 +41,7 @@ try:
 
     class Plot(QtWidgets.QWidget):
 
-        add_channel = QtCore.pyqtSignal(str)
+        add_channel_request = QtCore.pyqtSignal(str)
         close_request = QtCore.pyqtSignal()
         clicked = QtCore.pyqtSignal()
 
@@ -111,7 +111,7 @@ try:
             self.channel_selection.itemSelectionChanged.connect(
                 self.channel_selection_modified
             )
-            self.channel_selection.add_channel.connect(self.add_channel)
+            self.channel_selection.add_channel_request.connect(self.add_channel_request)
 
             main_layout.addWidget(self.splitter)
 
@@ -379,7 +379,7 @@ try:
             sig = self.plot.signals[-1]
             index = self.channel_selection.count()
             if sig.empty:
-                name, unit = sig.name, "[has no samples]"
+                name, unit = sig.name, sig.unit
             else:
                 name, unit = sig.name, sig.unit
             item = QtWidgets.QListWidgetItem(self.channel_selection)
@@ -401,12 +401,12 @@ try:
             it.enable_changed.emit(index, 0)
             it.enable_changed.emit(index, 1)
 
-        def add_channel_to_plot(self, sig):
-            self.plot.add_channel(sig)
+        def add_new_channel(self, sig):
+            self.plot.add_new_channel(sig)
 
             index = self.channel_selection.count()
             if sig.empty:
-                name, unit = sig.name, "[has no samples]"
+                name, unit = sig.name, sig.unit
             else:
                 name, unit = sig.name, sig.unit
             item = QtWidgets.QListWidgetItem(self.channel_selection)
@@ -1298,7 +1298,7 @@ try:
                 )
                 self.cursor_move_finished.emit()
 
-        def add_channel(self, sig):
+        def add_new_channel(self, sig):
             if sig:
                 index = len(self.signals)
 

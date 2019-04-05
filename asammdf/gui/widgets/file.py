@@ -12,25 +12,19 @@ from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from PyQt5 import uic
-from pyqtgraph.dockarea import DockArea, Dock
-from pyqtgraph import LayoutWidget
 
 from ..ui import resource_qt5 as resource_rc
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
-from ...blocks.utils import UniqueDB
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
-from .channel_display import ChannelDisplay
-from .channel_stats import ChannelStats
-from .list import ListWidget
 from .plot import Plot
+from .numeric import Numeric
 from .search import SearchWidget
 from .tree import TreeWidget
 from .tree_item import TreeItem
 
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_info import ChannelInfoDialog
-from ..dialogs.tabular import TabularValuesDialog
 
 HERE = Path(__file__).resolve().parent
 
@@ -224,6 +218,16 @@ class FileWidget(QtWidgets.QWidget):
         self.plot_btn.setIcon(icon3)
         self.plot_btn.setObjectName("plot_btn")
         hbox.addWidget(self.plot_btn)
+
+        hbox.addWidget(line)
+        self.numeric_btn = QtWidgets.QPushButton("", channel_and_search)
+        self.numeric_btn.setToolTip("Numeric display selected channels")
+        icon3 = QtGui.QIcon()
+        icon3.addPixmap(QtGui.QPixmap(":/numeric.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.numeric_btn.setIcon(icon3)
+        self.numeric_btn.setObjectName("numeric_btn")
+        hbox.addWidget(self.numeric_btn)
+
         hbox.addSpacerItem(
             QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         )
@@ -367,6 +371,8 @@ class FileWidget(QtWidgets.QWidget):
 
         # self.channels_tree.itemChanged.connect(self.select)
         self.plot_btn.clicked.connect(self.plot_pyqtgraph)
+        self.numeric_btn.clicked.connect(self.numeric_pyqtgraph)
+
         self.clear_filter_btn.clicked.connect(self.clear_filter)
         self.clear_channels_btn.clicked.connect(self.clear_channels)
 
@@ -1020,7 +1026,85 @@ class FileWidget(QtWidgets.QWidget):
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
 
-            plot.add_channel.connect(partial(self.add_channel_to_plot, plot=plot))
+            plot.add_channel_request.connect(partial(self.add_new_channel, widget=plot))
+
+        QtWidgets.QApplication.processEvents()
+
+    def numeric_pyqtgraph(self, event):
+        try:
+            iter(event)
+            signals = event
+        except:
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+
+            group = -1
+            index = 0
+            signals = []
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    iterator += 1
+                    group += 1
+                    index = 0
+                    continue
+
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    group, index = item.entry
+                    ch = self.mdf.groups[group].channels[index]
+                    if not ch.component_addr:
+                        signals.append((None, group, index))
+
+                index += 1
+                iterator += 1
+
+            signals = self.mdf.select(signals)
+
+            signals = [
+                sig
+                for sig in signals
+                if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
+            ]
+
+            signals = natsorted(signals, key=lambda x: x.name)
+
+        if signals:
+
+            numeric = Numeric(signals)
+
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(numeric)
+
+                w.showMaximized()
+            else:
+                w = self.mdi_area.addSubWindow(numeric)
+
+                if len(self.mdi_area.subWindowList()) == 1:
+                    w.showMaximized()
+                else:
+                    w.show()
+                    self.mdi_area.tileSubWindows()
+
+            menu = w.systemMenu()
+
+            def set_tile(mdi):
+                name, ok = QtWidgets.QInputDialog.getText(
+                    None,
+                    'Set sub-plot title',
+                    'Title:',
+                )
+                if ok and name:
+                    mdi.setWindowTitle(name)
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_tile, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+            w.setSystemMenu(menu)
+
+            numeric.add_channel_request.connect(partial(self.add_new_channel, widget=numeric))
 
         QtWidgets.QApplication.processEvents()
 
@@ -1135,7 +1219,7 @@ class FileWidget(QtWidgets.QWidget):
 
         self.file_scrambled.emit(str(Path(self.file_name).with_suffix(".scrambled.mf4")))
 
-    def add_channel_to_plot(self, name, plot):
+    def add_new_channel(self, name, widget):
         sig = self.mdf.get(name)
         if not sig.samples.dtype.names and len(sig.samples.shape) <= 1:
-            plot.add_channel_to_plot(sig)
+            widget.add_new_channel(sig)
