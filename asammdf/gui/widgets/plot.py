@@ -1161,7 +1161,7 @@ try:
                     dlg.setModal(True)
                     dlg.exec_()
                     sig = dlg.result
-                    self.add_channel(sig)
+                    self.add_new_channel(sig)
                     if sig is not None:
                         self.computation_channel_inserted.emit()
 

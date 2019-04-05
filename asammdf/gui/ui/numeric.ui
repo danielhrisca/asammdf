@@ -15,7 +15,29 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="ListWidget" name="channels"/>
+    <widget class="NumericTreeWidget" name="channels">
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="columnCount">
+      <number>3</number>
+     </property>
+     <column>
+      <property name="text">
+       <string>Name</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Unit</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Value</string>
+      </property>
+     </column>
+    </widget>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -71,6 +93,9 @@
    </item>
    <item>
     <widget class="QSlider" name="timestamp_slider">
+     <property name="maximum">
+      <number>9999</number>
+     </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -92,9 +117,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ListWidget</class>
-   <extends>QListWidget</extends>
-   <header>asammdf/gui/widgets/list.h</header>
+   <class>NumericTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>asammdf/gui/widgets/tree_numeric.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
