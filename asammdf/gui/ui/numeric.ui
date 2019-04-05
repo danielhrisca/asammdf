@@ -29,12 +29,12 @@
      </column>
      <column>
       <property name="text">
-       <string>Unit</string>
+       <string>Value</string>
       </property>
      </column>
      <column>
       <property name="text">
-       <string>Value</string>
+       <string>Unit</string>
       </property>
      </column>
     </widget>
