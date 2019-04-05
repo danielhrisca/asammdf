@@ -658,13 +658,22 @@ class FileWidget(QtWidgets.QWidget):
         self.progress = current_index, max_index
 
     def show_channel_info(self, item, column):
-        if item and item.parent():
-            group, index = item.entry
+        if self.channel_view.currentIndex() == 1:
+            if item and item.parent():
+                group, index = item.entry
 
-            channel = self.mdf.get_channel_metadata(group=group, index=index)
+                channel = self.mdf.get_channel_metadata(group=group, index=index)
 
-            msg = ChannelInfoDialog(channel, self)
-            msg.show()
+                msg = ChannelInfoDialog(channel, self)
+                msg.show()
+        else:
+            if item:
+                group, index = item.entry
+
+                channel = self.mdf.get_channel_metadata(group=group, index=index)
+
+                msg = ChannelInfoDialog(channel, self)
+                msg.show()
 
     def clear_filter(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
