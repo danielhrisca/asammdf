@@ -140,6 +140,7 @@ class FileWidget(QtWidgets.QWidget):
         channel_and_search = QtWidgets.QWidget(splitter)
 
         self.channels_tree = TreeWidget(channel_and_search)
+        self.channels_tree.setDragEnabled(True)
         self.search_field = SearchWidget(
             self.mdf.channels_db, channel_and_search
         )
@@ -379,6 +380,7 @@ class FileWidget(QtWidgets.QWidget):
         self.save_filter_list_btn.clicked.connect(self.save_filter_list)
 
         self.scramble_btn.clicked.connect(self.scramble)
+        self.setAcceptDrops(True)
 
     def export_changed(self, name):
         if name == 'parquet':
@@ -995,8 +997,30 @@ class FileWidget(QtWidgets.QWidget):
             else:
                 w = self.mdi_area.addSubWindow(plot)
 
-                w.show()
-                self.mdi_area.tileSubWindows()
+                if len(self.mdi_area.subWindowList()) == 1:
+                    w.showMaximized()
+                else:
+                    w.show()
+                    self.mdi_area.tileSubWindows()
+
+            menu = w.systemMenu()
+
+            def set_tile(mdi):
+                name, ok = QtWidgets.QInputDialog.getText(
+                    None,
+                    'Set sub-plot title',
+                    'Title:',
+                )
+                if ok and name:
+                    mdi.setWindowTitle(name)
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_tile, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+            w.setSystemMenu(menu)
+
+            plot.add_channel.connect(partial(self.add_channel_to_plot, plot=plot))
 
         QtWidgets.QApplication.processEvents()
 
@@ -1110,3 +1134,8 @@ class FileWidget(QtWidgets.QWidget):
             return
 
         self.file_scrambled.emit(str(Path(self.file_name).with_suffix(".scrambled.mf4")))
+
+    def add_channel_to_plot(self, name, plot):
+        sig = self.mdf.get(name)
+        if not sig.samples.dtype.names and len(sig.samples.shape) <= 1:
+            plot.add_channel_to_plot(sig)

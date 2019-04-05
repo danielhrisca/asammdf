@@ -506,8 +506,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.files.setCurrentIndex(index)
             widget.file_scrambled.connect(self.open_scrambled_file)
 
-        print(self.centralWidget())
-
     def open_file(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self,

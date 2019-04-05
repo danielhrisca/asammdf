@@ -41,6 +41,7 @@ try:
 
     class Plot(QtWidgets.QWidget):
 
+        add_channel = QtCore.pyqtSignal(str)
         close_request = QtCore.pyqtSignal()
         clicked = QtCore.pyqtSignal()
 
@@ -110,6 +111,7 @@ try:
             self.channel_selection.itemSelectionChanged.connect(
                 self.channel_selection_modified
             )
+            self.channel_selection.add_channel.connect(self.add_channel)
 
             main_layout.addWidget(self.splitter)
 
@@ -399,6 +401,39 @@ try:
             it.enable_changed.emit(index, 0)
             it.enable_changed.emit(index, 1)
 
+        def add_channel_to_plot(self, sig):
+            self.plot.add_channel(sig)
+
+            index = self.channel_selection.count()
+            if sig.empty:
+                name, unit = sig.name, "[has no samples]"
+            else:
+                name, unit = sig.name, sig.unit
+            item = QtWidgets.QListWidgetItem(self.channel_selection)
+            it = ChannelDisplay(index, unit, self)
+            it.setAttribute(QtCore.Qt.WA_StyledBackground)
+
+            it.setName(name)
+            it.setValue("")
+            it.setColor(sig.color)
+            item.setSizeHint(it.sizeHint())
+            self.channel_selection.addItem(item)
+            self.channel_selection.setItemWidget(item, it)
+
+            it.color_changed.connect(self.plot.setColor)
+            it.enable_changed.connect(self.plot.setSignalEnable)
+            it.ylink_changed.connect(self.plot.setCommonAxis)
+
+            it.enable_changed.emit(index, 1)
+            it.enable_changed.emit(index, 0)
+            it.enable_changed.emit(index, 1)
+
+            s1, s2, s3 = self.splitter.sizes()
+            self.splitter.setSizes([s1+1, s2-1, s3])
+            self.splitter.setSizes([s1, s2, s3])
+
+            self.plot.set_current_index(index)
+
 
     class _Plot(pg.PlotWidget):
         cursor_moved = QtCore.pyqtSignal()
@@ -543,6 +578,8 @@ try:
                     symbolPen=color,
                     symbol="o",
                     symbolSize=4,
+                    clickable=True,
+                    mouseWidth=20,
                 )
 
                 curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
@@ -588,6 +625,8 @@ try:
                                 symbolPen=color,
                                 symbol="o",
                                 symbolSize=4,
+                                clickable=True,
+                                mouseWidth=20,
                             )
 
                             curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
@@ -1122,83 +1161,8 @@ try:
                     dlg.setModal(True)
                     dlg.exec_()
                     sig = dlg.result
+                    self.add_channel(sig)
                     if sig is not None:
-                        index = len(self.signals)
-
-                        self.signals.append(sig)
-
-                        if sig.samples.dtype.kind == "f":
-                            sig.format = "phys"
-                            sig.plot_texts = None
-                        else:
-                            sig.format = "phys"
-                            if sig.samples.dtype.kind in "SV":
-                                sig.plot_texts = sig.texts = sig.samples
-                                sig.samples = np.zeros(len(sig.samples))
-                            else:
-                                sig.plot_texts = None
-                        sig.enable = True
-
-                        if sig.conversion:
-                            vals = sig.conversion.convert(sig.samples)
-                            if vals.dtype.kind != 'S':
-                                nans = np.isnan(vals)
-                                samples = np.where(
-                                    nans,
-                                    sig.samples,
-                                    vals,
-                                )
-                                sig.samples = samples
-
-                        sig.plot_samples = sig.samples
-                        sig.plot_timestamps = sig.timestamps
-
-                        sig._stats = {
-                            "range": (0, -1),
-                            "range_stats": {},
-                            "visible": (0, -1),
-                            "visible_stats": {},
-                        }
-
-                        color = COLORS[index % 10]
-                        sig.color = color
-
-                        if len(sig.samples):
-                            sig.min = np.amin(sig.samples)
-                            sig.max = np.amax(sig.samples)
-                            sig.avg = np.mean(sig.samples)
-                            sig.rms = np.sqrt(np.mean(np.square(sig.samples)))
-                            sig.empty = False
-                        else:
-                            sig.empty = True
-
-                        view_box = pg.ViewBox(enableMenu=False)
-
-                        self.scene_.addItem(view_box)
-
-                        t = sig.plot_timestamps
-
-                        curve = self.curvetype(
-                            t,
-                            sig.plot_samples,
-                            pen=color,
-                            symbolBrush=color,
-                            symbolPen=color,
-                            symbol="o",
-                            symbolSize=4,
-                        )
-
-                        view_box.addItem(curve)
-
-                        view_box.setXLink(self.viewbox)
-                        self.view_boxes.append(view_box)
-                        self.curves.append(curve)
-
-                        view_box.setYRange(sig.min, sig.max, padding=0, update=True)
-                        (start, stop), _ = self.viewbox.viewRange()
-                        view_box.setXRange(start, stop, padding=0, update=True)
-                        QtWidgets.QApplication.processEvents()
-
                         self.computation_channel_inserted.emit()
 
                 else:
@@ -1333,6 +1297,87 @@ try:
                     self.cursor_move_finished.emit
                 )
                 self.cursor_move_finished.emit()
+
+        def add_channel(self, sig):
+            if sig:
+                index = len(self.signals)
+
+                self.signals.append(sig)
+
+                if sig.samples.dtype.kind == "f":
+                    sig.format = "phys"
+                    sig.plot_texts = None
+                else:
+                    sig.format = "phys"
+                    if sig.samples.dtype.kind in "SV":
+                        sig.plot_texts = sig.texts = sig.samples
+                        sig.samples = np.zeros(len(sig.samples))
+                    else:
+                        sig.plot_texts = None
+                sig.enable = True
+
+                if sig.conversion:
+                    vals = sig.conversion.convert(sig.samples)
+                    if vals.dtype.kind != 'S':
+                        nans = np.isnan(vals)
+                        samples = np.where(
+                            nans,
+                            sig.samples,
+                            vals,
+                        )
+                        sig.samples = samples
+
+                sig.plot_samples = sig.samples
+                sig.plot_timestamps = sig.timestamps
+
+                sig._stats = {
+                    "range": (0, -1),
+                    "range_stats": {},
+                    "visible": (0, -1),
+                    "visible_stats": {},
+                }
+
+                color = COLORS[index % 10]
+                sig.color = color
+
+                if len(sig.samples):
+                    sig.min = np.amin(sig.samples)
+                    sig.max = np.amax(sig.samples)
+                    sig.avg = np.mean(sig.samples)
+                    sig.rms = np.sqrt(np.mean(np.square(sig.samples)))
+                    sig.empty = False
+                else:
+                    sig.empty = True
+
+                view_box = pg.ViewBox(enableMenu=False)
+
+                self.scene_.addItem(view_box)
+
+                t = sig.plot_timestamps
+
+                curve = self.curvetype(
+                    t,
+                    sig.plot_samples,
+                    pen=color,
+                    symbolBrush=color,
+                    symbolPen=color,
+                    symbol="o",
+                    symbolSize=4,
+                    clickable=True,
+                    mouseWidth=20,
+                )
+
+                view_box.addItem(curve)
+
+                view_box.setXLink(self.viewbox)
+                self.view_boxes.append(view_box)
+                self.curves.append(curve)
+                curve.show()
+
+                view_box.setYRange(sig.min, sig.max, padding=0, update=True)
+                (start, stop), _ = self.viewbox.viewRange()
+                view_box.setXRange(start, stop, padding=0, update=True)
+                QtWidgets.QApplication.processEvents()
 
 
 except ImportError:

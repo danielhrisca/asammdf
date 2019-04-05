@@ -7,6 +7,7 @@ from PyQt5 import QtCore
 class ListWidget(QtWidgets.QListWidget):
 
     itemsDeleted = QtCore.pyqtSignal(list)
+    add_channel = QtCore.pyqtSignal(str)
 
     def __init__(self, *args, **kwargs):
 
@@ -17,7 +18,7 @@ class ListWidget(QtWidgets.QListWidget):
         self.setAlternatingRowColors(True)
 
         self.can_delete_items = True
-
+        self.setAcceptDrops(True)
         self.show()
 
     def keyPressEvent(self, event):
@@ -51,3 +52,15 @@ class ListWidget(QtWidgets.QListWidget):
 
         else:
             super().keyPressEvent(event)
+
+    def dragEnterEvent(self, e):
+
+        e.accept()
+
+    def dropEvent(self, e):
+        data = e.mimeData()
+        if data.hasFormat('application/x-qabstractitemmodeldatalist'):
+            data = bytes(data.data('application/x-qabstractitemmodeldatalist'))
+            name = data.replace(b'\0', b'')[6:].split(b'\n')[-1][1:].decode('utf-8')
+
+            self.add_channel.emit(name)

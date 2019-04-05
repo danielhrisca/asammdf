@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtWidgets
+from PyQt5 import QtCore
 
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
@@ -12,3 +13,5 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         super().__init__()
 
         self.entry = entry
+        self.setFlags(self.flags() | QtCore.Qt.ItemIsDragEnabled)
+
