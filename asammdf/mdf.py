@@ -2420,8 +2420,13 @@ class MDF(object):
 
         Parameters
         ----------
-        raster : float
-            time raster is seconds
+        raster : float | np.array | str
+            new raster that can be
+            
+            * a float step value
+            * a channel name who's timestamps will be used as raster
+            * an array 
+            
         version : str
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
@@ -2449,168 +2454,196 @@ class MDF(object):
 
         if self._callback:
             self._callback(0, groups_nr)
-
-        # walk through all groups and get all channels
-        cg_nr = -1
-        for i, group in enumerate(self.groups):
-            if version < "4.00":
-                encodings = []
-            included_channels = self._included_channels(i)
-            if included_channels:
-                cg_nr += 1
+            
+        try:
+            raster = float(raster)
+            array_raster = False
+        except:
+            if isinstance(raster, str):
+                raster = self.get(raster).timestamps
             else:
-                continue
-
-            last = None
-
-            data = self._load_data(group)
-            for idx, fragment in enumerate(data):
-                if idx == 0:
-                    master = self.get_master(i, data=fragment)
-                    if len(master) > 1:
-                        if raster:
-                            num = float(np.float32((master[-1] - master[0]) / raster))
-                            if int(num) == num:
-                                master = np.linspace(master[0], master[-1], int(num))
+                raster = np.array(raster)
+            array_raster = True
+                    
+        if array_raster:
+            for i, group in enumerate(self.groups):
+                included_channels = self._included_channels(i)
+                channels = [
+                    (None, i, idx)
+                    for idx in included_channels
+                ]
+                sigs = self.select(
+                    channels,
+                    raw=True,
+                )
+                sigs = [
+                    sig.interp(raster, interpolation_mode=interpolation_mode)
+                    for sig in sigs
+                ]
+                
+                mdf.append(sigs)
+        else:
+            # walk through all groups and get all channels
+            cg_nr = -1
+            for i, group in enumerate(self.groups):
+                if version < "4.00":
+                    encodings = []
+                included_channels = self._included_channels(i)
+                if included_channels:
+                    cg_nr += 1
+                else:
+                    continue
+    
+                last = None
+    
+                data = self._load_data(group)
+                for idx, fragment in enumerate(data):
+                    if idx == 0:
+                        master = self.get_master(i, data=fragment)
+                        if len(master) > 1:
+                            if raster:
+                                num = float(np.float32((master[-1] - master[0]) / raster))
+                                if int(num) == num:
+                                    master = np.linspace(master[0], master[-1], int(num))
+                                else:
+                                    master = np.arange(master[0], master[-1], raster)
+                                last = master[-1] + raster
                             else:
-                                master = np.arange(master[0], master[-1], raster)
+                                last = master[-1]
+                        elif len(master) == 1:
                             last = master[-1] + raster
                         else:
-                            last = master[-1]
-                    elif len(master) == 1:
-                        last = master[-1] + raster
+                            last = None
+    
                     else:
-                        last = None
-
-                else:
-                    master = self.get_master(i, data=fragment)
-                    if len(master):
-                        if last is None:
-                            last = master[0] + raster
-                        if raster:
-                            num = float(np.float32((master[-1] - last) / raster))
-                            if int(num) == num:
-                                master = np.linspace(master[0], master[-1], int(num))
-                            else:
-                                master = np.arange(last, master[-1], raster)
-                            last = master[-1] + raster
-                        else:
-                            last = master[-1]
-
-                if idx == 0:
-                    sigs = []
-                    for j in included_channels:
-                        sig = self.get(
-                            group=i,
-                            index=j,
-                            data=fragment,
-                            raw=True,
-                            ignore_invalidation_bits=True,
-                        )
-                        if version < "4.00":
-                            if sig.samples.dtype.kind == "S":
-                                encodings.append(sig.encoding)
-                                strsig = self.get(
-                                    group=i,
-                                    index=j,
-                                    samples_only=True,
-                                    ignore_invalidation_bits=True,
-                                )[0]
-                                sig.samples = sig.samples.astype(strsig.dtype)
-                                del strsig
-                                if sig.encoding != "latin-1":
-
-                                    if sig.encoding == "utf-16-le":
-                                        sig.samples = (
-                                            sig.samples.view(np.uint16)
-                                            .byteswap()
-                                            .view(sig.samples.dtype)
-                                        )
-                                        sig.samples = encode(
-                                            decode(sig.samples, "utf-16-be"), "latin-1"
-                                        )
-                                    else:
-                                        sig.samples = encode(
-                                            decode(sig.samples, sig.encoding), "latin-1"
-                                        )
-                            else:
-                                encodings.append(None)
-
+                        master = self.get_master(i, data=fragment)
                         if len(master):
-                            sig = sig.interp(master, interpolation_mode=interpolation_mode)
-
-                        if not sig.samples.flags.writeable:
-                            sig.samples = sig.samples.copy()
-                        sigs.append(sig)
-
-                    if sigs:
-                        mdf.append(
-                            sigs, f"Resampled to {raster}s", common_timebase=True
-                        )
-                        try:
-                            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                                mdf.groups[-1].channel_group.flags = group.channel_group.flags
-                                mdf.groups[-1].channel_group.acq_name = group.channel_group.acq_name
-                                mdf.groups[-1].channel_group.acq_source = group.channel_group.acq_source
-                                mdf.groups[-1].channel_group.comment = group.channel_group.comment
-                        except AttributeError:
-                            pass
-                    else:
-                        break
-
-                else:
-                    sigs = [(master, None)]
-                    t = self.get_master(i, data=fragment)
-
-                    for k, j in enumerate(included_channels):
-                        sig = self.get(
-                            group=i,
-                            index=j,
-                            data=fragment,
-                            raw=True,
-                            samples_only=True,
-                            ignore_invalidation_bits=True,
-                        )
-
-                        if version < "4.00":
-                            encoding = encodings[k]
-                            samples = sig[0]
-                            if encoding:
-                                if encoding != "latin-1":
-
-                                    if encoding == "utf-16-le":
-                                        samples = (
-                                            samples.view(np.uint16)
-                                            .byteswap()
-                                            .view(samples.dtype)
-                                        )
-                                        samples = encode(
-                                            decode(samples, "utf-16-be"), "latin-1"
-                                        )
-                                    else:
-                                        samples = encode(
-                                            decode(samples, encoding), "latin-1"
-                                        )
-                                    sig.samples = samples
-
-                        if len(master):
-                            sig = (
-                                Signal(sig[0], t, invalidation_bits=sig[1], name='_')
-                                .interp(master, interpolation_mode=interpolation_mode)
+                            if last is None:
+                                last = master[0] + raster
+                            if raster:
+                                num = float(np.float32((master[-1] - last) / raster))
+                                if int(num) == num:
+                                    master = np.linspace(master[0], master[-1], int(num))
+                                else:
+                                    master = np.arange(last, master[-1], raster)
+                                last = master[-1] + raster
+                            else:
+                                last = master[-1]
+    
+                    if idx == 0:
+                        sigs = []
+                        for j in included_channels:
+                            sig = self.get(
+                                group=i,
+                                index=j,
+                                data=fragment,
+                                raw=True,
+                                ignore_invalidation_bits=True,
                             )
-                            sig = sig.samples, sig.invalidation_bits
-                        if not sig[0].flags.writeable:
-                            sig = sig[0].copy(), sig[1]
-                        sigs.append(sig)
-
-                    if sigs:
-                        mdf.extend(cg_nr, sigs)
-
-            if self._callback:
-                self._callback(cg_nr + 1, groups_nr)
-
-            if self._terminate:
-                return
+                            if version < "4.00":
+                                if sig.samples.dtype.kind == "S":
+                                    encodings.append(sig.encoding)
+                                    strsig = self.get(
+                                        group=i,
+                                        index=j,
+                                        samples_only=True,
+                                        ignore_invalidation_bits=True,
+                                    )[0]
+                                    sig.samples = sig.samples.astype(strsig.dtype)
+                                    del strsig
+                                    if sig.encoding != "latin-1":
+    
+                                        if sig.encoding == "utf-16-le":
+                                            sig.samples = (
+                                                sig.samples.view(np.uint16)
+                                                .byteswap()
+                                                .view(sig.samples.dtype)
+                                            )
+                                            sig.samples = encode(
+                                                decode(sig.samples, "utf-16-be"), "latin-1"
+                                            )
+                                        else:
+                                            sig.samples = encode(
+                                                decode(sig.samples, sig.encoding), "latin-1"
+                                            )
+                                else:
+                                    encodings.append(None)
+    
+                            if len(master):
+                                sig = sig.interp(master, interpolation_mode=interpolation_mode)
+    
+                            if not sig.samples.flags.writeable:
+                                sig.samples = sig.samples.copy()
+                            sigs.append(sig)
+    
+                        if sigs:
+                            mdf.append(
+                                sigs, f"Resampled to {raster}s", common_timebase=True
+                            )
+                            try:
+                                if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                                    mdf.groups[-1].channel_group.flags = group.channel_group.flags
+                                    mdf.groups[-1].channel_group.acq_name = group.channel_group.acq_name
+                                    mdf.groups[-1].channel_group.acq_source = group.channel_group.acq_source
+                                    mdf.groups[-1].channel_group.comment = group.channel_group.comment
+                            except AttributeError:
+                                pass
+                        else:
+                            break
+    
+                    else:
+                        sigs = [(master, None)]
+                        t = self.get_master(i, data=fragment)
+    
+                        for k, j in enumerate(included_channels):
+                            sig = self.get(
+                                group=i,
+                                index=j,
+                                data=fragment,
+                                raw=True,
+                                samples_only=True,
+                                ignore_invalidation_bits=True,
+                            )
+    
+                            if version < "4.00":
+                                encoding = encodings[k]
+                                samples = sig[0]
+                                if encoding:
+                                    if encoding != "latin-1":
+    
+                                        if encoding == "utf-16-le":
+                                            samples = (
+                                                samples.view(np.uint16)
+                                                .byteswap()
+                                                .view(samples.dtype)
+                                            )
+                                            samples = encode(
+                                                decode(samples, "utf-16-be"), "latin-1"
+                                            )
+                                        else:
+                                            samples = encode(
+                                                decode(samples, encoding), "latin-1"
+                                            )
+                                        sig.samples = samples
+    
+                            if len(master):
+                                sig = (
+                                    Signal(sig[0], t, invalidation_bits=sig[1], name='_')
+                                    .interp(master, interpolation_mode=interpolation_mode)
+                                )
+                                sig = sig.samples, sig.invalidation_bits
+                            if not sig[0].flags.writeable:
+                                sig = sig[0].copy(), sig[1]
+                            sigs.append(sig)
+    
+                        if sigs:
+                            mdf.extend(cg_nr, sigs)
+    
+                if self._callback:
+                    self._callback(cg_nr + 1, groups_nr)
+    
+                if self._terminate:
+                    return
 
         if self._callback:
             self._callback(groups_nr, groups_nr)
