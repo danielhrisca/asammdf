@@ -4771,6 +4771,8 @@ class MDF4(object):
                 t *= time_a
                 t += time_b
 
+                t = t[record_offset: record_offset+record_count]
+
             else:
                 # get data group parents and dtypes
                 parents, dtypes = group.parents, group.types
