@@ -40,6 +40,8 @@ from numpy import (
     fliplr,
     searchsorted,
     full,
+    unique,
+    column_stack,
 )
 
 from numpy.core.records import fromarrays, fromstring
@@ -366,72 +368,10 @@ class MDF4(object):
                     bus_type = channel_group.acq_source.bus_type
                     if bus_type == v4c.BUS_TYPE_CAN:
                         grp.CAN_logging = True
-                        message_name = channel_group.acq_name
 
-                        comment = channel_group.acq_source.comment
-                        if comment:
-                            comment_xml = ET.fromstring(comment)
-                            common_properties = comment_xml.find(".//common_properties")
-                            for e in common_properties:
-                                name = e.get("name")
-                                if name == "ChannelNo":
-                                    grp.CAN_id = f"CAN{e.text}"
-                                    break
-
-                        if grp.CAN_id is None:
-                            grp.CAN_logging = False
-                        else:
-                            if message_name == "CAN_DataFrame":
-                                # this is a raw CAN bus logging channel group
-                                # it will be later processed to extract all
-                                # signals to new groups (one group per CAN message)
-                                grp.raw_can = True
-
-                            elif message_name in ("CAN_ErrorFrame", "CAN_RemoteFrame"):
-                                # for now ignore bus logging flag
-                                pass
-                            else:
-                                comment = channel_group.comment
-                                if comment:
-
-                                    comment_xml = ET.fromstring(sanitize_xml(comment))
-                                    can_msg_type = comment_xml.find(".//TX").text
-                                    if can_msg_type is not None:
-                                        can_msg_type = can_msg_type.strip(" \t\r\n")
-                                    else:
-                                        can_msg_type = "CAN_DataFrame"
-                                    if can_msg_type == "CAN_DataFrame":
-                                        common_properties = comment_xml.find(
-                                            ".//common_properties"
-                                        )
-                                        message_id = -1
-                                        for e in common_properties:
-                                            name = e.get("name")
-                                            if name == "MessageID":
-                                                message_id = int(e.text)
-                                                break
-
-                                        if message_id > 0:
-                                            if message_id > 0x80000000:
-                                                message_id -= 0x80000000
-                                                grp.extended_id = True
-                                            grp.message_name = message_name
-                                            grp.message_id = {message_id}
-
-                                    else:
-                                        grp.raw_can = True
-                                        message = f"Invalid bus logging channel group metadata: {comment}"
-                                        logger.warning(message)
-                                else:
-                                    grp.raw_can = True
-                                    message = (
-                                        f"Unable to get CAN message information "
-                                        f"since channel group @{hex(channel_group.address)} has no metadata"
-                                    )
-                                    logger.warning(message)
                     else:
                         # only CAN bus logging is supported
-                        pass
+                        grp.CAN_logging = False
                     samples_size = channel_group.samples_byte_nr
                     inval_size = channel_group.invalidation_bytes_nr
                     record_id = channel_group.record_id
@@ -451,11 +391,10 @@ class MDF4(object):
                 # go to first channel of the current channel group
                 ch_addr = channel_group.first_ch_addr
                 ch_cntr = 0
-                neg_ch_cntr = -1
 
                 # Read channels by walking recursively in the channel group
                 # starting from the first channel
-                self._read_channels(ch_addr, grp, stream, dg_cntr, ch_cntr, neg_ch_cntr, mapped=mapped)
+                self._read_channels(ch_addr, grp, stream, dg_cntr, ch_cntr, mapped=mapped)
 
                 cg_addr = channel_group.next_cg_addr
                 dg_cntr += 1
@@ -510,6 +449,8 @@ class MDF4(object):
                             dep.referenced_channels.append(ref_channel)
                     else:
                         break
+
+        self._process_can_logging()
 
         # append indexes of groups that contain raw CAN bus logging and
         # store signals and metadata that will be used to create the new
@@ -727,7 +668,6 @@ class MDF4(object):
         stream,
         dg_cntr,
         ch_cntr,
-        neg_ch_cntr,
         channel_composition=False,
         mapped=False,
     ):
@@ -782,174 +722,13 @@ class MDF4(object):
                 if blk_id == b"##CN":
                     index = ch_cntr - 1
                     dependencies.append(None)
-                    ch_cntr, neg_ch_cntr, ret_composition, ret_composition_dtype = self._read_channels(
-                        component_addr, grp, stream, dg_cntr, ch_cntr, neg_ch_cntr, True, mapped=mapped
+                    ch_cntr, ret_composition, ret_composition_dtype = self._read_channels(
+                        component_addr, grp, stream, dg_cntr, ch_cntr, True, mapped=mapped
                     )
                     dependencies[index] = ret_composition
 
                     channel.dtype_fmt = ret_composition_dtype
                     composition_dtype.append((channel.name, channel.dtype_fmt))
-
-                    if grp.CAN_id is not None and grp.message_id is not None and len(grp.message_id) == 1:
-                        try:
-                            addr = channel.attachment_addr
-                        except AttributeError:
-                            addr = 0
-                        if addr:
-                            attachment_addr = self._attachments_map[addr]
-                            if attachment_addr not in self._dbc_cache:
-                                attachment, at_name = self.extract_attachment(
-                                    index=attachment_addr
-                                )
-                                if (
-                                    not at_name.name.lower().endswith(("dbc", "arxml"))
-                                    or not attachment
-                                ):
-                                    message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
-                                    logger.warning(message)
-                                    grp.CAN_database = False
-                                else:
-                                    import_type = (
-                                        "dbc"
-                                        if at_name.name.lower().endswith("dbc")
-                                        else "arxml"
-                                    )
-                                    try:
-                                        attachment_string = attachment.decode("utf-8")
-                                        self._dbc_cache[attachment_addr] = loads(
-                                            attachment_string,
-                                            importType=import_type,
-                                            key="db",
-                                        )["db"]
-                                        grp.CAN_database = True
-                                    except UnicodeDecodeError:
-                                        try:
-                                            from cchardet import detect
-
-                                            encoding = detect(attachment)["encoding"]
-                                            attachment_string = attachment.decode(
-                                                encoding
-                                            )
-                                            self._dbc_cache[attachment_addr] = loads(
-                                                attachment_string,
-                                                importType=import_type,
-                                                key="db",
-                                                encoding=encoding,
-                                            )["db"]
-                                            grp.CAN_database = True
-                                        except ImportError:
-                                            message = (
-                                                "Unicode exception occured while processing the database "
-                                                f'attachment "{at_name}" and "cChardet" package is '
-                                                'not installed. Mdf version 4 expects "utf-8" '
-                                                "strings and this package may detect if a different"
-                                                " encoding was used"
-                                            )
-                                            logger.warning(message)
-                                            grp.CAN_database = False
-                            else:
-                                grp.CAN_database = True
-                        else:
-                            grp.CAN_database = False
-
-                        if grp.CAN_database:
-
-                            # here we make available multiple ways to refer to
-                            # CAN signals by using fake negative indexes for
-                            # the channel entries in the channels_db
-
-                            grp.dbc_addr = attachment_addr
-
-                            message_id = next(iter(grp.message_id))
-                            message_name = grp.message_name
-                            can_id = grp.CAN_id
-
-                            can_msg = self._dbc_cache[attachment_addr].frameById(
-                                message_id
-                            )
-                            can_msg_name = can_msg.name
-
-                            for entry in self.channels_db["CAN_DataFrame.DataBytes"]:
-                                if entry[0] == dg_cntr:
-                                    index = entry[1]
-                                    break
-
-                            payload = channels[index]
-
-                            logging_channels = grp.logging_channels
-
-                            for signal in can_msg.signals:
-                                signal_name = signal.name
-
-                                # 0 - name
-                                # 1 - message_name.name
-                                # 2 - can_id.message_name.name
-                                # 3 - can_msg_name.name
-                                # 4 - can_id.can_msg_name.name
-
-                                name_ = signal_name
-                                little_endian = (
-                                    True if signal.is_little_endian else False
-                                )
-                                signed = signal.is_signed
-                                s_type = info_to_datatype_v4(signed, little_endian)
-                                bit_offset = signal.startBit % 8
-                                byte_offset = signal.startBit // 8
-                                bit_count = signal.size
-                                comment = signal.comment or ""
-
-                                if (signal.factor, signal.offset) != (1, 0):
-                                    conversion = ChannelConversion(
-                                        a=float(signal.factor),
-                                        b=float(signal.offset),
-                                        conversion_type=v4c.CONVERSION_TYPE_LIN,
-                                    )
-                                    conversion.unit = signal.unit or ""
-                                else:
-                                    conversion = None
-
-                                kwargs = {
-                                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                                    "data_type": s_type,
-                                    "sync_type": payload.sync_type,
-                                    "byte_offset": byte_offset + payload.byte_offset,
-                                    "bit_offset": bit_offset,
-                                    "bit_count": bit_count,
-                                    "min_raw_value": 0,
-                                    "max_raw_value": 0,
-                                    "lower_limit": 0,
-                                    "upper_limit": 0,
-                                    "flags": 0,
-                                    "pos_invalidation_bit": payload.pos_invalidation_bit,
-                                }
-
-                                log_channel = Channel(**kwargs)
-                                log_channel.name = name_
-                                log_channel.comment = comment
-                                log_channel.source = deepcopy(channel.source)
-                                log_channel.conversion = conversion
-                                log_channel.unit = signal.unit or ""
-
-                                logging_channels.append(log_channel)
-
-                                entry = dg_cntr, neg_ch_cntr
-                                self.channels_db.add(name_, entry)
-
-                                name_ = f"{message_name}.{signal_name}"
-                                self.channels_db.add(name_, entry)
-
-                                name_ = f"CAN{can_id}.{message_name}.{signal_name}"
-                                self.channels_db.add(name_, entry)
-
-                                name_ = f"{can_msg_name}.{signal_name}"
-                                self.channels_db.add(name_, entry)
-
-                                name_ = f"CAN{can_id}.{can_msg_name}.{signal_name}"
-                                self.channels_db.add(name_, entry)
-
-                                neg_ch_cntr -= 1
-
-                            grp.channel_group["flags"] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
 
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are
@@ -978,7 +757,267 @@ class MDF4(object):
             # go to next channel of the current channel group
             ch_addr = channel.next_ch_addr
 
-        return ch_cntr, neg_ch_cntr, composition, composition_dtype
+        return ch_cntr, composition, composition_dtype
+
+    def _process_can_logging(self):
+        for i, grp in enumerate(self.groups):
+            if not grp.CAN_logging:
+                continue
+
+            channel_group = grp.channel_group
+            message_name = channel_group.acq_name
+            dg_cntr = i
+            channels = grp.channels
+            neg_ch_cntr = -1
+
+            comment = channel_group.acq_source.comment
+            if comment:
+                comment_xml = ET.fromstring(comment)
+                common_properties = comment_xml.find(".//common_properties")
+                for e in common_properties:
+                    name = e.get("name")
+                    if name == "ChannelNo":
+                        grp.CAN_id = f"CAN{e.text}"
+                        break
+
+            if grp.CAN_id:
+                if message_name == "CAN_DataFrame":
+                    # this is a raw CAN bus logging channel group
+                    # it will be later processed to extract all
+                    # signals to new groups (one group per CAN message)
+                    grp.raw_can = True
+
+                elif message_name in ("CAN_ErrorFrame", "CAN_RemoteFrame"):
+                    # for now ignore bus logging flag
+                    pass
+                else:
+                    comment = channel_group.comment
+                    if comment:
+
+                        comment_xml = ET.fromstring(sanitize_xml(comment))
+                        can_msg_type = comment_xml.find(".//TX").text
+                        if can_msg_type is not None:
+                            can_msg_type = can_msg_type.strip(" \t\r\n")
+                        else:
+                            can_msg_type = "CAN_DataFrame"
+                        if can_msg_type == "CAN_DataFrame":
+                            common_properties = comment_xml.find(
+                                ".//common_properties"
+                            )
+                            message_id = -1
+                            for e in common_properties:
+                                name = e.get("name")
+                                if name == "MessageID":
+                                    message_id = int(e.text)
+                                    break
+
+                            if message_id > 0:
+                                if message_id > 0x80000000:
+                                    message_id -= 0x80000000
+                                    grp.extended_id = True
+                                grp.message_name = message_name
+                                grp.message_id = {message_id}
+
+                        else:
+                            grp.raw_can = True
+                            message = f"Invalid bus logging channel group metadata: {comment}"
+                            logger.warning(message)
+                    else:
+                        grp.raw_can = True
+                        message = (
+                            f"Unable to get CAN message information "
+                            f"since channel group @{hex(channel_group.address)} has no metadata"
+                        )
+                        logger.warning(message)
+
+            else:
+                try:
+                    bus_ids, can_ids = self.select(
+                        [
+                            ("CAN_DataFrame.BusChannel", i, None),
+                            ("CAN_DataFrame.ID", i, None),
+                        ]
+                    )
+
+                    assert len(unique(bus_ids)) <= 1
+
+                    for can_id, message_id in unique(column_stack((bus_ids.samples.astype(int), can_ids.samples), axis=0)):
+                        if can_id not in self.can_logging_db:
+                            self.can_logging_db[can_id] = {}
+                        grp.CAN_id = can_id
+                        self.can_logging_db[can_id][message_id] = i
+
+                    grp.message_id = set(unique(can_ids.samples))
+
+                except MdfException:
+                    grp.CAN_logging = False
+                    pass
+
+            if grp.CAN_id is not None and grp.message_id is not None and len(grp.message_id) == 1:
+                for j, dep in enumerate(grp.channel_dependencies):
+                    if dep:
+                        channel = grp.channels[j]
+                        break
+                try:
+                    addr = channel.attachment_addr
+                except AttributeError:
+                    addr = 0
+                if addr:
+                    attachment_addr = self._attachments_map[addr]
+                    if attachment_addr not in self._dbc_cache:
+                        attachment, at_name = self.extract_attachment(
+                            index=attachment_addr
+                        )
+                        if (
+                                not at_name.name.lower().endswith(("dbc", "arxml"))
+                                or not attachment
+                        ):
+                            message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
+                            logger.warning(message)
+                            grp.CAN_database = False
+                        else:
+                            import_type = (
+                                "dbc"
+                                if at_name.name.lower().endswith("dbc")
+                                else "arxml"
+                            )
+                            try:
+                                attachment_string = attachment.decode("utf-8")
+                                self._dbc_cache[attachment_addr] = loads(
+                                    attachment_string,
+                                    importType=import_type,
+                                    key="db",
+                                )["db"]
+                                grp.CAN_database = True
+                            except UnicodeDecodeError:
+                                try:
+                                    from cchardet import detect
+
+                                    encoding = detect(attachment)["encoding"]
+                                    attachment_string = attachment.decode(
+                                        encoding
+                                    )
+                                    self._dbc_cache[attachment_addr] = loads(
+                                        attachment_string,
+                                        importType=import_type,
+                                        key="db",
+                                        encoding=encoding,
+                                    )["db"]
+                                    grp.CAN_database = True
+                                except ImportError:
+                                    message = (
+                                        "Unicode exception occured while processing the database "
+                                        f'attachment "{at_name}" and "cChardet" package is '
+                                        'not installed. Mdf version 4 expects "utf-8" '
+                                        "strings and this package may detect if a different"
+                                        " encoding was used"
+                                    )
+                                    logger.warning(message)
+                                    grp.CAN_database = False
+                    else:
+                        grp.CAN_database = True
+                else:
+                    grp.CAN_database = False
+
+                if grp.CAN_database:
+
+                    # here we make available multiple ways to refer to
+                    # CAN signals by using fake negative indexes for
+                    # the channel entries in the channels_db
+
+                    grp.dbc_addr = attachment_addr
+
+                    message_id = next(iter(grp.message_id))
+                    message_name = grp.message_name
+                    can_id = grp.CAN_id
+
+                    can_msg = self._dbc_cache[attachment_addr].frameById(
+                        message_id
+                    )
+                    can_msg_name = can_msg.name
+
+                    for entry in self.channels_db["CAN_DataFrame.DataBytes"]:
+                        if entry[0] == dg_cntr:
+                            index = entry[1]
+                            break
+
+                    payload = channels[index]
+
+                    logging_channels = grp.logging_channels
+
+                    for signal in can_msg.signals:
+                        signal_name = signal.name
+
+                        # 0 - name
+                        # 1 - message_name.name
+                        # 2 - can_id.message_name.name
+                        # 3 - can_msg_name.name
+                        # 4 - can_id.can_msg_name.name
+
+                        name_ = signal_name
+                        little_endian = (
+                            True if signal.is_little_endian else False
+                        )
+                        signed = signal.is_signed
+                        s_type = info_to_datatype_v4(signed, little_endian)
+                        bit_offset = signal.startBit % 8
+                        byte_offset = signal.startBit // 8
+                        bit_count = signal.size
+                        comment = signal.comment or ""
+
+                        if (signal.factor, signal.offset) != (1, 0):
+                            conversion = ChannelConversion(
+                                a=float(signal.factor),
+                                b=float(signal.offset),
+                                conversion_type=v4c.CONVERSION_TYPE_LIN,
+                            )
+                            conversion.unit = signal.unit or ""
+                        else:
+                            conversion = None
+
+                        kwargs = {
+                            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                            "data_type": s_type,
+                            "sync_type": payload.sync_type,
+                            "byte_offset": byte_offset + payload.byte_offset,
+                            "bit_offset": bit_offset,
+                            "bit_count": bit_count,
+                            "min_raw_value": 0,
+                            "max_raw_value": 0,
+                            "lower_limit": 0,
+                            "upper_limit": 0,
+                            "flags": 0,
+                            "pos_invalidation_bit": payload.pos_invalidation_bit,
+                        }
+
+                        log_channel = Channel(**kwargs)
+                        log_channel.name = name_
+                        log_channel.comment = comment
+                        log_channel.source = deepcopy(channel.source)
+                        log_channel.conversion = conversion
+                        log_channel.unit = signal.unit or ""
+
+                        logging_channels.append(log_channel)
+
+                        entry = dg_cntr, neg_ch_cntr
+                        self.channels_db.add(name_, entry)
+
+                        name_ = f"{message_name}.{signal_name}"
+                        self.channels_db.add(name_, entry)
+
+                        name_ = f"CAN{can_id}.{message_name}.{signal_name}"
+                        self.channels_db.add(name_, entry)
+
+                        name_ = f"{can_msg_name}.{signal_name}"
+                        self.channels_db.add(name_, entry)
+
+                        name_ = f"CAN{can_id}.{can_msg_name}.{signal_name}"
+                        self.channels_db.add(name_, entry)
+
+                        neg_ch_cntr -= 1
+
+                    grp.channel_group["flags"] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
+
 
     def _load_signal_data(self, address=None, stream=None, group=None, index=None):
         """ this method is used to get the channel signal data, usually for
@@ -2907,6 +2946,7 @@ class MDF4(object):
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
+        gp.channel_group.acq_source = source_block
 
         # data group
         gp.data_group = DataGroup()
@@ -3031,7 +3071,6 @@ class MDF4(object):
             gp_dep.append(None)
 
             fields.append(t)
-            print(t, array(t))
             types.append((name, t.dtype))
             field_names.get_unique_name(name)
 

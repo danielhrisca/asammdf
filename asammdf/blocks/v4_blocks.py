@@ -589,9 +589,6 @@ class Channel:
                 si_map = kwargs.get("si_map", {})
                 cc_map = kwargs.get("cc_map", {})
 
-
-
-
                 address = self.conversion_addr
                 if address:
                     if mapped:
