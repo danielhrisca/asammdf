@@ -79,6 +79,8 @@ class Numeric(QtWidgets.QWidget):
         if stamp is None:
             stamp = self.timestamp.value()
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels)
+        
+        idx_cache = {}
 
         if self.format == 'bin':
 
@@ -89,7 +91,12 @@ class Numeric(QtWidgets.QWidget):
                     break
                 sig = self.signals[index]
                 if sig.size:
-                    value = sig.samples[min(sig.size-1, searchsorted(sig.timestamps, stamp))]
+                    if sig.group_index in idx_cache:
+                        idx = idx_cache[sig.group_index]
+                    else:
+                        idx = min(sig.size-1, searchsorted(sig.timestamps, stamp))
+                        idx_cache[sig.group_index] = idx
+                    value = sig.samples[idx]
 
                     if sig.kind == 'f':
                         item.setText(1, f'{value:.6f}')
@@ -109,7 +116,12 @@ class Numeric(QtWidgets.QWidget):
                     break
                 sig = self.signals[index]
                 if sig.size:
-                    value = sig.samples[min(sig.size-1, searchsorted(sig.timestamps, stamp))]
+                    if sig.group_index in idx_cache:
+                        idx = idx_cache[sig.group_index]
+                    else:
+                        idx = min(sig.size-1, searchsorted(sig.timestamps, stamp))
+                        idx_cache[sig.group_index] = idx
+                    value = sig.samples[idx]
 
                     if sig.kind == 'f':
                         item.setText(1, f'{value:.6f}')
@@ -128,7 +140,12 @@ class Numeric(QtWidgets.QWidget):
                     break
                 sig = self.signals[index]
                 if sig.size:
-                    value = sig.samples[min(sig.size-1, searchsorted(sig.timestamps, stamp))]
+                    if sig.group_index in idx_cache:
+                        idx = idx_cache[sig.group_index]
+                    else:
+                        idx = min(sig.size-1, searchsorted(sig.timestamps, stamp))
+                        idx_cache[sig.group_index] = idx
+                    value = sig.samples[idx]
                     if sig.kind == 'f':
                         item.setText(1, f'{value:.6f}')
                     else:

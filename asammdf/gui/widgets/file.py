@@ -1161,7 +1161,12 @@ class FileWidget(QtWidgets.QWidget):
 
                     iterator += 1
 
-            signals = self.mdf.select(signals)
+            signals_ = self.mdf.select(signals)
+            
+            for sig, s_ in zip(signals_, signals):
+                sig.group_index = s_[1]
+                
+            signals = signals_
 
             signals = [
                 sig
