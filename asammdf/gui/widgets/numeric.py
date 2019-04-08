@@ -11,14 +11,16 @@ from PyQt5 import uic
 from natsort import natsorted
 from numpy import zeros, searchsorted
 
-from ..utils import COLORS
 
 class Numeric(QtWidgets.QWidget):
     add_channel_request = QtCore.pyqtSignal(str)
 
     def __init__(self, signals, *args, **kwargs):
         super().__init__()
-        self.signals = []
+        self.signals = {
+            sig.name: sig
+            for sig in signals
+        }
         self._min = self._max = 0
         self.format = 'phys'
         uic.loadUi(HERE.joinpath("..", "ui", "numeric.ui"), self)
@@ -28,15 +30,24 @@ class Numeric(QtWidgets.QWidget):
 
         self._update_values(self.timestamp.value())
         self.channels.add_channel_request.connect(self.add_channel_request)
+        self.channels.items_deleted.connect(self.items_deleted)
 
-        self.add_signals(signals)
+        self.build()
 
-    def add_signals(self, signals):
-        self.signals = natsorted(signals, key=lambda x: x.name)
+    def items_deleted(self, names):
+        for name in names:
+            self.signals.pop(name)
+        self.build()
+
+    def build(self):
+        self.signals = {
+            name: self.signals[name]
+            for name in natsorted(self.signals)
+        }
         self.channels.clear()
         self._min = self._max = 0
         items = []
-        for i, sig in enumerate(signals):
+        for sig in self.signals.values():
             sig.kind = sig.samples.dtype.kind
             size = len(sig)
             sig.size = size
@@ -50,8 +61,10 @@ class Numeric(QtWidgets.QWidget):
             else:
                 value = 'n.a.'
 
+            item = QtWidgets.QTreeWidgetItem([sig.name, value, sig.unit])
+            item.setFlags(item.flags() & ~QtCore.Qt.ItemIsDropEnabled)
             items.append(
-                QtWidgets.QTreeWidgetItem([sig.name, value, sig.unit])
+                item
             )
         self.channels.addTopLevelItems(items)
 
@@ -84,12 +97,11 @@ class Numeric(QtWidgets.QWidget):
 
         if self.format == 'bin':
 
-            index = 0
             while 1:
                 item = iterator.value()
                 if not item:
                     break
-                sig = self.signals[index]
+                sig = self.signals[item.text(0)]
                 if sig.size:
                     if sig.group_index in idx_cache:
                         idx = idx_cache[sig.group_index]
@@ -105,16 +117,14 @@ class Numeric(QtWidgets.QWidget):
                     else:
                         item.setText(1, str(value))
 
-                index += 1
                 iterator += 1
         elif self.format == 'hex':
 
-            index = 0
             while 1:
                 item = iterator.value()
                 if not item:
                     break
-                sig = self.signals[index]
+                sig = self.signals[item.text(0)]
                 if sig.size:
                     if sig.group_index in idx_cache:
                         idx = idx_cache[sig.group_index]
@@ -130,15 +140,13 @@ class Numeric(QtWidgets.QWidget):
                     else:
                         item.setText(1, str(value))
 
-                index += 1
                 iterator += 1
         else:
-            index = 0
             while 1:
                 item = iterator.value()
                 if not item:
                     break
-                sig = self.signals[index]
+                sig = self.signals[item.text(0)]
                 if sig.size:
                     if sig.group_index in idx_cache:
                         idx = idx_cache[sig.group_index]
@@ -151,12 +159,12 @@ class Numeric(QtWidgets.QWidget):
                     else:
                         item.setText(1, str(value))
 
-                index += 1
                 iterator += 1
 
     def add_new_channel(self, sig):
         if sig:
-            self.add_signals(self.signals + [sig,])
+            self.signals[sig.name] = sig
+            self.build()
 
     def keyPressEvent(self, event):
         key = event.key()

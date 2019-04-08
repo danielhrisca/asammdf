@@ -7,9 +7,10 @@ from PyQt5 import QtCore
 class ListWidget(QtWidgets.QListWidget):
 
     itemsDeleted = QtCore.pyqtSignal(list)
+    items_rearranged = QtCore.pyqtSignal()
     add_channel_request = QtCore.pyqtSignal(str)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, drag=False, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
@@ -19,7 +20,13 @@ class ListWidget(QtWidgets.QListWidget):
 
         self.can_delete_items = True
         self.setAcceptDrops(True)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.show()
+
+    def addItem(self, item):
+        if self.dragEnabled():
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsDragEnabled)
+        super().addItem(item)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -54,13 +61,17 @@ class ListWidget(QtWidgets.QListWidget):
             super().keyPressEvent(event)
 
     def dragEnterEvent(self, e):
-
         e.accept()
+        super().dragEnterEvent(e)
 
     def dropEvent(self, e):
-        data = e.mimeData()
-        if data.hasFormat('application/x-qabstractitemmodeldatalist'):
-            data = bytes(data.data('application/x-qabstractitemmodeldatalist'))
-            name = data.replace(b'\0', b'').split(b'\n')[-1][1:].decode('utf-8')
+        if e.source() is self:
+            super().dropEvent(e)
+            self.items_rearranged.emit()
+        else:
+            data = e.mimeData()
+            if data.hasFormat('application/x-qabstractitemmodeldatalist'):
+                data = bytes(data.data('application/x-qabstractitemmodeldatalist'))
+                name = data.replace(b'\0', b'').split(b'\n')[-1][1:].decode('utf-8')
 
-            self.add_channel_request.emit(name)
+                self.add_channel_request.emit(name)

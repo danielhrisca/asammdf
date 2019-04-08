@@ -49,12 +49,15 @@ try:
             super().__init__(*args, **kwargs)
             self.setContentsMargins(0, 0, 0, 0)
 
+            self.info_index = None
+
             main_layout = QtWidgets.QVBoxLayout(self)
             # self.setLayout(main_layout)
 
             vbox = QtWidgets.QVBoxLayout()
             widget = QtWidgets.QWidget()
             self.channel_selection = ListWidget()
+            self.channel_selection.setDragEnabled(True)
             hbox = QtWidgets.QHBoxLayout()
             hbox.addWidget(QtWidgets.QLabel("Cursor/Range information"))
             self.cursor_info = QtWidgets.QLabel("")
@@ -81,8 +84,11 @@ try:
             self.plot.computation_channel_inserted.connect(self.computation_channel_inserted)
             self.plot.curve_clicked.connect(self.channel_selection.setCurrentRow)
             self.plot.show()
+
             self.channel_selection.show()
             self.splitter.addWidget(self.plot)
+
+            self._available_index = 0
 
             for i, sig in enumerate(self.plot.signals):
                 if sig.empty:
@@ -90,7 +96,7 @@ try:
                 else:
                     name, unit = sig.name, sig.unit
                 item = QtWidgets.QListWidgetItem(self.channel_selection)
-                it = ChannelDisplay(i, unit, self)
+                it = ChannelDisplay(self._available_index, unit, self)
                 it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
                 it.setName(name)
@@ -103,6 +109,8 @@ try:
                 it.color_changed.connect(self.plot.setColor)
                 it.enable_changed.connect(self.plot.setSignalEnable)
                 it.ylink_changed.connect(self.plot.setCommonAxis)
+                sig._index = self._available_index
+                self._available_index += 1
 
             self.info = ChannelStats()
             self.splitter.addWidget(self.info)
@@ -113,7 +121,12 @@ try:
             )
             self.channel_selection.add_channel_request.connect(self.add_channel_request)
 
+            for row in range(self.channel_selection.count()):
+                print(row, self.channel_selection.item(row).flags(), int(self.channel_selection.item(row).flags()))
+
             main_layout.addWidget(self.splitter)
+
+            self.plot.set_current_index(self.plot.signals[0]._index)
 
             self.show()
             self.info.hide()
@@ -123,12 +136,12 @@ try:
             super().mousePressEvent(event)
 
         def channel_selection_modified(self, item):
-            print('click', item)
             if item:
-                index = self.channel_selection.row(item)
+                index = self.channel_selection.itemWidget(item).index
                 self.info_index = index
 
-                if self.plot.signals[self.info_index].enable:
+                sig, _ = self.plot.signal_by_index(index)
+                if sig.enable:
 
                     self.plot.set_current_index(self.info_index)
                     stats = self.plot.get_stats(self.info_index)
@@ -140,23 +153,23 @@ try:
                 item.hide()
                 item.setParent(None)
 
-                self.plot.signals.pop(i)
+                index = self.channel_selection.itemWidget(
+                    self.channel_selection.item(i)
+                ).index
 
-                if self.info_index >= i:
-                    self.info_index -= 1
+                sig, idx = self.plot.signal_by_index(index)
+                self.plot.signals.pop(idx)
+
+                if self.info_index == index:
+                    self.info_index = None
 
             rows = self.channel_selection.count()
 
             if not rows:
                 self.close_request.emit()
             else:
-                for i in range(rows):
-                    item = self.channel_selection.item(i)
-                    wid = self.channel_selection.itemWidget(item)
-                    wid.index = i
-
-                if self.info_index < 0:
-                    self.info_index = 0
+                if self.info_index is None:
+                    self.info_index = self.plot.signals[0]._index
 
                 self.plot.set_current_index(self.info_index)
                 stats = self.plot.get_stats(self.info_index)
@@ -378,14 +391,18 @@ try:
 
         def computation_channel_inserted(self):
             sig = self.plot.signals[-1]
+            sig._index = self._available_index
             index = self.channel_selection.count()
+
             if sig.empty:
                 name, unit = sig.name, sig.unit
             else:
                 name, unit = sig.name, sig.unit
             item = QtWidgets.QListWidgetItem(self.channel_selection)
-            it = ChannelDisplay(index, unit, self)
+            it = ChannelDisplay(self._available_index, unit, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
+
+            self._available_index += 1
 
             it.setName(name)
             it.setValue("")
@@ -402,8 +419,13 @@ try:
             it.enable_changed.emit(index, 0)
             it.enable_changed.emit(index, 1)
 
+            self.info_index = sig._index
+            self.plot.set_current_index(self.info_index, True)
+
         def add_new_channel(self, sig):
             self.plot.add_new_channel(sig)
+
+            sig._index = self._available_index
 
             index = self.channel_selection.count()
             if sig.empty:
@@ -411,8 +433,10 @@ try:
             else:
                 name, unit = sig.name, sig.unit
             item = QtWidgets.QListWidgetItem(self.channel_selection)
-            it = ChannelDisplay(index, unit, self)
+            it = ChannelDisplay(self._available_index, unit, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
+
+            self._available_index += 1
 
             it.setName(name)
             it.setValue("")
@@ -433,7 +457,8 @@ try:
             self.splitter.setSizes([s1+1, s2-1, s3])
             self.splitter.setSizes([s1, s2, s3])
 
-            self.plot.set_current_index(index)
+            self.plot.set_current_index(sig._index)
+            self.info_index = sig._index
 
 
     class _Plot(pg.PlotWidget):
@@ -592,9 +617,6 @@ try:
                 self.view_boxes.append(view_box)
                 self.curves.append(curve)
 
-            if self.signals:
-                self.set_current_index(0)
-
             #            self.update_views()
             self.viewbox.sigResized.connect(self.update_views)
 
@@ -655,6 +677,7 @@ try:
                         curve.hide()
 
         def setColor(self, index, color):
+            _, index = self.signal_by_index(index)
             self.signals[index].color = color
             self.curves[index].setPen(color)
             if self.curvetype == pg.PlotDataItem:
@@ -683,6 +706,8 @@ try:
 
         def setSignalEnable(self, index, state):
 
+            _, index = self.signal_by_index(index)
+
             if state in (QtCore.Qt.Checked, True, 1):
                 self.signals[index].enable = True
                 self.curves[index].show()
@@ -702,7 +727,7 @@ try:
 
         def get_stats(self, index):
             stats = {}
-            sig = self.signals[index]
+            sig, index = self.signal_by_index(index)
             x = sig.timestamps
             size = len(x)
 
@@ -1243,7 +1268,7 @@ try:
             axis = self.axis
             viewbox = self.viewbox
 
-            sig = self.signals[index]
+            sig, index = self.signal_by_index(index)
 
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
@@ -1380,6 +1405,12 @@ try:
                 view_box.setXRange(start, stop, padding=0, update=True)
                 QtWidgets.QApplication.processEvents()
 
+        def signal_by_index(self, index):
+            for i, sig in enumerate(self.signals):
+                if sig._index == index:
+                    return sig, i
+
+            raise Exception('Signal not found')
 
 except ImportError:
     PYQTGRAPH_AVAILABLE = False

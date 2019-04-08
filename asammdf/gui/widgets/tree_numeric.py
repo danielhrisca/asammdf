@@ -7,6 +7,8 @@ from PyQt5 import QtCore
 
 class NumericTreeWidget(QtWidgets.QTreeWidget):
     add_channel_request = QtCore.pyqtSignal(str)
+    items_rearranged = QtCore.pyqtSignal()
+    items_deleted = QtCore.pyqtSignal(list)
 
     def __init__(self, *args, **kwargs):
 
@@ -14,6 +16,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
 
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setAcceptDrops(True)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -35,6 +38,16 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
                     checked = QtCore.Qt.Unchecked
                 for item in selected_items:
                     item.setCheckState(0, checked)
+        elif event.key() == QtCore.Qt.Key_Delete and event.modifiers() == QtCore.Qt.NoModifier:
+            selected = reversed(self.selectedItems())
+            names = [item.text(0) for item in selected]
+            for item in selected:
+                if item.parent() is None:
+                    index = self.indexFromItem(item).row()
+                    self.takeTopLevelItem(index)
+                else:
+                    item.parent().removeChild(item)
+            self.items_deleted.emit(names)
         else:
             super().keyPressEvent(event)
 
@@ -42,9 +55,13 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         e.accept()
 
     def dropEvent(self, e):
-        data = e.mimeData()
-        if data.hasFormat('application/x-qabstractitemmodeldatalist'):
-            data = bytes(data.data('application/x-qabstractitemmodeldatalist'))
-            name = data.replace(b'\0', b'').split(b'\n')[-1][1:].decode('utf-8')
+        if e.source() is self:
+            super().dropEvent(e)
+            self.items_rearranged.emit()
+        else:
+            data = e.mimeData()
+            if data.hasFormat('application/x-qabstractitemmodeldatalist'):
+                data = bytes(data.data('application/x-qabstractitemmodeldatalist'))
+                name = data.replace(b'\0', b'').split(b'\n')[-1][1:].decode('utf-8')
 
-            self.add_channel_request.emit(name)
+                self.add_channel_request.emit(name)

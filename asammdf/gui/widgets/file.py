@@ -1329,7 +1329,9 @@ class FileWidget(QtWidgets.QWidget):
 
     def add_new_channel(self, name, widget):
         try:
-            sig = self.mdf.get(name)
+            group, index = self.mdf.whereis(name)[0]
+            sig = self.mdf.get(group=group, index=index)
+            sig.group_index = group
 
             if not sig.samples.dtype.names and len(sig.samples.shape) <= 1:
                 widget.add_new_channel(sig)
