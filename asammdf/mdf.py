@@ -2548,7 +2548,7 @@ class MDF(object):
                 * a channel name string
                 * (channel name, group index, channel index) list or tuple
                 * (channel name, group index) list or tuple
-                * (None, group index, channel index) lsit or tuple
+                * (None, group index, channel index) list or tuple
         dataframe : bool
             return pandas dataframe instead of list of Signals; default *False*
         record_offset : int
