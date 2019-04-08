@@ -304,7 +304,7 @@ class MDF(object):
                     event.scopes.append(group)
                     self.events.append(event)
 
-    def _included_channels(self, index):
+    def _included_channels(self, index, skip_master=True):
         """ get the minimum channels needed to extract all information from the
         channel group (for example keep onl the structure channel and exclude the
         strucutre fields channels)
@@ -325,7 +325,7 @@ class MDF(object):
 
         included_channels = set(range(len(group.channels)))
         master_index = self.masters_db.get(index, None)
-        if master_index is not None:
+        if master_index is not None and skip_master:
             included_channels.remove(master_index)
 
         channels = group.channels
@@ -2383,25 +2383,33 @@ class MDF(object):
 
         return stacked
 
-    def iter_channels(self, skip_master=True):
+    def iter_channels(self, skip_master=True, copy_master=True):
         """ generator that yields a *Signal* for each non-master channel
 
         Parameters
         ----------
         skip_master : bool
             do not yield master channels; default *True*
+        copy_master : bool
+            copy master for each yielded channel
 
         """
         for i, group in enumerate(self.groups):
-            try:
-                master_index = self.masters_db[i]
-            except KeyError:
-                master_index = -1
 
-            for j, _ in enumerate(group.channels):
-                if skip_master and j == master_index:
-                    continue
-                yield self.get(group=i, index=j)
+            included_channels = self._included_channels(i, skip_master=skip_master)
+
+            channels = [
+                (None, i, idx)
+                for idx in included_channels
+            ]
+
+            channels = self.select(
+                channels,
+                copy_master=copy_master,
+            )
+
+            for channel in channels:
+                yield channel
 
     def iter_groups(self):
         """ generator that yields channel groups as pandas DataFrames. If there
