@@ -23,6 +23,7 @@ from .numeric import Numeric
 from .search import SearchWidget
 from .tree import TreeWidget
 from .tree_item import TreeItem
+from .mdi_area import MdiAreaWidget
 
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -240,7 +241,8 @@ class FileWidget(QtWidgets.QWidget):
         )
         vbox.addLayout(hbox)
 
-        self.mdi_area = QtWidgets.QMdiArea()
+        self.mdi_area = MdiAreaWidget()
+        self.mdi_area.add_window_request.connect(self.add_window)
         self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.splitter.addWidget(self.mdi_area)
@@ -1063,6 +1065,104 @@ class FileWidget(QtWidgets.QWidget):
                 sleep(0.1)
 
             progress.cancel()
+
+    def add_window(self, args):
+        window_type, names = args
+        signals_ = [
+            (None, *self.mdf.whereis(name)[0])
+            for name in names
+            if name in self.mdf
+        ]
+        signals = self.mdf.select(signals_)
+
+        for sig, sig_ in zip(signals, signals_):
+            sig.group_index = sig_[1]
+
+        signals = [
+            sig
+            for sig in signals
+            if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
+        ]
+
+        signals = natsorted(signals, key=lambda x: x.name)
+
+        if signals:
+            if window_type == 'Numeric':
+                numeric = Numeric(signals)
+
+                if not self.subplots:
+                    for mdi in self.mdi_area.subWindowList():
+                        mdi.close()
+                    w = self.mdi_area.addSubWindow(numeric)
+
+                    w.showMaximized()
+                else:
+                    w = self.mdi_area.addSubWindow(numeric)
+
+                    if len(self.mdi_area.subWindowList()) == 1:
+                        w.showMaximized()
+                    else:
+                        w.show()
+                        self.mdi_area.tileSubWindows()
+
+                menu = w.systemMenu()
+
+                def set_tile(mdi):
+                    name, ok = QtWidgets.QInputDialog.getText(
+                        None,
+                        'Set sub-plot title',
+                        'Title:',
+                    )
+                    if ok and name:
+                        mdi.setWindowTitle(name)
+
+                action = QtWidgets.QAction("Set title", menu)
+                action.triggered.connect(partial(set_tile, w))
+                before = menu.actions()[0]
+                menu.insertAction(before, action)
+                w.setSystemMenu(menu)
+
+                numeric.add_channel_request.connect(partial(self.add_new_channel, widget=numeric))
+            else:
+                plot = Plot(signals, self.with_dots)
+                plot.plot.update_lines(force=True)
+
+                if not self.subplots:
+                    for mdi in self.mdi_area.subWindowList():
+                        mdi.close()
+                    w = self.mdi_area.addSubWindow(plot)
+
+                    w.showMaximized()
+                else:
+                    w = self.mdi_area.addSubWindow(plot)
+
+                    if len(self.mdi_area.subWindowList()) == 1:
+                        w.showMaximized()
+                    else:
+                        w.show()
+                        self.mdi_area.tileSubWindows()
+
+                menu = w.systemMenu()
+
+                def set_tile(mdi):
+                    name, ok = QtWidgets.QInputDialog.getText(
+                        None,
+                        'Set sub-plot title',
+                        'Title:',
+                    )
+                    if ok and name:
+                        mdi.setWindowTitle(name)
+
+                action = QtWidgets.QAction("Set title", menu)
+                action.triggered.connect(partial(set_tile, w))
+                before = menu.actions()[0]
+                menu.insertAction(before, action)
+                w.setSystemMenu(menu)
+
+                plot.add_channel_request.connect(partial(self.add_new_channel, widget=plot))
+
+        QtWidgets.QApplication.processEvents()
+
 
     def plot_pyqtgraph(self, event):
         try:
