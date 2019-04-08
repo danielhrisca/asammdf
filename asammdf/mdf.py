@@ -2422,7 +2422,7 @@ class MDF(object):
         for i, _ in enumerate(self.groups):
             yield self.get_group(i)
 
-    def resample(self, raster, version=None):
+    def resample(self, raster, version=None, time_from_zero=False):
         """ resample all channels using the given raster. See *configure* to select
         the interpolation method for interger channels
 
@@ -2439,6 +2439,9 @@ class MDF(object):
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
             case the original file version is used
+
+        time_from_zero : bool
+            start time stamps from 0s in the cut measurement
 
         Returns
         -------
@@ -2495,6 +2498,14 @@ class MDF(object):
 
             else:
                 raster = np.array([], dtype='<f8')
+
+        if time_from_zero and len(raster):
+            delta = raster[0]
+            t_epoch = self.header.start_time.timestamp() + delta
+            mdf.header.start_time = datetime.fromtimestamp(t_epoch)
+        else:
+            delta = 0
+            mdf.header.start_time = self.header.start_time
 
         for i, group in enumerate(self.groups):
             included_channels = self._included_channels(i)

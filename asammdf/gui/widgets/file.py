@@ -308,6 +308,12 @@ class FileWidget(QtWidgets.QWidget):
 
         self._update_channel_tree()
 
+        self.raster_channel.addItems(
+            natsorted(self.mdf.channels_db)
+        )
+
+        self.raster_type_channel.toggled.connect(self.set_raster_type)
+
         progress.setValue(90)
 
         self.resample_format.insertItems(0, SUPPORTED_VERSIONS)
@@ -377,6 +383,16 @@ class FileWidget(QtWidgets.QWidget):
 
         self.scramble_btn.clicked.connect(self.scramble)
         self.setAcceptDrops(True)
+
+    def set_raster_type(self, event):
+        if self.raster_type_channel.isChecked():
+            self.raster_channel.setEnabled(True)
+            self.raster.setEnabled(False)
+            self.raster.setValue(0)
+        else:
+            self.raster_channel.setEnabled(False)
+            self.raster_channel.setCurrentIndex(0)
+            self.raster.setEnabled(True)
 
     def _update_channel_tree(self, index=None):
         self.channels_tree.clear()
@@ -833,7 +849,11 @@ class FileWidget(QtWidgets.QWidget):
 
     def resample(self, event):
         version = self.resample_format.currentText()
-        raster = self.raster.value()
+
+        if self.raster_type_channel.isChecked():
+            raster = self.raster_channel.currentText()
+        else:
+            raster = self.raster.value()
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
@@ -849,6 +869,7 @@ class FileWidget(QtWidgets.QWidget):
         self.mdf.configure(write_fragment_size=split_size)
 
         compression = self.resample_compression.currentIndex()
+        time_from_zero = self.resample_time_from_zero.checkState() == QtCore.Qt.Checked
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output measurement file", "", filter
@@ -864,7 +885,11 @@ class FileWidget(QtWidgets.QWidget):
 
             # resample self.mdf
             target = self.mdf.resample
-            kwargs = {"raster": raster, "version": version}
+            kwargs = {
+                "raster": raster,
+                "version": version,
+                "time_from_zero": time_from_zero,
+            }
 
             mdf = run_thread_with_progress(
                 self,
@@ -1162,10 +1187,10 @@ class FileWidget(QtWidgets.QWidget):
                     iterator += 1
 
             signals_ = self.mdf.select(signals)
-            
+
             for sig, s_ in zip(signals_, signals):
                 sig.group_index = s_[1]
-                
+
             signals = signals_
 
             signals = [
