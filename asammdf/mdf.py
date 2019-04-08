@@ -2444,8 +2444,6 @@ class MDF(object):
         else:
             version = validate_version_argument(version)
 
-        assert raster > 0
-
         interpolation_mode = self._integer_interpolation
 
         mdf = MDF(version=version)
@@ -2459,6 +2457,7 @@ class MDF(object):
             
         try:
             raster = float(raster)
+            assert raster > 0
         except:
             if isinstance(raster, str):
                 raster = self.get(raster).timestamps
