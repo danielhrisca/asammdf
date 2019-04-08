@@ -3354,10 +3354,16 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    if reduce_memory_usage:
-                        sig.samples = downcast(sig.samples)
-
-                    df[channel_name] = pd.Series(sig.samples, index=master)
+                    if sig.samples.dtype.kind in 'SU':
+                        unique = np.unique(sig.samples)
+                        if len(sig.samples) / len(unique) >= 2:
+                            df[channel_name] = pd.Series(sig.samples, index=master, dtype="category")
+                        else:
+                            df[channel_name] = pd.Series(sig.samples, index=master)
+                    else:
+                        if reduce_memory_usage:
+                            sig.samples = downcast(sig.samples)
+                        df[channel_name] = pd.Series(sig.samples, index=master)
 
         if time_as_date:
             new_index = np.array(df.index) + self.header.start_time.timestamp()
