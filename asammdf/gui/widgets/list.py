@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from math import ceil
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -67,6 +68,15 @@ class ListWidget(QtWidgets.QListWidget):
             data = e.mimeData()
             if data.hasFormat('application/x-qabstractitemmodeldatalist'):
                 data = bytes(data.data('application/x-qabstractitemmodeldatalist'))
-                name = data.replace(b'\0', b'').split(b'\n')[-1][1:].decode('utf-8')
 
-                self.add_channel_request.emit(name)
+                data = data.replace(b'\0', b'')
+                names = []
+
+                while data:
+                    _1, _2, data = data.split(b'\n', 2)
+
+                    size = int(ceil(data[0] / 2))
+                    names.append(data[1:1+size].decode('utf-8'))
+                    data = data[1+size:]
+                for name in names:
+                    self.add_channel_request.emit(name)
