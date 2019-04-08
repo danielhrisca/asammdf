@@ -2430,11 +2430,11 @@ class MDF(object):
         ----------
         raster : float | np.array | str
             new raster that can be
-            
+
             * a float step value
             * a channel name who's timestamps will be used as raster
-            * an array 
-            
+            * an array
+
         version : str
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
@@ -2462,11 +2462,11 @@ class MDF(object):
 
         if self._callback:
             self._callback(0, groups_nr)
-            
+
         try:
             raster = float(raster)
             assert raster > 0
-        except:
+        except (ValueError, AssertionError):
             if isinstance(raster, str):
                 raster = self.get(raster).timestamps
             else:
@@ -3083,7 +3083,14 @@ class MDF(object):
 
         return dst
 
-    def get_group(self, index, raster=None, time_from_zero=False, use_display_names=False):
+    def get_group(
+        self,
+        index,
+        raster=None,
+        time_from_zero=False,
+        use_display_names=False,
+        reduce_memory_usage=False,
+    ):
         """ get channel group as pandas DataFrames. If there are multiple
         occurences for the same channel name, then a counter will be used to
         make the names unique (<original_name>_<counter>)
@@ -3092,6 +3099,12 @@ class MDF(object):
         ----------
         index : int
             channel group index
+        use_display_names : bool
+            use display name instead of standard channel name, if available.
+        reduce_memory_usage : bool
+            reduce memory usage by converting all float columns to float32 and
+            searching for minimum dtype that can reprezent the values found
+            in integer columns; default *False*
 
         Returns
         -------
@@ -3166,7 +3179,16 @@ class MDF(object):
 
                 channel_name = used_names.get_unique_name(channel_name)
 
-                df[channel_name] = pd.Series(sig.samples, index=master)
+                if sig.samples.dtype.kind in 'SU':
+                    unique = np.unique(sig.samples)
+                    if len(sig.samples) / len(unique) >= 2:
+                        df[channel_name] = pd.Series(sig.samples, index=master, dtype="category")
+                    else:
+                        df[channel_name] = pd.Series(sig.samples, index=master)
+                else:
+                    if reduce_memory_usage:
+                        sig.samples = downcast(sig.samples)
+                    df[channel_name] = pd.Series(sig.samples, index=master)
 
             if use_display_names:
                 channel_name = sig.display_name or sig.name
@@ -3193,27 +3215,32 @@ class MDF(object):
 
         Parameters
         ----------
-        * channels : list
+        channels : list
             filter a subset of channels; default *None*
-        * raster : float
-            time raster for resampling; default *None*
-        * time_from_zero : bool
-            adjust time channel to start from 0
-        * empty_channels : str
+        raster : float | np.array | str
+            new raster that can be
+
+            * a float step value
+            * a channel name who's timestamps will be used as raster
+            * an array
+
+        time_from_zero : bool
+            adjust time channel to start from 0; default *True*
+        empty_channels : str
             behaviour for channels without samples; the options are *skip* or
             *zeros*; default is *skip*
-        * use_display_names : bool
+        use_display_names : bool
             use display name instead of standard channel name, if available.
-        * keep_arrays : bool
+        keep_arrays : bool
             keep arrays and structure channels as well as the
             component channels. If *True* this can be very slow. If *False*
             only the component channels are saved, and their names will be
             prefixed with the parent channel.
-        * time_as_date : bool
+        time_as_date : bool
             the dataframe index will contain the datetime timestamps
             according to the measurement start time; default *False*. If
             *True* then the argument ``time_from_zero`` will be ignored.
-        * reduce_memory_usage : bool
+        reduce_memory_usage : bool
             reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can reprezent the values found
             in integer columns; default *False*
@@ -3237,17 +3264,52 @@ class MDF(object):
             )
 
         df = pd.DataFrame()
-        masters = [self.get_master(i) for i in range(len(self.groups))]
-        self._master_channel_cache.clear()
-        master = reduce(np.union1d, masters)
 
-        if raster and len(master):
+        if raster:
+            try:
+                raster = float(raster)
+                assert raster > 0
+            except (ValueError, AssertionError):
+                if isinstance(raster, str):
+                    master = self.get(raster).timestamps
+                else:
+                    master = np.array(raster)
+            else:
+                t_min = []
+                t_max = []
+                for i, group in enumerate(self.groups):
+                    cycles_nr = group.channel_group.cycles_nr
+                    if cycles_nr:
+                        master_min = self.get_master(i, record_offset=0, record_count=1)
+                        t_min.append(master_min)
+                        self._master_channel_cache.clear()
+                        master_max = self.get_master(i, record_offset=cycles_nr-1, record_count=1)
+                        t_max.append(master_max)
+                        self._master_channel_cache.clear()
+
+                if t_min:
+                    t_min = np.amin(t_min)
+                    t_max = np.amax(t_max)
+                    num = float(np.float32((t_max - t_min) / raster))
+                    if int(num) == num:
+                        master = np.linspace(t_min, t_max, int(num))
+                    else:
+                        master = np.arange(t_min, t_max, raster)
+
+                else:
+                    master = np.array([], dtype='<f8')
+        else:
+            masters = [self.get_master(i) for i in range(len(self.groups))]
+            self._master_channel_cache.clear()
+            master = reduce(np.union1d, masters)
+
             if len(master) > 1:
                 num = float(np.float32((master[-1] - master[0]) / raster))
                 if num.is_integer():
                     master = np.linspace(master[0], master[-1], int(num))
                 else:
                     master = np.arange(master[0], master[-1], raster, dtype=np.float64)
+
 
         df["time"] = pd.Series(master, index=np.arange(len(master)))
 
@@ -3372,6 +3434,7 @@ class MDF(object):
             df.set_index(new_index, inplace=True)
         elif time_from_zero and len(master):
             df.set_index(df.index - df.index[0], inplace=True)
+
         return df
 
     def extract_can_logging(self, dbc_files):
