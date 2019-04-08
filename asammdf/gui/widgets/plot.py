@@ -108,7 +108,7 @@ try:
             self.splitter.addWidget(self.info)
 
             self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
-            self.channel_selection.itemSelectionChanged.connect(
+            self.channel_selection.itemPressed.connect(
                 self.channel_selection_modified
             )
             self.channel_selection.add_channel_request.connect(self.add_channel_request)
@@ -122,10 +122,11 @@ try:
             self.clicked.emit()
             super().mousePressEvent(event)
 
-        def channel_selection_modified(self):
-            selected_items = list(self.channel_selection.selectedItems())
-            if selected_items:
-                self.info_index = self.channel_selection.row(selected_items[0])
+        def channel_selection_modified(self, item):
+            print('click', item)
+            if item:
+                index = self.channel_selection.row(item)
+                self.info_index = index
 
                 if self.plot.signals[self.info_index].enable:
 
