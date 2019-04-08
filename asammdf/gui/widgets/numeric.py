@@ -53,7 +53,7 @@ class Numeric(QtWidgets.QWidget):
             sig.size = size
             if size:
                 if sig.kind == 'f':
-                    value = f'{sig.samples[0]:.6f}'
+                    value = f'{sig.samples[0]:.3f}'
                 else:
                     value = str(sig.samples[0])
                 self._min = min(self._min, sig.timestamps[0])
@@ -111,7 +111,7 @@ class Numeric(QtWidgets.QWidget):
                     value = sig.samples[idx]
 
                     if sig.kind == 'f':
-                        item.setText(1, f'{value:.6f}')
+                        item.setText(1, f'{value:.3f}')
                     elif sig.kind in 'ui':
                         item.setText(1, bin(value))
                     else:
@@ -134,7 +134,7 @@ class Numeric(QtWidgets.QWidget):
                     value = sig.samples[idx]
 
                     if sig.kind == 'f':
-                        item.setText(1, f'{value:.6f}')
+                        item.setText(1, f'{value:.3f}')
                     elif sig.kind in 'ui':
                         item.setText(1, f'0x{value:X}')
                     else:
@@ -155,7 +155,7 @@ class Numeric(QtWidgets.QWidget):
                         idx_cache[sig.group_index] = idx
                     value = sig.samples[idx]
                     if sig.kind == 'f':
-                        item.setText(1, f'{value:.6f}')
+                        item.setText(1, f'{value:.3f}')
                     else:
                         item.setText(1, str(value))
 

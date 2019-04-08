@@ -57,7 +57,7 @@ try:
             vbox = QtWidgets.QVBoxLayout()
             widget = QtWidgets.QWidget()
             self.channel_selection = ListWidget()
-            self.channel_selection.setDragEnabled(True)
+            self.channel_selection.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
             hbox = QtWidgets.QHBoxLayout()
             hbox.addWidget(QtWidgets.QLabel("Cursor/Range information"))
             self.cursor_info = QtWidgets.QLabel("")
@@ -83,21 +83,34 @@ try:
             self.plot.xrange_changed.connect(self.xrange_changed)
             self.plot.computation_channel_inserted.connect(self.computation_channel_inserted)
             self.plot.curve_clicked.connect(self.channel_selection.setCurrentRow)
-            self.plot.show()
 
-            self.channel_selection.show()
             self.splitter.addWidget(self.plot)
 
             self._available_index = 0
+
+            class CustomQWidget(QtWidgets.QWidget):
+                def __init__(self, parent=None):
+                    super().__init__(parent)
+
+                    label = QtWidgets.QLabel("I am a custom widget")
+
+                    button = QtWidgets.QPushButton("A useless button")
+
+                    layout = QtWidgets.QHBoxLayout()
+                    layout.addWidget(label)
+                    layout.addWidget(button)
+
+                    self.setLayout(layout)
 
             for i, sig in enumerate(self.plot.signals):
                 if sig.empty:
                     name, unit = sig.name, sig.unit
                 else:
                     name, unit = sig.name, sig.unit
-                item = QtWidgets.QListWidgetItem(self.channel_selection)
-                it = ChannelDisplay(self._available_index, unit, self)
-                it.setAttribute(QtCore.Qt.WA_StyledBackground)
+                item = QtWidgets.QListWidgetItem()
+
+                it = ChannelDisplay(self._available_index, unit)
+                # it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
                 it.setName(name)
                 it.setValue("")
@@ -109,6 +122,7 @@ try:
                 it.color_changed.connect(self.plot.setColor)
                 it.enable_changed.connect(self.plot.setSignalEnable)
                 it.ylink_changed.connect(self.plot.setCommonAxis)
+
                 sig._index = self._available_index
                 self._available_index += 1
 
@@ -153,14 +167,13 @@ try:
                 item.hide()
                 item.setParent(None)
 
-                index = self.channel_selection.itemWidget(
-                    self.channel_selection.item(i)
-                ).index
+                item = self.plot.view_boxes.pop(i)
+                item.hide()
+                item.setParent(None)
 
-                sig, idx = self.plot.signal_by_index(index)
-                self.plot.signals.pop(idx)
+                sig = self.plot.signals.pop(i)
 
-                if self.info_index == index:
+                if self.info_index == sig._index:
                     self.info_index = None
 
             rows = self.channel_selection.count()
@@ -392,14 +405,13 @@ try:
         def computation_channel_inserted(self):
             sig = self.plot.signals[-1]
             sig._index = self._available_index
-            index = self.channel_selection.count()
 
             if sig.empty:
                 name, unit = sig.name, sig.unit
             else:
                 name, unit = sig.name, sig.unit
             item = QtWidgets.QListWidgetItem(self.channel_selection)
-            it = ChannelDisplay(self._available_index, unit, self)
+            it = ChannelDisplay(self._available_index, unit, sig.samples.dtype.kind, 3, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
             self._available_index += 1
@@ -415,25 +427,25 @@ try:
             it.enable_changed.connect(self.plot.setSignalEnable)
             it.ylink_changed.connect(self.plot.setCommonAxis)
 
-            it.enable_changed.emit(index, 1)
-            it.enable_changed.emit(index, 0)
-            it.enable_changed.emit(index, 1)
+            it.enable_changed.emit(sig._index, 1)
+            it.enable_changed.emit(sig._index, 0)
+            it.enable_changed.emit(sig._index, 1)
 
             self.info_index = sig._index
             self.plot.set_current_index(self.info_index, True)
 
         def add_new_channel(self, sig):
+
             self.plot.add_new_channel(sig)
 
             sig._index = self._available_index
 
-            index = self.channel_selection.count()
             if sig.empty:
                 name, unit = sig.name, sig.unit
             else:
                 name, unit = sig.name, sig.unit
             item = QtWidgets.QListWidgetItem(self.channel_selection)
-            it = ChannelDisplay(self._available_index, unit, self)
+            it = ChannelDisplay(self._available_index, unit, sig.samples.dtype.kind, 3, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
             self._available_index += 1
@@ -449,9 +461,9 @@ try:
             it.enable_changed.connect(self.plot.setSignalEnable)
             it.ylink_changed.connect(self.plot.setCommonAxis)
 
-            it.enable_changed.emit(index, 1)
-            it.enable_changed.emit(index, 0)
-            it.enable_changed.emit(index, 1)
+            it.enable_changed.emit(sig._index, 1)
+            it.enable_changed.emit(sig._index, 0)
+            it.enable_changed.emit(sig._index, 1)
 
             s1, s2, s3 = self.splitter.sizes()
             self.splitter.setSizes([s1+1, s2-1, s3])

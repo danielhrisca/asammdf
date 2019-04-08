@@ -38,7 +38,7 @@ class ChannelDisplay(base_1, form_1):
         '_transparent',
     )
 
-    def __init__(self, index, unit="", *args, **kwargs):
+    def __init__(self, index, unit="", kind='f', precision=3, *args, **kwargs):
         super(base_1, self).__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -46,10 +46,12 @@ class ChannelDisplay(base_1, form_1):
         self._value_prefix = ""
         self._value = ""
         self._name = ""
-        self.fmt = "{}"
+
         self.index = index
         self.ranges = {}
-        self.unit = unit
+        self.unit = unit.strip()
+        self.kind = kind
+        self.precision = precision
 
         self._transparent = True
 
@@ -60,6 +62,16 @@ class ChannelDisplay(base_1, form_1):
         self.fm = QtGui.QFontMetrics(self.name.font())
 
         self.setToolTip(self._name)
+
+        if kind in 'SUVui':
+            self.fmt = '{}'
+        else:
+            self.fmt = f'{{:.{self.precision}f}}'
+
+    def set_precision(self, precision):
+        if self.kind == 'f':
+            self.precision = precision
+            self.fmt = f'{{:.{self.precision}f}}'
 
     def display_changed(self, state):
         state = self.display.checkState()
@@ -83,14 +95,15 @@ class ChannelDisplay(base_1, form_1):
             self.color_changed.emit(self.index, color.name())
 
     def setFmt(self, fmt):
-        if fmt == "hex":
-            self.fmt = "0x{:X}"
-        elif fmt == "bin":
-            self.fmt = "0b{:b}"
-        elif fmt == "phys":
-            self.fmt = "{}"
+        if self.kind in 'fSUV':
+            pass
         else:
-            self.fmt = fmt
+            if fmt == "hex":
+                self.fmt = "0x{:X}"
+            elif fmt == "bin":
+                self.fmt = "0b{:b}"
+            elif fmt == "phys":
+                self.fmt = "{}"
 
     def setColor(self, color):
         self.color = color
@@ -101,14 +114,6 @@ class ChannelDisplay(base_1, form_1):
     def setName(self, text=""):
         self.setToolTip(text)
         self._name = text
-#        if len(text) <= 32:
-#            self.name.setText(
-#                f'{self._name} ({self.unit})'
-#            )
-#        else:
-#            self.name.setText(
-#                f'{self._name[:29]}... ({self.unit})'
-#            )
 
     def setPrefix(self, text=""):
         self._value_prefix = text
@@ -146,4 +151,7 @@ class ChannelDisplay(base_1, form_1):
 
     def resizeEvent(self, event):
         width = self.name.size().width()
-        self.name.setText(self.fm.elidedText(f'{self._name} ({self.unit})', QtCore.Qt.ElideMiddle, width))
+        if self.unit:
+            self.name.setText(self.fm.elidedText(f'{self._name} ({self.unit})', QtCore.Qt.ElideMiddle, width))
+        else:
+            self.name.setText(self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width))

@@ -10,23 +10,18 @@ class ListWidget(QtWidgets.QListWidget):
     items_rearranged = QtCore.pyqtSignal()
     add_channel_request = QtCore.pyqtSignal(str)
 
-    def __init__(self, drag=False, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
-        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ContiguousSelection)
 
         self.setAlternatingRowColors(True)
 
         self.can_delete_items = True
         self.setAcceptDrops(True)
-        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.show()
-
-    def addItem(self, item):
-        if self.dragEnabled():
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsDragEnabled)
-        super().addItem(item)
 
     def keyPressEvent(self, event):
         key = event.key()
