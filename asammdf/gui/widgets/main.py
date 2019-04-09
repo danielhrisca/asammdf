@@ -489,7 +489,6 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             self.open_multiple_files(event)
 
-
     def _open_file(self, file_name):
         file_name = Path(file_name)
         index = self.files.count()
