@@ -158,7 +158,7 @@ class Signal(object):
 
             from PyQt5.QtWidgets import QApplication
 
-            app = QtWidgets.QApplication([])
+            app = QApplication([])
 
             plot = StandalonePlot([self], True, False)
 
@@ -170,9 +170,9 @@ class Signal(object):
                 comment = fill(comment, 120).replace("\\n", " ")
 
                 title = f"{name}\n({comment})"
-                plot.plot.plotItem.setTitle(title, color=COLORS[0])
+                plot.plot.plot.plotItem.setTitle(title, color=COLORS[0])
             else:
-                plot.plot.plotItem.setTitle(name, color=COLORS[0])
+                plot.plot.plot.plotItem.setTitle(name, color=COLORS[0])
 
             plot.show()
             plot.setWindowTitle(f"{self.name} - asammdf{__version__}")

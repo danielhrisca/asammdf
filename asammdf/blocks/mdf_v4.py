@@ -499,8 +499,15 @@ class MDF4(object):
                     attachment, at_name = attachment
 
                     import_type = "dbc" if at_name.name.lower().endswith("dbc") else "arxml"
+                    try:
+                        string = attachment.decode('utf-8')
+                    except UnicodeDecodeError:
+                        from cchardet import detect
+
+                        encoding = detect(attachment)["encoding"]
+                        string = attachment.decode(encoding)
                     db = loads(
-                        attachment.decode("utf-8"), importType=import_type, key="db"
+                        string, importType=import_type, key="db"
                     )["db"]
 
                     board_units = set(bu.name for bu in db.boardUnits)
