@@ -41,7 +41,7 @@ try:
 
     class Plot(QtWidgets.QWidget):
 
-        add_channel_request = QtCore.pyqtSignal(str)
+        add_channels_request = QtCore.pyqtSignal(list)
         close_request = QtCore.pyqtSignal()
         clicked = QtCore.pyqtSignal()
 
@@ -73,7 +73,7 @@ try:
             self.splitter = QtWidgets.QSplitter()
             self.splitter.addWidget(widget)
 
-            self.plot = _Plot(signals, with_dots, self)
+            self.plot = _Plot(with_dots=with_dots, parent=self)
             self.plot.range_modified.connect(self.range_modified)
             self.plot.range_removed.connect(self.range_removed)
             self.plot.range_modified_finished.connect(self.range_modified_finished)
@@ -88,44 +88,6 @@ try:
 
             self._available_index = 0
 
-            class CustomQWidget(QtWidgets.QWidget):
-                def __init__(self, parent=None):
-                    super().__init__(parent)
-
-                    label = QtWidgets.QLabel("I am a custom widget")
-
-                    button = QtWidgets.QPushButton("A useless button")
-
-                    layout = QtWidgets.QHBoxLayout()
-                    layout.addWidget(label)
-                    layout.addWidget(button)
-
-                    self.setLayout(layout)
-
-            for i, sig in enumerate(self.plot.signals):
-                if sig.empty:
-                    name, unit = sig.name, sig.unit
-                else:
-                    name, unit = sig.name, sig.unit
-                item = QtWidgets.QListWidgetItem()
-
-                it = ChannelDisplay(self._available_index, unit)
-                # it.setAttribute(QtCore.Qt.WA_StyledBackground)
-
-                it.setName(name)
-                it.setValue("")
-                it.setColor(sig.color)
-                item.setSizeHint(it.sizeHint())
-                self.channel_selection.addItem(item)
-                self.channel_selection.setItemWidget(item, it)
-
-                it.color_changed.connect(self.plot.setColor)
-                it.enable_changed.connect(self.plot.setSignalEnable)
-                it.ylink_changed.connect(self.plot.setCommonAxis)
-
-                sig._index = self._available_index
-                self._available_index += 1
-
             self.info = ChannelStats()
             self.splitter.addWidget(self.info)
 
@@ -133,14 +95,14 @@ try:
             self.channel_selection.itemPressed.connect(
                 self.channel_selection_modified
             )
-            self.channel_selection.add_channel_request.connect(self.add_channel_request)
-
-            for row in range(self.channel_selection.count()):
-                print(row, self.channel_selection.item(row).flags(), int(self.channel_selection.item(row).flags()))
+            self.channel_selection.add_channels_request.connect(self.add_channels_request)
 
             main_layout.addWidget(self.splitter)
 
-            self.plot.set_current_index(self.plot.signals[0]._index)
+            if signals:
+                self.add_new_channels(signals)
+                self.splitter.setSizes([10, 10, 0])
+                self.plot.set_current_index(self.plot.signals[0]._index)
 
             self.show()
             self.info.hide()
@@ -434,43 +396,41 @@ try:
             self.info_index = sig._index
             self.plot.set_current_index(self.info_index, True)
 
-        def add_new_channel(self, sig):
+        def add_new_channels(self, channels):
 
-            self.plot.add_new_channel(sig)
+            self.plot.add_new_channels(channels)
 
-            sig._index = self._available_index
+            for sig in channels:
+                sig._index = self._available_index
 
-            if sig.empty:
-                name, unit = sig.name, sig.unit
-            else:
-                name, unit = sig.name, sig.unit
-            item = QtWidgets.QListWidgetItem(self.channel_selection)
-            it = ChannelDisplay(self._available_index, unit, sig.samples.dtype.kind, 3, self)
-            it.setAttribute(QtCore.Qt.WA_StyledBackground)
+                item = QtWidgets.QListWidgetItem(self.channel_selection)
+                it = ChannelDisplay(self._available_index, sig.unit, sig.samples.dtype.kind, 3, self)
+                it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
-            self._available_index += 1
+                self._available_index += 1
 
-            it.setName(name)
-            it.setValue("")
-            it.setColor(sig.color)
-            item.setSizeHint(it.sizeHint())
-            self.channel_selection.addItem(item)
-            self.channel_selection.setItemWidget(item, it)
+                it.setName(sig.name)
+                it.setValue("")
+                it.setColor(sig.color)
+                item.setSizeHint(it.sizeHint())
+                self.channel_selection.addItem(item)
+                self.channel_selection.setItemWidget(item, it)
 
-            it.color_changed.connect(self.plot.setColor)
-            it.enable_changed.connect(self.plot.setSignalEnable)
-            it.ylink_changed.connect(self.plot.setCommonAxis)
+                it.color_changed.connect(self.plot.setColor)
+                it.enable_changed.connect(self.plot.setSignalEnable)
+                it.ylink_changed.connect(self.plot.setCommonAxis)
 
-            it.enable_changed.emit(sig._index, 1)
-            it.enable_changed.emit(sig._index, 0)
-            it.enable_changed.emit(sig._index, 1)
+                it.enable_changed.emit(sig._index, 1)
+                it.enable_changed.emit(sig._index, 0)
+                it.enable_changed.emit(sig._index, 1)
 
-            s1, s2, s3 = self.splitter.sizes()
-            self.splitter.setSizes([s1+1, s2-1, s3])
-            self.splitter.setSizes([s1, s2, s3])
+                self.info_index = sig._index
 
-            self.plot.set_current_index(sig._index)
-            self.info_index = sig._index
+            if channels:
+                s1, s2, s3 = self.splitter.sizes()
+                self.splitter.setSizes([s1 + 1, s2 - 1, s3])
+                self.splitter.setSizes([s1, s2, s3])
+                self.plot.set_current_index(self.info_index)
 
 
     class _Plot(pg.PlotWidget):
@@ -484,7 +444,7 @@ try:
         computation_channel_inserted = QtCore.pyqtSignal()
         curve_clicked = QtCore.pyqtSignal(int)
 
-        def __init__(self, signals, with_dots, *args, **kwargs):
+        def __init__(self, signals=None, with_dots=False, *args, **kwargs):
             super().__init__()
             self.setContentsMargins(0, 0, 0, 0)
             self.xrange_changed.connect(self.xrange_changed_handle)
@@ -501,42 +461,9 @@ try:
             self.region = None
             self.cursor1 = None
             self.cursor2 = None
-            self.signals = signals
+            self.signals = signals or []
 
             self.disabled_keys = set()
-            for sig in self.signals:
-                if sig.samples.dtype.kind == "f":
-                    sig.format = "phys"
-                    sig.plot_texts = None
-                else:
-                    sig.format = "phys"
-                    if sig.samples.dtype.kind in "SV":
-                        sig.plot_texts = sig.texts = sig.samples
-                        sig.samples = np.zeros(len(sig.samples))
-                    else:
-                        sig.plot_texts = None
-                sig.enable = True
-
-                if sig.conversion:
-                    vals = sig.conversion.convert(sig.samples)
-                    if vals.dtype.kind not in 'SV':
-                        nans = np.isnan(vals)
-                        samples = np.where(
-                            nans,
-                            sig.samples,
-                            vals,
-                        )
-                        sig.samples = samples
-
-                sig.plot_samples = sig.samples
-                sig.plot_timestamps = sig.timestamps
-
-                sig._stats = {
-                    "range": (0, -1),
-                    "range_stats": {},
-                    "visible": (0, -1),
-                    "visible_stats": {},
-                }
 
             if self.signals:
                 self.all_timebase = self.timebase = reduce(
@@ -582,52 +509,6 @@ try:
 
             self.view_boxes = []
             self.curves = []
-
-            for i, sig in enumerate(self.signals):
-                color = COLORS[i % 10]
-                sig.color = color
-
-                if len(sig.samples):
-                    if sig.samples.dtype.kind not in 'SV':
-                        sig.min = np.amin(sig.samples)
-                        sig.max = np.amax(sig.samples)
-                        sig.avg = np.mean(sig.samples)
-                        sig.rms = np.sqrt(np.mean(np.square(sig.samples)))
-                    else:
-                        sig.min = 'n.a.'
-                        sig.max = 'n.a.'
-                        sig.avg = 'n.a.'
-                        sig.rms = 'n.a.'
-
-                    sig.empty = False
-                else:
-                    sig.empty = True
-
-                view_box = pg.ViewBox(enableMenu=True)
-                view_box.disableAutoRange()
-
-                self.scene_.addItem(view_box)
-
-                curve = self.curvetype(
-                    sig.plot_timestamps,
-                    sig.plot_samples,
-                    pen=color,
-                    symbolBrush=color,
-                    symbolPen=color,
-                    symbol="o",
-                    symbolSize=4,
-                    clickable=True,
-                    mouseWidth=20,
-                )
-
-                curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
-
-                view_box.addItem(curve)
-
-                view_box.setXLink(self.viewbox)
-
-                self.view_boxes.append(view_box)
-                self.curves.append(curve)
 
             #            self.update_views()
             self.viewbox.sigResized.connect(self.update_views)
@@ -1063,7 +944,7 @@ try:
                             mdf.append(self.signals)
                             mdf.save(file_name, overwrite=True)
 
-                elif key == QtCore.Qt.Key_S:
+                elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.NoModifier:
                     count = len(
                         [
                             sig
@@ -1199,7 +1080,7 @@ try:
                     dlg.setModal(True)
                     dlg.exec_()
                     sig = dlg.result
-                    self.add_new_channel(sig)
+                    self.add_new_channels([sig])
                     if sig is not None:
                         self.computation_channel_inserted.emit()
 
@@ -1336,8 +1217,8 @@ try:
                 )
                 self.cursor_move_finished.emit()
 
-        def add_new_channel(self, sig):
-            if sig:
+        def add_new_channels(self, channels):
+            for i, sig in enumerate(channels):
                 index = len(self.signals)
 
                 self.signals.append(sig)
@@ -1404,7 +1285,7 @@ try:
                     clickable=True,
                     mouseWidth=20,
                 )
-
+                curve.sigClicked.connect(partial(self.curve_clicked.emit, index))
                 view_box.addItem(curve)
 
                 view_box.setXLink(self.viewbox)
@@ -1415,7 +1296,8 @@ try:
                 view_box.setYRange(sig.min, sig.max, padding=0, update=True)
                 (start, stop), _ = self.viewbox.viewRange()
                 view_box.setXRange(start, stop, padding=0, update=True)
-                QtWidgets.QApplication.processEvents()
+
+            QtWidgets.QApplication.processEvents()
 
         def signal_by_index(self, index):
             for i, sig in enumerate(self.signals):

@@ -7,7 +7,7 @@ from PyQt5 import QtCore
 
 
 class NumericTreeWidget(QtWidgets.QTreeWidget):
-    add_channel_request = QtCore.pyqtSignal(str)
+    add_channels_request = QtCore.pyqtSignal(list)
     items_rearranged = QtCore.pyqtSignal()
     items_deleted = QtCore.pyqtSignal(list)
 
@@ -72,5 +72,4 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
                     size = int(ceil(data[0] / 2))
                     names.append(data[1:1+size].decode('utf-8'))
                     data = data[1+size:]
-                for name in names:
-                    self.add_channel_request.emit(name)
+                self.add_channels_request.emit(names)

@@ -13,7 +13,7 @@ from numpy import zeros, searchsorted
 
 
 class Numeric(QtWidgets.QWidget):
-    add_channel_request = QtCore.pyqtSignal(str)
+    add_channels_request = QtCore.pyqtSignal(list)
 
     def __init__(self, signals, *args, **kwargs):
         super().__init__()
@@ -29,7 +29,7 @@ class Numeric(QtWidgets.QWidget):
         self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
 
         self._update_values(self.timestamp.value())
-        self.channels.add_channel_request.connect(self.add_channel_request)
+        self.channels.add_channels_request.connect(self.add_channels_request)
         self.channels.items_deleted.connect(self.items_deleted)
 
         self.build()
@@ -161,10 +161,11 @@ class Numeric(QtWidgets.QWidget):
 
                 iterator += 1
 
-    def add_new_channel(self, sig):
-        if sig:
-            self.signals[sig.name] = sig
-            self.build()
+    def add_new_channels(self, channels):
+        for sig in channels:
+            if sig:
+                self.signals[sig.name] = sig
+        self.build()
 
     def keyPressEvent(self, event):
         key = event.key()

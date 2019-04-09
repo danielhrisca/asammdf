@@ -9,7 +9,7 @@ class ListWidget(QtWidgets.QListWidget):
 
     itemsDeleted = QtCore.pyqtSignal(list)
     items_rearranged = QtCore.pyqtSignal()
-    add_channel_request = QtCore.pyqtSignal(str)
+    add_channels_request = QtCore.pyqtSignal(list)
 
     def __init__(self, *args, **kwargs):
 
@@ -78,5 +78,4 @@ class ListWidget(QtWidgets.QListWidget):
                     size = int(ceil(data[0] / 2))
                     names.append(data[1:1+size].decode('utf-8'))
                     data = data[1+size:]
-                for name in names:
-                    self.add_channel_request.emit(name)
+                self.add_channels_request.emit(names)

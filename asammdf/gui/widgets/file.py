@@ -1086,83 +1086,79 @@ class FileWidget(QtWidgets.QWidget):
 
         signals = natsorted(signals, key=lambda x: x.name)
 
-        if signals:
-            if window_type == 'Numeric':
-                numeric = Numeric(signals)
+        if window_type == 'Numeric':
+            numeric = Numeric(signals)
 
-                if not self.subplots:
-                    for mdi in self.mdi_area.subWindowList():
-                        mdi.close()
-                    w = self.mdi_area.addSubWindow(numeric)
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(numeric)
 
-                    w.showMaximized()
-                else:
-                    w = self.mdi_area.addSubWindow(numeric)
-
-                    if len(self.mdi_area.subWindowList()) == 1:
-                        w.showMaximized()
-                    else:
-                        w.show()
-                        self.mdi_area.tileSubWindows()
-
-                menu = w.systemMenu()
-
-                def set_tile(mdi):
-                    name, ok = QtWidgets.QInputDialog.getText(
-                        None,
-                        'Set sub-plot title',
-                        'Title:',
-                    )
-                    if ok and name:
-                        mdi.setWindowTitle(name)
-
-                action = QtWidgets.QAction("Set title", menu)
-                action.triggered.connect(partial(set_tile, w))
-                before = menu.actions()[0]
-                menu.insertAction(before, action)
-                w.setSystemMenu(menu)
-
-                numeric.add_channel_request.connect(partial(self.add_new_channel, widget=numeric))
+                w.showMaximized()
             else:
-                plot = Plot(signals, self.with_dots)
-                plot.plot.update_lines(force=True)
+                w = self.mdi_area.addSubWindow(numeric)
 
-                if not self.subplots:
-                    for mdi in self.mdi_area.subWindowList():
-                        mdi.close()
-                    w = self.mdi_area.addSubWindow(plot)
-
+                if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
                 else:
-                    w = self.mdi_area.addSubWindow(plot)
+                    w.show()
+                    self.mdi_area.tileSubWindows()
 
-                    if len(self.mdi_area.subWindowList()) == 1:
-                        w.showMaximized()
-                    else:
-                        w.show()
-                        self.mdi_area.tileSubWindows()
+            menu = w.systemMenu()
 
-                menu = w.systemMenu()
+            def set_tile(mdi):
+                name, ok = QtWidgets.QInputDialog.getText(
+                    None,
+                    'Set sub-plot title',
+                    'Title:',
+                )
+                if ok and name:
+                    mdi.setWindowTitle(name)
 
-                def set_tile(mdi):
-                    name, ok = QtWidgets.QInputDialog.getText(
-                        None,
-                        'Set sub-plot title',
-                        'Title:',
-                    )
-                    if ok and name:
-                        mdi.setWindowTitle(name)
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_tile, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+            w.setSystemMenu(menu)
 
-                action = QtWidgets.QAction("Set title", menu)
-                action.triggered.connect(partial(set_tile, w))
-                before = menu.actions()[0]
-                menu.insertAction(before, action)
-                w.setSystemMenu(menu)
+            numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
+        else:
+            plot = Plot(signals, self.with_dots)
+            plot.plot.update_lines(force=True)
 
-                plot.add_channel_request.connect(partial(self.add_new_channel, widget=plot))
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(plot)
 
-        QtWidgets.QApplication.processEvents()
+                w.showMaximized()
+            else:
+                w = self.mdi_area.addSubWindow(plot)
 
+                if len(self.mdi_area.subWindowList()) == 1:
+                    w.showMaximized()
+                else:
+                    w.show()
+                    self.mdi_area.tileSubWindows()
+
+            menu = w.systemMenu()
+
+            def set_tile(mdi):
+                name, ok = QtWidgets.QInputDialog.getText(
+                    None,
+                    'Set sub-plot title',
+                    'Title:',
+                )
+                if ok and name:
+                    mdi.setWindowTitle(name)
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_tile, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+            w.setSystemMenu(menu)
+
+            plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 
     def plot_pyqtgraph(self, event):
         try:
@@ -1210,46 +1206,42 @@ class FileWidget(QtWidgets.QWidget):
 
             signals = natsorted(signals, key=lambda x: x.name)
 
-        if signals:
+        plot = Plot(signals, self.with_dots)
+        plot.plot.update_lines(force=True)
 
-            plot = Plot(signals, self.with_dots)
-            plot.plot.update_lines(force=True)
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(plot)
 
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(plot)
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(plot)
 
+            if len(self.mdi_area.subWindowList()) == 1:
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(plot)
+                w.show()
+                self.mdi_area.tileSubWindows()
 
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
-                else:
-                    w.show()
-                    self.mdi_area.tileSubWindows()
+        menu = w.systemMenu()
 
-            menu = w.systemMenu()
+        def set_tile(mdi):
+            name, ok = QtWidgets.QInputDialog.getText(
+                None,
+                'Set sub-plot title',
+                'Title:',
+            )
+            if ok and name:
+                mdi.setWindowTitle(name)
 
-            def set_tile(mdi):
-                name, ok = QtWidgets.QInputDialog.getText(
-                    None,
-                    'Set sub-plot title',
-                    'Title:',
-                )
-                if ok and name:
-                    mdi.setWindowTitle(name)
+        action = QtWidgets.QAction("Set title", menu)
+        action.triggered.connect(partial(set_tile, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+        w.setSystemMenu(menu)
 
-            action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_tile, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
-            w.setSystemMenu(menu)
-
-            plot.add_channel_request.connect(partial(self.add_new_channel, widget=plot))
-
-        QtWidgets.QApplication.processEvents()
+        plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 
     def numeric_pyqtgraph(self, event):
         try:
@@ -1301,45 +1293,41 @@ class FileWidget(QtWidgets.QWidget):
 
             signals = natsorted(signals, key=lambda x: x.name)
 
-        if signals:
+        numeric = Numeric(signals)
 
-            numeric = Numeric(signals)
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(numeric)
 
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(numeric)
 
+            if len(self.mdi_area.subWindowList()) == 1:
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w.show()
+                self.mdi_area.tileSubWindows()
 
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
-                else:
-                    w.show()
-                    self.mdi_area.tileSubWindows()
+        menu = w.systemMenu()
 
-            menu = w.systemMenu()
+        def set_tile(mdi):
+            name, ok = QtWidgets.QInputDialog.getText(
+                None,
+                'Set sub-plot title',
+                'Title:',
+            )
+            if ok and name:
+                mdi.setWindowTitle(name)
 
-            def set_tile(mdi):
-                name, ok = QtWidgets.QInputDialog.getText(
-                    None,
-                    'Set sub-plot title',
-                    'Title:',
-                )
-                if ok and name:
-                    mdi.setWindowTitle(name)
+        action = QtWidgets.QAction("Set title", menu)
+        action.triggered.connect(partial(set_tile, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+        w.setSystemMenu(menu)
 
-            action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_tile, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
-            w.setSystemMenu(menu)
-
-            numeric.add_channel_request.connect(partial(self.add_new_channel, widget=numeric))
-
-        QtWidgets.QApplication.processEvents()
+        numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
 
     def filter(self, event):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
@@ -1452,13 +1440,19 @@ class FileWidget(QtWidgets.QWidget):
 
         self.file_scrambled.emit(str(Path(self.file_name).with_suffix(".scrambled.mf4")))
 
-    def add_new_channel(self, name, widget):
+    def add_new_channels(self, names, widget):
         try:
-            group, index = self.mdf.whereis(name)[0]
-            sig = self.mdf.get(group=group, index=index)
-            sig.group_index = group
+            sigs = self.mdf.select(names)
 
-            if not sig.samples.dtype.names and len(sig.samples.shape) <= 1:
-                widget.add_new_channel(sig)
+            for sig in sigs:
+                group, index = self.mdf.whereis(sig.name)[0]
+                sig.group_index = group
+
+            sigs = [
+                sig
+                for sig in sigs
+                if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
+            ]
+            widget.add_new_channels(sigs)
         except MdfException:
             pass
