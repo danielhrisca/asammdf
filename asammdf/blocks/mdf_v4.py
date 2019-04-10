@@ -945,89 +945,91 @@ class MDF4(object):
                     can_msg = self._dbc_cache[attachment_addr].frameById(
                         message_id
                     )
-                    can_msg_name = can_msg.name
 
-                    for entry in self.channels_db["CAN_DataFrame.DataBytes"]:
-                        if entry[0] == dg_cntr:
-                            index = entry[1]
-                            break
+                    if can_msg:
+                        can_msg_name = can_msg.name
 
-                    payload = channels[index]
+                        for entry in self.channels_db["CAN_DataFrame.DataBytes"]:
+                            if entry[0] == dg_cntr:
+                                index = entry[1]
+                                break
 
-                    logging_channels = grp.logging_channels
+                        payload = channels[index]
 
-                    for signal in can_msg.signals:
-                        signal_name = signal.name
+                        logging_channels = grp.logging_channels
 
-                        # 0 - name
-                        # 1 - message_name.name
-                        # 2 - can_id.message_name.name
-                        # 3 - can_msg_name.name
-                        # 4 - can_id.can_msg_name.name
+                        for signal in can_msg.signals:
+                            signal_name = signal.name
 
-                        name_ = signal_name
-                        little_endian = (
-                            True if signal.is_little_endian else False
-                        )
-                        signed = signal.is_signed
-                        s_type = info_to_datatype_v4(signed, little_endian)
-                        bit_offset = signal.startBit % 8
-                        byte_offset = signal.startBit // 8
-                        bit_count = signal.size
-                        comment = signal.comment or ""
+                            # 0 - name
+                            # 1 - message_name.name
+                            # 2 - can_id.message_name.name
+                            # 3 - can_msg_name.name
+                            # 4 - can_id.can_msg_name.name
 
-                        if (signal.factor, signal.offset) != (1, 0):
-                            conversion = ChannelConversion(
-                                a=float(signal.factor),
-                                b=float(signal.offset),
-                                conversion_type=v4c.CONVERSION_TYPE_LIN,
+                            name_ = signal_name
+                            little_endian = (
+                                True if signal.is_little_endian else False
                             )
-                            conversion.unit = signal.unit or ""
-                        else:
-                            conversion = None
+                            signed = signal.is_signed
+                            s_type = info_to_datatype_v4(signed, little_endian)
+                            bit_offset = signal.startBit % 8
+                            byte_offset = signal.startBit // 8
+                            bit_count = signal.size
+                            comment = signal.comment or ""
 
-                        kwargs = {
-                            "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                            "data_type": s_type,
-                            "sync_type": payload.sync_type,
-                            "byte_offset": byte_offset + payload.byte_offset,
-                            "bit_offset": bit_offset,
-                            "bit_count": bit_count,
-                            "min_raw_value": 0,
-                            "max_raw_value": 0,
-                            "lower_limit": 0,
-                            "upper_limit": 0,
-                            "flags": 0,
-                            "pos_invalidation_bit": payload.pos_invalidation_bit,
-                        }
+                            if (signal.factor, signal.offset) != (1, 0):
+                                conversion = ChannelConversion(
+                                    a=float(signal.factor),
+                                    b=float(signal.offset),
+                                    conversion_type=v4c.CONVERSION_TYPE_LIN,
+                                )
+                                conversion.unit = signal.unit or ""
+                            else:
+                                conversion = None
 
-                        log_channel = Channel(**kwargs)
-                        log_channel.name = name_
-                        log_channel.comment = comment
-                        log_channel.source = deepcopy(channel.source)
-                        log_channel.conversion = conversion
-                        log_channel.unit = signal.unit or ""
+                            kwargs = {
+                                "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                                "data_type": s_type,
+                                "sync_type": payload.sync_type,
+                                "byte_offset": byte_offset + payload.byte_offset,
+                                "bit_offset": bit_offset,
+                                "bit_count": bit_count,
+                                "min_raw_value": 0,
+                                "max_raw_value": 0,
+                                "lower_limit": 0,
+                                "upper_limit": 0,
+                                "flags": 0,
+                                "pos_invalidation_bit": payload.pos_invalidation_bit,
+                            }
 
-                        logging_channels.append(log_channel)
+                            log_channel = Channel(**kwargs)
+                            log_channel.name = name_
+                            log_channel.comment = comment
+                            log_channel.source = deepcopy(channel.source)
+                            log_channel.conversion = conversion
+                            log_channel.unit = signal.unit or ""
 
-                        entry = dg_cntr, neg_ch_cntr
-                        self.channels_db.add(name_, entry)
+                            logging_channels.append(log_channel)
 
-                        name_ = f"{message_name}.{signal_name}"
-                        self.channels_db.add(name_, entry)
+                            entry = dg_cntr, neg_ch_cntr
+                            self.channels_db.add(name_, entry)
 
-                        name_ = f"CAN{can_id}.{message_name}.{signal_name}"
-                        self.channels_db.add(name_, entry)
+                            name_ = f"{message_name}.{signal_name}"
+                            self.channels_db.add(name_, entry)
 
-                        name_ = f"{can_msg_name}.{signal_name}"
-                        self.channels_db.add(name_, entry)
+                            name_ = f"CAN{can_id}.{message_name}.{signal_name}"
+                            self.channels_db.add(name_, entry)
 
-                        name_ = f"CAN{can_id}.{can_msg_name}.{signal_name}"
-                        self.channels_db.add(name_, entry)
+                            name_ = f"{can_msg_name}.{signal_name}"
+                            self.channels_db.add(name_, entry)
 
-                        neg_ch_cntr -= 1
+                            name_ = f"CAN{can_id}.{can_msg_name}.{signal_name}"
+                            self.channels_db.add(name_, entry)
 
-                    grp.channel_group["flags"] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
+                            neg_ch_cntr -= 1
+
+                        grp.channel_group["flags"] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
 
 
     def _load_signal_data(self, address=None, stream=None, group=None, index=None):
@@ -1699,93 +1701,89 @@ class MDF4(object):
         byte_offset = channel.byte_offset
         bit_count = channel.bit_count
 
-        dependencies = group.channel_dependencies[ch_nr]
-        if dependencies and isinstance(dependencies[0], ChannelArrayBlock):
-            ca_block = dependencies[0]
+        if ch_nr >= 0:
+            dependencies = group.channel_dependencies[ch_nr]
+            if dependencies and isinstance(dependencies[0], ChannelArrayBlock):
+                ca_block = dependencies[0]
 
-            size = bit_count // 8
-            shape = tuple(ca_block[f"dim_size_{i}"] for i in range(ca_block.dims))
-            if ca_block.byte_offset_base // size > 1 and len(shape) == 1:
-                shape += (ca_block.byte_offset_base // size,)
-            dim = 1
-            for d in shape:
-                dim *= d
-            size *= dim
-            bit_count = size << 3
+                size = bit_count // 8
+                shape = tuple(ca_block[f"dim_size_{i}"] for i in range(ca_block.dims))
+                if ca_block.byte_offset_base // size > 1 and len(shape) == 1:
+                    shape += (ca_block.byte_offset_base // size,)
+                dim = 1
+                for d in shape:
+                    dim *= d
+                size *= dim
+                bit_count = size << 3
 
-        byte_count = bit_offset + bit_count
-        if byte_count % 8:
-            byte_count = (byte_count // 8) + 1
+        byte_size = bit_offset + bit_count
+        if byte_size % 8:
+            byte_size = (byte_size // 8) + 1
         else:
-            byte_count //= 8
+            byte_size //= 8
 
         types = [
             ("", f"a{byte_offset}"),
-            ("vals", f"({byte_count},)u1"),
-            ("", f"a{record_size - byte_count - byte_offset}"),
+            ("vals", f"({byte_size},)u1"),
+            ("", f"a{record_size - byte_size - byte_offset}"),
         ]
 
         vals = fromstring(data, dtype=dtype(types))
 
         vals = vals["vals"]
 
-        if channel.data_type not in big_endian_types:
-            vals = flip(vals, 1)
-
-        vals = unpackbits(vals)
-        vals = roll(vals, bit_offset)
-        vals = vals.reshape((len(vals) // 8, 8))
-        vals = packbits(vals)
-        vals = vals.reshape((len(vals) // byte_count, byte_count))
-
-        if bit_count < 64:
-            mask = 2 ** bit_count - 1
-            masks = []
-            while mask:
-                masks.append(mask & 0xFF)
-                mask >>= 8
-            for i in range(byte_count - len(masks)):
-                masks.append(0)
-
-            masks = masks[::-1]
-            for i, mask in enumerate(masks):
-                vals[:, i] &= mask
-
-        if channel.data_type not in big_endian_types:
-            vals = flip(vals, 1)
-
-        if bit_count <= 8:
-            size = 1
-        elif bit_count <= 16:
-            size = 2
-        elif bit_count <= 32:
-            size = 4
-        elif bit_count <= 64:
-            size = 8
+        if byte_size in (1, 2, 4, 8):
+            extra_bytes = 0
         else:
-            size = bit_count // 8
+            extra_bytes = 4 - (byte_size % 4)
 
-        if size > byte_count:
-            extra_bytes = size - byte_count
-            extra = zeros((len(vals), extra_bytes), dtype=uint8)
+        std_size = byte_size + extra_bytes
 
-            types = [
-                ("vals", vals.dtype, vals.shape[1:]),
-                ("", extra.dtype, extra.shape[1:]),
-            ]
-            vals = fromarrays([vals, extra], dtype=dtype(types))
+        big_endian = channel.data_type in big_endian_types
 
-        channel.dtype_fmt = get_fmt_v4(channel.data_type, bit_count, channel.channel_type)
-        fmt = channel.dtype_fmt
-        if size <= byte_count:
-            if channel.data_type in big_endian_types:
-                types = [("", f"a{byte_count - size}"), ("vals", fmt)]
+        # prepend or append extra bytes columns
+        # to get a standard size number of bytes
+
+        if extra_bytes:
+            if big_endian:
+
+                vals = column_stack(
+                    [
+                        zeros(len(vals), dtype=f'<({extra_bytes},)u1'),
+                        vals,
+                    ]
+                )
+                try:
+                    vals = vals.view(f'>u{std_size}').ravel()
+                except:
+                    vals = frombuffer(vals.tobytes(), dtype=f'>u{std_size}')
+
             else:
-                types = [("vals", fmt), ("", f"a{byte_count - size}")]
-        else:
-            types = [("vals", fmt)]
+                vals = column_stack(
+                    [
+                        vals,
+                        zeros(len(vals), dtype=f'<({extra_bytes},)u1'),
+                    ]
+                )
+                try:
+                    vals = vals.view(f'<u{std_size}').ravel()
+                except:
+                    vals = frombuffer(vals.tobytes(), dtype=f'<u{std_size}')
 
-        vals = fromstring(vals.tobytes(), dtype=dtype(types))["vals"]
+        else:
+            if big_endian:
+                try:
+                    vals = vals.view(f'>u{std_size}').ravel()
+                except:
+                    vals = frombuffer(vals.tobytes(), dtype=f'>u{std_size}')
+            else:
+                try:
+                    vals = vals.view(f'<u{std_size}').ravel()
+                except:
+                    vals = frombuffer(vals.tobytes(), dtype=f'<u{std_size}')
+
+        vals = vals >> bit_offset
+        vals &= (2 ** bit_count) - 1
 
         if channel.data_type in v4c.SIGNED_INT:
             return as_non_byte_sized_signed_int(vals, bit_count)
