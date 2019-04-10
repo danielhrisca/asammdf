@@ -152,7 +152,6 @@ try:
 
         def cursor_move_finished(self):
             x = self.plot.timebase
-
             if x is not None and len(x):
                 dim = len(x)
                 position = self.plot.cursor1.value()
@@ -169,7 +168,8 @@ try:
                         next_pos = x[right]
                 self.plot.cursor1.setPos(next_pos)
 
-            self.plot.cursor_hint.setData(x=[], y=[])
+            # self.plot.cursor_hint.setData(x=[], y=[])
+            self.plot.cursor_hint.hide()
 
         def cursor_moved(self):
             position = self.plot.cursor1.value()
@@ -210,9 +210,10 @@ try:
 
                             y.append(sample)
 
-                self.plot.viewbox.setYRange(hint_min, hint_max, padding=0)
-                self.plot.cursor_hint.setData(x=[next_pos] * len(y), y=y)
-                self.plot.cursor_hint.show()
+                # self.plot.viewbox.setYRange(hint_min, hint_max, padding=0)
+                # self.plot.cursor_hint.setData(x=[next_pos] * len(y), y=y)
+                # if not self.plot.cursor_hint.isVisible():
+                #     self.plot.cursor_hint.show()
 
             if not self.plot.region:
                 self.cursor_info.setText(f"t = {position:.6f}s")
@@ -470,7 +471,7 @@ try:
                     np.union1d, (sig.timestamps for sig in self.signals)
                 )
             else:
-                self.all_timebase = self.timebase = None
+                self.all_timebase = self.timebase = []
 
             self.showGrid(x=True, y=True)
 
@@ -1301,6 +1302,13 @@ try:
                     view_box.setYRange(sig.min, sig.max, padding=0, update=True)
                 (start, stop), _ = self.viewbox.viewRange()
                 view_box.setXRange(start, stop, padding=0, update=True)
+
+            if self.signals:
+                self.all_timebase = self.timebase = reduce(
+                    np.union1d, (sig.timestamps for sig in self.signals)
+                )
+            else:
+                self.all_timebase = self.timebase = None
 
             QtWidgets.QApplication.processEvents()
 
