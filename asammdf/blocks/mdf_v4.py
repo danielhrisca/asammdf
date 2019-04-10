@@ -501,8 +501,15 @@ class MDF4(object):
                     attachment, at_name = attachment
 
                     import_type = "dbc" if at_name.name.lower().endswith("dbc") else "arxml"
+                    try:
+                        string = attachment.decode('utf-8')
+                    except UnicodeDecodeError:
+                        from cchardet import detect
+
+                        encoding = detect(attachment)["encoding"]
+                        string = attachment.decode(encoding)
                     db = loads(
-                        attachment.decode("utf-8"), importType=import_type, key="db"
+                        string, importType=import_type, key="db"
                     )["db"]
 
                     board_units = set(bu.name for bu in db.boardUnits)
@@ -546,6 +553,8 @@ class MDF4(object):
                                     db=db,
                                     ignore_invalidation_bits=True,
                                 ).samples
+
+                                print(signal.name, sig_vals)
 
                                 conversion = ChannelConversion(
                                     a=float(signal.factor),
@@ -5038,7 +5047,6 @@ class MDF4(object):
 
         idx = nonzero(can_ids.samples == message.id)[0]
 
-
         vals = payload[idx]
         t = can_ids.timestamps[idx].copy()
         if can_ids.invalidation_bits is not None:
@@ -5046,92 +5054,70 @@ class MDF4(object):
         else:
             invalidation_bits = None
 
-        record_size = vals.shape[1]
-
         big_endian = False if signal.is_little_endian else True
         signed = signal.is_signed
-        bit_offset = signal.startBit % 8
-        byte_offset = signal.startBit // 8
+
+        start_byte, bit_offset = divmod(signal.startBit, 8)
 
         bit_count = signal.size
 
-        byte_count = bit_offset + bit_count
-        if byte_count % 8:
-            byte_count = (byte_count // 8) + 1
+        byte_size, r = divmod(bit_offset + bit_count, 8)
+        if r:
+            byte_size += 1
+
+        if byte_size in (1, 2, 4, 8):
+            extra_bytes = 0
         else:
-            byte_count //= 8
+            extra_bytes = 4 - (byte_size % 4)
 
-        types = [
-            ("", f"a{byte_offset}"),
-            ("vals", f"({byte_count},)u1"),
-            ("", f"a{record_size - byte_count - byte_offset}"),
-        ]
+        std_size = byte_size + extra_bytes
 
-        vals = vals.view(dtype=dtype(types))
+        # prepend or append extra bytes columns
+        # to get a standard size number of bytes
 
-        vals = vals["vals"]
-
-        if not big_endian:
-            vals = flip(vals, 1)
-
-        vals = unpackbits(vals)
-        vals = roll(vals, bit_offset)
-        vals = vals.reshape((len(vals) // 8, 8))
-        vals = packbits(vals)
-        vals = vals.reshape((len(vals) // byte_count, byte_count))
-
-        if bit_count < 64:
-            mask = 2 ** bit_count - 1
-            masks = []
-            while mask:
-                masks.append(mask & 0xFF)
-                mask >>= 8
-            for i in range(byte_count - len(masks)):
-                masks.append(0)
-
-            masks = masks[::-1]
-            for i, mask in enumerate(masks):
-                vals[:, i] &= mask
-
-        if not big_endian:
-            vals = flip(vals, 1)
-
-        if bit_count <= 8:
-            size = 1
-        elif bit_count <= 16:
-            size = 2
-        elif bit_count <= 32:
-            size = 4
-        elif bit_count <= 64:
-            size = 8
-        else:
-            size = bit_count // 8
-
-        if size > byte_count:
-            extra_bytes = size - byte_count
-            extra = zeros((len(vals), extra_bytes), dtype=uint8)
-
-            types = [
-                ("vals", vals.dtype, vals.shape[1:]),
-                ("", extra.dtype, extra.shape[1:]),
-            ]
-            vals = fromarrays([vals, extra], dtype=dtype(types))
-
-        fmt = "{}u{}".format(">" if big_endian else "<", size)
-        if size <= byte_count:
+        if extra_bytes:
             if big_endian:
-                types = [("", f"a{byte_count - size}"), ("vals", fmt)]
-            else:
-                types = [("vals", fmt), ("", f"a{byte_count - size}")]
-        else:
-            types = [("vals", fmt)]
 
-        vals = frombuffer(vals.tobytes(), dtype=dtype(types))
+                vals = column_stack(
+                    [
+                        zeros(len(vals), dtype=f'<({extra_bytes},)u1'),
+                        vals[:, start_byte:start_byte+byte_size],
+                    ]
+                )
+                try:
+                    vals = vals.view(f'>u{std_size}').ravel()
+                except:
+                    vals = frombuffer(vals.tobytes(), dtype=f'>u{std_size}')
+
+            else:
+                vals = column_stack(
+                    [
+                        vals[:, start_byte:start_byte+byte_size],
+                        zeros(len(vals), dtype=f'<({extra_bytes},)u1'),
+                    ]
+                )
+                try:
+                    vals = vals.view(f'<u{std_size}').ravel()
+                except:
+                    vals = frombuffer(vals.tobytes(), dtype=f'<u{std_size}')
+
+        else:
+            if big_endian:
+                try:
+                    vals = vals[:, start_byte:start_byte + byte_size].view(f'>u{std_size}').ravel()
+                except:
+                    vals = frombuffer(vals[:, start_byte:start_byte + byte_size].tobytes(), dtype=f'>u{std_size}')
+            else:
+                try:
+                    vals = vals[:, start_byte:start_byte+byte_size].view(f'<u{std_size}').ravel()
+                except:
+                    vals = frombuffer(vals[:, start_byte:start_byte + byte_size].tobytes(), dtype=f'<u{std_size}')
+
+        vals = vals >> bit_offset
+        vals &= (2 ** bit_count) - 1
 
         if signed:
-            vals = as_non_byte_sized_signed_int(vals["vals"], bit_count)
-        else:
-            vals = vals["vals"]
+            vals = as_non_byte_sized_signed_int(vals, bit_count)
 
         comment = signal.comment or ""
 
