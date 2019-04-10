@@ -1267,6 +1267,10 @@ try:
                     sig.empty = False
                 else:
                     sig.empty = True
+                    sig.min = 'n.a.'
+                    sig.max = 'n.a.'
+                    sig.rms = 'n.a.'
+                    sig.avg = 'n.a.'
 
                 view_box = pg.ViewBox(enableMenu=False)
 
@@ -1293,7 +1297,8 @@ try:
                 self.curves.append(curve)
                 curve.show()
 
-                view_box.setYRange(sig.min, sig.max, padding=0, update=True)
+                if not sig.empty:
+                    view_box.setYRange(sig.min, sig.max, padding=0, update=True)
                 (start, stop), _ = self.viewbox.viewRange()
                 view_box.setXRange(start, stop, padding=0, update=True)
 
