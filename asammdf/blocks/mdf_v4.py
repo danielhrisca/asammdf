@@ -554,20 +554,18 @@ class MDF4(object):
                                     ignore_invalidation_bits=True,
                                 ).samples
 
-                                print(signal.name, sig_vals)
-
-                                conversion = ChannelConversion(
-                                    a=float(signal.factor),
-                                    b=float(signal.offset),
-                                    conversion_type=v4c.CONVERSION_TYPE_LIN,
-                                )
-                                conversion.unit = signal.unit or ""
+                                # conversion = ChannelConversion(
+                                #     a=float(signal.factor),
+                                #     b=float(signal.offset),
+                                #     conversion_type=v4c.CONVERSION_TYPE_LIN,
+                                # )
+                                # conversion.unit = signal.unit or ""
                                 sigs.append(
                                     Signal(
                                         sig_vals,
                                         t,
                                         name=signal.name,
-                                        conversion=conversion,
+                                        conversion=None,
                                         source=source,
                                         unit=signal.unit,
                                         raw=True,

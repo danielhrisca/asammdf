@@ -395,6 +395,11 @@ try:
             it.enable_changed.emit(sig._index, 1)
 
             self.info_index = sig._index
+
+            s1, s2, s3 = self.splitter.sizes()
+            self.splitter.setSizes([s1 + 1, s2 - 1, s3])
+            self.splitter.setSizes([s1, s2, s3])
+
             self.plot.set_current_index(self.info_index, True)
 
         def add_new_channels(self, channels):
@@ -1274,6 +1279,7 @@ try:
                     sig.avg = 'n.a.'
 
                 view_box = pg.ViewBox(enableMenu=False)
+                view_box.disableAutoRange()
 
                 self.scene_.addItem(view_box)
 

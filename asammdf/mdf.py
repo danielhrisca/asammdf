@@ -2802,17 +2802,17 @@ class MDF(object):
                     sig.samples = np.core.records.fromarrays(arr, dtype=types)
 
                     channel_name = used_names.get_unique_name(sig.name)
-                    df[channel_name] = pd.Series(sig.samples, dtype="O")
+                    df[channel_name] = pd.Series(sig.samples, index=master, dtype="O")
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
-                    for name, series in components(sig.samples, sig.name, used_names):
+                    for name, series in components(sig.samples, sig.name, used_names, master=master):
                         df[name] = series
 
                 # scalars
                 else:
                     channel_name = used_names.get_unique_name(sig.name)
-                    df[channel_name] = pd.Series(sig.samples)
+                    df[channel_name] = pd.Series(sig.samples, index=master)
 
             return df
         else:
