@@ -638,8 +638,6 @@ class FileWidget(QtWidgets.QWidget):
                 channels = [line.strip() for line in infile.readlines()]
                 channels = [name for name in channels if name]
 
-            print('load', channels)
-
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
             if self.channel_view.currentIndex() == 1:

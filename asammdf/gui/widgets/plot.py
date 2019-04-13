@@ -101,11 +101,22 @@ try:
 
             if signals:
                 self.add_new_channels(signals)
-                self.splitter.setSizes([10, 10, 0])
                 self.plot.set_current_index(self.plot.signals[0]._index)
 
             self.show()
             self.info.hide()
+
+            self.splitter.setStretchFactor(0, 1)
+            self.splitter.setStretchFactor(1, 2)
+            self.splitter.setStretchFactor(2, 0)
+
+            self.splitter.setSizes(
+                (
+                    20,
+                    80,
+                    0,
+                )
+            )
 
         def mousePressEvent(self, event):
             self.clicked.emit()
@@ -250,6 +261,7 @@ try:
 
             if self.info.isVisible():
                 stats = self.plot.get_stats(self.info_index)
+                print(self.info_index, stats)
                 self.info.set_stats(stats)
 
         def cursor_removed(self):
@@ -342,10 +354,28 @@ try:
         def keyPressEvent(self, event):
             if event.key() == QtCore.Qt.Key_M and event.modifiers() == QtCore.Qt.NoModifier:
 
+                ch_size, plt_size, info_size = self.splitter.sizes()
+
                 if self.info.isVisible():
                     self.info.hide()
+                    self.splitter.setSizes(
+                        (
+                            ch_size,
+                            plt_size + info_size,
+                            0,
+                        )
+                    )
+
                 else:
+
                     self.info.show()
+                    self.splitter.setSizes(
+                        (
+                            ch_size,
+                            int(0.8 * (plt_size + info_size)),
+                            int(0.2 * (plt_size + info_size)),
+                        )
+                    )
 
             else:
                 self.plot.keyPressEvent(event)
