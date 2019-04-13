@@ -397,7 +397,31 @@ class FileWidget(QtWidgets.QWidget):
             self.raster.setEnabled(True)
 
     def _update_channel_tree(self, index=None):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+        signals = set()
+
+        if self.channel_view.currentIndex() == 0:
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    iterator += 1
+                    continue
+
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    signals.add(item.entry)
+
+                iterator += 1
+        else:
+            while iterator.value():
+                item = iterator.value()
+
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    signals.add(item.entry)
+
+                iterator += 1
+
         self.channels_tree.clear()
+
         flags = None
         if self.channel_view.currentIndex() == 0:
             items = []
@@ -410,7 +434,10 @@ class FileWidget(QtWidgets.QWidget):
                         flags = channel.flags() | QtCore.Qt.ItemIsUserCheckable
                     channel.setFlags(flags)
                     channel.setText(0, ch.name)
-                    channel.setCheckState(0, QtCore.Qt.Unchecked)
+                    if entry in signals:
+                        channel.setCheckState(0, QtCore.Qt.Checked)
+                    else:
+                        channel.setCheckState(0, QtCore.Qt.Unchecked)
                     items.append(channel)
 
                 if self.mdf.version >= "4.00":
@@ -420,7 +447,10 @@ class FileWidget(QtWidgets.QWidget):
                         channel = TreeItem(entry, ch.name)
                         channel.setFlags(flags)
                         channel.setText(0, ch.name)
-                        channel.setCheckState(0, QtCore.Qt.Unchecked)
+                        if entry in signals:
+                            channel.setCheckState(0, QtCore.Qt.Checked)
+                        else:
+                            channel.setCheckState(0, QtCore.Qt.Unchecked)
                         items.append(channel)
             items = natsorted(items, key=lambda x: x.name)
             self.channels_tree.addTopLevelItems(items)
@@ -445,7 +475,10 @@ class FileWidget(QtWidgets.QWidget):
                         flags = channel.flags() | QtCore.Qt.ItemIsUserCheckable
                     channel.setFlags(flags)
                     channel.setText(0, name)
-                    channel.setCheckState(0, QtCore.Qt.Unchecked)
+                    if entry in signals:
+                        channel.setCheckState(0, QtCore.Qt.Checked)
+                    else:
+                        channel.setCheckState(0, QtCore.Qt.Unchecked)
                     group_children.append(channel)
 
                 if self.mdf.version >= "4.00":
@@ -456,7 +489,10 @@ class FileWidget(QtWidgets.QWidget):
                         channel = TreeItem(entry)
                         channel.setFlags(flags)
                         channel.setText(0, name)
-                        channel.setCheckState(0, QtCore.Qt.Unchecked)
+                        if entry in signals:
+                            channel.setCheckState(0, QtCore.Qt.Checked)
+                        else:
+                            channel.setCheckState(0, QtCore.Qt.Unchecked)
                         group_children.append(channel)
 
                 channel_group.addChildren(group_children)
@@ -528,29 +564,42 @@ class FileWidget(QtWidgets.QWidget):
         dlg.exec_()
         result = dlg.result
         if result:
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+            if self.channel_view.currentIndex() == 1:
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
-            dg_cntr = -1
-            ch_cntr = 0
+                dg_cntr = -1
+                ch_cntr = 0
 
-            while iterator.value():
-                item = iterator.value()
-                if item.parent() is None:
+                while iterator.value():
+                    item = iterator.value()
+                    if item.parent() is None:
+                        iterator += 1
+                        dg_cntr += 1
+                        ch_cntr = 0
+                        continue
+
+                    if (dg_cntr, ch_cntr) in result:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+
                     iterator += 1
-                    dg_cntr += 1
-                    ch_cntr = 0
-                    continue
+                    ch_cntr += 1
+            else:
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+                while iterator.value():
+                    item = iterator.value()
 
-                if (dg_cntr, ch_cntr) in result:
-                    item.setCheckState(0, QtCore.Qt.Checked)
+                    if item.entry in result:
+                        item.setCheckState(0, QtCore.Qt.Checked)
 
-                iterator += 1
-                ch_cntr += 1
+                    iterator += 1
 
-    def save_channel_list(self):
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output channel list file", "", "TXT files (*.txt)"
-        )
+    def save_channel_list(self, event=None, file_name=None):
+
+        if file_name is None:
+            file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self, "Select output channel list file", "", "TXT files (*.txt)"
+            )
+
         if file_name:
             with open(file_name, "w") as output:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
@@ -578,15 +627,18 @@ class FileWidget(QtWidgets.QWidget):
 
                 output.write("\n".join(signals))
 
-    def load_channel_list(self):
-        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Select channel list file", "", "TXT files (*.txt)"
-        )
+    def load_channel_list(self, event=None, file_name=None):
+        if file_name is None:
+            file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self, "Select channel list file", "", "TXT files (*.txt)"
+            )
 
         if file_name:
             with open(file_name, "r") as infile:
                 channels = [line.strip() for line in infile.readlines()]
                 channels = [name for name in channels if name]
+
+            print('load', channels)
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
