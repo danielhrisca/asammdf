@@ -454,8 +454,6 @@ class MDF4(object):
 
         self._process_can_logging()
 
-        print(self.channels_db.keys())
-
         # append indexes of groups that contain raw CAN bus logging and
         # store signals and metadata that will be used to create the new
         # groups.
@@ -1518,7 +1516,6 @@ class MDF4(object):
             at_data, at_name = signal.attachment
             attachment_addr = self.attach(at_data, at_name, mime="application/x-dbc")
             attachment = self._attachments_map[attachment_addr]
-            print('attachment index', attachment)
         else:
             attachment_addr = 0
             attachment = None

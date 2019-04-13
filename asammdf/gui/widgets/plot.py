@@ -4,6 +4,7 @@ import os
 bin_ = bin
 import logging
 from functools import reduce, partial
+import math
 
 import numpy as np
 from pathlib import Path
@@ -1141,7 +1142,7 @@ try:
                         start_ = max(start, start_t)
                         stop_ = min(stop, stop_t)
 
-                        visible = int((stop_ - start_) / (stop - start) * width)
+                        visible = abs(int((stop_ - start_) / (stop - start) * width))
 
                         start_ = np.searchsorted(
                             sig.timestamps, start_, side="right"
@@ -1151,27 +1152,41 @@ try:
                         )
 
                         if visible:
-                            raster = max((stop_ - start_) // visible, 1)
+                            raster = abs((stop_ - start_)) // visible
                         else:
-                            raster = 1
-                        if raster >= 10:
-                            samples = np.array_split(
-                                sig.samples[start_:stop_], visible
-                            )
-                            max_ = np.array([np.amax(s) for s in samples])
-                            min_ = np.array([np.amin(s) for s in samples])
+                            raster = 0
+                        if raster:
+                            rows = (stop_ - start_) // raster
+                            stop_2 = start_ + rows * raster
+
+                            samples = sig.samples[start_: stop_2].reshape(rows, raster)
+                            max_ = np.amax(samples, axis=1)
+                            min_ = np.amin(samples, axis=1)
                             samples = np.dstack((min_, max_)).ravel()
-                            timestamps = np.array_split(
-                                sig.timestamps[start_:stop_], visible
-                            )
-                            timestamps1 = np.array([s[0] for s in timestamps])
-                            timestamps2 = np.array([s[1] for s in timestamps])
-                            timestamps = np.dstack((timestamps1, timestamps2)).ravel()
+
+                            timestamps = sig.timestamps[start_: stop_2].reshape(rows, raster)
+                            t_max = np.amax(timestamps, axis=1)
+                            t_min = np.amin(timestamps, axis=1)
+
+                            timestamps = np.dstack((t_min, t_max)).ravel()
+
+                            if stop_2 != stop_:
+                                samples_ = sig.samples[stop_2: stop_]
+                                max_ = np.amax(samples_)
+                                min_ = np.amin(samples_)
+                                samples = np.concatenate((samples, [min_, max_]))
+
+                                timestamps_ = sig.timestamps[stop_2: stop_]
+                                t_max = np.amax(timestamps_)
+                                t_min = np.amin(timestamps_)
+
+                                timestamps = np.concatenate((timestamps, [t_min, t_max]))
 
                             sig.plot_samples = samples
                             sig.plot_timestamps = timestamps
                             if sig.plot_texts is not None:
-                                sig.plot_texts = sig.texts[start_:stop_:raster]
+                                idx = np.arghere(sig.timestamps == timestamps)
+                                sig.plot_texts = sig.texts[idx]
                         else:
                             start_ = max(0, start_ - 2)
                             stop_ += 2
@@ -1184,7 +1199,7 @@ try:
         def xrange_changed_handle(self):
             (start, stop), _ = self.viewbox.viewRange()
 
-            width = self.width()
+            width = self.width() - self.axis.width()
             self.trim(width, start, stop, self.signals)
 
             self.update_lines(force=True)

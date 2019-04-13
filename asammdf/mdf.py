@@ -3505,13 +3505,6 @@ class MDF(object):
                             logger.warning(message)
                             continue
                     for message in dbc:
-                        x = [
-                            canmatrix.ArbitrationId(id_, extended=True).pgn
-                            for id_ in all_ids
-                        ]
-                        print(all_ids, x)
-
-                        print(canmatrix.ArbitrationId(217056510, extended=True).pgn)
                         if message.is_j1939:
                             test_ids = [
                                 canmatrix.ArbitrationId(id_, extended=True).pgn
