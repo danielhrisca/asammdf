@@ -13,6 +13,7 @@ from shutil import copy
 from pathlib import Path
 
 from canmatrix.formats import loads
+import canmatrix
 import numpy as np
 from numpy.core.defchararray import encode, decode
 import pandas as pd
@@ -3448,7 +3449,7 @@ class MDF(object):
 
         return df
 
-    def extract_can_logging(self, dbc_files):
+    def extract_can_logging(self, dbc_files, is_j1939=False):
         """ extract all possible CAN signal using the provided databases.
 
         Parameters
@@ -3476,7 +3477,7 @@ class MDF(object):
                     try:
                         dbc = loads(
                             contents,
-                            importType=import_type,
+                            import_type=import_type,
                             key="db",
                         )["db"]
                     except UnicodeDecodeError:
@@ -3504,7 +3505,23 @@ class MDF(object):
                             logger.warning(message)
                             continue
                     for message in dbc:
-                        if message.id in all_ids:
+                        x = [
+                            canmatrix.ArbitrationId(id_, extended=True).pgn
+                            for id_ in all_ids
+                        ]
+                        print(all_ids, x)
+
+                        print(canmatrix.ArbitrationId(217056510, extended=True).pgn)
+                        if message.is_j1939:
+                            test_ids = [
+                                canmatrix.ArbitrationId(id_, extended=True).pgn
+                                for id_ in all_ids
+                            ]
+                            id_ = message.arbitration_id.pgn
+                        else:
+                            test_ids = all_ids
+                            id_ = message.arbitration_id.id
+                        if id_ in test_ids:
                             names = [
                                 signal.name
                                 for signal in message.signals
@@ -3525,11 +3542,11 @@ class MDF(object):
                                     sig.name = name
                                     sigs.append(sig)
                                 except:
-                                    continue
+                                    raise
                             if sigs:
                                 out.append(
                                     sigs,
-                                    f'from {can_id} message ID=0x{message.id:X}',
+                                    f'from {can_id} message ID=0x{message.arbitration_id.id:X}',
                                     common_timebase=True,
                             )
         if not out.groups:

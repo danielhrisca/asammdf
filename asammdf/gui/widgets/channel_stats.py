@@ -24,7 +24,6 @@ class ChannelStats(QtWidgets.QWidget):
     def set_stats(self, stats):
         if stats:
             for name, value in stats.items():
-                print(name, value)
                 try:
                     if value.dtype.kind in "ui":
                         sign = "-" if value < 0 else ""

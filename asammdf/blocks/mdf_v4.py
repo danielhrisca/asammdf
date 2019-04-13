@@ -42,10 +42,12 @@ from numpy import (
     full,
     unique,
     column_stack,
+    where,
 )
 
 from numpy.core.records import fromarrays, fromstring
 from canmatrix.formats import loads
+import canmatrix
 from pandas import DataFrame
 
 from . import v4_constants as v4c
@@ -4989,9 +4991,9 @@ class MDF4(object):
             signal = name
 
         if isinstance(message_id, str):
-            message = db.frameByName(message_id)
+            message = db.frame_by_name(message_id)
         else:
-            message = db.frameById(message_id)
+            message = db.frame_by_id(message_id)
 
         for sig in message.signals:
             if sig.name == signal:
@@ -5018,11 +5020,28 @@ class MDF4(object):
                 )
         else:
             if can_id in self.can_logging_db:
-                if message.id in self.can_logging_db[can_id]:
-                    index = self.can_logging_db[can_id][message.id]
+                if message.is_j1939:
+                    test_ids = [
+                        canmatrix.ArbitrationId(id_, extended=True).pgn
+                        for id_ in self.can_logging_db[can_id]
+                    ]
+                    id_ = message.arbitration_id.pgn
+
+                else:
+                    id_ = message.arbitration_id.id
+                    test_ids = self.can_logging_db[can_id]
+
+                if id_ in test_ids:
+                    if message.is_j1939:
+                        for id__, idx in self.can_logging_db[can_id].items():
+                            if canmatrix.ArbitrationId(id__, extended=True).pgn == id_:
+                                index = idx
+                                break
+                    else:
+                        index = self.can_logging_db[can_id][message.arbitration_id.id]
                 else:
                     raise MdfException(
-                        f'Message "{message.name}" (ID={hex(message.id)}) not found in the measurement'
+                        f'Message "{message.name}" (ID={hex(message.arbitration_id.id)}) not found in the measurement'
                     )
             else:
                 raise MdfException(
@@ -5041,7 +5060,19 @@ class MDF4(object):
             ignore_invalidation_bits=ignore_invalidation_bits,
         )[0]
 
-        idx = nonzero(can_ids.samples == message.id)[0]
+        if message.is_j1939:
+            ps = (can_ids.samples >> 8) & 0xFF
+            pf = (can_ids.samples >> 16) & 0xFF
+            _pgn = pf << 8
+            _pgn = where(
+                pf >= 240,
+                _pgn + ps,
+                _pgn,
+            )
+
+            idx = nonzero(_pgn == message.arbitration_id.pgn)[0]
+        else:
+            idx = nonzero(can_ids.samples == message.arbitration_id.id)[0]
 
         vals = payload[idx]
         t = can_ids.timestamps[idx].copy()
@@ -5053,7 +5084,7 @@ class MDF4(object):
         big_endian = False if signal.is_little_endian else True
         signed = signal.is_signed
 
-        start_byte, bit_offset = divmod(signal.startBit, 8)
+        start_byte, bit_offset = divmod(signal.start_bit, 8)
 
         bit_count = signal.size
 
