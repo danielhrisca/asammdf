@@ -2,7 +2,7 @@
 """ common MDF file format module """
 
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import xml.etree.ElementTree as ET
 from collections import OrderedDict, defaultdict
@@ -1863,7 +1863,15 @@ class MDF(object):
 
                         timestamps.append(header.start_time)
 
-            oldest = timestamps[0]
+            try:
+                oldest = min(timestamps)
+            except TypeError:
+                timestamps = [
+                    timestamp.astimezone(timezone.utc)
+                    for timestamp in timestamps
+                ]
+                oldest = min(timestamps)
+
             offsets = [(timestamp - oldest).total_seconds() for timestamp in timestamps]
             offsets = [offset if offset > 0 else 0 for offset in offsets]
 
@@ -2212,7 +2220,15 @@ class MDF(object):
 
                         timestamps.append(header.start_time)
 
-            oldest = min(timestamps)
+            try:
+                oldest = min(timestamps)
+            except TypeError:
+                timestamps = [
+                    timestamp.astimezone(timezone.utc)
+                    for timestamp in timestamps
+                ]
+                oldest = min(timestamps)
+
             offsets = [(timestamp - oldest).total_seconds() for timestamp in timestamps]
 
             stacked.header.start_time = oldest
