@@ -799,34 +799,26 @@ class FileWidget(QtWidgets.QWidget):
     def new_search_result(self, tree, search):
         group_index, channel_index = search.entries[search.current_index]
 
-        grp = self.mdf.groups[group_index]
-        channel_count = len(grp.channels)
-
         iterator = QtWidgets.QTreeWidgetItemIterator(tree)
 
-        group = -1
-        index = 0
-        while iterator.value():
-            item = iterator.value()
-            if item.parent() is None:
+        if self.channel_view.currentIndex() == 1:
+
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is not None:
+                    if item.entry == (group_index, channel_index):
+
+                        tree.scrollToItem(item, QtWidgets.QAbstractItemView.PositionAtTop)
+                        item.setSelected(True)
                 iterator += 1
-                group += 1
-                index = 0
-                continue
+        else:
+            while iterator.value():
+                item = iterator.value()
+                if item.entry == (group_index, channel_index):
 
-            if group == group_index:
-
-                if (
-                    channel_index >= 0
-                    and index == channel_index
-                    or channel_index < 0
-                    and index == -channel_index - 1 + channel_count
-                ):
                     tree.scrollToItem(item, QtWidgets.QAbstractItemView.PositionAtTop)
                     item.setSelected(True)
-
-            index += 1
-            iterator += 1
+                iterator += 1
 
     def close(self):
         mdf_name = self.mdf.name
