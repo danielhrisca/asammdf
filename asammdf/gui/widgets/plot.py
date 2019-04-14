@@ -262,7 +262,6 @@ try:
 
             if self.info.isVisible():
                 stats = self.plot.get_stats(self.info_index)
-                print(self.info_index, stats)
                 self.info.set_stats(stats)
 
         def cursor_removed(self):
@@ -427,10 +426,6 @@ try:
 
             self.info_index = sig._index
 
-            s1, s2, s3 = self.splitter.sizes()
-            self.splitter.setSizes([s1 + 1, s2 - 1, s3])
-            self.splitter.setSizes([s1, s2, s3])
-
             self.plot.set_current_index(self.info_index, True)
 
         def add_new_channels(self, channels):
@@ -464,9 +459,6 @@ try:
                 self.info_index = sig._index
 
             if channels:
-                s1, s2, s3 = self.splitter.sizes()
-                self.splitter.setSizes([s1 + 1, s2 - 1, s3])
-                self.splitter.setSizes([s1, s2, s3])
                 self.plot.set_current_index(self.info_index)
 
 
@@ -547,10 +539,8 @@ try:
             self.view_boxes = []
             self.curves = []
 
-            #            self.update_views()
             self.viewbox.sigResized.connect(self.update_views)
 
-            #            self.viewbox.enableAutoRange(axis=pg.ViewBox.XYAxes, enable=True)
             self.keyPressEvent(QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_H, QtCore.Qt.NoModifier))
 
             self.resizeEvent = self._resizeEvent
@@ -599,7 +589,7 @@ try:
                         self.view_boxes[i].addItem(curve)
                     else:
                         curve = self.curves[i]
-                        curve.setData(x=t, y=sig.plot_samples)
+                        curve.setData(x=t, y=sig.plot_samples, symbolBrush="#FF0000", symbolPen="#FF0000",)
 
                     if sig.enable:
                         curve.show()
@@ -1269,6 +1259,7 @@ try:
                 self.cursor_move_finished.emit()
 
         def add_new_channels(self, channels):
+            geometry = self.viewbox.sceneBoundingRect()
             for i, sig in enumerate(channels):
                 index = len(self.signals)
 
@@ -1334,8 +1325,8 @@ try:
                     t,
                     sig.plot_samples,
                     pen=color,
-                    symbolBrush=color,
-                    symbolPen=color,
+                    symbolBrush=COLORS[(index + 1) % 10],
+                    symbolPen=COLORS[(index + 1) % 10],
                     symbol="o",
                     symbolSize=4,
                     clickable=True,
@@ -1354,12 +1345,22 @@ try:
                 (start, stop), _ = self.viewbox.viewRange()
                 view_box.setXRange(start, stop, padding=0, update=True)
 
+                view_box.setGeometry(geometry)
+
+            if len(self.all_timebase):
+                home = False
+            else:
+                home = True
+
             if self.signals:
                 self.all_timebase = self.timebase = reduce(
                     np.union1d, (sig.timestamps for sig in self.signals)
                 )
             else:
                 self.all_timebase = self.timebase = None
+
+            if home:
+                self.keyPressEvent(QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_H, QtCore.Qt.NoModifier))
 
             QtWidgets.QApplication.processEvents()
 
