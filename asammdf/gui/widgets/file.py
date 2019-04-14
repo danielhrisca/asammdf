@@ -810,6 +810,7 @@ class FileWidget(QtWidgets.QWidget):
 
                         tree.scrollToItem(item, QtWidgets.QAbstractItemView.PositionAtTop)
                         item.setSelected(True)
+                        tree.setFocus()
                 iterator += 1
         else:
             while iterator.value():
@@ -818,6 +819,7 @@ class FileWidget(QtWidgets.QWidget):
 
                     tree.scrollToItem(item, QtWidgets.QAbstractItemView.PositionAtTop)
                     item.setSelected(True)
+                    tree.setFocus()
                 iterator += 1
 
     def close(self):

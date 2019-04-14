@@ -6,7 +6,7 @@ classes that implement the blocks for MDF version 4
 import logging
 import xml.etree.ElementTree as ET
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from struct import pack, unpack, unpack_from
 from textwrap import wrap
@@ -4278,9 +4278,9 @@ class HeaderBlock:
             self.first_event_addr = kwargs.get("first_event_addr", 0)
             self.comment_addr = kwargs.get("comment_addr", 0)
             self.abs_time = kwargs.get("abs_time", int(time.time()) * 10 ** 9)
-            self.tz_offset = kwargs.get("tz_offset", 120)
-            self.daylight_save_time = kwargs.get("daylight_save_time", 60)
-            self.time_flags = kwargs.get("time_flags", 2)
+            self.tz_offset = kwargs.get("tz_offset", 0)
+            self.daylight_save_time = kwargs.get("daylight_save_time", 0)
+            self.time_flags = kwargs.get("time_flags", 1)
             self.time_quality = kwargs.get("time_quality", 0)
             self.flags = kwargs.get("flags", 0)
             self.reserved1 = kwargs.get("reserved4", 0)
@@ -4321,17 +4321,23 @@ class HeaderBlock:
         """
 
         timestamp = self.abs_time / 10 ** 9
-        try:
+        if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
             timestamp = datetime.fromtimestamp(timestamp)
-        except OSError:
-            timestamp = datetime.now()
+        else:
+            timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
 
         return timestamp
 
     @start_time.setter
     def start_time(self, timestamp):
-        timestamp = timestamp - datetime(1970, 1, 1)
-        timestamp = int(timestamp.total_seconds() * 10 ** 9)
+
+        if timestamp.tzinfo is None:
+            self.time_flags = v4c.FLAG_HD_LOCAL_TIME
+        else:
+            self.time_flags = 0
+            timestamp = timestamp.astimezone(timezone.utc)
+
+        timestamp = int(timestamp.timestamp() * 10 ** 9)
         self.abs_time = timestamp
         self.tz_offset = 0
         self.daylight_save_time = 0
