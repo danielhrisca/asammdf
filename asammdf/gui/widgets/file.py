@@ -1172,6 +1172,7 @@ class FileWidget(QtWidgets.QWidget):
             w.setSystemMenu(menu)
 
             numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
+
         else:
             plot = Plot(signals, self.with_dots)
             plot.plot.update_lines(force=True)
@@ -1257,7 +1258,6 @@ class FileWidget(QtWidgets.QWidget):
             signals = natsorted(signals, key=lambda x: x.name)
 
         plot = Plot(signals, self.with_dots)
-        plot.plot.update_lines(force=True)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -1276,7 +1276,7 @@ class FileWidget(QtWidgets.QWidget):
 
         menu = w.systemMenu()
 
-        def set_tile(mdi):
+        def set_title(mdi):
             name, ok = QtWidgets.QInputDialog.getText(
                 None,
                 'Set sub-plot title',
@@ -1286,7 +1286,7 @@ class FileWidget(QtWidgets.QWidget):
                 mdi.setWindowTitle(name)
 
         action = QtWidgets.QAction("Set title", menu)
-        action.triggered.connect(partial(set_tile, w))
+        action.triggered.connect(partial(set_title, w))
         before = menu.actions()[0]
         menu.insertAction(before, action)
         w.setSystemMenu(menu)

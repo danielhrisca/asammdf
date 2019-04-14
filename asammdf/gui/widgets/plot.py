@@ -111,14 +111,6 @@ try:
             self.splitter.setStretchFactor(1, 2)
             self.splitter.setStretchFactor(2, 0)
 
-            self.splitter.setSizes(
-                (
-                    20,
-                    80,
-                    0,
-                )
-            )
-
         def mousePressEvent(self, event):
             self.clicked.emit()
             super().mousePressEvent(event)
