@@ -581,7 +581,7 @@ try:
                         self.view_boxes[i].addItem(curve)
                     else:
                         curve = self.curves[i]
-                        curve.setData(x=t, y=sig.plot_samples, symbolBrush="#FF0000", symbolPen="#FF0000",)
+                        curve.setData(x=t, y=sig.plot_samples)
 
                     if sig.enable:
                         curve.show()
@@ -1317,8 +1317,8 @@ try:
                     t,
                     sig.plot_samples,
                     pen=color,
-                    symbolBrush=COLORS[(index + 1) % 10],
-                    symbolPen=COLORS[(index + 1) % 10],
+                    symbolBrush=color,
+                    symbolPen=color,
                     symbol="o",
                     symbolSize=4,
                     clickable=True,
