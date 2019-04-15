@@ -220,6 +220,7 @@ class MDF4(object):
         self._read_fragment_size = 0 * 2 ** 20
         self._write_fragment_size = 4 * 2 ** 20
         self._use_display_names = kwargs.get("use_display_names", False)
+        self._remove_source_from_channel_names = kwargs.get('remove_source_from_channel_names', False)
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
 
@@ -699,6 +700,10 @@ class MDF4(object):
                 use_display_names=self._use_display_names,
                 mapped=mapped,
             )
+
+            if self._remove_source_from_channel_names:
+                channel.name = channel.name.split('\\')[0]
+
             value = channel
             display_name = channel.display_name
             name = channel.name

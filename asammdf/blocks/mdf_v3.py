@@ -155,6 +155,8 @@ class MDF3(object):
         self._tempfile.write(b"\0")
         self._file = None
 
+        self._remove_source_from_channel_names = kwargs.get('remove_source_from_channel_names', False)
+
         self._read_fragment_size = 0
         self._write_fragment_size = 4 * 2 ** 20
         self._single_bit_uint_as_bool = False
@@ -755,6 +757,9 @@ class MDF3(object):
                         si_map=self._si_map,
                         cc_map=self._cc_map,
                     )
+
+                    if self._remove_source_from_channel_names:
+                        new_ch.name = new_ch.name.split('\\')[0]
 
                     # check if it has channel dependencies
                     if new_ch.component_addr:

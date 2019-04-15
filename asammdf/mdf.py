@@ -75,15 +75,20 @@ class MDF(object):
     version : string
         mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
         '3.30', '4.00', '4.10', '4.11'); default '4.10'
-    callback : function
+
+
+    callback (\*\*kwargs) : function
         keyword only argument: function to call to update the progress; the
         function must accept two arguments (the current progress and maximum
         progress value)
-    use_display_names : bool
+    use_display_names (\*\*kwargs) : bool
         keyword only argument: for MDF4 files parse the XML channel comment to
         search for the display name; XML parsing is quite expensive so setting
         this to *False* can decrease the loading times very much; default
         *False*
+    remove_source_from_channel_names (\*\*kwargs) : bool
+        remove source from channel names ("Speed\XCP3" -> "Speed")
+
 
     """
 
