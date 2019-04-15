@@ -1539,9 +1539,23 @@ class FileWidget(QtWidgets.QWidget):
             pass
 
     def extract_can_logging(self, event):
+        version = self.extract_can_format.currentText()
+        count = self.can_database_list.count()
+
+        dbc_files = []
+        for i in range(count):
+            item = self.can_database_list.item(i)
+            dbc_files.append(item.text())
+
+        compression = self.extract_can_compression.currentIndex()
+
+        if version < "4.00":
+            filter = "MDF version 3 files (*.dat *.mdf)"
+        else:
+            filter = "MDF version 4 files (*.mf4)"
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", "MDF version 4 files (*.mf4)"
+            self, "Select output measurement file", "", filter
         )
 
         if file_name:
@@ -1552,16 +1566,6 @@ class FileWidget(QtWidgets.QWidget):
                 message=f'Extracting CAN signals from "{self.file_name}"',
                 icon_name="down",
             )
-
-            count = self.can_database_list.count()
-
-            dbc_files = []
-            for i in range(count):
-                item = self.can_database_list.item(i)
-                dbc_files.append(item.text())
-
-            compression = self.extract_can_compression.currentIndex()
-            version = self.extract_can_format.currentText()
 
             # convert self.mdf
             target = self.mdf.extract_can_logging
