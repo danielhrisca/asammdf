@@ -3480,6 +3480,7 @@ class MDF(object):
 
         """
         out = MDF()
+        out.header.start_time = self.header.start_time
 
         for can_id, message_ids in self.can_logging_db.items():
             all_ids = set(message_ids)
