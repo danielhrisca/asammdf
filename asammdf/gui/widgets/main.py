@@ -503,7 +503,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.files.addTab(widget, file_name.name)
             self.files.setTabToolTip(index, str(file_name))
             self.files.setCurrentIndex(index)
-            widget.file_scrambled.connect(self.open_scrambled_file)
+            widget.open_new_file.connect(self._open_file)
 
     def open_file(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
@@ -516,22 +516,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for file_name in file_names:
             self._open_file(file_name)
-
-    def open_scrambled_file(self, name):
-        filename = Path(name)
-        index = self.files.count()
-
-        try:
-            widget = FileWidget(name, self.with_dots, self)
-            widget.search_field.set_search_option(self.match)
-            widget.filter_field.set_search_option(self.match)
-        except:
-            raise
-        else:
-            self.files.addTab(widget, filename.name)
-            self.files.setTabToolTip(index, str(filename))
-            self.files.setCurrentIndex(index)
-            widget.file_scrambled.connect(self.open_scrambled_file)
 
     def close_file(self, index):
         widget = self.files.widget(index)

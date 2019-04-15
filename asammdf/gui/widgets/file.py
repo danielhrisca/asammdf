@@ -34,7 +34,7 @@ HERE = Path(__file__).resolve().parent
 
 class FileWidget(QtWidgets.QWidget):
 
-    file_scrambled = QtCore.pyqtSignal(str)
+    open_new_file = QtCore.pyqtSignal(str)
 
     def __init__(self, file_name, with_dots, subplots=False, subplots_link=False, *args, **kwargs):
 
@@ -357,6 +357,16 @@ class FileWidget(QtWidgets.QWidget):
         self.cut_btn.clicked.connect(self.cut)
 
         self.cut_interval.setText("Unknown measurement interval")
+
+        self.extract_can_format.insertItems(0, SUPPORTED_VERSIONS)
+        index = self.extract_can_format.findText(self.mdf.version)
+        if index >= 0:
+            self.extract_can_format.setCurrentIndex(index)
+        self.extract_can_compression.insertItems(
+            0, ("no compression", "deflate", "transposed deflate")
+        )
+        self.extract_can_btn.clicked.connect(self.extract_can_logging)
+        self.load_can_database_btn.clicked.connect(self.load_can_database)
 
         progress.setValue(99)
 
@@ -1503,7 +1513,7 @@ class FileWidget(QtWidgets.QWidget):
             progress.cancel()
             return
 
-        self.file_scrambled.emit(str(Path(self.file_name).with_suffix(".scrambled.mf4")))
+        self.open_new_file.emit(str(Path(self.file_name).with_suffix(".scrambled.mf4")))
 
     def add_new_channels(self, names, widget):
         try:
@@ -1521,3 +1531,81 @@ class FileWidget(QtWidgets.QWidget):
             widget.add_new_channels(sigs)
         except MdfException:
             pass
+
+    def extract_can_logging(self, event):
+
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Select output measurement file", "", "MDF version 4 files (*.mf4)"
+        )
+
+        if file_name:
+
+            progress = setup_progress(
+                parent=self,
+                title="Extract CAN logging",
+                message=f'Extracting CAN signals from "{self.file_name}"',
+                icon_name="down",
+            )
+
+            count = self.can_database_list.count()
+
+            dbc_files = []
+            for i in range(count):
+                item = self.can_database_list.item(i)
+                dbc_files.append(item.text())
+
+            compression = self.extract_can_compression.currentIndex()
+            version = self.extract_can_format.currentText()
+
+            # convert self.mdf
+            target = self.mdf.extract_can_logging
+            kwargs = {
+                "dbc_files": dbc_files,
+                "version": version,
+            }
+
+            mdf = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=70,
+                offset=0,
+                progress=progress,
+            )
+
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
+
+            # then save it
+            progress.setLabelText(f'Saving file to "{file_name}"')
+
+            target = mdf.save
+            kwargs = {
+                "dst": file_name,
+                "compression": compression,
+                "overwrite": True,
+            }
+
+            run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=30,
+                offset=70,
+                progress=progress,
+            )
+
+            self.open_new_file.emit(str(file_name))
+
+    def load_can_database(self, event):
+        file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
+            self,
+            "Select CAN database file",
+            "",
+            "ARXML or DBC (*.dbc *.axml)",
+            "ARXML or DBC (*.dbc *.axml)",
+        )
+
+        for file_name in file_names:
+            self.can_database_list.addItems(file_names)

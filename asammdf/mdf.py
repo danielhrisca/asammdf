@@ -3465,7 +3465,7 @@ class MDF(object):
 
         return df
 
-    def extract_can_logging(self, dbc_files, is_j1939=False):
+    def extract_can_logging(self, dbc_files, version=None):
         """ extract all possible CAN signal using the provided databases.
 
         Parameters
@@ -3479,8 +3479,20 @@ class MDF(object):
             new MDF file that contains the succesfully extracted signals
 
         """
-        out = MDF()
+        if version is None:
+            version = self.version
+        else:
+            version = validate_version_argument(version)
+
+        out = MDF(version=version, callback=self._callback)
         out.header.start_time = self.header.start_time
+
+        if self._callback:
+            out._callback = out._mdf._callback = self._callback
+
+        count = len(self.can_logging_db) * len(dbc_files)
+
+        cntr = 0
 
         for can_id, message_ids in self.can_logging_db.items():
             all_ids = set(message_ids)
@@ -3559,6 +3571,11 @@ class MDF(object):
                                     f'from {can_id} message ID=0x{message.arbitration_id.id:X}',
                                     common_timebase=True,
                             )
+            cntr += 1
+            if self._callback:
+                self._callback(cntr, count)
+        if self._callback:
+            self._callback(100, 100)
         if not out.groups:
             logger.warning(
                 f'No CAN signals could be extracted from "{self.name}". The'
