@@ -268,12 +268,9 @@ class DefineChannel(QtWidgets.QDialog):
             self.result.enabled = True
             self.result.computation = {
                 'type': 'arithmetic',
-                'operand1': operand1_str,
-                'operand1_type': 'CONSTANT' if operand1 == 'CONSTANT' else 'SIGNAL',
-                'operand1': operand1_str,
+                'operand1': operand1 if isinstance(operand1, (int, float)) else operand1.name,
                 'op': op,
-                'operand2_type': 'CONSTANT' if operand1 == 'CONSTANT' else 'SIGNAL',
-                'operand2': operand1_str,
+                'operand2': operand2 if isinstance(operand2, (int, float)) else operand2.name,
             }
         except:
             self.result = None

@@ -1144,8 +1144,9 @@ try:
                     dlg.setModal(True)
                     dlg.exec_()
                     sig = dlg.result
-                    self.add_new_channels([sig], computed=True)
+
                     if sig is not None:
+                        self.add_new_channels([sig], computed=True)
                         self.computation_channel_inserted.emit()
 
                 else:
@@ -1212,7 +1213,7 @@ try:
                             sig.plot_samples = samples
                             sig.plot_timestamps = timestamps
                             if sig.plot_texts is not None:
-                                idx = np.arghere(sig.timestamps == timestamps)
+                                idx = np.argwhere(sig.timestamps == timestamps)
                                 sig.plot_texts = sig.texts[idx]
                         else:
                             start_ = max(0, start_ - 2)
