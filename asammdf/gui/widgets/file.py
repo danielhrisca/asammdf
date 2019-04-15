@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+import json
 from threading import Thread
 from time import sleep
 from pathlib import Path
@@ -601,6 +602,8 @@ class FileWidget(QtWidgets.QWidget):
             )
 
         if file_name:
+
+            config = {}
             with open(file_name, "w") as output:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
@@ -625,7 +628,24 @@ class FileWidget(QtWidgets.QWidget):
 
                         iterator += 1
 
-                output.write("\n".join(signals))
+                config['selected_channels'] = signals
+
+                windows = []
+                for window in self.mdi_area.subWindowList():
+                    wid = window.widget()
+                    window_config = {
+                        'title': window.windowTitle(),
+                        'configuration': wid.to_config(),
+                    }
+                    if isinstance(wid, Numeric):
+                        window_config['type'] = 'Numeric'
+                    else:
+                        window_config['type'] = 'Plot'
+                    windows.append(window_config)
+
+                config['windows'] = windows
+
+                output.write(json.dumps(config, indent=4, sort_keys=True))
 
     def load_channel_list(self, event=None, file_name=None):
         if file_name is None:
@@ -635,8 +655,9 @@ class FileWidget(QtWidgets.QWidget):
 
         if file_name:
             with open(file_name, "r") as infile:
-                channels = [line.strip() for line in infile.readlines()]
-                channels = [name for name in channels if name]
+                info = json.load(infile)
+
+            channels = info['selected_channels']
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 

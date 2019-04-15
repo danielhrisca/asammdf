@@ -453,6 +453,51 @@ try:
             if channels:
                 self.plot.set_current_index(self.info_index)
 
+        def to_config(self):
+            count = self.channel_selection.count()
+
+            channels = []
+            for i in range(count):
+                channel = {}
+                item = self.channel_selection.itemWidget(self.channel_selection.item(i))
+                name = item._name
+
+                sig = [
+                    s
+                    for s in self.plot.signals
+                    if s.name == name
+                ][0]
+
+                channel['name'] = name
+                channel['enabled'] = item.display.checkState() == QtCore.Qt.Checked
+                channel['common_axis'] = item.ylink.checkState() == QtCore.Qt.Checked
+                channel['color'] = sig.color
+                channel['computed'] = sig.computed
+                ranges = [
+                    {
+                        'start': start,
+                        'stop': stop,
+                        'color': color,
+                    }
+                    for (start, stop), color in item.ranges.items()
+                ]
+                channel['ranges'] = ranges
+
+                channel['precision'] = item.precision
+                channel['fmt'] = item.fmt
+                if sig.computed:
+                    channel['computation'] = sig.computation
+
+                channels.append(channel)
+
+            config = {
+                'channels': channels,
+            }
+
+
+            return config
+
+
 
     class _Plot(pg.PlotWidget):
         cursor_moved = QtCore.pyqtSignal()
@@ -1099,7 +1144,7 @@ try:
                     dlg.setModal(True)
                     dlg.exec_()
                     sig = dlg.result
-                    self.add_new_channels([sig])
+                    self.add_new_channels([sig], computed=True)
                     if sig is not None:
                         self.computation_channel_inserted.emit()
 
@@ -1250,7 +1295,7 @@ try:
                 )
                 self.cursor_move_finished.emit()
 
-        def add_new_channels(self, channels):
+        def add_new_channels(self, channels, computed=False):
             geometry = self.viewbox.sceneBoundingRect()
             for i, sig in enumerate(channels):
                 index = len(self.signals)
@@ -1268,6 +1313,7 @@ try:
                     else:
                         sig.plot_texts = None
                 sig.enable = True
+                sig.computed = computed
 
                 if sig.conversion:
                     vals = sig.conversion.convert(sig.samples)

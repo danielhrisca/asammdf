@@ -18,6 +18,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setAcceptDrops(True)
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.setEditTriggers(QtWidgets.QAbstractItemView.DoubleClicked)
 
     def keyPressEvent(self, event):
         key = event.key()

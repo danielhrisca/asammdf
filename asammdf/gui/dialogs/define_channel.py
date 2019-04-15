@@ -266,6 +266,15 @@ class DefineChannel(QtWidgets.QDialog):
             self.result.name = name
             self.result.unit = self.unit.text()
             self.result.enabled = True
+            self.result.computation = {
+                'type': 'arithmetic',
+                'operand1': operand1_str,
+                'operand1_type': 'CONSTANT' if operand1 == 'CONSTANT' else 'SIGNAL',
+                'operand1': operand1_str,
+                'op': op,
+                'operand2_type': 'CONSTANT' if operand1 == 'CONSTANT' else 'SIGNAL',
+                'operand2': operand1_str,
+            }
         except:
             self.result = None
 
@@ -382,18 +391,21 @@ class DefineChannel(QtWidgets.QDialog):
                 else:
                     timestamps = channel.timestamps
                 name = f'{function}_{channel.name}'
+                args = []
 
             elif function == 'around':
                 decimals = int(self.func_arg1.value())
                 samples = func(channel.samples, decimals)
                 timestamps = channel.timestamps
                 name = f'{function}_{channel.name}_{decimals}'
+                args = [decimals]
             elif function == 'clip':
                 lower = float(self.func_arg1.value())
                 upper = float(self.func_arg2.value())
                 samples = func(channel.samples, lower, upper)
                 timestamps = channel.timestamps
                 name = f'{function}_{channel.name}_{lower}_{upper}'
+                args = [lower, upper]
 
             name = self.function_name.text() or name
             unit = self.function_unit.text() or channel.unit
@@ -405,6 +417,12 @@ class DefineChannel(QtWidgets.QDialog):
                 unit=unit,
             )
             self.result.enabled = True
+            self.result.computation = {
+                'type': 'function',
+                'channel': channel_name,
+                'name': function,
+                'args': args,
+            }
 
         except Exception as err:
             QtWidgets.QMessageBox.critical(

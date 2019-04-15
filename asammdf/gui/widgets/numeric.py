@@ -92,7 +92,7 @@ class Numeric(QtWidgets.QWidget):
         if stamp is None:
             stamp = self.timestamp.value()
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels)
-        
+
         idx_cache = {}
 
         if self.format == 'bin':
@@ -182,3 +182,21 @@ class Numeric(QtWidgets.QWidget):
             event.accept()
         else:
             super().keyPressEvent(event)
+
+    def to_config(self):
+
+        channels = []
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channels)
+        while 1:
+            item = iterator.value()
+            if not item:
+                break
+            channels.append(item.text(0))
+            iterator += 1
+
+        config = {
+            'format': self.format,
+            'channels': channels,
+        }
+
+        return config
