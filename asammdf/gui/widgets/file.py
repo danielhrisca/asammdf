@@ -368,6 +368,12 @@ class FileWidget(QtWidgets.QWidget):
         self.extract_can_btn.clicked.connect(self.extract_can_logging)
         self.load_can_database_btn.clicked.connect(self.load_can_database)
 
+        if self.mdf.version >= '4.00':
+            if any(group.CAN_logging for group in self.mdf.groups):
+                self.aspects.setTabEnabled(7, True)
+            else:
+                self.aspects.setTabEnabled(7, False)
+
         progress.setValue(99)
 
         self.empty_channels.insertItems(0, ("zeros", "skip"))
