@@ -43,7 +43,6 @@ from numpy import (
     unique,
     column_stack,
     where,
-    extract_can_signal,
 )
 
 from numpy.core.records import fromarrays, fromstring
@@ -79,6 +78,7 @@ from .utils import (
     sanitize_xml,
     Group,
     DataBlockInfo,
+    extract_can_signal,
 )
 from .v4_blocks import (
     AttachmentBlock,
