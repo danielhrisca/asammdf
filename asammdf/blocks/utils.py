@@ -1235,3 +1235,79 @@ def master_using_raster(mdf, raster, endpoint=False):
             master = np.array([], dtype='<f8')
 
     return master
+
+
+def extract_can_signal(signal, payload):
+    vals = payload
+
+    big_endian = False if signal.is_little_endian else True
+    signed = signal.is_signed
+
+    start_byte, bit_offset = divmod(signal.start_bit, 8)
+
+    bit_count = signal.size
+
+    byte_size, r = divmod(bit_offset + bit_count, 8)
+    if r:
+        byte_size += 1
+
+    if byte_size in (1, 2, 4, 8):
+        extra_bytes = 0
+    else:
+        extra_bytes = 4 - (byte_size % 4)
+
+    std_size = byte_size + extra_bytes
+
+    # prepend or append extra bytes columns
+    # to get a standard size number of bytes
+
+    if extra_bytes:
+        if big_endian:
+
+            vals = np.column_stack(
+                [
+                    np.zeros(len(vals), dtype=f'<({extra_bytes},)u1'),
+                    vals[:, start_byte:start_byte+byte_size],
+                ]
+            )
+            try:
+                vals = vals.view(f'>u{std_size}').ravel()
+            except:
+                vals = np.frombuffer(vals.tobytes(), dtype=f'>u{std_size}')
+
+        else:
+            vals = np.column_stack(
+                [
+                    vals[:, start_byte:start_byte+byte_size],
+                    np.zeros(len(vals), dtype=f'<({extra_bytes},)u1'),
+                ]
+            )
+            try:
+                vals = vals.view(f'<u{std_size}').ravel()
+            except:
+                vals = np.frombuffer(vals.tobytes(), dtype=f'<u{std_size}')
+
+    else:
+        if big_endian:
+            try:
+                vals = vals[:, start_byte:start_byte + byte_size].view(f'>u{std_size}').ravel()
+            except:
+                vals = np.frombuffer(vals[:, start_byte:start_byte + byte_size].tobytes(), dtype=f'>u{std_size}')
+        else:
+            try:
+                vals = vals[:, start_byte:start_byte+byte_size].view(f'<u{std_size}').ravel()
+            except:
+                vals = np.frombuffer(vals[:, start_byte:start_byte + byte_size].tobytes(), dtype=f'<u{std_size}')
+
+    vals = vals >> bit_offset
+    vals &= (2 ** bit_count) - 1
+
+    if signed:
+        vals = as_non_byte_sized_signed_int(vals, bit_count)
+
+    comment = signal.comment or ""
+
+    if (signal.factor, signal.offset) != (1, 0):
+        vals = vals * float(signal.factor) + float(signal.offset)
+
+    return vals

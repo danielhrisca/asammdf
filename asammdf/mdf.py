@@ -42,6 +42,7 @@ from .blocks.utils import (
     components,
     downcast,
     master_using_raster,
+    extract_can_signal,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -3444,92 +3445,176 @@ class MDF(object):
         if self._callback:
             out._callback = out._mdf._callback = self._callback
 
-        count = len(self.can_logging_db) * len(dbc_files)
+        valid_dbc_files = []
+        for dbc_name in dbc_files:
+            dbc_name = Path(dbc_name)
+
+            if dbc_name.exists() and dbc_name.suffix.lower() in ('.dbc', '.arxml'):
+                import_type = dbc_name.suffix.lower().strip('.')
+                contents = dbc_name.read_bytes()
+                try:
+                    dbc = loads(
+                        contents,
+                        import_type=import_type,
+                        key="db",
+                    )["db"]
+                    valid_dbc_files.append(dbc)
+                except UnicodeDecodeError:
+                    try:
+                        from cchardet import detect
+
+                        encoding = detect(contents)["encoding"]
+                        contents = contents.decode(
+                            encoding
+                        )
+                        dbc = loads(
+                            contents,
+                            importType=import_type,
+                            key="db",
+                            encoding=encoding,
+                        )["db"]
+                        valid_dbc_files.append(dbc)
+                    except ImportError:
+                        message = (
+                            "Unicode exception occured while processing the database "
+                            f'"{dbc_name}" and "cChardet" package is '
+                            'not installed. Mdf version 4 expects "utf-8" '
+                            "strings and this package may detect if a different"
+                            " encoding was used"
+                        )
+                        logger.warning(message)
+                        continue
+
+        count = sum(
+            1
+            for group in self.groups
+            if group.CAN_logging
+        )
+        count *= len(valid_dbc_files)
 
         cntr = 0
 
-        print(self.name, self.can_logging_db)
+        for dbc in valid_dbc_files:
+            is_j1939 = dbc.contains_j1939
+            if is_j1939:
+                messages = {
+                    message.arbitration_id.pgn: message
+                    for message in dbc
+                }
+            else:
+                messages = {
+                    message.arbitration_id.id: message
+                    for message in dbc
+                }
 
-        for can_id, message_ids in self.can_logging_db.items():
-            all_ids = set(message_ids)
+            msg_map = {}
 
-            for dbc_name in dbc_files:
-                dbc_name = Path(dbc_name)
+            for i, group in enumerate(self.groups):
+                if not group.CAN_logging:
+                    continue
 
-                if dbc_name.exists() and dbc_name.suffix.lower() in ('.dbc', '.arxml'):
-                    import_type = dbc_name.suffix.lower().strip('.')
-                    contents = dbc_name.read_bytes()
-                    try:
-                        dbc = loads(
-                            contents,
-                            import_type=import_type,
-                            key="db",
-                        )["db"]
-                    except UnicodeDecodeError:
-                        try:
-                            from cchardet import detect
+                parents, dtypes = self._prepare_record(group)
+                data = self._load_data(group)
 
-                            encoding = detect(contents)["encoding"]
-                            contents = contents.decode(
-                                encoding
-                            )
-                            dbc = loads(
-                                contents,
-                                importType=import_type,
-                                key="db",
-                                encoding=encoding,
-                            )["db"]
-                        except ImportError:
-                            message = (
-                                "Unicode exception occured while processing the database "
-                                f'"{dbc_name}" and "cChardet" package is '
-                                'not installed. Mdf version 4 expects "utf-8" '
-                                "strings and this package may detect if a different"
-                                " encoding was used"
-                            )
-                            logger.warning(message)
-                            continue
-                    for message in dbc:
-                        if message.is_j1939:
-                            test_ids = [
-                                canmatrix.ArbitrationId(id_, extended=True).pgn
-                                for id_ in all_ids
-                            ]
-                            id_ = message.arbitration_id.pgn
-                        else:
-                            test_ids = all_ids
-                            id_ = message.arbitration_id.id
-                        if id_ in test_ids:
-                            names = [
-                                signal.name
-                                for signal in message.signals
-                            ]
-                            sigs = []
-                            for name in names:
-                                try:
-                                    sig = self.get_can_signal(f'{can_id}.{message.name}.{name}', db=dbc)
+                for idx, fragment in enumerate(data):
+                    if dtypes.itemsize:
+                        group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
+                    else:
+                        group.record = None
+                        continue
+
+                    bus_ids = self.get(
+                        'CAN_DataFrame.BusChannel',
+                        group=i,
+                        data=fragment,
+                        samples_only=True,
+                    )[0].astype(int)
+
+                    msg_ids = self.get(
+                        'CAN_DataFrame.ID',
+                        group=i,
+                        data=fragment,
+                        copy_master=False,
+                    )
+
+                    if is_j1939:
+                        ps = (msg_ids.samples >> 8) & 0xFF
+                        pf = (msg_ids.samples >> 16) & 0xFF
+                        _pgn = pf << 8
+                        msg_ids.samples = np.where(
+                            pf >= 240,
+                            _pgn + ps,
+                            _pgn,
+                        )
+
+                    data_bytes = self.get(
+                        'CAN_DataFrame.DataBytes',
+                        group=i,
+                        data=fragment,
+                        samples_only=True,
+                    )[0]
+
+                    buses = np.unique(bus_ids)
+
+                    for bus in buses:
+                        idx = np.argwhere(bus_ids == bus).ravel()
+                        bus_t = msg_ids.timestamps[idx]
+                        bus_msg_ids = msg_ids.samples[idx]
+                        bus_data_bytes = data_bytes[idx]
+
+                        unique_ids = np.unique(bus_msg_ids)
+
+                        for msg_id in unique_ids:
+                            message = messages.get(msg_id, None)
+                            if message is None:
+                                continue
+
+                            idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+                            payload = bus_data_bytes[idx]
+                            t = bus_t[idx]
+
+                            entry = bus, msg_id
+                            if entry not in msg_map:
+                                sigs = []
+                                for signal in sorted(message.signals, key=lambda x: x.name):
+                                    sig = Signal(
+                                        samples=extract_can_signal(signal, payload),
+                                        timestamps=t,
+                                        name=signal.name,
+                                        comment=signal.comment or "",
+                                        unit=signal.unit or ""
+                                    )
                                     sig.comment = f"""\
 <CNcomment>
-    <TX>{sig.comment}</TX>
-    <names>
-        <display>
-            {sig.name}
-        </display>
-    </names>
+<TX>{sig.comment}</TX>
+<names>
+    <display>
+        CAN{bus}.{message.name}.{signal.name}
+    </display>
+</names>
 </CNcomment>"""
-                                    sig.name = name
+
                                     sigs.append(sig)
-                                except:
-                                    raise
-                            if sigs:
+
+                                msg_map[entry] = len(out.groups)
                                 out.append(
                                     sigs,
-                                    f'from {can_id} message ID=0x{message.arbitration_id.id:X}',
+                                    f'from CAN{bus} message ID=0x{msg_id:X}',
                                     common_timebase=True,
-                            )
-            cntr += 1
-            if self._callback:
-                self._callback(cntr, count)
+                                )
+                            else:
+                                index = msg_map[entry]
+                                sigs = [(t, None)]
+                                for signal in sorted(message.signals, key=lambda x: x.name):
+                                    sigs.append(
+                                        (extract_can_signal(signal, payload), None)
+                                    )
+                                out.extend(sigs)
+
+                cntr += 1
+                if self._callback:
+                    self._callback(cntr, count)
+
         if self._callback:
             self._callback(100, 100)
         if not out.groups:
