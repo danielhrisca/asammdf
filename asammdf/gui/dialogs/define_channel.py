@@ -268,12 +268,28 @@ class DefineChannel(QtWidgets.QDialog):
             self.result.enabled = True
             self.result.computation = {
                 'type': 'arithmetic',
-                'operand1': operand1 if isinstance(operand1, (int, float)) else operand1.name,
                 'op': op,
-                'operand2': operand2 if isinstance(operand2, (int, float)) else operand2.name,
             }
+
+            if isinstance(operand1, (int, float)):
+                self.result.computation['operand1'] = operand1
+            else:
+                if operand1.computed:
+                    self.result.computation['operand1'] = operand1.computation
+                else:
+                    self.result.computation['operand1'] = operand1.name
+
+            if isinstance(operand2, (int, float)):
+                self.result.computation['operand2'] = operand2
+            else:
+                if operand2.computed:
+                    self.result.computation['operand2'] = operand2.computation
+                else:
+                    self.result.computation['operand2'] = operand2.name
         except:
             self.result = None
+
+        print(self.result.computation)
 
         self.pressed_button = "apply"
         self.close()
@@ -416,7 +432,7 @@ class DefineChannel(QtWidgets.QDialog):
             self.result.enabled = True
             self.result.computation = {
                 'type': 'function',
-                'channel': channel_name,
+                'channel': channel.computation or channel_name,
                 'name': function,
                 'args': args,
             }

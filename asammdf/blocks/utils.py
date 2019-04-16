@@ -1173,3 +1173,65 @@ def downcast(array):
                 array = array.astype(np.int64)
 
     return array
+
+
+def master_using_raster(mdf, raster, endpoint=False):
+    """ get single master based on the raster
+
+    Parameters
+    ----------
+    mdf : asammdf.MDF
+        measurement object
+    raster : float
+        new raster
+    endpoint=False : bool
+        include maximum time stamp in the new master
+
+    Returns
+    -------
+    master : np.array
+        new master
+
+    """
+    if not raster:
+        master = np.array([], dtype='<f8')
+    else:
+
+        t_min = []
+        t_max = []
+        for i, group in enumerate(mdf.groups):
+            cycles_nr = group.channel_group.cycles_nr
+            if cycles_nr:
+                master_min = mdf.get_master(
+                    i,
+                    record_offset=0,
+                    record_count=1,
+                )
+                if len(master_min):
+                    t_min.append(master_min[0])
+                mdf._master_channel_cache.clear()
+                master_max = mdf.get_master(
+                    i,
+                    record_offset=cycles_nr-1,
+                    record_count=1,
+                )
+                if len(master_max):
+                    t_max.append(master_max[0])
+                mdf._master_channel_cache.clear()
+
+        if t_min:
+            t_min = np.amin(t_min)
+            t_max = np.amax(t_max)
+
+            num = float(np.float32((t_max - t_min) / raster))
+            if int(num) == num:
+                master = np.linspace(t_min, t_max, int(num) + 1)
+            else:
+                master = np.arange(t_min, t_max, raster)
+                if endpoint:
+                    master = np.concatenate([master, [t_max]])
+
+        else:
+            master = np.array([], dtype='<f8')
+
+    return master

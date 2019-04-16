@@ -41,6 +41,7 @@ from .blocks.utils import (
     UniqueDB,
     components,
     downcast,
+    master_using_raster,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -2497,31 +2498,7 @@ class MDF(object):
             else:
                 raster = np.array(raster)
         else:
-            t_min = []
-            t_max = []
-            for i, group in enumerate(self.groups):
-                cycles_nr = group.channel_group.cycles_nr
-                if cycles_nr:
-                    master_min = self.get_master(i, record_offset=0, record_count=1)
-                    if len(master_min):
-                        t_min.append(master_min[0])
-                    self._master_channel_cache.clear()
-                    master_max = self.get_master(i, record_offset=cycles_nr-1, record_count=1)
-                    if len(master_max):
-                        t_max.append(master_max[0])
-                    self._master_channel_cache.clear()
-
-            if t_min:
-                t_min = np.amin(t_min)
-                t_max = np.amax(t_max)
-                num = float(np.float32((t_max - t_min) / raster))
-                if int(num) == num:
-                    raster = np.linspace(t_min, t_max, int(num) + 1)
-                else:
-                    raster = np.arange(t_min, t_max, raster)
-
-            else:
-                raster = np.array([], dtype='<f8')
+            raster = master_using_raster(self, raster)
 
         if time_from_zero and len(raster):
             delta = raster[0]
@@ -3310,31 +3287,7 @@ class MDF(object):
                 else:
                     master = np.array(raster)
             else:
-                t_min = []
-                t_max = []
-                for i, group in enumerate(self.groups):
-                    cycles_nr = group.channel_group.cycles_nr
-                    if cycles_nr:
-                        master_min = self.get_master(i, record_offset=0, record_count=1)
-                        if len(master_min):
-                            t_min.append(master_min[0])
-                        self._master_channel_cache.clear()
-                        master_max = self.get_master(i, record_offset=cycles_nr-1, record_count=1)
-                        if len(master_max):
-                            t_max.append(master_max[0])
-                        self._master_channel_cache.clear()
-
-                if t_min:
-                    t_min = np.amin(t_min)
-                    t_max = np.amax(t_max)
-                    num = float(np.float32((t_max - t_min) / raster))
-                    if int(num) == num:
-                        master = np.linspace(t_min, t_max, int(num) + 1)
-                    else:
-                        master = np.arange(t_min, t_max, raster)
-
-                else:
-                    master = np.array([], dtype='<f8')
+                master = master_using_raster(self, raster)
         else:
             masters = [self.get_master(i) for i in range(len(self.groups))]
             self._master_channel_cache.clear()

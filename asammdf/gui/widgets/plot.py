@@ -494,9 +494,7 @@ try:
                 'channels': channels,
             }
 
-
             return config
-
 
 
     class _Plot(pg.PlotWidget):
@@ -785,8 +783,8 @@ try:
                             cut = sig.cut(start, stop)
 
                             if len(cut):
-                                new_stats["selected_min"] = np.amin(cut.samples)
-                                new_stats["selected_max"] = np.amax(cut.samples)
+                                new_stats["selected_min"] = np.nanmin(cut.samples)
+                                new_stats["selected_max"] = np.nanmax(cut.samples)
                                 new_stats["selected_average"] = np.mean(cut.samples)
                                 new_stats["selected_rms"] = (
                                      np.sqrt(np.mean(np.square(cut.samples)))
@@ -833,8 +831,8 @@ try:
                         cut = sig.cut(start, stop)
 
                         if len(cut):
-                            new_stats["visible_min"] = np.amin(cut.samples)
-                            new_stats["visible_max"] = np.amax(cut.samples)
+                            new_stats["visible_min"] = np.nanmin(cut.samples)
+                            new_stats["visible_max"] = np.nanmax(cut.samples)
                             new_stats["visible_average"] = np.mean(cut.samples)
                             new_stats["visible_rms"] = (
                                  np.sqrt(np.mean(np.square(cut.samples)))
@@ -943,8 +941,8 @@ try:
                     for i, (viewbox, signal) in enumerate(zip(self.view_boxes, self.signals)):
                         if len(signal.plot_samples):
                             min_, max_ = (
-                                np.amin(signal.plot_samples),
-                                np.amax(signal.plot_samples),
+                                np.nanmin(signal.plot_samples),
+                                np.nanmax(signal.plot_samples),
                             )
                             viewbox.setYRange(min_, max_, padding=0)
 
@@ -1188,25 +1186,25 @@ try:
                             stop_2 = start_ + rows * raster
 
                             samples = sig.samples[start_: stop_2].reshape(rows, raster)
-                            max_ = np.amax(samples, axis=1)
-                            min_ = np.amin(samples, axis=1)
+                            max_ = np.nanmax(samples, axis=1)
+                            min_ = np.nanmin(samples, axis=1)
                             samples = np.dstack((min_, max_)).ravel()
 
                             timestamps = sig.timestamps[start_: stop_2].reshape(rows, raster)
-                            t_max = np.amax(timestamps, axis=1)
-                            t_min = np.amin(timestamps, axis=1)
+                            t_max = np.nanmax(timestamps, axis=1)
+                            t_min = np.nanmin(timestamps, axis=1)
 
                             timestamps = np.dstack((t_min, t_max)).ravel()
 
                             if stop_2 != stop_:
                                 samples_ = sig.samples[stop_2: stop_]
-                                max_ = np.amax(samples_)
-                                min_ = np.amin(samples_)
+                                max_ = np.nanmax(samples_)
+                                min_ = np.nanmin(samples_)
                                 samples = np.concatenate((samples, [min_, max_]))
 
                                 timestamps_ = sig.timestamps[stop_2: stop_]
-                                t_max = np.amax(timestamps_)
-                                t_min = np.amin(timestamps_)
+                                t_max = np.nanmax(timestamps_)
+                                t_min = np.nanmin(timestamps_)
 
                                 timestamps = np.concatenate((timestamps, [t_min, t_max]))
 
@@ -1315,6 +1313,8 @@ try:
                         sig.plot_texts = None
                 sig.enable = True
                 sig.computed = computed
+                if not computed:
+                    sig.computation = {}
 
                 if sig.conversion:
                     vals = sig.conversion.convert(sig.samples)
@@ -1341,8 +1341,8 @@ try:
                 sig.color = color
 
                 if len(sig.samples):
-                    sig.min = np.amin(sig.samples)
-                    sig.max = np.amax(sig.samples)
+                    sig.min = np.nanmin(sig.samples)
+                    sig.max = np.nanmax(sig.samples)
                     sig.avg = np.mean(sig.samples)
                     sig.rms = np.sqrt(np.mean(np.square(sig.samples)))
                     sig.empty = False
@@ -1352,6 +1352,8 @@ try:
                     sig.max = 'n.a.'
                     sig.rms = 'n.a.'
                     sig.avg = 'n.a.'
+
+                print(sig.min, sig.max)
 
                 view_box = pg.ViewBox(enableMenu=False)
                 view_box.disableAutoRange()
