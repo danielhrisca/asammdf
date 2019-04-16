@@ -883,11 +883,12 @@ class MDF4(object):
                         attachment, at_name = self.extract_attachment(
                             index=attachment_addr
                         )
-                        if (
-                                not at_name.name.lower().endswith(("dbc", "arxml"))
-                                or not attachment
-                        ):
+                        if not at_name.name.lower().endswith(("dbc", "arxml")):
                             message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
+                            logger.warning(message)
+                            grp.CAN_database = False
+                        elif not attachment:
+                            message = f'Attachment "{at_name}" not found'
                             logger.warning(message)
                             grp.CAN_database = False
                         else:
