@@ -2503,10 +2503,12 @@ class MDF(object):
                 cycles_nr = group.channel_group.cycles_nr
                 if cycles_nr:
                     master_min = self.get_master(i, record_offset=0, record_count=1)
-                    t_min.append(master_min)
+                    if len(master_min):
+                        t_min.append(master_min[0])
                     self._master_channel_cache.clear()
                     master_max = self.get_master(i, record_offset=cycles_nr-1, record_count=1)
-                    t_max.append(master_max)
+                    if len(master_max):
+                        t_max.append(master_max[0])
                     self._master_channel_cache.clear()
 
             if t_min:
@@ -3314,10 +3316,12 @@ class MDF(object):
                     cycles_nr = group.channel_group.cycles_nr
                     if cycles_nr:
                         master_min = self.get_master(i, record_offset=0, record_count=1)
-                        t_min.append(master_min)
+                        if len(master_min):
+                            t_min.append(master_min[0])
                         self._master_channel_cache.clear()
                         master_max = self.get_master(i, record_offset=cycles_nr-1, record_count=1)
-                        t_max.append(master_max)
+                        if len(master_max):
+                            t_max.append(master_max[0])
                         self._master_channel_cache.clear()
 
                 if t_min:
@@ -3335,14 +3339,6 @@ class MDF(object):
             masters = [self.get_master(i) for i in range(len(self.groups))]
             self._master_channel_cache.clear()
             master = reduce(np.union1d, masters)
-
-            if len(master) > 1:
-                num = float(np.float32((master[-1] - master[0]) / raster))
-                if num.is_integer():
-                    master = np.linspace(master[0], master[-1], int(num))
-                else:
-                    master = np.arange(master[0], master[-1], raster, dtype=np.float64)
-
 
         df["time"] = pd.Series(master, index=np.arange(len(master)))
 
