@@ -856,6 +856,7 @@ class MDF4(object):
                     assert len(unique(bus_ids)) <= 1
 
                     for can_id, message_id in unique(column_stack((bus_ids.samples.astype(int), can_ids.samples), axis=0)):
+                        can_id = f'CAN{can_id}'
                         if can_id not in self.can_logging_db:
                             self.can_logging_db[can_id] = {}
                         grp.CAN_id = can_id
@@ -1551,6 +1552,26 @@ class MDF4(object):
         ch.display_name = signal.display_name
         ch.attachment = attachment
 
+        if name == 'CAN_DataFrame':
+            grp.channel_group.flags = v4c.FLAG_CG_BUS_EVENT
+            ch.flags |= v4c.FLAG_CN_BUS_EVENT
+            grp.channel_group.acq_name = 'CAN'
+            grp.channel_group.acq_source = SourceInformation(
+                source_type=v4c.SOURCE_BUS,
+                bus_type=v4c.BUS_TYPE_CAN,
+            )
+
+            can_id = unique(signal.samples['CAN_DataFrame.BusChannel'])
+            assert len(can_id) == 1
+            can_id = f'CAN{int(can_id[0])}'
+
+            message_ids = set(unique(signal.samples['CAN_DataFrame.ID']))
+
+            if can_id not in self.can_logging_db:
+                self.can_logging_db[can_id] = {}
+            for message_id in message_ids:
+                self.can_logging_db[can_id][message_id] = dg_cntr
+
         # source for channel
         source = signal.source
         if source:
@@ -1558,7 +1579,8 @@ class MDF4(object):
                 ch.source = si_map[source]
             else:
                 new_source = SourceInformation(
-                    source_type=source.source_type, bus_type=source.bus_type
+                    source_type=source.source_type,
+                    bus_type=source.bus_type,
                 )
                 new_source.name = source.name
                 new_source.path = source.path
@@ -2384,6 +2406,8 @@ class MDF4(object):
         source_block = SourceInformation()
         source_block.name = source_block.path = source_info
 
+        gp.channel_group.acq_source = source_block
+
         if signals:
             # time channel
             t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
@@ -2961,7 +2985,6 @@ class MDF4(object):
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
-        gp.channel_group.acq_source = source_block
 
         # data group
         gp.data_group = DataGroup()
@@ -4786,7 +4809,10 @@ class MDF4(object):
                 t *= time_a
                 t += time_b
 
-                t = t[record_offset: record_offset+record_count]
+                if record_count is None:
+                    t = t[record_offset:]
+                else:
+                    t = t[record_offset: record_offset+record_count]
 
             else:
                 # get data group parents and dtypes

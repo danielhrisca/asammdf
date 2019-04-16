@@ -59,7 +59,6 @@ class Signal(object):
     encoding : str | None
         encoding for string signals; default *None*
 
-
     """
 
     def __init__(

@@ -3499,6 +3499,8 @@ class MDF(object):
 
         cntr = 0
 
+        print(self.name, self.can_logging_db)
+
         for can_id, message_ids in self.can_logging_db.items():
             all_ids = set(message_ids)
 
