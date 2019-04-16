@@ -2516,7 +2516,7 @@ class MDF(object):
                 t_max = np.amax(t_max)
                 num = float(np.float32((t_max - t_min) / raster))
                 if int(num) == num:
-                    raster = np.linspace(t_min, t_max, int(num))
+                    raster = np.linspace(t_min, t_max, int(num) + 1)
                 else:
                     raster = np.arange(t_min, t_max, raster)
 
@@ -3329,7 +3329,7 @@ class MDF(object):
                     t_max = np.amax(t_max)
                     num = float(np.float32((t_max - t_min) / raster))
                     if int(num) == num:
-                        master = np.linspace(t_min, t_max, int(num))
+                        master = np.linspace(t_min, t_max, int(num) + 1)
                     else:
                         master = np.arange(t_min, t_max, raster)
 
