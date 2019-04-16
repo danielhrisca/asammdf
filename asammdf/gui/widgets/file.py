@@ -1313,15 +1313,18 @@ class FileWidget(QtWidgets.QWidget):
                 for channel in window_info['configuration']['channels']
                 if not channel['computed'] and channel['name']  in self.mdf
             ]
-            measured_signals = self.mdf.select(measured_signals)
+            measured_signals = {
+                sig.name: sig
+                for sig in self.mdf.select(measured_signals)
+            }
 
-            for signal in measured_signals:
+            for signal in measured_signals.values():
                 signal.computed = False
                 signal.computation = {}
 
             if measured_signals:
                 all_timebase = reduce(
-                    np.union1d, (sig.timestamps for sig in measured_signals)
+                    np.union1d, (sig.timestamps for sig in measured_signals.values())
                 )
             else:
                 all_timebase = []
@@ -1332,33 +1335,25 @@ class FileWidget(QtWidgets.QWidget):
                 if channel['computed']
             ]
 
-            computed_signals = []
+            computed_signals = {}
 
             def compute(description, measured_signals, all_timebase):
-                op = description['op']
                 type_ = description['type']
 
                 if type_ == 'arithmetic':
+                    op = description['op']
 
                     operand1 = description['operand1']
                     if isinstance(operand1, dict):
                         operand1 = compute(operand1, measured_signals, all_timebase)
                     elif isinstance(operand1, str):
-                        operand1 = [
-                            signal
-                            for signal in measured_signals
-                            if signal.name == operand1
-                        ][0]
+                        operand1 = measured_signals[operand1]
 
                     operand2 = description['operand2']
                     if isinstance(operand2, dict):
                         operand2 = compute(operand2, measured_signals, all_timebase)
                     elif isinstance(operand2, str):
-                        operand2 = [
-                            signal
-                            for signal in measured_signals
-                            if signal.name == operand2
-                        ][0]
+                        operand2 = measured_signals[operand2]
 
                     result = eval(f'operand1 {op} operand2')
                     if not hasattr(result, 'name'):
@@ -1377,11 +1372,7 @@ class FileWidget(QtWidgets.QWidget):
                     if isinstance(channel, dict):
                         channel = compute(channel, measured_signals, all_timebase)
                     else:
-                        channel = [
-                            signal
-                            for signal in measured_signals
-                            if signal.name == channel
-                        ][0]
+                        channel = measured_signals[channel]
 
                     func = getattr(np, function)
 
@@ -1447,11 +1438,12 @@ class FileWidget(QtWidgets.QWidget):
                     signal.name = channel['name']
                     signal.unit = channel['unit']
 
-                    computed_signals.append(signal)
+                    computed_signals[signal.name] = signal
                 except:
-                    computed_signals.append(None)
+                    raise
+                    pass
 
-            signals = measured_signals + [s for s in computed_signals if s is not None]
+            signals = list(measured_signals.values()) + list(computed_signals.values())
 
             plot = Plot(signals, self.with_dots)
             plot.plot.update_lines(force=True)
@@ -1489,6 +1481,38 @@ class FileWidget(QtWidgets.QWidget):
             w.setSystemMenu(menu)
 
             plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
+
+            descriptions = {
+                channel['name']: channel
+                for channel in window_info['configuration']['channels']
+            }
+
+            count = plot.channel_selection.count()
+
+            for i in range(count):
+                wid = plot.channel_selection.itemWidget(plot.channel_selection.item(i))
+                name = wid._name
+
+                description = descriptions[name]
+
+                wid.setFmt(description['fmt'])
+                wid.set_precision(description['precision'])
+                wid.setColor(description['color'])
+                wid.color_changed.emit(wid.index, description['color'])
+                wid.ranges = {
+                    (range['start'], range['stop']): range['color']
+                    for range in description['ranges']
+                }
+                wid.ylink.setCheckState(
+                    QtCore.Qt.Checked
+                    if description['common_axis']
+                    else QtCore.Qt.Unchecked
+                )
+                wid.display.setCheckState(
+                    QtCore.Qt.Checked
+                    if description['enabled']
+                    else QtCore.Qt.Unchecked
+                )
 
     def plot_pyqtgraph(self, event):
         try:

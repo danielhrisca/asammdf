@@ -1313,9 +1313,10 @@ try:
                     else:
                         sig.plot_texts = None
                 sig.enable = True
-                sig.computed = computed
-                if not computed:
-                    sig.computation = {}
+                if not hasattr(sig, 'computed'):
+                    sig.computed = computed
+                    if not computed:
+                        sig.computation = {}
 
                 if sig.conversion:
                     vals = sig.conversion.convert(sig.samples)
