@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from functools import partial
+from functools import partial, reduce
 import json
 from threading import Thread
 from time import sleep
@@ -17,6 +17,7 @@ from PyQt5 import uic
 from ..ui import resource_qt5 as resource_rc
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
+from ...signal import Signal
 from ...blocks.utils import MdfException
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .plot import Plot
@@ -1190,7 +1191,7 @@ class FileWidget(QtWidgets.QWidget):
 
             menu = w.systemMenu()
 
-            def set_tile(mdi):
+            def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
                     None,
                     'Set sub-plot title',
@@ -1200,7 +1201,7 @@ class FileWidget(QtWidgets.QWidget):
                     mdi.setWindowTitle(name)
 
             action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_tile, w))
+            action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
@@ -1228,7 +1229,7 @@ class FileWidget(QtWidgets.QWidget):
 
             menu = w.systemMenu()
 
-            def set_tile(mdi):
+            def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
                     None,
                     'Set sub-plot title',
@@ -1238,7 +1239,7 @@ class FileWidget(QtWidgets.QWidget):
                     mdi.setWindowTitle(name)
 
             action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_tile, w))
+            action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
@@ -1290,7 +1291,7 @@ class FileWidget(QtWidgets.QWidget):
 
             menu = w.systemMenu()
 
-            def set_tile(mdi):
+            def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
                     None,
                     'Set sub-plot title',
@@ -1300,14 +1301,157 @@ class FileWidget(QtWidgets.QWidget):
                     mdi.setWindowTitle(name)
 
             action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_tile, w))
+            action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
 
             numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
         else:
-            return
+            measured_signals = [
+                (None, *self.mdf.whereis(channel['name'])[0])
+                for channel in window_info['configuration']['channels']
+                if not channel['computed'] and channel['name']  in self.mdf
+            ]
+            measured_signals = self.mdf.select(measured_signals)
+
+            for signal in measured_signals:
+                signal.computed = False
+                signal.computation = {}
+
+            if measured_signals:
+                all_timebase = reduce(
+                    np.union1d, (sig.timestamps for sig in measured_signals)
+                )
+            else:
+                all_timebase = []
+
+            computed_signals_descriptions = [
+                channel
+                for channel in window_info['configuration']['channels']
+                if channel['computed']
+            ]
+
+            computed_signals = []
+
+            def compute(description, measured_signals, all_timebase):
+                op = description['op']
+                type_ = description['type']
+
+                if type_ == 'arithmetic':
+
+                    operand1 = description['operand1']
+                    if isinstance(operand1, dict):
+                        operand1 = compute(operand1, measured_signals, all_timebase)
+                    elif isinstance(operand1, str):
+                        operand1 = [
+                            signal
+                            for signal in measured_signals
+                            if signal.name == operand1
+                        ][0]
+
+                    operand2 = description['operand2']
+                    if isinstance(operand2, dict):
+                        operand2 = compute(operand2, measured_signals, all_timebase)
+                    elif isinstance(operand2, str):
+                        operand2 = [
+                            signal
+                            for signal in measured_signals
+                            if signal.name == operand2
+                        ][0]
+
+                    result = eval(f'operand1 {op} operand2')
+                    if not hasattr(result, 'name'):
+                        result = Signal(
+                            name='_',
+                            samples=np.ones(len(all_timebase))*result,
+                            timestamps=all_timebase,
+                        )
+
+                else:
+                    function = description['name']
+                    args = description['args']
+
+                    channel = description['channel']
+
+                    if isinstance(channel, dict):
+                        channel = compute(channel, measured_signals, all_timebase)
+                    else:
+                        channel = [
+                            signal
+                            for signal in measured_signals
+                            if signal.name == channel
+                        ][0]
+
+                    func = getattr(np, function)
+
+                    if function in [
+                        'arccos',
+                        'arcsin',
+                        'arctan',
+                        'cos',
+                        'deg2rad',
+                        'degrees',
+                        'rad2deg',
+                        'radians',
+                        'sin',
+                        'tan',
+                        'floor',
+                        'rint',
+                        'fix',
+                        'trunc',
+                        'cumprod',
+                        'cumsum',
+                        'diff',
+                        'exp',
+                        'log10',
+                        'log',
+                        'log2',
+                        'absolute',
+                        'cbrt',
+                        'sqrt',
+                        'square',
+                        'gradient',
+                    ]:
+
+                        samples = func(channel.samples)
+                        if function == 'diff':
+                            timestamps = channel.timestamps[1:]
+                        else:
+                            timestamps = channel.timestamps
+
+                    elif function == 'around':
+                        samples = func(channel.samples, *args)
+                        timestamps = channel.timestamps
+                    elif function == 'clip':
+                        samples = func(channel.samples, *args)
+                        timestamps = channel.timestamps
+
+                    result = Signal(
+                        samples=samples,
+                        timestamps=timestamps,
+                        name='_',
+                    )
+
+                return result
+
+            for channel in computed_signals_descriptions:
+                computation = channel['computation']
+
+                try:
+
+                    signal = compute(computation, measured_signals, all_timebase)
+                    signal.color = channel['color']
+                    signal.computed = True
+                    signal.computation = channel['computation']
+                    signal.name = channel['name']
+                    signal.unit = channel['unit']
+
+                    computed_signals.append(signal)
+                except:
+                    computed_signals.append(None)
+
+            signals = measured_signals + [s for s in computed_signals if s is not None]
 
             plot = Plot(signals, self.with_dots)
             plot.plot.update_lines(force=True)
@@ -1329,7 +1473,7 @@ class FileWidget(QtWidgets.QWidget):
 
             menu = w.systemMenu()
 
-            def set_tile(mdi):
+            def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
                     None,
                     'Set sub-plot title',
@@ -1339,7 +1483,7 @@ class FileWidget(QtWidgets.QWidget):
                     mdi.setWindowTitle(name)
 
             action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_tile, w))
+            action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
@@ -1497,7 +1641,7 @@ class FileWidget(QtWidgets.QWidget):
 
         menu = w.systemMenu()
 
-        def set_tile(mdi):
+        def set_title(mdi):
             name, ok = QtWidgets.QInputDialog.getText(
                 None,
                 'Set sub-plot title',
@@ -1507,7 +1651,7 @@ class FileWidget(QtWidgets.QWidget):
                 mdi.setWindowTitle(name)
 
         action = QtWidgets.QAction("Set title", menu)
-        action.triggered.connect(partial(set_tile, w))
+        action.triggered.connect(partial(set_title, w))
         before = menu.actions()[0]
         menu.insertAction(before, action)
         w.setSystemMenu(menu)

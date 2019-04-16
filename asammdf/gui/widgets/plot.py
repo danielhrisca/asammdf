@@ -469,6 +469,7 @@ try:
                 ][0]
 
                 channel['name'] = name
+                channel['unit'] = sig.unit
                 channel['enabled'] = item.display.checkState() == QtCore.Qt.Checked
                 channel['common_axis'] = item.ylink.checkState() == QtCore.Qt.Checked
                 channel['color'] = sig.color
@@ -1352,8 +1353,6 @@ try:
                     sig.max = 'n.a.'
                     sig.rms = 'n.a.'
                     sig.avg = 'n.a.'
-
-                print(sig.min, sig.max)
 
                 view_box = pg.ViewBox(enableMenu=False)
                 view_box.disableAutoRange()
