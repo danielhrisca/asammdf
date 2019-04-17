@@ -170,6 +170,7 @@ class Numeric(QtWidgets.QWidget):
     def keyPressEvent(self, event):
         key = event.key()
         modifier = event.modifiers()
+        print(key, QtCore.Qt.Key_Right)
 
         if key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P) and modifier == QtCore.Qt.ControlModifier:
             if key == QtCore.Qt.Key_H:
@@ -180,6 +181,10 @@ class Numeric(QtWidgets.QWidget):
                 self.format = 'phys'
             self._update_values()
             event.accept()
+        elif key == QtCore.Qt.Key_Right and modifier == QtCore.Qt.NoModifier:
+            self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
+        elif key == QtCore.Qt.Key_Left and modifier == QtCore.Qt.NoModifier:
+            self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
         else:
             super().keyPressEvent(event)
 
