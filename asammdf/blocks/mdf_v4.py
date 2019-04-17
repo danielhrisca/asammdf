@@ -43,6 +43,7 @@ from numpy import (
     unique,
     column_stack,
     where,
+    argwhere,
 )
 
 from numpy.core.records import fromarrays, fromstring
@@ -1563,16 +1564,27 @@ class MDF4(object):
                 bus_type=v4c.BUS_TYPE_CAN,
             )
 
-            can_id = unique(signal.samples['CAN_DataFrame.BusChannel'])
-            assert len(can_id) == 1
-            can_id = f'CAN{int(can_id[0])}'
+            can_ids = unique(signal.samples['CAN_DataFrame.BusChannel'])
 
-            message_ids = set(unique(signal.samples['CAN_DataFrame.ID']))
+            if len(can_ids) == 1:
+                can_id = f'CAN{int(can_ids[0])}'
 
-            if can_id not in self.can_logging_db:
-                self.can_logging_db[can_id] = {}
-            for message_id in message_ids:
-                self.can_logging_db[can_id][message_id] = dg_cntr
+                message_ids = set(unique(signal.samples['CAN_DataFrame.ID']))
+
+                if can_id not in self.can_logging_db:
+                    self.can_logging_db[can_id] = {}
+                for message_id in message_ids:
+                    self.can_logging_db[can_id][message_id] = dg_cntr
+            else:
+                for can_id in can_ids:
+                    idx = argwhere(signal.samples['CAN_DataFrame.BusChannel'] == can_id).ravel()
+                    message_ids = set(unique(signal.samples['CAN_DataFrame.ID'][idx]))
+                    can_id = f'CAN{can_id}'
+                    if can_id not in self.can_logging_db:
+                        self.can_logging_db[can_id] = {}
+                    for message_id in message_ids:
+                        self.can_logging_db[can_id][message_id] = dg_cntr
+
 
         # source for channel
         source = signal.source
