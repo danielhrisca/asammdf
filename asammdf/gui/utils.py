@@ -56,9 +56,10 @@ def excepthook(exc_type, exc_value, tracebackobj):
     sections = [now, separator, errmsg, separator, info]
     msg = "\n".join(sections)
 
-    print(msg)
+    print(''.join(traceback.format_tb(tracebackobj)))
+    print('{0}: {1}'.format(exc_type, exc_value))
 
-    QtWidgets.QMessageBox.warning(None, notice, msg)
+    QtWidgets.QMessageBox.warning(None, notice, traceback.format_exc())
 
 
 def run_thread_with_progress(widget, target, kwargs, factor, offset, progress):
