@@ -56,6 +56,14 @@ class ListWidget(QtWidgets.QListWidget):
         else:
             super().keyPressEvent(event)
 
+    def startDrag(self, supportedActions):
+        drag = QtGui.QDrag(self)
+        t = [self.itemWidget(i).text() for i in self.selectedItems()]
+        mimeData = self.model().mimeData(self.selectedIndexes())
+        mimeData.setText(str(t))
+        drag.setMimeData(mimeData)
+        drag.exec(QtCore.Qt.CopyAction)
+
     def dragEnterEvent(self, e):
         e.accept()
         super().dragEnterEvent(e)
@@ -67,15 +75,18 @@ class ListWidget(QtWidgets.QListWidget):
         else:
             data = e.mimeData()
             if data.hasFormat('application/x-qabstractitemmodeldatalist'):
-                data = bytes(data.data('application/x-qabstractitemmodeldatalist'))
+                if data.hasFormat('text/plain'):
+                    names = [
+                        name.strip('"\'')
+                        for name in data.text().strip('[]').split(', ')
+                    ]
+                    print(names, type(names))
+                else:
+                    model = QtGui.QStandardItemModel()
+                    model.dropMimeData(data, QtCore.Qt.CopyAction, 0,0, QtCore.QModelIndex())
 
-                data = data.replace(b'\0', b'')
-                names = []
-
-                while data:
-                    _1, _2, data = data.split(b'\n', 2)
-
-                    size = int(ceil(data[0] / 2))
-                    names.append(data[1:1+size].decode('utf-8'))
-                    data = data[1+size:]
+                    names = [
+                        model.item(row, 0).text()
+                        for row in range(model.rowCount())
+                    ]
                 self.add_channels_request.emit(names)

@@ -155,3 +155,6 @@ class ChannelDisplay(base_1, form_1):
             self.name.setText(self.fm.elidedText(f'{self._name} ({self.unit})', QtCore.Qt.ElideMiddle, width))
         else:
             self.name.setText(self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width))
+
+    def text(self):
+        return self._name

@@ -428,6 +428,7 @@ try:
                 sig._index = self._available_index
 
                 item = QtWidgets.QListWidgetItem(self.channel_selection)
+                item.setData(QtCore.Qt.UserRole, sig.name)
                 it = ChannelDisplay(self._available_index, sig.unit, sig.samples.dtype.kind, 3, self)
                 it.setAttribute(QtCore.Qt.WA_StyledBackground)
 

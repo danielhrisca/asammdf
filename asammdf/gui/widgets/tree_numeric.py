@@ -63,14 +63,18 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         else:
             data = e.mimeData()
             if data.hasFormat('application/x-qabstractitemmodeldatalist'):
-                data = bytes(data.data('application/x-qabstractitemmodeldatalist'))
-                data = data.replace(b'\0', b'')
-                names = []
+                if data.hasFormat('text/plain'):
+                    names = [
+                        name.strip('"\'')
+                        for name in data.text().strip('[]').split(', ')
+                    ]
+                    print(names, type(names))
+                else:
+                    model = QtGui.QStandardItemModel()
+                    model.dropMimeData(data, QtCore.Qt.CopyAction, 0,0, QtCore.QModelIndex())
 
-                while data:
-                    _1, _2, data = data.split(b'\n', 2)
-
-                    size = int(ceil(data[0] / 2))
-                    names.append(data[1:1+size].decode('utf-8'))
-                    data = data[1+size:]
+                    names = [
+                        model.item(row, 0).text()
+                        for row in range(model.rowCount())
+                    ]
                 self.add_channels_request.emit(names)
