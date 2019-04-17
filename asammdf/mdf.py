@@ -3609,7 +3609,7 @@ class MDF(object):
                                     sigs.append(
                                         (extract_can_signal(signal, payload), None)
                                     )
-                                out.extend(sigs)
+                                out.extend(index, sigs)
 
                 cntr += 1
                 if self._callback:
