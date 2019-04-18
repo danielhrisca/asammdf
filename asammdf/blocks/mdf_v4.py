@@ -56,7 +56,9 @@ from ..signal import Signal
 from .conversion_utils import conversion_transfer
 from .utils import (
     UINT8_u,
+    UINT8_uf,
     UINT16_u,
+    UINT16_uf,
     UINT32_u,
     UINT32_uf,
     UINT64_u,
@@ -1180,13 +1182,13 @@ class MDF4(object):
                 record_id_nr = data_group.record_id_len
 
                 if record_id_nr == 1:
-                    _unpack_stuct = UINT8_u
+                    _unpack_struct = UINT8_uf
                 elif record_id_nr == 2:
-                    _unpack_stuct = UINT16_u
+                    _unpack_struct = UINT16_uf
                 elif record_id_nr == 4:
-                    _unpack_stuct = UINT32_u
+                    _unpack_struct = UINT32_uf
                 elif record_id_nr == 8:
-                    _unpack_stuct = UINT64_u
+                    _unpack_struct = UINT64_uf
                 else:
                     message = f"invalid record id size {record_id_nr}"
                     raise MdfException(message)
@@ -1236,19 +1238,19 @@ class MDF4(object):
                         i = 0
                         size = len(new_data)
                         while i < size:
-                            (rec_id,) = _unpack_stuct(new_data[i : i + record_id_nr])
+                            (rec_id,) = _unpack_struct(new_data, i)
                             # skip record id
                             i += record_id_nr
                             rec_size = cg_size[rec_id]
                             if rec_size:
                                 if rec_id == record_id:
                                     rec_data.append(new_data[i : i + rec_size])
+                                i += rec_size
                             else:
-                                (rec_size,) = UINT32_u(new_data[i : i + 4])
+                                (rec_size,) = UINT32_uf(new_data, i)
                                 if rec_id == record_id:
                                     rec_data.append(new_data[i : i + 4 + rec_size])
-                                i += 4
-                            i += rec_size
+                                i += 4 + rec_size
                         new_data = b"".join(rec_data)
 
                         size = len(new_data)
