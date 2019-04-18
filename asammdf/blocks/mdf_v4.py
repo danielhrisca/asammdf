@@ -475,14 +475,13 @@ class MDF4(object):
 
             if group.raw_can:
 
-                can_ids = self.get(
-                    "CAN_DataFrame.ID", group=i, ignore_invalidation_bits=True
-                )
-                all_can_ids = sorted(set(can_ids.samples))
+                _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
+                can_ids = _sig.samples['CAN_DataFrame.ID']
+
+                all_can_ids = sorted(unique(can_ids))
 
                 if all_can_ids:
                     group.message_id = set()
-
                     for message_id in all_can_ids:
                         if message_id > 0x80000000:
                             message_id -= 0x80000000
@@ -490,14 +489,7 @@ class MDF4(object):
                         self.can_logging_db[group.CAN_id][message_id] = i
                         group.message_id.add(message_id)
 
-                payload = self.get(
-                    "CAN_DataFrame.DataBytes",
-                    group=i,
-                    samples_only=True,
-                    ignore_invalidation_bits=True,
-                )[0]
-
-                _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
+                payload = _sig.samples["CAN_DataFrame.DataBytes"]
 
                 attachment = _sig.attachment
                 if attachment and attachment[0] and attachment[1].name.lower().endswith(("dbc", "arxml")):
@@ -551,11 +543,10 @@ class MDF4(object):
 
                             for signal in sorted(can_msg.signals, key=lambda x: x.name):
 
-                                sig_vals = self.get_can_signal(
-                                    f"CAN{group.CAN_id}.{can_msg.name}.{signal.name}",
-                                    db=db,
-                                    ignore_invalidation_bits=True,
-                                ).samples
+                                sig_vals = extract_can_signal(
+                                    signal,
+                                    data,
+                                )
 
                                 # conversion = ChannelConversion(
                                 #     a=float(signal.factor),
@@ -571,7 +562,7 @@ class MDF4(object):
                                         conversion=None,
                                         source=source,
                                         unit=signal.unit,
-                                        raw=True,
+                                        raw=False,
                                         invalidation_bits=invalidation_bits,
                                     )
                                 )
