@@ -104,7 +104,6 @@ try:
                 self.add_new_channels(signals)
                 self.plot.set_current_index(self.plot.signals[0]._index)
 
-            self.show()
             self.info.hide()
 
             self.splitter.setStretchFactor(0, 1)

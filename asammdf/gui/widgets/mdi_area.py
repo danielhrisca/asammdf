@@ -26,28 +26,17 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         else:
             data = e.mimeData()
             if data.hasFormat('application/x-qabstractitemmodeldatalist'):
-                data = bytes(data.data('application/x-qabstractitemmodeldatalist'))
+                if data.hasFormat('text/plain'):
+                    names = [
+                        name.strip('"\'')
+                        for name in data.text().strip('[]').split(', ')
+                    ]
+                else:
+                    model = QtGui.QStandardItemModel()
+                    model.dropMimeData(data, QtCore.Qt.CopyAction, 0,0, QtCore.QModelIndex())
 
-                data = data.replace(b'\0', b'')
-                names = []
-
-                try:
-                    while data:
-                        _1, _2, data = data.split(b'\n', 2)
-
-                        size = int(ceil(data[0] / 2))
-                        names.append(data[1:1+size].decode('utf-8'))
-                        data = data[1+size:]
-
-                    ret, ok = QtWidgets.QInputDialog.getItem(
-                        None,
-                        "Select window type",
-                        "Type:",
-                        ["Plot", "Numeric"],
-                        0,
-                        False,
-                    )
-                    if ok:
-                        self.add_window_request.emit([ret, names])
-                except ValueError:
-                    pass
+                    names = [
+                        model.item(row, 0).text()
+                        for row in range(model.rowCount())
+                    ]
+                self.add_channels_request.emit(names)

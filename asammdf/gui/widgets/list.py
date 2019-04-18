@@ -80,7 +80,6 @@ class ListWidget(QtWidgets.QListWidget):
                         name.strip('"\'')
                         for name in data.text().strip('[]').split(', ')
                     ]
-                    print(names, type(names))
                 else:
                     model = QtGui.QStandardItemModel()
                     model.dropMimeData(data, QtCore.Qt.CopyAction, 0,0, QtCore.QModelIndex())
