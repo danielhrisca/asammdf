@@ -1555,7 +1555,7 @@ class MDF4(object):
         ch.display_name = signal.display_name
         ch.attachment = attachment
 
-        if name == 'CAN_DataFrame':
+        if name in ('CAN_DataFrame', 'CAN_ErrorFrame):
             grp.channel_group.flags = v4c.FLAG_CG_BUS_EVENT
             ch.flags |= v4c.FLAG_CN_BUS_EVENT
             grp.channel_group.acq_name = 'CAN'
@@ -1564,12 +1564,12 @@ class MDF4(object):
                 bus_type=v4c.BUS_TYPE_CAN,
             )
 
-            can_ids = unique(signal.samples['CAN_DataFrame.BusChannel'])
+            can_ids = unique(signal.samples[f'{name}.BusChannel'])
 
             if len(can_ids) == 1:
                 can_id = f'CAN{int(can_ids[0])}'
 
-                message_ids = set(unique(signal.samples['CAN_DataFrame.ID']))
+                message_ids = set(unique(signal.samples[f'{name}.ID']))
 
                 if can_id not in self.can_logging_db:
                     self.can_logging_db[can_id] = {}
@@ -1577,14 +1577,13 @@ class MDF4(object):
                     self.can_logging_db[can_id][message_id] = dg_cntr
             else:
                 for can_id in can_ids:
-                    idx = argwhere(signal.samples['CAN_DataFrame.BusChannel'] == can_id).ravel()
-                    message_ids = set(unique(signal.samples['CAN_DataFrame.ID'][idx]))
+                    idx = argwhere(signal.samples[f'{name}.BusChannel'] == can_id).ravel()
+                    message_ids = set(unique(signal.samples[f'{name}.ID'][idx]))
                     can_id = f'CAN{can_id}'
                     if can_id not in self.can_logging_db:
                         self.can_logging_db[can_id] = {}
                     for message_id in message_ids:
                         self.can_logging_db[can_id][message_id] = dg_cntr
-
 
         # source for channel
         source = signal.source
