@@ -1555,7 +1555,7 @@ class MDF4(object):
         ch.display_name = signal.display_name
         ch.attachment = attachment
 
-        if name in ('CAN_DataFrame', 'CAN_ErrorFrame):
+        if name in ('CAN_DataFrame', 'CAN_ErrorFrame'):
             grp.channel_group.flags = v4c.FLAG_CG_BUS_EVENT
             ch.flags |= v4c.FLAG_CN_BUS_EVENT
             grp.channel_group.acq_name = 'CAN'
