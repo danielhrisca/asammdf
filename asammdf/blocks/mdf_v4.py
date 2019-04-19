@@ -683,6 +683,8 @@ class MDF4(object):
 
         composition = []
         composition_dtype = []
+
+        path_separator = chr(grp.channel_group.path_separator or ord('\\'))
         while ch_addr:
             # read channel block and create channel object
 
@@ -697,7 +699,7 @@ class MDF4(object):
             )
 
             if self._remove_source_from_channel_names:
-                channel.name = channel.name.split('\\')[0]
+                channel.name = channel.name.split(path_separator)[0]
 
             value = channel
             display_name = channel.display_name
