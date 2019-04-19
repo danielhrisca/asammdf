@@ -442,7 +442,6 @@ class MDF(object):
             pass
 
         groups_nr = len(self.groups)
-        self._sort()
 
         if self._callback:
             self._callback(0, groups_nr)
@@ -1550,7 +1549,6 @@ class MDF(object):
 
         # group channels by group index
         gps = {}
-        self._sort()
 
         for item in channels:
             if isinstance(item, (list, tuple)):
@@ -1932,7 +1930,6 @@ class MDF(object):
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf)
-            mdf._sort()
 
             try:
                 for can_id, info in mdf.can_logging_db.items():
@@ -2249,7 +2246,6 @@ class MDF(object):
         for offset, mdf in zip(offsets, files):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf)
-            mdf._sort()
 
             cg_offset = cg_nr + 1
 
@@ -2422,7 +2418,7 @@ class MDF(object):
             copy master for each yielded channel
 
         """
-        self._sort()
+
         for i, group in enumerate(self.groups):
 
             included_channels = self._included_channels(i, skip_master=skip_master)
@@ -2447,7 +2443,6 @@ class MDF(object):
         (<original_name>_<counter>)
 
         """
-        self._sort()
 
         for i, _ in enumerate(self.groups):
             yield self.get_group(i)
@@ -2486,7 +2481,6 @@ class MDF(object):
             version = validate_version_argument(version)
 
         interpolation_mode = self._integer_interpolation
-        self._sort()
 
         mdf = MDF(version=version)
 
@@ -2633,7 +2627,6 @@ class MDF(object):
 
         # group channels by group index
         gps = {}
-        self._sort()
 
         indexes = []
 
@@ -3132,7 +3125,6 @@ class MDF(object):
         df : pandas.DataFrame
 
         """
-        self._sort()
 
         interpolation_mode = self._integer_interpolation
 
@@ -3272,7 +3264,6 @@ class MDF(object):
         dataframe : pandas.DataFrame
 
         """
-        self._sort()
 
         if channels:
             mdf = self.filter(channels)
@@ -3503,8 +3494,6 @@ class MDF(object):
         count *= len(valid_dbc_files)
 
         cntr = 0
-
-        self._sort()
 
         for dbc in valid_dbc_files:
             is_j1939 = dbc.contains_j1939

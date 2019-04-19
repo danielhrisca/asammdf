@@ -257,6 +257,8 @@ class MDF4(object):
             self.version = version
             self.name = Path("new.mf4")
 
+        self._sort()
+
     def _check_finalised(self):
         flags = self.identification["unfinalized_standard_flags"]
         if flags & 1:
