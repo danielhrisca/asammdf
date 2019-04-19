@@ -638,10 +638,14 @@ class MDF(object):
             timestamps = []
             for i, group in enumerate(self.groups):
                 fragment = next(self._load_data(group))
-                master = self.get_master(i, fragment)
+                master = self.get_master(
+                    i,
+                    record_offset=0,
+                    record_count=1,
+                )
                 if master.size:
                     timestamps.append(master[0])
-                del master
+            self._master_channel_cache.clear()
 
             if timestamps:
                 first_timestamp = np.amin(timestamps)
@@ -687,7 +691,7 @@ class MDF(object):
                     group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     group.record = None
-                master = self.get_master(i, fragment)
+                master = self.get_master(i, fragment, copy_master=False)
                 if not len(master):
                     continue
 
@@ -1703,7 +1707,9 @@ class MDF(object):
                     sigs = [
                         (
                             self.get_master(
-                                group_index, data=fragment, copy_master=False
+                                group_index,
+                                data=fragment,
+                                copy_master=False
                             ),
                             None,
                         )
@@ -2089,13 +2095,15 @@ class MDF(object):
                             break
                         idx += 1
                     else:
-                        master = mdf.get_master(i, fragment)
+                        master = mdf.get_master(i, fragment, copy_master=False)
+                        _copied = False
 
                         if len(master):
                             if original_first_timestamp is None:
                                 original_first_timestamp = master[0]
                             if offset > 0:
                                 master = master + offset
+                                _copied = True
                             if last_timestamp is None:
                                 last_timestamp = master[-1]
                             else:
@@ -2104,7 +2112,11 @@ class MDF(object):
                                         delta = master[1] - master[0]
                                     else:
                                         delta = 0.001
-                                    master -= master[0]
+                                    if _copied:
+                                        master -= master[0]
+                                    else:
+                                        master = master - master[0]
+                                        _copied = True
                                     master += last_timestamp + delta
                                 last_timestamp = master[-1]
 
@@ -2347,7 +2359,7 @@ class MDF(object):
                                 pass
                         idx += 1
                     else:
-                        master = mdf.get_master(i, fragment)
+                        master = mdf.get_master(i, fragment, copy_master=False)
                         if sync:
                             master = master + offset
                         if len(master):
@@ -3129,7 +3141,7 @@ class MDF(object):
         interpolation_mode = self._integer_interpolation
 
         df = pd.DataFrame()
-        master = self.get_master(index)
+        master = self.get_master(index, copy_master=False)
 
         if raster and len(master):
             if len(master) > 1:
@@ -3285,13 +3297,16 @@ class MDF(object):
                 assert raster > 0
             except (ValueError, AssertionError):
                 if isinstance(raster, str):
-                    master = self.get(raster).timestamps
+                    master = self.get(raster, copy_master=False).timestamps
                 else:
                     master = np.array(raster)
             else:
                 master = master_using_raster(self, raster)
         else:
-            masters = [self.get_master(i) for i in range(len(self.groups))]
+            masters = [
+                self.get_master(i, copy_master=False)
+                for i, _ in enumerate(self.groups)
+            ]
             self._master_channel_cache.clear()
             master = reduce(np.union1d, masters)
 
@@ -3328,7 +3343,13 @@ class MDF(object):
                     )
                     signals[k].append(signal[0])
                     invalidation_bits[k].append(signal[1])
-                timestamps.append(self.get_master(group_index, data=fragment, copy_master=False))
+                timestamps.append(
+                    self.get_master(
+                        group_index,
+                        data=fragment,
+                        copy_master=False,
+                    )
+                )
 
                 grp.record = None
 
