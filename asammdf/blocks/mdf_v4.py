@@ -1236,19 +1236,21 @@ class MDF4(object):
                         i = 0
                         size = len(new_data)
                         while i < size:
-                            (rec_id,) = _unpack_stuct(new_data[i : i + record_id_nr])
+                            rec_id, = _unpack_stuct(new_data[i : i + record_id_nr])
                             # skip record id
                             i += record_id_nr
                             rec_size = cg_size[rec_id]
                             if rec_size:
+                                endpoint = i + rec_size
                                 if rec_id == record_id:
-                                    rec_data.append(new_data[i : i + rec_size])
+                                    rec_data.append(new_data[i : endpoint])
+                                i = endpoint
                             else:
-                                (rec_size,) = UINT32_u(new_data[i : i + 4])
+                                rec_size, = UINT32_u(new_data[i : i + 4])
+                                endpoint = i + rec_size + 4
                                 if rec_id == record_id:
-                                    rec_data.append(new_data[i : i + 4 + rec_size])
-                                i += 4
-                            i += rec_size
+                                    rec_data.append(new_data[i : endpoint])
+                                i = endpoint
                         new_data = b"".join(rec_data)
 
                         size = len(new_data)
@@ -1527,7 +1529,7 @@ class MDF4(object):
             "byte_offset": offset,
             "bit_offset": 0,
             "data_type": v4c.DATA_TYPE_BYTEARRAY,
-            "precision": 255,
+            "precision": 0,
             "flags": 0,
         }
         if attachment_addr:
@@ -1548,6 +1550,8 @@ class MDF4(object):
 
         if name in ('CAN_DataFrame', 'CAN_ErrorFrame'):
             grp.channel_group.flags = v4c.FLAG_CG_BUS_EVENT
+            grp.channel_group.path_separator = 46
+            grp.CAN_logging = True
             ch.flags |= v4c.FLAG_CN_BUS_EVENT
             grp.channel_group.acq_name = 'CAN'
             grp.channel_group.acq_source = SourceInformation(
