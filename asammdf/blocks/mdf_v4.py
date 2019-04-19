@@ -5919,6 +5919,8 @@ class MDF4(object):
         return extract_cncomment_xml(channel.comment)
 
     def _sort(self):
+        if self._file is None:
+            return
         common = defaultdict(list)
         for i, group in enumerate(self.groups):
             if group.sorted:
