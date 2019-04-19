@@ -6,6 +6,7 @@ import time
 import xml.etree.ElementTree as ET
 import mmap
 from copy import deepcopy
+from collections import defaultdict
 from functools import reduce
 from itertools import product
 from math import ceil
@@ -3394,6 +3395,84 @@ class MDF3(object):
             self._callback(100, 100)
 
         return dst
+
+    def _sort(self):
+        common = defaultdict(list)
+        for i, group in enumerate(self.groups):
+            if group.sorted:
+                continue
+
+            address = group.data_blocks[0].address
+
+            common[address].append((i, group.channel_group.record_id))
+
+        read = self._file.read
+        seek = self._file.seek
+
+        self._tempfile.seek(0, 2)
+
+        tell = self._tempfile.tell
+        write = self._tempfile.write
+
+        for address, groups in common.items():
+
+            partial_records = {
+                id_: []
+                for (_, id_) in groups
+            }
+
+            group = self.groups[groups[0][0]]
+
+            record_id_nr = group.data_group.record_id_len
+            cg_size = group.record_size
+
+            for info in group.data_blocks:
+                address, size, block_size, block_type, param = (
+                    info.address,
+                    info.raw_size,
+                    info.size,
+                    info.block_type,
+                    info.param,
+                )
+                seek(address)
+                data = read(block_size)
+
+                size = len(data)
+                i = 0
+                while i < size:
+                    rec_id = data[i]
+                    # skip record id
+                    i += 1
+                    rec_size = cg_size[rec_id]
+                    partial_records[rec_id].append(data[i : i + rec_size])
+                    # consider the second record ID if it exists
+                    if record_id_nr == 2:
+                        i += rec_size + 1
+                    else:
+                        i += rec_size
+
+            for rec_id, new_data in partial_records.items():
+                if new_data:
+                    new_data = b''.join(new_data)
+                    size = len(new_data)
+
+                    address = tell()
+                    write(bytes(new_data))
+                    block_info = DataBlockInfo(
+                        address=address,
+                        block_type=0,
+                        raw_size=size,
+                        size=size,
+                        param=0,
+                    )
+                    partial_records[rec_id] = [block_info]
+
+            for idx, rec_id in groups:
+                group = self.groups[idx]
+
+                group.data_location = v23c.LOCATION_TEMPORARY_FILE
+                group.set_blocks_info(partial_records[rec_id])
+                group.sorted = True
 
 
 if __name__ == "__main__":

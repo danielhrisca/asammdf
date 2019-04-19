@@ -6,6 +6,7 @@ import logging
 import xml.etree.ElementTree as ET
 import os
 from copy import deepcopy
+from collections import defaultdict
 from functools import reduce
 from hashlib import md5
 from itertools import chain
@@ -1111,14 +1112,21 @@ class MDF4(object):
             else:
                 data = []
                 stream = self._tempfile
-                if group.signal_data[index]:
-                    for addr, size in zip(
-                        group.signal_data[index], group.signal_data_size[index]
-                    ):
-                        if not size:
-                            continue
-                        stream.seek(addr)
-                        data.append(stream.read(size))
+                address = group.signal_data[index]
+                if address:
+                    if address in self._cg_map:
+                        group = self.groups[self._cg_map[address]]
+                        data.append(
+                            b''.join(e[0] for e in self._load_data(group))
+                        )
+                    else:
+                        for addr, size in zip(
+                            group.signal_data[index], group.signal_data_size[index]
+                        ):
+                            if not size:
+                                continue
+                            stream.seek(addr)
+                            data.append(stream.read(size))
                 data = b"".join(data)
         else:
             data = b""
@@ -3791,6 +3799,8 @@ class MDF4(object):
 
         interp_mode = self._integer_interpolation
 
+        original_data = data
+
         if ch_nr >= 0:
 
             # get the channel object
@@ -5907,3 +5917,113 @@ class MDF4(object):
         channel = grp.channels[ch_nr]
 
         return extract_cncomment_xml(channel.comment)
+
+    def _sort(self):
+        common = defaultdict(list)
+        for i, group in enumerate(self.groups):
+            if group.sorted:
+                continue
+
+            address = group.data_blocks[0].address
+
+            common[address].append((i, group.channel_group.record_id))
+
+        read = self._file.read
+        seek = self._file.seek
+
+        self._tempfile.seek(0, 2)
+
+        tell = self._tempfile.tell
+        write = self._tempfile.write
+
+        for address, groups in common.items():
+
+            final_records = {
+                id_: []
+                for (_, id_) in groups
+            }
+
+            group = self.groups[groups[0][0]]
+
+            record_id_nr = group.data_group.record_id_len
+            cg_size = group.record_size
+
+            if record_id_nr == 1:
+                _unpack_stuct = UINT8_u
+            elif record_id_nr == 2:
+                _unpack_stuct = UINT16_u
+            elif record_id_nr == 4:
+                _unpack_stuct = UINT32_u
+            elif record_id_nr == 8:
+                _unpack_stuct = UINT64_u
+            else:
+                message = f"invalid record id size {record_id_nr}"
+                raise MdfException(message)
+
+            for info in group.data_blocks:
+                address, size, block_size, block_type, param = (
+                    info.address,
+                    info.raw_size,
+                    info.size,
+                    info.block_type,
+                    info.param,
+                )
+                seek(address)
+                new_data = read(block_size)
+                if block_type == v4c.DZ_BLOCK_DEFLATE:
+                    new_data = decompress(new_data, 0, size)
+                elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                    new_data = decompress(new_data, 0, size)
+                    cols = param
+                    lines = size // cols
+
+                    nd = fromstring(new_data[: lines * cols], dtype=uint8)
+                    nd = nd.reshape((cols, lines))
+                    new_data = nd.T.tostring() + new_data[lines * cols :]
+
+                partial_records = {
+                    id_: []
+                    for _, id_ in groups
+                }
+
+                i = 0
+                size = len(new_data)
+                while i < size:
+                    rec_id, = _unpack_stuct(new_data[i : i + record_id_nr])
+                    # skip record id
+                    i += record_id_nr
+                    rec_size = cg_size[rec_id]
+                    if rec_size:
+                        endpoint = i + rec_size
+                        partial_records[rec_id].append(new_data[i : endpoint])
+                        i = endpoint
+                    else:
+                        rec_size, = UINT32_u(new_data[i : i + 4])
+                        endpoint = i + rec_size + 4
+                        partial_records[rec_id].append(new_data[i : endpoint])
+                        i = endpoint
+
+                for rec_id, new_data in partial_records.items():
+                    if new_data:
+                        new_data = b''.join(new_data)
+                        size = len(new_data)
+                        new_data = DataBlock(
+                            data=new_data
+                        )
+                        address = tell()
+                        write(bytes(new_data))
+                        block_info = DataBlockInfo(
+                            address=address + COMMON_SIZE,
+                            block_type=v4c.DT_BLOCK,
+                            raw_size=size,
+                            size=size,
+                            param=0,
+                        )
+                        final_records[rec_id].append(block_info)
+
+            for idx, rec_id in groups:
+                group = self.groups[idx]
+
+                group.data_location = v4c.LOCATION_TEMPORARY_FILE
+                group.set_blocks_info(final_records[rec_id])
+                group.sorted = True
