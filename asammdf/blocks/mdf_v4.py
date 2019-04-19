@@ -257,8 +257,6 @@ class MDF4(object):
             self.version = version
             self.name = Path("new.mf4")
 
-        self._sort()
-
     def _check_finalised(self):
         flags = self.identification["unfinalized_standard_flags"]
         if flags & 1:
@@ -458,6 +456,7 @@ class MDF4(object):
                     else:
                         break
 
+        self._sort()
         self._process_can_logging()
 
         # append indexes of groups that contain raw CAN bus logging and
