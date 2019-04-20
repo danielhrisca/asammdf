@@ -63,6 +63,16 @@ The following settings are available
       * ``Disabled``
       * ``Enabled``
       
+* **Plot background**: switch plot background color (does not affect existing plots)
+
+      * ``Black``
+      * ``White``
+      
+* **Theme**: switch application theme (dark theme requires `qdarkstyle` package)
+
+      * ``Dark``
+      * ``Light``
+      
 The seetings are saved and restored each time the GUI is started.
 
       
@@ -104,34 +114,46 @@ Single files
 ============
 The *Single files* page is used to open several files individually for visualization and processing (for example exporting to csv or hdf5).
 
+Layout elements
+---------------
 
 .. image:: images/single_files.png
 
 1. Opened files tabs
 2. Quick channel search field for the current file
-3. Complete channels tree
-4. Command buttons
-5. Plot/Sub-plots area
-6. Sub-plot channel selection list
-7. Sub-plot graphics area
-8. Sub-plot channels statistics panel
-9. File operations  
+3. Channel tree display mode
+4. Complete channels tree
+5. Command buttons
+6. Plot/Sub-plots area
+7. Numeric window
+8. Plot window
+9. Sub-plot channel selection list
+10. Sub-plot graphics area
+11. Sub-plot channels statistics panel
+12. File operations  
 
 1. Opened files tabs
------------------
+^^^^^^^^^^^^^^^^^^^^
 In the single files mode, you can open multiple files in parallel. The tab names have the title set to the short file name, and the complete file path can be seen as 
 the tab tooltip.
 
 There is no restriction, so the same file can be opened several times.
 
 2. Quick channel search field for the current file
------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Using the *Settings->Search* menu option the user can choose how the search is performed. A positive search match will scroll the channels tree and highlight the channel entry.
 
 When the same channel name exist several times in the file, you can switch between the occurrences using the arrow buttons.
 
-3. Complete channels tree
--------------------------
+3. Channel tree display mode
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The channel tree can be displayed in two ways
+
+* as a naturally sorted list
+* grouped using the internal file structure
+
+4. Complete channels tree
+^^^^^^^^^^^^^^^^^^^^^^^^^
 This tree contains all the channels found in the measurement. 
 
 Double clicking a channel name will display a pop-up window with the channel information (CNBLOCK, CCBLOCK and SIBLOCK/CEBLOCK)
@@ -141,12 +163,12 @@ Double clicking a channel name will display a pop-up window with the channel inf
 Only the channels that are checked in the channels tree will be selected for plotting when the *Plot* button is pressed.
 Checking or unchecking channels will not affect the current plot or sub-plots.
 
-4. Command buttons
-------------------
+5. Command buttons
+^^^^^^^^^^^^^^^^^^
 From left to right the buttons have the following functionality
 
-* **Load channel selection list**: loads a channel selection list from a text file (one channel name per line) and checks them in the channels tree is they are found.
-* **Save channel selection list**: saves the current checked channels names in a text file
+* **Load configuration**: restores channels tree and all sub-plot windows from a saved configuration file
+* **Save configuration**: saves all sub-plots (channels, colors, common axis and enable state) and channel tree
 * **Select all channels**: checks all channels in the channels tree
 * **Reset selection**: unchecks all channels in the channels tree
 * **Advanced search & select**: will open an advanced search dialog 
@@ -154,17 +176,32 @@ From left to right the buttons have the following functionality
       * the dialog can use wildcard and regex patterns
       * multiple channels can be selected, and thus checked in the channels tree
      
-.. image:: images/advanced_search.png
+    .. image:: images/advanced_search.png
  
-* **Plot**: generates the plot based on the current checked channels from the channels tree. If sub-plots are disabled in the settings then the current plot is 
-replaced by the new plot. If sub-plots are enabled then a new sub-plot will be added, and the already existing sub-plots will not be affected. The channels from diffeerent sub-plots are independed from eachother (the same channel can be used in multiple sub-plots).
+* **Plot**: generates the plot based on the current checked channels from the channels tree. If sub-plots are disabled in the settings then the current plot is replaced by the new plot. If sub-plots are enabled then a new sub-plot will be added, and the already existing sub-plots will not be affected. The channels from diffeerent sub-plots are independed from eachother (the same channel can be used in multiple sub-plots)
+* **Numeric**: generates a new numeric window. The same rules apply as in the case of plot window
 
-5. Plot/Sub-plots area
-----------------------
+
+6. Plot/Sub-plots area
+^^^^^^^^^^^^^^^^^^^^^^
 If sub-plots are enabled then multiple plots can be used. The sub-plots can be re-aranged using drag & drop.
 
-6. Sub-plot channel selection list
-----------------------------------
+7. Numeric window
+^^^^^^^^^^^^^^^^^
+Numeric windows can handle a lot more channels than plot windows. You can use
+a numeric window to see the channel values at certain time stamps.
+The time stamps can be selected using the spin box or the slider.
+
+8. Plot window
+^^^^^^^^^^^^^^
+Plot windows are used to grphically display the channel samples.
+`pyqtgraph` is used for the plots; to get the best performance consider the following tips
+
+* limit the number of channels: plotting hundreds of channels can get really slow
+* disabling dots will make the plots a lot more responsive
+
+9. Sub-plot channel selection list
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 When the *Plot* button is pressed the checked channels will populate the *Selected channels list*.
 
 Selecting items from the *Selected channels list* will display their Y-axis.
@@ -195,8 +232,8 @@ selected color.
 
 .. image:: images/range_visual_alert.png
 
-7. Sub-plot graphics area
--------------------------
+10. Sub-plot graphics area
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 The initial plot will have all channels homed (see the *H* keyboard shortcut)
 
 The cursor is toggled using the *C* keyboard shortcut, and with it the channel values will be displayed for each item in the *Selected channels list*. The cursor can also be invoked by clicking the plot area.
@@ -216,7 +253,7 @@ enabled, using the *H* keyboard shortcut will not home to the whole time range, 
 
 The *Statistics* panel is toggle using the *M* keyboard shortcut
 
-.. image:: images/statistics.png
+.. image:: images/range.png
 
 You can insert new computed channels by pressing the *insert* key. This will allow either to compute basic operations using the plot channels, or to 
 apply a function on one of the plot channels.
@@ -227,6 +264,12 @@ apply a function on one of the plot channels.
 
 The currently active plot's channels can be saved to a new file by pressing *Ctrl+S*.
 The channels from all sub-plots can be saved to a new file by pressing *Ctrl+Shift+S*.
+
+Drag & Drop
+-----------
+Channels can be draged and dropped between sub-plots for easier configuration.
+
+.. image:: images/drag_and_drop.gif
 
 Multiple files
 ==============
