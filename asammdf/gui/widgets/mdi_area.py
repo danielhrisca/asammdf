@@ -39,4 +39,13 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                         model.item(row, 0).text()
                         for row in range(model.rowCount())
                     ]
-                self.add_channels_request.emit(names)
+                ret, ok = QtWidgets.QInputDialog.getItem(
+                    None,
+                    "Select window type",
+                    "Type:",
+                    ["Plot", "Numeric"],
+                    0,
+                    False,
+                )
+                if ok:
+                    self.add_window_request.emit([ret, names])
