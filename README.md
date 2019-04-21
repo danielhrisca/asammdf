@@ -174,7 +174,6 @@ other optional dependencies
 * PyQt5 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting (preferably the latest develop branch code)
 * matplotlib : as fallback for Signal plotting
-* qdarkstyle : for dark style theme
 
 # Benchmarks
 

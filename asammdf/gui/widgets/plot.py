@@ -58,6 +58,7 @@ try:
             vbox = QtWidgets.QVBoxLayout()
             widget = QtWidgets.QWidget()
             self.channel_selection = ListWidget()
+            self.channel_selection.setAlternatingRowColors(False)
             self.channel_selection.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
             hbox = QtWidgets.QHBoxLayout()
             hbox.addWidget(QtWidgets.QLabel("Cursor/Range information"))

@@ -25,6 +25,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, files=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._settings = QtCore.QSettings()
+        self._light_palette = self.palette()
         uic.loadUi(HERE.joinpath("..", "ui", "main_window.ui"), self)
 
         self.progress = None
@@ -407,13 +408,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self._settings.setValue('theme', option)
         app = QtWidgets.QApplication.instance()
         if option == 'Light':
-            app.setStyleSheet('')
+            app.setPalette(self._light_palette)
         else:
-            try:
-                import qdarkstyle
-                app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
-            except ImportError:
-                app.setStyleSheet('')
+
+            dark_palette = QtGui.QPalette()
+
+            dark_palette.setColor(QtGui.QPalette.Window, QtGui.QColor(53, 53, 53))
+            dark_palette.setColor(QtGui.QPalette.WindowText, QtCore.Qt.white)
+            dark_palette.setColor(QtGui.QPalette.Base, QtGui.QColor(25, 25, 25))
+            dark_palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
+            dark_palette.setColor(QtGui.QPalette.ToolTipBase, QtCore.Qt.white)
+            dark_palette.setColor(QtGui.QPalette.ToolTipText, QtCore.Qt.white)
+            dark_palette.setColor(QtGui.QPalette.Text, QtCore.Qt.white)
+            dark_palette.setColor(QtGui.QPalette.Button, QtGui.QColor(53, 53, 53))
+            dark_palette.setColor(QtGui.QPalette.ButtonText, QtCore.Qt.white)
+            dark_palette.setColor(QtGui.QPalette.BrightText, QtCore.Qt.red)
+            dark_palette.setColor(QtGui.QPalette.Link, QtGui.QColor(42, 130, 218))
+            dark_palette.setColor(QtGui.QPalette.Highlight, QtGui.QColor(42, 130, 218))
+            dark_palette.setColor(QtGui.QPalette.HighlightedText, QtCore.Qt.black)
+
+            app.setPalette(dark_palette)
 
     def set_subplot_link_option(self, option):
         self.subplots_link = option == 'Enabled'
