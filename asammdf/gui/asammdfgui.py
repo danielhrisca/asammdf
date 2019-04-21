@@ -3,9 +3,11 @@ import argparse
 import sys
 
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QFile, QTextStream
 
 from asammdf.gui.widgets.main import MainWindow
 from asammdf.gui.utils import excepthook
+
 
 sys.excepthook = excepthook
 
@@ -32,6 +34,7 @@ def main(measurements=None):
     app.setOrganizationDomain("py-asammdf")
     app.setApplicationName("py-asammdf")
     main = MainWindow(args.measurements)
+
     app.exec_()
 
 

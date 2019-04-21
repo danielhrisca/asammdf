@@ -638,10 +638,14 @@ class MDF(object):
             timestamps = []
             for i, group in enumerate(self.groups):
                 fragment = next(self._load_data(group))
-                master = self.get_master(i, fragment)
+                master = self.get_master(
+                    i,
+                    record_offset=0,
+                    record_count=1,
+                )
                 if master.size:
                     timestamps.append(master[0])
-                del master
+            self._master_channel_cache.clear()
 
             if timestamps:
                 first_timestamp = np.amin(timestamps)
@@ -687,7 +691,7 @@ class MDF(object):
                     group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     group.record = None
-                master = self.get_master(i, fragment)
+                master = self.get_master(i, fragment, copy_master=False)
                 if not len(master):
                     continue
 
@@ -1703,7 +1707,9 @@ class MDF(object):
                     sigs = [
                         (
                             self.get_master(
-                                group_index, data=fragment, copy_master=False
+                                group_index,
+                                data=fragment,
+                                copy_master=False
                             ),
                             None,
                         )
@@ -2089,13 +2095,15 @@ class MDF(object):
                             break
                         idx += 1
                     else:
-                        master = mdf.get_master(i, fragment)
+                        master = mdf.get_master(i, fragment, copy_master=False)
+                        _copied = False
 
                         if len(master):
                             if original_first_timestamp is None:
                                 original_first_timestamp = master[0]
                             if offset > 0:
                                 master = master + offset
+                                _copied = True
                             if last_timestamp is None:
                                 last_timestamp = master[-1]
                             else:
@@ -2104,7 +2112,11 @@ class MDF(object):
                                         delta = master[1] - master[0]
                                     else:
                                         delta = 0.001
-                                    master -= master[0]
+                                    if _copied:
+                                        master -= master[0]
+                                    else:
+                                        master = master - master[0]
+                                        _copied = True
                                     master += last_timestamp + delta
                                 last_timestamp = master[-1]
 
@@ -2347,7 +2359,7 @@ class MDF(object):
                                 pass
                         idx += 1
                     else:
-                        master = mdf.get_master(i, fragment)
+                        master = mdf.get_master(i, fragment, copy_master=False)
                         if sync:
                             master = master + offset
                         if len(master):
@@ -2418,6 +2430,7 @@ class MDF(object):
             copy master for each yielded channel
 
         """
+
         for i, group in enumerate(self.groups):
 
             included_channels = self._included_channels(i, skip_master=skip_master)
@@ -2472,6 +2485,125 @@ class MDF(object):
         mdf : MDF
             new *MDF* with resampled channels
 
+        Examples
+        --------
+        >>> from asammdf import MDF, Signal
+        >>> import numpy as np
+        >>> mdf = MDF()
+        >>> sig = Signal(name='S1', samples=[1,2,3,4], timestamps=[1,2,3,4])
+        >>> mdf.append(sig)
+        >>> sig = Signal(name='S2', samples=[1,2,3,4], timestamps=[1.1, 3.5, 3.7, 3.9])
+        >>> mdf.append(sig)
+        >>> resampled = mdf.resample(raster=0.1)
+        >>> resampled.select(['S1', 'S2'])
+        [<Signal S1:
+                samples=[1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3 3 3 3 3 3 3 3 3 4]
+                timestamps=[1.  1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.  2.1 2.2 2.3 2.4 2.5 2.6 2.7
+         2.8 2.9 3.  3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4. ]
+                invalidation_bits=None
+                unit=""
+                conversion=None
+                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                comment=""
+                mastermeta="('time', 1)"
+                raw=True
+                display_name=
+                attachment=()>
+        , <Signal S2:
+                samples=[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 3 3 4 4]
+                timestamps=[1.  1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.  2.1 2.2 2.3 2.4 2.5 2.6 2.7
+         2.8 2.9 3.  3.1 3.2 3.3 3.4 3.5 3.6 3.7 3.8 3.9 4. ]
+                invalidation_bits=None
+                unit=""
+                conversion=None
+                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                comment=""
+                mastermeta="('time', 1)"
+                raw=True
+                display_name=
+                attachment=()>
+        ]
+        >>> resampled = mdf.resample(raster='S2')
+        >>> resampled.select(['S1', 'S2'])
+        [<Signal S1:
+                samples=[1 3 3 3]
+                timestamps=[1.1 3.5 3.7 3.9]
+                invalidation_bits=None
+                unit=""
+                conversion=None
+                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                comment=""
+                mastermeta="('time', 1)"
+                raw=True
+                display_name=
+                attachment=()>
+        , <Signal S2:
+                samples=[1 2 3 4]
+                timestamps=[1.1 3.5 3.7 3.9]
+                invalidation_bits=None
+                unit=""
+                conversion=None
+                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                comment=""
+                mastermeta="('time', 1)"
+                raw=True
+                display_name=
+                attachment=()>
+        ]
+        >>> resampled = mdf.resample(raster=[1.9, 2.0, 2.1])
+        >>> resampled.select(['S1', 'S2'])
+        [<Signal S1:
+                samples=[1 2 2]
+                timestamps=[1.9 2.  2.1]
+                invalidation_bits=None
+                unit=""
+                conversion=None
+                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                comment=""
+                mastermeta="('time', 1)"
+                raw=True
+                display_name=
+                attachment=()>
+        , <Signal S2:
+                samples=[1 1 1]
+                timestamps=[1.9 2.  2.1]
+                invalidation_bits=None
+                unit=""
+                conversion=None
+                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                comment=""
+                mastermeta="('time', 1)"
+                raw=True
+                display_name=
+                attachment=()>
+        ]
+        >>> resampled = mdf.resample(raster='S2', time_from_zero=True)
+        >>> resampled.select(['S1', 'S2'])
+        [<Signal S1:
+                samples=[1 3 3 3]
+                timestamps=[0.  2.4 2.6 2.8]
+                invalidation_bits=None
+                unit=""
+                conversion=None
+                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                comment=""
+                mastermeta="('time', 1)"
+                raw=True
+                display_name=
+                attachment=()>
+        , <Signal S2:
+                samples=[1 2 3 4]
+                timestamps=[0.  2.4 2.6 2.8]
+                invalidation_bits=None
+                unit=""
+                conversion=None
+                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                comment=""
+                mastermeta="('time', 1)"
+                raw=True
+                display_name=
+                attachment=()>
+        ]
         """
 
         if version is None:
@@ -2493,7 +2625,7 @@ class MDF(object):
         try:
             raster = float(raster)
             assert raster > 0
-        except (ValueError, AssertionError):
+        except (TypeError, ValueError):
             if isinstance(raster, str):
                 raster = self.get(raster).timestamps
             else:
@@ -2503,10 +2635,12 @@ class MDF(object):
 
         if time_from_zero and len(raster):
             delta = raster[0]
+            new_raster = raster - delta
             t_epoch = self.header.start_time.timestamp() + delta
             mdf.header.start_time = datetime.fromtimestamp(t_epoch)
         else:
             delta = 0
+            new_raster = None
             mdf.header.start_time = self.header.start_time
 
         for i, group in enumerate(self.groups):
@@ -2524,6 +2658,10 @@ class MDF(object):
                 sig.interp(raster, interpolation_mode=interpolation_mode)
                 for sig in sigs
             ]
+
+            if new_raster is not None:
+                for sig in sigs:
+                    sig.timestamps = new_raster
 
             mdf.append(sigs, common_timebase=True)
             try:
@@ -3128,7 +3266,7 @@ class MDF(object):
         interpolation_mode = self._integer_interpolation
 
         df = pd.DataFrame()
-        master = self.get_master(index)
+        master = self.get_master(index, copy_master=False)
 
         if raster and len(master):
             if len(master) > 1:
@@ -3237,6 +3375,8 @@ class MDF(object):
             * a channel name who's timestamps will be used as raster
             * an array
 
+            see `resample` for examples of urisng this argument
+
         time_from_zero : bool
             adjust time channel to start from 0; default *True*
         empty_channels : str
@@ -3282,15 +3422,18 @@ class MDF(object):
             try:
                 raster = float(raster)
                 assert raster > 0
-            except (ValueError, AssertionError):
+            except (TypeError, ValueError):
                 if isinstance(raster, str):
-                    master = self.get(raster).timestamps
+                    raster = self.get(raster).timestamps
                 else:
-                    master = np.array(raster)
+                    raster = np.array(raster)
             else:
-                master = master_using_raster(self, raster)
+                raster = master_using_raster(self, raster)
         else:
-            masters = [self.get_master(i) for i in range(len(self.groups))]
+            masters = [
+                self.get_master(i, copy_master=False)
+                for i, _ in enumerate(self.groups)
+            ]
             self._master_channel_cache.clear()
             master = reduce(np.union1d, masters)
 
@@ -3327,7 +3470,13 @@ class MDF(object):
                     )
                     signals[k].append(signal[0])
                     invalidation_bits[k].append(signal[1])
-                timestamps.append(self.get_master(group_index, data=fragment, copy_master=False))
+                timestamps.append(
+                    self.get_master(
+                        group_index,
+                        data=fragment,
+                        copy_master=False,
+                    )
+                )
 
                 grp.record = None
 
@@ -3516,7 +3665,7 @@ class MDF(object):
                 parents, dtypes = self._prepare_record(group)
                 data = self._load_data(group)
 
-                for idx, fragment in enumerate(data):
+                for fragment_index, fragment in enumerate(data):
                     if dtypes.itemsize:
                         group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                     else:
@@ -3528,7 +3677,7 @@ class MDF(object):
                         group=i,
                         data=fragment,
                         samples_only=True,
-                    )[0].astype(int)
+                    )[0].astype('<u1')
 
                     msg_ids = self.get(
                         'CAN_DataFrame.ID',

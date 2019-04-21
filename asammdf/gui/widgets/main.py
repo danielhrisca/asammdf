@@ -7,6 +7,7 @@ from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from PyQt5 import uic
+import pyqtgraph as pg
 
 from ..ui import resource_qt5 as resource_rc
 
@@ -103,7 +104,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
             if option == self._settings.value('subplots', "Disabled"):
                 action.setChecked(True)
-                self.subplots = False
 
         submenu = QtWidgets.QMenu("Sub-plots", self.menubar)
         submenu.addActions(search_option.actions())
@@ -122,10 +122,45 @@ class MainWindow(QtWidgets.QMainWindow):
 
             if option == self._settings.value('subplots_link', "Disabled"):
                 action.setChecked(True)
-                self.subplots_link = False
 
         submenu = QtWidgets.QMenu("Link sub-plots X-axis", self.menubar)
         submenu.addActions(search_option.actions())
+        menu.addMenu(submenu)
+
+        # search mode menu
+        plot_background_option = QtWidgets.QActionGroup(self)
+
+        for option in ("Black", "White"):
+
+            action = QtWidgets.QAction(option, menu)
+            action.setCheckable(True)
+            plot_background_option.addAction(action)
+            action.triggered.connect(partial(self.set_plot_background, option))
+
+            if option == self._settings.value('plot_background', "Black"):
+                action.setChecked(True)
+                action.triggered.emit()
+
+        submenu = QtWidgets.QMenu("Plot background", self.menubar)
+        submenu.addActions(plot_background_option.actions())
+        menu.addMenu(submenu)
+
+        # search mode menu
+        theme_option = QtWidgets.QActionGroup(self)
+
+        for option in ("Dark", "Light"):
+
+            action = QtWidgets.QAction(option, menu)
+            action.setCheckable(True)
+            theme_option.addAction(action)
+            action.triggered.connect(partial(self.set_theme, option))
+
+            if option == self._settings.value('theme', "Light"):
+                action.setChecked(True)
+                action.triggered.emit()
+
+        submenu = QtWidgets.QMenu("Theme", self.menubar)
+        submenu.addActions(theme_option.actions())
         menu.addMenu(submenu)
 
         # plot option menu
@@ -358,6 +393,27 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_subplot_option(self, option):
         self.subplots = option == 'Enabled'
         self._settings.setValue('subplots', option)
+
+    def set_plot_background(self, option):
+        self._settings.setValue('plot_background', option)
+        if option == 'Black':
+            pg.setConfigOption('background', 'k')
+            pg.setConfigOption('foreground', 'w')
+        else:
+            pg.setConfigOption('background', 'w')
+            pg.setConfigOption('foreground', 'k')
+
+    def set_theme(self, option):
+        self._settings.setValue('theme', option)
+        app = QtWidgets.QApplication.instance()
+        if option == 'Light':
+            app.setStyleSheet('')
+        else:
+            try:
+                import qdarkstyle
+                app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+            except ImportError:
+                app.setStyleSheet('')
 
     def set_subplot_link_option(self, option):
         self.subplots_link = option == 'Enabled'
