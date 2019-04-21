@@ -35,6 +35,8 @@ def main(measurements=None):
     app.setApplicationName("py-asammdf")
     main = MainWindow(args.measurements)
 
+    app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
+
     app.exec_()
 
 
