@@ -40,6 +40,7 @@ class Numeric(QtWidgets.QWidget):
         self.build()
 
     def build(self):
+        self.channels.setSortingEnabled(False)
         self.signals = {
             name: self.signals[name]
             for name in natsorted(self.signals)
@@ -72,6 +73,7 @@ class Numeric(QtWidgets.QWidget):
         self.min_t.setText(f'{self._min:.3f}s')
         self.max_t.setText(f'{self._max:.3f}s')
         self._update_values()
+        self.channels.setSortingEnabled(True)
 
     def _timestamp_changed(self, stamp):
         val = int((stamp - self._min) / (self._max - self._min) * 9999)
