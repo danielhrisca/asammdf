@@ -3297,14 +3297,14 @@ class DataZippedBlock(object):
 
                 if lines * cols < original_size:
                     data = (
-                        np.fromstring(data[: lines * cols], dtype=np.uint8)
+                        np.frombuffer(data[: lines * cols], dtype=np.uint8)
                         .reshape((lines, cols))
                         .T.tostring()
                     ) + data[lines * cols :]
 
                 else:
                     data = (
-                        np.fromstring(data, dtype=np.uint8)
+                        np.frombuffer(data, dtype=np.uint8)
                         .reshape((lines, cols))
                         .T.tostring()
                     )
@@ -3329,13 +3329,13 @@ class DataZippedBlock(object):
 
                     if lines * cols < original_size:
                         data = (
-                            np.fromstring(data[: lines * cols], dtype=np.uint8)
+                            np.frombuffer(data[: lines * cols], dtype=np.uint8)
                             .reshape((cols, lines))
                             .T.tostring()
                         ) + data[lines * cols :]
                     else:
                         data = (
-                            np.fromstring(data, dtype=np.uint8)
+                            np.frombuffer(data, dtype=np.uint8)
                             .reshape((cols, lines))
                             .T.tostring()
                         )
