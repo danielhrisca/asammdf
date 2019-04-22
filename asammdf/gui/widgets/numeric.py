@@ -3,13 +3,42 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
-from ..ui import resource_qt5 as resource_rc
-
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from PyQt5 import uic
 from natsort import natsorted
 from numpy import zeros, searchsorted
+
+from ..ui import resource_qt5 as resource_rc
+
+
+class TreeItem(QtWidgets.QTreeWidgetItem):
+
+    def __lt__(self, otherItem):
+        column = self.treeWidget().sortColumn()
+
+        if column == 1:
+            val1 = self.text(column)
+            try:
+                val1 = float(val1)
+            except:
+                pass
+
+            val2 = otherItem.text(column)
+            try:
+                val2 = float(val2)
+            except:
+                pass
+
+            try:
+                return val1 < val2
+            except:
+                if isinstance(val1, float):
+                    return True
+                else:
+                    return False
+        else:
+            return self.text(column) < otherItem.text(column)
 
 
 class Numeric(QtWidgets.QWidget):
@@ -62,7 +91,7 @@ class Numeric(QtWidgets.QWidget):
             else:
                 value = 'n.a.'
 
-            item = QtWidgets.QTreeWidgetItem([sig.name, value, sig.unit])
+            item = TreeItem([sig.name, value, sig.unit])
             item.setFlags(item.flags() & ~QtCore.Qt.ItemIsDropEnabled)
             items.append(
                 item
@@ -163,6 +192,13 @@ class Numeric(QtWidgets.QWidget):
 
                 iterator += 1
 
+        header = self.channels.header()
+
+        index = header.sortIndicatorSection()
+        order = header.sortIndicatorOrder()
+
+        self.channels.sortByColumn(index, order)
+
     def add_new_channels(self, channels):
         for sig in channels:
             if sig:
@@ -172,7 +208,6 @@ class Numeric(QtWidgets.QWidget):
     def keyPressEvent(self, event):
         key = event.key()
         modifier = event.modifiers()
-        print(key, QtCore.Qt.Key_Right)
 
         if key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P) and modifier == QtCore.Qt.ControlModifier:
             if key == QtCore.Qt.Key_H:
