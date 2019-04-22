@@ -146,6 +146,10 @@ class MDF(object):
         for attr in set(dir(self._mdf)) - set(dir(self)):
             setattr(self, attr, getattr(self._mdf, attr))
 
+        for attr in set(dir(self)) - set(dir(self._mdf)):
+            if not attr.startswith('_'):
+                setattr(self._mdf, attr, getattr(self, attr))
+
     def __enter__(self):
         return self
 

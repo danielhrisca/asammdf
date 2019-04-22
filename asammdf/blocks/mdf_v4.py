@@ -845,23 +845,21 @@ class MDF4(object):
 
             else:
                 try:
-                    bus_ids, can_ids = self.select(
-                        [
-                            ("CAN_DataFrame.BusChannel", i, None),
-                            ("CAN_DataFrame.ID", i, None),
-                        ]
+                    frame = self.get(
+                        "CAN_DataFrame",
+                        group=i,
                     )
+                    bus_ids = frame['CAN_DataFrame.BusChannel']
+                    can_ids = frame['CAN_DataFrame.ID']
 
-                    assert len(unique(bus_ids)) <= 1
-
-                    for can_id, message_id in unique(column_stack((bus_ids.samples.astype(int), can_ids.samples), axis=0)):
+                    for can_id, message_id in unique(column_stack((bus_ids.astype(int), can_ids)), axis=0):
                         can_id = f'CAN{can_id}'
                         if can_id not in self.can_logging_db:
                             self.can_logging_db[can_id] = {}
                         grp.CAN_id = can_id
                         self.can_logging_db[can_id][message_id] = i
 
-                    grp.message_id = set(unique(can_ids.samples))
+                    grp.message_id = set(unique(can_ids))
 
                 except MdfException:
                     grp.CAN_logging = False
@@ -2077,6 +2075,7 @@ class MDF4(object):
                         )
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
+                    stream.seek(address)
                     temp = {}
                     (
                         temp["id"],
@@ -2089,7 +2088,7 @@ class MDF4(object):
                         temp["param"],
                         temp["original_size"],
                         temp["zip_size"],
-                    ) = v4c.DZ_COMMON_u(stream, address)
+                    ) = v4c.DZ_COMMON_u(stream.read(v4c.DZ_COMMON_SIZE))
 
                     if temp["original_size"]:
                         if temp["zip_type"] == v4c.FLAG_DZ_DEFLATE:
@@ -2134,6 +2133,7 @@ class MDF4(object):
                                     )
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
+                                stream.seek(addr)
                                 temp = {}
                                 (
                                     temp["id"],
@@ -2146,7 +2146,7 @@ class MDF4(object):
                                     temp["param"],
                                     temp["original_size"],
                                     temp["zip_size"],
-                                ) = v4c.DZ_COMMON_u(stream, address)
+                                ) = v4c.DZ_COMMON_u(stream.read(v4c.DZ_COMMON_SIZE))
 
                                 if temp["original_size"]:
                                     if temp["zip_type"] == v4c.FLAG_DZ_DEFLATE:
