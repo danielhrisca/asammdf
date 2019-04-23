@@ -36,7 +36,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     Tree(asammdf, prefix='asammdf\\'),
-    name='py-asammdf',
+    name='asammdfgui',
     debug=False,
     strip=True,
     upx=True,
