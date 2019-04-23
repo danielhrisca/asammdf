@@ -8,6 +8,7 @@ from pathlib import Path
 import psutil
 from natsort import natsorted
 import numpy as np
+import pyqtgraph as pg
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -45,6 +46,8 @@ class FileWidget(QtWidgets.QWidget):
         file_name = Path(file_name)
         self.subplots = subplots
         self.subplots_link = subplots_link
+        self._viewbox = pg.ViewBox()
+        self._viewbox.setXRange(0, 10)
 
         self.file_name = file_name
         self.progress = None
@@ -548,9 +551,9 @@ class FileWidget(QtWidgets.QWidget):
 
     def set_subplots_link(self, subplots_link):
         self.subplots_link = subplots_link
+        viewbox = None
         if subplots_link:
-            viewbox = None
-            for mdi in self.mdi_area.subWindowList():
+            for i, mdi in enumerate(self.mdi_area.subWindowList()):
                 plt = mdi.widget()
                 if viewbox is None:
                     viewbox = plt.plot.viewbox
@@ -1613,6 +1616,9 @@ class FileWidget(QtWidgets.QWidget):
         before = menu.actions()[0]
         menu.insertAction(before, action)
         w.setSystemMenu(menu)
+
+        if self.subplots_link:
+            plot.plot.viewbox.setXLink(self._viewbox)
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 

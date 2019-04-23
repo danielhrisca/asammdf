@@ -35,7 +35,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     name='asammdfgui',
-    debug=True,
+    debug=False,
     strip=False,
     upx=True,
     console=False,
