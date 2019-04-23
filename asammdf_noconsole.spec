@@ -13,7 +13,7 @@ print(os.getcwd())
 print(os.listdir())
 block_cipher = None
 
-a = Analysis(['asammdf\\gui\\asammdfgui.py'],
+a = Analysis([Path('asammdf') / 'gui' / 'asammdfgui.py'],
     pathex=[],
     binaries=[],
     datas=[],
