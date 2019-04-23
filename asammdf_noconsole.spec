@@ -4,7 +4,11 @@ import sys
 import site
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+try:
+    HERE = os.path.dirname(os.path.abspath(__file__))
+except NameError:  # We are the main py2exe script, not a module
+    HERE = os.path.dirname(os.path.abspath(sys.argv[0]))
+
 sys.path.insert(0, HERE)
 
 block_cipher = None
