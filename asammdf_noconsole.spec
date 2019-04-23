@@ -37,7 +37,7 @@ exe = EXE(
     a.datas,
     Tree(asammdf, prefix='asammdf\\'),
     name='asammdfgui',
-    debug=True,
+    debug=False,
     strip=False,
     upx=True,
     console=False,

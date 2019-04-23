@@ -23,7 +23,7 @@ install:
   - "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
-  - "%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet"
+  - "%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet psutil"
   - "%PYTHON%\\python.exe -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip"
   - "%PYTHON%\\python.exe -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
   - "%PYTHON%\\python.exe -m pip install ."
