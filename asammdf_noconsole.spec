@@ -9,7 +9,7 @@ asammdf = os.path.join(site.getsitepackages()[1], 'asammdf')
 block_cipher = None
 
 a = Analysis(['asammdf\\gui\\asammdfgui.py'],
-    pathex=[],
+    pathex=['..\\asammdf'],
     binaries=[],
     datas=[],
     hiddenimports=[
