@@ -8,9 +8,13 @@ environment:
     # isn't covered by this document) at the time of writing.
 
     - PYTHON: "C:\\Python36"
+      PY: "36"
     - PYTHON: "C:\\Python37"
+      PY: "37"
     - PYTHON: "C:\\Python36-x64"
+      PY: "36-x64"
     - PYTHON: "C:\\Python37-x64"
+      PY: "37-x64"
 
 install:
   # We need wheel installed to build wheels
@@ -19,6 +23,13 @@ install:
   - "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
   - "%PYTHON%\\python.exe -m pip install wheel"
   - "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
+  - "%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet"
+  - "%PYTHON%\\python.exe -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip"
+  - "%PYTHON%\\python.exe -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
+  - "%PYTHON%\\Scripts\\pyinstaller asammdf.spec"
+  - "move dist\\asammdf.exe dist\\asammdf_%PY%.exe"
+  - "%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec"
+  - "move dist\\asammdf.exe dist\\asammdf_%PY%_noconsole.exe"
 
 build: off
 
