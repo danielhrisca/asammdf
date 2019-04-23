@@ -11,14 +11,15 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
-    - PYTHON: "C:\\Python36"
-      PY: "36"
-    - PYTHON: "C:\\Python37"
-      PY: "37"
-    - PYTHON: "C:\\Python36-x64"
-      PY: "36-x64"
-    - PYTHON: "C:\\Python37-x64"
-      PY: "37-x64"
+  #  - PYTHON: "C:\\Python36"
+   #   PY: "36"
+    #- PYTHON: "C:\\Python37"
+    #  PY: "37"
+    #- PYTHON: "C:\\Python36-x64"
+    #  PY: "36-x64"
+    #- PYTHON: "C:\\Python37-x64"
+    #  PY: "37-x64"
+    - PYTHON: "python"
 
 install:
   # We need wheel installed to build wheels
@@ -35,6 +36,18 @@ install:
   - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe"
   - cmd: "%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec"
   - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe"
+  - sh: "python -m pip install --upgrade pip"
+  - sh: "python -m pip install --upgrade setuptools"
+  - sh: "python -m pip install wheel"
+  - sh: "python -m pip install -r pip_requirements_tests.txt"
+  - sh: "python -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet psutil"
+  - sh: "python -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip"
+  - sh: "python -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
+  - sh: "python -m pip install ."
+  - sh: "pyinstaller asammdf.spec"
+  - sh: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe"
+  - sh: "%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec"
+  - sh: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe"
 
 build: off
 
