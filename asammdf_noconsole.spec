@@ -38,6 +38,7 @@ exe = EXE(
     a.binaries,
     a.zipfiles,
     a.datas,
+    Tree(asammdf_path),
     name='asammdfgui',
     debug=False,
     strip=False,
