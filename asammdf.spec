@@ -4,6 +4,8 @@ import sys
 import site
 from pathlib import Path
 
+sys.path.insert(0, HERE)
+
 block_cipher = None
 
 a = Analysis(['asammdf\\gui\\asammdfgui.py'],
