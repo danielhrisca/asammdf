@@ -41,6 +41,7 @@ install:
   - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe"
   - cmd: "%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec"
   - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe"
+  - sh: sudo apt-get install python3-dev python-dev
   - sh: "python -m pip install --upgrade pip"
   - sh: "python -m pip install --upgrade setuptools"
   - sh: "python -m pip install wheel"
