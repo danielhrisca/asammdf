@@ -57,7 +57,8 @@ test_script:
   # Note that you must use the environment variable %PYTHON% to refer to
   # the interpreter you're using - Appveyor does not do anything special
   # to put the Python version you want to use on PATH.
-  - "%PYTHON%\\python.exe test/run_all.py"
+  - cmd: "%PYTHON%\\python.exe test/run_all.py"
+  - sh: "python3 test/run_all.py"
 
 after_test:
   # This step builds your wheels.
@@ -65,6 +66,7 @@ after_test:
   # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
   # interpreter
   - "%PYTHON%\\python.exe setup.py bdist_wheel"
+  - "python3 setup.py bdist_wheel"
 
 artifacts:
   # bdist_wheel puts your built wheel in the dist directory
