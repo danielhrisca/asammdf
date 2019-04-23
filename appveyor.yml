@@ -16,6 +16,7 @@ environment:
       PY: "36-x64"
     - PYTHON: "C:\\Python37-x64"
       PY: "37-x64"
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
 
 install:
   # We need wheel installed to build wheels
@@ -32,6 +33,18 @@ install:
   - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe"
   - cmd: "%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec"
   - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe"
+  - sh: "sudo apt-get --yes install python3-dev"
+  - sh: "python3 -m pip install --upgrade pip"
+  - sh: "python3 -m pip install --upgrade setuptools"
+  - sh: "python3 -m pip install wheel"
+  - sh: "python3 -m pip install -r pip_requirements_tests.txt"
+  - sh: "python3 -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet psutil"
+  - sh: "python3 -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip"
+  - sh: "python3 -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
+  - sh: "python3 -m pip install ."
+  - sh: "python3 -m pyinstaller asammdf_noconsole.spec"
+  - sh: "mv dist\\asammdfgui dist\\asammdfgui_noconsole"
+  - sh: "python3 -m pyinstaller asammdf.spec"
 
 build: off
 

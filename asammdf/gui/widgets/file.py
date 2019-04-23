@@ -1267,6 +1267,13 @@ class FileWidget(QtWidgets.QWidget):
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
 
+            if self.subplots_link:
+
+                for i, mdi in enumerate(self.mdi_area.subWindowList()):
+                    viewbox = mdi.widget().plot.viewbox
+                    plot.plot.viewbox.setXLink(viewbox)
+                    break
+
             plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 
     def load_window(self, window_info):
@@ -1537,6 +1544,13 @@ class FileWidget(QtWidgets.QWidget):
                     else QtCore.Qt.Unchecked
                 )
 
+            if self.subplots_link:
+
+                for i, mdi in enumerate(self.mdi_area.subWindowList()):
+                    viewbox = mdi.widget().plot.viewbox
+                    plot.plot.viewbox.setXLink(viewbox)
+                    break
+
     def plot_pyqtgraph(self, event):
         try:
             iter(event)
@@ -1618,7 +1632,11 @@ class FileWidget(QtWidgets.QWidget):
         w.setSystemMenu(menu)
 
         if self.subplots_link:
-            plot.plot.viewbox.setXLink(self._viewbox)
+
+            for i, mdi in enumerate(self.mdi_area.subWindowList()):
+                viewbox = mdi.widget().plot.viewbox
+                plot.plot.viewbox.setXLink(viewbox)
+                break
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 
