@@ -19,7 +19,10 @@ environment:
     #  PY: "36-x64"
     #- PYTHON: "C:\\Python37-x64"
     #  PY: "37-x64"
-    - PYTHON: "python"
+    # Ubuntu - python 3
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
+      PYTHON: "3.6"
+stack: python %PYTHON%
 
 install:
   # We need wheel installed to build wheels
