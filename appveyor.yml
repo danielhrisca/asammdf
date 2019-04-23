@@ -27,8 +27,8 @@ install:
   - "%PYTHON%\\python.exe -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip"
   - "%PYTHON%\\python.exe -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
   - "%PYTHON%\\python.exe -m pip install ."
-  - "%PYTHON%\\Scripts\\pyinstaller asammdf.spec"
-  - "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe"
+  #- "%PYTHON%\\Scripts\\pyinstaller asammdf.spec"
+  #- "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe"
   - "%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec"
   - "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe"
 
