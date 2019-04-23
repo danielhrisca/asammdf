@@ -41,5 +41,5 @@ exe = EXE(
     strip=False,
     upx=True,
     console=True,
-    icon='asammdf.png',
+    icon='asammdf.ico',
 )
