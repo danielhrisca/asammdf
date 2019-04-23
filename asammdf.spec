@@ -38,7 +38,7 @@ exe = EXE(
     a.binaries,
     a.zipfiles,
     a.datas,
-    Tree(asammdf, prefix='asammdf\\' if sys.platform.startswith('linux') else 'asammdf/'),
+    Tree(asammdf_path),
     name='asammdfgui',
     debug=True,
     strip=False,
