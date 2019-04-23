@@ -1,3 +1,7 @@
+image:
+    - Visual Studio 2015
+    - Ubuntu
+
 environment:
 
   matrix:
@@ -19,18 +23,18 @@ environment:
 install:
   # We need wheel installed to build wheels
   - cmd: set PATH=%PATH%;%PYTHON%\Scripts
-  - "%PYTHON%\\python.exe -m pip install --upgrade pip"
-  - "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
-  - "%PYTHON%\\python.exe -m pip install wheel"
-  - "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
-  - "%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet psutil"
-  - "%PYTHON%\\python.exe -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip"
-  - "%PYTHON%\\python.exe -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
-  - "%PYTHON%\\python.exe -m pip install ."
-  - "%PYTHON%\\Scripts\\pyinstaller asammdf.spec"
-  - "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe"
-  - "%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec"
-  - "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe"
+  - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
+  - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
+  - cmd: "%PYTHON%\\python.exe -m pip install wheel"
+  - cmd: "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
+  - cmd: "%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet psutil"
+  - cmd: "%PYTHON%\\python.exe -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip"
+  - cmd: "%PYTHON%\\python.exe -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
+  - cmd: "%PYTHON%\\python.exe -m pip install ."
+  - cmd: "%PYTHON%\\Scripts\\pyinstaller asammdf.spec"
+  - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe"
+  - cmd: "%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec"
+  - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe"
 
 build: off
 
