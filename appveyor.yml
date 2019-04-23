@@ -43,9 +43,9 @@ install:
   - sh: "python3 -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip --user"
   - sh: "python3 -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip --user"
   - sh: "python3 -m pip install . --user"
-  - sh: "pyinstaller asammdf_noconsole.spec"
-  - sh: "mv dist\\asammdfgui dist\\asammdfgui_noconsole"
-  - sh: "pyinstaller asammdf.spec"
+  - sh: "/home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec"
+  - sh: "mv dist/asammdfgui dist/asammdfgui_noconsole"
+  - sh: "/home/appveyor/.local/bin/pyinstaller asammdf.spec"
 
 build: off
 
