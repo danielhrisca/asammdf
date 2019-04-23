@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# MDF files
+*.mf4
+*.mdf
+
 # Distribution / packaging
 .Python
 env/
