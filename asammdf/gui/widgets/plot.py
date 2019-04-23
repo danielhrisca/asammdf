@@ -97,6 +97,9 @@ try:
             self.channel_selection.itemPressed.connect(
                 self.channel_selection_modified
             )
+            self.channel_selection.currentRowChanged.connect(
+                self.channel_selection_row_changed
+            )
             self.channel_selection.add_channels_request.connect(self.add_channels_request)
 
             main_layout.addWidget(self.splitter)
@@ -117,6 +120,19 @@ try:
 
         def channel_selection_modified(self, item):
             if item:
+                index = self.channel_selection.itemWidget(item).index
+                self.info_index = index
+
+                sig, _ = self.plot.signal_by_index(index)
+                if sig.enable:
+
+                    self.plot.set_current_index(self.info_index)
+                    stats = self.plot.get_stats(self.info_index)
+                    self.info.set_stats(stats)
+
+        def channel_selection_row_changed(self, row):
+            if row >= 0:
+                item = self.channel_selection.item(row)
                 index = self.channel_selection.itemWidget(item).index
                 self.info_index = index
 
@@ -839,9 +855,14 @@ try:
                             new_stats["visible_rms"] = (
                                  np.sqrt(np.mean(np.square(cut.samples)))
                             )
-                            new_stats["visible_delta"] = (
-                                cut.samples[-1] - cut.samples[0]
-                            )
+                            if cut.samples.dtype.kind in 'ui':
+                                new_stats["visible_delta"] = (
+                                    int(cut.samples[-1]) - int(cut.samples[0])
+                                )
+                            else:
+                                new_stats["visible_delta"] = (
+                                    cut.samples[-1] - cut.samples[0]
+                                )
 
                         else:
                             new_stats["visible_min"] = "n.a."
@@ -946,6 +967,13 @@ try:
                                 np.nanmin(signal.plot_samples),
                                 np.nanmax(signal.plot_samples),
                             )
+                            if min_ == -float('inf') and max_ == float('inf'):
+                                min_ = 0
+                                max_ = 1
+                            elif min_ == -float('inf'):
+                                min_ = max_ - 1
+                            elif max_ == float('inf'):
+                                max_ = min_ + 1
                             viewbox.setYRange(min_, max_, padding=0)
 
                     if self.cursor1:
@@ -1030,7 +1058,7 @@ try:
                                 if min_ == max_:
                                     min_, max_ = min_ - 1, max_ + 1
 
-                                dim = (max_ - min_) * 1.1
+                                dim = (float(max_) - min_) * 1.1
 
                                 max_ = min_ + dim * count
                                 min_, max_ = (
@@ -1349,6 +1377,15 @@ try:
                     sig.avg = np.mean(sig.samples)
                     sig.rms = np.sqrt(np.mean(np.square(sig.samples)))
                     sig.empty = False
+
+                    if sig.min == -float('inf') and sig.max == float('inf'):
+                        sig.min = 0
+                        sig.max = 1
+                    elif sig.min == -float('inf'):
+                        sig.min = sig.max - 1
+                    elif sig.max == float('inf'):
+                        sig.max = sig.min + 1
+
                 else:
                     sig.empty = True
                     sig.min = 'n.a.'
