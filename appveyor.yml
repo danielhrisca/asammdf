@@ -1,6 +1,3 @@
-#image:
-  #  - Visual Studio 2015
-  #  - Ubuntu
 
 environment:
 
@@ -11,20 +8,14 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
-  #  - PYTHON: "C:\\Python36"
-   #   PY: "36"
-    #- PYTHON: "C:\\Python37"
-    #  PY: "37"
-    #- PYTHON: "C:\\Python36-x64"
-    #  PY: "36-x64"
-    #- PYTHON: "C:\\Python37-x64"
-    #  PY: "37-x64"
-    # Ubuntu - python 3
-    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu
-      PYTHON: "3.6"
+    - PYTHON: "C:\\Python36"
+      PY: "36"
+    - PYTHON: "C:\\Python37"
+      PY: "37"
+    - PYTHON: "C:\\Python36-x64"
+      PY: "36-x64"
     - PYTHON: "C:\\Python37-x64"
       PY: "37-x64"
-stack: python %PYTHON%
 
 install:
   # We need wheel installed to build wheels
@@ -41,18 +32,6 @@ install:
   - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe"
   - cmd: "%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec"
   - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe"
-  - sh: sudo apt-get --yes install python3-dev python-dev
-  - sh: "python -m pip install --upgrade pip"
-  - sh: "python -m pip install --upgrade setuptools"
-  - sh: "python -m pip install wheel"
-  - sh: "python -m pip install -r pip_requirements_tests.txt"
-  - sh: "python -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet psutil"
-  - sh: "python -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip"
-  - sh: "python -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
-  - sh: "python -m pip install ."
-  - sh: "pyinstaller asammdf_noconsole.spec"
-  - sh: "mv dist\\asammdfgui dist\\asammdfgui_noconsole"
-  - sh: "pyinstaller asammdf.spec"
 
 build: off
 

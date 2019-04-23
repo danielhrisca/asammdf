@@ -1,19 +1,13 @@
 # -*- mode: python -*-
-import os
 import sys
 import site
+from pathlib import Path
 
-sys.path.insert(0, '.')
-
-print('==>>>       \n'*5)
-print(*sys.path, sep='\n')
-print('\n'*5)
-print(os.getcwd())
-print(os.listdir())
+asammdf_path = Path(site.getsitepackages()[1]) / 'asammdf' / 'gui' / 'asammdfgui.py'
 
 block_cipher = None
 
-a = Analysis([Path('asammdf') / 'gui' / 'asammdfgui.py'],
+a = Analysis([asammdf_path],
     pathex=[],
     binaries=[],
     datas=[],
@@ -40,6 +34,7 @@ exe = EXE(
     a.binaries,
     a.zipfiles,
     a.datas,
+
     name='asammdfgui',
     debug=True,
     strip=False,
