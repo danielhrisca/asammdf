@@ -14,21 +14,27 @@ HERE = Path(__file__).resolve().parent
 
 
 class AdvancedSearch(QtWidgets.QDialog):
-    def __init__(self, channels_db, return_names=False, *args, **kwargs):
+    def __init__(self, channels_db, return_names=False, show_add_window=False, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         uic.loadUi(HERE.joinpath("..", "ui", "search_dialog.ui"), self)
 
         self.result = set()
+        self.add_window_request = False
         self.channels_db = channels_db
 
         self.apply_btn.clicked.connect(self._apply)
         self.add_btn.clicked.connect(self._add)
+        self.add_window_btn.clicked.connect(self._add_window)
         self.cancel_btn.clicked.connect(self._cancel)
 
         self.search_box.textChanged.connect(self.search_text_changed)
         self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
+
         self._return_names = return_names
+
+        if not show_add_window:
+            self.add_window_btn.hide()
 
         self.setWindowTitle("Search & select channels")
 
@@ -71,7 +77,6 @@ class AdvancedSearch(QtWidgets.QDialog):
         self.selection.clear()
         self.selection.addItems(names)
 
-
     def _apply(self, event):
         count = self.selection.count()
 
@@ -85,6 +90,23 @@ class AdvancedSearch(QtWidgets.QDialog):
             for i in range(count):
                 for entry in self.channels_db[self.selection.item(i).text()]:
                     self.result.add(entry)
+        self.close()
+
+    def _add_window(self, event):
+        count = self.selection.count()
+
+        if self._return_names:
+            self.result = set(
+                self.selection.item(i).text()
+                for i in range(count)
+            )
+        else:
+            self.result = set()
+            for i in range(count):
+                for entry in self.channels_db[self.selection.item(i).text()]:
+                    self.result.add(entry)
+
+        self.add_window_request = True
         self.close()
 
     def _cancel(self, event):

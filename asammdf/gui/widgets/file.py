@@ -577,11 +577,16 @@ class FileWidget(QtWidgets.QWidget):
                 mdf.save(file_name, overwrite=True)
 
     def search(self):
-        dlg = AdvancedSearch(self.mdf.channels_db, parent=self)
+        dlg = AdvancedSearch(
+            self.mdf.channels_db,
+            show_add_window=True,
+            parent=self,
+        )
         dlg.setModal(True)
         dlg.exec_()
         result = dlg.result
         if result:
+            names = set()
             if self.channel_view.currentIndex() == 1:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
@@ -598,6 +603,7 @@ class FileWidget(QtWidgets.QWidget):
 
                     if (dg_cntr, ch_cntr) in result:
                         item.setCheckState(0, QtCore.Qt.Checked)
+                        names.add(item.text(0))
 
                     iterator += 1
                     ch_cntr += 1
@@ -608,8 +614,22 @@ class FileWidget(QtWidgets.QWidget):
 
                     if item.entry in result:
                         item.setCheckState(0, QtCore.Qt.Checked)
+                        names.add(item.text(0))
 
                     iterator += 1
+
+            if dlg.add_window_request:
+                ret, ok = QtWidgets.QInputDialog.getItem(
+                    None,
+                    "Select window type",
+                    "Type:",
+                    ["Plot", "Numeric"],
+                    0,
+                    False,
+                )
+                if ok:
+                    self.add_window([ret, sorted(names)])
+
 
     def save_channel_list(self, event=None, file_name=None):
 
