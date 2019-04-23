@@ -2,14 +2,12 @@
 import os
 import sys
 import site
+from pathlib import Path
 
-sys.path.insert(0, '.')
-
-asammdf = os.path.join(site.getsitepackages()[1], 'asammdf')
 block_cipher = None
 
 a = Analysis(['asammdf\\gui\\asammdfgui.py'],
-    pathex=['..\\asammdf'],
+    pathex=[],
     binaries=[],
     datas=[],
     hiddenimports=[
@@ -35,7 +33,6 @@ exe = EXE(
     a.binaries,
     a.zipfiles,
     a.datas,
-    Tree(asammdf, prefix='asammdf\\'),
     name='asammdfgui',
     debug=True,
     strip=False,
