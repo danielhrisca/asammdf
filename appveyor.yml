@@ -8,6 +8,7 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
+    - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
     - PYTHON: "C:\\Python36"
       PY: "36"
     - PYTHON: "C:\\Python37"
@@ -33,6 +34,18 @@ install:
   - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe"
   - cmd: "%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec"
   - cmd: "move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe"
+  - sh: "sudo apt-get --yes install python3-dev python3-pip python3-setuptools"
+  - sh: "python3 -m pip install --upgrade pip"
+  - sh: "python3 -m pip install --upgrade setuptools"
+  - sh: "python3 -m pip install wheel"
+  - sh: "python3 -m pip install -r pip_requirements_tests.txt"
+  - sh: "python3 -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet psutil"
+  - sh: "python3 -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip"
+  - sh: "python3 -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
+  - sh: "python3 -m pip install ."
+  - sh: "python3 -m pyinstaller asammdf_noconsole.spec"
+  - sh: "mv dist\\asammdfgui dist\\asammdfgui_noconsole"
+  - sh: "python3 -m pyinstaller asammdf.spec"
 
 build: off
 
