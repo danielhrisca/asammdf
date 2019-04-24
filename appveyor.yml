@@ -45,7 +45,7 @@ install:
   - sh: "python3 -m pip install . --user"
   - sh: "/home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec"
   - sh: "mv dist/asammdfgui dist/asammdfgui_noconsole"
-  #- sh: "/home/appveyor/.local/bin/pyinstaller asammdf.spec"
+  - sh: "/home/appveyor/.local/bin/pyinstaller asammdf.spec"
 
 build: off
 
