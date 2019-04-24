@@ -27,13 +27,13 @@ install:
   - cmd: "%PYTHON%\\python.exe -m pip install wheel"
   - cmd: "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
   - cmd: "if \"%PY%\" == \"37-x64\" (%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet psutil)"
-  - cmd: if "%PY%" == "37-x64" ("%PYTHON%\\python.exe -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip")
-  - cmd: if "%PY%" == "37-x64" ("%PYTHON%\\python.exe -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip")
-  - cmd: if "%PY%" == "37-x64" ("%PYTHON%\\python.exe -m pip install .")
-  - cmd: if "%PY%" == "37-x64" ("%PYTHON%\\Scripts\\pyinstaller asammdf.spec")
-  - cmd: if "%PY%" == "37-x64" ("move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe")
-  - cmd: if "%PY%" == "37-x64" ("%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec")
-  - cmd: if "%PY%" == "37-x64" ("move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe")
+  - cmd: "if \"%PY%\" == \"37-x64\" (%PYTHON%\\python.exe -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip)"
+  - cmd: "if \"%PY%\" == \"37-x64\" (%PYTHON%\\python.exe -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip)"
+  - cmd: "if \"%PY%\" == \"37-x64\" (%PYTHON%\\python.exe -m pip install .)"
+  - cmd: "if \"%PY%\" == \"37-x64\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec)"
+  - cmd: "if \"%PY%\" == \"37-x64\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe)"
+  - cmd: "if \"%PY%\" == \"37-x64\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec)"
+  - cmd: "if \"%PY%\" == \"37-x64\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe)"
   - sh: "sudo apt-get --yes install python3-dev python3-pip python3-setuptools"
   - sh: "python3 -m pip install --upgrade pip --user"
   - sh: "python3 -m pip install --upgrade setuptools --user"
