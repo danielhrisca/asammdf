@@ -40,19 +40,12 @@ class TestMDF(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        url = "https://github.com/danielhrisca/asammdf/files/1834464/test.demo.zip"
-        try:
-            from proxy import address
-            proxy = urllib.request.ProxyHandler({'http': address})
-            opener = urllib.request.build_opener(proxy)
-            urllib.request.install_opener(opener)
-        except ImportError:
-            pass
+        url = "https://github.com/danielhrisca/asammdf/files/3111848/test.demo.zip"
         urllib.request.urlretrieve(url, "test.zip")
 
         cls.tempdir_demo = tempfile.TemporaryDirectory()
         cls.tempdir_general = tempfile.TemporaryDirectory()
-        cls.tempdir= tempfile.TemporaryDirectory()
+        cls.tempdir = tempfile.TemporaryDirectory()
         cls.tempdir_array = tempfile.TemporaryDirectory()
 
         ZipFile(r"test.zip").extractall(cls.tempdir_demo.name)
@@ -280,9 +273,7 @@ class TestMDF(unittest.TestCase):
                             ):
                                 continue
                             signal = input_file.get(name)
-                            if name == 'ASAM.M.SCALAR.UBYTE.VTAB_RANGE_DEFAULT_VALUE':
-                                print(repr(signal.conversion.convert(signal.samples)))
-                                1/0
+
                             try:
                                 original_samples = CHANNELS_DEMO[name.split("\\")[0]]
                             except:
@@ -292,8 +283,11 @@ class TestMDF(unittest.TestCase):
                                 signal = signal.astype(np.float32)
                             res = np.array_equal(signal.samples, original_samples)
                             if not res:
+                                raw = input_file.get(name, raw=True).samples
+
+                                print(repr(signal.samples))
                                 ret = False
-                                print(name, repr(signal.samples), original_samples)
+                                print(name, *zip(raw, signal.samples, original_samples), sep='\n')
                                 1/0
 
         self.assertTrue(ret)
@@ -444,9 +438,10 @@ class TestMDF(unittest.TestCase):
                     for name in set(mdf2.channels_db) - {"t", "time"}:
                         original = mdf.get(name)
                         converted = mdf2.get(name)
+                        raw = mdf.get(name, raw=True)
                         if not np.array_equal(original.samples, converted.samples):
                             equal = False
-                            print(original, converted, outfile)
+                            print(name, *zip(raw.samples, original.samples, converted.samples), outfile, sep='\n')
                             1 / 0
                         if not np.array_equal(
                             original.timestamps, converted.timestamps
@@ -778,7 +773,7 @@ class TestMDF(unittest.TestCase):
 
                 outfile = MDF.concatenate(
                     [outfile1, outfile2, outfile3],
-                    vedrsion=MDF(input_file).version
+                    version=MDF(input_file).version
                 ).save(Path(TestMDF.tempdir.name) / "tmp", overwrite=True)
 
                 print("OUT", outfile)
@@ -927,11 +922,8 @@ class TestMDF(unittest.TestCase):
         mdf = MDF()
         mdf.append(sigs)
         mdf.configure(read_fragment_size=1)
-        mdf = mdf.resample(raster=0)
-
-        for i, sig in enumerate(mdf.iter_channels(skip_master=True)):
-            self.assertTrue(np.array_equal(sig.samples, sigs[i].samples))
-            self.assertTrue(np.array_equal(sig.timestamps, sigs[i].timestamps))
+        with self.assertRaises(AssertionError):
+            mdf = mdf.resample(raster=0)
 
     def test_resample(self):
         raster = 1.33

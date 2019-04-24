@@ -131,7 +131,7 @@ def conversion_transfer(conversion, version=3):
                     conversion = v3b.ChannelConversion(**kargs)
 
                 elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-                    nr = conversion.val_param_nr // 2 - 1
+                    nr = conversion.val_param_nr // 2
                     kargs = {
                         "ref_param_nr": nr + 1,
                         "unit": unit,
@@ -225,6 +225,7 @@ def conversion_transfer(conversion, version=3):
                 conversion = v4b.ChannelConversion(**kargs)
 
             elif conversion_type == v3c.CONVERSION_TYPE_RTABX:
+#                print('IN', conversion)
 
                 nr = conversion["ref_param_nr"] - 1
                 kargs = {
@@ -239,6 +240,9 @@ def conversion_transfer(conversion, version=3):
                     kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].text
 
                 conversion = v4b.ChannelConversion(**kargs)
+
+#                print('OUT', conversion)
+#                print('\n'*3)
 
             conversion.unit = unit
 

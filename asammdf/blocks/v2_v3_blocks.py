@@ -2657,8 +2657,7 @@ class HeaderBlock:
         self.date = timestamp.strftime("%d:%m:%Y").encode("ascii")
         self.time = timestamp.strftime("%H:%M:%S").encode("ascii")
         if self.block_len > v23c.HEADER_COMMON_SIZE:
-            timestamp = timestamp - datetime(1970, 1, 1)
-            timestamp = int(timestamp.total_seconds() * 10 ** 9)
+            timestamp = int(timestamp.timestamp() * 10 ** 9)
             self.abs_time = timestamp
             self.tz_offset = 0
 
@@ -2823,6 +2822,13 @@ class TextBlock:
             self.id,
             self.block_len,
         ) + self.text
+
+    def __repr__(self):
+        return (
+            f"TextBlock(id={self.id},"
+            f"block_len={self.block_len}, "
+            f"text={self.text})"
+        )
 
 
 class TriggerBlock:

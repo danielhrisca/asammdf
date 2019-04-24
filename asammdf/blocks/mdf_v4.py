@@ -1117,8 +1117,8 @@ class MDF4(object):
                 stream = self._tempfile
                 address = group.signal_data[index]
                 if address:
-                    if address in self._cg_map:
-                        group = self.groups[self._cg_map[address]]
+                    if address[0] in self._cg_map:
+                        group = self.groups[self._cg_map[address[0]]]
                         data.append(
                             b''.join(e[0] for e in self._load_data(group))
                         )
@@ -5767,6 +5767,7 @@ class MDF4(object):
                     event[key] = at_map[addr]
 
         except:
+            raise
             if not file_like:
                 dst_.close()
 

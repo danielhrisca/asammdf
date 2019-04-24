@@ -1957,6 +1957,7 @@ class MDF(object):
 
             for i, group in enumerate(mdf.groups):
                 included_channels = mdf._included_channels(i)
+
                 if mdf_index == 0:
                     included_channel_names.append(
                         [group.channels[k].name for k in included_channels]
@@ -3128,7 +3129,7 @@ class MDF(object):
 
             with open(dst, "rb+") as mdf:
                 count = len(texts)
-                chunk = count // 34
+                chunk = max(count // 34, 1)
                 idx = 0
                 for index, (addr, bts) in enumerate(texts.items()):
                     mdf.seek(addr + 24)

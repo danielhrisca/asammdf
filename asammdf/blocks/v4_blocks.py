@@ -1999,13 +1999,13 @@ class ChannelConversion(_ChannelConversionBase):
                 ) = unpack_from("<2B3H2d", block, 32 + links_nr * 8)
 
                 values = unpack_from(
-                    "<{}d".format((links_nr - 1) * 2), block, 32 + links_nr * 8 + 24
+                    f"<{self.val_param_nr}d", block, 32 + links_nr * 8 + 24
                 )
                 self.default_lower = self.default_upper = 0
-                for i in range(1, self.val_param_nr // 2):
+                for i in range(self.val_param_nr // 2):
                     j = 2 * i
-                    self[f"lower_{i-1}"] = values[j]
-                    self[f"upper_{i-1}"] = values[j + 1]
+                    self[f"lower_{i}"] = values[j]
+                    self[f"upper_{i}"] = values[j + 1]
 
             elif conv == v4c.CONVERSION_TYPE_TTAB:
                 (
@@ -2582,7 +2582,7 @@ class ChannelConversion(_ChannelConversionBase):
                     )
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-            nr = self.val_param_nr // 2 - 1
+            nr = self.val_param_nr // 2
 
             phys = []
             for i in range(nr):
@@ -3018,10 +3018,8 @@ formula: {self.formula}
                 "val_param_nr",
                 "min_phy_value",
                 "max_phy_value",
-                "default_lower",
-                "default_upper",
             )
-            for i in range(self.val_param_nr // 2 - 1):
+            for i in range(self.val_param_nr // 2):
                 keys += (f"lower_{i}", f"upper_{i}")
             result = pack(fmt, *[getattr(self, key) for key in keys])
         elif self.conversion_type == v4c.CONVERSION_TYPE_TTAB:
