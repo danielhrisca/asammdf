@@ -856,7 +856,11 @@ class FileWidget(QtWidgets.QWidget):
     def get_current_plot(self):
         mdi = self.mdi_area.activeSubWindow()
         if mdi is not None:
-            return mdi.widget()
+            widget = mdi.widget()
+            if isinstance(widget, Plot):
+                return widget
+            else:
+                return None
         else:
             return None
 
@@ -1547,9 +1551,11 @@ class FileWidget(QtWidgets.QWidget):
             if self.subplots_link:
 
                 for i, mdi in enumerate(self.mdi_area.subWindowList()):
-                    viewbox = mdi.widget().plot.viewbox
-                    plot.plot.viewbox.setXLink(viewbox)
-                    break
+                    widget = mdi.widget()
+                    if isinstance(widget, Plot):
+                        viewbox = widget.plot.viewbox
+                        plot.plot.viewbox.setXLink(viewbox)
+                        break
 
     def plot_pyqtgraph(self, event):
         try:
@@ -1634,9 +1640,11 @@ class FileWidget(QtWidgets.QWidget):
         if self.subplots_link:
 
             for i, mdi in enumerate(self.mdi_area.subWindowList()):
-                viewbox = mdi.widget().plot.viewbox
-                plot.plot.viewbox.setXLink(viewbox)
-                break
+                widget = mdi.widget()
+                if isinstance(widget, Plot):
+                    viewbox = widget.plot.viewbox
+                    plot.plot.viewbox.setXLink(viewbox)
+                    break
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 
