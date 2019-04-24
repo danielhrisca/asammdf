@@ -10,11 +10,17 @@ else:
     asammdf_path = Path(site.getsitepackages()[1]) / 'asammdf' / 'gui' / 'asammdfgui.py'
 
 block_cipher = None
+added_files = []
+
+for root, dirs, files in os.walk(asammdf_path.parent / 'ui'):
+    for file in files:
+        if file.lower().endswith(('ui', 'png', 'qrc')):
+            added_files.append((os.path.join(root, file), os.apth.join('asammdf', 'gui', 'ui')))
 
 a = Analysis([asammdf_path],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=added_files,
     hiddenimports=[
         'numpy.core._dtype_ctypes'
     ],
