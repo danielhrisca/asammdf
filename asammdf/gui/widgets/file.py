@@ -56,6 +56,8 @@ class FileWidget(QtWidgets.QWidget):
         self.info_index = None
         self.with_dots = with_dots
 
+        self._window_counter = 1
+
         progress = QtWidgets.QProgressDialog(
             f'Opening "{self.file_name}"', "", 0, 100, self.parent()
         )
@@ -622,17 +624,31 @@ class FileWidget(QtWidgets.QWidget):
                     iterator += 1
 
             if dlg.add_window_request:
+                options = ["New plot window", "New numeric window"] + [
+                    mdi.windowTitle()
+                    for mdi in self.mdi_area.subWindowList()
+                ]
                 ret, ok = QtWidgets.QInputDialog.getItem(
                     None,
                     "Select window type",
                     "Type:",
-                    ["Plot", "Numeric"],
+                    options,
                     0,
                     False,
                 )
                 if ok:
-                    self.add_window([ret, sorted(names)])
-
+                    index = options.index(ret)
+                    if index == 0:
+                        self.add_window(['Plot', sorted(names)])
+                    elif index == 1:
+                        self.add_window(['Numeric', sorted(names)])
+                    else:
+                        widgets = [
+                            mdi.widget()
+                            for mdi in self.mdi_area.subWindowList()
+                        ]
+                        widget = widgets[index-2]
+                        self.add_new_channels(names, widget)
 
     def save_channel_list(self, event=None, file_name=None):
 
@@ -1233,6 +1249,9 @@ class FileWidget(QtWidgets.QWidget):
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
 
+            w.setWindowTitle(f'Numeric {self._window_counter}')
+            self._window_counter += 1
+
             numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
 
         else:
@@ -1270,6 +1289,9 @@ class FileWidget(QtWidgets.QWidget):
             before = menu.actions()[0]
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
+
+            w.setWindowTitle(f'Plot {self._window_counter}')
+            self._window_counter += 1
 
             if self.subplots_link:
 
@@ -1319,7 +1341,13 @@ class FileWidget(QtWidgets.QWidget):
                 else:
                     w.show()
                     self.mdi_area.tileSubWindows()
-            w.setWindowTitle(window_info['title'])
+
+            if window_info['title']:
+                w.setWindowTitle(window_info['title'])
+            else:
+                w.setWindowTitle(f'Numeric {self._window_counter}')
+                self._window_counter += 1
+
             numeric.format = fmt
             numeric._update_values()
 
@@ -1514,6 +1542,12 @@ class FileWidget(QtWidgets.QWidget):
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
 
+            if window_info['title']:
+                w.setWindowTitle(window_info['title'])
+            else:
+                w.setWindowTitle(f'Plot {self._window_counter}')
+                self._window_counter += 1
+
             plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 
             descriptions = {
@@ -1620,6 +1654,9 @@ class FileWidget(QtWidgets.QWidget):
                 w.show()
                 self.mdi_area.tileSubWindows()
 
+        w.setWindowTitle(f'Plot {self._window_counter}')
+        self._window_counter += 1
+
         menu = w.systemMenu()
 
         def set_title(mdi):
@@ -1716,6 +1753,8 @@ class FileWidget(QtWidgets.QWidget):
                 self.mdi_area.tileSubWindows()
 
         menu = w.systemMenu()
+        w.setWindowTitle(f'Numeric {self._window_counter}')
+        self._window_counter += 1
 
         def set_title(mdi):
             name, ok = QtWidgets.QInputDialog.getText(

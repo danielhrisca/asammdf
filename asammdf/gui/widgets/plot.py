@@ -622,7 +622,7 @@ try:
                                 symbol="o",
                                 symbolSize=4,
                                 clickable=True,
-                                mouseWidth=20,
+                                mouseWidth=30,
                             )
 
                             curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
@@ -1409,7 +1409,7 @@ try:
                     symbol="o",
                     symbolSize=4,
                     clickable=True,
-                    mouseWidth=20,
+                    mouseWidth=30,
                 )
                 curve.sigClicked.connect(partial(self.curve_clicked.emit, index))
                 view_box.addItem(curve)
