@@ -15,7 +15,7 @@ added_files = []
 for root, dirs, files in os.walk(asammdf_path.parent / 'ui'):
     for file in files:
         if file.lower().endswith(('ui', 'png', 'qrc')):
-            added_files.append((os.path.join(root, file), os.apth.join('asammdf', 'gui', 'ui')))
+            added_files.append((os.path.join(root, file), os.path.join('asammdf', 'gui', 'ui')))
 
 a = Analysis([asammdf_path],
     pathex=[],
