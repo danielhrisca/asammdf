@@ -10,6 +10,8 @@ __pycache__/
 *.mf4
 *.mdf
 
+test/proxy.py
+
 # Distribution / packaging
 .Python
 env/

@@ -18,10 +18,10 @@ class TestMDF4(unittest.TestCase):
     def setUpClass(cls):
         cls.tempdir = tempfile.TemporaryDirectory()
 
-    def etest_measurement(self):
+    def test_measurement(self):
         self.assertTrue(MDF4)
 
-    def etest_read_mdf4_00(self):
+    def test_read_mdf4_00(self):
 
         seed = np.random.randint(0, 2 ** 31)
 
@@ -53,7 +53,7 @@ class TestMDF4(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
-    def etest_read_mdf4_10(self):
+    def test_read_mdf4_10(self):
 
         seed = np.random.randint(0, 2 ** 31)
 
@@ -85,7 +85,7 @@ class TestMDF4(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_int.samples, sig_int.samples))
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
-    def etest_attachment_blocks_wo_filename(self):
+    def test_attachment_blocks_wo_filename(self):
         original_data = b'Testing attachemnt block\nTest line 1'
         mdf = MDF()
         mdf.attach(
@@ -108,7 +108,7 @@ class TestMDF4(unittest.TestCase):
 
         mdf.close()
 
-    def etest_attachment_blocks_w_filename(self):
+    def test_attachment_blocks_w_filename(self):
         original_data = b'Testing attachemnt block\nTest line 1'
         original_file_name = 'file.txt'
 

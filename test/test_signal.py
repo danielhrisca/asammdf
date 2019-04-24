@@ -10,11 +10,11 @@ from asammdf.blocks.utils import MdfException
 
 class TestSignal(unittest.TestCase):
 
-    def etest_init_empty(self):
+    def test_init_empty(self):
         s = Signal([], [], name='s')
         self.assertEqual(len(s), 0)
 
-    def etest_init_errors(self):
+    def test_init_errors(self):
         with self.assertRaises(MdfException):
             Signal([], [1], name='s')
         with self.assertRaises(MdfException):
@@ -30,7 +30,7 @@ class TestSignal(unittest.TestCase):
         with self.assertRaises(MdfException):
             Signal(np.array([]), np.array([]))
 
-    def etest_cut_int(self):
+    def test_cut_int(self):
         s = Signal(
             np.arange(5),
             np.arange(5, dtype='<f8'),
@@ -208,7 +208,7 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal([], res.samples))
         self.assertTrue(np.array_equal(np.array([], dtype='<f8'), res.timestamps))
 
-    def etest_cut_float(self):
+    def test_cut_float(self):
         s = Signal(
             np.arange(5, dtype='<f4'),
             np.arange(5, dtype='<f8'),
@@ -386,7 +386,7 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal([], res.samples))
         self.assertTrue(np.array_equal(np.array([], dtype='<f8'), res.timestamps))
 
-    def etest_add(self):
+    def test_add(self):
         s = Signal(
             np.arange(5, dtype='<f4'),
             np.arange(5, dtype='<f8'),
@@ -421,7 +421,7 @@ class TestSignal(unittest.TestCase):
         res = s
         self.assertTrue(np.array_equal(res.samples, target))
 
-    def etest_sub(self):
+    def test_sub(self):
         s = Signal(
             np.arange(5, dtype='<f4'),
             np.arange(5, dtype='<f8'),
@@ -457,7 +457,7 @@ class TestSignal(unittest.TestCase):
         res = s
         self.assertTrue(np.array_equal(res.samples, target))
 
-    def etest_mul(self):
+    def test_mul(self):
         s = Signal(
             np.arange(5, dtype='<f4'),
             np.arange(5, dtype='<f8'),
@@ -491,7 +491,7 @@ class TestSignal(unittest.TestCase):
         res = s
         self.assertTrue(np.array_equal(res.samples, target))
 
-    def etest_div(self):
+    def test_div(self):
         s = Signal(
             np.arange(1, 5, dtype='<f4'),
             np.arange(1, 5, dtype='<f8'),
@@ -521,7 +521,7 @@ class TestSignal(unittest.TestCase):
         res = s
         self.assertTrue(np.array_equal(res.samples, target))
 
-    def etest_pow(self):
+    def test_pow(self):
         s = Signal(
             np.arange(1, 5, dtype='<f4'),
             np.arange(1, 5, dtype='<f8'),
