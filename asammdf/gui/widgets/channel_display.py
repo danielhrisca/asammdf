@@ -1,26 +1,15 @@
 # -*- coding: utf-8 -*-
-import os
-from pathlib import Path
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
-from PyQt5 import uic
 
-from ..ui import resource_qt5 as resource_rc
+from ..ui import resource_rc as resource_rc
+from ..ui.channel_display_widget import Ui_ChannelDiplay
 from ..dialogs.range_editor import RangeEditor
 
-HERE = Path(__file__).resolve().parent
 
-uifile_1 = HERE.joinpath("..", "ui", "channel_display_widget.ui")
-
-cwd = Path.cwd()
-os.chdir(HERE.joinpath("..", "ui"))
-form_1, base_1 = uic.loadUiType(uifile_1, resource_suffix='_qt5', from_imports=True)
-os.chdir(cwd)
-
-
-class ChannelDisplay(base_1, form_1):
+class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
     color_changed = QtCore.pyqtSignal(int, str)
     enable_changed = QtCore.pyqtSignal(int, int)
@@ -39,7 +28,7 @@ class ChannelDisplay(base_1, form_1):
     )
 
     def __init__(self, index, unit="", kind='f', precision=3, *args, **kwargs):
-        super(base_1, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setupUi(self)
 
         self.color = "#ff0000"

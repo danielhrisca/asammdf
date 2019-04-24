@@ -1,19 +1,14 @@
 # -*- coding: utf-8 -*-
-from pathlib import Path
-
-from PyQt5 import QtGui
 from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-from PyQt5 import uic
 
-from ..ui import resource_qt5 as resource_rc
-HERE = Path(__file__).resolve().parent
+from ..ui import resource_rc as resource_rc
+from ..ui.channel_stats import Ui_ChannelStats
 
 
-class ChannelStats(QtWidgets.QWidget):
+class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(HERE.joinpath("..", "ui", "channel_stats.ui"), self)
+        self.setupUi(self)
 
         self.color = "#000000"
         self.fmt = "phys"

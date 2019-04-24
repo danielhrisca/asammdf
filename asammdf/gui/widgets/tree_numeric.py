@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from math import ceil
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets

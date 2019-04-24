@@ -7,15 +7,16 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from PyQt5 import uic
 
-from ..ui import resource_qt5 as resource_rc
+from ..ui import resource_rc as resource_rc
+from ..ui.channel_info_widget import Ui_ChannelInfo
 
 HERE = Path(__file__).resolve().parent
 
 
-class ChannelInfoWidget(QtWidgets.QWidget):
+class ChannelInfoWidget(Ui_ChannelInfo, QtWidgets.QWidget):
     def __init__(self, channel, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(HERE.joinpath("..", "ui", "channel_info_widget.ui"), self)
+        self.setupUi(self)
 
         self.channel_label.setText(channel.metadata())
 

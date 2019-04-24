@@ -6,27 +6,23 @@ import webbrowser
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
-from PyQt5 import uic
 import pyqtgraph as pg
 
-from ..ui import resource_qt5 as resource_rc
-
 from ...mdf import MDF, SUPPORTED_VERSIONS
+from ..ui.main_window import Ui_PyMDFMainWindow
 from ...version import __version__ as libversion
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .list import ListWidget
 from .file import FileWidget
 
-HERE = Path(__file__).resolve().parent
 
-
-class MainWindow(QtWidgets.QMainWindow):
+class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def __init__(self, files=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.setupUi(self)
         self._settings = QtCore.QSettings()
         self._light_palette = self.palette()
-        uic.loadUi(HERE.joinpath("..", "ui", "main_window.ui"), self)
 
         self.progress = None
 

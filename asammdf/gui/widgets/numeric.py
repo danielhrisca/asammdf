@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-from pathlib import Path
-
-HERE = Path(__file__).resolve().parent
 
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
-from PyQt5 import uic
 from natsort import natsorted
-from numpy import zeros, searchsorted
+from numpy import searchsorted
 
-from ..ui import resource_qt5 as resource_rc
+from ..ui import resource_rc as resource_rc
+from ..ui.numeric import Ui_NumericDisplay
 
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
@@ -41,18 +38,18 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
             return self.text(column) < otherItem.text(column)
 
 
-class Numeric(QtWidgets.QWidget):
+class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
 
     def __init__(self, signals, *args, **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
+        self.setupUi(self)
         self.signals = {
             sig.name: sig
             for sig in signals
         }
         self._min = self._max = 0
         self.format = 'phys'
-        uic.loadUi(HERE.joinpath("..", "ui", "numeric.ui"), self)
 
         self.timestamp.valueChanged.connect(self._timestamp_changed)
         self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)

@@ -1,19 +1,15 @@
 # -*- coding: utf-8 -*-
-from pathlib import Path
+
 from functools import partial
-from ..ui import resource_qt5 as resource_rc
-from PyQt5 import QtGui
+from ..ui import resource_rc as resource_rc
+from ..ui.range_editor_dialog import Ui_RangeDialog
 from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-from PyQt5 import uic
-
-HERE = Path(__file__).resolve().parent
 
 
-class RangeEditor(QtWidgets.QDialog):
+class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
     def __init__(self, unit="", ranges=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(HERE.joinpath("..", "ui", "range_editor_dialog.ui"), self)
+        self.setupUi(self)
 
         self.unit = unit
         self.result = {}

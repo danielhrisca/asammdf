@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
-from pathlib import Path
 
-from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from PyQt5 import uic
 
-from ..ui import resource_qt5 as resource_rc
+from ..ui import resource_rc as resource_rc
+from ..ui.search_widget import Ui_SearchWidget
 
-HERE = Path(__file__).resolve().parent
 
-
-class SearchWidget(QtWidgets.QWidget):
+class SearchWidget(Ui_SearchWidget, QtWidgets.QWidget):
 
     selectionChanged = QtCore.pyqtSignal()
 
     def __init__(self, channels_db, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(HERE.joinpath("..", "ui", "search_widget.ui"), self)
+        self.setupUi(self)
         self.channels_db = channels_db
 
         self.matches = 0

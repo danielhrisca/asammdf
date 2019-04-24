@@ -3,7 +3,7 @@ from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 
-from ..ui import resource_qt5 as resource_rc
+from ..ui import resource_rc as resource_rc
 
 from ..widgets.channel_info import ChannelInfoWidget
 

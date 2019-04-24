@@ -3,7 +3,7 @@ import logging
 
 import numpy as np
 
-from ..ui import resource_qt5 as resource_rc
+from ..ui import resource_rc as resource_rc
 
 
 bin_ = bin

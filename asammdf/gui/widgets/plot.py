@@ -11,7 +11,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
-from ..ui import resource_qt5 as resource_rc
+from ..ui import resource_rc as resource_rc
 from .list import ListWidget
 
 try:
@@ -1451,4 +1451,5 @@ try:
             raise Exception('Signal not found')
 
 except ImportError:
+    raise
     PYQTGRAPH_AVAILABLE = False

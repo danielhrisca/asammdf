@@ -1,16 +1,11 @@
 # -*- coding: utf-8 -*-
-from pathlib import Path
 
 import numpy as np
 
 from ...signal import Signal as AsamSignal
-from ..ui import resource_qt5 as resource_rc
-from PyQt5 import QtGui
+from ..ui import resource_rc as resource_rc
+from ..ui.define_channel_dialog import Ui_ComputedChannel
 from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-from PyQt5 import uic
-
-HERE = Path(__file__).resolve().parent
 
 
 OPS_TO_STR = {
@@ -29,10 +24,10 @@ OPS_TO_STR = {
 }
 
 
-class DefineChannel(QtWidgets.QDialog):
+class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
     def __init__(self, channels, all_timebase, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        uic.loadUi(HERE.joinpath("..", "ui", "define_channel_dialog.ui"), self)
+        self.setupUi(self)
 
         self.channels = {ch.name: ch for ch in channels}
         self.result = None
