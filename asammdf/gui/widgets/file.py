@@ -19,7 +19,7 @@ from ..ui import resource_rc as resource_rc
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
-from ...blocks.utils import MdfException
+from ...blocks.utils import MdfException, extract_cncomment_xml
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .plot import Plot
 from .numeric import Numeric
@@ -481,6 +481,7 @@ class FileWidget(QtWidgets.QWidget):
             for i, group in enumerate(self.mdf.groups):
                 channel_group = QtWidgets.QTreeWidgetItem()
                 comment = group.channel_group.comment
+                comment = extract_cncomment_xml(comment)
                 if comment:
                     channel_group.setText(0, f"Channel group {i} ({comment})")
                 else:
