@@ -1241,7 +1241,8 @@ try:
                             sig.plot_samples = samples
                             sig.plot_timestamps = timestamps
                             if sig.plot_texts is not None:
-                                idx = np.argwhere(sig.timestamps == timestamps)
+
+                                idx = np.searchsorted(sig.timestamps, timestamps)
                                 sig.plot_texts = sig.texts[idx]
                         else:
                             start_ = max(0, start_ - 2)
