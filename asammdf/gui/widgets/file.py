@@ -480,7 +480,11 @@ class FileWidget(QtWidgets.QWidget):
         else:
             for i, group in enumerate(self.mdf.groups):
                 channel_group = QtWidgets.QTreeWidgetItem()
-                channel_group.setText(0, f"Channel group {i}")
+                comment = group.channel_group.comment
+                if comment:
+                    channel_group.setText(0, f"Channel group {i} ({comment})")
+                else:
+                    channel_group.setText(0, f"Channel group {i}")
                 channel_group.setFlags(
                     channel_group.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable
                 )
