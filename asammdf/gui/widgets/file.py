@@ -30,6 +30,7 @@ from .mdi_area import MdiAreaWidget
 
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_info import ChannelInfoDialog
+from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 
 HERE = Path(__file__).resolve().parent
 
@@ -256,8 +257,8 @@ class FileWidget(QtWidgets.QWidget):
 
         self.filter_layout.addWidget(self.filter_field, 0, 0, 1, 1)
 
-        self.channels_tree.itemDoubleClicked.connect(self.show_channel_info)
-        self.filter_tree.itemDoubleClicked.connect(self.show_channel_info)
+        self.channels_tree.itemDoubleClicked.connect(self.show_info)
+        self.filter_tree.itemDoubleClicked.connect(self.show_info)
 
         self.channels_layout.insertWidget(0, splitter)
         self.filter_layout.addWidget(self.filter_tree, 1, 0, 8, 1)
@@ -479,7 +480,8 @@ class FileWidget(QtWidgets.QWidget):
             self.channels_tree.addTopLevelItems(items)
         else:
             for i, group in enumerate(self.mdf.groups):
-                channel_group = QtWidgets.QTreeWidgetItem()
+                entry = i, None
+                channel_group = TreeItem(entry)
                 comment = group.channel_group.comment
                 comment = extract_cncomment_xml(comment)
                 if comment:
@@ -832,23 +834,19 @@ class FileWidget(QtWidgets.QWidget):
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
 
-    def show_channel_info(self, item, column):
-        if self.channel_view.currentIndex() == 1:
-            if item and item.parent():
-                group, index = item.entry
+    def show_info(self, item, column):
+        group, index = item.entry
+        if index is None:
+            channel_group = self.mdf.groups[group].channel_group
 
-                channel = self.mdf.get_channel_metadata(group=group, index=index)
-
-                msg = ChannelInfoDialog(channel, self)
-                msg.show()
+            msg = ChannelGroupInfoDialog(channel_group, group, self)
+            msg.show()
         else:
-            if item:
-                group, index = item.entry
 
-                channel = self.mdf.get_channel_metadata(group=group, index=index)
+            channel = self.mdf.get_channel_metadata(group=group, index=index)
 
-                msg = ChannelInfoDialog(channel, self)
-                msg.show()
+            msg = ChannelInfoDialog(channel, self)
+            msg.show()
 
     def clear_filter(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)

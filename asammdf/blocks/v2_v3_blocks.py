@@ -535,7 +535,7 @@ class Channel:
         template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
-        lines = """
+        lines = f"""
 name: {self.name}
 display name: {self.display_name}
 address: {hex(self.address)}
@@ -1241,7 +1241,7 @@ class ChannelConversion(_ChannelConversionBase):
         template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
-        lines = """
+        lines = f"""
 address: {hex(self.address)}
 
 """.split("\n")
@@ -1927,7 +1927,7 @@ class ChannelExtension:
         template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
-        lines = """
+        lines = f"""
 address: {hex(self.address)}
 
 """.split("\n")
@@ -2169,6 +2169,54 @@ class ChannelGroup:
                 self.samples_byte_nr,
                 self.cycles_nr,
             )
+
+    def metadata(self):
+        keys = (
+            "id",
+            "block_len",
+            "next_cg_addr",
+            "first_ch_addr",
+            "comment_addr",
+            "record_id",
+            "ch_nr",
+            "samples_byte_nr",
+            "cycles_nr",
+            "sample_reduction_addr",
+        )
+
+        max_len = max(len(key) for key in keys)
+        template = f"{{: <{max_len}}}: {{}}"
+
+        metadata = []
+        lines = f"""
+address: {hex(self.address)}
+comment: {self.comment}
+
+""".split("\n")
+
+
+
+        for key in keys:
+            if not hasattr(self, key):
+                continue
+            val = getattr(self, key)
+            if key.endswith("addr") or key.startswith("text_"):
+                lines.append(template.format(key, hex(val)))
+            elif isinstance(val, float):
+                lines.append(template.format(key, round(val, 6)))
+            else:
+                if isinstance(val, bytes):
+                    lines.append(template.format(key, val.strip(b"\0")))
+                else:
+                    lines.append(template.format(key, val))
+        for line in lines:
+            if not line:
+                metadata.append(line)
+            else:
+                for wrapped_line in wrap(line, width=120):
+                    metadata.append(wrapped_line)
+
+        return "\n".join(metadata)
 
 
 class DataBlock:

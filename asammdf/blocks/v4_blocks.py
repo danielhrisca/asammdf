@@ -1655,6 +1655,58 @@ class ChannelGroup:
         )
         return result
 
+    def metadata(self):
+        keys = (
+            "id",
+            "reserved0",
+            "block_len",
+            "links_nr",
+            "next_cg_addr",
+            "first_ch_addr",
+            "acq_name_addr",
+            "acq_source_addr",
+            "first_sample_reduction_addr",
+            "comment_addr",
+            "record_id",
+            "cycles_nr",
+            "flags",
+            "path_separator",
+            "reserved1",
+            "samples_byte_nr",
+            "invalidation_bytes_nr",
+        )
+
+        max_len = max(len(key) for key in keys)
+        template = f"{{: <{max_len}}}: {{}}"
+
+        metadata = []
+        lines = f"""
+name: {self.acq_name}
+address: {hex(self.address)}
+comment: {self.comment}
+
+""".split("\n")
+
+        for key in keys:
+            val = getattr(self, key)
+            if key.endswith("addr") or key.startswith("text_"):
+                lines.append(template.format(key, hex(val)))
+            elif isinstance(val, float):
+                lines.append(template.format(key, round(val, 6)))
+            else:
+                if isinstance(val, bytes):
+                    lines.append(template.format(key, val.strip(b"\0")))
+                else:
+                    lines.append(template.format(key, val))
+        for line in lines:
+            if not line:
+                metadata.append(line)
+            else:
+                for wrapped_line in wrap(line, width=120):
+                    metadata.append(wrapped_line)
+
+        return "\n".join(metadata)
+
 
 class _ChannelConversionBase:
     __slots__ = (
