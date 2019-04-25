@@ -179,7 +179,7 @@ class Signal(object):
             app.exec_()
             return
 
-        except ImportError:
+        except:
             try:
                 import matplotlib.pyplot as plt
                 from mpl_toolkits.mplot3d import axes3d

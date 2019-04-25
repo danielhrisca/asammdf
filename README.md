@@ -39,10 +39,11 @@ The main goals for this library are:
 * append new channels
 * read unsorted MDF v3 and v4 files
 * read CAN bus logging files
+* extract CAN signals from anonymous CAN bu logging measurements
 * filter a subset of channels from original mdf file
 * cut measurement to specified time interval
 * convert to different mdf version
-* export to pandas, Excel, HDF5, Matlab (v4, v5 and v7.3),CSV and parquet
+* export to pandas, Excel, HDF5, Matlab (v4, v5 and v7.3, CSV and parquet
 * merge multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
 * space optimizations for saved files (no duplicated blocks)
@@ -58,7 +59,7 @@ The main goals for this library are:
         * 2 - look-up
 
 * add and extract attachments for mdf version 4
-* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi) using *memory* = *minimum* argument
+* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi)
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
 * time domain operation using the *Signal* class
 
@@ -79,7 +80,8 @@ The main goals for this library are:
     * functionality related to sample reduction block: the samples reduction blocks are simply ignored
     * handling of channel hierarchy: channel hierarchy is ignored
     * full handling of bus logging measurements: currently only CAN bus logging is implemented with the
-      ability to *get* signals defined in the attached CAN database (.arxml or .dbc)
+      ability to *get* signals defined in the attached CAN database (.arxml or .dbc). Signals can also
+      be extracted from an anonymous CAN logging measurement by providing a CAN database (.dbc or .arxml)
     * handling of unfinished measurements (mdf 4): warnings are logged based on the unfinished status flags
       but no further steps are taken to sanitize the measurement
     * full support for remaining mdf 4 channel arrays types
