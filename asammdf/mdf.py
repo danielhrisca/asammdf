@@ -3434,6 +3434,7 @@ class MDF(object):
                     raster = np.array(raster)
             else:
                 raster = master_using_raster(self, raster)
+            master = raster
         else:
             masters = [
                 self.get_master(i, copy_master=False)
