@@ -1305,9 +1305,22 @@ address: {hex(self.address)}
             if conversion_type == v23c.CONVERSION_TYPE_TABI:
                 values = np.interp(values, raw_vals, phys)
             else:
-                idx = np.searchsorted(raw_vals, values)
-                idx = np.clip(idx, 0, len(raw_vals) - 1)
-                values = phys[idx]
+                dim = raw_vals.shape[0]
+
+                inds = np.searchsorted(raw_vals, values)
+
+                inds[inds >= dim] = dim - 1
+
+                inds2 = inds - 1
+                inds2[inds2 < 0] = 0
+
+                cond = np.abs(values - raw_vals[inds]) >= np.abs(values - raw_vals[inds2])
+
+                values = np.where(
+                    cond,
+                    phys[inds2],
+                    phys[inds]
+                )
 
         elif conversion_type == v23c.CONVERSION_TYPE_TABX:
             nr = self.ref_param_nr

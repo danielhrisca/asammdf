@@ -641,7 +641,6 @@ class MDF(object):
         if whence == 1:
             timestamps = []
             for i, group in enumerate(self.groups):
-                fragment = next(self._load_data(group))
                 master = self.get_master(
                     i,
                     record_offset=0,
@@ -2713,7 +2712,7 @@ class MDF(object):
             get raw channel samples; default *False*
         copy_master : bool
             option to get a new timestamps array for each selected Signal or to
-            use a shared array for channels of the same channel group; default *False*
+            use a shared array for channels of the same channel group; default *True*
 
         dataframe: bool
             return a pandas DataFrame instead of a list of *Signals*; in this
