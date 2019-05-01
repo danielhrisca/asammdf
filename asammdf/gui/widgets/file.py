@@ -15,7 +15,8 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from PyQt5 import uic
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc as resource_rc\
+from ..ui.file_widget import Ui_file_widget
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
@@ -32,17 +33,15 @@ from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 
-HERE = Path(__file__).resolve().parent
 
-
-class FileWidget(QtWidgets.QWidget):
+class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
     open_new_file = QtCore.pyqtSignal(str)
 
     def __init__(self, file_name, with_dots, subplots=False, subplots_link=False, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-        uic.loadUi(HERE.joinpath("..", "ui", "file_widget.ui"), self)
+        self.setupUi(self)
 
         file_name = Path(file_name)
         self.subplots = subplots
