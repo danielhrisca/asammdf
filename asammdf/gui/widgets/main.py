@@ -56,7 +56,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/list.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtWidgets.QAction(icon, "{: <20}".format("Multiple files"), menu)
+        action = QtWidgets.QAction(icon, "{: <20}".format("Batch processing"), menu)
         action.triggered.connect(partial(self.stackedWidget.setCurrentIndex, 1))
         mode_actions.addAction(action)
 
