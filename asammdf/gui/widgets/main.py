@@ -331,7 +331,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.batch = BatchWidget()
         self.stackedWidget.addWidget(self.batch)
         self.stackedWidget.setCurrentIndex(0)
-        self.setWindowTitle(f'asammdf {libversion}')
+        self.setWindowTitle(f'asammdf {libversion} - Single files')
 
         if files:
             for name in files:
@@ -676,5 +676,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def mode_changed(self, index):
         if index == 0:
             self.plot_menu.setEnabled(True)
+            self.setWindowTitle(f'asammdf {libversion} - Single files')
         else:
             self.plot_menu.setEnabled(False)
+            self.setWindowTitle(f'asammdf {libversion} - Batch processing')

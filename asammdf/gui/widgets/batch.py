@@ -32,7 +32,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         self.progress = None
         self.files_list = MinimalListWidget()
-        self.splitter.insertWidget(0, self.files_list)
+        self.splitter.addWidget(self.files_list)
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)
 

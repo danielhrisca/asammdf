@@ -21,7 +21,7 @@
      </property>
      <widget class="QTabWidget" name="aspects">
       <property name="tabPosition">
-       <enum>QTabWidget::East</enum>
+       <enum>QTabWidget::West</enum>
       </property>
       <property name="currentIndex">
        <number>0</number>

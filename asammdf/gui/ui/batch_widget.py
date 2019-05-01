@@ -19,7 +19,7 @@ class Ui_batch_widget(object):
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
         self.splitter.setObjectName("splitter")
         self.aspects = QtWidgets.QTabWidget(self.splitter)
-        self.aspects.setTabPosition(QtWidgets.QTabWidget.East)
+        self.aspects.setTabPosition(QtWidgets.QTabWidget.West)
         self.aspects.setDocumentMode(False)
         self.aspects.setObjectName("aspects")
         self.concatenate_tab = QtWidgets.QWidget()

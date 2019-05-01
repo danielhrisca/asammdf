@@ -1295,7 +1295,8 @@ class MDF(object):
                             sheet.write_column(1, col + offset, vals)
 
                     workbook.close()
-                    del self._master_channel_cache[(i, 0, -1)]
+                    if (i, 0, -1) in self._master_channel_cache:
+                        del self._master_channel_cache[(i, 0, -1)]
 
                     if self._callback:
                         self._callback(i + 1, count)
@@ -1307,9 +1308,6 @@ class MDF(object):
                 message = f'Writing csv export to file "{name}"'
                 logger.info(message)
 
-                from time import perf_counter as pc
-
-                s = pc()
                 with open(name, "w", newline="") as csvfile:
                     writer = csv.writer(csvfile)
 
@@ -1326,19 +1324,11 @@ class MDF(object):
                     if self._terminate:
                         return
 
-                    rows = []
-
                     for i, row in enumerate(zip(*vals)):
-                        rows.append(row)
+                        writer.writerow(row)
+
                         if self._callback:
                             self._callback(i + 1 + count, count * 2)
-                        if i % 1000 == 0:
-                            writer.writerows(rows)
-                            rows = []
-
-                    if rows:
-                        writer.writerows(rows)
-                print(pc()-s)
 
             else:
 
