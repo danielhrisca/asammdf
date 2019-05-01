@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+import os
 from pathlib import Path
 import webbrowser
 
@@ -7,6 +8,7 @@ from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 import pyqtgraph as pg
+from natsort import natsorted
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..ui.main_window import Ui_PyMDFMainWindow
@@ -35,6 +37,10 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtWidgets.QAction(icon, "Open", menu)
         action.triggered.connect(self.open)
+        open_group.addAction(action)
+        menu.addActions(open_group.actions())
+        action = QtWidgets.QAction(icon, "Open folder", menu)
+        action.triggered.connect(self.open_folder)
         open_group.addAction(action)
         menu.addActions(open_group.actions())
 
@@ -640,7 +646,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
             progress.cancel()
 
-    def open_multiple_files(self, event):
+    def open_batch_files(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self,
             "Select measurement file",
@@ -650,20 +656,20 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         )
 
         if file_names:
-            self.files_list.addItems(file_names)
-            count = self.files_list.count()
+            self.batch.files_list.addItems(natsorted(file_names))
+            count = self.batch.files_list.count()
 
             icon = QtGui.QIcon()
             icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 
             for row in range(count):
-                self.files_list.item(row).setIcon(icon)
+                self.batch.files_list.item(row).setIcon(icon)
 
     def open(self, event):
         if self.stackedWidget.currentIndex() == 0:
             self.open_file(event)
         else:
-            self.open_multiple_files(event)
+            self.open_batch_files(event)
 
     def _open_file(self, file_name):
         file_name = Path(file_name)
@@ -690,8 +696,34 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             "All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
         )
 
-        for file_name in file_names:
+        for file_name in natsorted(file_names):
             self._open_file(file_name)
+
+    def open_folder(self, event):
+        folder = QtWidgets.QFileDialog.getExistingDirectory(
+            self,
+            "Select folder",
+            "",
+            QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks,
+        )
+        if not folder:
+            return
+        if self.stackedWidget.currentIndex() == 0:
+            for root, dirs, files in os.walk(folder):
+                for file in natsorted(files):
+                    if file.lower().endswith(('.erg', '.dl3', '.dat', '.mdf', '.mf4')):
+                        self._open_file(os.path.join(root, file))
+        else:
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+
+            for root, dirs, files in os.walk(folder):
+                for file in natsorted(files):
+                    if file.lower().endswith(('.erg', '.dl3', '.dat', '.mdf', '.mf4')):
+
+                        row = self.batch.files_list.count()
+                        self.batch.files_list.addItem(os.path.join(root, file))
+                        self.batch.files_list.item(row).setIcon(icon)
 
     def close_file(self, index):
         widget = self.files.widget(index)

@@ -13,25 +13,17 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_9" columnstretch="0,1,0">
-   <item row="0" column="0">
-    <widget class="QPushButton" name="add_files_btn">
-     <property name="text">
-      <string>Add files</string>
-     </property>
-     <property name="icon">
-      <iconset resource="resource.qrc">
-       <normaloff>:/file.png</normaloff>:/file.png</iconset>
-     </property>
-    </widget>
+  <layout class="QGridLayout" name="gridLayout_9" columnstretch="1,0,0" columnminimumwidth="0,0,0">
+   <item row="1" column="0" colspan="2">
+    <widget class="ListWidget" name="files_list"/>
    </item>
-   <item row="0" column="2" rowspan="3">
+   <item row="0" column="2" rowspan="2">
     <widget class="QTabWidget" name="aspects">
      <property name="tabPosition">
       <enum>QTabWidget::East</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -1030,33 +1022,6 @@
       </layout>
      </widget>
     </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QPushButton" name="add_folder_btn">
-     <property name="text">
-      <string>Add folder</string>
-     </property>
-     <property name="icon">
-      <iconset resource="resource.qrc">
-       <normaloff>:/open.png</normaloff>:/open.png</iconset>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <spacer name="horizontalSpacer">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>218</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="2" column="0" colspan="2">
-    <widget class="ListWidget" name="files_list"/>
    </item>
   </layout>
  </widget>
