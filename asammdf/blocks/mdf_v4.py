@@ -2510,11 +2510,15 @@ class MDF4(object):
 
                 if signal.stream_sync:
                     channel_type = v4c.CHANNEL_TYPE_SYNC
-                    at_data, at_name = signal.attachment
-                    attachment_addr = self.attach(
-                        at_data, at_name, mime="video/avi", embedded=False
-                    )
-                    data_block_addr = attachment_addr
+                    if signal.attachment:
+                        at_data, at_name = signal.attachment
+                        attachment_addr = self.attach(
+                            at_data, at_name, mime="video/avi", embedded=False
+                        )
+                        data_block_addr = attachment_addr
+                    else:
+                        data_block_addr = 0
+
                     sync_type = v4c.SYNC_TYPE_TIME
                 else:
                     channel_type = v4c.CHANNEL_TYPE_VALUE
@@ -5482,8 +5486,9 @@ class MDF4(object):
                     )
 
                     if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
-                        idx = self._attachments_map[channel.data_block_addr]
-                        channel.data_block_addr = self.attachments[idx].address
+                        if channel.data_block_addr:
+                            idx = self._attachments_map[channel.data_block_addr]
+                            channel.data_block_addr = self.attachments[idx].address
                     else:
                         sdata = self._load_signal_data(group=gp, index=j)
                         if sdata:
