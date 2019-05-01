@@ -979,6 +979,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 progress=progress,
             )
 
+        self.progress = None
+        progress.cancel()
+
     def resample(self, event):
         version = self.resample_format.currentText()
 
@@ -1052,6 +1055,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 offset=66,
                 progress=progress,
             )
+
+        self.progress = None
+        progress.cancel()
 
     def cut(self, event):
         version = self.cut_format.currentText()
@@ -1131,6 +1137,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 progress=progress,
             )
 
+        self.progress = None
+        progress.cancel()
+
     def export(self, event):
         export_type = self.export_type.currentText()
 
@@ -1157,44 +1166,44 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         )
 
         if file_name:
-            thr = Thread(
-                target=self.mdf.export,
-                kwargs={
-                    "fmt": export_type,
-                    "filename": file_name,
-                    "single_time_base": single_time_base,
-                    "use_display_names": use_display_names,
-                    "time_from_zero": time_from_zero,
-                    "empty_channels": empty_channels,
-                    "format": mat_format,
-                    "raster": raster,
-                    "oned_as": oned_as,
-                    "reduce_memory_usage": reduce_memory_usage,
-                    "compression": compression,
-                },
+            progress = setup_progress(
+                parent=self,
+                title="Cutting measurement",
+                message='Cutting "{self.file_name}" from {start}s to {stop}s',
+                icon_name="cut",
             )
 
-            progress = QtWidgets.QProgressDialog(
-                f"Exporting to {export_type} ...", "Abort export", 0, 100
+            # cut self.mdf
+            target = self.mdf.export
+            kwargs={
+                "fmt": export_type,
+                "filename": file_name,
+                "single_time_base": single_time_base,
+                "use_display_names": use_display_names,
+                "time_from_zero": time_from_zero,
+                "empty_channels": empty_channels,
+                "format": mat_format,
+                "raster": raster,
+                "oned_as": oned_as,
+                "reduce_memory_usage": reduce_memory_usage,
+                "compression": compression,
+            }
+
+            mdf = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=66,
+                offset=0,
+                progress=progress,
             )
-            progress.setWindowModality(QtCore.Qt.ApplicationModal)
-            progress.setCancelButton(None)
-            progress.setAutoClose(True)
-            progress.setWindowTitle("Running export")
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-            progress.setWindowIcon(icon)
 
-            thr.start()
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
 
-            cntr = 0
-
-            while thr.is_alive():
-                cntr += 1
-                progress.setValue(cntr % 98)
-                sleep(0.1)
-
-            progress.cancel()
+        self.progress = None
+        progress.cancel()
 
     def add_window(self, args):
         window_type, names = args
@@ -1858,6 +1867,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 progress=progress,
             )
 
+        self.progress = None
+        progress.cancel()
+
     def scramble(self, event):
 
         progress = setup_progress(
@@ -1884,7 +1896,12 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             progress.cancel()
             return
 
-        self.open_new_file.emit(str(Path(self.file_name).with_suffix(".scrambled.mf4")))
+        self.progress = None
+        progress.cancel()
+
+        path = Path(self.file_name)
+
+        self.open_new_file.emit(str(path.with_suffix(f".scrambled{path.suffix}")))
 
     def add_new_channels(self, names, widget):
         try:
@@ -1970,6 +1987,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 offset=70,
                 progress=progress,
             )
+
+            self.progress = None
+            progress.cancel()
 
             self.open_new_file.emit(str(file_name))
 

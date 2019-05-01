@@ -30,6 +30,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.progress = None
 
         self.files.tabCloseRequested.connect(self.close_file)
+        self.stackedWidget.currentChanged.connect(self.mode_changed)
 
         menu = self.menubar.addMenu("File")
         open_group = QtWidgets.QActionGroup(self)
@@ -307,17 +308,17 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtCore.Qt.Key_R)
         cursors_actions.addAction(action)
 
-        menu = QtWidgets.QMenu("Plot", self.menubar)
-        menu.addActions(plot_actions.actions())
-        menu.addSeparator()
-        menu.addActions(cursors_actions.actions())
-        menu.addSeparator()
-        menu.addActions(display_format_actions.actions())
-        menu.addSeparator()
-        menu.addActions(subs.actions())
-        menu.addSeparator()
-        menu.addActions(info.actions())
-        self.menubar.addMenu(menu)
+        self.plot_menu = QtWidgets.QMenu("Plot", self.menubar)
+        self.plot_menu.addActions(plot_actions.actions())
+        self.plot_menu.addSeparator()
+        self.plot_menu.addActions(cursors_actions.actions())
+        self.plot_menu.addSeparator()
+        self.plot_menu.addActions(display_format_actions.actions())
+        self.plot_menu.addSeparator()
+        self.plot_menu.addActions(subs.actions())
+        self.plot_menu.addSeparator()
+        self.plot_menu.addActions(info.actions())
+        self.menubar.addMenu(self.plot_menu)
 
         menu = self.menubar.addMenu("Help")
         open_group = QtWidgets.QActionGroup(self)
@@ -552,100 +553,6 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
 
-    def delete_item(self, item):
-        index = self.files_list.row(item)
-        self.files_list.takeItem(index)
-
-    def function_select(self, val):
-        if self.concatenate.isChecked():
-            self.cs_btn.setText("Concatenate")
-        else:
-            self.cs_btn.setText("Stack")
-
-    def cs_clicked(self, event):
-        if self.concatenate.isChecked():
-            func = MDF.concatenate
-            operation = "Concatenating"
-        else:
-            func = MDF.stack
-            operation = "Stacking"
-
-        version = self.cs_format.currentText()
-
-        sync = self.sync.checkState() == QtCore.Qt.Checked
-        add_samples_origin = self.add_samples_origin.checkState() == QtCore.Qt.Checked
-
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-
-        split = self.cs_split.checkState() == QtCore.Qt.Checked
-        if split:
-            split_size = int(self.cs_split_size.value() * 1024 * 1024)
-        else:
-            split_size = 0
-
-        compression = self.cs_compression.currentIndex()
-
-        count = self.files_list.count()
-
-        files = [self.files_list.item(row).text() for row in range(count)]
-
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", filter
-        )
-
-        if file_name:
-
-            progress = setup_progress(
-                parent=self,
-                title=f"{operation} measurements",
-                message=f"{operation} files and saving to {version} format",
-                icon_name="stack",
-            )
-
-            target = func
-            kwargs = {
-                "files": files,
-                "outversion": version,
-                "callback": self.update_progress,
-                "sync": sync,
-                "add_samples_origin": add_samples_origin,
-            }
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=50,
-                offset=0,
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-            mdf.configure(write_fragment_size=split_size)
-
-            # save it
-            progress.setLabelText(f'Saving output file "{file_name}"')
-
-            target = mdf.save
-            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
-
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=50,
-                offset=50,
-                progress=progress,
-            )
-
-            progress.cancel()
-
     def open_batch_files(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self,
@@ -752,3 +659,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     self._open_file(path)
         except:
             pass
+
+    def mode_changed(self, index):
+        if index == 0:
+            self.plot_menu.setEnabled(True)
+        else:
+            self.plot_menu.setEnabled(False)

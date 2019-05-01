@@ -1048,6 +1048,9 @@ class MDF(object):
                     logger.warning("scipy not found; export to mat is unavailable")
                     return
 
+        if self._callback:
+            self._callback(0, 100)
+
         if single_time_base or fmt == "parquet":
             df = self.to_dataframe(
                 raster=raster,
@@ -1060,6 +1063,7 @@ class MDF(object):
             comments = OrderedDict()
             used_names = UniqueDB()
 
+            groups_nr = len(self.groups)
             for i, grp in enumerate(self.groups):
                 if self._terminate:
                     return
@@ -1085,6 +1089,9 @@ class MDF(object):
                     units[channel_name] = unit
                     comments[channel_name] = comment
 
+                if self._callback:
+                    self._callback(i+1, groups_nr * 2)
+
         if fmt == "hdf5":
             name = name.with_suffix(".hdf")
 
@@ -1102,7 +1109,9 @@ class MDF(object):
                     # each HDF5 group will have a string attribute "master"
                     # that will hold the name of the master channel
 
-                    for channel in df:
+                    count = len(df.columns)
+
+                    for i, channel in enumerate(df):
                         samples = df[channel]
                         unit = units[channel]
                         comment = comments[channel]
@@ -1125,6 +1134,9 @@ class MDF(object):
                         if comment:
                             dataset.attrs["comment"] = comment
 
+                        if self._callback:
+                            self._callback(i + 1 + count, count * 2)
+
             else:
                 with HDF5(str(name), "w") as hdf:
                     # header information
@@ -1138,6 +1150,8 @@ class MDF(object):
                     # "DataGroup_<cntr>" with the index starting from 1
                     # each HDF5 group will have a string attribute "master"
                     # that will hold the name of the master channel
+
+                    groups_nr = len(self.groups)
                     for i, grp in enumerate(self.groups):
                         names = UniqueDB()
                         if self._terminate:
@@ -1177,6 +1191,9 @@ class MDF(object):
                             if comment:
                                 dataset.attrs["comment"] = comment
 
+                        if self._callback:
+                            self._callback(i + 1, groups_nr)
+
         elif fmt == "excel":
 
             if single_time_base:
@@ -1186,6 +1203,8 @@ class MDF(object):
 
                 workbook = xlsxwriter.Workbook(str(name))
                 sheet = workbook.add_worksheet("Channels")
+
+                cols = len(units)
 
                 for col, (channel_name, channel_unit) in enumerate(units.items()):
                     if self._terminate:
@@ -1198,6 +1217,9 @@ class MDF(object):
                     except:
                         vals = [str(e) for e in sig.samples]
                         sheet.write_column(1, col, vals)
+
+                    if self._callback:
+                        self._callback(col + 1 + cols, cols * 2)
 
                 workbook.close()
 
@@ -1275,6 +1297,9 @@ class MDF(object):
                     workbook.close()
                     del self._master_channel_cache[(i, 0, -1)]
 
+                    if self._callback:
+                        self._callback(i + 1, count)
+
         elif fmt == "csv":
 
             if single_time_base:
@@ -1292,11 +1317,15 @@ class MDF(object):
 
                     vals = [df[name] for name in df]
 
+                    count = len(vals[0])
+
                     if self._terminate:
                         return
 
-                    for row in zip(*vals):
+                    for i, row in enumerate(zip(*vals)):
                         writer.writerow(row)
+                        if self._callback:
+                            self._callback(i + 1 + count, count * 2)
 
             else:
 
@@ -1388,6 +1417,8 @@ class MDF(object):
                             writer.writerow(row)
 
                     del self._master_channel_cache[(i, 0, -1)]
+                    if self._callback:
+                        self._callback(i + 1, count)
 
         elif fmt == "mat":
 
@@ -1399,6 +1430,8 @@ class MDF(object):
                 master_name_template = "DGM{}_{}"
                 channel_name_template = "DG{}_{}"
                 used_names = UniqueDB()
+
+                groups_nr = len(self.groups)
 
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
@@ -1437,15 +1470,23 @@ class MDF(object):
 
                         mdict[channel_name] = sig.samples
 
+                    if self._callback:
+                        self._callback(i + 1, groups_nr)
+
             else:
                 used_names = UniqueDB()
                 mdict = {}
 
-                for name in df.columns:
+                count = len(df.columns)
+
+                for i, name in enumerate(df.columns):
                     channel_name = matlab_compatible(name)
                     channel_name = used_names.get_unique_name(channel_name)
 
                     mdict[channel_name] = df[name].values
+
+                    if self._callback:
+                        self._callback(i + 1 + count, count * 2)
 
                 mdict['time'] = df.index.values
 

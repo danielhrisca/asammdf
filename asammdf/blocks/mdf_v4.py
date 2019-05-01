@@ -1117,19 +1117,26 @@ class MDF4(object):
                 stream = self._tempfile
                 address = group.signal_data[index]
                 if address:
-                    if address[0] in self._cg_map:
-                        group = self.groups[self._cg_map[address[0]]]
-                        data.append(
-                            b''.join(e[0] for e in self._load_data(group))
-                        )
+                    if isinstance(address, int):
+                        if address in self._cg_map:
+                            group = self.groups[self._cg_map[address]]
+                            data.append(
+                                b''.join(e[0] for e in self._load_data(group))
+                            )
                     else:
-                        for addr, size in zip(
-                            group.signal_data[index], group.signal_data_size[index]
-                        ):
-                            if not size:
-                                continue
-                            stream.seek(addr)
-                            data.append(stream.read(size))
+                        if address[0] in self._cg_map:
+                            group = self.groups[self._cg_map[address[0]]]
+                            data.append(
+                                b''.join(e[0] for e in self._load_data(group))
+                            )
+                        else:
+                            for addr, size in zip(
+                                group.signal_data[index], group.signal_data_size[index]
+                            ):
+                                if not size:
+                                    continue
+                                stream.seek(addr)
+                                data.append(stream.read(size))
                 data = b"".join(data)
         else:
             data = b""

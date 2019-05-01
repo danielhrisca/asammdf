@@ -4,6 +4,7 @@ from time import sleep
 from pathlib import Path
 
 from natsort import natsorted
+import psutil
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -27,6 +28,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        self.progress = None
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)
 
@@ -64,8 +67,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 0, ("no compression", "deflate", "transposed deflate")
             )
 
-        self.add_files_btn.clicked.connect(self.add_files)
-        self.add_folder_btn.clicked.connect(self.add_folder)
         self.concatenate_btn.clicked.connect(self.concatenate)
         self.convert_btn.clicked.connect(self.convert)
         self.cut_btn.clicked.connect(self.cut)
@@ -85,12 +86,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.export_type.setCurrentIndex(-1)
 
         self.aspects.setCurrentIndex(0)
-
-    def add_files(self, event):
-        pass
-
-    def add_folder(self, event):
-        pass
 
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():
@@ -160,44 +155,64 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def convert(self, event):
         version = self.convert_format.currentText()
 
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-
         split = self.convert_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.convert_split_size.value() * 1024 * 1024)
         else:
             split_size = 0
 
-        self.mdf.configure(write_fragment_size=split_size)
-
         compression = self.convert_compression.currentIndex()
 
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", filter
+        count = self.files_list.count()
+
+        delta = 100 / count
+
+        progress = setup_progress(
+            parent=self,
+            title="Converting measurements",
+            message=f'Converting "{count}" files to {version}',
+            icon_name="convert",
         )
 
-        if file_name:
+        files = self._prepare_files(progress)
+        source_files = [
+            Path(self.files_list.item(row).text())
+            for row in range(count)
+        ]
 
-            progress = setup_progress(
-                parent=self,
-                title="Converting measurement",
-                message=f'Converting "{self.file_name}" from {self.mdf.version} to {version}',
-                icon_name="convert",
-            )
+        for i, (file, source_file) in enumerate(zip(files, source_files)):
 
-            # convert self.mdf
-            target = self.mdf.convert
+            progress.setLabelText(f'Converting file {i+1} of {count} to {version}')
+
+            if not isinstance(file, MDF):
+
+                # open file
+                target = MDF
+                kwargs = {
+                    "name": file,
+                    "callback": self.update_progress,
+                }
+
+                mdf = run_thread_with_progress(
+                    self,
+                    target=target,
+                    kwargs=kwargs,
+                    factor=0,
+                    offset=int(i*delta),
+                    progress=progress,
+                )
+            else:
+                mdf = file
+
+            target = mdf.convert
             kwargs = {"version": version}
 
             mdf = run_thread_with_progress(
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=50,
-                offset=0,
+                factor=int(delta/2),
+                offset=int(i*delta),
                 progress=progress,
             )
 
@@ -207,8 +222,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             mdf.configure(write_fragment_size=split_size)
 
+            file_name = source_file.with_suffix(
+                '.convert.mdf' if version < '4.00' else '.convert.mf4'
+            )
+
             # then save it
-            progress.setLabelText(f'Saving converted file "{file_name}"')
+            progress.setLabelText(f'Saving converted file {i+1} to "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
@@ -217,10 +236,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=50,
-                offset=50,
+                factor=int(delta/2),
+                offset=int((i+1/2)*delta),
                 progress=progress,
             )
+
+        self.progress = None
+        progress.cancel()
 
     def resample(self, event):
         version = self.resample_format.currentText()
@@ -230,36 +252,60 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         else:
             raster = self.raster.value()
 
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-
         split = self.resample_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.resample_split_size.value() * 1024 * 1024)
         else:
             split_size = 0
 
-        self.mdf.configure(write_fragment_size=split_size)
-
         compression = self.resample_compression.currentIndex()
         time_from_zero = self.resample_time_from_zero.checkState() == QtCore.Qt.Checked
 
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", filter
+        count = self.files_list.count()
+
+        delta = 100 / count
+
+        progress = setup_progress(
+            parent=self,
+            title="Resampling measurements",
+            message=f'Resampling "{count}" files',
+            icon_name="convert",
         )
 
-        if file_name:
-            progress = setup_progress(
-                parent=self,
-                title="Resampling measurement",
-                message=f'Resampling "{self.file_name}" to {raster}s raster ',
-                icon_name="resample",
-            )
+        files = self._prepare_files(progress)
+        source_files = [
+            Path(self.files_list.item(row).text())
+            for row in range(count)
+        ]
 
-            # resample self.mdf
-            target = self.mdf.resample
+        for i, (file, source_file) in enumerate(zip(files, source_files)):
+
+            if isinstance(raster, str):
+                progress.setLabelText(f'Resampling file {i+1} of {count} using "{raster}" as raster')
+            else:
+                progress.setLabelText(f'Resampling file {i+1} of {count} to {raster:.3f}s')
+
+            if not isinstance(file, MDF):
+
+                # open file
+                target = MDF
+                kwargs = {
+                    "name": file,
+                    "callback": self.update_progress,
+                }
+
+                mdf = run_thread_with_progress(
+                    self,
+                    target=target,
+                    kwargs=kwargs,
+                    factor=0,
+                    offset=int(i*delta),
+                    progress=progress,
+                )
+            else:
+                mdf = file
+
+            target = mdf.resample
             kwargs = {
                 "raster": raster,
                 "version": version,
@@ -270,8 +316,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=66,
-                offset=0,
+                factor=int(delta/2),
+                offset=int(i*delta),
                 progress=progress,
             )
 
@@ -281,8 +327,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             mdf.configure(write_fragment_size=split_size)
 
+            file_name = source_file.with_suffix(
+                '.resample.mdf' if version < '4.00' else '.resample.mf4'
+            )
+
             # then save it
-            progress.setLabelText(f'Saving resampled file "{file_name}"')
+            progress.setLabelText(f'Saving resampled file {i+1} to "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
@@ -291,10 +341,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=34,
-                offset=66,
+                factor=int(delta/2),
+                offset=int((i+1/2)*delta),
                 progress=progress,
             )
+
+        self.progress = None
+        progress.cancel()
 
     def cut(self, event):
         version = self.cut_format.currentText()
@@ -307,35 +360,57 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         else:
             whence = 0
 
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-
         split = self.cut_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.cut_split_size.value() * 1024 * 1024)
         else:
             split_size = 0
 
-        self.mdf.configure(write_fragment_size=split_size)
-
         compression = self.cut_compression.currentIndex()
 
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", filter
+        count = self.files_list.count()
+
+        delta = 100 / count
+
+        progress = setup_progress(
+            parent=self,
+            title="Cutting measurements",
+            message=f'Cutting "{count}" files from {start}s to {stop}s',
+            icon_name="cut",
         )
 
-        if file_name:
-            progress = setup_progress(
-                parent=self,
-                title="Cutting measurement",
-                message='Cutting "{self.file_name}" from {start}s to {stop}s',
-                icon_name="cut",
-            )
+        files = self._prepare_files(progress)
+        source_files = [
+            Path(self.files_list.item(row).text())
+            for row in range(count)
+        ]
+
+        for i, (file, source_file) in enumerate(zip(files, source_files)):
+
+            progress.setLabelText(f'Cutting file {i+1} of {count} from {start}s to {stop}s')
+
+            if not isinstance(file, MDF):
+
+                # open file
+                target = MDF
+                kwargs = {
+                    "name": file,
+                    "callback": self.update_progress,
+                }
+
+                mdf = run_thread_with_progress(
+                    self,
+                    target=target,
+                    kwargs=kwargs,
+                    factor=0,
+                    offset=int(i*delta),
+                    progress=progress,
+                )
+            else:
+                mdf = file
 
             # cut self.mdf
-            target = self.mdf.cut
+            target = mdf.cut
             kwargs = {
                 "start": start,
                 "stop": stop,
@@ -348,8 +423,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=66,
-                offset=0,
+                factor=int(delta/2),
+                offset=int(i*delta),
                 progress=progress,
             )
 
@@ -359,8 +434,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             mdf.configure(write_fragment_size=split_size)
 
+            file_name = source_file.with_suffix(
+                '.cut.mdf' if version < '4.00' else '.cut.mf4'
+            )
+
             # then save it
-            progress.setLabelText(f'Saving cut file "{file_name}"')
+            progress.setLabelText(f'Saving cut file {i+1} to "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
@@ -369,10 +448,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=34,
-                offset=66,
+                factor=int(delta/2),
+                offset=int((i+1/2)*delta),
                 progress=progress,
             )
+
+        self.progress = None
+        progress.cancel()
 
     def export(self, event):
         export_type = self.export_type.currentText()
@@ -387,57 +469,90 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         reduce_memory_usage = self.reduce_memory_usage.checkState() == QtCore.Qt.Checked
         compression = self.export_compression.currentText()
 
-        filters = {
-            "csv": "CSV files (*.csv)",
-            "excel": "Excel files (*.xlsx)",
-            "hdf5": "HDF5 files (*.hdf)",
-            "mat": "Matlab MAT files (*.mat)",
-            "parquet": "Apache Parquet files (*.parquet)",
-        }
+        count = self.files_list.count()
 
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select export file", "", filters[export_type]
+        delta = 100 / count
+
+        progress = setup_progress(
+            parent=self,
+            title="Exporting measurements",
+            message=f'Exporting "{count}" files to {export_type}',
+            icon_name="export",
         )
 
-        if file_name:
-            thr = Thread(
-                target=self.mdf.export,
-                kwargs={
-                    "fmt": export_type,
-                    "filename": file_name,
-                    "single_time_base": single_time_base,
-                    "use_display_names": use_display_names,
-                    "time_from_zero": time_from_zero,
-                    "empty_channels": empty_channels,
-                    "format": mat_format,
-                    "raster": raster,
-                    "oned_as": oned_as,
-                    "reduce_memory_usage": reduce_memory_usage,
-                    "compression": compression,
-                },
+        files = self._prepare_files(progress)
+        source_files = [
+            Path(self.files_list.item(row).text())
+            for row in range(count)
+        ]
+
+        if export_type == 'csv':
+            suffix = '.csv'
+        elif export_type == "excel":
+            suffix = '.xslx'
+        elif export_type == "hdf5":
+            suffix = '.hdf'
+        elif export_type == "mat":
+            suffix = '.mat'
+        elif export_type == "parquet":
+            suffix = '.parquet'
+
+        for i, (file, source_file) in enumerate(zip(files, source_files)):
+
+            progress.setLabelText(f'Exporting file {i+1} of {count} to {export_type}')
+
+            if not isinstance(file, MDF):
+
+                # open file
+                target = MDF
+                kwargs = {
+                    "name": file,
+                    "callback": self.update_progress,
+                }
+
+                mdf = run_thread_with_progress(
+                    self,
+                    target=target,
+                    kwargs=kwargs,
+                    factor=0,
+                    offset=int(i*delta),
+                    progress=progress,
+                )
+            else:
+                mdf = file
+
+            file_name = source_file.with_suffix(suffix)
+
+            target = mdf.export
+            kwargs={
+                "fmt": export_type,
+                "filename": file_name,
+                "single_time_base": single_time_base,
+                "use_display_names": use_display_names,
+                "time_from_zero": time_from_zero,
+                "empty_channels": empty_channels,
+                "format": mat_format,
+                "raster": raster,
+                "oned_as": oned_as,
+                "reduce_memory_usage": reduce_memory_usage,
+                "compression": compression,
+            }
+
+            mdf = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=int(delta/2),
+                offset=int(i*delta),
+                progress=progress,
             )
 
-            progress = QtWidgets.QProgressDialog(
-                f"Exporting to {export_type} ...", "Abort export", 0, 100
-            )
-            progress.setWindowModality(QtCore.Qt.ApplicationModal)
-            progress.setCancelButton(None)
-            progress.setAutoClose(True)
-            progress.setWindowTitle("Running export")
-            icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-            progress.setWindowIcon(icon)
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
 
-            thr.start()
-
-            cntr = 0
-
-            while thr.is_alive():
-                cntr += 1
-                progress.setValue(cntr % 98)
-                sleep(0.1)
-
-            progress.cancel()
+        self.progress = None
+        progress.cancel()
 
     def filter(self, event):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
@@ -524,31 +639,48 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
     def scramble(self, event):
 
+        count = self.files_list.count()
+
+        delta = 100 / count
+
         progress = setup_progress(
             parent=self,
-            title="Scrambling measurement",
-            message=f'Scrambling "{self.file_name}"',
+            title="Scrambling measurements",
+            message=f'Scrambling "{count}" files',
             icon_name="scramble",
         )
 
-        # scrambling self.mdf
-        target = MDF.scramble
-        kwargs = {"name": self.file_name, "callback": self.update_progress}
+        files = self._prepare_files(progress)
+        source_files = [
+            Path(self.files_list.item(row).text())
+            for row in range(count)
+        ]
 
-        mdf = run_thread_with_progress(
-            self,
-            target=target,
-            kwargs=kwargs,
-            factor=100,
-            offset=0,
-            progress=progress,
-        )
+        for i, (file, source_file) in enumerate(zip(files, source_files)):
 
-        if mdf is TERMINATED:
-            progress.cancel()
-            return
+            progress.setLabelText(f'Scrambling file {i+1} of {count}')
 
-        self.open_new_file.emit(str(Path(self.file_name).with_suffix(".scrambled.mf4")))
+            target = MDF.scramble
+            kwargs = {
+                "name": file,
+                "callback": self.update_progress,
+            }
+
+            mdf = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=0,
+                offset=int(i*delta),
+                progress=progress,
+            )
+
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
+
+        self.progress = None
+        progress.cancel()
 
     def extract_can(self, event):
         version = self.extract_can_format.currentText()
@@ -561,26 +693,48 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         compression = self.extract_can_compression.currentIndex()
 
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
+        count = self.files_list.count()
 
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", filter
+        delta = 100 / count
+
+        progress = setup_progress(
+            parent=self,
+            title="Extract CAN logging from measurements",
+            message=f'Extracting CAN logging from "{count}" files',
+            icon_name="down",
         )
 
-        if file_name:
+        files = self._prepare_files(progress)
+        source_files = [
+            Path(self.files_list.item(row).text())
+            for row in range(count)
+        ]
 
-            progress = setup_progress(
-                parent=self,
-                title="Extract CAN logging",
-                message=f'Extracting CAN signals from "{self.file_name}"',
-                icon_name="down",
-            )
+        for i, (file, source_file) in enumerate(zip(files, source_files)):
 
-            # convert self.mdf
-            target = self.mdf.extract_can_logging
+            progress.setLabelText(f'Extracting CAN logging from file {i+1} of {count}')
+
+            if not isinstance(file, MDF):
+
+                # open file
+                target = MDF
+                kwargs = {
+                    "name": file,
+                    "callback": self.update_progress,
+                }
+
+                mdf = run_thread_with_progress(
+                    self,
+                    target=target,
+                    kwargs=kwargs,
+                    factor=0,
+                    offset=int(i*delta),
+                    progress=progress,
+                )
+            else:
+                mdf = file
+
+            target = mdf.extract_can_logging
             kwargs = {
                 "dbc_files": dbc_files,
                 "version": version,
@@ -590,8 +744,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=70,
-                offset=0,
+                factor=int(delta/2),
+                offset=int(i*delta),
                 progress=progress,
             )
 
@@ -599,26 +753,27 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 progress.cancel()
                 return
 
+            file_name = source_file.with_suffix(
+                '.can_logging.mdf' if version < '4.00' else '.can_logging.mf4'
+            )
+
             # then save it
-            progress.setLabelText(f'Saving file to "{file_name}"')
+            progress.setLabelText(f'Saving extarcted CAN logging file {i+1} to "{file_name}"')
 
             target = mdf.save
-            kwargs = {
-                "dst": file_name,
-                "compression": compression,
-                "overwrite": True,
-            }
+            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
 
             run_thread_with_progress(
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=30,
-                offset=70,
+                factor=int(delta/2),
+                offset=int((i+1/2)*delta),
                 progress=progress,
             )
 
-            self.open_new_file.emit(str(file_name))
+        self.progress = None
+        progress.cancel()
 
     def load_can_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
@@ -654,15 +809,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         compression = self.concatenate_compression.currentIndex()
 
-        count = self.files_list.count()
-
-        files = [self.files_list.item(row).text() for row in range(count)]
-
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+        output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output measurement file", "", filter
         )
 
-        if file_name:
+        if output_file_name:
 
             progress = setup_progress(
                 parent=self,
@@ -670,6 +821,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 message=f"{operation} files and saving to {version} format",
                 icon_name="stack",
             )
+
+            files = self._prepare_files(progress)
 
             target = func
             kwargs = {
@@ -696,10 +849,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf.configure(write_fragment_size=split_size)
 
             # save it
-            progress.setLabelText(f'Saving output file "{file_name}"')
+            progress.setLabelText(f'Saving output file "{output_file_name}"')
 
             target = mdf.save
-            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
+            kwargs = {"dst": output_file_name, "compression": compression, "overwrite": True}
 
             run_thread_with_progress(
                 self,
@@ -734,15 +887,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         compression = self.stack_compression.currentIndex()
 
-        count = self.files_list.count()
-
-        files = [self.files_list.item(row).text() for row in range(count)]
-
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+        output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output measurement file", "", filter
         )
 
-        if file_name:
+        if output_file_name:
 
             progress = setup_progress(
                 parent=self,
@@ -750,6 +899,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 message=f"{operation} files and saving to {version} format",
                 icon_name="stack",
             )
+
+            files = self._prepare_files(progress)
 
             target = func
             kwargs = {
@@ -776,10 +927,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf.configure(write_fragment_size=split_size)
 
             # save it
-            progress.setLabelText(f'Saving output file "{file_name}"')
+            progress.setLabelText(f'Saving output file "{output_file_name}"')
 
             target = mdf.save
-            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
+            kwargs = {"dst": output_file_name, "compression": compression, "overwrite": True}
 
             run_thread_with_progress(
                 self,
@@ -791,3 +942,53 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             )
 
             progress.cancel()
+
+    def _prepare_files(self, progress):
+        count = self.files_list.count()
+
+        files = [Path(self.files_list.item(row).text()) for row in range(count)]
+
+        for i, file_name in enumerate(files):
+            if file_name.suffix.lower() == ".erg":
+                progress.setLabelText(f"Converting file {i+1} of {count} from erg to mdf")
+                try:
+                    from mfile import ERG
+
+                    files[i] = ERG(file_name).export_mdf()
+                except Exception as err:
+                    print(err)
+                    return
+            else:
+
+                if file_name.suffix.lower() == ".dl3":
+                    progress.setLabelText(f"Converting file {i+1} of {count} from dl3 to mdf")
+                    datalyser_active = any(
+                        proc.name() == 'Datalyser3.exe'
+                        for proc in psutil.process_iter()
+                    )
+                    try:
+                        import win32com.client
+
+                        index = 0
+                        while True:
+                            mdf_name = file_name.with_suffix(f".{index}.mdf")
+                            if mdf_name.exists():
+                                index += 1
+                            else:
+                                break
+
+                        datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
+                        if not datalyser_active:
+                            try:
+                                datalyser.DCOM_set_datalyser_visibility(False)
+                            except:
+                                pass
+                        datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
+                        if not datalyser_active:
+                            datalyser.DCOM_TerminateDAS()
+                        files[i] = mdf_name
+                    except Exception as err:
+                        print(err)
+                        return
+
+        return files
