@@ -2514,8 +2514,8 @@ class MDF(object):
             new raster that can be
 
             * a float step value
-            * a channel name who's timestamps will be used as raster
-            * an array
+            * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
+            * an array (starting with asammdf 5.5.0)
 
         version : str
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
@@ -3417,8 +3417,8 @@ class MDF(object):
             new raster that can be
 
             * a float step value
-            * a channel name who's timestamps will be used as raster
-            * an array
+            * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
+            * an array (starting with asammdf 5.5.0)
 
             see `resample` for examples of urisng this argument
 
