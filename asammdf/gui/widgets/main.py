@@ -14,6 +14,7 @@ from ...version import __version__ as libversion
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .list import ListWidget
 from .file import FileWidget
+from .batch import BatchWidget
 
 
 class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
@@ -27,19 +28,6 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.progress = None
 
         self.files.tabCloseRequested.connect(self.close_file)
-
-        self.concatenate.toggled.connect(self.function_select)
-        self.cs_btn.clicked.connect(self.cs_clicked)
-        self.cs_format.insertItems(0, SUPPORTED_VERSIONS)
-        self.cs_compression.insertItems(
-            0, ("no compression", "deflate", "transposed deflate")
-        )
-        self.cs_split_size.setValue(10)
-
-        self.files_list = ListWidget(self)
-        self.files_list.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
-        self.files_layout.addWidget(self.files_list, 0, 0, 1, 2)
-        self.files_list.itemDoubleClicked.connect(self.delete_item)
 
         menu = self.menubar.addMenu("File")
         open_group = QtWidgets.QActionGroup(self)
@@ -333,6 +321,8 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         menu.addActions(open_group.actions())
 
         self.with_dots = self._settings.value('dots', False, type=bool)
+        self.batch = BatchWidget()
+        self.stackedWidget.addWidget(self.batch)
         self.stackedWidget.setCurrentIndex(0)
         self.setWindowTitle(f'asammdf {libversion}')
 

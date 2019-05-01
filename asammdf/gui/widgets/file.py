@@ -15,7 +15,7 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from PyQt5 import uic
 
-from ..ui import resource_rc as resource_rc\
+from ..ui import resource_rc as resource_rc
 from ..ui.file_widget import Ui_file_widget
 
 from ...mdf import MDF, SUPPORTED_VERSIONS

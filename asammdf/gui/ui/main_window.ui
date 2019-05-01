@@ -74,138 +74,6 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="stackedWidgetPage2">
-       <layout class="QGridLayout" name="files_layout" rowstretch="1,0">
-        <item row="1" column="0">
-         <layout class="QGridLayout" name="gridLayout_2" rowstretch="0,0,0,0,0,0,0,0,0">
-          <item row="5" column="1">
-           <widget class="QDoubleSpinBox" name="cs_split_size">
-            <property name="suffix">
-             <string>MB</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="0">
-           <widget class="QCheckBox" name="cs_split">
-            <property name="text">
-             <string>Split data blocks</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QComboBox" name="cs_format"/>
-          </item>
-          <item row="1" column="0">
-           <widget class="QCheckBox" name="sync">
-            <property name="text">
-             <string>Sync using measurements timestamps</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="6" column="1">
-           <widget class="QComboBox" name="cs_compression"/>
-          </item>
-          <item row="7" column="0">
-           <spacer name="verticalSpacer">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="0" column="0" colspan="2">
-           <widget class="QGroupBox" name="groupBox">
-            <property name="title">
-             <string>Operation</string>
-            </property>
-            <layout class="QVBoxLayout" name="verticalLayout_3">
-             <item>
-              <widget class="QRadioButton" name="concatenate">
-               <property name="text">
-                <string>Concatenate</string>
-               </property>
-               <property name="checked">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QRadioButton" name="stack">
-               <property name="text">
-                <string>Stac&amp;k</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item row="6" column="0">
-           <widget class="QLabel" name="label_3">
-            <property name="text">
-             <string>Compression</string>
-            </property>
-           </widget>
-          </item>
-          <item row="8" column="0">
-           <widget class="QPushButton" name="cs_btn">
-            <property name="text">
-             <string>Concatenate</string>
-            </property>
-            <property name="icon">
-             <iconset resource="resource.qrc">
-              <normaloff>:/stack.png</normaloff>:/stack.png</iconset>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="2">
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>Output format</string>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>Split block size</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QCheckBox" name="add_samples_origin">
-            <property name="text">
-             <string>Add samples origin file</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-       </layout>
-      </widget>
      </widget>
     </item>
    </layout>
@@ -216,7 +84,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>22</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>

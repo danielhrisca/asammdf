@@ -28,10 +28,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        self.raster_channel.addItems(
-            natsorted(self.mdf.channels_db)
-        )
-
         self.raster_type_channel.toggled.connect(self.set_raster_type)
 
         for widget in (
@@ -40,7 +36,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
               self.cut_format,
               self.resample_format,
               self.stack_format,
-              self.can_extract_format,
+              self.extract_can_format,
         ):
 
             widget.insertItems(0, SUPPORTED_VERSIONS)
@@ -59,9 +55,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
               self.concatenate_compression,
               self.convert_compression,
               self.cut_compression,
-              self.resample_scompression,
+              self.resample_compression,
               self.stack_compression,
-              self.can_extract_compression,
+              self.extract_can_compression,
         ):
 
             widget.insertItems(
@@ -76,7 +72,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.resample_btn.clicked.connect(self.resample)
         self.scramble_btn.clicked.connect(self.scramble)
         self.stack_btn.clicked.connect(self.stack)
-        self.can_extract_btn.clicked.connect(self.can_extract)
+        self.extract_can_btn.clicked.connect(self.extract_can)
 
         self.load_can_database_btn.clicked.connect(self.load_can_database)
 
@@ -89,6 +85,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.export_type.setCurrentIndex(-1)
 
         self.aspects.setCurrentIndex(0)
+
+    def add_files(self, event):
+        pass
+
+    def add_folder(self, event):
+        pass
 
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():
@@ -548,7 +550,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         self.open_new_file.emit(str(Path(self.file_name).with_suffix(".scrambled.mf4")))
 
-    def extract_can_logging(self, event):
+    def extract_can(self, event):
         version = self.extract_can_format.currentText()
         count = self.can_database_list.count()
 
