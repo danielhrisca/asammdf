@@ -1429,7 +1429,8 @@ class MDF(object):
                         for idx, row in enumerate(zip(*vals)):
                             writer.writerow(row)
 
-                    del self._master_channel_cache[(i, 0, -1)]
+                    if (i, 0, -1) in self._master_channel_cache:
+                        del self._master_channel_cache[(i, 0, -1)]
                     if self._callback:
                         self._callback(i + 1, count)
 
