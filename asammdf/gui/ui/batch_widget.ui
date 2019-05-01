@@ -19,7 +19,6 @@
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
-     <widget class="ListWidget" name="files_list"/>
      <widget class="QTabWidget" name="aspects">
       <property name="tabPosition">
        <enum>QTabWidget::East</enum>
@@ -962,7 +961,7 @@
          </widget>
         </item>
         <item row="1" column="0" rowspan="2" colspan="3">
-         <widget class="ListWidget" name="can_database_list"/>
+         <widget class="MinimalListWidget" name="can_database_list"/>
         </item>
         <item row="5" column="1">
          <widget class="QComboBox" name="extract_can_format">
@@ -1030,7 +1029,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ListWidget</class>
+   <class>MinimalListWidget</class>
    <extends>QListWidget</extends>
    <header>asammdf/gui/widgets/list.h</header>
   </customwidget>

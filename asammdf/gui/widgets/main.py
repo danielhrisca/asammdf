@@ -653,10 +653,23 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def dropEvent(self, e):
         try:
-            for path in e.mimeData().text().splitlines():
-                path = Path(path.replace(r'file:///', ''))
-                if path.suffix.lower() in ('.dat', '.mdf', '.mf4'):
-                    self._open_file(path)
+            if self.stackedWidget.currentIndex() == 0:
+                for path in e.mimeData().text().splitlines():
+                    path = Path(path.replace(r'file:///', ''))
+                    if path.suffix.lower() in ('.dat', '.mdf', '.mf4'):
+
+                        self._open_file(path)
+            else:
+                icon = QtGui.QIcon()
+                icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+
+                for path in e.mimeData().text().splitlines():
+                    path = Path(path.replace(r'file:///', ''))
+                    if path.suffix.lower() in ('.dat', '.mdf', '.mf4'):
+
+                        row = self.batch.files_list.count()
+                        self.batch.files_list.addItem(str(path))
+                        self.batch.files_list.item(row).setIcon(icon)
         except:
             pass
 

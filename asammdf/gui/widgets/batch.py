@@ -20,6 +20,7 @@ from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .search import SearchWidget
 from .tree import TreeWidget
 from .tree_item import TreeItem
+from .list import MinimalListWidget
 
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
@@ -30,6 +31,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.setupUi(self)
 
         self.progress = None
+        self.files_list = MinimalListWidget()
+        self.splitter.insertWidget(0, self.files_list)
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)
 
@@ -86,6 +89,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.export_type.setCurrentIndex(-1)
 
         self.aspects.setCurrentIndex(0)
+        self.setAcceptDrops(True)
 
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():

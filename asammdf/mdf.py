@@ -1306,6 +1306,10 @@ class MDF(object):
                 name = name.with_suffix(".csv")
                 message = f'Writing csv export to file "{name}"'
                 logger.info(message)
+
+                from time import perf_counter as pc
+
+                s = pc()
                 with open(name, "w", newline="") as csvfile:
                     writer = csv.writer(csvfile)
 
@@ -1317,15 +1321,24 @@ class MDF(object):
 
                     vals = [df[name] for name in df]
 
-                    count = len(vals[0])
+                    count = len(df.index)
 
                     if self._terminate:
                         return
 
+                    rows = []
+
                     for i, row in enumerate(zip(*vals)):
-                        writer.writerow(row)
+                        rows.append(row)
                         if self._callback:
                             self._callback(i + 1 + count, count * 2)
+                        if i % 1000 == 0:
+                            writer.writerows(rows)
+                            rows = []
+
+                    if rows:
+                        writer.writerows(rows)
+                print(pc()-s)
 
             else:
 

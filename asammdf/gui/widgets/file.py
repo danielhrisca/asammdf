@@ -1093,7 +1093,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Cutting measurement",
-                message='Cutting "{self.file_name}" from {start}s to {stop}s',
+                message=f'Cutting "{self.file_name}" from {start}s to {stop}s',
                 icon_name="cut",
             )
 
@@ -1168,9 +1168,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         if file_name:
             progress = setup_progress(
                 parent=self,
-                title="Cutting measurement",
-                message='Cutting "{self.file_name}" from {start}s to {stop}s',
-                icon_name="cut",
+                title="Export measurement",
+                message=f'Exporting "{self.file_name}" to {export_type}',
+                icon_name="export",
             )
 
             # cut self.mdf
@@ -1193,7 +1193,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
-                factor=66,
+                factor=100,
                 offset=0,
                 progress=progress,
             )

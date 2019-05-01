@@ -13,7 +13,6 @@ sys.excepthook = excepthook
 
 def _cmd_line_parser():
     '''
-    return a command line parser. It is used when generating the documentation
     '''
 
     parser = argparse.ArgumentParser()

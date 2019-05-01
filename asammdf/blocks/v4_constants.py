@@ -525,8 +525,8 @@ KEYS_SR_BLOCK = (
 
 ASAM_XML_NAMESPACE = "{http://www.asam.net/mdf/v4}"
 
-CAN_ID_PATTERN = re.compile(r"((?i)can)(?P<id>\d+)")
-CAN_DATA_FRAME_PATTERN = re.compile(r"((?i)CAN_DataFrame)_(?P<id>\d+)")
+CAN_ID_PATTERN = re.compile(r"(?i:can)(?P<id>\d+)")
+CAN_DATA_FRAME_PATTERN = re.compile(r"(?i:CAN_DataFrame)_(?P<id>\d+)")
 
 CN_COMMENT_TEMPLATE = """<CNcomment>
 <TX>{}</TX>

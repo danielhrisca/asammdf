@@ -89,3 +89,32 @@ class ListWidget(QtWidgets.QListWidget):
                         for row in range(model.rowCount())
                     ]
                 self.add_channels_request.emit(names)
+            else:
+                super().dropEvent(e)
+
+
+class MinimalListWidget(QtWidgets.QListWidget):
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        self.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+
+        self.setAlternatingRowColors(True)
+
+        self.setAcceptDrops(True)
+        self.show()
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        if key == QtCore.Qt.Key_Delete:
+            selected_items = self.selectedItems()
+            deleted = []
+            for item in selected_items:
+                row = self.row(item)
+                deleted.append(row)
+                self.takeItem(row)
+        else:
+            super().keyPressEvent(event)

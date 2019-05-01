@@ -18,8 +18,6 @@ class Ui_batch_widget(object):
         self.splitter = QtWidgets.QSplitter(batch_widget)
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
         self.splitter.setObjectName("splitter")
-        self.files_list = ListWidget(self.splitter)
-        self.files_list.setObjectName("files_list")
         self.aspects = QtWidgets.QTabWidget(self.splitter)
         self.aspects.setTabPosition(QtWidgets.QTabWidget.East)
         self.aspects.setDocumentMode(False)
@@ -440,7 +438,7 @@ class Ui_batch_widget(object):
         self.line_12.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_12.setObjectName("line_12")
         self.gridLayout_5.addWidget(self.line_12, 3, 0, 1, 3)
-        self.can_database_list = ListWidget(self.extract_can_tab)
+        self.can_database_list = MinimalListWidget(self.extract_can_tab)
         self.can_database_list.setObjectName("can_database_list")
         self.gridLayout_5.addWidget(self.can_database_list, 1, 0, 2, 3)
         self.extract_can_format = QtWidgets.QComboBox(self.extract_can_tab)
@@ -559,5 +557,5 @@ class Ui_batch_widget(object):
         self.aspects.setTabText(self.aspects.indexOf(self.extract_can_tab), _translate("batch_widget", "CAN logging"))
 
 
-from asammdf.gui.widgets.list import ListWidget
+from asammdf.gui.widgets.list import MinimalListWidget
 from . import resource_rc
