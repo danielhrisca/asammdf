@@ -4696,7 +4696,7 @@ class MDF4(object):
             if hasattr(channel, "attachment_addr"):
                 index = self._attachments_map[channel.attachment_addr]
                 attachment = self.extract_attachment(index=index)
-            elif channel_type == v4c.CHANNEL_TYPE_SYNC:
+            elif channel_type == v4c.CHANNEL_TYPE_SYNC and channel.data_block_addr:
                 index = self._attachments_map[channel.data_block_addr]
                 attachment = self.extract_attachment(index=index)
             else:
