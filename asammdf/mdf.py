@@ -3773,8 +3773,6 @@ class MDF(object):
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
-                            print(*[f'{sig!r}' for sig in message.signals], sep='\n\n')
-
                             extracted_signals = extract_mux(payload, message, msg_id, bus, t)
 
                             from pprint import pprint
