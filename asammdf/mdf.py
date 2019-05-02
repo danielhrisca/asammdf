@@ -43,6 +43,7 @@ from .blocks.utils import (
     downcast,
     master_using_raster,
     extract_can_signal,
+    extract_mux,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -3772,43 +3773,50 @@ class MDF(object):
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
-                            entry = bus, msg_id
-                            if entry not in msg_map:
-                                sigs = []
-                                for signal in sorted(message.signals, key=lambda x: x.name):
-                                    sig = Signal(
-                                        samples=extract_can_signal(signal, payload),
-                                        timestamps=t,
-                                        name=signal.name,
-                                        comment=signal.comment or "",
-                                        unit=signal.unit or ""
-                                    )
-                                    sig.comment = f"""\
+                            print(*[f'{sig!r}' for sig in message.signals], sep='\n\n')
+
+                            extracted_signals = extract_mux(payload, message, msg_id, bus, t)
+
+                            from pprint import pprint
+                            pprint(extracted_signals)
+
+                            for entry, signals in extracted_signals.items():
+                                if entry not in msg_map:
+                                    sigs = []
+                                    for signal in signals.values():
+                                        sig = Signal(
+                                            samples=signal['samples'],
+                                            timestamps=signal['t'],
+                                            name=signal['name'],
+                                            comment=signal['comment'],
+                                            unit=signal['unit']
+                                        )
+                                        sig.comment = f"""\
 <CNcomment>
 <TX>{sig.comment}</TX>
 <names>
     <display>
-        CAN{bus}.{message.name}.{signal.name}
+        CAN{bus}.{message.name}.{signal['name']}
     </display>
 </names>
 </CNcomment>"""
 
-                                    sigs.append(sig)
+                                        sigs.append(sig)
 
-                                msg_map[entry] = len(out.groups)
-                                out.append(
-                                    sigs,
-                                    f'from CAN{bus} message ID=0x{msg_id:X}',
-                                    common_timebase=True,
-                                )
-                            else:
-                                index = msg_map[entry]
-                                sigs = [(t, None)]
-                                for signal in sorted(message.signals, key=lambda x: x.name):
-                                    sigs.append(
-                                        (extract_can_signal(signal, payload), None)
+                                    msg_map[entry] = len(out.groups)
+                                    out.append(
+                                        sigs,
+                                        f'from CAN{bus} message ID=0x{msg_id:X}',
+                                        common_timebase=True,
                                     )
-                                out.extend(index, sigs)
+                                else:
+                                    index = msg_map[entry]
+                                    sigs = [(t, None)]
+                                    for signal in sorted(message.signals, key=lambda x: x.name):
+                                        sigs.append(
+                                            (extract_can_signal(signal, payload), None)
+                                        )
+                                    out.extend(index, sigs)
 
                 cntr += 1
                 if self._callback:
