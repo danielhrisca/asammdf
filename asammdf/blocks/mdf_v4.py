@@ -480,9 +480,13 @@ class MDF4(object):
             if group.raw_can:
 
                 _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
-                can_ids = _sig.samples['CAN_DataFrame.ID']
+                can_ids = Signal(
+                    _sig.samples['CAN_DataFrame.ID'],
+                    _sig.timestamps,
+                    name='can_ids',
+                )
 
-                all_can_ids = sorted(unique(can_ids))
+                all_can_ids = sorted(unique(can_ids.samples))
 
                 if all_can_ids:
                     group.message_id = set()
