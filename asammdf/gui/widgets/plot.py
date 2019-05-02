@@ -1300,9 +1300,16 @@ try:
                 viewbox.setYRange(*self.view_boxes[index].viewRange()[1], padding=0)
                 self.view_boxes[index].setYLink(viewbox)
                 if len(sig.name) <= 32:
-                    axis.setLabel(f'{sig.name} [{sig.unit}]')
+                    if sig.unit:
+                        axis.setLabel(f'{sig.name} [{sig.unit}]')
+                    else:
+                        axis.setLabel(f'{sig.name}')
                 else:
-                    axis.setLabel(f"{sig.name[:29]}...  [{sig.unit}]")
+                    if sig.unit:
+                        axis.setLabel(f"{sig.name[:29]}...  [{sig.unit}]")
+                    else:
+                        axis.setLabel(f"{sig.name[:29]}...")
+
                 axis.setPen(sig.color)
                 axis.update()
 
