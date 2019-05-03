@@ -284,8 +284,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         except:
             self.result = None
 
-        print(self.result.computation)
-
         self.pressed_button = "apply"
         self.close()
 
