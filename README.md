@@ -39,11 +39,11 @@ The main goals for this library are:
 * append new channels
 * read unsorted MDF v3 and v4 files
 * read CAN bus logging files
-* extract CAN signals from anonymous CAN bu logging measurements
+* extract CAN signals from anonymous CAN bus logging measurements
 * filter a subset of channels from original mdf file
 * cut measurement to specified time interval
 * convert to different mdf version
-* export to pandas, Excel, HDF5, Matlab (v4, v5 and v7.3, CSV and parquet
+* export to pandas, Excel, HDF5, Matlab (v4, v5 and v7.3), CSV and parquet
 * merge multiple files sharing the same internal structure
 * read and save mdf version 4.10 files containing zipped data blocks
 * space optimizations for saved files (no duplicated blocks)
