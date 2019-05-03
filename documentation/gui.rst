@@ -41,7 +41,20 @@ Menu
 
 File
 ----
-The only command here is *Open*. Depending on the page this is allow to open a single file, or multiple files.
+The first menu command is *Open*. Depending on the mode this allows to open files indivisually or for batch processing.
+
+The second menu command is *Open folder*. If this is selected then, starting with the selected root folder, all subfolders are 
+searched recursively for MDF files. 
+
+
+Mode
+----
+
+* *Single files* : files are opened idividually
+* *Batch processing* : allows processing multiple files 
+
+.. image:: images/open_files.gif
+
 
 Settings
 --------

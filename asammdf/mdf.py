@@ -3775,9 +3775,6 @@ class MDF(object):
 
                             extracted_signals = extract_mux(payload, message, msg_id, bus, t)
 
-                            from pprint import pprint
-                            pprint(extracted_signals)
-
                             for entry, signals in extracted_signals.items():
                                 if entry not in msg_map:
                                     sigs = []

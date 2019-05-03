@@ -10,7 +10,7 @@ from io import BytesIO
 
 import numpy as np
 
-from utils import (
+from .utils import (
     CHANNELS_DEMO,
     CHANNELS_ARRAY,
     cycles,

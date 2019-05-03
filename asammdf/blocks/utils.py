@@ -1347,7 +1347,10 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
     for signal in message:
         if signal.multiplex == 'Multiplexor' or signal.muxer_for_signal != muxer:
             continue
-        entry = signal.mux_val_min, signal.mux_val_max
+        try:
+            entry = signal.mux_val_min, signal.mux_val_max
+        except:
+            entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0,0)
         if entry not in pairs:
             pairs[entry] = []
         pairs[entry].append(signal)
@@ -1395,7 +1398,10 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
         if signal.multiplex != 'Multiplexor' or signal.muxer_for_signal != muxer:
             continue
 
-        entry = signal.mux_val_min, signal.mux_val_max
+        try:
+            entry = signal.mux_val_min, signal.mux_val_max
+        except:
+            entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0,0)
         if entry not in pairs:
             pairs[entry] = []
         pairs[entry].append(signal)
