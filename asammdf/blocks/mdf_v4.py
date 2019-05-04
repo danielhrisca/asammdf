@@ -4818,7 +4818,7 @@ class MDF4(object):
         cycles_nr = group.channel_group.cycles_nr
 
         if original_data:
-            cycles_nr = len(data_bytes) // record_size
+            cycles_nr = len(data_bytes) // record_size if record_size else 0
         else:
             _count = record_count
 
