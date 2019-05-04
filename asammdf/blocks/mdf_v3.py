@@ -3107,7 +3107,7 @@ class MDF3(object):
         """
         info = {}
         for key in ("author", "department", "project", "subject"):
-            value = self.header[key].decode("latin-1").strip(" \n\t\0")
+            value = self.header[key]
             info[key] = value
         info["version"] = self.version
         info["groups"] = len(self.groups)
