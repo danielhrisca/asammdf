@@ -2510,10 +2510,10 @@ class HeaderBlock:
       "DD:MM:YYYY" format
     * ``time`` - btyes : time at which the recording was started in
       "HH:MM:SS" format
-    * ``author`` - btyes : author name
-    * ``organization`` - bytes : organization name
-    * ``project`` - bytes : project name
-    * ``subject`` - bytes : subject
+    * ``author_field`` - bytes : author name
+    * ``organization_field``` - bytes : organization name
+    * ``project_field``` - bytes : project name
+    * ``subject_field``` - bytes : subject
 
     Since version 3.2 the following extra keys were added
 

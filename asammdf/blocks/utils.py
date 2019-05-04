@@ -617,7 +617,6 @@ def debug_channel(mdf, group, channel, dependency, file=None):
     print("GROUP", "=" * 74, file=file)
     print("sorted:", group["sorted"], file=file)
     print("data location:", group["data_location"], file=file)
-    print("data size:", group["data_size"], file=file)
     print("data blocks:", group.data_blocks, file=file)
     print("dependencies", group["channel_dependencies"], file=file)
     print("parents:", parents, file=file)
