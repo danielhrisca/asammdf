@@ -49,3 +49,35 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                 )
                 if ok:
                     self.add_window_request.emit([ret, names])
+
+    def tile_vertically(self):
+        sub_windows = self.subWindowList()
+
+        position = QtCore.QPoint(0, 0)
+
+        width = self.width()
+        height = self.height()
+        ratio = height // len(sub_windows)
+
+        for window in sub_windows:
+            rect = QtCore.QRect(0, 0, width, ratio)
+
+            window.setGeometry(rect)
+            window.move(position)
+            position.setY(position.y() + ratio)
+
+    def tile_horizontally(self):
+        sub_windows = self.subWindowList()
+
+        position = QtCore.QPoint(0, 0)
+
+        width = self.width()
+        height = self.height()
+        ratio = width // len(sub_windows)
+
+        for window in sub_windows:
+            rect = QtCore.QRect(0, 0, ratio, height)
+
+            window.setGeometry(rect)
+            window.move(position)
+            position.setX(position.x() + ratio)

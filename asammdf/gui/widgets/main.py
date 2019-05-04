@@ -272,9 +272,20 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Shift+C"))
         subs.addAction(action)
 
-        action = QtWidgets.QAction("{: <20}\tShift+T".format("Tile sub-plots"), menu)
+        action = QtWidgets.QAction("{: <20}\tShift+T".format("Tile sub-plots in a grid"), menu)
         action.triggered.connect(partial(self.show_sub_windows, mode='tile'))
         action.setShortcut(QtGui.QKeySequence("Shift+T"))
+        subs.addAction(action)
+
+        action = QtWidgets.QAction("{: <20}\tShift+V".format("Tile sub-plots vertically"), menu)
+        action.triggered.connect(partial(self.show_sub_windows, mode='tile vertically'))
+        action.setShortcut(QtGui.QKeySequence("Shift+V"))
+        subs.addAction(action)
+
+
+        action = QtWidgets.QAction("{: <20}\tShift+H".format("Tile sub-plots horizontally"), menu)
+        action.triggered.connect(partial(self.show_sub_windows, mode='tile horizontally'))
+        action.setShortcut(QtGui.QKeySequence("Shift+H"))
         subs.addAction(action)
 
         # cursors
@@ -375,6 +386,10 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 widget.mdi_area.tileSubWindows()
             elif mode == 'cascade':
                 widget.mdi_area.cascadeSubWindows()
+            elif mode == 'tile vertically':
+                widget.mdi_area.tile_vertically()
+            elif mode == 'tile horizontally':
+                widget.mdi_area.tile_horizontally()
 
     def set_search_option(self, option):
         self.match = option
