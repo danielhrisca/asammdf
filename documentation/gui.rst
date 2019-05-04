@@ -115,12 +115,17 @@ Ctrl+H       Hex                Toggle hex representation of integer channels
 Ctrl+P       Physical           Toggle physical representation of integer channels
 Ctrl+S       Save plot channels Save channels from current active subplot in a new MF4 file
 Ctrl+Shift+S Save all channels  Save all channels from all sub-plots in a new MF4 file
+Shift+C      Cascade sub-plots  
+Shift+T      Tile sub-plots     Tiles sub-plots in a grid
+Shift+V      Tile vertically    Tiles sub-plots vertically [#f2]_
+Shift+H      Tile horizontally  Tiles sub-plots horizontally [#f2]_
 ============ ================== ================================================================================================================
 
 
 .. rubric:: Footnotes
 
 .. [#f1] If the cursor is present then zooming will center on it.
+.. [#f2] New in *asammdf 5.7.0*
 
 
 Single files
@@ -277,6 +282,10 @@ apply a function on one of the plot channels.
 
 The currently active plot's channels can be saved to a new file by pressing *Ctrl+S*.
 The channels from all sub-plots can be saved to a new file by pressing *Ctrl+Shift+S*.
+
+The sub-plots can be tiled as a grid, vertically or horizontally
+
+.. image:: images/tile.gif
 
 Drag & Drop
 -----------
