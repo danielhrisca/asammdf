@@ -3778,6 +3778,7 @@ class MDF(object):
                             for entry, signals in extracted_signals.items():
                                 if entry not in msg_map:
                                     sigs = []
+
                                     for signal in signals.values():
                                         sig = Signal(
                                             samples=signal['samples'],
@@ -3807,9 +3808,9 @@ class MDF(object):
                                 else:
                                     index = msg_map[entry]
                                     sigs = [(t, None)]
-                                    for signal in sorted(message.signals, key=lambda x: x.name):
+                                    for signal in signals.values():
                                         sigs.append(
-                                            (extract_can_signal(signal, payload), None)
+                                            (signal['samples'], None)
                                         )
                                     out.extend(index, sigs)
 

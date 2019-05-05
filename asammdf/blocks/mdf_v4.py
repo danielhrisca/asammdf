@@ -4326,8 +4326,7 @@ class MDF4(object):
                 invalidation_bits = []
 
                 count = 0
-                for fragment in data:
-
+                for kk, fragment in enumerate(data):
                     data_bytes, offset, _count = fragment
                     try:
                         parent, bit_offset = parents[ch_nr]
@@ -4511,6 +4510,7 @@ class MDF4(object):
             if channel_type == v4c.CHANNEL_TYPE_VLSD:
                 signal_data = self._load_signal_data(group=grp, index=ch_nr)
                 if signal_data:
+
                     values = []
 
                     vals = vals.tolist()
