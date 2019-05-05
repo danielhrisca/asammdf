@@ -493,6 +493,7 @@ try:
                 channel['name'] = name
                 channel['unit'] = sig.unit
                 channel['enabled'] = item.display.checkState() == QtCore.Qt.Checked
+                channel['individual_axis'] = item.individual_axis.checkState() == QtCore.Qt.Checked
                 channel['common_axis'] = item.ylink.checkState() == QtCore.Qt.Checked
                 channel['color'] = sig.color
                 channel['computed'] = sig.computed
@@ -690,9 +691,12 @@ try:
             _, index = self.signal_by_index(index)
 
             if state in (QtCore.Qt.Checked, True, 1):
-                self.axes[index].show()
+                if self.signals[index].enable:
+                    self.axes[index].show()
+                self.signals[index].individual_axis = True
             else:
                 self.axes[index].hide()
+                self.signals[index].individual_axis = False
 
         def setSignalEnable(self, index, state):
 
@@ -702,10 +706,13 @@ try:
                 self.signals[index].enable = True
                 self.curves[index].show()
                 self.view_boxes[index].setXLink(self.viewbox)
+                if self.signals[index].individual_axis:
+                    self.axes[index].show()
             else:
                 self.signals[index].enable = False
                 self.curves[index].hide()
                 self.view_boxes[index].setXLink(None)
+                self.axes[index].hide()
 
             if self.cursor1:
                 self.cursor_move_finished.emit()
@@ -1367,6 +1374,7 @@ try:
                     else:
                         sig.plot_texts = None
                 sig.enable = True
+                sig.individual_axis = False
                 if not hasattr(sig, 'computed'):
                     sig.computed = computed
                     if not computed:
