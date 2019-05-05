@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\DSUsers\uidn3651\02__PythonWorkspace\asammdf\asammdf\gui\ui\channel_display_widget.ui'
+# Form implementation generated from reading ui file 'channel_display_widget.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.1
+# Created by: PyQt5 UI code generator 5.12
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -46,7 +46,6 @@ class Ui_ChannelDiplay(object):
         self.name.setSizePolicy(sizePolicy)
         self.name.setMinimumSize(QtCore.QSize(0, 26))
         self.name.setMouseTracking(False)
-        self.name.setText("")
         self.name.setTextFormat(QtCore.Qt.PlainText)
         self.name.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse)
         self.name.setObjectName("name")
@@ -62,6 +61,10 @@ class Ui_ChannelDiplay(object):
         self.ylink.setText("")
         self.ylink.setObjectName("ylink")
         self.horizontalLayout.addWidget(self.ylink)
+        self.individual_axis = QtWidgets.QCheckBox(ChannelDiplay)
+        self.individual_axis.setText("")
+        self.individual_axis.setObjectName("individual_axis")
+        self.horizontalLayout.addWidget(self.individual_axis)
         self.horizontalLayout.setStretch(2, 1)
 
         self.retranslateUi(ChannelDiplay)
@@ -70,6 +73,7 @@ class Ui_ChannelDiplay(object):
     def retranslateUi(self, ChannelDiplay):
         _translate = QtCore.QCoreApplication.translate
         ChannelDiplay.setWindowTitle(_translate("ChannelDiplay", "Form"))
+        self.name.setText(_translate("ChannelDiplay", "MAIN CLOCK"))
         self.ylink.setToolTip(_translate("ChannelDiplay", "enable common Y axis"))
 
 

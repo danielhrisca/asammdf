@@ -19,7 +19,7 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0,0">
+  <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0,0,0">
    <property name="spacing">
     <number>2</number>
    </property>
@@ -103,7 +103,7 @@
       <bool>false</bool>
      </property>
      <property name="text">
-      <string/>
+      <string>MAIN CLOCK</string>
      </property>
      <property name="textFormat">
       <enum>Qt::PlainText</enum>
@@ -137,6 +137,13 @@
      <property name="toolTip">
       <string>enable common Y axis</string>
      </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="individual_axis">
      <property name="text">
       <string/>
      </property>

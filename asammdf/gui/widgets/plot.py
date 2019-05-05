@@ -153,6 +153,10 @@ try:
                 item.hide()
                 item.setParent(None)
 
+                item = self.plot.axes.pop(i)
+                item.hide()
+                item.setParent(None)
+
                 sig = self.plot.signals.pop(i)
 
                 if self.info_index == sig._index:
@@ -460,6 +464,7 @@ try:
                 it.color_changed.connect(self.plot.setColor)
                 it.enable_changed.connect(self.plot.setSignalEnable)
                 it.ylink_changed.connect(self.plot.setCommonAxis)
+                it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
                 it.enable_changed.emit(sig._index, 1)
                 it.enable_changed.emit(sig._index, 0)
@@ -544,6 +549,9 @@ try:
             self.cursor1 = None
             self.cursor2 = None
             self.signals = signals or []
+
+            self.axes = []
+            self._axes_layout_pos = 2
 
             self.disabled_keys = set()
 
@@ -676,6 +684,15 @@ try:
             )
 
             self.set_current_index(self.current_index, True)
+
+        def set_individual_axis(self, index, state):
+
+            _, index = self.signal_by_index(index)
+
+            if state in (QtCore.Qt.Checked, True, 1):
+                self.axes[index].show()
+            else:
+                self.axes[index].hide()
 
         def setSignalEnable(self, index, state):
 
@@ -1401,8 +1418,25 @@ try:
                     sig.rms = 'n.a.'
                     sig.avg = 'n.a.'
 
+                axis = FormatedAxis("right", pen=color)
+                if sig.conversion and hasattr(sig.conversion, "text_0"):
+                    axis.text_conversion = sig.conversion
+
                 view_box = pg.ViewBox(enableMenu=False)
                 view_box.disableAutoRange()
+
+                axis.linkToView(view_box)
+                if len(sig.name) <= 32:
+                    axis.labelText = sig.name
+                else:
+                    axis.labelText = f"{sig.name[:29]}..."
+                axis.labelUnits = sig.unit
+                axis.labelStyle = {"color": color}
+
+                axis.setLabel(axis.labelText, sig.unit, color=color)
+
+                self.layout.addItem(axis, 2, self._axes_layout_pos)
+                self._axes_layout_pos += 1
 
                 self.scene_.addItem(view_box)
 
@@ -1433,6 +1467,9 @@ try:
                 view_box.setXRange(start, stop, padding=0, update=True)
 
                 view_box.setGeometry(geometry)
+
+                self.axes.append(axis)
+                axis.hide()
 
             if len(self.all_timebase):
                 home = False

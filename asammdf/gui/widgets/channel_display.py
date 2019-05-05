@@ -14,6 +14,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     color_changed = QtCore.pyqtSignal(int, str)
     enable_changed = QtCore.pyqtSignal(int, int)
     ylink_changed = QtCore.pyqtSignal(int, int)
+    individual_axis_changed = QtCore.pyqtSignal(int, int)
 
     __slots__ = (
         'color',
@@ -46,7 +47,8 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         self.color_btn.clicked.connect(self.select_color)
         self.display.stateChanged.connect(self.display_changed)
-        self.ylink.stateChanged.connect(self.ylink_change)
+        self.ylink.stateChanged.connect(self._ylink_changed)
+        self.individual_axis.stateChanged.connect(self._individual_axis)
 
         self.fm = QtGui.QFontMetrics(self.name.font())
 
@@ -66,7 +68,11 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         state = self.display.checkState()
         self.enable_changed.emit(self.index, state)
 
-    def ylink_change(self, state):
+    def _individual_axis(self, state):
+        state = self.individual_axis.checkState()
+        self.individual_axis_changed.emit(self.index, state)
+
+    def _ylink_changed(self, state):
         state = self.ylink.checkState()
         self.ylink_changed.emit(self.index, state)
 

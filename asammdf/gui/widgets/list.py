@@ -26,6 +26,7 @@ class ListWidget(QtWidgets.QListWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
+        modifiers = event.modifiers()
         if key == QtCore.Qt.Key_Delete and self.can_delete_items:
             selected_items = self.selectedItems()
             deleted = []
@@ -35,7 +36,7 @@ class ListWidget(QtWidgets.QListWidget):
                 self.takeItem(row)
             if deleted:
                 self.itemsDeleted.emit(deleted)
-        elif key == QtCore.Qt.Key_Space:
+        elif key == QtCore.Qt.Key_Space and modifiers == QtCore.Qt.NoModifier:
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -52,6 +53,24 @@ class ListWidget(QtWidgets.QListWidget):
             for item in selected_items:
                 wid = self.itemWidget(item)
                 wid.display.setCheckState(state)
+
+        elif key == QtCore.Qt.Key_Space and modifiers == QtCore.Qt.ControlModifier:
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+
+            states = [
+                self.itemWidget(item).individual_axis.checkState()
+                for item in selected_items
+            ]
+
+            if any(state == QtCore.Qt.Unchecked for state in states):
+                state = QtCore.Qt.Checked
+            else:
+                state = QtCore.Qt.Unchecked
+            for item in selected_items:
+                wid = self.itemWidget(item)
+                wid.individual_axis.setCheckState(state)
 
         else:
             super().keyPressEvent(event)
