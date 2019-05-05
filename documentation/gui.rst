@@ -101,8 +101,8 @@ C            Cursor             Displays a movable cursor that will trigger the 
 F            Fit                Y-axis fit all active channels on the screen, keeping the current X-axis range
 G            Grid               Toggle grid lines
 H            Home               XY-axis fit all active channels
-I            Zoom-in            X-axis zoom-in [#f1]_
-O            Zoom-out           X-axis zoom-out [#f1]_
+I            Zoom-in            X-axis zoom-in [1]_
+O            Zoom-out           X-axis zoom-out [1]_
 M            Statistics         Toggle the display of the statistic panel
 R            Range              Display a movable range that will trigger the display of the delta values for all plot channels
 S            Stack              Y Stack all active channels so that they don't overlap, keeping the X-axis range
@@ -117,15 +117,15 @@ Ctrl+S       Save plot channels Save channels from current active subplot in a n
 Ctrl+Shift+S Save all channels  Save all channels from all sub-plots in a new MF4 file
 Shift+C      Cascade sub-plots  
 Shift+T      Tile sub-plots     Tiles sub-plots in a grid
-Shift+V      Tile vertically    Tiles sub-plots vertically [#f2]_
-Shift+H      Tile horizontally  Tiles sub-plots horizontally [#f2]_
+Shift+V      Tile vertically    Tiles sub-plots vertically [2]_
+Shift+H      Tile horizontally  Tiles sub-plots horizontally [2]_
 ============ ================== ================================================================================================================
 
 
 .. rubric:: Footnotes
 
-.. [#f1] If the cursor is present then zooming will center on it.
-.. [#f2] New in *asammdf 5.7.0*
+.. [1] If the cursor is present then zooming will center on it.
+.. [2] New in *asammdf 5.7.0*
 
 
 Single files
@@ -222,7 +222,8 @@ Plot windows are used to grphically display the channel samples.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 When the *Plot* button is pressed the checked channels will populate the *Selected channels list*.
 
-Selecting items from the *Selected channels list* will display their Y-axis.
+Selecting items from the *Selected channels list* will display their Y-axis on the left side of the plot. Individual axis for each 
+signal can also be toggled and they will show on the right side of the plot.
 
 It is also necessary to select a single item when the *Statistics* panel is active to compute the statistics for the item's channel.
 
@@ -233,12 +234,17 @@ Each item has five elements
 1. display enable checkbox
 2. color select button
 3. channel name and unit label
-4. channel value label 
+4. channel value label [3]_     
 5. common axis checkbox
+6. individual axis checkbox [4]_
+    
+.. rubric:: Footnotes
 
-    * the value is only displayed if the cursor or range are active. For the cursor is will show the current value, and for the range it will
-      show the value delta between the range start and stop timestamps
-      
+.. [3] the value is only displayed if the cursor or range are active. For the cursor is will show the current value, and for the range it will show the value delta between the range start and stop timestamps
+.. [4] New in *asammdf 5.7.0*
+
+.. image:: images/individual_axis.gif
+        
 The channel name can be copied to the clipboard using Ctrl+C.
       
 Double clicking an item will open a range editor dialog
