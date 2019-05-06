@@ -10,10 +10,12 @@ import re
 import subprocess
 
 from collections import namedtuple
+from functools import partial
 from random import randint
 from struct import Struct
 from tempfile import TemporaryDirectory
 from pathlib import Path
+from struct import pack
 
 from numpy import where, arange, interp
 import numpy as np
@@ -1077,10 +1079,15 @@ def components(channel, channel_name, unique_names, prefix="", master=None):
                 types = [("", values.dtype, values.shape[1:])]
                 values = fromarrays(arr, dtype=types)
                 del arr
+
             yield axis_name, Series(values, index=master, dtype="O")
 
     # structure composition
     else:
+
+
+
+
         for name in channel.dtype.names:
             values = channel[name]
 
@@ -1100,6 +1107,7 @@ def components(channel, channel_name, unique_names, prefix="", master=None):
                     types = [("", values.dtype, values.shape[1:])]
                     values = fromarrays(arr, dtype=types)
                     del arr
+
                 yield name_, Series(values, index=master)
 
 
@@ -1474,3 +1482,32 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 )
 
     return extracted_signals
+
+
+def csv_int2hex(val):
+    """ format CAN id as hex
+
+    100 -> 0x64
+
+    """
+
+    return f'{val:X}'
+
+csv_int2hex = np.vectorize(csv_int2hex)
+
+
+def csv_bytearray2hex(val):
+    """ format CAN payload as hex strings
+
+    b'\xa2\xc3\x08' -> a2 c3 08
+
+    """
+
+    vals = [
+        f'{v:02X}'
+        for v in val[0]
+    ]
+
+    return ' '.join(vals)
+
+csv_bytearray2hex = np.vectorize(csv_bytearray2hex)

@@ -382,7 +382,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         progress.setValue(99)
 
-        self.empty_channels.insertItems(0, ("zeros", "skip"))
+        self.empty_channels.insertItems(0, ("skip", "zeros"))
         self.mat_format.insertItems(0, ("4", "5", "7.3"))
         self.oned_as.insertItems(0, ("row", "column"))
         self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat", "parquet"))

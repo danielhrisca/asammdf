@@ -44,6 +44,8 @@ from .blocks.utils import (
     master_using_raster,
     extract_can_signal,
     extract_mux,
+    csv_int2hex,
+    csv_bytearray2hex,
 )
 from .blocks.v2_v3_blocks import Channel as ChannelV3
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -1259,7 +1261,7 @@ class MDF(object):
                     if time_from_zero:
                         master.samples -= master.samples[0]
 
-                    group_name = f"DataGroup_{i+1}"
+                    group_name = f"DataGroup_{i}"
                     wb_name = Path(f"{name.stem}_{group_name}.xlsx")
                     workbook = xlsxwriter.Workbook(str(wb_name))
 
@@ -1304,6 +1306,8 @@ class MDF(object):
 
         elif fmt == "csv":
 
+
+
             if single_time_base:
                 name = name.with_suffix(".csv")
                 message = f'Writing csv export to file "{name}"'
@@ -1311,6 +1315,21 @@ class MDF(object):
 
                 with open(name, "w", newline="") as csvfile:
                     writer = csv.writer(csvfile)
+
+                    if self.can_logging_db:
+
+                        dropped = {}
+
+                        for name_ in df.columns:
+                            if name_.endswith('CAN_DataFrame.ID'):
+                                dropped[name_] = pd.Series(csv_int2hex(df[name_]), index=df.index)
+
+                            elif name_.endswith('CAN_DataFrame.DataBytes'):
+                                dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
+
+                        df = df.drop(columns=list(dropped))
+                        for name, s in dropped.items():
+                            df[name] = s
 
                     names_row = [
                         df.index.name,
@@ -1342,83 +1361,45 @@ class MDF(object):
                     message = f"Exporting group {i+1} of {count}"
                     logger.info(message)
 
-                    data = self._load_data(grp)
+                    group_csv_name = name.parent / f"{name.stem}_DataGroup_{i}.csv"
 
-                    data = b"".join(d[0] for d in data)
-                    data = (data, 0, -1)
-
-                    group_csv_name = name.parent / f"{name.stem}_DataGroup_{i+1}.csv"
+                    df = self.get_group(
+                        i,
+                        raster=raster,
+                        time_from_zero=time_from_zero,
+                        use_display_names=use_display_names,
+                        reduce_memory_usage=reduce_memory_usage,
+                    )
 
                     with open(group_csv_name, "w", newline="") as csvfile:
                         writer = csv.writer(csvfile)
 
-                        master_index = self.masters_db.get(i, None)
-                        if master_index is not None:
-                            master = self.get(group=i, index=master_index, data=data)
+                        if self.can_logging_db:
 
-                            if raster and len(master):
-                                raster_ = np.arange(
-                                    master[0], master[-1], raster, dtype=np.float64
-                                )
-                                master = master.interp(raster_)
-                            else:
-                                raster_ = None
-                        else:
-                            master = None
-                            raster_ = None
+                            dropped = {}
 
-                        if time_from_zero:
-                            if master is None:
-                                pass
-                            elif len(master):
-                                master.samples -= master.samples[0]
+                            for name_ in df.columns:
+                                if name_.endswith('CAN_DataFrame.ID'):
+                                    dropped[name_] = pd.Series(csv_int2hex(df[name_]), index=df.index)
 
-                        ch_nr = len(grp.channels)
-                        if master is None:
-                            channels = [
-                                self.get(group=i, index=j, data=data)
-                                for j in range(ch_nr)
-                            ]
-                        else:
-                            if raster_ is not None:
-                                channels = [
-                                    self.get(group=i, index=j, data=data).interp(
-                                        raster_, self._integer_interpolation
-                                    )
-                                    for j in range(ch_nr)
-                                    if j != master_index
-                                ]
-                            else:
-                                channels = [
-                                    self.get(group=i, index=j, data=data)
-                                    for j in range(ch_nr)
-                                    if j != master_index
-                                ]
+                                elif name_.endswith('CAN_DataFrame.DataBytes'):
+                                    dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
 
-                        if raster_ is not None:
-                            cycles = len(raster_)
-                        else:
-                            cycles = grp.channel_group["cycles_nr"]
+                            df = df.drop(columns=list(dropped))
+                            for name, s in dropped.items():
+                                df[name] = s
 
-                        if empty_channels == "zeros":
-                            for channel in channels:
-                                if not len(channel):
-                                    channel.samples = np.zeros(
-                                        cycles, dtype=channel.samples.dtype
-                                    )
-
-                        if master is not None:
-                            names_row = [master.name]
-                            vals = [master.samples]
-                        else:
-                            names_row = []
-                            vals = []
-                        names_row += [f"{ch.name} [{ch.unit}]" for ch in channels]
+                        names_row = [
+                            df.index.name,
+                            *df.columns
+                        ]
                         writer.writerow(names_row)
 
-                        vals += [ch.samples for ch in channels]
+                        vals = [df.index, *(df[name] for name in df)]
 
-                        for idx, row in enumerate(zip(*vals)):
+                        count = len(df.index)
+
+                        for i, row in enumerate(zip(*vals)):
                             writer.writerow(row)
 
                     if (i, 0, -1) in self._master_channel_cache:
