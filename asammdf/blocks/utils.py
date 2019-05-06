@@ -1484,7 +1484,7 @@ def csv_int2hex(val):
 
     return f'{val:X}'
 
-csv_int2hex = np.vectorize(csv_int2hex)
+csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
 
 
 def csv_bytearray2hex(val):
@@ -1494,7 +1494,7 @@ def csv_bytearray2hex(val):
 
     """
 
-    val = val[0].tobytes().hex().upper()
+    val = val.tobytes().hex().upper()
 
     vals = [
         val[2*i: 2*i + 2]
@@ -1503,4 +1503,4 @@ def csv_bytearray2hex(val):
 
     return ' '.join(vals)
 
-csv_bytearray2hex = np.vectorize(csv_bytearray2hex)
+csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
