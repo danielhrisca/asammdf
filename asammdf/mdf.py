@@ -1313,12 +1313,12 @@ class MDF(object):
                     writer = csv.writer(csvfile)
 
                     names_row = [
-                        f"{channel_name} [{channel_unit}]"
-                        for (channel_name, channel_unit) in units.items()
+                        df.index.name,
+                        *df.columns
                     ]
                     writer.writerow(names_row)
 
-                    vals = [df[name] for name in df]
+                    vals = [df.index, *(df[name] for name in df)]
 
                     count = len(df.index)
 
@@ -1341,6 +1341,7 @@ class MDF(object):
                         return
                     message = f"Exporting group {i+1} of {count}"
                     logger.info(message)
+
                     data = self._load_data(grp)
 
                     data = b"".join(d[0] for d in data)

@@ -1202,8 +1202,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 progress.cancel()
                 return
 
-        self.progress = None
-        progress.cancel()
+            self.progress = None
+            progress.cancel()
 
     def add_window(self, args):
         window_type, names = args
