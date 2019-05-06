@@ -1503,9 +1503,11 @@ def csv_bytearray2hex(val):
 
     """
 
+    val = val[0].tobytes().hex().upper()
+
     vals = [
-        f'{v:02X}'
-        for v in val[0]
+        val[2*i: 2*i + 2]
+        for i in range(len(val) // 2)
     ]
 
     return ' '.join(vals)

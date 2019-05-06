@@ -1354,7 +1354,7 @@ class MDF(object):
 
                 filename = filename.with_suffix(".csv")
 
-                count = len(self.groups)
+                gp_count = len(self.groups)
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
                         return
@@ -1405,7 +1405,7 @@ class MDF(object):
                     if (i, 0, -1) in self._master_channel_cache:
                         del self._master_channel_cache[(i, 0, -1)]
                     if self._callback:
-                        self._callback(i + 1, count)
+                        self._callback(i + 1, gp_count)
 
         elif fmt == "mat":
 
@@ -3477,6 +3477,8 @@ class MDF(object):
         used_names = UniqueDB()
         used_names.get_unique_name("time")
 
+        groups_nr = len(self.groups)
+
         for group_index, grp in enumerate(self.groups):
             if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
@@ -3591,6 +3593,9 @@ class MDF(object):
                         if reduce_memory_usage:
                             sig.samples = downcast(sig.samples)
                         df[channel_name] = pd.Series(sig.samples, index=master)
+
+            if self._callback:
+                self._callback(i + 1, groups_nr)
 
         if time_as_date:
             new_index = np.array(df.index) + self.header.start_time.timestamp()
