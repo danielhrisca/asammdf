@@ -1065,11 +1065,8 @@ def components(channel, channel_name, unique_names, prefix="", master=None):
 
         values = channel[name]
         if len(values.shape) > 1:
-            arr = [values]
-            types = [("", values.dtype, values.shape[1:])]
-            values = fromarrays(arr, dtype=types)
-            del arr
-        yield name_, Series(values, index=master, dtype="O")
+            values = list(values)
+        yield name_, Series(values, index=master)
 
         for name in names[1:]:
             values = channel[name]
@@ -1084,9 +1081,6 @@ def components(channel, channel_name, unique_names, prefix="", master=None):
 
     # structure composition
     else:
-
-
-
 
         for name in channel.dtype.names:
             values = channel[name]
@@ -1103,10 +1097,7 @@ def components(channel, channel_name, unique_names, prefix="", master=None):
                     f"{prefix}.{channel_name}.{name}" if prefix else f"{channel_name}.{name}"
                 )
                 if len(values.shape) > 1:
-                    arr = [values]
-                    types = [("", values.dtype, values.shape[1:])]
-                    values = fromarrays(arr, dtype=types)
-                    del arr
+                    values = list(values)
 
                 yield name_, Series(values, index=master)
 

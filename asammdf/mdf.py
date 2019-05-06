@@ -925,7 +925,7 @@ class MDF(object):
         fmt : string
             can be one of the following:
 
-            * `csv` : CSV export that uses the ";" delimiter. This option
+            * `csv` : CSV export that uses the "," delimiter. This option
               will generate a new csv file for each data group
               (<MDFNAME>_DataGroup_<cntr>.csv)
 
@@ -1358,7 +1358,7 @@ class MDF(object):
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
                         return
-                    message = f"Exporting group {i+1} of {count}"
+                    message = f"Exporting group {i+1} of {gp_count}"
                     logger.info(message)
 
                     group_csv_name = filename.parent / f"{filename.stem}_ChannelGroup_{i}.csv"
@@ -3335,9 +3335,6 @@ class MDF(object):
         for sig in signals:
             # byte arrays
             if len(sig.samples.shape) > 1:
-                arr = [sig.samples]
-                types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
-                sig.samples = np.core.records.fromarrays(arr, dtype=types)
 
                 if use_display_names:
                     channel_name = sig.display_name or sig.name
@@ -3346,7 +3343,7 @@ class MDF(object):
 
                 channel_name = used_names.get_unique_name(channel_name)
 
-                df[channel_name] = pd.Series(sig.samples, index=master, dtype="O")
+                df[channel_name] = pd.Series(list(sig.samples), index=master)
 
             # arrays and structures
             elif sig.samples.dtype.names:
@@ -3556,9 +3553,6 @@ class MDF(object):
             for k, sig in enumerate(signals):
                 # byte arrays
                 if len(sig.samples.shape) > 1:
-                    arr = [sig.samples]
-                    types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
-                    sig.samples = np.core.records.fromarrays(arr, dtype=types)
 
                     if use_display_names:
                         channel_name = sig.display_name or sig.name
@@ -3567,7 +3561,7 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    df[channel_name] = pd.Series(sig.samples, index=master, dtype="O")
+                    df[channel_name] = pd.Series(list(sig.samples), index=master)
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
