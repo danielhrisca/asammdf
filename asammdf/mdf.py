@@ -1316,7 +1316,7 @@ class MDF(object):
                 with open(name, "w", newline="") as csvfile:
                     writer = csv.writer(csvfile)
 
-                    if self.can_logging_db:
+                    if hasattr(self,'can_logging_db') and self.can_logging_db:
 
                         dropped = {}
 
@@ -1374,7 +1374,7 @@ class MDF(object):
                     with open(group_csv_name, "w", newline="") as csvfile:
                         writer = csv.writer(csvfile)
 
-                        if self.can_logging_db:
+                        if hasattr(self,'can_logging_db') and self.can_logging_db:
 
                             dropped = {}
 
