@@ -3273,6 +3273,7 @@ class MDF(object):
         time_from_zero=False,
         use_display_names=False,
         reduce_memory_usage=False,
+        raw=False,
     ):
         """ get channel group as pandas DataFrames. If there are multiple
         occurences for the same channel name, then a counter will be used to
@@ -3288,6 +3289,8 @@ class MDF(object):
             reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can reprezent the values found
             in integer columns; default *False*
+        raw (False) : bool
+            the dataframe will contain the raw channel values (new in asammdf 5.7.0)
 
         Returns
         -------
@@ -3318,13 +3321,9 @@ class MDF(object):
         included_channels = self._included_channels(index)
 
         signals = [
-            self.get(group=index, index=idx, copy_master=False)
+            self.get(group=index, index=idx, copy_master=False, raw=raw)
             for idx in included_channels
         ]
-
-        for i, sig in enumerate(signals):
-            if sig.conversion:
-                signals[i] = sig.physical()
 
         if raster and len(master):
             signals = [
@@ -3390,6 +3389,7 @@ class MDF(object):
         use_display_names=False,
         time_as_date=False,
         reduce_memory_usage=False,
+        raw=False,
     ):
         """ generate pandas DataFrame
 
@@ -3426,6 +3426,8 @@ class MDF(object):
             reduce memory usage by converting all float columns to float32 and
             searching for minimum dtype that can reprezent the values found
             in integer columns; default *False*
+        raw (False) : bool
+            the columns will contain the raw values (new in asammdf 5.7.0)
 
         Returns
         -------
@@ -3443,6 +3445,7 @@ class MDF(object):
                 use_display_names=use_display_names,
                 time_as_date=time_as_date,
                 reduce_memory_usage=reduce_memory_usage,
+                raw=raw,
             )
 
         df = pd.DataFrame()
@@ -3496,12 +3499,19 @@ class MDF(object):
                     grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     grp.record = None
+
                 for k, index in enumerate(included_channels):
                     signal = self.get(
-                        group=group_index, index=index, data=fragment, samples_only=True, ignore_invalidation_bits=True
+                        group=group_index,
+                        index=index,
+                        data=fragment,
+                        samples_only=True,
+                        ignore_invalidation_bits=True,
+                        raw=raw,
                     )
                     signals[k].append(signal[0])
                     invalidation_bits[k].append(signal[1])
+
                 timestamps.append(
                     self.get_master(
                         group_index,
@@ -3536,10 +3546,6 @@ class MDF(object):
                 )
                 for samples, invalidation, idx in zip(signals, invalidation_bits, included_channels)
             ]
-
-            for i, sig in enumerate(signals):
-                if sig.conversion:
-                    signals[i] = sig.physical()
 
             for sig in signals:
                 if len(sig) == 0:
@@ -3589,7 +3595,7 @@ class MDF(object):
                         df[channel_name] = pd.Series(sig.samples, index=master)
 
             if self._callback:
-                self._callback(i + 1, groups_nr)
+                self._callback(group_index + 1, groups_nr)
 
         if time_as_date:
             new_index = np.array(df.index) + self.header.start_time.timestamp()
