@@ -1010,7 +1010,7 @@ class MDF(object):
                 )
                 compression = "GZIP"
 
-        name = Path(filename) if filename else self.name
+        filename = Path(filename) if filename else self.name
 
         if fmt == "parquet":
             try:
@@ -1050,6 +1050,8 @@ class MDF(object):
                 except ImportError:
                     logger.warning("scipy not found; export to mat is unavailable")
                     return
+
+        name = ''
 
         if self._callback:
             self._callback(0, 100)
@@ -1096,12 +1098,12 @@ class MDF(object):
                     self._callback(i+1, groups_nr * 2)
 
         if fmt == "hdf5":
-            name = name.with_suffix(".hdf")
+            filename = filename.with_suffix(".hdf")
 
             if single_time_base:
-                with HDF5(str(name), "w") as hdf:
+                with HDF5(str(filename), "w") as hdf:
                     # header information
-                    group = hdf.create_group(str(name))
+                    group = hdf.create_group(str(filename))
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
@@ -1141,9 +1143,9 @@ class MDF(object):
                             self._callback(i + 1 + count, count * 2)
 
             else:
-                with HDF5(str(name), "w") as hdf:
+                with HDF5(str(filename), "w") as hdf:
                     # header information
-                    group = hdf.create_group(str(name))
+                    group = hdf.create_group(str(filename))
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
@@ -1159,7 +1161,7 @@ class MDF(object):
                         names = UniqueDB()
                         if self._terminate:
                             return
-                        group_name = r"/" + f"DataGroup_{i+1}"
+                        group_name = r"/" + f"ChannelGroup_{i}"
                         group = hdf.create_group(group_name)
 
                         master_index = self.masters_db.get(i, -1)
@@ -1200,11 +1202,11 @@ class MDF(object):
         elif fmt == "excel":
 
             if single_time_base:
-                name = name.with_suffix(".xlsx")
-                message = f'Writing excel export to file "{name}"'
+                filename = filename.with_suffix(".xlsx")
+                message = f'Writing excel export to file "{filename}"'
                 logger.info(message)
 
-                workbook = xlsxwriter.Workbook(str(name))
+                workbook = xlsxwriter.Workbook(str(filename))
                 sheet = workbook.add_worksheet("Channels")
 
                 cols = len(units)
@@ -1227,8 +1229,8 @@ class MDF(object):
                 workbook.close()
 
             else:
-                while name.suffix == ".xlsx":
-                    name = name.stem
+                while filename.suffix == ".xlsx":
+                    filename = filename.stem
 
                 count = len(self.groups)
 
@@ -1261,8 +1263,8 @@ class MDF(object):
                     if time_from_zero:
                         master.samples -= master.samples[0]
 
-                    group_name = f"DataGroup_{i}"
-                    wb_name = Path(f"{name.stem}_{group_name}.xlsx")
+                    group_name = f"ChannelGroup_{i}"
+                    wb_name = Path(f"{filename.stem}_{group_name}.xlsx")
                     workbook = xlsxwriter.Workbook(str(wb_name))
 
                     sheet = workbook.add_worksheet(group_name)
@@ -1306,14 +1308,12 @@ class MDF(object):
 
         elif fmt == "csv":
 
-
-
             if single_time_base:
-                name = name.with_suffix(".csv")
-                message = f'Writing csv export to file "{name}"'
+                filename = filename.with_suffix(".csv")
+                message = f'Writing csv export to file "{filename}"'
                 logger.info(message)
 
-                with open(name, "w", newline="") as csvfile:
+                with open(filename, "w", newline="") as csvfile:
                     writer = csv.writer(csvfile)
 
                     if hasattr(self,'can_logging_db') and self.can_logging_db:
@@ -1352,7 +1352,7 @@ class MDF(object):
 
             else:
 
-                name = name.with_suffix(".csv")
+                filename = filename.with_suffix(".csv")
 
                 count = len(self.groups)
                 for i, grp in enumerate(self.groups):
@@ -1361,7 +1361,7 @@ class MDF(object):
                     message = f"Exporting group {i+1} of {count}"
                     logger.info(message)
 
-                    group_csv_name = name.parent / f"{name.stem}_DataGroup_{i}.csv"
+                    group_csv_name = filename.parent / f"{filename.stem}_ChannelGroup_{i}.csv"
 
                     df = self.get_group(
                         i,
@@ -1386,8 +1386,8 @@ class MDF(object):
                                     dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
 
                             df = df.drop(columns=list(dropped))
-                            for name, s in dropped.items():
-                                df[name] = s
+                            for name_, s in dropped.items():
+                                df[name_] = s
 
                         names_row = [
                             df.index.name,
@@ -1409,7 +1409,7 @@ class MDF(object):
 
         elif fmt == "mat":
 
-            name = name.with_suffix(".mat")
+            filename = filename.with_suffix(".mat")
 
             if not single_time_base:
                 mdict = {}
@@ -1480,7 +1480,7 @@ class MDF(object):
             if format == "7.3":
 
                 savemat(
-                    str(name),
+                    str(filename),
                     mdict,
                     long_field_names=True,
                     format="7.3",
@@ -1489,7 +1489,7 @@ class MDF(object):
                 )
             else:
                 savemat(
-                    str(name),
+                    str(filename),
                     mdict,
                     long_field_names=True,
                     oned_as=oned_as,
@@ -1497,11 +1497,11 @@ class MDF(object):
                 )
 
         elif fmt == "parquet":
-            name = name.with_suffix(".parquet")
+            filename = filename.with_suffix(".parquet")
             if compression:
-                write_parquet(name, df, compression=compression)
+                write_parquet(filename, df, compression=compression)
             else:
-                write_parquet(name, df)
+                write_parquet(filename, df)
 
         else:
             message = (
