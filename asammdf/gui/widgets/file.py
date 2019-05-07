@@ -58,16 +58,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         self._window_counter = 1
 
-        if file_name.suffix.lower() == ".dl3":
-            steps = 2
-        else:
-            steps = 3
-        current_step = 1
-
         progress = QtWidgets.QProgressDialog(
-            f'{current_step}/{steps}: Opening "{self.file_name}"', "", 0, 100, self.parent()
+            f'Opening "{self.file_name}"', "", 0, 100, self.parent()
         )
-
 
         progress.setWindowModality(QtCore.Qt.ApplicationModal)
         progress.setCancelButton(None)
@@ -79,7 +72,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         progress.show()
 
         if file_name.suffix.lower() == ".erg":
-            progress.setLabelText(f"{current_step}/{steps}: Converting from erg to mdf")
+            progress.setLabelText("Converting from erg to mdf")
             try:
                 from mfile import ERG
 
@@ -87,11 +80,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             except Exception as err:
                 print(err)
                 return
-            current_step += 1
         else:
 
             if file_name.suffix.lower() == ".dl3":
-                progress.setLabelText(f"{current_step}/{steps}: Converting from dl3 to mdf")
+                progress.setLabelText("Converting from dl3 to mdf")
                 datalyser_active = any(
                     proc.name() == 'Datalyser3.exe'
                     for proc in psutil.process_iter()
@@ -122,10 +114,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     print(err)
                     return
 
-                current_step += 1
-
-            progress.setLabelText(f'{current_step}/{steps}: Opening "{self.file_name}"')
-
             target = MDF
             kwargs = {"name": file_name, "callback": self.update_progress}
 
@@ -141,8 +129,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             if self.mdf is TERMINATED:
                 return
 
-
-        progress.setLabelText(f"{current_step}/{steps}:  Loading graphical elements")
+        progress.setLabelText("Loading graphical elements")
 
         progress.setValue(35)
 
@@ -956,7 +943,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Converting measurement",
-                message=f'1/2: Converting "{self.file_name}" from {self.mdf.version} to {version}',
+                message=f'Converting "{self.file_name}" from {self.mdf.version} to {version}',
                 icon_name="convert",
             )
 
@@ -968,6 +955,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=50,
+                offset=0,
                 progress=progress,
             )
 
@@ -978,7 +967,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             mdf.configure(write_fragment_size=split_size)
 
             # then save it
-            progress.setLabelText(f'2/2 Saving converted file "{file_name}"')
+            progress.setLabelText(f'Saving converted file "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
@@ -987,6 +976,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=50,
+                offset=50,
                 progress=progress,
             )
 
@@ -1025,7 +1016,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Resampling measurement",
-                message=f'1/2: Resampling "{self.file_name}" to {raster}s raster ',
+                message=f'Resampling "{self.file_name}" to {raster}s raster ',
                 icon_name="resample",
             )
 
@@ -1041,6 +1032,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=66,
+                offset=0,
                 progress=progress,
             )
 
@@ -1051,19 +1044,17 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             mdf.configure(write_fragment_size=split_size)
 
             # then save it
-            progress.setLabelText(f'2/2: Saving resampled file "{file_name}"')
+            progress.setLabelText(f'Saving resampled file "{file_name}"')
 
             target = mdf.save
-            kwargs = {
-                "dst": file_name,
-                "compression": compression,
-                "overwrite": True,
-            }
+            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
 
             run_thread_with_progress(
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=34,
+                offset=66,
                 progress=progress,
             )
 
@@ -1104,7 +1095,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Cutting measurement",
-                message=f'1/2: Cutting "{self.file_name}" from {start}s to {stop}s',
+                message=f'Cutting "{self.file_name}" from {start}s to {stop}s',
                 icon_name="cut",
             )
 
@@ -1122,6 +1113,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=66,
+                offset=0,
                 progress=progress,
             )
 
@@ -1132,7 +1125,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             mdf.configure(write_fragment_size=split_size)
 
             # then save it
-            progress.setLabelText(f'2/2: Saving cut file "{file_name}"')
+            progress.setLabelText(f'Saving cut file "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
@@ -1141,6 +1134,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=34,
+                offset=66,
                 progress=progress,
             )
 
@@ -1176,7 +1171,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Export measurement",
-                message=f'1/1: Exporting "{self.file_name}" to {export_type}',
+                message=f'Exporting "{self.file_name}" to {export_type}',
                 icon_name="export",
             )
 
@@ -1200,6 +1195,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=100,
+                offset=0,
                 progress=progress,
             )
 
@@ -1834,7 +1831,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Filtering measurement",
-                message=f'1/1: Filtering selected channels from "{self.file_name}"',
+                message=f'Filtering selected channels from "{self.file_name}"',
                 icon_name="filter",
             )
 
@@ -1846,6 +1843,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=66,
+                offset=0,
                 progress=progress,
             )
 
@@ -1856,7 +1855,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             mdf.configure(write_fragment_size=split_size)
 
             # then save it
-            progress.setLabelText(f'2/2: Saving filtered file "{file_name}"')
+            progress.setLabelText(f'Saving filtered file "{file_name}"')
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
@@ -1865,6 +1864,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=34,
+                offset=66,
                 progress=progress,
             )
 
@@ -1876,7 +1877,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         progress = setup_progress(
             parent=self,
             title="Scrambling measurement",
-            message=f'1/1: Scrambling "{self.file_name}"',
+            message=f'Scrambling "{self.file_name}"',
             icon_name="scramble",
         )
 
@@ -1888,6 +1889,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             self,
             target=target,
             kwargs=kwargs,
+            factor=100,
+            offset=0,
             progress=progress,
         )
 
@@ -1945,7 +1948,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Extract CAN logging",
-                message=f'1/2: Extracting CAN signals from "{self.file_name}"',
+                message=f'Extracting CAN signals from "{self.file_name}"',
                 icon_name="down",
             )
 
@@ -1961,6 +1964,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=70,
+                offset=0,
                 progress=progress,
             )
 
@@ -1969,7 +1974,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 return
 
             # then save it
-            progress.setLabelText(f'2/2: Saving file to "{file_name}"')
+            progress.setLabelText(f'Saving file to "{file_name}"')
 
             target = mdf.save
             kwargs = {
@@ -1982,6 +1987,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=30,
+                offset=70,
                 progress=progress,
             )
 
@@ -2014,7 +2021,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             progress = setup_progress(
                 parent=self,
                 title="Extract CAN logging to CSV",
-                message=f'1/2: Extracting CAN signals from "{self.file_name}"',
+                message=f'Extracting CAN signals from "{self.file_name}"',
                 icon_name="csv",
             )
 
@@ -2030,6 +2037,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=70,
+                offset=0,
                 progress=progress,
             )
 
@@ -2038,7 +2047,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 return
 
             # then save it
-            progress.setLabelText(f'2/2: Saving file to "{file_name}"')
+            progress.setLabelText(f'Saving file to "{file_name}"')
 
             target = mdf.export
             kwargs = {
@@ -2054,6 +2063,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 target=target,
                 kwargs=kwargs,
+                factor=30,
+                offset=70,
                 progress=progress,
             )
 
