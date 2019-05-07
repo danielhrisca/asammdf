@@ -32,5 +32,6 @@
     <file alias="scramble.png">images/scramble.png</file>
     <file alias="plus.png">images/plus.png</file>
     <file alias="numeric.png">images/numeric.png</file>
+    <file alias="csv.png">images/csv.png</file>
 </qresource>
 </RCC>

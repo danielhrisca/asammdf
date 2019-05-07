@@ -1089,6 +1089,8 @@ class MDF(object):
                         unit = ch.unit
                         if ch.conversion:
                             unit = unit or ch.conversion.unit
+                    else:
+                        unit = ''
                     comment = ch.comment
 
                     units[channel_name] = unit
@@ -3607,13 +3609,18 @@ class MDF(object):
 
         return df
 
-    def extract_can_logging(self, dbc_files, version=None):
+    def extract_can_logging(self, dbc_files, version=None, ignore_invalid_signals=False):
         """ extract all possible CAN signal using the provided databases.
 
         Parameters
         ----------
         dbc_files : iterable
             iterable of str or pathlib.Path objects
+        version (None) : str
+            output file version
+        ignore_invalid_signals (False) : bool
+            ignore signals that have all samples equal to their maximum value
+            (new in *asammdf 5.7.0*)
 
         Returns
         -------
@@ -3631,6 +3638,8 @@ class MDF(object):
 
         if self._callback:
             out._callback = out._mdf._callback = self._callback
+
+        max_flags = {}
 
         valid_dbc_files = []
         for dbc_name in dbc_files:
@@ -3766,7 +3775,10 @@ class MDF(object):
                                 if entry not in msg_map:
                                     sigs = []
 
-                                    for signal in signals.values():
+                                    index = len(out.groups)
+                                    msg_map[entry] = index
+
+                                    for name_, signal in signals.items():
                                         sig = Signal(
                                             samples=signal['samples'],
                                             timestamps=signal['t'],
@@ -3786,7 +3798,14 @@ class MDF(object):
 
                                         sigs.append(sig)
 
-                                    msg_map[entry] = len(out.groups)
+                                        max_flags_entry = index, name_
+
+                                        if max_flags_entry in max_flags:
+                                            max_flags[max_flags_entry] = max_flags[max_flags_entry] and signal['is_max']
+                                        else:
+                                            max_flags[max_flags_entry] = signal['is_max']
+
+
                                     out.append(
                                         sigs,
                                         f'from CAN{bus} message ID=0x{msg_id:X}',
@@ -3794,16 +3813,34 @@ class MDF(object):
                                     )
                                 else:
                                     index = msg_map[entry]
+
                                     sigs = [(t, None)]
-                                    for signal in signals.values():
+
+                                    for name_, signal in signals.items():
+
                                         sigs.append(
                                             (signal['samples'], None)
                                         )
+
+                                        max_flags_entry = index, name_
+
+                                        max_flags[max_flags_entry] = max_flags[max_flags_entry] and signal['is_max']
+
                                     out.extend(index, sigs)
 
                 cntr += 1
                 if self._callback:
                     self._callback(cntr, count)
+
+        if ignore_invalid_signals:
+            to_keep = []
+
+            for i, group in enumerate(out.groups):
+                for j, channel in enumerate(group.channels[1:], 1):
+                    if not max_flags[(i, channel.name)]:
+                        to_keep.append((None, i, j))
+
+            out = out.filter(to_keep, version)
 
         if self._callback:
             self._callback(100, 100)

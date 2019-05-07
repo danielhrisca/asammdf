@@ -24,7 +24,7 @@
        <enum>QTabWidget::West</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>7</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -952,45 +952,7 @@
        <attribute name="title">
         <string>CAN logging</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayout_5" columnstretch="0,0,1">
-        <item row="3" column="0" colspan="3">
-         <widget class="Line" name="line_12">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="1" column="0" rowspan="2" colspan="3">
-         <widget class="MinimalListWidget" name="can_database_list"/>
-        </item>
-        <item row="5" column="1">
-         <widget class="QComboBox" name="extract_can_format">
-          <property name="sizeAdjustPolicy">
-           <enum>QComboBox::AdjustToContents</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="1">
-         <widget class="QComboBox" name="extract_can_compression">
-          <property name="sizeAdjustPolicy">
-           <enum>QComboBox::AdjustToContents</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="0">
-         <widget class="QLabel" name="label_24">
-          <property name="text">
-           <string>Version</string>
-          </property>
-         </widget>
-        </item>
-        <item row="6" column="0" colspan="3">
-         <widget class="Line" name="line_13">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
+       <layout class="QGridLayout" name="gridLayout_11">
         <item row="0" column="0">
          <widget class="QPushButton" name="load_can_database_btn">
           <property name="text">
@@ -1002,23 +964,171 @@
           </property>
          </widget>
         </item>
-        <item row="4" column="0">
-         <widget class="QLabel" name="label__1">
-          <property name="text">
-           <string>Compression</string>
+        <item row="1" column="0" colspan="3">
+         <widget class="MinimalListWidget" name="can_database_list"/>
+        </item>
+        <item row="2" column="0">
+         <widget class="QGroupBox" name="groupBox_2">
+          <property name="title">
+           <string>MDF</string>
           </property>
+          <layout class="QGridLayout" name="gridLayout_5">
+           <item row="5" column="0" colspan="2">
+            <widget class="QPushButton" name="extract_can_btn">
+             <property name="text">
+              <string>Extract CAN signals</string>
+             </property>
+             <property name="icon">
+              <iconset resource="resource.qrc">
+               <normaloff>:/down.png</normaloff>:/down.png</iconset>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label__1">
+             <property name="text">
+              <string>Compression</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="extract_can_compression">
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToContents</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="extract_can_format">
+             <property name="sizeAdjustPolicy">
+              <enum>QComboBox::AdjustToContents</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_24">
+             <property name="text">
+              <string>Version</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0" colspan="2">
+            <widget class="QCheckBox" name="ignore_invalid_signals_mdf">
+             <property name="toolTip">
+              <string>checks if all samples are eauql to the maximum teoretical signal value</string>
+             </property>
+             <property name="text">
+              <string>Ignore invalid signals</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_27">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0" colspan="2">
+            <widget class="Line" name="line_12">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
-        <item row="7" column="1">
-         <widget class="QPushButton" name="extract_can_btn">
-          <property name="text">
-           <string>Extract CAN signals</string>
+        <item row="2" column="1">
+         <widget class="QGroupBox" name="groupBox_3">
+          <property name="title">
+           <string>CSV</string>
           </property>
-          <property name="icon">
-           <iconset resource="resource.qrc">
-            <normaloff>:/down.png</normaloff>:/down.png</iconset>
-          </property>
+          <layout class="QGridLayout" name="gridLayout_10">
+           <item row="6" column="1" colspan="3">
+            <widget class="Line" name="line_13">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QCheckBox" name="time_from_zero_can">
+             <property name="text">
+              <string>Time from 0s</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QCheckBox" name="ignore_invalid_signals_csv">
+             <property name="toolTip">
+              <string>checks if all samples are eauql to the maximum teoretical signal value</string>
+             </property>
+             <property name="text">
+              <string>Ignore invalid signals</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLabel" name="label_28">
+             <property name="text">
+              <string>Raster</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="2" colspan="2">
+            <widget class="QDoubleSpinBox" name="export_raster_can">
+             <property name="suffix">
+              <string>s</string>
+             </property>
+             <property name="decimals">
+              <number>6</number>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QCheckBox" name="single_time_base_can">
+             <property name="text">
+              <string>Single time base</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLabel" name="label_29">
+             <property name="text">
+              <string>Empty channels</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="2" colspan="2">
+            <widget class="QComboBox" name="empty_channels_can"/>
+           </item>
+           <item row="7" column="1" colspan="3">
+            <widget class="QPushButton" name="extract_can_csv_btn">
+             <property name="text">
+              <string>Export to CSV         </string>
+             </property>
+             <property name="icon">
+              <iconset resource="resource.qrc">
+               <normaloff>:/csv.png</normaloff>:/csv.png</iconset>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
+        </item>
+        <item row="2" column="2">
+         <spacer name="horizontalSpacer_12">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>240</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </widget>

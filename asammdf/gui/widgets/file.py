@@ -372,6 +372,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             0, ("no compression", "deflate", "transposed deflate")
         )
         self.extract_can_btn.clicked.connect(self.extract_can_logging)
+        self.extract_can_csv_btn.clicked.connect(self.extract_can_csv_logging)
         self.load_can_database_btn.clicked.connect(self.load_can_database)
 
         if self.mdf.version >= '4.00':
@@ -383,6 +384,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         progress.setValue(99)
 
         self.empty_channels.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_can.insertItems(0, ("skip", "zeros"))
         self.mat_format.insertItems(0, ("4", "5", "7.3"))
         self.oned_as.insertItems(0, ("row", "column"))
         self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat", "parquet"))
@@ -1930,6 +1932,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             dbc_files.append(item.text())
 
         compression = self.extract_can_compression.currentIndex()
+        ignore_invalid_signals = self.ignore_invalid_signals_mdf.checkState() == QtCore.Qt.Checked
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
@@ -1954,6 +1957,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             kwargs = {
                 "dbc_files": dbc_files,
                 "version": version,
+                "ignore_invalid_signals": ignore_invalid_signals,
             }
 
             mdf = run_thread_with_progress(
@@ -1992,6 +1996,80 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             progress.cancel()
 
             self.open_new_file.emit(str(file_name))
+
+    def extract_can_csv_logging(self, event):
+        version = self.extract_can_format.currentText()
+        count = self.can_database_list.count()
+
+        dbc_files = []
+        for i in range(count):
+            item = self.can_database_list.item(i)
+            dbc_files.append(item.text())
+
+        ignore_invalid_signals = self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
+        single_time_base = self.single_time_base_can.checkState() == QtCore.Qt.Checked
+        time_from_zero = self.time_from_zero_can.checkState() == QtCore.Qt.Checked
+        empty_channels = self.empty_channels_can.currentText()
+        raster = self.export_raster.value()
+
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Select output CSV file", "", "CSV (*.csv)"
+        )
+
+        if file_name:
+
+            progress = setup_progress(
+                parent=self,
+                title="Extract CAN logging to CSV",
+                message=f'Extracting CAN signals from "{self.file_name}"',
+                icon_name="csv",
+            )
+
+            # convert self.mdf
+            target = self.mdf.extract_can_logging
+            kwargs = {
+                "dbc_files": dbc_files,
+                "version": version,
+                "ignore_invalid_signals": ignore_invalid_signals,
+            }
+
+            mdf = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=70,
+                offset=0,
+                progress=progress,
+            )
+
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
+
+            # then save it
+            progress.setLabelText(f'Saving file to "{file_name}"')
+
+            target = mdf.export
+            kwargs = {
+                "fmt": "csv",
+                "filename": file_name,
+                "single_time_base": single_time_base,
+                "time_from_zero": time_from_zero,
+                "empty_channels": empty_channels,
+                "raster": raster,
+            }
+
+            run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=30,
+                offset=70,
+                progress=progress,
+            )
+
+            self.progress = None
+            progress.cancel()
 
     def load_can_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(

@@ -77,10 +77,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.scramble_btn.clicked.connect(self.scramble)
         self.stack_btn.clicked.connect(self.stack)
         self.extract_can_btn.clicked.connect(self.extract_can)
+        self.extract_can_csv_btn.clicked.connect(self.extract_can_csv)
 
         self.load_can_database_btn.clicked.connect(self.load_can_database)
 
         self.empty_channels.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_can.insertItems(0, ("skip", "zeros"))
         self.mat_format.insertItems(0, ("4", "5", "7.3"))
         self.oned_as.insertItems(0, ("row", "column"))
         self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat", "parquet"))
@@ -696,6 +698,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             dbc_files.append(item.text())
 
         compression = self.extract_can_compression.currentIndex()
+        ignore_invalid_signals = self.ignore_invalid_signals_mdf.checkState() == QtCore.Qt.Checked
 
         count = self.files_list.count()
 
@@ -742,6 +745,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             kwargs = {
                 "dbc_files": dbc_files,
                 "version": version,
+                "ignore_invalid_signals": ignore_invalid_signals,
             }
 
             mdf = run_thread_with_progress(
@@ -766,6 +770,109 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             target = mdf.save
             kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
+
+            run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=int(delta/2),
+                offset=int((i+1/2)*delta),
+                progress=progress,
+            )
+
+        self.progress = None
+        progress.cancel()
+
+    def extract_can_csv(self, event):
+        version = self.extract_can_format.currentText()
+        count = self.can_database_list.count()
+
+        dbc_files = []
+        for i in range(count):
+            item = self.can_database_list.item(i)
+            dbc_files.append(item.text())
+
+        ignore_invalid_signals = self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
+        single_time_base = self.single_time_base_can.checkState() == QtCore.Qt.Checked
+        time_from_zero = self.time_from_zero_can.checkState() == QtCore.Qt.Checked
+        empty_channels = self.empty_channels_can.currentText()
+        raster = self.export_raster.value()
+
+        count = self.files_list.count()
+
+        delta = 100 / count
+
+        progress = setup_progress(
+            parent=self,
+            title="Extract CAN logging from measurements to CSV",
+            message=f'Extracting CAN logging from "{count}" files',
+            icon_name="csv",
+        )
+
+        files = self._prepare_files(progress)
+        source_files = [
+            Path(self.files_list.item(row).text())
+            for row in range(count)
+        ]
+
+        for i, (file, source_file) in enumerate(zip(files, source_files)):
+
+            progress.setLabelText(f'Extracting CAN logging from file {i+1} of {count}')
+
+            if not isinstance(file, MDF):
+
+                # open file
+                target = MDF
+                kwargs = {
+                    "name": file,
+                    "callback": self.update_progress,
+                }
+
+                mdf = run_thread_with_progress(
+                    self,
+                    target=target,
+                    kwargs=kwargs,
+                    factor=0,
+                    offset=int(i*delta),
+                    progress=progress,
+                )
+            else:
+                mdf = file
+
+            target = mdf.extract_can_logging
+            kwargs = {
+                "dbc_files": dbc_files,
+                "version": version,
+                "ignore_invalid_signals": ignore_invalid_signals,
+            }
+
+            mdf = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=int(delta/2),
+                offset=int(i*delta),
+                progress=progress,
+            )
+
+            if mdf is TERMINATED:
+                progress.cancel()
+                return
+
+            file_name = source_file.with_suffix('.can_logging.csv')
+
+            # then save it
+            progress.setLabelText(f'Saving extarcted CAN logging file {i+1} to "{file_name}"')
+
+            target = mdf.export
+            kwargs = {
+                "fmt": "csv",
+                "filename": file_name,
+                "single_time_base": single_time_base,
+                "time_from_zero": time_from_zero,
+                "empty_channels": empty_channels,
+                "raster": raster,
+            }
 
             run_thread_with_progress(
                 self,

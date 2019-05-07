@@ -1361,12 +1361,15 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
             extracted_signals[entry] = signals = {}
 
             for sig in pair_signals:
+                samples = extract_can_signal(sig, payload)
+                max_val = float(sig.max)
                 signals[sig.name] = {
                     'name': sig.name,
                     'comment': sig.comment or "",
                     'unit': sig.unit or "",
-                    'samples': extract_can_signal(sig, payload),
+                    'samples': samples,
                     't': t,
+                    'is_max': np.all(samples == max_val),
                 }
         else:
             # select only the CAN messages where the multiplexor value is
@@ -1379,12 +1382,15 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
             extracted_signals[entry] = signals = {}
 
             for sig in pair_signals:
+                samples = extract_can_signal(sig, payload_)
+                max_val = float(sig.max)
                 signals[sig.name] = {
                     'name': sig.name,
                     'comment': sig.comment or "",
                     'unit': sig.unit or "",
-                    'samples': extract_can_signal(sig, payload_),
+                    'samples': samples,
                     't': t_,
+                    'is_max': np.all(samples == max_val),
                 }
 
     # then handle mutiplexers signals
@@ -1415,6 +1421,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 signals = extracted_signals[entry]
 
             for sig in pair_signals:
+                max_val = float(sig.max)
                 muxer_values = extract_can_signal(sig, payload)
                 signals[sig.name] = {
                     'name': sig.name,
@@ -1422,6 +1429,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                     'unit': sig.unit or "",
                     'samples': muxer_values,
                     't': t,
+                    'is_max': np.all(muxer_values == max_val),
                 }
 
                 # feed the muxer values to the mutliplexed signals
@@ -1451,6 +1459,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 signals = extracted_signals[entry]
 
             for sig in pair_signals:
+                max_val = float(sig.max)
                 muxer_values_ = extract_can_signal(sig, payload_)
                 signals[sig.name] = {
                     'name': sig.name,
@@ -1458,6 +1467,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                     'unit': sig.unit or "",
                     'samples': muxer_values_,
                     't': t_,
+                    'is_max': np.all(muxer_values == max_val),
                 }
 
                 extracted_signals.update(
