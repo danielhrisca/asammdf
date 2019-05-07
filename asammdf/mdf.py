@@ -13,7 +13,6 @@ from shutil import copy
 from pathlib import Path
 
 from canmatrix.formats import loads
-import canmatrix
 import numpy as np
 from numpy.core.defchararray import encode, decode
 import pandas as pd
@@ -47,13 +46,12 @@ from .blocks.utils import (
     csv_int2hex,
     csv_bytearray2hex,
 )
-from .blocks.v2_v3_blocks import Channel as ChannelV3
+
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
 from .blocks.v2_v3_blocks import ChannelConversion as ChannelConversionV3
 from .blocks.v2_v3_blocks import ChannelExtension
 from .blocks.v4_blocks import SourceInformation
 from .blocks.v4_blocks import ChannelConversion as ChannelConversionV4
-from .blocks.v4_blocks import Channel as ChannelV4
 from .blocks.v4_blocks import HeaderBlock as HeaderV4
 from .blocks.v4_blocks import ChannelArrayBlock, EventBlock
 from .blocks import v4_constants as v4c

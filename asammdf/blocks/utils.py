@@ -1362,7 +1362,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
 
             for sig in pair_signals:
                 samples = extract_can_signal(sig, payload)
-                max_val = float(sig.max)
+                max_val = float(sig.calc_max())
                 signals[sig.name] = {
                     'name': sig.name,
                     'comment': sig.comment or "",
@@ -1383,7 +1383,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
 
             for sig in pair_signals:
                 samples = extract_can_signal(sig, payload_)
-                max_val = float(sig.max)
+                max_val = float(sig.calc_max())
                 signals[sig.name] = {
                     'name': sig.name,
                     'comment': sig.comment or "",
@@ -1421,7 +1421,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 signals = extracted_signals[entry]
 
             for sig in pair_signals:
-                max_val = float(sig.max)
+                max_val = float(sig.calc_max())
                 muxer_values = extract_can_signal(sig, payload)
                 signals[sig.name] = {
                     'name': sig.name,
@@ -1459,7 +1459,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 signals = extracted_signals[entry]
 
             for sig in pair_signals:
-                max_val = float(sig.max)
+                max_val = float(sig.calc_max())
                 muxer_values_ = extract_can_signal(sig, payload_)
                 signals[sig.name] = {
                     'name': sig.name,

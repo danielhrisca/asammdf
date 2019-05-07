@@ -62,7 +62,7 @@ def excepthook(exc_type, exc_value, tracebackobj):
     QtWidgets.QMessageBox.warning(None, notice, traceback.format_exc())
 
 
-def run_thread_with_progress(widget, target, kwargs, factor, offset, progress):
+def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progress=None):
     termination_request = False
 
     thr = WorkerThread(target=target, kwargs=kwargs)
