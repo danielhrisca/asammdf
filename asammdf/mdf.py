@@ -1361,7 +1361,11 @@ class MDF(object):
                     message = f"Exporting group {i+1} of {gp_count}"
                     logger.info(message)
 
-                    group_csv_name = filename.parent / f"{filename.stem}_ChannelGroup_{i}.csv"
+                    comment = grp.channel_group.comment
+                    if comment:
+                        group_csv_name = filename.parent / f"{filename.stem}.ChannelGroup_{i}_{comment.replace(' ', '_')}.csv"
+                    else:
+                        group_csv_name = filename.parent / f"{filename.stem}.ChannelGroup_{i}.csv"
 
                     df = self.get_group(
                         i,
@@ -1722,11 +1726,10 @@ class MDF(object):
                     if sigs:
                         mdf.append(sigs, source_info, common_timebase=True)
                         try:
-                            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                                mdf.groups[-1].channel_group.flags = group.channel_group.flags
-                                mdf.groups[-1].channel_group.acq_name = group.channel_group.acq_name
-                                mdf.groups[-1].channel_group.acq_source = group.channel_group.acq_source
-                                mdf.groups[-1].channel_group.comment = group.channel_group.comment
+                            mdf.groups[-1].channel_group.flags = group.channel_group.flags
+                            mdf.groups[-1].channel_group.acq_name = group.channel_group.acq_name
+                            mdf.groups[-1].channel_group.acq_source = group.channel_group.acq_source
+                            mdf.groups[-1].channel_group.comment = group.channel_group.comment
                         except AttributeError:
                             pass
                     else:
@@ -3809,6 +3812,9 @@ class MDF(object):
                                         f'from CAN{bus} message ID=0x{msg_id:X}',
                                         common_timebase=True,
                                     )
+
+                                    out.groups[-1].channel_group.comment = f'{message} 0x{msg_id:X}'
+
                                 else:
                                     index = msg_map[entry]
 

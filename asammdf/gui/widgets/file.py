@@ -485,6 +485,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 channel_group = TreeItem(entry)
                 comment = group.channel_group.comment
                 comment = extract_cncomment_xml(comment)
+
                 if comment:
                     channel_group.setText(0, f"Channel group {i} ({comment})")
                 else:
@@ -921,8 +922,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
+            suffix = '.mdf'
         else:
             filter = "MDF version 4 files (*.mf4)"
+            suffix = '.mf4'
 
         split = self.convert_split.checkState() == QtCore.Qt.Checked
         if split:
@@ -935,10 +938,11 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         compression = self.convert_compression.currentIndex()
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", filter
+            self, "Select output measurement file", "", f'{filter};;All files (*.*)', filter
         )
 
         if file_name:
+            file_name = Path(file_name).with_suffix(suffix)
 
             progress = setup_progress(
                 parent=self,
@@ -994,8 +998,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
+            suffix = '.mdf'
         else:
             filter = "MDF version 4 files (*.mf4)"
+            suffix = '.mf4'
 
         split = self.resample_split.checkState() == QtCore.Qt.Checked
         if split:
@@ -1009,10 +1015,12 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         time_from_zero = self.resample_time_from_zero.checkState() == QtCore.Qt.Checked
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", filter
+            self, "Select output measurement file", "", f'{filter};;All files (*.*)', filter
         )
 
         if file_name:
+            file_name = Path(file_name).with_suffix(suffix)
+
             progress = setup_progress(
                 parent=self,
                 title="Resampling measurement",
@@ -1074,8 +1082,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
+            suffix = '.mdf'
         else:
             filter = "MDF version 4 files (*.mf4)"
+            suffix = '.mf4'
 
         split = self.cut_split.checkState() == QtCore.Qt.Checked
         if split:
@@ -1088,10 +1098,11 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         compression = self.cut_compression.currentIndex()
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", filter
+            self, "Select output measurement file", "", f'{filter};;All files (*.*)', filter
         )
 
         if file_name:
+            file_name = Path(file_name).with_suffix(suffix)
             progress = setup_progress(
                 parent=self,
                 title="Cutting measurement",
@@ -1164,7 +1175,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         }
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select export file", "", filters[export_type]
+            self, "Select export file", "", f"{filters[export_type]};;All files (*.*)", filters[export_type]
         )
 
         if file_name:
@@ -1810,8 +1821,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
+            suffix = '.mdf'
         else:
             filter = "MDF version 4 files (*.mf4)"
+            suffix = '.mf4'
 
         split = self.filter_split.checkState() == QtCore.Qt.Checked
         if split:
@@ -1824,10 +1837,11 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         compression = self.filter_compression.currentIndex()
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", filter
+            self, "Select output measurement file", "", f'{filter};;All files (*.*)', filter
         )
 
         if file_name:
+            file_name = Path(file_name).with_suffix(suffix)
             progress = setup_progress(
                 parent=self,
                 title="Filtering measurement",
@@ -1936,14 +1950,19 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
+            suffix = '.mdf'
         else:
             filter = "MDF version 4 files (*.mf4)"
+            suffix = '.mf4'
+
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", filter
+            self, "Select output measurement file", "", f'{filter};;All files (*.*)', filter
         )
 
         if file_name:
+
+            file_name = Path(file_name).with_suffix(suffix)
 
             progress = setup_progress(
                 parent=self,
@@ -2013,7 +2032,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         raster = self.export_raster.value()
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output CSV file", "", "CSV (*.csv)"
+            self, "Select output CSV file", "", "CSV (*.csv);;All files (*.*)", "CSV (*.csv)"
         )
 
         if file_name:
