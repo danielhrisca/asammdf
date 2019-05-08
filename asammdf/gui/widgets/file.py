@@ -411,6 +411,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.scramble_btn.clicked.connect(self.scramble)
         self.setAcceptDrops(True)
 
+        self._cursor_source = None
+
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():
             self.raster_channel.setEnabled(True)
@@ -566,14 +568,47 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         if subplots_link:
             for i, mdi in enumerate(self.mdi_area.subWindowList()):
                 plt = mdi.widget()
-                if viewbox is None:
-                    viewbox = plt.plot.viewbox
-                else:
-                    plt.plot.viewbox.setXLink(viewbox)
+                if isinstance(plt, Plot):
+                    if viewbox is None:
+                        viewbox = plt.plot.viewbox
+                    else:
+                        plt.plot.viewbox.setXLink(viewbox)
+                    plt.cursor_moved_signal.connect(self.set_cursor)
+                    plt.cursor_removed_signal.connect(self.remove_cursor)
         else:
             for mdi in self.mdi_area.subWindowList():
                 plt = mdi.widget()
-                plt.plot.viewbox.setXLink(None)
+                if isinstance(plt, Plot):
+                    plt.plot.viewbox.setXLink(None)
+                    try:
+                        plt.cursor_moved_signal.disconnect(self.set_cursor)
+                    except:
+                        pass
+                    try:
+                        plt.cursor_removed_signal.disconnect(self.remove_cursor)
+                    except:
+                        pass
+
+    def set_cursor(self, widget, pos):
+        if self._cursor_source is None:
+            self._cursor_source = widget
+            for mdi in self.mdi_area.subWindowList():
+                plt = mdi.widget()
+                if isinstance(plt, Plot) and plt is not widget:
+                    if plt.plot.cursor1 is None:
+                        event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.NoModifier)
+                        plt.plot.keyPressEvent(event)
+                    plt.plot.cursor1.setPos(pos)
+            self._cursor_source = None
+
+    def remove_cursor(self, widget):
+        if self._cursor_source is None:
+            self._cursor_source = widget
+            for mdi in self.mdi_area.subWindowList():
+                plt = mdi.widget()
+                if isinstance(plt, Plot) and plt is not widget:
+                    plt.cursor_removed()
+            self._cursor_source = None
 
     def save_all_subplots(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -1326,6 +1361,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 
+            self.set_subplots_link(self.subplots_link)
+
     def load_window(self, window_info):
 
         if window_info['type'] == 'Numeric':
@@ -1606,14 +1643,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     else QtCore.Qt.Unchecked
                 )
 
-            if self.subplots_link:
-
-                for i, mdi in enumerate(self.mdi_area.subWindowList()):
-                    widget = mdi.widget()
-                    if isinstance(widget, Plot):
-                        viewbox = widget.plot.viewbox
-                        plot.plot.viewbox.setXLink(viewbox)
-                        break
+            self.set_subplots_link(self.subplots_link)
 
     def plot_pyqtgraph(self, event):
         try:
@@ -1698,14 +1728,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         menu.insertAction(before, action)
         w.setSystemMenu(menu)
 
-        if self.subplots_link:
-
-            for i, mdi in enumerate(self.mdi_area.subWindowList()):
-                widget = mdi.widget()
-                if isinstance(widget, Plot):
-                    viewbox = widget.plot.viewbox
-                    plot.plot.viewbox.setXLink(viewbox)
-                    break
+        self.set_subplots_link(self.subplots_link)
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 

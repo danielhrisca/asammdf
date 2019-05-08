@@ -45,6 +45,8 @@ try:
         add_channels_request = QtCore.pyqtSignal(list)
         close_request = QtCore.pyqtSignal()
         clicked = QtCore.pyqtSignal()
+        cursor_moved_signal = QtCore.pyqtSignal(object, float)
+        cursor_removed_signal = QtCore.pyqtSignal(object)
 
         def __init__(self, signals, with_dots=False, *args, **kwargs):
             super().__init__(*args, **kwargs)
@@ -276,6 +278,8 @@ try:
                 stats = self.plot.get_stats(self.info_index)
                 self.info.set_stats(stats)
 
+            self.cursor_moved_signal.emit(self, position)
+
         def cursor_removed(self):
             for i, signal in enumerate(self.plot.signals):
                 item = self.channel_selection.item(i)
@@ -288,6 +292,8 @@ try:
             if self.info.isVisible():
                 stats = self.plot.get_stats(self.info_index)
                 self.info.set_stats(stats)
+
+            self.cursor_removed_signal.emit(self)
 
         def range_modified(self):
             start, stop = self.plot.region.getRegion()
