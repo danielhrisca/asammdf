@@ -12,7 +12,7 @@ class SearchWidget(Ui_SearchWidget, QtWidgets.QWidget):
 
     selectionChanged = QtCore.pyqtSignal()
 
-    def __init__(self, channels_db, *args, **kwargs):
+    def __init__(self, sorted_keys, channels_db, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.channels_db = channels_db
@@ -21,7 +21,7 @@ class SearchWidget(Ui_SearchWidget, QtWidgets.QWidget):
         self.current_index = 1
         self.entries = []
 
-        completer = QtWidgets.QCompleter(sorted(self.channels_db, key=lambda x: x.lower()), self)
+        completer = QtWidgets.QCompleter(sorted_keys, self)
         completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
         completer.setModelSorting(QtWidgets.QCompleter.CaseInsensitivelySortedModel)
         completer.setFilterMode(QtCore.Qt.MatchContains)

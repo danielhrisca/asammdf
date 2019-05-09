@@ -5,6 +5,7 @@ bin_ = bin
 import logging
 from functools import reduce, partial
 import math
+from time import perf_counter
 
 import numpy as np
 from pathlib import Path
@@ -108,7 +109,6 @@ try:
 
             if signals:
                 self.add_new_channels(signals)
-                self.plot.set_current_index(self.plot.signals[0]._index)
 
             self.info.hide()
 
@@ -448,17 +448,18 @@ try:
 
         def add_new_channels(self, channels):
 
+            for sig in channels:
+                sig._index = self._available_index
+                self._available_index += 1
+
             self.plot.add_new_channels(channels)
 
             for sig in channels:
-                sig._index = self._available_index
 
                 item = QtWidgets.QListWidgetItem(self.channel_selection)
                 item.setData(QtCore.Qt.UserRole, sig.name)
-                it = ChannelDisplay(self._available_index, sig.unit, sig.samples.dtype.kind, 3, self)
+                it = ChannelDisplay(sig._index, sig.unit, sig.samples.dtype.kind, 3, self)
                 it.setAttribute(QtCore.Qt.WA_StyledBackground)
-
-                self._available_index += 1
 
                 it.setName(sig.name)
                 it.setValue("")
@@ -477,9 +478,6 @@ try:
                 it.enable_changed.emit(sig._index, 1)
 
                 self.info_index = sig._index
-
-            if channels:
-                self.plot.set_current_index(self.info_index)
 
         def to_config(self):
             count = self.channel_selection.count()
@@ -540,7 +538,10 @@ try:
 
         def __init__(self, signals=None, with_dots=False, *args, **kwargs):
             super().__init__()
-            self.setContentsMargins(0, 0, 0, 0)
+
+            self._last_size = self.geometry()
+
+            self.setContentsMargins(5, 5, 5, 5)
             self.xrange_changed.connect(self.xrange_changed_handle)
             self.with_dots = with_dots
             if self.with_dots:
@@ -609,9 +610,10 @@ try:
 
             self.viewbox.sigResized.connect(self.update_views)
 
-            self.keyPressEvent(QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_H, QtCore.Qt.NoModifier))
-
             self.resizeEvent = self._resizeEvent
+
+            if signals:
+                self.add_new_channels(signals)
 
         def update_lines(self, with_dots=None, force=False):
             with_dots_changed = False
@@ -1192,8 +1194,9 @@ try:
                         start_t, stop_t = min(start_ts), max(stop_ts)
 
                         self.viewbox.setXRange(start_t, stop_t)
-                        self.viewbox.autoRange(padding=0)
-                        self.viewbox.disableAutoRange()
+#                        self.viewbox.setRange(xRange=[start_t, stop_t], update=False, padding=0, disableAutoRange=False)
+#                        self.viewbox.autoRange(padding=0)
+#                        self.viewbox.disableAutoRange()
                         if self.cursor1:
                             self.cursor_moved.emit()
 
@@ -1292,8 +1295,12 @@ try:
             self.update_lines(force=True)
 
         def _resizeEvent(self, ev):
-            self.xrange_changed_handle()
-            super().resizeEvent(ev)
+
+            new_size, last_size = self.geometry(), self._last_size
+            if new_size != last_size:
+                self._last_size = new_size
+                self.xrange_changed_handle()
+                super().resizeEvent(ev)
 
         def set_current_index(self, index, force=False):
             axis = self.axis
@@ -1364,6 +1371,26 @@ try:
 
         def add_new_channels(self, channels, computed=False):
             geometry = self.viewbox.sceneBoundingRect()
+            initial_index = len(self.signals)
+
+            if initial_index == 0 and channels:
+                start_ts = [
+                    sig.timestamps[0]
+                    for sig in channels
+                    if len(sig.timestamps)
+                ]
+
+                stop_ts = [
+                    sig.timestamps[-1]
+                    for sig in channels
+                    if len(sig.timestamps)
+                ]
+
+                if start_ts:
+                    start_t, stop_t = min(start_ts), max(stop_ts)
+
+                    self.viewbox.setXRange(start_t, stop_t)
+
             for i, sig in enumerate(channels):
                 index = len(self.signals)
 
@@ -1467,28 +1494,28 @@ try:
                     clickable=True,
                     mouseWidth=30,
                 )
+                curve.hide()
+
                 curve.sigClicked.connect(partial(self.curve_clicked.emit, index))
-                view_box.addItem(curve)
 
                 view_box.setXLink(self.viewbox)
                 self.view_boxes.append(view_box)
                 self.curves.append(curve)
-                curve.show()
-
                 if not sig.empty:
                     view_box.setYRange(sig.min, sig.max, padding=0, update=True)
-                (start, stop), _ = self.viewbox.viewRange()
-                view_box.setXRange(start, stop, padding=0, update=True)
-
-                view_box.setGeometry(geometry)
+#                (start, stop), _ = self.viewbox.viewRange()
+#                view_box.setXRange(start, stop, padding=0, update=True)
+#                view_box.setGeometry(geometry)
 
                 self.axes.append(axis)
                 axis.hide()
+                view_box.addItem(curve)
 
-            if len(self.all_timebase):
-                home = False
-            else:
-                home = True
+            for curve in self.curves[initial_index:]:
+                curve.show()
+
+            if initial_index == 0 and self.signals:
+                self.set_current_index(self.signals[0]._index)
 
             if self.signals:
                 self.all_timebase = self.timebase = reduce(
@@ -1496,9 +1523,6 @@ try:
                 )
             else:
                 self.all_timebase = self.timebase = None
-
-            if home:
-                self.keyPressEvent(QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_H, QtCore.Qt.NoModifier))
 
             QtWidgets.QApplication.processEvents()
 

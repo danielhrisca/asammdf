@@ -129,11 +129,13 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             if self.mdf is TERMINATED:
                 return
 
+        channels_db_items = sorted(self.mdf.channels_db, key = lambda x: x.lower())
+
         progress.setLabelText("Loading graphical elements")
 
         progress.setValue(35)
 
-        self.filter_field = SearchWidget(self.mdf.channels_db, self)
+        self.filter_field = SearchWidget(channels_db_items, self.mdf.channels_db, self)
 
         progress.setValue(37)
 
@@ -150,7 +152,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.channels_tree = TreeWidget(channel_and_search)
         self.channels_tree.setDragEnabled(True)
         self.search_field = SearchWidget(
-            self.mdf.channels_db, channel_and_search
+            channels_db_items, self.mdf.channels_db, channel_and_search
         )
         self.filter_tree = TreeWidget()
 
@@ -271,8 +273,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.filter_tree.setHeaderLabel("Channels")
         self.filter_tree.setToolTip("Double click channel to see extended information")
 
-        flags = None
-
         for i, group in enumerate(self.mdf.groups):
 
             filter_channel_group = QtWidgets.QTreeWidgetItem()
@@ -288,14 +288,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             for j, ch in enumerate(group.channels):
                 entry = i, j
 
-                name = self.mdf.get_channel_name(i, j)
+                name = ch.name
 
-                channel = TreeItem(entry)
-                if flags is None:
-                    flags = channel.flags() | QtCore.Qt.ItemIsUserCheckable
-                channel.setFlags(flags)
+                channel = TreeItem(entry, name)
                 channel.setText(0, name)
-                channel.setCheckState(0, QtCore.Qt.Unchecked)
                 filter_children.append(channel)
 
             if self.mdf.version >= "4.00":
@@ -303,10 +299,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     name = ch.name
                     entry = i, -j
 
-                    channel = TreeItem(entry)
-                    channel.setFlags(flags)
+                    channel = TreeItem(entry, name)
                     channel.setText(0, name)
-                    channel.setCheckState(0, QtCore.Qt.Unchecked)
                     filter_children.append(channel)
 
             filter_channel_group.addChildren(filter_children)
@@ -317,9 +311,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         self._update_channel_tree()
 
-        self.raster_channel.addItems(
-            natsorted(self.mdf.channels_db)
-        )
+        self.raster_channel.addItems(channels_db_items)
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)
 
@@ -449,7 +441,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         self.channels_tree.clear()
 
-        flags = None
         if self.channel_view.currentIndex() == 0:
             items = []
             for i, group in enumerate(self.mdf.groups):
@@ -457,9 +448,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     entry = i, j
 
                     channel = TreeItem(entry, ch.name)
-                    if flags is None:
-                        flags = channel.flags() | QtCore.Qt.ItemIsUserCheckable
-                    channel.setFlags(flags)
                     channel.setText(0, ch.name)
                     if entry in signals:
                         channel.setCheckState(0, QtCore.Qt.Checked)
@@ -472,14 +460,16 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                         entry = i, -j
 
                         channel = TreeItem(entry, ch.name)
-                        channel.setFlags(flags)
                         channel.setText(0, ch.name)
                         if entry in signals:
                             channel.setCheckState(0, QtCore.Qt.Checked)
                         else:
                             channel.setCheckState(0, QtCore.Qt.Unchecked)
                         items.append(channel)
-            items = natsorted(items, key=lambda x: x.name)
+            if len(items) < 30000:
+                items = natsorted(items, key=lambda x: x.name)
+            else:
+                items.sort(key=lambda x: x.name)
             self.channels_tree.addTopLevelItems(items)
         else:
             for i, group in enumerate(self.mdf.groups):
@@ -503,12 +493,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 for j, ch in enumerate(group.channels):
                     entry = i, j
 
-                    name = self.mdf.get_channel_name(i, j)
-                    channel = TreeItem(entry)
-                    if flags is None:
-                        flags = channel.flags() | QtCore.Qt.ItemIsUserCheckable
-                    channel.setFlags(flags)
-                    channel.setText(0, name)
+                    channel = TreeItem(entry, ch.name)
+                    channel.setText(0, ch.name)
                     if entry in signals:
                         channel.setCheckState(0, QtCore.Qt.Checked)
                     else:
@@ -520,8 +506,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                         name = ch.name
                         entry = i, -j
 
-                        channel = TreeItem(entry)
-                        channel.setFlags(flags)
+                        channel = TreeItem(entry, name)
                         channel.setText(0, name)
                         if entry in signals:
                             channel.setCheckState(0, QtCore.Qt.Checked)
@@ -1314,8 +1299,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
 
         else:
-            plot = Plot(signals, self.with_dots)
-            plot.plot.update_lines(force=True)
+            plot = Plot([], self.with_dots)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1331,6 +1315,12 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 else:
                     w.show()
                     self.mdi_area.tileSubWindows()
+
+            plot.hide()
+
+            plot.add_new_channels(signals)
+
+            plot.show()
 
             menu = w.systemMenu()
 
@@ -1568,8 +1558,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             signals = list(measured_signals.values()) + list(computed_signals.values())
 
-            plot = Plot(signals, self.with_dots)
-            plot.plot.update_lines(force=True)
+            plot = Plot([], self.with_dots)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1585,6 +1574,12 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 else:
                     w.show()
                     self.mdi_area.tileSubWindows()
+
+            plot.hide()
+
+            plot.add_new_channels(signals)
+
+            plot.show()
 
             menu = w.systemMenu()
 
@@ -1691,7 +1686,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             signals = natsorted(signals, key=lambda x: x.name)
 
-        plot = Plot(signals, self.with_dots)
+        plot = Plot([], self.with_dots)
 
         if not self.subplots:
             for mdi in self.mdi_area.subWindowList():
@@ -1704,9 +1699,16 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             if len(self.mdi_area.subWindowList()) == 1:
                 w.showMaximized()
+
             else:
                 w.show()
                 self.mdi_area.tileSubWindows()
+
+        plot.hide()
+
+        plot.add_new_channels(signals)
+
+        plot.show()
 
         w.setWindowTitle(f'Plot {self._window_counter}')
         self._window_counter += 1
