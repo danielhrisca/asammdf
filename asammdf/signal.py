@@ -152,8 +152,8 @@ class Signal(object):
         case see the GUI plot documentation to see the available commands"""
         try:
 
-            from .gui.widgets.plot_standalone import plot
-            plot([self])
+            from .gui.plot import plot
+            plot(self)
             return
 
         except:
