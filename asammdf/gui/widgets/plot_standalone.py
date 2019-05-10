@@ -317,7 +317,11 @@ class PlotWindow(QtWidgets.QMainWindow):
             brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.ToolTipText, brush)
-            brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
+
+            brush = QtGui.QBrush(QtGui.QColor(100, 100, 100))
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight, brush)
+            brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.WindowText, brush)
             brush = QtGui.QBrush(QtGui.QColor(55, 55, 55))
@@ -362,6 +366,8 @@ class PlotWindow(QtWidgets.QMainWindow):
             brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ToolTipText, brush)
+
+
             brush = QtGui.QBrush(QtGui.QColor(27, 27, 27))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.WindowText, brush)

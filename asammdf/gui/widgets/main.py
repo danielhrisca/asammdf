@@ -555,6 +555,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ToolTipText, brush)
+            brush = QtGui.QBrush(QtGui.QColor(100, 100, 100))
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight, brush)
             app.setPalette(palette)
 
     def set_subplot_link_option(self, option):
