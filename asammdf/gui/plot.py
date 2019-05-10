@@ -1,17 +1,32 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtWidgets
+import logging
+
+try:
+    from PyQt5 import QtWidgets
+    QT = True
+except ImportError:
+    QT = False
 
 from .widgets.plot_standalone import PlotWindow
 
 
+logger = logging.getLogger("asammdf")
+
+
 def plot(signals):
     """ create a stand-alone plot using the input signal or signals """
-    app = QtWidgets.QApplication([])
-    app.setOrganizationName("py-asammdf")
-    app.setOrganizationDomain("py-asammdf")
-    app.setApplicationName("py-asammdf")
-    main = PlotWindow(signals)
 
-    app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
+    if QT:
+        app = QtWidgets.QApplication([])
+        app.setOrganizationName("py-asammdf")
+        app.setOrganizationDomain("py-asammdf")
+        app.setApplicationName("py-asammdf")
+        main = PlotWindow(signals)
 
-    app.exec_()
+        app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
+
+        app.exec_()
+
+    else:
+        logging.warning("Signal plotting requires pyqtgraph or matplotlib")
+        raise Exception("Signal plotting requires pyqtgraph or matplotlib")
