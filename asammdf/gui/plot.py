@@ -3,11 +3,10 @@ import logging
 
 try:
     from PyQt5 import QtWidgets
+    from .widgets.plot_standalone import PlotWindow
     QT = True
 except ImportError:
     QT = False
-
-from .widgets.plot_standalone import PlotWindow
 
 
 logger = logging.getLogger("asammdf")
