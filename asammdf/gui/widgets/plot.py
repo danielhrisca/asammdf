@@ -540,6 +540,7 @@ try:
             super().__init__()
 
             self._last_size = self.geometry()
+            self._settings = QtCore.QSettings()
 
             self.setContentsMargins(5, 5, 5, 5)
             self.xrange_changed.connect(self.xrange_changed_handle)
@@ -1325,7 +1326,10 @@ try:
                     self.common_viewbox.setYRange(*vbox.viewRange()[1], padding=0)
                     self.common_viewbox.setYLink(viewbox)
 
-                    axis.setPen("#FFFFFF")
+                    if self._settings.value('plot_background') == 'Black':
+                        axis.setPen("#FFFFFF")
+                    else:
+                        axis.setPen("#000000")
                     axis.setLabel(self.common_axis_label)
 
             else:
