@@ -151,32 +151,9 @@ class Signal(object):
         """ plot Signal samples. Pyqtgraph is used if it is available; in this
         case see the GUI plot documentation to see the available commands"""
         try:
-            import pyqtgraph
-            from .gui.utils import COLORS
-            from .gui.widgets.plot_standalone import StandalonePlot
 
-            from PyQt5.QtWidgets import QApplication
-
-            app = QApplication([])
-
-            plot = StandalonePlot([self], True, False)
-
-            name = self.name
-
-            if self.comment:
-                comment = self.comment.replace("$", "")
-                comment = extract_cncomment_xml(comment)
-                comment = fill(comment, 120).replace("\\n", " ")
-
-                title = f"{name}\n({comment})"
-                plot.plot.plot.plotItem.setTitle(title, color=COLORS[0])
-            else:
-                plot.plot.plot.plotItem.setTitle(name, color=COLORS[0])
-
-            plot.show()
-            plot.setWindowTitle(f"{self.name} - asammdf{__version__}")
-
-            app.exec_()
+            from .gui.widgets.plot_standalone import plot
+            plot([self])
             return
 
         except:

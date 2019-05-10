@@ -1503,9 +1503,9 @@ try:
                 self.curves.append(curve)
                 if not sig.empty:
                     view_box.setYRange(sig.min, sig.max, padding=0, update=True)
-#                (start, stop), _ = self.viewbox.viewRange()
-#                view_box.setXRange(start, stop, padding=0, update=True)
-#                view_box.setGeometry(geometry)
+                (start, stop), _ = self.viewbox.viewRange()
+                view_box.setXRange(start, stop, padding=0, update=True)
+                view_box.setGeometry(geometry)
 
                 self.axes.append(axis)
                 axis.hide()

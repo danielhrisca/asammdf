@@ -357,7 +357,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.set_subplot_link_option(self._settings.value('subplots_link', "Disabled"))
 
     def help(self, event):
-        webbrowser.open_new(r'http://asammdf.readthedocs.io/en/development/gui.html')
+        webbrowser.open_new(r'http://asammdf.readthedocs.io/en/master/gui.html')
 
     def save_all_subplots(self, key):
         widget = self.files.currentWidget()
