@@ -13,6 +13,7 @@ from shutil import copy
 from pathlib import Path
 
 from canmatrix.formats import loads
+import canmatrix
 import numpy as np
 from numpy.core.defchararray import encode, decode
 import pandas as pd
@@ -379,10 +380,16 @@ class MDF(object):
                 if group.CAN_database:
                     dbc_addr = group.dbc_addr
                     message_id = group.message_id
-                    can_msg = self._dbc_cache[dbc_addr].frameById(message_id)
+                    for m_ in message_id:
+                        try:
+                            can_msg = self._dbc_cache[dbc_addr].frameById(m_)
+                        except AttributeError:
+                            can_msg = self._dbc_cache[dbc_addr].frame_by_id(
+                                canmatrix.ArbitrationId(m_)
+                            )
 
-                    for i, _ in enumerate(can_msg.signals, 1):
-                        included_channels.add(-i)
+                        for i, _ in enumerate(can_msg.signals, 1):
+                            included_channels.add(-i)
 
             for dependencies in group.channel_dependencies:
                 if dependencies is None:
@@ -1322,9 +1329,10 @@ class MDF(object):
 
                         for name_ in df.columns:
                             if name_.endswith('CAN_DataFrame.ID'):
-                                dropped[name_] = pd.Series(csv_int2hex(df[name_]), index=df.index)
+                                dropped[name_] = pd.Series(csv_int2hex(df[name_].astype('<u4')), index=df.index)
 
                             elif name_.endswith('CAN_DataFrame.DataBytes'):
+                                print(df[name_])
                                 dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
 
                         df = df.drop(columns=list(dropped))
@@ -3665,6 +3673,7 @@ class MDF(object):
                         dbc = loads(
                             contents,
                             importType=import_type,
+                            import_type=import_type,
                             key="db",
                             encoding=encoding,
                         )["db"]

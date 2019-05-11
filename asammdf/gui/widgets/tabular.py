@@ -51,7 +51,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
             for name_ in signals.columns:
                 if name_.endswith('CAN_DataFrame.ID'):
-                    dropped[name_] = pd.Series(csv_int2hex(signals[name_]), index=signals.index)
+                    dropped[name_] = pd.Series(csv_int2hex(signals[name_].astype('<u4')), index=signals.index)
 
                 elif name_.endswith('CAN_DataFrame.DataBytes'):
                     dropped[name_] = pd.Series(csv_bytearray2hex(signals[name_]), index=signals.index)
@@ -84,10 +84,10 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setColumnCount(len(names))
         self.tree.setHeaderLabels(names)
 
-        vals = [df.index, *(df[name] for name in df)]
+        vals = [df.index.astype(str), *(df[name].astype(str) for name in df)]
 
         items = [
-            TreeItem([str(e) for e in row])
+            TreeItem(row)
             for row in zip(*vals)
         ]
 

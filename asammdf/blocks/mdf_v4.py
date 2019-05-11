@@ -512,10 +512,13 @@ class MDF4(object):
                         encoding = detect(attachment)["encoding"]
                         string = attachment.decode(encoding)
                     db = loads(
-                        string, importType=import_type, key="db"
+                        string, importType=import_type, import_type=import_type, key="db"
                     )["db"]
 
-                    board_units = set(bu.name for bu in db.boardUnits)
+                    try:
+                        board_units = set(bu.name for bu in db.boardUnits)
+                    except AttributeError:
+                        board_units = set(bu.name for bu in db.ecus)
 
                     cg_source = group.channel_group.acq_source
 
@@ -523,7 +526,10 @@ class MDF4(object):
                     for message_id in all_can_ids:
                         self.can_logging_db[group.CAN_id][message_id] = i
                         sigs = []
-                        can_msg = db.frameById(message_id)
+                        try:
+                            can_msg = db.frameById(message_id)
+                        except AttributeError:
+                            can_msg = db.frame_by_id(canmatrix.ArbitrationId(message_id))
 
                         if can_msg:
                             for transmitter in can_msg.transmitters:
@@ -903,6 +909,7 @@ class MDF4(object):
                                 self._dbc_cache[attachment_addr] = loads(
                                     attachment_string,
                                     importType=import_type,
+                                    import_type=import_type,
                                     key="db",
                                 )["db"]
                                 grp.CAN_database = True
@@ -917,6 +924,7 @@ class MDF4(object):
                                     self._dbc_cache[attachment_addr] = loads(
                                         attachment_string,
                                         importType=import_type,
+                                        import_type=import_type,
                                         key="db",
                                         encoding=encoding,
                                     )["db"]
@@ -948,9 +956,14 @@ class MDF4(object):
                     message_name = grp.message_name
                     can_id = grp.CAN_id
 
-                    can_msg = self._dbc_cache[attachment_addr].frameById(
-                        message_id
-                    )
+                    try:
+                        can_msg = self._dbc_cache[attachment_addr].frameById(
+                            message_id
+                        )
+                    except AttributeError:
+                        can_msg = self._dbc_cache[attachment_addr].frame_by_id(
+                            canmatrix.ArbitrationId(message_id)
+                        )
 
                     if can_msg:
                         can_msg_name = can_msg.name
@@ -979,8 +992,8 @@ class MDF4(object):
                             )
                             signed = signal.is_signed
                             s_type = info_to_datatype_v4(signed, little_endian)
-                            bit_offset = signal.startBit % 8
-                            byte_offset = signal.startBit // 8
+                            bit_offset = signal.start_bit % 8
+                            byte_offset = signal.start_bit // 8
                             bit_count = signal.size
                             comment = signal.comment or ""
 
@@ -4599,7 +4612,7 @@ class MDF4(object):
             # CANopen date
             if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
 
-                vals = vals.tostring()
+#                vals = vals.tostring()
 
                 types = dtype(
                     [
@@ -4998,7 +5011,7 @@ class MDF4(object):
                     try:
                         db_string = db_string.decode("utf-8")
                         db = self._external_dbc_cache[md5_sum] = loads(
-                            db_string, importType=import_type, key="db"
+                            db_string, importType=import_type, import_type=import_type, key="db"
                         )["db"]
                     except UnicodeDecodeError:
                         try:
@@ -5009,6 +5022,7 @@ class MDF4(object):
                             db = self._dbc_cache[md5_sum] = loads(
                                 db_string,
                                 importType=import_type,
+                                import_type=import_type,
                                 key="db",
                                 encoding=encoding,
                             )["db"]
