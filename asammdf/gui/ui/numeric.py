@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\DSUsers\uidn3651\02__PythonWorkspace\asammdf\asammdf\gui\ui\numeric.ui'
+# Form implementation generated from reading ui file 'numeric.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.1
+# Created by: PyQt5 UI code generator 5.12
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -16,6 +16,9 @@ class Ui_NumericDisplay(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(NumericDisplay)
         self.verticalLayout.setObjectName("verticalLayout")
         self.channels = NumericTreeWidget(NumericDisplay)
+        font = QtGui.QFont()
+        font.setFamily("Lucida Console")
+        self.channels.setFont(font)
         self.channels.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.channels.setAlternatingRowColors(True)
         self.channels.setColumnCount(3)

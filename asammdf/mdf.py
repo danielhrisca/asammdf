@@ -2972,12 +2972,10 @@ class MDF(object):
             for k, sig in enumerate(signals):
                 # byte arrays
                 if len(sig.samples.shape) > 1:
-                    arr = [sig.samples]
-                    types = [(sig.name, sig.samples.dtype, sig.samples.shape[1:])]
-                    sig.samples = np.core.records.fromarrays(arr, dtype=types)
-
                     channel_name = used_names.get_unique_name(sig.name)
-                    df[channel_name] = pd.Series(sig.samples, index=master, dtype="O")
+                    df[channel_name] = pd.Series(list(sig.samples), index=master)
+
+                    print(df[channel_name].dtype)
 
                 # arrays and structures
                 elif sig.samples.dtype.names:

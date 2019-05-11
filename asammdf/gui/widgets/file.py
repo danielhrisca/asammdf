@@ -24,6 +24,7 @@ from ...blocks.utils import MdfException, extract_cncomment_xml
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .plot import Plot
 from .numeric import Numeric
+from .tabular import Tabular
 from .search import SearchWidget
 from .tree import TreeWidget
 from .tree_item import TreeItem
@@ -245,6 +246,15 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.numeric_btn.setObjectName("numeric_btn")
         hbox.addWidget(self.numeric_btn)
 
+        hbox.addWidget(line)
+        self.tabular_btn = QtWidgets.QPushButton("", channel_and_search)
+        self.tabular_btn.setToolTip("Numeric display selected channels")
+        icon3 = QtGui.QIcon()
+        icon3.addPixmap(QtGui.QPixmap(":/numeric.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.tabular_btn.setIcon(icon3)
+        self.tabular_btn.setObjectName("tabular_btn")
+        hbox.addWidget(self.tabular_btn)
+
         hbox.addSpacerItem(
             QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         )
@@ -387,6 +397,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         # self.channels_tree.itemChanged.connect(self.select)
         self.plot_btn.clicked.connect(self.plot_pyqtgraph)
         self.numeric_btn.clicked.connect(self.numeric_pyqtgraph)
+        self.tabular_btn.clicked.connect(self.tabular_pyqtgraph)
 
         self.clear_filter_btn.clicked.connect(self.clear_filter)
         self.clear_channels_btn.clicked.connect(self.clear_channels)
@@ -1733,6 +1744,81 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.set_subplots_link(self.subplots_link)
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
+
+    def tabular_pyqtgraph(self, event):
+        try:
+            iter(event)
+            signals = event
+        except:
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+            signals = []
+
+            if self.channel_view.currentIndex() == 1:
+                while iterator.value():
+                    item = iterator.value()
+                    if item.parent() is None:
+                        iterator += 1
+                        continue
+
+                    if item.checkState(0) == QtCore.Qt.Checked:
+                        group, index = item.entry
+                        ch = self.mdf.groups[group].channels[index]
+                        if not ch.component_addr:
+                            signals.append((None, group, index))
+
+                    iterator += 1
+            else:
+                while iterator.value():
+                    item = iterator.value()
+
+                    if item.checkState(0) == QtCore.Qt.Checked:
+                        group, index = item.entry
+                        ch = self.mdf.groups[group].channels[index]
+                        if not ch.component_addr:
+                            signals.append((None, group, index))
+
+                    iterator += 1
+
+            signals = self.mdf.select(signals, dataframe=True)
+
+        tabular = Tabular(signals)
+
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(tabular)
+
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(tabular)
+
+            if len(self.mdi_area.subWindowList()) == 1:
+                w.showMaximized()
+            else:
+                w.show()
+                self.mdi_area.tileSubWindows()
+
+        menu = w.systemMenu()
+        w.setWindowTitle(f'Tabular {self._window_counter}')
+        self._window_counter += 1
+
+        def set_title(mdi):
+            name, ok = QtWidgets.QInputDialog.getText(
+                None,
+                'Set sub-plot title',
+                'Title:',
+            )
+            if ok and name:
+                mdi.setWindowTitle(name)
+
+        action = QtWidgets.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+        w.setSystemMenu(menu)
+
+        tabular.add_channels_request.connect(partial(self.add_new_channels, widget=tabular))
 
     def numeric_pyqtgraph(self, event):
         try:
