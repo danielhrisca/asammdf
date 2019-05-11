@@ -163,6 +163,14 @@ class Plot(QtWidgets.QWidget):
             if self.info_index == sig._index:
                 self.info_index = None
 
+            if i in self.plot.common_axis_items:
+                self.plot.common_axis_items.remove(i)
+
+                self.plot.common_axis_items = set(
+                    idx if idx < i else idx - 1
+                    for idx in self.plot.common_axis_items
+                )
+
         rows = self.channel_selection.count()
 
         if not rows:
@@ -265,13 +273,13 @@ class Plot(QtWidgets.QWidget):
                 item = self.channel_selection.item(i)
                 item = self.channel_selection.itemWidget(item)
 
-                item.setPrefix("= ")
-                item.setFmt(signal.format)
+                item.set_prefix("= ")
+                item.set_fmt(signal.format)
 
                 if len(samples):
-                    item.setValue(samples[0])
+                    item.set_value(samples[0])
                 else:
-                    item.setValue("n.a.")
+                    item.set_value("n.a.")
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_index)
@@ -286,8 +294,8 @@ class Plot(QtWidgets.QWidget):
 
             if not self.plot.region:
                 self.cursor_info.setText("")
-                item.setPrefix("")
-                item.setValue("")
+                item.set_prefix("")
+                item.set_value("")
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_index)
             self.info.set_stats(stats)
@@ -312,8 +320,8 @@ class Plot(QtWidgets.QWidget):
             item = self.channel_selection.item(i)
             item = self.channel_selection.itemWidget(item)
 
-            item.setPrefix("Δ = ")
-            item.setFmt(signal.format)
+            item.set_prefix("Δ = ")
+            item.set_fmt(signal.format)
 
             if len(samples):
                 if samples.dtype.kind in "ui":
@@ -321,10 +329,10 @@ class Plot(QtWidgets.QWidget):
                 else:
                     delta = samples[-1] - samples[0]
 
-                item.setValue(delta)
+                item.set_value(delta)
 
             else:
-                item.setValue("n.a.")
+                item.set_value("n.a.")
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_index)
@@ -402,8 +410,8 @@ class Plot(QtWidgets.QWidget):
             item = self.channel_selection.item(i)
             item = self.channel_selection.itemWidget(item)
 
-            item.setPrefix("")
-            item.setValue("")
+            item.set_prefix("")
+            item.set_value("")
             self.cursor_info.setText("")
 
         if self.plot.cursor1:
@@ -426,16 +434,16 @@ class Plot(QtWidgets.QWidget):
 
         self._available_index += 1
 
-        it.setName(name)
-        it.setValue("")
-        it.setColor(sig.color)
+        it.set_name(name)
+        it.set_value("")
+        it.set_color(sig.color)
         item.setSizeHint(it.sizeHint())
         self.channel_selection.addItem(item)
         self.channel_selection.setItemWidget(item, it)
 
-        it.color_changed.connect(self.plot.setColor)
-        it.enable_changed.connect(self.plot.setSignalEnable)
-        it.ylink_changed.connect(self.plot.setCommonAxis)
+        it.color_changed.connect(self.plot.set_color)
+        it.enable_changed.connect(self.plot.set_signal_enable)
+        it.ylink_changed.connect(self.plot.set_common_axis)
 
         it.enable_changed.emit(sig._index, 1)
         it.enable_changed.emit(sig._index, 0)
@@ -460,16 +468,16 @@ class Plot(QtWidgets.QWidget):
             it = ChannelDisplay(sig._index, sig.unit, sig.samples.dtype.kind, 3, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
-            it.setName(sig.name)
-            it.setValue("")
-            it.setColor(sig.color)
+            it.set_name(sig.name)
+            it.set_value("")
+            it.set_color(sig.color)
             item.setSizeHint(it.sizeHint())
             self.channel_selection.addItem(item)
             self.channel_selection.setItemWidget(item, it)
 
-            it.color_changed.connect(self.plot.setColor)
-            it.enable_changed.connect(self.plot.setSignalEnable)
-            it.ylink_changed.connect(self.plot.setCommonAxis)
+            it.color_changed.connect(self.plot.set_color)
+            it.enable_changed.connect(self.plot.set_signal_enable)
+            it.ylink_changed.connect(self.plot.set_common_axis)
             it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
             it.enable_changed.emit(sig._index, 1)
@@ -666,7 +674,7 @@ class _Plot(pg.PlotWidget):
                 else:
                     curve.hide()
 
-    def setColor(self, index, color):
+    def set_color(self, index, color):
         _, index = self.signal_by_index(index)
         self.signals[index].color = color
         self.curves[index].setPen(color)
@@ -677,7 +685,7 @@ class _Plot(pg.PlotWidget):
         if index == self.current_index:
             self.axis.setPen(color)
 
-    def setCommonAxis(self, index, state):
+    def set_common_axis(self, index, state):
         viewbox = self.view_boxes[index]
         if state in (QtCore.Qt.Checked, True, 1):
             viewbox.setYRange(*self.common_viewbox.viewRange()[1], padding=0)
@@ -706,7 +714,7 @@ class _Plot(pg.PlotWidget):
             self.axes[index].hide()
             self.signals[index].individual_axis = False
 
-    def setSignalEnable(self, index, state):
+    def set_signal_enable(self, index, state):
 
         _, index = self.signal_by_index(index)
 
@@ -993,12 +1001,46 @@ class _Plot(pg.PlotWidget):
                     self.cursor_removed.emit()
 
             elif key == QtCore.Qt.Key_F:
+                if self.common_axis_items:
+                    if any(
+                        len(self.signals[i].plot_samples)
+                        for i in self.common_axis_items
+                        if self.curves[i].isVisible()
+                    ):
+                        with_common_axis = True
+
+                        common_min = np.nanmin(
+                            [
+                                np.nanmin(self.signals[k].plot_samples)
+                                for k in self.common_axis_items
+                                if len(self.signals[k].plot_samples)
+                            ]
+                        )
+                        common_max = np.nanmax(
+                            [
+                                np.nanmax(self.signals[k].plot_samples)
+                                for k in self.common_axis_items
+                                if len(self.signals[k].plot_samples)
+                            ]
+                        )
+                    else:
+                        with_common_axis = False
+
                 for i, (viewbox, signal) in enumerate(zip(self.view_boxes, self.signals)):
                     if len(signal.plot_samples):
-                        min_, max_ = (
-                            np.nanmin(signal.plot_samples),
-                            np.nanmax(signal.plot_samples),
-                        )
+                        if i in self.common_axis_items:
+                            if with_common_axis:
+                                min_ = common_min
+                                max_ = common_max
+                                with_common_axis = False
+                            else:
+                                continue
+                        else:
+                            min_, max_ = (
+                                np.nanmin(signal.plot_samples),
+                                np.nanmax(signal.plot_samples),
+                            )
+
                         if min_ == -float('inf') and max_ == float('inf'):
                             min_ = 0
                             max_ = 1
@@ -1006,7 +1048,7 @@ class _Plot(pg.PlotWidget):
                             min_ = max_ - 1
                         elif max_ == float('inf'):
                             max_ = min_ + 1
-                        viewbox.setYRange(min_, max_, padding=0)
+                        viewbox.setYRange(min_, max_)
 
                 if self.cursor1:
                     self.cursor_moved.emit()
@@ -1069,24 +1111,65 @@ class _Plot(pg.PlotWidget):
                         mdf.save(file_name, overwrite=True)
 
             elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.NoModifier:
-                count = len(
-                    [
-                        sig
-                        for (sig, curve) in zip(self.signals, self.curves)
-                        if not sig.empty and curve.isVisible()
-                    ]
+                count = sum(
+                    1
+                    for i, (sig, curve) in enumerate(zip(self.signals, self.curves))
+                    if sig.min != 'n.a.' and curve.isVisible() and i not in self.common_axis_items
                 )
+
+                if any(
+                    sig.min != 'n.a.' and curve.isVisible()
+                    for (sig, curve) in zip(self.signals, self.curves)
+                ):
+                    count += 1
+                    with_common_axis = True
+                else:
+                    with_common_axis = False
+
+                total = len(self.signals) - 1
 
                 if count:
                     position = 0
-                    for signal, viewbox, curve in zip(
-                        reversed(self.signals),
-                        reversed(self.view_boxes),
-                        reversed(self.curves),
+                    for i, (signal, viewbox, curve) in enumerate(
+                        zip(
+                            reversed(self.signals),
+                            reversed(self.view_boxes),
+                            reversed(self.curves),
+                        )
                     ):
                         if not signal.empty and curve.isVisible():
-                            min_ = signal.min
-                            max_ = signal.max
+                            if with_common_axis and total - i in self.common_axis_items:
+                                with_common_axis = False
+
+                                min_ = np.nanmin(
+                                    [
+                                        np.nanmin(self.signals[k].plot_samples)
+                                        for k in self.common_axis_items
+                                        if len(self.signals[k].plot_samples) and self.curves[k].isVisible()
+                                    ]
+                                )
+                                max_ = np.nanmax(
+                                    [
+                                        np.nanmax(self.signals[k].plot_samples)
+                                        for k in self.common_axis_items
+                                        if len(self.signals[k].plot_samples) and self.curves[k].isVisible()
+                                    ]
+                                )
+
+                            else:
+                                if total - i in self.common_axis_items:
+                                    continue
+                                min_ = signal.min
+                                max_ = signal.max
+
+                            if min_ == -float('inf') and max_ == float('inf'):
+                                min_ = 0
+                                max_ = 1
+                            elif min_ == -float('inf'):
+                                min_ = max_ - 1
+                            elif max_ == float('inf'):
+                                max_ = min_ + 1
+
                             if min_ == max_:
                                 min_, max_ = min_ - 1, max_ + 1
 
@@ -1101,6 +1184,7 @@ class _Plot(pg.PlotWidget):
                             viewbox.setYRange(min_, max_, padding=0)
 
                             position += 1
+
                 else:
                     xrange, _ = self.viewbox.viewRange()
                     self.viewbox.autoRange(padding=0)
@@ -1175,7 +1259,7 @@ class _Plot(pg.PlotWidget):
                     else:
                         delta = 0
 
-                    self.cursor1.setValue(pos)
+                    self.cursor1.set_value(pos)
 
             elif key == QtCore.Qt.Key_H:
                 start_ts = [
@@ -1194,9 +1278,9 @@ class _Plot(pg.PlotWidget):
                     start_t, stop_t = min(start_ts), max(stop_ts)
 
                     self.viewbox.setXRange(start_t, stop_t)
-#                        self.viewbox.setRange(xRange=[start_t, stop_t], update=False, padding=0, disableAutoRange=False)
-#                        self.viewbox.autoRange(padding=0)
-#                        self.viewbox.disableAutoRange()
+                    event_ = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_F, QtCore.Qt.NoModifier)
+                    self.keyPressEvent(event_)
+
                     if self.cursor1:
                         self.cursor_moved.emit()
 

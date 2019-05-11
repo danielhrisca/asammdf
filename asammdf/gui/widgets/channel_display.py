@@ -85,11 +85,11 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     def select_color(self):
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
         if color.isValid():
-            self.setColor(color.name())
+            self.set_color(color.name())
 
             self.color_changed.emit(self.index, color.name())
 
-    def setFmt(self, fmt):
+    def set_fmt(self, fmt):
         if self.kind in 'fSUV':
             pass
         else:
@@ -100,20 +100,20 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             elif fmt == "phys":
                 self.fmt = "{}"
 
-    def setColor(self, color):
+    def set_color(self, color):
         self.color = color
-        self.setName(self._name)
-        self.setValue(self._value)
+        self.set_name(self._name)
+        self.set_value(self._value)
         self.color_btn.setStyleSheet(f"background-color: {color};")
 
-    def setName(self, text=""):
+    def set_name(self, text=""):
         self.setToolTip(text)
         self._name = text
 
-    def setPrefix(self, text=""):
+    def set_prefix(self, text=""):
         self._value_prefix = text
 
-    def setValue(self, value):
+    def set_value(self, value):
         self._value = value
         if self.ranges and value not in ("", "n.a."):
             for (start, stop), color in self.ranges.items():
