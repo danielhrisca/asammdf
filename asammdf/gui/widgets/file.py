@@ -248,9 +248,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         hbox.addWidget(line)
         self.tabular_btn = QtWidgets.QPushButton("", channel_and_search)
-        self.tabular_btn.setToolTip("Numeric display selected channels")
+        self.tabular_btn.setToolTip("Tabular display selected channels")
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap(":/numeric.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon3.addPixmap(QtGui.QPixmap(":/list.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.tabular_btn.setIcon(icon3)
         self.tabular_btn.setObjectName("tabular_btn")
         hbox.addWidget(self.tabular_btn)
