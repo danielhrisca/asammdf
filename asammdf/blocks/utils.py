@@ -1507,8 +1507,8 @@ def csv_bytearray2hex(val):
     val = val.tobytes().hex().upper()
 
     vals = [
-        val[2*i: 2*i + 2]
-        for i in range(len(val) // 2)
+        val[i: i + 2]
+        for i in range(0, len(val), 2)
     ]
 
     return ' '.join(vals)

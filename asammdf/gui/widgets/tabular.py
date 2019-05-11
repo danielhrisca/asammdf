@@ -84,11 +84,11 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setColumnCount(len(names))
         self.tree.setHeaderLabels(names)
 
-        vals = [df.index.astype(str), *(df[name].astype(str) for name in df)]
+        items = [df.index.astype(str), *(df[name].astype(str) for name in df)]
 
         items = [
             TreeItem(row)
-            for row in zip(*vals)
+            for row in zip(*items)
         ]
 
         self.tree.addTopLevelItems(items)
