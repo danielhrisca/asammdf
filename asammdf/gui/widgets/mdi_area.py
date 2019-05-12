@@ -43,7 +43,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                     None,
                     "Select window type",
                     "Type:",
-                    ["Plot", "Numeric"],
+                    ["Plot", "Numeric", "Tabular"],
                     0,
                     False,
                 )

@@ -1488,7 +1488,7 @@ class _Plot(pg.PlotWidget):
                 sig.plot_texts = None
             else:
                 sig.format = "phys"
-                if sig.samples.dtype.kind in "SV":
+                if sig.samples.dtype.kind in "USV":
                     sig.plot_texts = sig.texts = sig.samples
                     sig.samples = np.zeros(len(sig.samples))
                 else:
@@ -1525,6 +1525,7 @@ class _Plot(pg.PlotWidget):
             sig.color = color
 
             if len(sig.samples):
+                print(sig.name, sig.samples.dtype.kind)
                 sig.min = np.nanmin(sig.samples)
                 sig.max = np.nanmax(sig.samples)
                 sig.avg = np.mean(sig.samples)

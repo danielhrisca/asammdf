@@ -1332,7 +1332,6 @@ class MDF(object):
                                 dropped[name_] = pd.Series(csv_int2hex(df[name_].astype('<u4')), index=df.index)
 
                             elif name_.endswith('CAN_DataFrame.DataBytes'):
-                                print(df[name_])
                                 dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
 
                         df = df.drop(columns=list(dropped))
@@ -2982,8 +2981,6 @@ class MDF(object):
                 if len(sig.samples.shape) > 1:
                     channel_name = used_names.get_unique_name(sig.name)
                     df[channel_name] = pd.Series(list(sig.samples), index=master)
-
-                    print(df[channel_name].dtype)
 
                 # arrays and structures
                 elif sig.samples.dtype.names:

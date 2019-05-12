@@ -1503,7 +1503,6 @@ def csv_bytearray2hex(val):
     b'\xa2\xc3\x08' -> a2 c3 08
 
     """
-
     val = val.tobytes().hex().upper()
 
     vals = [

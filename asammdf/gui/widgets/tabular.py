@@ -86,10 +86,15 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         items = [df.index.astype(str), *(df[name].astype(str) for name in df)]
 
+        del df
+        self.signals = None
+
         items = [
             TreeItem(row)
             for row in zip(*items)
         ]
+
+        self.signals = None
 
         self.tree.addTopLevelItems(items)
 

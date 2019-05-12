@@ -8,6 +8,7 @@ from pathlib import Path
 import psutil
 from natsort import natsorted
 import numpy as np
+import pandas as pd
 import pyqtgraph as pg
 
 from PyQt5 import QtGui
@@ -20,7 +21,7 @@ from ..ui.file_widget import Ui_file_widget
 
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
-from ...blocks.utils import MdfException, extract_cncomment_xml
+from ...blocks.utils import MdfException, extract_cncomment_xml, csv_bytearray2hex
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress
 from .plot import Plot
 from .numeric import Numeric
@@ -43,6 +44,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+        self._settings = QtCore.QSettings()
 
         file_name = Path(file_name)
         self.subplots = subplots
@@ -229,31 +231,13 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         line.setFrameShape(QtWidgets.QFrame.VLine)
         line.setFrameShadow(QtWidgets.QFrame.Sunken)
         hbox.addWidget(line)
-        self.plot_btn = QtWidgets.QPushButton("", channel_and_search)
-        self.plot_btn.setToolTip("Plot selected channels")
+        self.create_window_btn = QtWidgets.QPushButton("", channel_and_search)
+        self.create_window_btn.setToolTip("Create window using the selected channels")
         icon3 = QtGui.QIcon()
         icon3.addPixmap(QtGui.QPixmap(":/graph.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.plot_btn.setIcon(icon3)
-        self.plot_btn.setObjectName("plot_btn")
-        hbox.addWidget(self.plot_btn)
-
-        hbox.addWidget(line)
-        self.numeric_btn = QtWidgets.QPushButton("", channel_and_search)
-        self.numeric_btn.setToolTip("Numeric display selected channels")
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap(":/numeric.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.numeric_btn.setIcon(icon3)
-        self.numeric_btn.setObjectName("numeric_btn")
-        hbox.addWidget(self.numeric_btn)
-
-        hbox.addWidget(line)
-        self.tabular_btn = QtWidgets.QPushButton("", channel_and_search)
-        self.tabular_btn.setToolTip("Tabular display selected channels")
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap(":/list.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.tabular_btn.setIcon(icon3)
-        self.tabular_btn.setObjectName("tabular_btn")
-        hbox.addWidget(self.tabular_btn)
+        self.create_window_btn.setIcon(icon3)
+        self.create_window_btn.setObjectName("create_window_btn")
+        hbox.addWidget(self.create_window_btn)
 
         hbox.addSpacerItem(
             QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -319,7 +303,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             progress.setValue(37 + int(53 * (i + 1) / groups_nr / 2))
 
-        self._update_channel_tree()
+        self.channel_view.setCurrentText(
+            self._settings.value('channels_view', 'Internal file structure')
+        )
 
         self.raster_channel.addItems(channels_db_items)
 
@@ -395,9 +381,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.export_type.setCurrentIndex(-1)
 
         # self.channels_tree.itemChanged.connect(self.select)
-        self.plot_btn.clicked.connect(self.plot_pyqtgraph)
-        self.numeric_btn.clicked.connect(self.numeric_pyqtgraph)
-        self.tabular_btn.clicked.connect(self.tabular_pyqtgraph)
+        self.create_window_btn.clicked.connect(self._create_window)
 
         self.clear_filter_btn.clicked.connect(self.clear_filter)
         self.clear_channels_btn.clicked.connect(self.clear_channels)
@@ -528,6 +512,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 channel_group.addChildren(group_children)
 
                 del group_children
+
+        self._settings.setValue('channels_view', self.channel_view.currentText())
 
     def export_changed(self, name):
         if name == 'parquet':
@@ -1251,23 +1237,35 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
     def add_window(self, args):
         window_type, names = args
-        signals_ = [
-            (None, *self.mdf.whereis(name)[0])
-            for name in names
-            if name in self.mdf
-        ]
-        signals = self.mdf.select(signals_)
+        if isinstance(names[0], str):
+            signals_ = [
+                (None, *self.mdf.whereis(name)[0])
+                for name in names
+                if name in self.mdf
+            ]
+        else:
+            signals_ = names
 
-        for sig, sig_ in zip(signals, signals_):
-            sig.group_index = sig_[1]
+        if window_type == 'Tabular':
+            signals = self.mdf.select(signals_, dataframe=True)
+        else:
 
-        signals = [
-            sig
-            for sig in signals
-            if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
-        ]
+            signals = self.mdf.select(signals_)
 
-        signals = natsorted(signals, key=lambda x: x.name)
+            for sig, sig_ in zip(signals, signals_):
+                sig.group_index = sig_[1]
+
+            signals = [
+                sig
+                for sig in signals
+                if not sig.samples.dtype.names
+            ]
+
+            for signal in signals:
+                if len(signal.samples.shape) > 1:
+                    signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples))).astype(bytes)
+
+            signals = natsorted(signals, key=lambda x: x.name)
 
         if window_type == 'Numeric':
             numeric = Numeric(signals)
@@ -1309,8 +1307,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
 
-        else:
-            plot = Plot([], self.with_dots)
+        elif window_type == 'Plot':
+            plot = Plot([], False)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1330,6 +1328,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             plot.hide()
 
             plot.add_new_channels(signals)
+            plot.plot.update_lines(with_dots=self.with_dots)
 
             plot.show()
 
@@ -1363,6 +1362,44 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 
             self.set_subplots_link(self.subplots_link)
+
+        elif window_type == 'Tabular':
+            numeric = Tabular(signals)
+
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(numeric)
+
+                w.showMaximized()
+            else:
+                w = self.mdi_area.addSubWindow(numeric)
+
+                if len(self.mdi_area.subWindowList()) == 1:
+                    w.showMaximized()
+                else:
+                    w.show()
+                    self.mdi_area.tileSubWindows()
+
+            menu = w.systemMenu()
+
+            def set_title(mdi):
+                name, ok = QtWidgets.QInputDialog.getText(
+                    None,
+                    'Set sub-plot title',
+                    'Title:',
+                )
+                if ok and name:
+                    mdi.setWindowTitle(name)
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_title, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+            w.setSystemMenu(menu)
+
+            w.setWindowTitle(f'Tabular {self._window_counter}')
+            self._window_counter += 1
 
     def load_window(self, window_info):
 
@@ -1651,262 +1688,54 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             self.set_subplots_link(self.subplots_link)
 
-    def plot_pyqtgraph(self, event):
-        try:
-            iter(event)
-            signals = event
-        except:
+    def _create_window(self, event):
 
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+        ret, ok = QtWidgets.QInputDialog.getItem(
+            None,
+            "Select window type",
+            "Type:",
+            ["Plot", "Numeric", "Tabular"],
+            0,
+            False,
+        )
+        if ok:
 
-            signals = []
+            try:
+                iter(event)
+                signals = event
+            except:
 
-            if self.channel_view.currentIndex() == 1:
-                while iterator.value():
-                    item = iterator.value()
-                    if item.parent() is None:
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+
+                signals = []
+
+                if self.channel_view.currentIndex() == 1:
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.parent() is None:
+                            iterator += 1
+                            continue
+
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            group, index = item.entry
+                            ch = self.mdf.groups[group].channels[index]
+                            if not ch.component_addr:
+                                signals.append((None, group, index))
+
                         iterator += 1
-                        continue
+                else:
+                    while iterator.value():
+                        item = iterator.value()
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        group, index = item.entry
-                        ch = self.mdf.groups[group].channels[index]
-                        if not ch.component_addr:
-                            signals.append((None, group, index))
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            group, index = item.entry
+                            ch = self.mdf.groups[group].channels[index]
+                            if not ch.component_addr:
+                                signals.append((None, group, index))
 
-                    iterator += 1
-            else:
-                while iterator.value():
-                    item = iterator.value()
-
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        group, index = item.entry
-                        ch = self.mdf.groups[group].channels[index]
-                        if not ch.component_addr:
-                            signals.append((None, group, index))
-
-                    iterator += 1
-
-            signals = self.mdf.select(signals)
-
-            signals = [
-                sig
-                for sig in signals
-                if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
-            ]
-
-            signals = natsorted(signals, key=lambda x: x.name)
-
-        plot = Plot([], self.with_dots)
-
-        if not self.subplots:
-            for mdi in self.mdi_area.subWindowList():
-                mdi.close()
-            w = self.mdi_area.addSubWindow(plot)
-
-            w.showMaximized()
-        else:
-            w = self.mdi_area.addSubWindow(plot)
-
-            if len(self.mdi_area.subWindowList()) == 1:
-                w.showMaximized()
-
-            else:
-                w.show()
-                self.mdi_area.tileSubWindows()
-
-        plot.hide()
-
-        plot.add_new_channels(signals)
-
-        plot.show()
-
-        w.setWindowTitle(f'Plot {self._window_counter}')
-        self._window_counter += 1
-
-        menu = w.systemMenu()
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(
-                None,
-                'Set sub-plot title',
-                'Title:',
-            )
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtWidgets.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
-        w.setSystemMenu(menu)
-
-        self.set_subplots_link(self.subplots_link)
-
-        plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
-
-    def tabular_pyqtgraph(self, event):
-        try:
-            iter(event)
-            signals = event
-        except:
-
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
-            signals = []
-
-            if self.channel_view.currentIndex() == 1:
-                while iterator.value():
-                    item = iterator.value()
-                    if item.parent() is None:
                         iterator += 1
-                        continue
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        group, index = item.entry
-                        ch = self.mdf.groups[group].channels[index]
-                        if not ch.component_addr:
-                            signals.append((None, group, index))
-
-                    iterator += 1
-            else:
-                while iterator.value():
-                    item = iterator.value()
-
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        group, index = item.entry
-                        ch = self.mdf.groups[group].channels[index]
-                        if not ch.component_addr:
-                            signals.append((None, group, index))
-
-                    iterator += 1
-
-            signals = self.mdf.select(signals, dataframe=True)
-
-        tabular = Tabular(signals)
-
-        if not self.subplots:
-            for mdi in self.mdi_area.subWindowList():
-                mdi.close()
-            w = self.mdi_area.addSubWindow(tabular)
-
-            w.showMaximized()
-        else:
-            w = self.mdi_area.addSubWindow(tabular)
-
-            if len(self.mdi_area.subWindowList()) == 1:
-                w.showMaximized()
-            else:
-                w.show()
-                self.mdi_area.tileSubWindows()
-
-        menu = w.systemMenu()
-        w.setWindowTitle(f'Tabular {self._window_counter}')
-        self._window_counter += 1
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(
-                None,
-                'Set sub-plot title',
-                'Title:',
-            )
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtWidgets.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
-        w.setSystemMenu(menu)
-
-        tabular.add_channels_request.connect(partial(self.add_new_channels, widget=tabular))
-
-    def numeric_pyqtgraph(self, event):
-        try:
-            iter(event)
-            signals = event
-        except:
-
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
-            signals = []
-
-            if self.channel_view.currentIndex() == 1:
-                while iterator.value():
-                    item = iterator.value()
-                    if item.parent() is None:
-                        iterator += 1
-                        continue
-
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        group, index = item.entry
-                        ch = self.mdf.groups[group].channels[index]
-                        if not ch.component_addr:
-                            signals.append((None, group, index))
-
-                    iterator += 1
-            else:
-                while iterator.value():
-                    item = iterator.value()
-
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        group, index = item.entry
-                        ch = self.mdf.groups[group].channels[index]
-                        if not ch.component_addr:
-                            signals.append((None, group, index))
-
-                    iterator += 1
-
-            signals_ = self.mdf.select(signals)
-
-            for sig, s_ in zip(signals_, signals):
-                sig.group_index = s_[1]
-
-            signals = signals_
-
-            signals = [
-                sig
-                for sig in signals
-                if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
-            ]
-
-            signals = natsorted(signals, key=lambda x: x.name)
-
-        numeric = Numeric(signals)
-
-        if not self.subplots:
-            for mdi in self.mdi_area.subWindowList():
-                mdi.close()
-            w = self.mdi_area.addSubWindow(numeric)
-
-            w.showMaximized()
-        else:
-            w = self.mdi_area.addSubWindow(numeric)
-
-            if len(self.mdi_area.subWindowList()) == 1:
-                w.showMaximized()
-            else:
-                w.show()
-                self.mdi_area.tileSubWindows()
-
-        menu = w.systemMenu()
-        w.setWindowTitle(f'Numeric {self._window_counter}')
-        self._window_counter += 1
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(
-                None,
-                'Set sub-plot title',
-                'Title:',
-            )
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtWidgets.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
-        w.setSystemMenu(menu)
-
-        numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
+            self.add_window((ret, signals))
 
     def filter(self, event):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)

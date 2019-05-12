@@ -72,7 +72,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             for name in natsorted(self.signals)
         }
         self.channels.clear()
-        self._min = self._max = 0
+        self._min = float('inf')
+        self._max = -float('inf')
         items = []
         for sig in self.signals.values():
             sig.kind = sig.samples.dtype.kind
@@ -94,6 +95,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 item
             )
         self.channels.addTopLevelItems(items)
+
+        if self._min == float('inf'):
+            self._min = self._max = 0
 
         self.timestamp.setRange(self._min, self._max)
         self.min_t.setText(f'{self._min:.3f}s')
