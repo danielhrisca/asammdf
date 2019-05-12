@@ -1432,6 +1432,7 @@ class MDF(object):
                 groups_nr = len(self.groups)
 
                 for i, grp in enumerate(self.groups):
+                    print(i, len(self.groups))
                     if self._terminate:
                         return
 
@@ -1469,7 +1470,7 @@ class MDF(object):
                         mdict[channel_name] = sig.samples
 
                     if self._callback:
-                        self._callback(i + 1, groups_nr)
+                        self._callback(i + 1, groups_nr + 1)
 
             else:
                 used_names = UniqueDB()
@@ -1488,6 +1489,8 @@ class MDF(object):
 
                 mdict['time'] = df.index.values
 
+            if self._callback:
+                self._callback(80, 100)
             if format == "7.3":
 
                 savemat(
@@ -1506,6 +1509,8 @@ class MDF(object):
                     oned_as=oned_as,
                     do_compression=bool(compression),
                 )
+            if self._callback:
+                self._callback(100, 100)
 
         elif fmt == "parquet":
             filename = filename.with_suffix(".parquet")
@@ -3473,8 +3478,16 @@ class MDF(object):
                 self.get_master(i, copy_master=False)
                 for i, _ in enumerate(self.groups)
             ]
+            masters = [
+                master
+                for master in masters
+                if len(master)
+            ]
             self._master_channel_cache.clear()
-            master = reduce(np.union1d, masters)
+            if masters:
+                master = reduce(np.union1d, masters)
+            else:
+                master = np.array([], dtype='<f4')
 
         df["time"] = pd.Series(master, index=np.arange(len(master)))
 
