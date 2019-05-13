@@ -1432,7 +1432,6 @@ class MDF(object):
                 groups_nr = len(self.groups)
 
                 for i, grp in enumerate(self.groups):
-                    print(i, len(self.groups))
                     if self._terminate:
                         return
 
@@ -1492,8 +1491,6 @@ class MDF(object):
             if self._callback:
                 self._callback(80, 100)
             if format == "7.3":
-                for k,v in mdict.items():
-                    print(k, type(v))
 
                 savemat(
                     str(filename),

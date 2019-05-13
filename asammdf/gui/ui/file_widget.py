@@ -530,10 +530,21 @@ class Ui_file_widget(object):
         spacerItem17 = QtWidgets.QSpacerItem(410, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout_8.addItem(spacerItem17, 2, 2, 1, 1)
         self.aspects.addTab(self.extract_can_tab, icon10, "")
+        self.info_tab = QtWidgets.QWidget()
+        self.info_tab.setObjectName("info_tab")
+        self.gridLayout_9 = QtWidgets.QGridLayout(self.info_tab)
+        self.gridLayout_9.setObjectName("gridLayout_9")
+        self.info = QtWidgets.QTreeWidget(self.info_tab)
+        self.info.setUniformRowHeights(True)
+        self.info.setObjectName("info")
+        self.gridLayout_9.addWidget(self.info, 0, 0, 1, 1)
+        icon12 = QtGui.QIcon()
+        icon12.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.aspects.addTab(self.info_tab, icon12, "")
         self.verticalLayout.addWidget(self.aspects)
 
         self.retranslateUi(file_widget)
-        self.aspects.setCurrentIndex(7)
+        self.aspects.setCurrentIndex(8)
         QtCore.QMetaObject.connectSlotsByName(file_widget)
 
     def retranslateUi(self, file_widget):
@@ -616,6 +627,9 @@ class Ui_file_widget(object):
         self.single_time_base_can.setText(_translate("file_widget", "Single time base"))
         self.label_25.setText(_translate("file_widget", "Empty channels"))
         self.aspects.setTabText(self.aspects.indexOf(self.extract_can_tab), _translate("file_widget", "CAN logging"))
+        self.info.headerItem().setText(0, _translate("file_widget", "Cathegory"))
+        self.info.headerItem().setText(1, _translate("file_widget", "Value"))
+        self.aspects.setTabText(self.aspects.indexOf(self.info_tab), _translate("file_widget", "Info"))
 
 
 from asammdf.gui.widgets.list import ListWidget

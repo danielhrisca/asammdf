@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime
 from functools import partial, reduce
 import json
 from threading import Thread
 from time import sleep
 from pathlib import Path
+import os
 
 import psutil
 from natsort import natsorted
@@ -55,7 +57,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.file_name = file_name
         self.progress = None
         self.mdf = None
-        self.info = None
         self.info_index = None
         self.with_dots = with_dots
 
@@ -379,6 +380,118 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.export_btn.clicked.connect(self.export)
         self.export_type.currentTextChanged.connect(self.export_changed)
         self.export_type.setCurrentIndex(-1)
+
+        # info tab
+        file_stats = os.stat(self.mdf.name)
+        file_info = QtWidgets.QTreeWidgetItem()
+        file_info.setText(0, 'File information')
+
+        self.info.addTopLevelItem(file_info)
+
+        children = []
+
+        item = QtWidgets.QTreeWidgetItem()
+        item.setText(0, 'Path')
+        item.setText(1, str(self.mdf.name))
+        children.append(item)
+
+        item = QtWidgets.QTreeWidgetItem()
+        item.setText(0, 'Size')
+        item.setText(1, f'{file_stats.st_size / 1024 / 1024:.1f} MB')
+        children.append(item)
+
+        date_ = datetime.fromtimestamp(file_stats.st_ctime)
+        item = QtWidgets.QTreeWidgetItem()
+        item.setText(0, 'Created')
+        item.setText(1, date_.strftime('%d-%b-%Y %H-%M-%S'))
+        children.append(item)
+
+        date_ = datetime.fromtimestamp(file_stats.st_mtime)
+        item = QtWidgets.QTreeWidgetItem()
+        item.setText(0, 'Last modified')
+        item.setText(1, date_.strftime('%d-%b-%Y %H:%M:%S'))
+        children.append(item)
+
+        file_info.addChildren(children)
+
+        mdf_info = QtWidgets.QTreeWidgetItem()
+        mdf_info.setText(0, 'MDF information')
+
+        self.info.addTopLevelItem(mdf_info)
+
+        children = []
+
+        item = QtWidgets.QTreeWidgetItem()
+        item.setText(0, 'Version')
+        item.setText(1, self.mdf.version)
+        children.append(item)
+
+        item = QtWidgets.QTreeWidgetItem()
+        item.setText(0, 'Program identification')
+        item.setText(1, self.mdf.identification.program_identification.decode('ascii').strip(' \r\n\t\0'))
+        children.append(item)
+
+        item = QtWidgets.QTreeWidgetItem()
+        item.setText(0, 'Measurement start time')
+        item.setText(1, self.mdf.header.start_time.strftime('%d-%b-%Y %H:%M:%S + %fus UTC'))
+        children.append(item)
+
+        channel_groups = QtWidgets.QTreeWidgetItem()
+        channel_groups.setText(0, 'Channel groups')
+        channel_groups.setText(1, str(len(self.mdf.groups)))
+        children.append(channel_groups)
+
+        channel_groups_children = []
+        for i, group in enumerate(self.mdf.groups):
+            channel_group = group.channel_group
+            if hasattr(channel_group, 'comment'):
+                comment = channel_group.comment
+            else:
+                comment = ''
+            if comment:
+                name = f'Channel group {i} ({comment})'
+            else:
+                name = f'Channel group {i}'
+
+            cycles = channel_group.cycles_nr
+            if self.mdf.version < '4.00':
+                size = channel_group.samples_byte_nr * cycles
+            else:
+                if channel_group.flags & 0x1:
+                    size = channel_group.samples_byte_nr + (channel_group.invalidation_bytes_nr << 32)
+                else:
+                    size = (channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr) * cycles
+
+            channel_group = QtWidgets.QTreeWidgetItem()
+            channel_group.setText(0, name)
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, 'Channels')
+            item.setText(1, f'{len(group.channels)}')
+            channel_group.addChild(item)
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, 'Cycles')
+            item.setText(1, str(cycles))
+            channel_group.addChild(item)
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, 'Raw size')
+            item.setText(1, f'{size / 1024 / 1024:.1f} MB')
+            channel_group.addChild(item)
+
+            channel_groups_children.append(channel_group)
+
+        channel_groups.addChildren(channel_groups_children)
+
+        channels = QtWidgets.QTreeWidgetItem()
+        channels.setText(0, 'Channels')
+        channels.setText(1, str(sum(len(entry) for entry in self.mdf.channels_db.values())))
+        children.append(channels)
+
+        mdf_info.addChildren(children)
+
+        self.info.expandAll()
 
         # self.channels_tree.itemChanged.connect(self.select)
         self.create_window_btn.clicked.connect(self._create_window)

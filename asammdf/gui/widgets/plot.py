@@ -1525,7 +1525,6 @@ class _Plot(pg.PlotWidget):
             sig.color = color
 
             if len(sig.samples):
-                print(sig.name, sig.samples.dtype.kind)
                 sig.min = np.nanmin(sig.samples)
                 sig.max = np.nanmax(sig.samples)
                 sig.avg = np.mean(sig.samples)
