@@ -114,6 +114,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             try:
                 new_df = df.query(' '.join(filters))
             except:
+                new_df.rename(columns=original_names, inplace=True)
                 logger.exception('Failed to apply filter for tabular window')
             else:
                 new_df.rename(columns=original_names, inplace=True)
@@ -121,6 +122,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         else:
             df.rename(columns=original_names, inplace=True)
             self.build(df)
+
+        self.signals.rename(columns=original_names, inplace=True)
 
     def items_deleted(self, names):
         for name in names:
