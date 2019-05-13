@@ -9,7 +9,7 @@ import pandas as pd
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from .tabular_filter import TabularFilter
-from ...blocks.utils import csv_bytearray2hex, csv_int2hex
+from ...blocks.utils import csv_bytearray2hex, csv_int2hex, pandas_query_compatible
 
 
 logger = logging.getLogger("asammdf.gui")
@@ -75,20 +75,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
     def apply_filters(self, event):
         df = self.signals
 
-        def replacer(name):
-
-            for c in '.$[] ':
-                name = name.replace(c, '_')
-            try:
-                exec(f'from pandas import {name}')
-            except ImportError:
-                pass
-            else:
-                name = f'{name}__'
-            return name
-
         friendly_names = {
-            name: replacer(name)
+            name: pandas_query_compatible(name)
             for name in df.columns
         }
 
@@ -113,7 +101,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
             if filters:
                 filters.append(filter.relation.currentText().lower())
-            filters.append(replacer(filter.column.currentText()))
+            filters.append(pandas_query_compatible(filter.column.currentText()))
             filters.append(filter.op.currentText())
             filters.append(str(target))
 
