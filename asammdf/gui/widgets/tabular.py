@@ -20,28 +20,25 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
     def __lt__(self, otherItem):
         column = self.treeWidget().sortColumn()
 
-        if column == 1:
-            val1 = self.text(column)
-            try:
-                val1 = float(val1)
-            except:
-                pass
+        val1 = self.text(column)
+        try:
+            val1 = float(val1)
+        except:
+            pass
 
-            val2 = otherItem.text(column)
-            try:
-                val2 = float(val2)
-            except:
-                pass
+        val2 = otherItem.text(column)
+        try:
+            val2 = float(val2)
+        except:
+            pass
 
-            try:
-                return val1 < val2
-            except:
-                if isinstance(val1, float):
-                    return True
-                else:
-                    return False
-        else:
-            return self.text(column) < otherItem.text(column)
+        try:
+            return val1 < val2
+        except:
+            if isinstance(val1, float):
+                return True
+            else:
+                return False
 
 
 class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
@@ -143,6 +140,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.build()
 
     def build(self, df):
+        self.tree.setSortingEnabled(False)
         self.tree.clear()
 
         dropped = {}
@@ -174,6 +172,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         ]
 
         self.tree.addTopLevelItems(items)
+        self.tree.setSortingEnabled(True)
+        self.tree.header().setSortIndicator(0, QtCore.Qt.AscendingOrder)
 
     def add_new_channels(self, channels):
         for sig in channels:
