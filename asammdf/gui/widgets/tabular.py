@@ -49,26 +49,14 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals, *args, **kwargs):
+    def __init__(self, signals=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        if signals is not None:
-            dropped = {}
 
-            for name_ in signals.columns:
-                if name_.endswith('CAN_DataFrame.ID'):
-                    dropped[name_] = pd.Series(csv_int2hex(signals[name_].astype('<u4')), index=signals.index)
-
-                elif name_.endswith('CAN_DataFrame.DataBytes'):
-                    dropped[name_] = pd.Series(csv_bytearray2hex(signals[name_]), index=signals.index)
-
-            signals = signals.drop(columns=list(dropped))
-            for name, s in dropped.items():
-                signals[name] = s
-
-            self.signals = signals
-        else:
+        if signals is None:
             self.signals = pd.DataFrame()
+        else:
+            self.signals = signals
 
         self.build(self.signals)
 
@@ -141,6 +129,19 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
     def build(self, df):
         self.tree.clear()
+
+        dropped = {}
+
+        for name_ in df.columns:
+            if name_.endswith('CAN_DataFrame.ID'):
+                dropped[name_] = pd.Series(csv_int2hex(df[name_].astype('<u4')), index=df.index)
+
+            elif name_.endswith('CAN_DataFrame.DataBytes'):
+                dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
+
+        df = df.drop(columns=list(dropped))
+        for name, s in dropped.items():
+            df[name] = s
 
         names = [
             df.index.name,
