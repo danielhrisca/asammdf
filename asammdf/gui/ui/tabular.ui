@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>811</width>
-    <height>560</height>
+    <height>636</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout" rowstretch="1,0,0">
+  <layout class="QGridLayout" name="gridLayout_2" rowstretch="5,0,0,0">
    <item row="0" column="0" colspan="3">
     <widget class="QTreeWidget" name="tree">
      <property name="font">
@@ -68,6 +68,51 @@
    </item>
    <item row="2" column="0" colspan="3">
     <widget class="ListWidget" name="filters"/>
+   </item>
+   <item row="3" column="0" colspan="3">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>pandas DataFrame query</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <item row="0" column="0">
+       <widget class="QTextEdit" name="query">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>7</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Lucida Console</family>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color: rgb(186, 186, 186);</string>
+        </property>
+        <property name="readOnly">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
    </item>
   </layout>
  </widget>

@@ -77,11 +77,14 @@ class ListWidget(QtWidgets.QListWidget):
 
     def startDrag(self, supportedActions):
         drag = QtGui.QDrag(self)
-        t = [self.itemWidget(i).text() for i in self.selectedItems()]
-        mimeData = self.model().mimeData(self.selectedIndexes())
-        mimeData.setText(str(t))
-        drag.setMimeData(mimeData)
-        drag.exec(QtCore.Qt.CopyAction)
+        try:
+            t = [self.itemWidget(i).text() for i in self.selectedItems()]
+            mimeData = self.model().mimeData(self.selectedIndexes())
+            mimeData.setText(str(t))
+            drag.setMimeData(mimeData)
+            drag.exec(QtCore.Qt.CopyAction)
+        except:
+            pass
 
     def dragEnterEvent(self, e):
         e.accept()

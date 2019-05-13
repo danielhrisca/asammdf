@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
+from traceback import format_exc
 
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
-from natsort import natsorted
-from numpy import searchsorted
 import pandas as pd
 
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from .tabular_filter import TabularFilter
-from .channel_display import ChannelDisplay
 from ...blocks.utils import csv_bytearray2hex, csv_int2hex
 
 
@@ -64,7 +62,12 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.apply_filters_btn.clicked.connect(self.apply_filters)
 
     def add_filter(self, event):
-        filter_widget = TabularFilter(list(self.signals.columns), self.filters)
+        filter_widget = TabularFilter(
+            [
+                (name, self.signals[name].values.dtype.kind)
+                for name in self.signals.columns
+            ]
+        )
 
         item = QtWidgets.QListWidgetItem(self.filters)
         item.setSizeHint(filter_widget.sizeHint())
@@ -100,7 +103,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             if filter.enabled.checkState() == QtCore.Qt.Unchecked:
                 continue
 
-            target = filter.target.text().strip()
+            target = filter._target
             if not target:
                 continue
 
@@ -108,7 +111,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 filters.append(filter.relation.currentText().lower())
             filters.append(replacer(filter.column.currentText()))
             filters.append(filter.op.currentText())
-            filters.append(target)
+            filters.append(str(target))
 
         if filters:
             try:
@@ -116,7 +119,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             except:
                 new_df.rename(columns=original_names, inplace=True)
                 logger.exception('Failed to apply filter for tabular window')
+                self.query.setText(format_exc())
             else:
+                self.query.setText(' '.join(filters))
                 new_df.rename(columns=original_names, inplace=True)
                 self.build(new_df)
         else:
