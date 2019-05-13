@@ -30,6 +30,11 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
         self.op.addItems(['>', '>=', '<', '<=', '==', '!='])
 
         self.target.editingFinished.connect(self.validate_target)
+        self.column.currentIndexChanged.connect(self.column_changed)
+
+    def column_changed(self, index):
+        self.target.setText('')
+        self._target = None
 
     def validate_target(self):
         idx = self.column.currentIndex()
@@ -37,20 +42,10 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
         kind = self.dtype_kind[idx]
         target = self.target.text().strip()
 
-        if kind in 'ui':
-            if target.startswith('0x'):
-                try:
-                    self._target = int(target, 16)
-                except:
-                    QtWidgets.QMessageBox.warning(
-                        None,
-                        "Wrong target value",
-                        f'{column_name} requires an integer target value',
-                    )
-            else:
-                try:
-                    self._target = int(target)
-                except:
+        if target:
+
+            if kind in 'ui':
+                if target.startswith('0x'):
                     try:
                         self._target = int(target, 16)
                     except:
@@ -59,12 +54,25 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                             "Wrong target value",
                             f'{column_name} requires an integer target value',
                         )
-        elif kind == 'f':
-            try:
-                self._target = float(target)
-            except:
-                QtWidgets.QMessageBox.warning(
-                    None,
-                    "Wrong target value",
-                    f'{column_name} requires a float target value',
-                )
+                else:
+                    try:
+                        self._target = int(target)
+                    except:
+                        try:
+                            self._target = int(target, 16)
+                            self.target.setText(f'0x{self._target:X}')
+                        except:
+                            QtWidgets.QMessageBox.warning(
+                                None,
+                                "Wrong target value",
+                                f'{column_name} requires an integer target value',
+                            )
+            elif kind == 'f':
+                try:
+                    self._target = float(target)
+                except:
+                    QtWidgets.QMessageBox.warning(
+                        None,
+                        "Wrong target value",
+                        f'{column_name} requires a float target value',
+                    )

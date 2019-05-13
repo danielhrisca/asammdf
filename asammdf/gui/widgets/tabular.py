@@ -81,6 +81,12 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
             for c in '.$[] ':
                 name = name.replace(c, '_')
+            try:
+                exec(f'from pandas import {name}')
+            except ImportError:
+                pass
+            else:
+                name = f'{name}__'
             return name
 
         friendly_names = {
@@ -115,16 +121,17 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         if filters:
             try:
-                new_df = df.query(' '.join(filters))
+                new_df = df.query(' '.join(filters), engine='python')
             except:
-                new_df.rename(columns=original_names, inplace=True)
-                logger.exception('Failed to apply filter for tabular window')
+                print(df['Timestamp'])
+                logger.exception(f'Failed to apply filter for tabular window: {" ".join(filters)}')
                 self.query.setText(format_exc())
             else:
                 self.query.setText(' '.join(filters))
                 new_df.rename(columns=original_names, inplace=True)
                 self.build(new_df)
         else:
+            self.query.setText('')
             df.rename(columns=original_names, inplace=True)
             self.build(df)
 
