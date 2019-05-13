@@ -121,9 +121,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         if filters:
             try:
-                new_df = df.query(' '.join(filters), engine='python')
+                new_df = df.query(' '.join(filters))
             except:
-                print(df['Timestamp'])
                 logger.exception(f'Failed to apply filter for tabular window: {" ".join(filters)}')
                 self.query.setText(format_exc())
             else:
