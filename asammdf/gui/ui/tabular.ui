@@ -13,8 +13,8 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
+  <layout class="QGridLayout" name="gridLayout" rowstretch="1,0,0">
+   <item row="0" column="0" colspan="3">
     <widget class="QTreeWidget" name="tree">
      <property name="font">
       <font>
@@ -31,8 +31,55 @@
      </column>
     </widget>
    </item>
+   <item row="1" column="0">
+    <widget class="QPushButton" name="add_filter_btn">
+     <property name="text">
+      <string>Add new filter</string>
+     </property>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>579</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="1" column="2">
+    <widget class="QPushButton" name="apply_filters_btn">
+     <property name="text">
+      <string>Apply filters</string>
+     </property>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0" colspan="3">
+    <widget class="ListWidget" name="filters"/>
+   </item>
   </layout>
  </widget>
- <resources/>
+ <customwidgets>
+  <customwidget>
+   <class>ListWidget</class>
+   <extends>QListWidget</extends>
+   <header>asammdf/gui/widgets/list.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="resource.qrc"/>
+ </resources>
  <connections/>
 </ui>

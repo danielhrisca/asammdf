@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
@@ -8,7 +9,12 @@ import pandas as pd
 
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
+from .tabular_filter import TabularFilter
+from .channel_display import ChannelDisplay
 from ...blocks.utils import csv_bytearray2hex, csv_int2hex
+
+
+logger = logging.getLogger("asammdf.gui")
 
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
@@ -64,17 +70,77 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         else:
             self.signals = pd.DataFrame()
 
-        self.build()
+        self.build(self.signals)
+
+        self.add_filter_btn.clicked.connect(self.add_filter)
+        self.apply_filters_btn.clicked.connect(self.apply_filters)
+
+    def add_filter(self, event):
+        filter_widget = TabularFilter(list(self.signals.columns), self.filters)
+
+        item = QtWidgets.QListWidgetItem(self.filters)
+        item.setSizeHint(filter_widget.sizeHint())
+        self.filters.addItem(item)
+        self.filters.setItemWidget(item, filter_widget)
+
+    def apply_filters(self, event):
+        df = self.signals
+
+        def replacer(name):
+
+            for c in '.$[] ':
+                name = name.replace(c, '_')
+            return name
+
+        friendly_names = {
+            name: replacer(name)
+            for name in df.columns
+        }
+
+        original_names = {
+            val: key
+            for key, val in friendly_names.items()
+        }
+
+        df.rename(columns=friendly_names, inplace=True)
+
+        filters = []
+        count = self.filters.count()
+
+        for i in range(count):
+            filter = self.filters.itemWidget(self.filters.item(i))
+            if filter.enabled.checkState() == QtCore.Qt.Unchecked:
+                continue
+
+            target = filter.target.text().strip()
+            if not target:
+                continue
+
+            if filters:
+                filters.append(filter.relation.currentText().lower())
+            filters.append(replacer(filter.column.currentText()))
+            filters.append(filter.op.currentText())
+            filters.append(target)
+
+        if filters:
+            try:
+                new_df = df.query(' '.join(filters))
+            except:
+                logger.exception('Failed to apply filter for tabular window')
+            else:
+                new_df.rename(columns=original_names, inplace=True)
+                self.build(new_df)
+        else:
+            df.rename(columns=original_names, inplace=True)
+            self.build(df)
 
     def items_deleted(self, names):
         for name in names:
             self.signals.pop(name)
         self.build()
 
-    def build(self):
+    def build(self, df):
         self.tree.clear()
-
-        df = self.signals
 
         names = [
             df.index.name,
@@ -86,15 +152,10 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         items = [df.index.astype(str), *(df[name].astype(str) for name in df)]
 
-        del df
-        self.signals = None
-
         items = [
             TreeItem(row)
             for row in zip(*items)
         ]
-
-        self.signals = None
 
         self.tree.addTopLevelItems(items)
 

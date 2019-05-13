@@ -1492,6 +1492,8 @@ class MDF(object):
             if self._callback:
                 self._callback(80, 100)
             if format == "7.3":
+                for k,v in mdict.items():
+                    print(k, type(v))
 
                 savemat(
                     str(filename),
@@ -1500,6 +1502,7 @@ class MDF(object):
                     format="7.3",
                     delete_unused_variables=False,
                     oned_as=oned_as,
+                    structured_numpy_ndarray_as_struct=True,
                 )
             else:
                 savemat(
