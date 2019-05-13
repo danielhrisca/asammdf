@@ -63,6 +63,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
     def add_filter(self, event):
         filter_widget = TabularFilter(
+            [(self.signals.index.name, self.signals.index.values.dtype.kind)] +
             [
                 (name, self.signals[name].values.dtype.kind)
                 for name in self.signals.columns
