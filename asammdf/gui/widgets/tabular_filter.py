@@ -10,6 +10,7 @@ from ..ui.tabular_filter import Ui_TabularFilter
 class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
 
     def __init__(self, signals, *args, **kwargs):
+        print(signals)
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 

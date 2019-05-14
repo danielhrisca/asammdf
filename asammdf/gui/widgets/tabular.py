@@ -5,6 +5,7 @@ from traceback import format_exc
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 import pandas as pd
+import numpy as np
 
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
@@ -113,9 +114,30 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
             if filters:
                 filters.append(filter.relation.currentText().lower())
-            filters.append(pandas_query_compatible(filter.column.currentText()))
-            filters.append(filter.op.currentText())
-            filters.append(str(target))
+
+            column_name = pandas_query_compatible(filter.column.currentText())
+            op = filter.op.currentText()
+
+            if target != target:
+                # here we have NaN
+                nan = np.nan
+
+                if op in ('>', '>=', '<', '<='):
+                    filters.append(column_name)
+                    filters.append(op)
+                    filters.append('@nan')
+                elif op == '!=':
+                    filters.append(column_name)
+                    filters.append('==')
+                    filters.append(column_name)
+                elif op == '==':
+                    filters.append(column_name)
+                    filters.append('!=')
+                    filters.append(column_name)
+            else:
+                filters.append(column_name)
+                filters.append(op)
+                filters.append(str(target))
 
         if filters:
             try:
