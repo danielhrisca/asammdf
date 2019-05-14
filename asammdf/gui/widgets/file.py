@@ -834,8 +834,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     }
                     if isinstance(wid, Numeric):
                         window_config['type'] = 'Numeric'
-                    else:
+                    elif isinstance(wid, Plot):
                         window_config['type'] = 'Plot'
+                    else:
+                        window_config['type'] = 'Tabular'
                     windows.append(window_config)
 
                 config['windows'] = windows

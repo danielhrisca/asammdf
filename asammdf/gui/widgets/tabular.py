@@ -178,18 +178,16 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
     def to_config(self):
 
-        channels = []
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.channels)
-        while 1:
-            item = iterator.value()
-            if not item:
-                break
-            channels.append(item.text(0))
-            iterator += 1
+        count = self.filters.count()
 
         config = {
-            'format': self.format,
-            'channels': channels,
+            'sorted': self.sort.checkState() == QtCore.Qt.Checked,
+            'channels': list(self.signals.columns),
+            'filtered': bool(self.query.toPlainText()),
+            'filters': [
+                self.filters.itemWidget(self.filters.item(i)).to_config()
+                for i in range(count)
+            ]
         }
 
         return config

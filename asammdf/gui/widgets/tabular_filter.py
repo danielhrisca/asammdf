@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtWidgets
-from natsort import natsorted
+from PyQt5 import QtCore
 
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular_filter import Ui_TabularFilter
@@ -99,3 +99,14 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                     elif self._target.strip('"') != target:
                         self._target = f'"{target}"'
                         self.target.setText(target)
+
+    def to_config(self):
+        info = {
+            'enabled': self.enabled.checkState() == QtCore.Qt.Checked,
+            'relation': self.relation.currentText(),
+            'column': self.column.currentText(),
+            'op': self.op.currentText(),
+            'target': str(self._target),
+        }
+
+        return info
