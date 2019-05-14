@@ -190,5 +190,6 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         if state == QtCore.Qt.Checked:
             self.tree.setSortingEnabled(True)
         else:
+            self.tree.header().setSortIndicator(0, QtCore.Qt.AscendingOrder)
             self.tree.setSortingEnabled(False)
 
