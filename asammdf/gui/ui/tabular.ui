@@ -13,64 +13,21 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_2" rowstretch="5,0,0,0">
-   <item row="0" column="0" colspan="3">
-    <widget class="QTreeWidget" name="tree">
-     <property name="font">
-      <font>
-       <family>Lucida Console</family>
-      </font>
+  <layout class="QGridLayout" name="gridLayout_2" rowstretch="5,0,2,1" columnstretch="0,0,0,0,1,0">
+   <item row="3" column="0" colspan="6">
+    <widget class="QGroupBox" name="groupBox">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
      </property>
-     <property name="uniformRowHeights">
-      <bool>true</bool>
-     </property>
-     <column>
-      <property name="text">
-       <string notr="true">1</string>
-      </property>
-     </column>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QPushButton" name="add_filter_btn">
-     <property name="text">
-      <string>Add new filter</string>
-     </property>
-     <property name="icon">
-      <iconset resource="resource.qrc">
-       <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <spacer name="horizontalSpacer">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
+     <property name="minimumSize">
       <size>
-       <width>579</width>
-       <height>20</height>
+       <width>0</width>
+       <height>30</height>
       </size>
      </property>
-    </spacer>
-   </item>
-   <item row="1" column="2">
-    <widget class="QPushButton" name="apply_filters_btn">
-     <property name="text">
-      <string>Apply filters</string>
-     </property>
-     <property name="icon">
-      <iconset resource="resource.qrc">
-       <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0" colspan="3">
-    <widget class="ListWidget" name="filters"/>
-   </item>
-   <item row="3" column="0" colspan="3">
-    <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>pandas DataFrame query</string>
      </property>
@@ -92,6 +49,12 @@
       </property>
       <item row="0" column="0">
        <widget class="QTextEdit" name="query">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <property name="minimumSize">
          <size>
           <width>0</width>
@@ -113,6 +76,81 @@
       </item>
      </layout>
     </widget>
+   </item>
+   <item row="0" column="0" colspan="6">
+    <widget class="QTreeWidget" name="tree">
+     <property name="font">
+      <font>
+       <family>Lucida Console</family>
+      </font>
+     </property>
+     <property name="uniformRowHeights">
+      <bool>true</bool>
+     </property>
+     <column>
+      <property name="text">
+       <string notr="true">1</string>
+      </property>
+     </column>
+    </widget>
+   </item>
+   <item row="1" column="3">
+    <widget class="QPushButton" name="apply_filters_btn">
+     <property name="text">
+      <string>Apply filters</string>
+     </property>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="5">
+    <widget class="QCheckBox" name="sort">
+     <property name="text">
+      <string>Enable column sorting</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0" colspan="6">
+    <widget class="ListWidget" name="filters"/>
+   </item>
+   <item row="1" column="0">
+    <widget class="QPushButton" name="add_filter_btn">
+     <property name="text">
+      <string>Add new filter</string>
+     </property>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="1" column="4">
+    <spacer name="horizontalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>200</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
    </item>
   </layout>
  </widget>

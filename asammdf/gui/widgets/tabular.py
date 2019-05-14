@@ -57,6 +57,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.add_filter_btn.clicked.connect(self.add_filter)
         self.apply_filters_btn.clicked.connect(self.apply_filters)
+        self.sort.stateChanged.connect(self.sorting_changed)
 
     def add_filter(self, event):
         filter_widget = TabularFilter(
@@ -160,8 +161,6 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         ]
 
         self.tree.addTopLevelItems(items)
-        self.tree.setSortingEnabled(True)
-        self.tree.header().setSortIndicator(0, QtCore.Qt.AscendingOrder)
 
     def add_new_channels(self, channels):
         for sig in channels:
@@ -186,3 +185,10 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         }
 
         return config
+
+    def sorting_changed(self, state):
+        if state == QtCore.Qt.Checked:
+            self.tree.setSortingEnabled(True)
+        else:
+            self.tree.setSortingEnabled(False)
+
