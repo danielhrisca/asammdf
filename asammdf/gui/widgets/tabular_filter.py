@@ -86,4 +86,16 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                         f'{column_name} requires a correct hexstring',
                     )
                 else:
-                    self._target = f'"{target.upper()}"'
+                    target = target.strip().replace(' ', '')
+                    target = [
+                        target[i: i + 2]
+                        for i in range(0, len(target), 2)
+                    ]
+
+                    target = ' '.join(target).upper()
+                    if self._target is None:
+                        self._target = f'"{target}"'
+                        self.target.setText(target)
+                    elif self._target.strip('"') != target:
+                        self._target = f'"{target}"'
+                        self.target.setText(target)
