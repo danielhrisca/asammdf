@@ -51,6 +51,17 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         if signals is None:
             self.signals = pd.DataFrame()
         else:
+            dropped = {}
+
+            for name_ in signals.columns:
+                col = signals[name_]
+                if col.dtype.kind == 'O':
+                    dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
+
+            signals = signals.drop(columns=list(dropped))
+            for name, s in dropped.items():
+                signals[name] = s
+
             self.signals = signals
 
         self.build(self.signals)
@@ -137,9 +148,6 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         for name_ in df.columns:
             if name_.endswith('CAN_DataFrame.ID'):
                 dropped[name_] = pd.Series(csv_int2hex(df[name_].astype('<u4')), index=df.index)
-
-            elif name_.endswith('CAN_DataFrame.DataBytes'):
-                dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
 
         df = df.drop(columns=list(dropped))
         for name, s in dropped.items():

@@ -76,3 +76,14 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                         "Wrong target value",
                         f'{column_name} requires a float target value',
                     )
+            elif kind == 'O':
+                try:
+                    bytes.fromhex(target.replace(' ', ''))
+                except:
+                    QtWidgets.QMessageBox.warning(
+                        None,
+                        "Wrong target value",
+                        f'{column_name} requires a correct hexstring',
+                    )
+                else:
+                    self._target = f'"{target.upper()}"'
