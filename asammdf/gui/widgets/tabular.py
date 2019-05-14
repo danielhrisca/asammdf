@@ -6,6 +6,7 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 import pandas as pd
 import numpy as np
+import numpy.core.defchararray as npchar
 
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
@@ -49,6 +50,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.signals_descr = {}
+
         if signals is None:
             self.signals = pd.DataFrame()
         else:
@@ -58,6 +61,15 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 col = signals[name_]
                 if col.dtype.kind == 'O':
                     dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
+                    self.signals_descr[name_] = 1
+                elif col.dtype.kind == 'S':
+                    try:
+                        dropped[name_] = pd.Series(npchar.decode(col, 'utf-8'), index=signals.index)
+                    except:
+                        dropped[name_] = pd.Series(npchar.decode(col, 'latin-1'), index=signals.index)
+                    self.signals_descr[name_] = 0
+                else:
+                    self.signals_descr[name_] = 0
 
             signals = signals.drop(columns=list(dropped))
             for name, s in dropped.items():
@@ -73,9 +85,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
     def add_filter(self, event=None):
         filter_widget = TabularFilter(
-            [(self.signals.index.name, self.signals.index.values.dtype.kind)] +
+            [(self.signals.index.name, self.signals.index.values.dtype.kind, 0)] +
             [
-                (name, self.signals[name].values.dtype.kind)
+                (name, self.signals[name].values.dtype.kind, self.signals_descr[name])
                 for name in self.signals.columns
             ]
         )
@@ -146,6 +158,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 logger.exception(f'Failed to apply filter for tabular window: {" ".join(filters)}')
                 self.query.setText(format_exc())
             else:
+
                 self.query.setText(' '.join(filters))
                 new_df.rename(columns=original_names, inplace=True)
                 self.build(new_df)
@@ -183,7 +196,21 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setColumnCount(len(names))
         self.tree.setHeaderLabels(names)
 
-        items = [df.index.astype(str), *(df[name].astype(str) for name in df)]
+        items = [df.index.astype(str),]
+
+        for name in df:
+            column = df[name]
+            kind = column.dtype.kind
+
+            if kind in 'uif':
+                items.append(column.astype(str))
+            elif kind == 'S':
+                try:
+                    items.append(npchar.decode(column, 'utf-8'))
+                except:
+                    items.append(npchar.decode(column, 'latin-1'))
+            else:
+                items.append(column)
 
         items = [
             TreeItem(row)

@@ -10,7 +10,6 @@ from ..ui.tabular_filter import Ui_TabularFilter
 class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
 
     def __init__(self, signals, *args, **kwargs):
-        print(signals)
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -23,6 +22,11 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
 
         self.dtype_kind = [
             item[1]
+            for item in signals
+        ]
+
+        self.is_bytearray = [
+            item[2]
             for item in signals
         ]
 
@@ -78,28 +82,36 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                         f'{column_name} requires a float target value',
                     )
             elif kind == 'O':
-                try:
-                    bytes.fromhex(target.replace(' ', ''))
-                except:
-                    QtWidgets.QMessageBox.warning(
-                        None,
-                        "Wrong target value",
-                        f'{column_name} requires a correct hexstring',
-                    )
-                else:
-                    target = target.strip().replace(' ', '')
-                    target = [
-                        target[i: i + 2]
-                        for i in range(0, len(target), 2)
-                    ]
+                is_bytearray  = self.is_bytearray[idx]
+                if is_bytearray:
+                    try:
+                        bytes.fromhex(target.replace(' ', ''))
+                    except:
+                        QtWidgets.QMessageBox.warning(
+                            None,
+                            "Wrong target value",
+                            f'{column_name} requires a correct hexstring',
+                        )
+                    else:
+                        target = target.strip().replace(' ', '')
+                        target = [
+                            target[i: i + 2]
+                            for i in range(0, len(target), 2)
+                        ]
 
-                    target = ' '.join(target).upper()
-                    if self._target is None:
-                        self._target = f'"{target}"'
-                        self.target.setText(target)
-                    elif self._target.strip('"') != target:
-                        self._target = f'"{target}"'
-                        self.target.setText(target)
+                        target = ' '.join(target).upper()
+                        if self._target is None:
+                            self._target = f'"{target}"'
+                            self.target.setText(target)
+                        elif self._target.strip('"') != target:
+                            self._target = f'"{target}"'
+                            self.target.setText(target)
+                else:
+                    self._target = f'"{target}"'
+            elif kind == 'S':
+                self._target = f'b"{target}"'
+            elif kind == 'U':
+                self._target = f'"{target}"'
 
     def to_config(self):
         info = {
