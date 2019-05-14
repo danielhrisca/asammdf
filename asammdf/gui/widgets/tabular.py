@@ -70,7 +70,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.apply_filters_btn.clicked.connect(self.apply_filters)
         self.sort.stateChanged.connect(self.sorting_changed)
 
-    def add_filter(self, event):
+    def add_filter(self, event=None):
         filter_widget = TabularFilter(
             [(self.signals.index.name, self.signals.index.values.dtype.kind)] +
             [
@@ -84,7 +84,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.filters.addItem(item)
         self.filters.setItemWidget(item, filter_widget)
 
-    def apply_filters(self, event):
+    def apply_filters(self, event=None):
         df = self.signals
 
         friendly_names = {

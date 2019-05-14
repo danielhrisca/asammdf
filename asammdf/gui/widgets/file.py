@@ -1583,7 +1583,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             w.setSystemMenu(menu)
 
             numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
-        else:
+        elif window_info['type'] == 'Numeric':
             measured_signals = [
                 (None, *self.mdf.whereis(channel['name'])[0])
                 for channel in window_info['configuration']['channels']
@@ -1802,6 +1802,79 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 )
 
             self.set_subplots_link(self.subplots_link)
+
+        elif window_info['type'] == 'Tabular':
+
+            signals_ = [
+                (None, *self.mdf.whereis(name)[0])
+                for name in window_info['configuration']['channels']
+                if name in self.mdf
+            ]
+            signals = self.mdf.select(signals_, dataframe=True)
+
+            tabular = Tabular(signals)
+
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(tabular)
+
+                w.showMaximized()
+            else:
+                w = self.mdi_area.addSubWindow(tabular)
+
+                if len(self.mdi_area.subWindowList()) == 1:
+                    w.showMaximized()
+                else:
+                    w.show()
+                    self.mdi_area.tileSubWindows()
+
+            if window_info['title']:
+                w.setWindowTitle(window_info['title'])
+            else:
+                w.setWindowTitle(f'Tabular {self._window_counter}')
+                self._window_counter += 1
+
+            filter_count = 0
+            available_columns = [signals.index.name,] + list(signals.columns)
+            for filter_info in window_info['configuration']['filters']:
+                if filter_info['column'] in available_columns:
+                    tabular.add_filter()
+                    filter = tabular.filters.itemWidget(tabular.filters.item(filter_count))
+                    filter.enabled.setCheckState(
+                        QtCore.Qt.Checked if filter_info['enabled'] else QtCore.Qt.Unchecked
+                    )
+                    filter.relation.setCurrentText(filter_info['relation'])
+                    filter.column.setCurrentText(filter_info['column'])
+                    filter.op.setCurrentText(filter_info['op'])
+                    filter.target.setText(str(filter_info['target']))
+                    filter.validate_target()
+
+                    filter_count += 1
+
+            if filter_count and window_info['configuration']['filtered']:
+                tabular.apply_filters()
+
+            tabular.sort.setCheckState(
+                QtCore.Qt.Checked if window_info['configuration']['sorted'] else QtCore.Qt.Unchecked
+            )
+
+            menu = w.systemMenu()
+
+            def set_title(mdi):
+                name, ok = QtWidgets.QInputDialog.getText(
+                    None,
+                    'Set sub-plot title',
+                    'Title:',
+                )
+                if ok and name:
+                    mdi.setWindowTitle(name)
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_title, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+            w.setSystemMenu(menu)
 
     def _create_window(self, event):
 
