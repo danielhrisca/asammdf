@@ -847,11 +847,6 @@ class MDF4(object):
                             logger.warning(message)
                     else:
                         grp.raw_can = True
-                        message = (
-                            f"Unable to get CAN message information "
-                            f"since channel group @{hex(channel_group.address)} has no metadata"
-                        )
-                        logger.warning(message)
 
             else:
                 try:
