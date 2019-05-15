@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 import logging
 from traceback import format_exc
 
@@ -15,6 +16,7 @@ from ...blocks.utils import csv_bytearray2hex, csv_int2hex, pandas_query_compati
 
 
 logger = logging.getLogger("asammdf.gui")
+LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
 
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
@@ -152,10 +154,14 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     filters.append(column_name)
             else:
                 if column_name == df.index.name and df.index.dtype.kind == 'M':
-                    Timestamp = pd.Timestamp
+
+                    ts = pd.Timestamp(target, tz=LOCAL_TIMEZONE)
+                    ts = ts.tz_convert('UTC').to_datetime64()
+
                     filters.append(column_name)
                     filters.append(op)
-                    filters.append(f'@Timestamp("{target}")')
+                    filters.append('@ts')
+
                 else:
                     filters.append(column_name)
                     filters.append(op)
@@ -163,6 +169,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         if filters:
             try:
+                print(df.index.values[0], ts)
                 new_df = df.query(' '.join(filters))
             except:
                 logger.exception(f'Failed to apply filter for tabular window: {" ".join(filters)}')
@@ -206,7 +213,11 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setColumnCount(len(names))
         self.tree.setHeaderLabels(names)
 
-        items = [df.index.astype(str),]
+        if df.index.dtype.kind == 'M':
+            index = df.index.tz_localize('UTC').tz_convert(LOCAL_TIMEZONE)
+        else:
+            index = df.index
+        items = [index.astype(str),]
 
         for name in df:
             column = df[name]
@@ -267,7 +278,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 filter.dtype_kind[0] = 'M'
                 filter._target = None
                 filter.validate_target()
-            self.signals.index = pd.to_datetime(self.signals.index + self.start, unit='s')
+            index = pd.to_datetime(self.signals.index + self.start, unit='s')
+
+            self.signals.index = index
         else:
             for i in range(count):
                 filter = self.filters.itemWidget(self.filters.item(i))
